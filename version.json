@@ -1,8 +1,22 @@
 {
-  "latest_version": "0.9.3",
+  "latest_version": "0.9.4",
   "release_url": "https://github.com/cparfait/lmustatsviewer/releases/latest",
-  "download_url": "https://github.com/cparfait/lmustatsviewer/releases/download/v0.9.3/SETUP-LSV-0-9-3.exe",
+  "download_url": "https://github.com/cparfait/lmustatsviewer/releases/download/v0.9.4/SETUP-LSV-0-9-4.exe",
   "changelog": {
+    "0.9.4": {
+      "date": "2026-04-02",
+      "notes": [
+        "Add: Genesis GMR-001 logo",
+        "Add: Duqueine D09 P3 logo",
+        "Add: Barcelona-Catalunya flag",
+        "Add: Paul Ricard circuit layouts",
+        "Add: Silverstone circuit layouts",
+        "Add: Automatic update download & install from the update page",
+        "Add: Launcher auto-start at Windows boot (InnoSetup option)",
+        "Improved: Single source of truth for version (version.txt)",
+        "Improved: InnoSetup script (AppId, support URLs, installer icon)"
+      ]
+    },
     "0.9.3": {
       "date": "2025-09-23",
       "notes": [

@@ -343,6 +343,13 @@ $lang = [
     'changelog_not_available' => 'Le journal des modifications n\'est pas disponible.',
     'translate_button' => 'Traduire',
     'update_available_short' => 'MàJ disponible',
+    'update_download_direct' => '⬇️ Télécharger l\'installeur',
+    'update_release_notes'   => 'Notes de version sur GitHub',
+    'update_install_title'   => 'Comment mettre à jour ?',
+    'update_step1'           => 'Cliquez sur <strong>Télécharger l\'installeur</strong> ci-dessus.',
+    'update_step2'           => 'Attendez la fin du téléchargement dans votre navigateur.',
+    'update_step3'           => 'Quittez LMU Stats Viewer via l\'icône dans la barre système <em>(clic droit → Quitter)</em>.',
+    'update_step4'           => 'Lancez le fichier téléchargé <code>SETUP-LSV-x-x-x.exe</code> et suivez l\'installeur.',
     'form_group_default_version' => 'Filtre "Depuis la version" par défaut',
     'help_text_default_version' => '💡 Définit la valeur par défaut du filtre de version de LMU sur la page principale.',
 

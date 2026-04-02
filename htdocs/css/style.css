@@ -1101,6 +1101,30 @@ h2.classification-title {
     display: flex;
     justify-content: center;
     gap: 15px;
+    flex-wrap: wrap;
+}
+
+.update-install-steps {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px 28px;
+    margin-bottom: 30px;
+}
+
+.update-install-steps h3 {
+    margin: 0 0 14px 0;
+    font-size: 1.1em;
+}
+
+.update-install-steps ol {
+    margin: 0;
+    padding-left: 22px;
+}
+
+.update-install-steps li {
+    margin-bottom: 10px;
+    line-height: 1.6;
 }
 
 .changelog-header {

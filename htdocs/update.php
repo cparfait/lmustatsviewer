@@ -51,11 +51,26 @@ $fetch_error = !$update_info;
                 </div>
             </div>
 
-            <div class="update-actions" style="margin-bottom: 30px;">
-                <a href="<?php echo htmlspecialchars($update_info['release_url']); ?>" target="_blank" class="btn btn-primary">
-                    <?php echo $lang['update_download_button'] ?? 'Télécharger la mise à jour'; ?>
+            <div class="update-actions" style="margin-bottom: 20px;">
+                <?php if (!empty($update_info['download_url'])): ?>
+                <a href="<?php echo htmlspecialchars($update_info['download_url']); ?>" class="btn btn-primary" download>
+                    <?php echo $lang['update_download_direct'] ?? '⬇️ Télécharger l\'installeur'; ?>
+                </a>
+                <?php endif; ?>
+                <a href="<?php echo htmlspecialchars($update_info['release_url']); ?>" target="_blank" class="btn btn-secondary">
+                    <?php echo $lang['update_release_notes'] ?? 'Notes de version sur GitHub'; ?>
                 </a>
                 <a href="index.php" class="btn btn-secondary"><?php echo $lang['btn_return'] ?? 'Retour'; ?></a>
+            </div>
+
+            <div class="update-install-steps">
+                <h3>📋 <?php echo $lang['update_install_title'] ?? 'Comment mettre à jour ?'; ?></h3>
+                <ol>
+                    <li><?php echo $lang['update_step1'] ?? 'Cliquez sur Télécharger l\'installeur ci-dessus.'; ?></li>
+                    <li><?php echo $lang['update_step2'] ?? 'Attendez la fin du téléchargement dans votre navigateur.'; ?></li>
+                    <li><?php echo $lang['update_step3'] ?? 'Quittez LMU Stats Viewer via l\'icône dans la barre système (clic droit → Quitter).'; ?></li>
+                    <li><?php echo $lang['update_step4'] ?? 'Lancez le fichier téléchargé et suivez l\'installeur.'; ?></li>
+                </ol>
             </div>
 
             <div class="changelog-container">

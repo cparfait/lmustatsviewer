@@ -47,10 +47,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const footerIndicator = document.getElementById('footer-update-indicator');
                 if (footerIndicator) {
+                    const dlAttr = data.download_url ? ` | <a href="${data.download_url}" class="update-indicator" download>⬇️</a>` : '';
                     footerIndicator.innerHTML = `
                         <a href="update.php" class="update-indicator" title="${lang.available_short} (v${data.latest_version})">
                             ⚠️ <span class="update-text">${lang.available_short}</span>
-                        </a>
+                        </a>${dlAttr}
                     `;
                 }
             } else {

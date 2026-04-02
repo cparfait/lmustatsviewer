@@ -1,6 +1,7 @@
 {
   "latest_version": "0.9.3",
-  "release_url": "https://www.overtake.gg/downloads/lmu-stats-viewer.79131",
+  "release_url": "https://github.com/cparfait/lmustatsviewer/releases/latest",
+  "download_url": "https://github.com/cparfait/lmustatsviewer/releases/download/v0.9.3/SETUP-LSV-0-9-3.exe",
   "changelog": {
     "0.9.3": {
       "date": "2025-09-23",

@@ -92,6 +92,7 @@ var
   ResultCode: Integer;
 begin
   Exec('taskkill.exe', '/F /IM LMU_Stats_Viewer.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('taskkill.exe', '/F /IM php.exe',              '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);

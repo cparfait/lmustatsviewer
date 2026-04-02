@@ -7,7 +7,7 @@
 </footer>
 
 <div class="footer-avatar">
-    <a href="https://discord.gg/bY6W9gZ6" target="_blank"><img src="logos/avatar.png" alt="<?php echo $lang['player_avatar_alt']; ?>" id="page-avatar"></a>
+    <a href="https://discord.gg/RwZw4E6gX" target="_blank"><img src="logos/avatar.png" alt="<?php echo $lang['player_avatar_alt']; ?>" id="page-avatar"></a>
 </div>
 
 <style>

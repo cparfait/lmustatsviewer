@@ -10,7 +10,7 @@
 
 **Un outil de statistiques pour [Le Mans Ultimate](https://www.lemansultimate.com/) — suivez vos meilleurs temps, résultats de course et progression.**
 
-[📥 Télécharger](#installation) · [🐛 Signaler un bug](https://github.com/cparfait/lmustatsviewer/issues) · [💬 Discord](https://discord.gg/bY6W9gZ6)
+[📥 Télécharger](#installation) · [🐛 Signaler un bug](https://github.com/cparfait/lmustatsviewer/issues) · [💬 Discord](https://discord.gg/RwZw4E6gX)
 
 </div>
 
@@ -235,7 +235,7 @@ Ouvrez `setup.iss` avec InnoSetup et cliquez sur **Compiler**.
 Les contributions, rapports de bugs et suggestions sont les bienvenus !
 N'hésitez pas à ouvrir une [issue](https://github.com/cparfait/lmustatsviewer/issues) ou à soumettre une pull request.
 
-💬 Rejoignez aussi la communauté sur **[Discord](https://discord.gg/bY6W9gZ6)**.
+💬 Rejoignez aussi la communauté sur **[Discord](https://discord.gg/RwZw4E6gX)**.
 
 ---
 

@@ -20,11 +20,6 @@ if (!$versionData || empty($versionData['download_url'])) {
 $downloadUrl = $versionData['download_url'];
 $destFile    = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lmu_stats_setup.exe';
 
-if (!function_exists('curl_init')) {
-    echo json_encode(['status' => 'error', 'message' => 'cURL non disponible']);
-    exit;
-}
-
 if (function_exists('curl_init')) {
     $ch = curl_init($downloadUrl);
     curl_setopt_array($ch, [

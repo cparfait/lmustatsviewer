@@ -1,0 +1,821 @@
+<?php
+// Fichier central pour les fonctions utilitaires
+
+function formatSecondsToMmSsMs($seconds, $showMinutes = true) {
+    if ($seconds === null || !is_numeric($seconds) || $seconds <= 0 || $seconds === INF) return 'N/A';
+    $sign = $seconds < 0 ? '-' : '';
+    $seconds = abs($seconds);
+    $minutes = floor($seconds / 60);
+    $remainingSeconds = $seconds - ($minutes * 60);
+    $milliseconds = floor(($remainingSeconds - floor($remainingSeconds)) * 1000);
+    $formattedSeconds = sprintf('%02d', floor($remainingSeconds));
+    $formattedMilliseconds = sprintf('%03d', $milliseconds);
+
+    if ($showMinutes || $minutes > 0) {
+        return $sign . $minutes . ':' . $formattedSeconds . '.' . $formattedMilliseconds;
+    }
+    return $sign . floor($remainingSeconds) . '.' . $formattedMilliseconds . 's';
+}
+
+function cleanAndParseXmlFile($filepath) {
+    $xml_string_raw = @file_get_contents($filepath);
+    if (empty($xml_string_raw)) {
+        return null;
+    }
+    libxml_use_internal_errors(true);
+    $xml = @simplexml_load_string($xml_string_raw);
+    libxml_clear_errors();
+    return $xml;
+}
+
+function getCarLogoUrl($carType) {
+    $basePath = 'logos/';
+    $carTypeLower = strtolower($carType);
+    
+    $specificMap = [
+        'peugeot9x82024' => 'peugeot.png'
+    ];
+
+    $searchableCarType = str_replace([' ', '_', '-'], '', $carTypeLower);
+    foreach ($specificMap as $specificKey => $logoFile) {
+        if ($searchableCarType === $specificKey) {
+            return $basePath . $logoFile;
+        }
+    }
+
+    $brandMap = [
+        'acura' => 'acura.png', 'astonmartin' => 'astonmartin.png', 'audi' => 'audi.png',
+        'bentley' => 'bentley.png', 'bmw' => 'bmw.png', 'cadillac' => 'cadillac.png',
+        'corvette' => 'corvette.png', 'dallara' => 'dallara.png', 'duqueine' => 'duqueine.png',
+        'ferrari' => 'ferrari.png', 'ginetta' => 'ginetta.png', 'glickenhaus' => 'glickenhaus.png',
+        'honda' => 'honda.png', 'isottafraschini' => 'isottafraschini.png',
+        'lamborghini' => 'lamborghini.png', 'ligier' => 'ligier.png',
+        'mclaren' => 'mclaren.png', 'mercedesamg' => 'mercedes.png', 'oreca' => 'oreca.png',
+        'peugeot' => 'peugeot.png', 'porsche' => 'porsche.png', 'toyota' => 'toyota.png',
+        'vanwall' => 'vanwall.png', 'alpine' => 'alpine.png', 'chevrolet' => 'chevrolet.png',
+        'ford' => 'ford.png', 'lexus' => 'lexus.png'
+    ];
+    foreach ($brandMap as $brandKey => $logoFile) {
+        if (str_contains($searchableCarType, $brandKey) && file_exists($basePath . $logoFile)) {
+            return $basePath . $logoFile;
+        }
+    }
+    return null;
+}
+
+function getCircuitFlagUrl($trackVenue) {
+    $basePath = 'flags/';
+    $countryMap = [
+        'us.png' => ['Sebring', 'Circuit of the Americas', 'COTA'],
+        'pt.png' => ['Algarve International Circuit'],
+        'be.png' => ['Spa-Francorchamps'],
+        'it.png' => ['Monza', 'Imola', 'Autodromo Enzo e Dino Ferrari'],
+        'fr.png' => ['Sarthe', 'Le Mans', 'Paul Ricard Circuit'],
+        'gb.png' => ['Silverstone'],
+        'jp.png' => ['Fuji'],
+        'bh.png' => ['Bahrain'],
+        'br.png' => ['Autódromo José Carlos Pace', 'Interlagos'],
+        'qa.png' => ['Lusail International Circuit', 'Lusail'],
+    ];
+
+    foreach ($countryMap as $flagFile => $trackAliases) {
+        foreach ($trackAliases as $alias) {
+            if (str_contains($trackVenue, $alias)) {
+                if (file_exists($basePath . $flagFile)) {
+                    return $basePath . $flagFile;
+                }
+            }
+        }
+    }
+    return null;
+}
+
+function translateTerm($term, $langArray) {
+    // Fonction utilitaire interne pour récupérer un terme traduit ou une valeur par défaut.
+    $getTranslated = function($key) use ($langArray, $term) {
+        // Retourne la traduction si elle existe, sinon retourne le terme original.
+        return htmlspecialchars($langArray[$key] ?? $term);
+    };
+
+    switch($term) {
+        // Types de Session
+        case 'Practice1': 
+        case 'Qualify': 
+        case 'Race': 
+            $key = 'session_' . strtolower(str_replace('1', '', $term));
+            return $getTranslated($key);
+
+        // Statuts
+        case 'Finished Normally': return $getTranslated('status_finished');
+        case 'DNF': return $getTranslated('status_dnf');
+        case 'DQ': return $getTranslated('status_dq');
+        case 'None': return $getTranslated('status_none'); // Gère le nouveau statut XML
+
+        // Settings / Autres
+        case 'Multiplayer': return $getTranslated('online');
+        case 'Race Weekend': return $getTranslated('race_weekend');
+
+        // Retourne le terme tel quel s'il n'est pas reconnu (assuré d'être sécurisé)
+        default: return htmlspecialchars($term);
+    }
+}
+
+function formatDateInLocale($timestamp, $locale = 'fr_FR') {
+    if (class_exists('IntlDateFormatter')) {
+        $formatter = new IntlDateFormatter($locale, IntlDateFormatter::LONG, IntlDateFormatter::NONE);
+        return $formatter->format($timestamp);
+    } else {
+        return date('d/m/Y', $timestamp);
+    }
+}
+
+function getWearColorClass($wearPercentage) {
+    if ($wearPercentage === null) return '';
+    if ($wearPercentage >= 30) return 'wear-high';
+    if ($wearPercentage >= 15) return 'wear-medium';
+    return 'wear-low';
+}
+
+function suggestPlayerName($searchPath = null) {
+    if (empty($searchPath) || !is_dir($searchPath)) {
+        if (!defined('RESULTS_DIR') || empty(RESULTS_DIR) || !is_dir(RESULTS_DIR)) {
+            return null;
+        }
+        $searchPath = RESULTS_DIR;
+    }
+    $files = glob($searchPath . '/*.xml');
+    if (empty($files)) {
+        return null;
+    }
+    usort($files, function($a, $b) {
+        return filemtime($b) - filemtime($a);
+    });
+    $latest_files = array_slice($files, 0, 10);
+    $names = [];
+    foreach ($latest_files as $filepath) {
+        $xml = @simplexml_load_file($filepath);
+        if (!$xml) continue;
+        $drivers = $xml->xpath('//Driver/Name');
+        foreach ($drivers as $driver) {
+            $name = trim((string)$driver);
+            if (!empty($name)) {
+                $names[] = $name;
+            }
+        }
+    }
+    if (empty($names)) {
+        return null;
+    }
+    $counts = array_count_values($names);
+    arsort($counts);
+    return key($counts);
+}
+
+function clearCache() {
+    $cacheCleared = false;
+    $appDataPath = getenv('APPDATA');
+    if ($appDataPath) {
+        $cacheDir = $appDataPath . DIRECTORY_SEPARATOR . 'LMU_Stats_Viewer';
+        $userCacheFile = $cacheDir . DIRECTORY_SEPARATOR . 'lm_ultimate_cache.json';
+        if (file_exists($userCacheFile)) {
+            if (@unlink($userCacheFile)) {
+                $cacheCleared = true;
+            }
+        }
+    }
+    $localCacheFile = __DIR__ . '/lm_ultimate_cache.json';
+    if (file_exists($localCacheFile)) {
+        if (@unlink($localCacheFile)) {
+            $cacheCleared = true;
+        }
+    }
+    return $cacheCleared;
+}
+
+function countSessionsToPurge($purge_type) {
+    $count = 0;
+    if (!defined('RESULTS_DIR') || !is_dir(RESULTS_DIR)) return 0;
+    $files = @scandir(RESULTS_DIR);
+    if (!$files) return 0;
+    foreach ($files as $filename) {
+        if (substr($filename, -4) !== '.xml') continue;
+        $filepath = RESULTS_DIR . $filename;
+        $xml = simplexml_load_file($filepath);
+        if (!$xml || !isset($xml->RaceResults)) continue;
+        $hasLaps = false;
+        $playerHasLaps = false;
+        foreach (['Practice1', 'Qualify', 'Race'] as $section) {
+            if (isset($xml->RaceResults->{$section}->Driver)) {
+                foreach($xml->RaceResults->{$section}->Driver as $driver) {
+                    $is_player = defined('PLAYER_NAME') && trim((string)$driver->Name) === PLAYER_NAME;
+                    $has_laps_in_section = isset($driver->Lap) && count($driver->Lap) > 0;
+                    if ($has_laps_in_section) {
+                        $hasLaps = true;
+                        if ($is_player) {
+                            $playerHasLaps = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (($purge_type === 'global' && !$hasLaps) || ($purge_type === 'player' && !$playerHasLaps)) {
+            $count++;
+        }
+    }
+    return $count;
+}
+
+function purgeEmptySessions($purge_type) {
+    $deleted_count = 0;
+    if (!defined('RESULTS_DIR') || !is_dir(RESULTS_DIR)) return 0;
+    $files = @scandir(RESULTS_DIR);
+    if (!$files) return 0;
+    foreach ($files as $filename) {
+        if (substr($filename, -4) !== '.xml') continue;
+        $filepath = RESULTS_DIR . $filename;
+        $xml = simplexml_load_file($filepath);
+        if (!$xml || !isset($xml->RaceResults)) continue;
+        $hasLaps = false;
+        $playerHasLaps = false;
+        foreach (['Practice1', 'Qualify', 'Race'] as $section) {
+            if (isset($xml->RaceResults->{$section}->Driver)) {
+                foreach($xml->RaceResults->{$section}->Driver as $driver) {
+                    $is_player = defined('PLAYER_NAME') && trim((string)$driver->Name) === PLAYER_NAME;
+                    $has_laps_in_section = isset($driver->Lap) && count($driver->Lap) > 0;
+                    if ($has_laps_in_section) {
+                        $hasLaps = true;
+                        if ($is_player) {
+                            $playerHasLaps = true;
+                        }
+                    }
+                }
+            }
+        }
+        $shouldDelete = false;
+        if ($purge_type === 'global' && !$hasLaps) {
+            $shouldDelete = true;
+        } elseif ($purge_type === 'player' && !$playerHasLaps) {
+            $shouldDelete = true;
+        }
+        if ($shouldDelete) {
+            if (@unlink($filepath)) {
+                $deleted_count++;
+            }
+        }
+    }
+    return $deleted_count;
+}
+
+function get_remote_version_data($url) {
+    if (!function_exists('curl_init')) {
+        error_log("cURL non disponible.");
+        return null;
+    }
+    
+    $url_with_cache_bust = $url . '?t=' . time();
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url_with_cache_bust);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    // Utiliser un User-Agent plus standard pour éviter les blocages
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36');
+    
+    // --- Modifications pour la robustesse ---
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Tolérant aux problèmes de certificat SSL
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Suivre les redirections
+    curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+    // --- Fin des modifications ---
+
+    curl_setopt($ch, CURLOPT_FRESH_CONNECT, TRUE);
+    curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Cache-Control: no-cache',
+        'Pragma: no-cache'
+    ]);
+
+    $json_data = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
+    curl_close($ch);
+
+    if ($curl_error) {
+        error_log("Erreur cURL: " . $curl_error);
+        return null;
+    }
+
+    if ($http_code === 200 && $json_data) {
+        $decoded = json_decode($json_data, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("Erreur de décodage JSON: " . json_last_error_msg());
+            return null;
+        }
+        return $decoded;
+    } else {
+        error_log("Erreur HTTP: " . $http_code);
+        return null;
+    }
+}
+
+/**
+ * Scans the results directory, parses XML files, and groups them into events.
+ * This function is designed to be the central point for accessing race data.
+ *
+ * @return array An array containing all race events. Each event is an array of file data.
+ */
+function get_race_events() {
+    // Use a static variable to cache the result within a single request
+    static $events = null;
+    if ($events !== null) {
+        return $events;
+    }
+
+    if (!defined('RESULTS_DIR') || !is_dir(RESULTS_DIR)) {
+        return [];
+    }
+
+    $files = @scandir(RESULTS_DIR);
+    if (!$files) {
+        return [];
+    }
+
+    $pre_parsed_files = [];
+    foreach ($files as $filename) {
+        if (substr($filename, -4) !== '.xml') continue;
+        
+        $filepath = RESULTS_DIR . $filename;
+        $xml = cleanAndParseXmlFile($filepath);
+
+        if (!$xml || !isset($xml->RaceResults)) continue;
+
+        $pre_parsed_files[] = [
+            'filename' => $filename,
+            'timestamp' => (int)$xml->RaceResults->DateTime,
+            'track' => trim((string)$xml->RaceResults->TrackVenue),
+            'trackCourse' => trim((string)$xml->RaceResults->TrackCourse),
+            'setting' => trim((string)$xml->RaceResults->Setting),
+            'xml' => $xml
+        ];
+    }
+    
+    usort($pre_parsed_files, fn($a, $b) => $a['timestamp'] <=> $b['timestamp']);
+
+    $events = [];
+    $event_time_threshold = 7200; 
+    foreach ($pre_parsed_files as $file) {
+        if ($file['setting'] !== 'Multiplayer' || empty($events)) {
+            $events[] = [$file];
+            continue;
+        }
+
+        $last_event_index = count($events) - 1;
+        $last_event_first_file = $events[$last_event_index][0];
+
+        if ($file['track'] === $last_event_first_file['track'] &&
+            abs($file['timestamp'] - $last_event_first_file['timestamp']) < $event_time_threshold) {
+            $events[$last_event_index][] = $file;
+        } else {
+            $events[] = [$file];
+        }
+    }
+
+    return $events;
+}
+
+function render_classification_table($driver_list, $table_title, $lang, $strategyDataByDriver, $lapsLedByDriver, $is_class_table = false, $all_drivers_for_context = [], $bestLapsByDriver = [], $vmaxByDriver = [], $bestVmaxOverall = 0, $bestLapTimeOverall = 0, $incident_summary = [], $penalty_summary = [], $aidsByDriver = [], $sessionType = '') {
+    if (empty($driver_list)) return;
+
+    $maxLaps = 0;
+    if (!empty($all_drivers_for_context)) {
+        foreach($all_drivers_for_context as $d) {
+            $maxLaps = max($maxLaps, (int)$d->Laps);
+        }
+    }
+
+    $winner_finish_time = null;
+    if ($is_class_table && !empty($driver_list)) {
+       $winner_finish_time = isset($driver_list[0]->FinishTime) ? (float)$driver_list[0]->FinishTime : null;
+    } elseif (!empty($all_drivers_for_context)) {
+       $winner_finish_time = isset($all_drivers_for_context[0]->FinishTime) ? (float)$all_drivers_for_context[0]->FinishTime : null;
+    }
+    ?>
+    <?php if (!empty($table_title)): ?>
+    <h2 class="classification-title"><?php echo htmlspecialchars($table_title); ?></h2>
+    <?php endif; ?>
+    <table class="sortable-table">
+        <thead>
+            <tr>
+                <th class="text-center" data-sortable="true" data-sort-type="number"><?php echo $lang['pos_header']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="number"><?php echo $lang['prog_header']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="text"><?php echo $lang['th_class']; ?></th>
+                <th data-sortable="true" data-sort-type="text"><?php echo $lang['driver_header']; ?></th>
+                <th data-sortable="true" data-sort-type="text"><?php echo $lang['car_header']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="number"><?php echo $lang['laps_header']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="number"><?php echo $lang['th_laps_led']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="number"><?php echo $lang['th_total_time']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="number"><?php echo $lang['best_lap_header']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="number"><?php echo $lang['th_vmax']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="number"><?php echo $lang['th_fuel_start']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="number"><?php echo $lang['th_fuel_end']; ?></th>
+                <th class="text-center" data-sortable="true" data-sort-type="number">Incidents</th>
+                <th class="text-center" data-sortable="true" data-sort-type="number">Pénalités</th>
+                <th data-sortable="true" data-sort-type="text"><?php echo $lang['status_header']; ?></th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($driver_list as $driver): 
+                $driverName = (string)$driver->Name;
+                $strategyData = $strategyDataByDriver[$driverName] ?? null;
+            ?>
+                <tr class="<?php echo ($driverName === PLAYER_NAME) ? 'player-row' : ''; ?>">
+                    <td class="text-center">
+                        <?php $position = $is_class_table ? (int)$driver->ClassPosition : (int)$driver->Position;
+                        if ($position === 1) { echo '🥇'; } elseif ($position === 2) { echo '🥈'; } elseif ($position === 3) { echo '🥉'; } else { echo $position; } ?>
+                    </td>
+                    <td class="text-center">
+                        <?php
+                        $gridPos = $is_class_table ? (int)$driver->ClassGridPos : (int)$driver->GridPos;
+                        if ($gridPos > 0 && (string)$driver->FinishStatus === 'Finished Normally') {
+                            $progression = $gridPos - $position;
+                            if ($progression > 0) { echo '<span class="prog-gain">▲ +' . $progression . '</span>'; }
+                            elseif ($progression < 0) { echo '<span class="prog-loss">▼ ' . $progression . '</span>'; }
+                            else { echo '<span>-</span>'; }
+                        } else { echo 'N/A'; }
+                        ?>
+                    </td>
+                    <td class="text-center table-clickable-badge">
+                        <?php 
+                        $carClass = (string)$driver->CarClass;
+                        // Correction pour générer la classe CSS 'class-lmp2elms'
+                        $carClassCss = 'class-' . strtolower(str_replace([' ', '-', '#'], '', $carClass));
+                        $anchor_id = 'table-' . strtolower($carClass) . '-' . $sessionType;
+                        echo '<a href="#' . $anchor_id . '" onclick="event.preventDefault(); scrollToClassTable(\'' . strtolower($carClass) . '\', \'' . $sessionType . '\')">';
+                        // Afficher "LMP2" au lieu de "LMP2 ELMS" pour la cohérence avec l'index
+                        echo '<span class="badge ' . $carClassCss . '">' . str_replace(' ELMS', '', htmlspecialchars($carClass)) . '</span>';
+                        echo '</a>';
+                        ?>
+                    </td>
+                    <td><?php echo htmlspecialchars($driverName); ?></td>
+                    <td class="clickable-sort" data-sort-column-index="4">
+                        <div class="car-cell-content">
+                            <?php 
+                            $logoUrl = getCarLogoUrl((string)$driver->CarType);
+                            if ($logoUrl): ?>
+                                <div class="car-logo-container">
+                                    <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars((string)$driver->CarType); ?>" class="car-logo-table">
+                                </div>
+                            <?php endif; ?>
+                            <span><?php echo htmlspecialchars((string)$driver->CarType); ?></span>
+                        </div>
+                    </td>
+                    <td class="text-center"><?php echo (int)$driver->Laps; ?></td>
+                    <td class="text-center"><?php echo $lapsLedByDriver[$driverName] ?? 0; ?></td>
+                    <td class="text-center">
+                        <?php
+                        if ((string)$driver->FinishStatus === 'Finished Normally') {
+                            if ($position === 1) { echo formatSecondsToMmSsMs((float)$driver->FinishTime); }
+                            else {
+                                $lapsBehind = $maxLaps - (int)$driver->Laps;
+                                if ($lapsBehind > 0) { echo '+ ' . $lapsBehind . ' ' . $lang['laps_behind'] . ($lapsBehind > 1 ? 's' : ''); }
+                                else if ($winner_finish_time !== null) { echo '+ ' . formatSecondsToMmSsMs((float)$driver->FinishTime - $winner_finish_time, false) . 's'; }
+                            }
+                        } else {
+                            echo 'N/A';
+                        }
+                        ?>
+                    </td>
+                    <td class="text-center is-pb clickable-cell" 
+                        data-driver-name="<?php echo htmlspecialchars($driverName); ?>" 
+                        data-track="<?php echo htmlspecialchars($GLOBALS['trackVenue']); ?>" 
+                        data-best-lap-text="<?php echo formatSecondsToMmSsMs($bestLapsByDriver[$driverName]['lap'] ?? 0); ?>"
+                        data-optimal-lap="<?php echo $bestLapsByDriver[$driverName]['optimal'] ?? 0; ?>"
+                        data-overall-best-lap="<?php echo $bestLapTimeOverall ?? 0; ?>">
+                        <?php 
+                        $bestLapTime = $bestLapsByDriver[$driverName]['lap'] ?? INF;
+                        if (abs($bestLapTime - $bestLapTimeOverall) < 0.0001) echo '🏆 ';
+                        echo formatSecondsToMmSsMs($bestLapTime); 
+                        ?>
+                    </td>
+                    <td class="text-center">
+                        <?php
+                        $vmax = $vmaxByDriver[$driverName] ?? 0;
+                        if(abs($vmax - $bestVmaxOverall) < 0.001 && $bestVmaxOverall > 0) echo '⚡️ ';
+                        echo number_format($vmax, 2, ',', ' '); 
+                        ?> km/h
+                    </td>
+                    <td class="text-center">
+                        <?php echo ($strategyData && $strategyData['startFuel'] !== null) ? round($strategyData['startFuel'], 1) . '%' : 'N/A'; ?>
+                    </td>
+                    <td class="text-center">
+                        <?php echo ($strategyData && $strategyData['finishFuel'] !== null) ? round($strategyData['finishFuel'], 1) . '%' : 'N/A'; ?>
+                    </td>
+                    <td class="text-center"><?php echo $incident_summary[$driverName]['Total'] ?? 0; ?></td>
+                    <td class="text-center"><?php echo $penalty_summary[$driverName]['Count'] ?? 0; ?></td>
+                    <td class="text-center">
+                        <?php 
+                        $status = (string)$driver->FinishStatus;
+                        echo translateTerm($status, $lang);
+                        if ($status === 'DNF' && isset($driver->DNFReason)) {
+                            echo ' (' . htmlspecialchars((string)$driver->DNFReason) . ')';
+                        }
+                        ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php }
+
+/**
+ * Processes all data for a given session from the XML.
+ *
+ * @param SimpleXMLElement $sessionData The XML node for the session (e.g., <Practice1>, <Race>).
+ * @param string $sessionType The name of the session ('Practice1', 'Qualify', 'Race').
+ * @param array $lang The language array for translations.
+ * @return array A structured array containing all processed statistics for the session.
+ */
+function process_session_data(SimpleXMLElement $sessionData, string $sessionType, array $lang) {
+    // Normalisation des noms de classe directement sur l'objet XML pour la cohérence
+    if (isset($sessionData->Driver)) {
+        foreach ($sessionData->Driver as $driver) {
+            $carClass = (string)$driver->CarClass;
+            if (str_replace('_', ' ', $carClass) === 'LMP2 ELMS' || strcasecmp($carClass, 'LMP2 Elms') == 0) {
+                $driver->CarClass = 'LMP2 ELMS';
+            }
+        }
+    }
+
+    $result = [
+        'drivers' => [],
+        'lapsByDriver' => [],
+        'allLapsForChart' => [],
+        'bestLapsByDriver' => [],
+        'vmaxByDriver' => [],
+        'aidsByDriver' => [],
+        'lapsLedByDriver' => [],
+        'chatLog' => [],
+        'incidents' => [],
+        'penalties' => [],
+        'bestLapTimeOverall' => INF,
+        'bestLapDriverOverall' => 'N/A',
+        'bestS1Overall' => INF,
+        'bestS1Driver' => 'N/A',
+        'bestS2Overall' => INF,
+        'bestS2Driver' => 'N/A',
+        'bestS3Overall' => INF,
+        'bestS3Driver' => 'N/A',
+        'bestVmaxOverall' => 0,
+        'unique_classes' => [],
+        'statsByDriver' => [],
+        'incident_summary' => [],
+        'penalty_summary' => [],
+        'strategyDataByDriver' => [],
+        'hypercar_drivers' => [],
+        'lmp2elms_drivers' => [],
+        'lmp2_drivers' => [],
+        'lmp3_drivers' => [],
+        'gt3_drivers' => [],
+        'gte_drivers' => [],
+    ];
+
+    if (isset($sessionData->Driver)) {
+        foreach ($sessionData->Driver as $driver) {
+            $driverName = (string)$driver->Name;
+            $result['drivers'][] = $driver;
+            $result['vmaxByDriver'][$driverName] = 0;
+            $result['lapsByDriver'][$driverName] = [];
+            $result['allLapsForChart'][$driverName] = [];
+            $result['incident_summary'][$driverName] = ['Position' => (int)$driver->Position, 'Vehicle' => 0, 'Other' => 0, 'Total' => 0];
+            $result['penalty_summary'][$driverName] = ['Count' => 0];
+
+            $carClass = (string)$driver->CarClass;
+            if (!in_array($carClass, $result['unique_classes'])) {
+                $result['unique_classes'][] = $carClass;
+            }
+
+            // Strategy and Laps Led
+            $stints = [];
+            $startFuel = null;
+            $finishFuel = null;
+            $compoundUsage = ['Front' => [], 'Rear' => []];
+            $currentStint = 1;
+            $pitStopSummary = [];
+            $lapsLed = 0;
+            
+            if (!isset($stints[$currentStint])) {
+                $stints[$currentStint] = ['laps' => [], 'wear_data' => [], 'compounds' => []];
+            }
+
+            if (isset($driver->Lap)) {
+                foreach ($driver->Lap as $lap) {
+                    if(isset($lap['p']) && (int)$lap['p'] === 1) {
+                        $lapsLed++;
+                    }
+                    $lapTime = (float)(string)$lap[0];
+                    if ($lapTime > 0) {
+                        if ($startFuel === null && isset($lap['fuel']) && isset($lap['fuelUsed'])) {
+                            $startFuel = ((float)$lap['fuel'] + (float)$lap['fuelUsed']) * 100;
+                        }
+                        if (isset($lap['fuel'])) {
+                            $finishFuel = (float)$lap['fuel'] * 100;
+                        }
+                        if (isset($lap['twfl'])) {
+                            $stints[$currentStint]['laps'][] = (int)$lap['num'];
+                            $stints[$currentStint]['wear_data'][] = [
+                                'fl' => round((1 - (float)$lap['twfl']) * 100, 1),
+                                'fr' => round((1 - (float)$lap['twfr']) * 100, 1),
+                                'rl' => round((1 - (float)$lap['twrl']) * 100, 1),
+                                'rr' => round((1 - (float)$lap['twrr']) * 100, 1)
+                            ];
+                        }
+                        if (count($stints[$currentStint]['laps']) === 1) {
+                             if(isset($lap['fcompound'])) {
+                                $frontCompound = explode(',', (string)$lap['fcompound'])[1] ?? $lang['compound_unknown'];
+                                $stints[$currentStint]['compounds']['front'] = $frontCompound;
+                                if($frontCompound !== 'N/A' && $frontCompound !== 'Unknown') {
+                                   $compoundUsage['Front'][$frontCompound] = ($compoundUsage['Front'][$frontCompound] ?? 0) + 1;
+                                }
+                             }
+                        }
+                    }
+                    if (isset($lap['pit']) && (int)$lap['pit'] === 1) {
+                        $pitData = [
+                            'stint_num' => $currentStint,
+                            'lap' => (int)$lap['num'],
+                            'fuel_added' => (isset($lap['fuelUsed']) && (float)$lap['fuelUsed'] < 0) ? abs((float)$lap['fuelUsed']) * 100 : 0,
+                            'old_tyres' => $stints[$currentStint]['compounds']['front'] ?? 'N/A',
+                            'new_tyres' => null 
+                        ];
+                        $pitStopSummary[] = $pitData;
+                        if ((int)$lap['num'] < (int)$driver->Laps) {
+                            $currentStint++;
+                            $stints[$currentStint] = ['laps' => [], 'wear_data' => [], 'compounds' => []];
+                        }
+                    }
+                }
+                foreach ($pitStopSummary as $i => &$stop) {
+                    $nextStintNum = $stop['stint_num'] + 1;
+                    if (isset($stints[$nextStintNum])) {
+                        $stop['new_tyres'] = $stints[$nextStintNum]['compounds']['front'] ?? 'N/A';
+                    }
+                }
+                unset($stop);
+            }
+            $result['strategyDataByDriver'][$driverName] = [
+                'stints' => $stints, 'startFuel' => $startFuel, 'finishFuel' => $finishFuel,
+                'compoundUsage' => $compoundUsage, 'pitStopSummary' => $pitStopSummary
+            ];
+            $result['lapsLedByDriver'][$driverName] = $lapsLed;
+            
+            $bestLap = ['lap' => INF, 's1' => INF, 's2' => INF, 's3' => INF];
+
+            if (isset($driver->Lap)) {
+                foreach ($driver->Lap as $lap) {
+                    $lapTime = (float)(string)$lap[0];
+                    $s1 = (float)(string)($lap['s1'] ?? '0');
+                    $s2 = (float)(string)($lap['s2'] ?? '0');
+                    $s3 = (float)(string)($lap['s3'] ?? '0');
+                    
+                    $result['allLapsForChart'][$driverName][] = $lapTime > 0 ? $lapTime : null;
+
+                    // Logique de meilleur tour et secteurs plus robuste
+                    if ($lapTime > 0 && $lapTime < $bestLap['lap']) {
+                        $bestLap['lap'] = $lapTime;
+                    }
+                    if ($s1 > 0 && $s1 < $bestLap['s1']) $bestLap['s1'] = $s1;
+                    if ($s2 > 0 && $s2 < $bestLap['s2']) $bestLap['s2'] = $s2;
+                    if ($s3 > 0 && $s3 < $bestLap['s3']) $bestLap['s3'] = $s3;
+                    
+                    if ($lapTime > 0 && $lapTime < $result['bestLapTimeOverall']) {
+                        $result['bestLapTimeOverall'] = $lapTime;
+                        $result['bestLapDriverOverall'] = $driverName;
+                    }
+                    if ($s1 > 0 && $s1 < $result['bestS1Overall']) { $result['bestS1Overall'] = $s1; $result['bestS1Driver'] = $driverName; }
+                    if ($s2 > 0 && $s2 < $result['bestS2Overall']) { $result['bestS2Overall'] = $s2; $result['bestS2Driver'] = $driverName; }
+                    if ($s3 > 0 && $s3 < $result['bestS3Overall']) { $result['bestS3Overall'] = $s3; $result['bestS3Driver'] = $driverName; }
+                    
+                    $result['lapsByDriver'][$driverName][] = $lap;
+                    if (isset($lap['topspeed'])) {
+                        $result['vmaxByDriver'][$driverName] = max($result['vmaxByDriver'][$driverName], (float)$lap['topspeed']);
+                    }
+                }
+            }
+            
+            $result['bestVmaxOverall'] = max($result['bestVmaxOverall'], $result['vmaxByDriver'][$driverName]);
+            $bestLap['optimal'] = ($bestLap['s1'] !== INF && $bestLap['s2'] !== INF && $bestLap['s3'] !== INF) ? $bestLap['s1'] + $bestLap['s2'] + $bestLap['s3'] : INF;
+            $result['bestLapsByDriver'][$driverName] = $bestLap;
+            $result['aidsByDriver'][$driverName] = (string)($driver->ControlAndAids ?? 'N/A');
+
+            // Calculs statistiques pour le comparateur
+            $valid_laps = array_filter($result['allLapsForChart'][$driverName], fn($lap) => $lap > 0);
+            sort($valid_laps);
+            $count = count($valid_laps);
+            
+            $median_lap = INF;
+            if ($count > 0) {
+                $mid = floor(($count - 1) / 2);
+                $median_lap = ($count % 2) ? $valid_laps[$mid] : ($valid_laps[$mid] + $valid_laps[$mid + 1]) / 2.0;
+            }
+
+            $std_dev = INF;
+            if ($count > 1) {
+                $mean = array_sum($valid_laps) / $count;
+                $variance = array_sum(array_map(fn($x) => pow($x - $mean, 2), $valid_laps)) / $count;
+                $std_dev = sqrt($variance);
+            }
+            
+            $avg_best_5 = INF;
+            if ($count > 0) {
+                $laps_to_avg = array_slice($valid_laps, 0, min($count, 5));
+                $avg_best_5 = array_sum($laps_to_avg) / count($laps_to_avg);
+            }
+            $result['statsByDriver'][$driverName] = [
+                'median_lap' => $median_lap,
+                'std_dev' => $std_dev,
+                'avg_best_5' => $avg_best_5
+            ];
+        }
+        
+        $result['hypercar_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'Hyper');
+        $result['lmp2elms_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'LMP2 ELMS');
+        $result['lmp2_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'LMP2');
+        $result['lmp3_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'LMP3');
+        $result['gt3_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'GT3');
+        $result['gte_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'GTE');
+
+        usort($result['drivers'], fn($a, $b) => (int)$a->Position <=> (int)$b->Position);
+        usort($result['hypercar_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
+        usort($result['lmp2elms_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
+        usort($result['lmp2_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
+        usort($result['lmp3_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
+        usort($result['gt3_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
+        usort($result['gte_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
+    }
+    
+    if (isset($sessionData->Stream)) {
+        foreach($sessionData->Stream->children() as $event) {
+            $eventName = $event->getName();
+            $eventString = (string)$event;
+            if($eventName === 'ChatMessage') { $result['chatLog'][] = $eventString; }
+            if($eventName === 'Penalty') { 
+                $result['penalties'][] = $eventString;
+                if (preg_match('/Penalty given to (.+?):/', $eventString, $matches)) {
+                    $driver_name = trim($matches[1]);
+                    if (isset($result['penalty_summary'][$driver_name])) {
+                        $result['penalty_summary'][$driver_name]['Count']++;
+                    }
+                }
+            }
+            if($eventName === 'Incident') { 
+                $result['incidents'][] = $eventString;
+                preg_match_all('/([a-zA-Z0-9_ .#-]+)\(/', $eventString, $matches);
+                $involved_drivers = array_map('trim', $matches[1]);
+                if (count($involved_drivers) == 2) {
+                    foreach($involved_drivers as $driver_name) {
+                        if(isset($result['incident_summary'][$driver_name])) {
+                            $result['incident_summary'][$driver_name]['Vehicle']++;
+                            $result['incident_summary'][$driver_name]['Total']++;
+                        }
+                    }
+                } elseif (count($involved_drivers) == 1) {
+                    $driver_name = $involved_drivers[0];
+                    if(isset($result['incident_summary'][$driver_name])) {
+                        $result['incident_summary'][$driver_name]['Other']++;
+                        $result['incident_summary'][$driver_name]['Total']++;
+                    }
+                }
+            }
+        }
+        uasort($result['incident_summary'], function($a, $b) {
+            if ($a['Total'] != $b['Total']) { return $b['Total'] <=> $a['Total']; }
+            return $a['Position'] <=> $b['Position'];
+        });
+    }
+
+    return $result;
+}
+
+function printSortableHeader($label, $columnKey, $langKey, $currentSortBy, $currentSortDir, $queryParams) {
+    $isSortingThisColumn = ($currentSortBy === $columnKey);
+    $nextSortDir = ($isSortingThisColumn && $currentSortDir === 'asc') ? 'desc' : 'asc';
+    
+    $queryParams['sort_by'] = $columnKey;
+    $queryParams['sort_dir'] = $nextSortDir;
+    
+    $link = 'index.php?' . http_build_query($queryParams) . '#race-results-table';
+    $class = 'sortable';
+    if ($isSortingThisColumn) {
+        $class .= ($currentSortDir === 'asc') ? ' sort-asc' : ' sort-desc';
+    }
+
+    echo '<th class="' . $class . '"><a href="' . $link . '">' . $label . '</a></th>';
+}
+
+function calculate_avg_lap($laps) {
+    if (count($laps) === 0) return 'N/A';
+    return formatSecondsToMmSsMs(array_sum($laps) / count($laps));
+}
+
+?>

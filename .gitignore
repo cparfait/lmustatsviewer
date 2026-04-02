@@ -1,0 +1,31 @@
+# PHP runtime (distribué via l'installeur InnoSetup)
+php/
+
+# Binaires compilés (publiés via GitHub Releases)
+LMU_Stats_Viewer.exe
+
+# Logs générés au runtime
+launcher.log
+php_server.log
+
+# Artefacts de build PyInstaller
+launcher/build_temp/
+launcher/__pycache__/
+launcher/LMU_Stats_Viewer.spec
+*.spec
+
+# Cache applicatif
+htdocs/lm_ultimate_cache.json
+
+# Fichiers systèmes
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+
+# Claude Code
+.claude/

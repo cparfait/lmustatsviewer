@@ -1,0 +1,88 @@
+CHANGELOG
+=========
+
+v0.9.3:
+- Add: Added GTE table
+- Add: Race car summary
+- Add: LMP3
+- Add: LMP2 ELMS
+- Add: Drivers comparison
+- Bug: My laps bug
+- Bug: Finish position display bug in best laps
+- Modified: Graphics improvements
+- Modified: Code cleanup
+- Modified: Translation fixed
+
+====================
+v0.9.2:
+- Fix on System check for available update not working :p
+
+====================
+v0.9.1:
+- Add : System check for available update
+- Bug fixe: Automatic refresh after update 
+
+====================
+v0.9:
+- New color for GTE (Thanks @h55d)
+- Modified CSS colors for best sectors and secors with optimal time for a best reading
+- Modified CSS for keeping colors on hoover 
+- Modified Purge session system 
+- New systm for config.json
+- Driver name suggestion system and log path
+- Add: a dark theme(to improve the colors :p)
+- Addition of different circuit layouts (Thanks @Tontonjp)
+
+====================
+v0.8:
+- Fixed SPA sector 2 times (minutes missing)
+- Fix German translation (Thanx @Texas-Edelweis)
+
+====================
+v0.7:
+- Modified the ranking in the best times (Thanks @astroremucho)
+- Add: filters on the details table (sectors, vmax...)
+- Add: strategy tab (tires, fuel)
+- Add: fuel at start /finish in race details ranking
+- Fixed filters
+
+====================
+v0.6:
+- Add: class-based ranking for multi-class races
+- Add: a class ranking column and display of classes in details
+- Add: management of long sessions (Thanks @Botmeister)
+- Modified the value of the "Authorized Vehicles" field by class type
+- Bug: Invalid lap if n/a on a sector
+- Modified CSS
+- Add: an incident types table
+- Modified the order of session rankings in sessions (Thanks @Botmeister)
+- Modified car brand logos
+
+====================
+v0.5:
+- Add: difference with the first in the details tables
+- Add: finishing position for the best laps table on the details page
+- Add: Vmax in the race results table with a lightning emoji
+- Add: race date on the details page
+- Add: an emoji for access to the config page with a gear emoji
+- Add: a button on the config page to purge sessions without results/timing
+- Add: a button on the config page to delete the cache file in %APPDATA% in case of bugs
+- Add: Chat Tab in race details
+- Started modifying CSS for the header (Thanks @Botmeister)
+- Add: the My Laps button on the Race Details tab (Thanks @pcFiNCH85)
+- Modified translations
+
+====================
+v0.4:
+- Add: a filter for online / off line 
+- Add: a filter on details page to quickly find your name in race lap 
+
+====================
+v0.3:
+- Add: a filter to display only the best times since LMU v1, as the times are no longer the same (Thx : @Pillot69)
+- differentiated between the 2023 and 2024/205 Peugeot 9x8(Thx : @Pillot69)
+- cache issue that wasn't displaying new sessions
+
+====================
+v0.2:
+- configuration issue that wasn't saving the log path

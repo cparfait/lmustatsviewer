@@ -297,17 +297,7 @@ def main() -> None:
     tray = create_tray()
     log.info("Icône tray active. Application prête.")
 
-    def on_ready(icon: pystray.Icon) -> None:
-        time.sleep(1)
-        try:
-            icon.notify(
-                "Clic droit sur cette icône pour quitter l'application.",
-                APP_NAME
-            )
-        except Exception as e:
-            log.warning(f"Notification tray ignorée : {e}")
-
-    tray.run(setup=on_ready)
+    tray.run()
 
     log.info(f"{APP_NAME} — Terminé")
 

@@ -23,6 +23,12 @@ RestartApplications=yes
 PrivilegesRequired=admin
 PrivilegesRequiredOverridesAllowed=dialog
 
+[Languages]
+Name: "french";  MessagesFile: "compiler:Languages\French.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
+Name: "german";  MessagesFile: "compiler:Languages\German.isl"
+
 [Files]
 ; PHP runtime (non inclus dans le repo — à télécharger séparément, voir README)
 Source: "php\*"; DestDir: "{app}\php"; Flags: recursesubdirs createallsubdirs

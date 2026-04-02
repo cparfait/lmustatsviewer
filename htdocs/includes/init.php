@@ -9,7 +9,7 @@ clearstatcache();
 
 define('APP_VERSION', '0.9.3'); // Version ACTUELLE de l'application
 // URL vers le contenu BRUT (RAW) du fichier version.json sur GitHub
-define('VERSION_CHECK_URL', 'https://raw.githubusercontent.com/lmustatsviewer/lmustatsviewer/main/version.json');
+define('VERSION_CHECK_URL', 'https://raw.githubusercontent.com/cparfait/lmustatsviewer/main/version.json');
 
 $appDataPath = getenv('APPDATA');
 if (!$appDataPath) {

@@ -9,8 +9,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// URL depuis version.json côté serveur uniquement (jamais depuis l'utilisateur)
-$versionData = get_remote_version_data(VERSION_CHECK_URL);
+// Utilise les données déjà en session (récupérées par le JS via fetch_version.php)
+// pour éviter un second appel GitHub potentiellement mis en cache
+$versionData = $_SESSION['update_info'] ?? get_remote_version_data(VERSION_CHECK_URL);
 if (!$versionData || empty($versionData['download_url'])) {
     echo json_encode(['status' => 'error', 'message' => 'Download URL unavailable']);
     exit;

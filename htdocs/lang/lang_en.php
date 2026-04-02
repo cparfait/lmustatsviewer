@@ -204,6 +204,7 @@ $lang = [
     'clear_cache_button' => 'Clear Cache Manually',
     'clear_cache_help' => 'Forces a full reload of all XML files on the next visit to the homepage.',
     'clear_cache_success_message' => 'The cache file was successfully deleted.',
+    'first_launch_message' => '👋 Welcome! Start by setting the LMU results folder below.',
     'confirm_purge' => 'Are you sure you want to delete session files with no lap times? This action cannot be undone.',
 	'form_group_language' => 'Interface Language',
 	'help_text_language' => 'Choose the display language for the entire application.',

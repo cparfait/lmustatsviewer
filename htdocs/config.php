@@ -9,9 +9,15 @@ if (isset($_GET['suggest_name'])) {
     exit;
 }
 
-$configFileJson = USER_CONFIG_PATH; // Le fichier cible est maintenant celui de l'utilisateur dans AppData
+$configFileJson = USER_CONFIG_PATH;
+$is_first_launch = isset($_GET['first_launch']);
 $message = $_SESSION['message'] ?? '';
 $messageType = $_SESSION['messageType'] ?? '';
+
+if ($is_first_launch && empty($message)) {
+    $message = $lang['first_launch_message'] ?? 'Bienvenue ! Commencez par configurer le dossier de résultats LMU.';
+    $messageType = 'info';
+}
 
 // On efface le message de la session pour qu'il n'apparaisse qu'une seule fois
 if (isset($_SESSION['message'])) {

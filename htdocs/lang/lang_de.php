@@ -205,6 +205,7 @@ $lang = [
 	'clear_cache_button' => 'Cache manuell leeren',
 	'clear_cache_help' => 'Erzwingt ein erneutes Lesen aller XML-Dateien beim nächsten Laden der Startseite.',
 	'clear_cache_success_message' => 'Die Cache-Datei wurde erfolgreich gelöscht.',
+    'first_launch_message' => '👋 Willkommen! Beginnen Sie mit der Konfiguration des LMU-Ergebnisordners unten.',
 	'confirm_purge' => 'Sind Sie sicher, dass Sie die Sitzungsdateien ohne Rundenzeiten löschen möchten? Diese Aktion ist irreversibel.',
 	'form_group_language' => 'Sprache der Oberfläche',
 	'help_text_language' => 'Wählen Sie die Anzeigesprache für die gesamte Anwendung',

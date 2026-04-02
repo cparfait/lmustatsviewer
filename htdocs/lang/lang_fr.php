@@ -206,6 +206,7 @@ $lang = [
     'clear_cache_button' => 'Vider le cache manuellement',
     'clear_cache_help' => 'Force une relecture de tous les fichiers XML au prochain chargement de la page d\'accueil.',
     'clear_cache_success_message' => 'Le fichier de cache a été supprimé avec succès.',
+    'first_launch_message' => '👋 Bienvenue ! Commencez par renseigner le dossier de résultats LMU ci-dessous.',
     'confirm_purge' => 'Êtes-vous sûr de vouloir supprimer les fichiers de session sans chronos ? Cette action est irréversible.',
 	'form_group_language' => 'Langue de l\'interface',
 	'help_text_language' => 'Choisissez la langue d\'affichage pour l\'ensemble de l\'application.',

@@ -1,6 +1,12 @@
 <?php
 require_once 'includes/init.php';
 
+// Premier lancement : redirection vers la config si le dossier de résultats n'est pas défini
+if (empty($config['results_dir'])) {
+    header('Location: config.php?first_launch=1');
+    exit;
+}
+
 // --- FONCTIONS UTILITAIRES (désormais dans includes/functions.php) ---
 
 // --- GESTION DU CACHE ---

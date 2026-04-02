@@ -204,6 +204,7 @@ $lang = [
 	'clear_cache_button' => 'Vaciar Caché Manual',
 	'clear_cache_help' => 'Fuerza una relectura de todos los archivos XML en la próxima carga de la página de inicio.',
 	'clear_cache_success_message' => 'El archivo de caché ha sido eliminado con éxito.',
+    'first_launch_message' => '👋 ¡Bienvenido! Empieza configurando la carpeta de resultados LMU a continuación.',
 	'confirm_purge' => '¿Está seguro de que desea eliminar los archivos de sesión sin tiempos de vuelta? Esta acción es irreversible.',
 	'form_group_language' => 'Idioma de la interfaz',
 	'help_text_language' => 'Elija el idioma de visualización para toda la aplicación',

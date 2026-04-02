@@ -27,6 +27,9 @@ PrivilegesRequiredOverridesAllowed=dialog
 ; PHP runtime (non inclus dans le repo — à télécharger séparément, voir README)
 Source: "php\*"; DestDir: "{app}\php"; Flags: recursesubdirs createallsubdirs
 
+; Version (source unique pour PHP, Python et InnoSetup)
+Source: "version.txt"; DestDir: "{app}"
+
 ; Launcher (compilé depuis launcher/build.bat)
 Source: "LMU_Stats_Viewer.exe"; DestDir: "{app}"
 

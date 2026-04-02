@@ -57,6 +57,47 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 Type: files; Name: "{userappdata}\LMU_Stats_Viewer\launcher.log"
 Type: files; Name: "{userappdata}\LMU_Stats_Viewer\php_server.log"
 
+[Code]
+// Désinstalle silencieusement toute version précédente de "LMU Stats Viewer"
+// qui n'aurait pas le même AppId (ex: v0.9.3 installée sans AppId fixe).
+function FindOldUninstallString(): String;
+var
+  BaseKey: String;
+  Names: TArrayOfString;
+  I: Integer;
+  DisplayName, UninstallStr, DisplayVersion: String;
+begin
+  Result := '';
+  for BaseKey in ['SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+                  'SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall'] do
+  begin
+    if RegGetSubkeyNames(HKLM, BaseKey, Names) then
+      for I := 0 to GetArrayLength(Names) - 1 do
+        if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'DisplayName', DisplayName) then
+          if DisplayName = 'LMU Stats Viewer' then
+            if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'DisplayVersion', DisplayVersion) then
+              if DisplayVersion <> '{#AppVersion}' then
+                if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'UninstallString', UninstallStr) then
+                begin
+                  Result := UninstallStr;
+                  Exit;
+                end;
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  UninstallStr: String;
+  ResultCode: Integer;
+begin
+  if CurStep = ssInstall then
+  begin
+    UninstallStr := FindOldUninstallString();
+    if UninstallStr <> '' then
+      Exec(RemoveQuotes(UninstallStr), '/SILENT', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  end;
+end;
+
 [Run]
 ; Proposer d'afficher le changelog
 Filename: "{app}\CHANGELOG.txt"; Description: "Afficher le CHANGE LOG"; Flags: postinstall shellexec

@@ -51,11 +51,21 @@ $fetch_error = !$update_info;
                 </div>
             </div>
 
-            <div class="update-actions" style="margin-bottom: 20px;">
+            <div class="update-actions" style="margin-bottom: 20px;" id="update-action-area">
                 <?php if (!empty($update_info['download_url'])): ?>
-                <a href="<?php echo htmlspecialchars($update_info['download_url']); ?>" class="btn btn-primary" download>
+                <!-- État 0 : télécharger -->
+                <button id="btn-download" class="btn btn-primary" onclick="startDownload()">
                     <?php echo $lang['update_download_direct'] ?? '⬇️ Télécharger l\'installeur'; ?>
-                </a>
+                </button>
+                <!-- État 1 : en cours -->
+                <button id="btn-downloading" class="btn btn-primary" disabled style="display:none;">
+                    <span class="update-spinner"></span>
+                    <?php echo $lang['update_downloading'] ?? 'Téléchargement en cours...'; ?>
+                </button>
+                <!-- État 2 : installer -->
+                <button id="btn-install" class="btn btn-success" onclick="launchInstaller()" style="display:none;">
+                    <?php echo $lang['update_install_now'] ?? '▶️ Installer maintenant'; ?>
+                </button>
                 <?php endif; ?>
                 <a href="<?php echo htmlspecialchars($update_info['release_url']); ?>" target="_blank" class="btn btn-secondary">
                     <?php echo $lang['update_release_notes'] ?? 'Notes de version sur GitHub'; ?>
@@ -63,13 +73,16 @@ $fetch_error = !$update_info;
                 <a href="index.php" class="btn btn-secondary"><?php echo $lang['btn_return'] ?? 'Retour'; ?></a>
             </div>
 
-            <div class="update-install-steps">
+            <!-- État 3 : lancé / erreur -->
+            <div id="update-status-msg" style="display:none; margin-bottom:20px;"></div>
+
+            <div class="update-install-steps" id="update-steps">
                 <h3>📋 <?php echo $lang['update_install_title'] ?? 'Comment mettre à jour ?'; ?></h3>
                 <ol>
                     <li><?php echo $lang['update_step1'] ?? 'Cliquez sur Télécharger l\'installeur ci-dessus.'; ?></li>
-                    <li><?php echo $lang['update_step2'] ?? 'Attendez la fin du téléchargement dans votre navigateur.'; ?></li>
-                    <li><?php echo $lang['update_step3'] ?? 'Quittez LMU Stats Viewer via l\'icône dans la barre système (clic droit → Quitter).'; ?></li>
-                    <li><?php echo $lang['update_step4'] ?? 'Lancez le fichier téléchargé et suivez l\'installeur.'; ?></li>
+                    <li><?php echo $lang['update_step2'] ?? 'Attendez la fin du téléchargement.'; ?></li>
+                    <li><?php echo $lang['update_step3'] ?? 'Cliquez sur Installer maintenant.'; ?></li>
+                    <li><?php echo $lang['update_step4'] ?? 'Quittez via le tray pour finaliser.'; ?></li>
                 </ol>
             </div>
 
@@ -108,6 +121,58 @@ $fetch_error = !$update_info;
 <?php require 'includes/footer.php'; ?>
 
 <script>
+const i18n = {
+    error_download: <?php echo json_encode($lang['update_error_download'] ?? 'Download failed.'); ?>,
+    error_install:  <?php echo json_encode($lang['update_error_install']  ?? 'Could not launch installer.'); ?>,
+    launched:       <?php echo json_encode($lang['update_launched']       ?? 'Installer launched.'); ?>,
+};
+
+function startDownload() {
+    document.getElementById('btn-download').style.display    = 'none';
+    document.getElementById('btn-downloading').style.display = '';
+    document.getElementById('update-status-msg').style.display = 'none';
+
+    fetch('start_download.php', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'complete') {
+                document.getElementById('btn-downloading').style.display = 'none';
+                document.getElementById('btn-install').style.display     = '';
+                document.getElementById('update-steps').style.display    = 'none';
+            } else {
+                showError(data.message || i18n.error_download);
+            }
+        })
+        .catch(() => showError(i18n.error_download));
+}
+
+function launchInstaller() {
+    fetch('launch_installer.php', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'launched') {
+                document.getElementById('btn-install').style.display = 'none';
+                showMsg(i18n.launched, 'info');
+            } else {
+                showError(data.message || i18n.error_install);
+            }
+        })
+        .catch(() => showError(i18n.error_install));
+}
+
+function showError(msg) {
+    document.getElementById('btn-downloading').style.display = 'none';
+    document.getElementById('btn-download').style.display    = '';
+    showMsg(msg, 'error');
+}
+
+function showMsg(msg, type) {
+    const el = document.getElementById('update-status-msg');
+    el.className = 'message ' + type;
+    el.innerHTML = msg;
+    el.style.display = '';
+}
+
 function translateChangelog(elementId, targetLang) {
     const changelogList = document.getElementById(elementId);
     if (!changelogList) {

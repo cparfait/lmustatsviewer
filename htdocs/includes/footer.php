@@ -7,7 +7,7 @@
 </footer>
 
 <div class="footer-avatar">
-    <a href="https://discord.gg/RwZw4E6gX" target="_blank"><img src="logos/avatar.png" alt="<?php echo $lang['player_avatar_alt']; ?>" id="page-avatar"></a>
+    <a href="https://discord.gg/G9ng9GdvSU" target="_blank"><img src="logos/avatar.png" alt="<?php echo $lang['player_avatar_alt']; ?>" id="page-avatar"></a>
     <br>
     <a href="https://buymeacoffee.com/cristof" target="_blank" id="bmc-btn" title="Buy me a coffee ☕">☕</a>
 </div>

@@ -60,29 +60,31 @@ Type: files; Name: "{userappdata}\LMU_Stats_Viewer\php_server.log"
 [Code]
 // Désinstalle silencieusement toute version précédente de "LMU Stats Viewer"
 // qui n'aurait pas le même AppId (ex: v0.9.3 installée sans AppId fixe).
-function FindOldUninstallString(): String;
+function FindInKey(BaseKey: String): String;
 var
-  BaseKey: String;
   Names: TArrayOfString;
   I: Integer;
   DisplayName, UninstallStr, DisplayVersion: String;
 begin
   Result := '';
-  for BaseKey in ['SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
-                  'SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall'] do
-  begin
-    if RegGetSubkeyNames(HKLM, BaseKey, Names) then
-      for I := 0 to GetArrayLength(Names) - 1 do
-        if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'DisplayName', DisplayName) then
-          if DisplayName = 'LMU Stats Viewer' then
-            if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'DisplayVersion', DisplayVersion) then
-              if DisplayVersion <> '{#AppVersion}' then
-                if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'UninstallString', UninstallStr) then
-                begin
-                  Result := UninstallStr;
-                  Exit;
-                end;
-  end;
+  if RegGetSubkeyNames(HKLM, BaseKey, Names) then
+    for I := 0 to GetArrayLength(Names) - 1 do
+      if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'DisplayName', DisplayName) then
+        if DisplayName = 'LMU Stats Viewer' then
+          if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'DisplayVersion', DisplayVersion) then
+            if DisplayVersion <> '{#AppVersion}' then
+              if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'UninstallString', UninstallStr) then
+              begin
+                Result := UninstallStr;
+                Exit;
+              end;
+end;
+
+function FindOldUninstallString(): String;
+begin
+  Result := FindInKey('SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall');
+  if Result = '' then
+    Result := FindInKey('SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall');
 end;
 
 procedure KillApp();

@@ -296,7 +296,14 @@ def main() -> None:
     # ── Icône tray (bloquant jusqu'au Quitter) ───────────────────────────────────
     tray = create_tray()
     log.info("Icône tray active. Application prête.")
-    tray.run()
+
+    def on_ready(icon: pystray.Icon) -> None:
+        icon.notify(
+            "Clic droit sur cette icône pour quitter l'application.",
+            APP_NAME
+        )
+
+    tray.run(setup=on_ready)
 
     log.info(f"{APP_NAME} — Terminé")
 

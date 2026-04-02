@@ -1,14 +1,18 @@
 ; Script Inno Setup pour LMU Stats Viewer
 
 [Setup]
+AppId={{A3F8C2D1-5E7B-4A90-B3F6-8D2E1C4F9A03}
 AppName=LMU Stats Viewer
-AppVersion=0.9.4
+AppVersion=0.9.3
 AppPublisher=Cris Tof
 AppPublisherURL=https://github.com/cparfait/lmustatsviewer
+AppSupportURL=https://github.com/cparfait/lmustatsviewer/issues
+AppUpdatesURL=https://github.com/cparfait/lmustatsviewer/releases
 DefaultDirName={autopf}\LMU_Stats_Viewer
 DefaultGroupName=LMU Stats Viewer
 UninstallDisplayIcon={app}\htdocs\logos\lmu.ico
-OutputBaseFilename=SETUP-LSV-0-9.4
+SetupIconFile=htdocs\logos\lmu.ico
+OutputBaseFilename=SETUP-LSV-0-9-3
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -41,9 +45,11 @@ Name: "startup"; Description: "Lancer LMU Stats Viewer au démarrage de Windows"
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "LMU Stats Viewer"; ValueData: """{app}\LMU_Stats_Viewer.exe"""; Flags: uninsdeletevalue; Tasks: startup
 
+[UninstallDelete]
+Type: files; Name: "{app}\launcher.log"
+Type: files; Name: "{app}\php_server.log"
+
 [Run]
-; Permissions en écriture pour les utilisateurs standard
-Filename: "cmd.exe"; Parameters: "/c icacls ""{app}\htdocs\includes\init.php"" /grant *S-1-5-32-545:(M)"; Flags: runhidden
 ; Proposer d'afficher le changelog
 Filename: "{app}\CHANGELOG.txt"; Description: "Afficher le CHANGE LOG"; Flags: postinstall shellexec
 ; Lancer l'appli en fin d'installation

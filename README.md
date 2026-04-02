@@ -160,9 +160,19 @@ LMU_Stats_Viewer/
 ## 🛠️ Compiler depuis les sources
 
 ### Prérequis
-- [PHP 8.x](https://windows.php.net/download/) (Thread Safe, x64)
+- [PHP 8.x pour Windows](https://windows.php.net/download/) — version **Thread Safe (TS) x64**, à extraire dans le dossier `php/`
 - [Python 3.10+](https://python.org) (pour le launcher)
 - [InnoSetup 6](https://jrsoftware.org/isinfo.php) (pour l'installeur)
+
+### Configuration PHP requise
+
+Dans `php/php.ini`, activer l'extension **intl** en décommentant la ligne :
+
+```ini
+extension=intl
+```
+
+> 💡 Vous pouvez copier `php.ini-production` en `php.ini` et décommenter uniquement cette ligne.
 
 ### Compiler le launcher
 ```bat

@@ -70,7 +70,7 @@ begin
   if RegGetSubkeyNames(HKLM, BaseKey, Names) then
     for I := 0 to GetArrayLength(Names) - 1 do
       if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'DisplayName', DisplayName) then
-        if DisplayName = 'LMU Stats Viewer' then
+        if Pos('LMU Stats Viewer', DisplayName) > 0 then
           if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'DisplayVersion', DisplayVersion) then
             if DisplayVersion <> '{#AppVersion}' then
               if RegQueryStringValue(HKLM, BaseKey + '\' + Names[I], 'UninstallString', UninstallStr) then

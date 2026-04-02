@@ -25,23 +25,38 @@ if (!function_exists('curl_init')) {
     exit;
 }
 
-$ch = curl_init($downloadUrl);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_MAXREDIRS      => 10,
-    CURLOPT_TIMEOUT        => 120,
-    CURLOPT_USERAGENT      => 'LMU-Stats-Viewer-Updater',
-]);
-
-$data     = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$error    = curl_error($ch);
-curl_close($ch);
-
-if ($data === false || $httpCode !== 200) {
-    echo json_encode(['status' => 'error', 'message' => 'Download failed (HTTP ' . $httpCode . ') ' . $error]);
-    exit;
+if (function_exists('curl_init')) {
+    $ch = curl_init($downloadUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 10,
+        CURLOPT_TIMEOUT        => 120,
+        CURLOPT_USERAGENT      => 'LMU-Stats-Viewer-Updater',
+    ]);
+    $data  = curl_exec($ch);
+    $error = curl_error($ch);
+    $code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($data === false || $code !== 200) {
+        echo json_encode(['status' => 'error', 'message' => 'Download failed (HTTP ' . $code . ') ' . $error]);
+        exit;
+    }
+} else {
+    $ctx = stream_context_create([
+        'http' => [
+            'follow_location' => 1,
+            'max_redirects'   => 10,
+            'timeout'         => 120,
+            'user_agent'      => 'LMU-Stats-Viewer-Updater',
+        ],
+        'ssl' => ['verify_peer' => false],
+    ]);
+    $data = @file_get_contents($downloadUrl, false, $ctx);
+    if ($data === false) {
+        echo json_encode(['status' => 'error', 'message' => 'Download failed (curl indisponible, file_get_contents aussi)']);
+        exit;
+    }
 }
 
 if (file_put_contents($destFile, $data) === false) {

@@ -27,5 +27,8 @@ desktop.ini
 .idea/
 *.swp
 
+# Dossier de build InnoSetup (généré par build.bat)
+release/
+
 # Claude Code
 .claude/

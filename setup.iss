@@ -18,6 +18,8 @@ OutputBaseFilename=SETUP-LSV-{#StringChange(AppVersion, '.', '-')}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+CloseApplications=yes
+RestartApplications=yes
 PrivilegesRequired=admin
 
 [Files]

@@ -29,6 +29,37 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "german";  MessagesFile: "compiler:Languages\German.isl"
 
+[CustomMessages]
+french.StartupDesc=Lancer LMU Stats Viewer au démarrage de Windows
+english.StartupDesc=Launch LMU Stats Viewer at Windows startup
+spanish.StartupDesc=Iniciar LMU Stats Viewer al arrancar Windows
+german.StartupDesc=LMU Stats Viewer beim Windows-Start starten
+
+french.StartupGroup=Démarrage automatique :
+english.StartupGroup=Auto-start:
+spanish.StartupGroup=Inicio automático:
+german.StartupGroup=Autostart:
+
+french.OpenConfigDesc=Ouvrir la page de configuration au premier lancement
+english.OpenConfigDesc=Open the configuration page on first launch
+spanish.OpenConfigDesc=Abrir la página de configuración en el primer inicio
+german.OpenConfigDesc=Konfigurationsseite beim ersten Start öffnen
+
+french.OpenConfigGroup=Premier lancement :
+english.OpenConfigGroup=First launch:
+spanish.OpenConfigGroup=Primer inicio:
+german.OpenConfigGroup=Erster Start:
+
+french.ShowChangelog=Afficher le CHANGE LOG
+english.ShowChangelog=Show CHANGE LOG
+spanish.ShowChangelog=Mostrar CHANGE LOG
+german.ShowChangelog=ÄNDERUNGSPROTOKOLL anzeigen
+
+french.LaunchApp=Lancer LMU Stats Viewer
+english.LaunchApp=Launch LMU Stats Viewer
+spanish.LaunchApp=Iniciar LMU Stats Viewer
+german.LaunchApp=LMU Stats Viewer starten
+
 [Files]
 ; PHP runtime (non inclus dans le repo — à télécharger séparément, voir README)
 Source: "php\*"; DestDir: "{app}\php"; Flags: recursesubdirs createallsubdirs
@@ -54,8 +85,8 @@ Name: "{commondesktop}\LMU Stats Viewer"; Filename: "{app}\LMU_Stats_Viewer.exe"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
-Name: "startup";    Description: "Lancer LMU Stats Viewer au démarrage de Windows"; GroupDescription: "Démarrage automatique :"; Flags: unchecked
-Name: "openconfig"; Description: "Ouvrir la page de configuration au premier lancement"; GroupDescription: "Premier lancement :"; Flags: unchecked
+Name: "startup";    Description: "{cm:StartupDesc}";    GroupDescription: "{cm:StartupGroup}";    Flags: unchecked
+Name: "openconfig"; Description: "{cm:OpenConfigDesc}"; GroupDescription: "{cm:OpenConfigGroup}"; Flags: unchecked
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "LMU Stats Viewer"; ValueData: """{app}\LMU_Stats_Viewer.exe"""; Flags: uninsdeletevalue; Tasks: startup
@@ -124,7 +155,7 @@ end;
 
 [Run]
 ; Proposer d'afficher le changelog
-Filename: "{app}\CHANGELOG.txt"; Description: "Afficher le CHANGE LOG"; Flags: postinstall shellexec
+Filename: "{app}\CHANGELOG.txt"; Description: "{cm:ShowChangelog}"; Flags: postinstall shellexec
 ; Lancer l'appli en fin d'installation
-Filename: "{app}\LMU_Stats_Viewer.exe"; Parameters: "--config"; Description: "Lancer LMU Stats Viewer"; Flags: postinstall nowait; Tasks: openconfig
-Filename: "{app}\LMU_Stats_Viewer.exe";                         Description: "Lancer LMU Stats Viewer"; Flags: postinstall nowait; Tasks: not openconfig
+Filename: "{app}\LMU_Stats_Viewer.exe"; Parameters: "--config"; Description: "{cm:LaunchApp}"; Flags: postinstall nowait; Tasks: openconfig
+Filename: "{app}\LMU_Stats_Viewer.exe";                         Description: "{cm:LaunchApp}"; Flags: postinstall nowait; Tasks: not openconfig

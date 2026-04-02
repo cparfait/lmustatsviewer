@@ -85,6 +85,13 @@ begin
   end;
 end;
 
+procedure KillApp();
+var
+  ResultCode: Integer;
+begin
+  Exec('taskkill.exe', '/F /IM LMU_Stats_Viewer.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   UninstallStr: String;
@@ -92,10 +99,17 @@ var
 begin
   if CurStep = ssInstall then
   begin
+    KillApp();
     UninstallStr := FindOldUninstallString();
     if UninstallStr <> '' then
       Exec(RemoveQuotes(UninstallStr), '/SILENT', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   end;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+    KillApp();
 end;
 
 [Run]

@@ -21,6 +21,7 @@ WizardStyle=modern
 CloseApplications=yes
 RestartApplications=yes
 PrivilegesRequired=admin
+PrivilegesRequiredOverridesAllowed=dialog
 
 [Files]
 ; PHP runtime (non inclus dans le repo — à télécharger séparément, voir README)

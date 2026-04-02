@@ -8,6 +8,7 @@
 
 <div class="footer-avatar">
     <a href="https://discord.gg/RwZw4E6gX" target="_blank"><img src="logos/avatar.png" alt="<?php echo $lang['player_avatar_alt']; ?>" id="page-avatar"></a>
+    <a href="https://buymeacoffee.com/cristof" target="_blank" id="bmc-btn" title="Buy me a coffee ☕">☕</a>
 </div>
 
 <style>
@@ -21,6 +22,26 @@
 }
 .update-indicator:hover { color: darkorange; }
 @media (max-width: 600px) { .update-indicator .update-text { display: none; } }
+
+#bmc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #FFDD00;
+    font-size: 18px;
+    text-decoration: none;
+    margin-left: 8px;
+    opacity: 0.75;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    line-height: 1;
+}
+#bmc-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
 </style>
 
 <script>

@@ -56,10 +56,15 @@ else:
 
 PHP_EXE    = APP_DIR / "php"    / "php.exe"
 HTDOCS_DIR = APP_DIR / "htdocs"
-LOG_FILE   = APP_DIR / "launcher.log"
-PHP_LOG    = APP_DIR / "php_server.log"
-LOCK_FILE  = Path(os.environ.get("TEMP", os.environ.get("TMP", "/tmp"))) \
-             / "lmu_stats_viewer.lock"
+
+# Logs et lock dans %APPDATA% pour éviter les erreurs de permission dans Program Files
+_APPDATA_DIR = Path(os.environ.get("APPDATA", os.environ.get("TEMP", ""))) \
+               / "LMU_Stats_Viewer"
+_APPDATA_DIR.mkdir(parents=True, exist_ok=True)
+
+LOG_FILE  = _APPDATA_DIR / "launcher.log"
+PHP_LOG   = _APPDATA_DIR / "php_server.log"
+LOCK_FILE = _APPDATA_DIR / "lmu_stats_viewer.lock"
 
 # ─── Logging ─────────────────────────────────────────────────────────────────────
 

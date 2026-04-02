@@ -51,8 +51,8 @@ Name: "startup"; Description: "Lancer LMU Stats Viewer au démarrage de Windows"
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "LMU Stats Viewer"; ValueData: """{app}\LMU_Stats_Viewer.exe"""; Flags: uninsdeletevalue; Tasks: startup
 
 [UninstallDelete]
-Type: files; Name: "{app}\launcher.log"
-Type: files; Name: "{app}\php_server.log"
+Type: files; Name: "{userappdata}\LMU_Stats_Viewer\launcher.log"
+Type: files; Name: "{userappdata}\LMU_Stats_Viewer\php_server.log"
 
 [Run]
 ; Proposer d'afficher le changelog

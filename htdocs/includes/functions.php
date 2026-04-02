@@ -53,7 +53,7 @@ function getCarLogoUrl($carType) {
         'mclaren' => 'mclaren.png', 'mercedesamg' => 'mercedes.png', 'oreca' => 'oreca.png',
         'peugeot' => 'peugeot.png', 'porsche' => 'porsche.png', 'toyota' => 'toyota.png',
         'vanwall' => 'vanwall.png', 'alpine' => 'alpine.png', 'chevrolet' => 'chevrolet.png',
-        'ford' => 'ford.png', 'lexus' => 'lexus.png'
+        'ford' => 'ford.png', 'lexus' => 'lexus.png', 'genesis' => 'genesis.png'
     ];
     foreach ($brandMap as $brandKey => $logoFile) {
         if (str_contains($searchableCarType, $brandKey) && file_exists($basePath . $logoFile)) {
@@ -76,6 +76,7 @@ function getCircuitFlagUrl($trackVenue) {
         'bh.png' => ['Bahrain'],
         'br.png' => ['Autódromo José Carlos Pace', 'Interlagos'],
         'qa.png' => ['Lusail International Circuit', 'Lusail'],
+        'es.png' => ['Barcelona', 'Circuit de Barcelona', 'Catalunya'],
     ];
 
     foreach ($countryMap as $flagFile => $trackAliases) {

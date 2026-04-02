@@ -12,10 +12,6 @@
 
 [📥 Télécharger](#installation) · [🐛 Signaler un bug](https://github.com/cparfait/lmustatsviewer/issues) · [💬 Discord](https://discord.gg/bY6W9gZ6)
 
-<br>
-
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-cristof-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/cristof)
-
 </div>
 
 ---

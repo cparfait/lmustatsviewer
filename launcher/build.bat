@@ -35,7 +35,7 @@ echo.
 echo  [2/3] Compilation en cours...
 echo.
 
-pyinstaller ^
+python -m PyInstaller ^
     --onefile ^
     --windowed ^
     --noconsole ^

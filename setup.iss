@@ -1,9 +1,11 @@
 ; Script Inno Setup pour LMU Stats Viewer
 
+#define AppVersion Trim(FileRead(FileOpen("version.txt")))
+
 [Setup]
 AppId={{A3F8C2D1-5E7B-4A90-B3F6-8D2E1C4F9A03}
 AppName=LMU Stats Viewer
-AppVersion=0.9.3
+AppVersion={#AppVersion}
 AppPublisher=Cris Tof
 AppPublisherURL=https://github.com/cparfait/lmustatsviewer
 AppSupportURL=https://github.com/cparfait/lmustatsviewer/issues
@@ -12,7 +14,7 @@ DefaultDirName={autopf}\LMU_Stats_Viewer
 DefaultGroupName=LMU Stats Viewer
 UninstallDisplayIcon={app}\htdocs\logos\lmu.ico
 SetupIconFile=htdocs\logos\lmu.ico
-OutputBaseFilename=SETUP-LSV-0-9-3
+OutputBaseFilename=SETUP-LSV-{#StringChange(AppVersion, '.', '-')}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

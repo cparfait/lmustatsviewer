@@ -27,7 +27,19 @@ from PIL import Image
 # ─── Constantes ──────────────────────────────────────────────────────────────────
 
 APP_NAME    = "LMU Stats Viewer"
-APP_VERSION = "0.9.3"
+
+# Version lue depuis version.txt à la racine du projet
+def _read_version() -> str:
+    if getattr(sys, "frozen", False):
+        v_file = Path(sys.executable).parent / "version.txt"
+    else:
+        v_file = Path(__file__).resolve().parent.parent / "version.txt"
+    try:
+        return v_file.read_text(encoding="utf-8").strip()
+    except Exception:
+        return "0.0.0"
+
+APP_VERSION = _read_version()
 
 # Ports à essayer dans l'ordre (80 nécessite parfois des droits admin,
 # on bascule automatiquement sur le suivant si indisponible)

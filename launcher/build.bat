@@ -42,6 +42,7 @@ pyinstaller ^
     --name "LMU_Stats_Viewer" ^
     --icon "..\htdocs\logos\lmu.ico" ^
     --add-data "..\htdocs\logos\lmu.ico;." ^
+    --add-data "..\version.txt;." ^
     --distpath ".." ^
     --workpath "build_temp" ^
     --specpath "." ^

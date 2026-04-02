@@ -39,7 +39,8 @@ def _read_version() -> str:
     except Exception:
         return "0.0.0"
 
-APP_VERSION = _read_version()
+APP_VERSION  = _read_version()
+OPEN_CONFIG  = "--config" in sys.argv
 
 # Ports à essayer dans l'ordre (80 nécessite parfois des droits admin,
 # on bascule automatiquement sur le suivant si indisponible)
@@ -308,7 +309,8 @@ def main() -> None:
     LOCK_FILE.write_text(str(_server_port))
 
     # ── Ouverture du navigateur ──────────────────────────────────────────────────
-    open_browser(f"http://localhost:{_server_port}")
+    start_page = "/config.php" if OPEN_CONFIG else "/"
+    open_browser(f"http://localhost:{_server_port}{start_page}")
 
     # ── Icône tray (bloquant jusqu'au Quitter) ───────────────────────────────────
     tray = create_tray()

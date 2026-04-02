@@ -5,249 +5,249 @@
 ![Version](https://img.shields.io/badge/version-0.9.3-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![PHP](https://img.shields.io/badge/PHP-8.x-777BB4)
-![Languages](https://img.shields.io/badge/languages-FR%20%7C%20EN%20%7C%20ES%20%7C%20DE-green)
-![License](https://img.shields.io/badge/license-MIT-orange)
+![Langues](https://img.shields.io/badge/langues-FR%20%7C%20EN%20%7C%20ES%20%7C%20DE-green)
+![Licence](https://img.shields.io/badge/licence-MIT-orange)
 
-**A statistics viewer for [Le Mans Ultimate](https://www.lemansultimate.com/) — track your best laps, race results and performance over time.**
+**Un outil de statistiques pour [Le Mans Ultimate](https://www.lemansultimate.com/) — suivez vos meilleurs temps, résultats de course et progression.**
 
-[📥 Download](#installation) · [🐛 Report a Bug](https://github.com/lmustatsviewer/lmustatsviewer/issues) · [💬 Discord](https://discord.gg/bY6W9gZ6)
+[📥 Télécharger](#installation) · [🐛 Signaler un bug](https://github.com/cparfait/lmustatsviewer/issues) · [💬 Discord](https://discord.gg/bY6W9gZ6)
 
 </div>
 
 ---
 
-## 📸 Screenshots
+## 📸 Captures d'écran
 
-> *(Add screenshots here once uploaded)*
+> *(Captures à ajouter prochainement)*
 
 <!--
-![Main view](docs/screenshot_main.png)
-![Race details](docs/screenshot_details.png)
-![Dark mode](docs/screenshot_dark.png)
+![Vue principale](docs/screenshot_main.png)
+![Détails de course](docs/screenshot_details.png)
+![Mode sombre](docs/screenshot_dark.png)
 -->
 
 ---
 
-## ✨ Features
+## ✨ Fonctionnalités
 
-### 📊 Statistics Dashboard
-- **Best lap times** per track, layout and car — with sector breakdown (S1 / S2 / S3)
-- **Optimal lap time** (theoretical best combining your best sectors)
-- **Top speed** (V-max) per session
-- **Global stats** : total driving time, completed laps, favourite track & car
-- **Best online result** and best progression (grid → finish)
+### 📊 Tableau de bord
+- **Meilleurs temps** par circuit, layout et voiture — avec détail des secteurs (S1 / S2 / S3)
+- **Temps optimal** (meilleur temps théorique en combinant vos meilleurs secteurs)
+- **Vitesse maximale** (V-max) par session
+- **Statistiques globales** : temps de conduite total, tours effectués, circuit et voiture favoris
+- **Meilleur résultat en ligne** et meilleure progression (grille → arrivée)
 
-### 🏎️ Multi-class Support
-Full support for all Le Mans Ultimate classes:
+### 🏎️ Support multi-classes
+Toutes les classes de Le Mans Ultimate sont supportées :
 `Hypercar` · `LMP2 ELMS` · `LMP2` · `LMP3` · `GT3` · `GTE`
 
-### 📋 Race Details
-- Per-session classification by class with gap to leader
-- Lap-by-lap breakdown for every driver
-- Stint analysis, fuel strategy (start % → finish %), tire compounds & wear
-- Incidents, penalties and chat log
-- **Driver comparison** — overlay lap charts for multiple drivers
+### 📋 Détails de course
+- Classement par session et par classe avec écart au leader
+- Détail tour par tour pour chaque pilote
+- Analyse des relais, stratégie carburant (% départ → % arrivée), pneumatiques et usure
+- Incidents, pénalités et log de chat
+- **Comparaison de pilotes** — superposition des courbes de temps
 
-### 📈 Interactive Charts
-- Lap time progression chart (click any lap time cell)
-- Delta to best lap on hover
-- Best lap highlighted
+### 📈 Graphiques interactifs
+- Courbe de progression des temps au tour (clic sur n'importe quelle cellule de temps)
+- Écart au meilleur tour au survol
+- Meilleur tour mis en évidence
 
-### 🔍 Filters
-- Track / Layout / Car class / Car model
-- Session type (Practice / Qualify / Race)
-- Setting type (Online / Race Weekend)
-- Game version filter
+### 🔍 Filtres
+- Circuit / Layout / Classe / Voiture
+- Type de session (Essais / Qualification / Course)
+- Type de réglage (En ligne / Week-end de course)
+- Filtre par version du jeu
 
-### 🌐 Internationalisation
+### 🌐 Langues disponibles
 | 🇫🇷 Français | 🇬🇧 English | 🇪🇸 Español | 🇩🇪 Deutsch |
 |---|---|---|---|
 | ✅ | ✅ | ✅ | ✅ |
 
-### 🎨 Themes
-Light and dark mode — toggle in one click, persisted across sessions.
+### 🎨 Thèmes
+Mode clair et mode sombre — bascule en un clic, mémorisé entre les sessions.
 
 ### ⚡ Performance
-- MD5-based cache system — instant reload when no new files detected
-- Cache stored in `%APPDATA%\LMU_Stats_Viewer\`
+- Système de cache MD5 — rechargement instantané si aucun nouveau fichier détecté
+- Cache stocké dans `%APPDATA%\LMU_Stats_Viewer\`
 
-### 🔄 Auto-update
-Built-in update checker — notifies you when a new version is available on GitHub.
+### 🔄 Mises à jour automatiques
+Vérificateur de mise à jour intégré — vous avertit dès qu'une nouvelle version est disponible sur GitHub.
 
 ---
 
-## 🖥️ Requirements
+## 🖥️ Prérequis
 
-| Component | Details |
+| Composant | Détail |
 |---|---|
-| OS | Windows 10 / 11 |
-| Game | [Le Mans Ultimate](https://www.lemansultimate.com/) (Steam) |
-| PHP | Bundled in the installer — nothing to install |
+| Système | Windows 10 / 11 |
+| Jeu | [Le Mans Ultimate](https://www.lemansultimate.com/) (Steam) |
+| PHP | Inclus dans l'installeur — rien à installer |
 
 ---
 
 ## 📥 Installation
 
-1. Go to the [**Releases**](https://github.com/lmustatsviewer/lmustatsviewer/releases) page
-2. Download the latest `SETUP-LSV-x.x.x.exe`
-3. Run the installer
-4. Double-click **LMU Stats Viewer** on your desktop or in the Start menu
+1. Rendez-vous sur la page [**Releases**](https://github.com/cparfait/lmustatsviewer/releases)
+2. Téléchargez le dernier `SETUP-LSV-x.x.x.exe`
+3. Lancez l'installeur
+4. Double-cliquez sur **LMU Stats Viewer** depuis le bureau ou le menu Démarrer
 
-The app starts a local PHP server in the background and opens your browser automatically.
-An icon appears in the **system tray** — right-click it to access Configuration, Updates or Quit.
+L'application démarre un serveur PHP local en arrière-plan et ouvre votre navigateur automatiquement.
+Une icône apparaît dans la **barre système** — clic droit pour accéder à la Configuration, aux Mises à jour ou pour Quitter.
 
-> 💡 The result files are usually found at:
+> 💡 Les fichiers de résultats se trouvent généralement ici :
 > `C:\Program Files (x86)\Steam\steamapps\common\Le Mans Ultimate\UserData\Log\Results`
-> The path is auto-detected at first launch and can be changed in **Configuration**.
+> Le chemin est détecté automatiquement au premier lancement et peut être modifié dans la **Configuration**.
 
 ---
 
 ## ⚙️ Configuration
 
-Click the ⚙️ gear icon in the app header or right-click the tray icon → **Configuration**.
+Cliquez sur l'icône ⚙️ dans l'en-tête de l'application ou clic droit sur l'icône tray → **Configuration**.
 
-| Setting | Description |
+| Paramètre | Description |
 |---|---|
-| Player name | Your in-game name (used to highlight your laps) |
-| Results directory | Path to LMU XML result files |
-| Timezone | For correct session timestamps |
-| Language | FR / EN / ES / DE |
-| Default version filter | Filter results from a specific game version |
+| Nom du joueur | Votre pseudo en jeu (utilisé pour mettre vos tours en évidence) |
+| Répertoire des résultats | Chemin vers les fichiers XML de résultats LMU |
+| Fuseau horaire | Pour l'affichage correct des horodatages de session |
+| Langue | FR / EN / ES / DE |
+| Filtre version par défaut | Filtrer les résultats à partir d'une version du jeu |
 
 ### Maintenance
-- **Clear cache** — force a full reload of all sessions
-- **Purge empty sessions** — remove sessions with no recorded laps (global or player-only)
+- **Vider le cache** — force le rechargement complet de toutes les sessions
+- **Purger les sessions vides** — supprime les sessions sans tour enregistré (globale ou par joueur)
 
 ---
 
-## 🗂️ How it works
+## 🗂️ Fonctionnement
 
 ```
 Le Mans Ultimate
-    └── UserData/Log/Results/*.xml   ← race result files (XML)
+    └── UserData/Log/Results/*.xml   ← fichiers de résultats (XML)
             │
             ▼
     LMU Stats Viewer (PHP)
-            │   parses & caches data
+            │   analyse et met en cache les données
             ▼
-    Browser (localhost)              ← your stats dashboard
+    Navigateur (localhost)           ← votre tableau de bord
 ```
 
-LMU Stats Viewer reads the XML files generated by the game after each session (Practice, Qualify, Race), parses lap times, sector times, driver info and race events, then presents everything in an interactive web interface running locally.
+LMU Stats Viewer lit les fichiers XML générés par le jeu après chaque session (Essais, Qualification, Course), analyse les temps au tour, temps secteurs, informations pilotes et événements de course, puis présente le tout dans une interface web interactive en local.
 
 ---
 
-## 📁 Project Structure
+## 📁 Structure du projet
 
 ```
 LMU_Stats_Viewer/
-├── LMU_Stats_Viewer.exe    ← launcher (starts PHP + opens browser)
-├── htdocs/                 ← web application
-│   ├── index.php           ← main dashboard
-│   ├── race_details.php    ← session details
-│   ├── config.php          ← configuration page
-│   ├── update.php          ← update checker
+├── LMU_Stats_Viewer.exe    ← launcher (démarre PHP + ouvre le navigateur)
+├── htdocs/                 ← application web
+│   ├── index.php           ← tableau de bord principal
+│   ├── race_details.php    ← détails de session
+│   ├── config.php          ← page de configuration
+│   ├── update.php          ← vérificateur de mises à jour
 │   ├── css/style.css
 │   ├── js/
-│   ├── lang/               ← translation files (fr/en/es/de)
-│   ├── logos/              ← car brand logos
-│   └── flags/              ← circuit country flags
-└── php/                    ← PHP runtime (bundled by installer)
+│   ├── lang/               ← fichiers de traduction (fr/en/es/de)
+│   ├── logos/              ← logos des marques automobiles
+│   └── flags/              ← drapeaux des circuits
+└── php/                    ← runtime PHP (inclus par l'installeur)
 ```
 
 ---
 
-## 🛠️ Build from source
+## 🛠️ Compiler depuis les sources
 
-### Prerequisites
+### Prérequis
 - [PHP 8.x](https://windows.php.net/download/) (Thread Safe, x64)
-- [Python 3.10+](https://python.org) (for the launcher)
-- [InnoSetup 6](https://jrsoftware.org/isinfo.php) (for the installer)
+- [Python 3.10+](https://python.org) (pour le launcher)
+- [InnoSetup 6](https://jrsoftware.org/isinfo.php) (pour l'installeur)
 
-### Build the launcher
+### Compiler le launcher
 ```bat
 cd launcher
 build.bat
 ```
-This produces `LMU_Stats_Viewer.exe` in the root folder.
+Génère `LMU_Stats_Viewer.exe` à la racine du projet.
 
-### Build the installer
-Open `setup.iss` with InnoSetup and click **Build → Compile**.
+### Compiler l'installeur
+Ouvrez `setup.iss` avec InnoSetup et cliquez sur **Compiler**.
 
 ---
 
 ## 📝 Changelog
 
 ### v0.9.3
-- Add: GTE class table
-- Add: Race car summary
-- Add: LMP3 and LMP2 ELMS support
-- Add: Driver comparison
-- Fix: Lap display bug
-- Fix: Finish position display in best laps
-- Modified: Graphics improvements, code cleanup, translation fixes
+- Ajout : tableau GTE
+- Ajout : résumé des voitures de course
+- Ajout : support LMP3 et LMP2 ELMS
+- Ajout : comparaison de pilotes
+- Correction : bug d'affichage des tours
+- Correction : bug d'affichage de la position d'arrivée dans les meilleurs temps
+- Modification : améliorations graphiques, nettoyage du code, corrections de traductions
 
 ### v0.9.2
-- Fix: Update checker not working
+- Correction : vérificateur de mise à jour non fonctionnel
 
 ### v0.9.1
-- Add: Automatic update checker
+- Ajout : vérificateur de mise à jour automatique
 
 ### v0.9
-- Add: Dark theme
-- Add: Circuit layout support *(thanks @Tontonjp)*
-- Add: New config.json system with driver name suggestion
-- Modified: Purge session system, CSS color improvements
+- Ajout : thème sombre
+- Ajout : support des layouts de circuits *(merci @Tontonjp)*
+- Ajout : nouveau système config.json avec suggestion du nom de pilote
+- Modification : système de purge de sessions, améliorations CSS
 
 ### v0.8
-- Fix: Spa sector 2 times
-- Fix: German translation *(thanks @Texas-Edelweis)*
+- Correction : temps secteur 2 à Spa
+- Correction : traduction allemande *(merci @Texas-Edelweis)*
 
 ### v0.7
-- Add: Strategy tab (tyres & fuel)
-- Add: Fuel start/finish in race details
-- Add: Filters on details table
-- Modified: Best lap ranking *(thanks @astroremucho)*
+- Ajout : onglet stratégie (pneus & carburant)
+- Ajout : carburant départ/arrivée dans les détails de course
+- Ajout : filtres sur le tableau de détails
+- Modification : classement des meilleurs temps *(merci @astroremucho)*
 
 ### v0.6
-- Add: Multi-class ranking (Hyper / LMP2 / GT3...)
-- Add: Incident types table
-- Fix: Invalid lap on missing sector *(thanks @Botmeister)*
+- Ajout : classement multi-classes (Hyper / LMP2 / GT3...)
+- Ajout : tableau des types d'incidents
+- Correction : tour invalide sur secteur manquant *(merci @Botmeister)*
 
 ### v0.5
-- Add: Cache system (`%APPDATA%`)
-- Add: Chat tab in race details
-- Add: Config page with purge tools
+- Ajout : système de cache (`%APPDATA%`)
+- Ajout : onglet chat dans les détails de course
+- Ajout : page de configuration avec outils de purge
 
 ### v0.4
-- Add: Online / Race Weekend filter
+- Ajout : filtre En ligne / Week-end de course
 
 ### v0.3
-- Add: Game version filter *(thanks @Pillot69)*
+- Ajout : filtre par version du jeu *(merci @Pillot69)*
 
 ### v0.2
-- Fix: Config not saving log path
+- Correction : la configuration ne sauvegardait pas le chemin des logs
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contribuer
 
-Contributions, bug reports and feature requests are welcome!
-Feel free to open an [issue](https://github.com/lmustatsviewer/lmustatsviewer/issues) or submit a pull request.
+Les contributions, rapports de bugs et suggestions sont les bienvenus !
+N'hésitez pas à ouvrir une [issue](https://github.com/cparfait/lmustatsviewer/issues) ou à soumettre une pull request.
 
-💬 You can also join the community on **[Discord](https://discord.gg/bY6W9gZ6)**.
+💬 Rejoignez aussi la communauté sur **[Discord](https://discord.gg/bY6W9gZ6)**.
 
 ---
 
-## 👤 Author
+## 👤 Auteur
 
 **Cris Tof**
-Made with ❤️ for the Le Mans Ultimate community.
+Fait avec ❤️ pour la communauté Le Mans Ultimate.
 
 ---
 
-## 📄 License
+## 📄 Licence
 
-This project is licensed under the [MIT License](LICENSE).
+Ce projet est sous licence [MIT](LICENSE).
 
-> *LMU Stats Viewer is not affiliated with Studio 397 or Le Mans Ultimate.*
+> *LMU Stats Viewer n'est pas affilié à Studio 397 ou Le Mans Ultimate.*

@@ -8,6 +8,7 @@
 
 <div class="footer-avatar">
     <a href="https://discord.gg/RwZw4E6gX" target="_blank"><img src="logos/avatar.png" alt="<?php echo $lang['player_avatar_alt']; ?>" id="page-avatar"></a>
+    <br>
     <a href="https://buymeacoffee.com/cristof" target="_blank" id="bmc-btn" title="Buy me a coffee ☕">☕</a>
 </div>
 
@@ -33,7 +34,7 @@
     background-color: #FFDD00;
     font-size: 18px;
     text-decoration: none;
-    margin-left: 8px;
+    margin-top: 6px;
     opacity: 0.75;
     transition: opacity 0.2s ease, transform 0.2s ease;
     line-height: 1;

@@ -38,18 +38,22 @@ if (function_exists('curl_init')) {
         exit;
     }
 } else {
+    // Fallback 1 : file_get_contents (nécessite allow_url_fopen = On)
     $ctx = stream_context_create([
-        'http' => [
-            'follow_location' => 1,
-            'max_redirects'   => 10,
-            'timeout'         => 120,
-            'user_agent'      => 'LMU-Stats-Viewer-Updater',
-        ],
-        'ssl' => ['verify_peer' => false],
+        'http' => ['follow_location' => 1, 'max_redirects' => 10, 'timeout' => 120, 'user_agent' => 'LMU-Stats-Viewer-Updater'],
+        'ssl'  => ['verify_peer' => false],
     ]);
     $data = @file_get_contents($downloadUrl, false, $ctx);
+
     if ($data === false) {
-        echo json_encode(['status' => 'error', 'message' => 'Download failed (curl indisponible, file_get_contents aussi)']);
+        // Fallback 2 : PowerShell Invoke-WebRequest (toujours disponible sur Windows)
+        $cmd = 'powershell -NoProfile -Command "Invoke-WebRequest -Uri ' . escapeshellarg($downloadUrl) . ' -OutFile ' . escapeshellarg($destFile) . ' -UseBasicParsing" 2>&1';
+        exec($cmd, $output, $returnCode);
+        if ($returnCode !== 0 || !file_exists($destFile)) {
+            echo json_encode(['status' => 'error', 'message' => 'Download failed: ' . implode(' ', $output)]);
+            exit;
+        }
+        echo json_encode(['status' => 'complete', 'size' => filesize($destFile)]);
         exit;
     }
 }

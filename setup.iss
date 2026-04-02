@@ -85,8 +85,7 @@ Name: "{commondesktop}\LMU Stats Viewer"; Filename: "{app}\LMU_Stats_Viewer.exe"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
-Name: "startup";    Description: "{cm:StartupDesc}";    GroupDescription: "{cm:StartupGroup}";    Flags: unchecked
-Name: "openconfig"; Description: "{cm:OpenConfigDesc}"; GroupDescription: "{cm:OpenConfigGroup}"; Flags: unchecked
+Name: "startup"; Description: "{cm:StartupDesc}"; GroupDescription: "{cm:StartupGroup}"; Flags: unchecked
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "LMU Stats Viewer"; ValueData: """{app}\LMU_Stats_Viewer.exe"""; Flags: uninsdeletevalue; Tasks: startup
@@ -157,5 +156,4 @@ end;
 ; Proposer d'afficher le changelog
 Filename: "{app}\CHANGELOG.txt"; Description: "{cm:ShowChangelog}"; Flags: postinstall shellexec
 ; Lancer l'appli en fin d'installation
-Filename: "{app}\LMU_Stats_Viewer.exe"; Parameters: "--config"; Description: "{cm:LaunchApp}"; Flags: postinstall nowait; Tasks: openconfig
-Filename: "{app}\LMU_Stats_Viewer.exe";                         Description: "{cm:LaunchApp}"; Flags: postinstall nowait; Tasks: not openconfig
+Filename: "{app}\LMU_Stats_Viewer.exe"; Parameters: "--config"; Description: "{cm:LaunchApp}"; Flags: postinstall nowait

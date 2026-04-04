@@ -23,7 +23,7 @@ for /f "tokens=*" %%v in ('python --version 2^>^&1') do echo  Python : %%v
 REM ── 2. Dépendances Python ────────────────────────────────────────────────────
 echo.
 echo  [1/4] Installation des dependances (pystray, pyinstaller)...
-pip install pystray pyinstaller --quiet --disable-pip-version-check
+pip install pystray==0.19.5 pyinstaller==6.3.0 --quiet --disable-pip-version-check
 if errorlevel 1 (
     echo  [ERREUR] pip install a echoue. Verifiez votre connexion internet.
     pause & exit /b 1
@@ -42,7 +42,6 @@ python -m PyInstaller ^
     --name "LMU_Stats_Viewer" ^
     --icon "..\htdocs\logos\lmu.ico" ^
     --add-data "..\htdocs\logos\lmu.ico;." ^
-    --add-data "..\version.txt;." ^
     --distpath ".." ^
     --workpath "build_temp" ^
     --specpath "." ^

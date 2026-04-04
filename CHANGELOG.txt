@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+v0.9.4:
+- Add: Automatic update checker — notifies and links to the latest release on GitHub
+- Add: Car brand logos — Genesis, Duqueine and other manufacturers now displayed in results tables
+- Add: Circuit flags — country flags for Barcelona, Paul Ricard and other tracks
+- Add: First-launch redirect — automatically opens the configuration page on fresh install
+- Add: System tray icon — right-click menu to open the app, access config, check for updates or quit
+- Add: Multi-language installer (FR / EN / ES / DE)
+
+====================
 v0.9.3:
 - Add: Added GTE table
 - Add: Race car summary

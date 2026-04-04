@@ -30,6 +30,7 @@ APP_NAME    = "LMU Stats Viewer"
 
 # Version lue depuis version.txt à la racine du projet
 def _read_version() -> str:
+    # Toujours lire depuis le dossier réel de l'exe, jamais depuis _MEIPASS
     if getattr(sys, "frozen", False):
         v_file = Path(sys.executable).parent / "version.txt"
     else:
@@ -44,7 +45,7 @@ OPEN_CONFIG  = "--config" in sys.argv
 
 # Ports à essayer dans l'ordre (80 nécessite parfois des droits admin,
 # on bascule automatiquement sur le suivant si indisponible)
-PREFERRED_PORTS = [80, 8080, 8081, 8082, 8090]
+PREFERRED_PORTS = [80, 8080, 8081, 8082, 8083,  8084, 8090]
 
 # ─── Chemins ─────────────────────────────────────────────────────────────────────
 
@@ -90,13 +91,13 @@ def find_free_port() -> int:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
-                s.bind(("127.0.0.1", p))
+                s.bind(("0.0.0.0", p))
             return p
         except OSError:
             continue
     # Fallback : laisse l'OS choisir
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
+        s.bind(("0.0.0.0", 0))
         return s.getsockname()[1]
 
 

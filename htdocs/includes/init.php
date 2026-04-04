@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 clearstatcache();
 
-define('APP_VERSION', trim(file_get_contents(__DIR__ . '/../../version.txt'))); // Version lue depuis version.txt
+define('APP_VERSION', trim(file_get_contents(__DIR__ . '/../../version.txt')));
 // URL vers le contenu BRUT (RAW) du fichier version.json sur GitHub
 define('VERSION_CHECK_URL', 'https://raw.githubusercontent.com/cparfait/lmustatsviewer/main/version.json');
 

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-0.9.3-blue)
+![Version](https://img.shields.io/badge/version-0.9.5-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![PHP](https://img.shields.io/badge/PHP-8.x-777BB4)
 ![Langues](https://img.shields.io/badge/langues-FR%20%7C%20EN%20%7C%20ES%20%7C%20DE-green)
@@ -166,13 +166,15 @@ LMU_Stats_Viewer/
 
 ### Configuration PHP requise
 
-Dans `php/php.ini`, activer l'extension **intl** en décommentant la ligne :
+Copier `php/php.ini-production` en `php/php.ini`, puis décommenter ces deux lignes :
 
 ```ini
+extension=curl
 extension=intl
 ```
 
-> 💡 Vous pouvez copier `php.ini-production` en `php.ini` et décommenter uniquement cette ligne.
+- **curl** — nécessaire pour le téléchargement des mises à jour automatiques
+- **intl** — nécessaire pour le formatage des dates localisées
 
 ### Compiler le launcher
 ```bat

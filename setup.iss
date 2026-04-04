@@ -30,16 +30,6 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "german";  MessagesFile: "compiler:Languages\German.isl"
 
 [CustomMessages]
-french.StartupDesc=Lancer LMU Stats Viewer au démarrage de Windows
-english.StartupDesc=Launch LMU Stats Viewer at Windows startup
-spanish.StartupDesc=Iniciar LMU Stats Viewer al arrancar Windows
-german.StartupDesc=LMU Stats Viewer beim Windows-Start starten
-
-french.StartupGroup=Démarrage automatique :
-english.StartupGroup=Auto-start:
-spanish.StartupGroup=Inicio automático:
-german.StartupGroup=Autostart:
-
 french.OpenConfigDesc=Ouvrir la page de configuration au premier lancement
 english.OpenConfigDesc=Open the configuration page on first launch
 spanish.OpenConfigDesc=Abrir la página de configuración en el primer inicio
@@ -65,7 +55,7 @@ german.LaunchApp=LMU Stats Viewer starten
 Source: "php\*"; DestDir: "{app}\php"; Flags: recursesubdirs createallsubdirs
 
 ; Version (source unique pour PHP, Python et InnoSetup)
-Source: "version.txt"; DestDir: "{app}"
+Source: "version.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Launcher (compilé depuis launcher/build.bat)
 Source: "LMU_Stats_Viewer.exe"; DestDir: "{app}"
@@ -85,10 +75,6 @@ Name: "{commondesktop}\LMU Stats Viewer"; Filename: "{app}\LMU_Stats_Viewer.exe"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
-Name: "startup"; Description: "{cm:StartupDesc}"; GroupDescription: "{cm:StartupGroup}"; Flags: unchecked
-
-[Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "LMU Stats Viewer"; ValueData: """{app}\LMU_Stats_Viewer.exe"""; Flags: uninsdeletevalue; Tasks: startup
 
 [UninstallDelete]
 Type: files; Name: "{userappdata}\LMU_Stats_Viewer\launcher.log"

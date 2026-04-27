@@ -1212,10 +1212,20 @@ h2.classification-title {
     margin-bottom: 30px;
 }
 
-.update-install-steps h3 {
-    margin: 0 0 14px 0;
+.update-install-steps summary {
+    cursor: pointer;
     font-size: 1.1em;
+    font-weight: 700;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
 }
+.update-install-steps summary::-webkit-details-marker { display: none; }
+.update-install-steps summary::after { content: '▸'; margin-left: auto; transition: transform .2s; }
+.update-install-steps[open] summary::after { transform: rotate(90deg); }
+.update-install-steps[open] summary { margin-bottom: 14px; }
 
 .update-install-steps ol {
     margin: 0;

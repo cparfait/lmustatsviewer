@@ -48,7 +48,8 @@
 <script>
     if (typeof lmuStatsViewer === 'undefined') {
         var lmuStatsViewer = {
-            appVersion: '<?php echo defined('APP_VERSION') ? APP_VERSION : '0.0.0'; ?>',
+            appVersion: '<?php echo isset($_GET['demo']) ? '0.0.1' : (defined('APP_VERSION') ? APP_VERSION : '0.0.0'); ?>',
+            demo: <?php echo isset($_GET['demo']) ? 'true' : 'false'; ?>,
             versionCheckUrl: '<?php echo defined('VERSION_CHECK_URL') ? VERSION_CHECK_URL : ''; ?>',
             lang: {
                 title: "<?php echo addslashes($lang['update_available_title'] ?? 'Mise à jour disponible'); ?>",
@@ -59,7 +60,11 @@
                 up_to_date: "<?php echo addslashes($lang['update_up_to_date'] ?? 'Votre application est à jour.'); ?>",
                 available_short: "<?php echo addslashes($lang['update_available_short'] ?? 'Mise à jour disponible !'); ?>",
                 error_title: "<?php echo addslashes($lang['update_error_title'] ?? 'Erreur de mise à jour'); ?>",
-                error_message: "<?php echo addslashes($lang['update_error_message'] ?? 'Impossible de vérifier les mises à jour. Veuillez vérifier la console de votre navigateur pour les erreurs.'); ?>"
+                error_message: "<?php echo addslashes($lang['update_error_message'] ?? 'Impossible de vérifier les mises à jour. Veuillez vérifier la console de votre navigateur pour les erreurs.'); ?>",
+                install_title: "<?php echo addslashes($lang['update_install_title'] ?? 'Comment mettre à jour ?'); ?>",
+                step1: "<?php echo addslashes($lang['update_step1'] ?? 'Cliquez sur Télécharger l\'installeur ci-dessus.'); ?>",
+                step2: "<?php echo addslashes($lang['update_step2'] ?? 'Ouvrez le fichier téléchargé et suivez l\'assistant d\'installation.'); ?>",
+                step3: "<?php echo addslashes($lang['update_step3'] ?? 'L\'ancienne version sera désinstallée automatiquement.'); ?>"
             }
         };
     }

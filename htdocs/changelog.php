@@ -109,6 +109,9 @@ $changelog_html = render_changelog(
             padding: 32px 36px 48px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             font-size: 1rem;
+            background: var(--card-bg-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px var(--shadow-color-light);
         }
 
         /* ── En-tête ── */

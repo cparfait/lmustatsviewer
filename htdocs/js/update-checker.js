@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    const { appVersion, versionCheckUrl, lang } = lmuStatsViewer;
+    const { appVersion, versionCheckUrl, lang, demo } = lmuStatsViewer;
+
     const CACHE_KEY = 'lmu_version_check';
     const CACHE_TTL = 3600 * 1000; // 1 heure
 
@@ -37,22 +38,41 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data && data.latest_version && data.latest_version > appVersion) {
             const configContainer = document.getElementById('update-notification-container');
             if (configContainer) {
+                const params = new URLSearchParams({
+                    v:   data.latest_version || '',
+                    dl:  data.download_url   || '',
+                    rel: data.release_url    || '',
+                });
+                if (demo) params.set('demo', '1');
+                const dlBtn = data.download_url
+                    ? `<a href="${data.download_url}" class="btn btn-primary" style="font-size:.85em;padding:7px 18px;">⬇️ ${lang.button}</a>`
+                    : '';
                 configContainer.innerHTML = `
                     <div class="message success update-notice">
-                        <strong>🚀 ${lang.title}</strong><br>
-                        ${lang.current} <code>${appVersion}</code><br>
-                        ${lang.latest} <code>${data.latest_version}</code><br>
-                        <a href="update.php" class="btn btn-secondary" style="margin-top:10px; display:inline-block;">
-                            ${lang.button}
-                        </a>
+                        <strong>🚀 ${lang.title}</strong>
+                        <div class="update-summary" style="margin:10px 0 8px;">
+                            <div class="version-info">
+                                <span class="version-label">${lang.current}</span>
+                                <span class="version-number">${appVersion}</span>
+                            </div>
+                            <div class="version-arrow">→</div>
+                            <div class="version-info latest">
+                                <span class="version-label">${lang.latest}</span>
+                                <span class="version-number">${data.latest_version}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+                            ${dlBtn}
+                        </div>
                     </div>`;
+                appendChangelogLink(configContainer);
             }
 
             const footerIndicator = document.getElementById('footer-update-indicator');
             if (footerIndicator) {
                 const dlAttr = data.download_url ? ` | <a href="${data.download_url}" class="update-indicator" download>⬇️</a>` : '';
                 footerIndicator.innerHTML = `
-                    <a href="update.php" class="update-indicator" title="${lang.available_short} (v${data.latest_version})">
+                    <a href="config.php" class="update-indicator" title="${lang.available_short} (v${data.latest_version})">
                         ⚠️ <span class="update-text">${lang.available_short}</span>
                     </a>${dlAttr}
                 `;
@@ -83,19 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
             setCachedVersionData(data);
-            // Stocker en session PHP pour update.php
-            return fetch('fetch_version.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            })
-            .then(proxyResponse => proxyResponse.json())
-            .then(proxyResult => {
-                if (proxyResult.status !== 'success') {
-                    console.error('Failed to store update info via proxy.');
-                }
-                return data;
-            });
+            return data;
         })
         .then(renderVersionData)
         .catch(error => {

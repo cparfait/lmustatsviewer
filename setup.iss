@@ -61,7 +61,7 @@ Source: "version.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LMU_Stats_Viewer.exe"; DestDir: "{app}"
 
 ; Documentation
-Source: "CHANGELOG.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Application web (sans le dossier tests qui ne doit pas être distribué)
 Source: "htdocs\*"; DestDir: "{app}\htdocs\"; Flags: recursesubdirs createallsubdirs; Excludes: "tests\*"
@@ -149,6 +149,6 @@ end;
 
 [Run]
 ; Proposer d'afficher le changelog
-Filename: "{app}\CHANGELOG.txt"; Description: "{cm:ShowChangelog}"; Flags: postinstall shellexec
+Filename: "{app}\CHANGELOG.md"; Description: "{cm:ShowChangelog}"; Flags: postinstall shellexec
 ; Lancer l'appli en fin d'installation
 Filename: "{app}\LMU_Stats_Viewer.exe"; Parameters: "--config"; Description: "{cm:LaunchApp}"; Flags: postinstall nowait

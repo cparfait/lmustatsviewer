@@ -162,9 +162,9 @@ async function loadTrackPointsForCircuit(circuitName) {
     if (circuitPointsCache[circuitName]) return circuitPointsCache[circuitName];
     const baseName = circuitName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     let data = null;
-    for (const ext of ['.geojson', '.json']) {
+    for (const name of [`${baseName}_live.json`, `${baseName}.geojson`, `${baseName}.json`]) {
         try {
-            const resp = await fetch(`circuits/${baseName}${ext}`);
+            const resp = await fetch(`circuits/${name}`);
             if (resp.ok) { data = await resp.json(); break; }
         } catch(e) {}
     }

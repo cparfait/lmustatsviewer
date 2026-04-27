@@ -10,7 +10,7 @@
 
 **Un outil de statistiques pour [Le Mans Ultimate](https://www.lemansultimate.com/) — suivez vos meilleurs temps, résultats de course et progression.**
 
-[📥 Télécharger](#installation) · [🐛 Signaler un bug](https://github.com/cparfait/lmustatsviewer/issues) · [💬 Discord](https://discord.gg/G9ng9GdvSU)
+[📥 Télécharger](https://github.com/cparfait/lmustatsviewer/releases) · [🐛 Signaler un bug](https://github.com/cparfait/lmustatsviewer/issues) · [💬 Discord](https://discord.gg/G9ng9GdvSU)
 
 </div>
 

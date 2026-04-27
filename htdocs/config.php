@@ -764,6 +764,17 @@ $all_versions = sort_versions_desc($all_versions);
             </div>
         </form>
 
+        <!-- Notes de version -->
+        <div class="cfg-maction">
+            <label><?php echo htmlspecialchars($lang['changelog_title']); ?></label>
+            <div class="mhelp"><?php echo htmlspecialchars($lang['changelog_help'] ?? ''); ?></div>
+            <div class="mrow">
+                <a href="changelog.php?lang=<?php echo $current_lang; ?>" class="btn-maint" style="text-decoration:none;">
+                    📋 <?php echo htmlspecialchars($lang['changelog_title']); ?>
+                </a>
+            </div>
+        </div>
+
     </div><!-- /.cfg-maintenance -->
 
 </div><!-- /.config-panel -->

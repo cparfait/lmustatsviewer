@@ -305,6 +305,7 @@ $lang = [
     'update_title' => 'Actualización',
     'update_subtitle' => 'Hay una nueva versión disponible',
     'changelog_title' => 'Notas de versión',
+    'changelog_help' => 'Historial de cambios y novedades por versión.',
     'changelog_not_available' => 'El registro de cambios no está disponible.',
     'translate_button' => 'Traducir',
     'update_available_short' => 'Actualización disponible',

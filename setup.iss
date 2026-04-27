@@ -55,6 +55,9 @@ Source: "version.txt"; DestDir: "{app}"; Flags: ignoreversion
 ; Launcher (compilé depuis launcher/build.bat)
 Source: "LMU_Stats_Viewer.exe"; DestDir: "{app}"
 
+; Documentation (lue par htdocs/changelog.php)
+Source: "CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
+
 ; Application web (sans le dossier tests qui ne doit pas être distribué)
 Source: "htdocs\*"; DestDir: "{app}\htdocs\"; Flags: recursesubdirs createallsubdirs; Excludes: "tests\*"
 

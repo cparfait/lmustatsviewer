@@ -342,6 +342,7 @@ $lang = [
     'update_title' => 'Mise à jour',
     'update_subtitle' => 'Une nouvelle version est disponible',
     'changelog_title' => 'Notes de version',
+    'changelog_help' => 'Historique des modifications et nouveautés par version.',
     'changelog_not_available' => 'Le journal des modifications n\'est pas disponible.',
     'translate_button' => 'Traduire',
     'update_available_short' => 'MàJ disponible',

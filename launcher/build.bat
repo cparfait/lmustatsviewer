@@ -71,6 +71,7 @@ REM Copier les fichiers nécessaires à InnoSetup
 copy /Y "%~dp0..\LMU_Stats_Viewer.exe" "%RELEASE_DIR%\"        > nul
 copy /Y "%~dp0..\version.txt"          "%RELEASE_DIR%\"        > nul
 copy /Y "%~dp0..\setup.iss"            "%RELEASE_DIR%\"        > nul
+copy /Y "%~dp0..\CHANGELOG.md"         "%RELEASE_DIR%\"        > nul
 
 REM htdocs (supprime l'ancien pour éviter les fichiers obsolètes)
 if exist "%RELEASE_DIR%\htdocs" rmdir /s /q "%RELEASE_DIR%\htdocs" > nul 2>&1

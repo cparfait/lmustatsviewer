@@ -40,11 +40,6 @@ english.OpenConfigGroup=First launch:
 spanish.OpenConfigGroup=Primer inicio:
 german.OpenConfigGroup=Erster Start:
 
-french.ShowChangelog=Afficher le CHANGE LOG
-english.ShowChangelog=Show CHANGE LOG
-spanish.ShowChangelog=Mostrar CHANGE LOG
-german.ShowChangelog=ÄNDERUNGSPROTOKOLL anzeigen
-
 french.LaunchApp=Lancer LMU Stats Viewer
 english.LaunchApp=Launch LMU Stats Viewer
 spanish.LaunchApp=Iniciar LMU Stats Viewer
@@ -59,9 +54,6 @@ Source: "version.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Launcher (compilé depuis launcher/build.bat)
 Source: "LMU_Stats_Viewer.exe"; DestDir: "{app}"
-
-; Documentation
-Source: "CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Application web (sans le dossier tests qui ne doit pas être distribué)
 Source: "htdocs\*"; DestDir: "{app}\htdocs\"; Flags: recursesubdirs createallsubdirs; Excludes: "tests\*"
@@ -149,6 +141,5 @@ end;
 
 [Run]
 ; Proposer d'afficher le changelog
-Filename: "{app}\CHANGELOG.md"; Description: "{cm:ShowChangelog}"; Flags: postinstall shellexec
 ; Lancer l'appli en fin d'installation
 Filename: "{app}\LMU_Stats_Viewer.exe"; Parameters: "--config"; Description: "{cm:LaunchApp}"; Flags: postinstall nowait

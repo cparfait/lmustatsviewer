@@ -1,6 +1,18 @@
 <?php
 // Fichier central pour les fonctions utilitaires
 
+const CLASS_ORDER = ['Hyper' => 1, 'LMP2 ELMS' => 2, 'LMP2' => 3, 'LMP3' => 4, 'GT3' => 5, 'GTE' => 6];
+
+function sort_versions_desc(array $versions): array {
+    usort($versions, 'version_compare');
+    return array_reverse($versions);
+}
+
+function compute_optimal_lap(float $s1, float $s2, float $s3, bool $null_on_fail = false): float|null {
+    if ($s1 !== INF && $s2 !== INF && $s3 !== INF) return $s1 + $s2 + $s3;
+    return $null_on_fail ? null : INF;
+}
+
 function formatSecondsToMmSsMs(mixed $seconds, bool $showMinutes = true): string {
     if ($seconds === null || !is_numeric($seconds) || $seconds <= 0 || $seconds === INF) return 'N/A';
     $sign = $seconds < 0 ? '-' : '';
@@ -67,28 +79,16 @@ function getCarLogoUrl(string $carType): ?string {
 }
 
 function getCircuitFlagUrl(string $trackVenue): ?string {
+    static $flags = null;
+    if ($flags === null) {
+        $json  = @file_get_contents(__DIR__ . '/circuits.json');
+        $flags = $json ? (json_decode($json, true)['flags'] ?? []) : [];
+    }
     $basePath = 'flags/';
-    $countryMap = [
-        'us.png' => ['Sebring', 'Circuit of the Americas', 'COTA'],
-        'pt.png' => ['Algarve International Circuit'],
-        'be.png' => ['Spa-Francorchamps'],
-        'it.png' => ['Monza', 'Imola', 'Autodromo Enzo e Dino Ferrari'],
-        'fr.png' => ['Sarthe', 'Le Mans', 'Paul Ricard Circuit'],
-        'gb.png' => ['Silverstone'],
-        'jp.png' => ['Fuji'],
-        'bh.png' => ['Bahrain'],
-        'br.png' => ['Autódromo José Carlos Pace', 'Interlagos'],
-        'qa.png' => ['Lusail International Circuit', 'Lusail'],
-        'es.png' => ['Barcelona', 'Circuit de Barcelona', 'Catalunya'],
-    ];
-
-    foreach ($countryMap as $flagFile => $trackAliases) {
-        foreach ($trackAliases as $alias) {
-            if (str_contains($trackVenue, $alias)) {
-                if (file_exists($basePath . $flagFile)) {
-                    return $basePath . $flagFile;
-                }
-            }
+    foreach ($flags as $keyword => $code) {
+        if (stripos($trackVenue, $keyword) !== false) {
+            $file = $basePath . $code . '.png';
+            if (file_exists($file)) return $file;
         }
     }
     return null;
@@ -690,7 +690,7 @@ function process_session_data(SimpleXMLElement $sessionData, string $sessionType
             }
             
             $result['bestVmaxOverall'] = max($result['bestVmaxOverall'], $result['vmaxByDriver'][$driverName]);
-            $bestLap['optimal'] = ($bestLap['s1'] !== INF && $bestLap['s2'] !== INF && $bestLap['s3'] !== INF) ? $bestLap['s1'] + $bestLap['s2'] + $bestLap['s3'] : INF;
+            $bestLap['optimal'] = compute_optimal_lap($bestLap['s1'], $bestLap['s2'], $bestLap['s3']);
             $result['bestLapsByDriver'][$driverName] = $bestLap;
             $result['aidsByDriver'][$driverName] = (string)($driver->ControlAndAids ?? 'N/A');
 

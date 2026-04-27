@@ -129,7 +129,6 @@ $lang = [
     'compound_header' => 'Mischung',
     'wear_header' => 'Abnutzung (%)',
     'fuel_header' => 'Treibstoff (%)',
-    'time_header' => 'Zeit',
     'incident_header' => 'Vorfall',
     'penalty_header' => 'Strafe',
     'no_laps_recorded' => 'Dieser Fahrer hat in dieser Sitzung keine vollständigen Runden aufgezeichnet.',

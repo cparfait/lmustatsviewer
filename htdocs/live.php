@@ -5,6 +5,9 @@ $back_url  = 'index.php?lang=' . $current_lang;
 $is_dark   = ($current_theme === 'dark');
 $demo_mode = isset($_GET['demo']);
 
+$cars_registry     = json_decode(@file_get_contents(__DIR__ . '/live/cars.json'),     true) ?: [];
+$circuits_registry = json_decode(@file_get_contents(__DIR__ . '/includes/circuits.json'), true) ?: [];
+
 $labels = [
     'back'          => $lang['btn_return']     ?? 'Retour aux Stats',
     'waiting'       => $lang['live_loading']   ?? 'En attente du jeu…',
@@ -149,7 +152,9 @@ const CFG = {
         'brake'      => $labels['brake_input'],
         'coasting'   => $labels['coasting'],
         'you'        => $labels['you'],
-    ]); ?>
+    ]); ?>,
+    cars:     <?php echo json_encode($cars_registry,     JSON_UNESCAPED_UNICODE); ?>,
+    circuits: <?php echo json_encode($circuits_registry, JSON_UNESCAPED_UNICODE); ?>,
 };
 </script>
 <script src="live/live_js_core.js"></script>

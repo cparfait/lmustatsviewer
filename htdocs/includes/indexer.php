@@ -266,8 +266,7 @@ function _index_xml_files(PDO $db, array $filenames, array $fs_mtimes, array &$s
                         }
                     }
 
-                    $optimalLap = ($absBestS1 !== INF && $absBestS2 !== INF && $absBestS3 !== INF)
-                        ? $absBestS1 + $absBestS2 + $absBestS3 : null;
+                    $optimalLap = compute_optimal_lap($absBestS1, $absBestS2, $absBestS3, true);
 
                     // Insérer player_sessions
                     $stmtSession->execute([

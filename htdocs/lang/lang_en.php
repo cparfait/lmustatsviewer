@@ -129,7 +129,6 @@ $lang = [
     'compound_header' => 'Compound',
     'wear_header' => 'Wear (%)',
     'fuel_header' => 'Fuel (%)',
-    'time_header' => 'Time',
     'incident_header' => 'Incident',
     'penalty_header' => 'Penalty',
     'no_laps_recorded' => 'This driver did not record any complete laps during this session.',

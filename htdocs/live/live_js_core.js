@@ -64,68 +64,26 @@ const p3 = n => String(n).padStart(3,'0');
 
 const tireClass = t => t<70?'cold':t>105?'hot':'ok';
 const brakeColor = t => t<0?'var(--text-muted)':t<200?'#60a5fa':t>600?'#f87171':'#4ade80';
-const classCol = c => {
-    if (!c) return '';
-    const l=c.toLowerCase();
-    if (l.includes('lmp2')) return '#60a5fa';
-    if (l.includes('gte')) return '#fb923c';
-    if (l.includes('gt3')) return '#4ade80';
-    if (l.includes('hypercar')) return '#f87171';
-    return 'var(--text-sec)';
-};
-
 function getClassStyle(cls) {
-    if (!cls) return { bg: 'rgba(107,114,128,0.2)', col: '#9ca3af' };
+    const fallback = { bg: 'rgba(107,114,128,0.2)', col: '#9ca3af' };
+    if (!cls) return fallback;
     const l = cls.toLowerCase();
-    if (l.includes('hyper')) return { bg: 'rgba(239,68,68,0.2)', col: '#f87171' };
-    if (l.includes('lmp2')) return { bg: 'rgba(96,165,250,0.2)', col: '#60a5fa' };
-    if (l.includes('lmp3')) return { bg: 'rgba(192,132,252,0.2)', col: '#c084fc' };
-    if (l.includes('gte')) return { bg: 'rgba(251,146,60,0.2)', col: '#fb923c' };
-    if (l.includes('gt3')) return { bg: 'rgba(74,222,128,0.2)', col: '#4ade80' };
-    return { bg: 'rgba(107,114,128,0.2)', col: '#9ca3af' };
+    const styles = CFG.cars?.classes || {};
+    for (const [kw, s] of Object.entries(styles)) {
+        if (kw !== '_default' && l.includes(kw)) return s;
+    }
+    return styles._default || fallback;
 }
-
-const STEERING_WHEELS = {
-    'alpine a424': 'Alpine A424.png',
-    'aston martin valkyrie': 'Aston Martin Valkyrie LMH.png',
-    'aston martin vantage amr lmgt3': 'Aston Martin Vantage AMR LMGT3.png',
-    'aston martin vantage': 'Aston Martin Vantage AMR.png',
-    'bmw m hybrid': 'BMW M Hybrid V8.png',
-    'bmw m4': 'BMW M4 LMGT3.png',
-    'cadillac v-series': 'Cadillac V-Series.R.png',
-    'corvette c8.r gte': 'Corvette C8.R GTE.png',
-    'corvette c8': 'Chevrolet Corvette C8.R.png',
-    'corvette z06': 'Chevrolet Corvette Z06 LMGT3.R.png',
-    'duqueine': 'Duqueine D09 P3.png',
-    'ferrari 499p': 'Ferrari 499P.png',
-    'ferrari 296': 'Ferrari 296 LMGT3.png',
-    'ferrari 488': 'Ferrari 488 GTE Evo.png',
-    'ford mustang': 'Ford Mustang LMGT3.png',
-    'genesis': 'Genesis GMR-001.png',
-    'ginetta': 'Ginetta G61-LT-P325 Evo.png',
-    'glickenhaus': 'Glickenhaus SCG 007.png',
-    'isotta': 'Isotta Fraschini Tipo6.png',
-    'lamborghini sc63': 'Lamborghini SC63.png',
-    'Lamborghini Huracan LMGT3 Evo2': 'Lamborghini Huracan LMGT3 Evo2.png',
-    'lexus': 'Lexus RCF LMGT3.png',
-    'ligier': 'Ligier JS P325.png',
-    'mclaren 720s': 'McLaren 720S LMGT3 Evo.png',
-    'mercedes': 'Mercedes-AMG LMGT3.png',
-    'oreca': 'ORECA 07.png',
-    'peugeot 9x8': 'Peugeot 9X8.png',
-    'porsche 963': 'Porsche 963.png',
-    'porsche 911 gt3': 'Porsche 911 GT3 R LMGT3.png',
-    'porsche 911 rsr': 'Porsche 911 RSR-19.png',
-    'toyota gr010': 'Toyota GR010.png',
-    'vanwall': 'Vanwall Vandervell 680.png',
-};
+const classCol = c => c ? getClassStyle(c).col : '';
 
 function getSteeringWheelImage(vehicleName) {
     if (!vehicleName) return null;
     const low = vehicleName.toLowerCase();
-    const sorted = Object.entries(STEERING_WHEELS).sort((a, b) => b[0].length - a[0].length);
-    for (const [key, file] of sorted) {
-        if (low.includes(key)) return 'live/steering_wheels/' + file;
+    const list = CFG.cars?.steering_wheels || [];
+    for (const entry of list) {
+        for (const key of entry.keys) {
+            if (low.includes(key)) return 'live/steering_wheels/' + entry.file;
+        }
     }
     return null;
 }
@@ -154,22 +112,17 @@ const showBanner = (txt,bg,col) => {
 };
 
 const circuitPointsCache = {};
-const circuitFileAlias = {
-    "Autodromo Nazionale Monza": "monza",
-    "Autodromo Nazionale di Monza": "monza",
-    "Monza": "monza",
-};
 
 async function loadTrackPointsForCircuit(circuitName) {
     if (!circuitName) return null;
     if (circuitPointsCache[circuitName]) return circuitPointsCache[circuitName];
-    let baseName = circuitFileAlias[circuitName];
+    const aliases = CFG.circuits?.aliases || {};
+    let baseName = aliases[circuitName];
     if (!baseName) baseName = circuitName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     let data = null;
     for (const ext of ['.geojson', '.json']) {
-        const fileName = `${baseName}${ext}`;
         try {
-            const resp = await fetch(`circuits/${fileName}`);
+            const resp = await fetch(`circuits/${baseName}${ext}`);
             if (resp.ok) { data = await resp.json(); break; }
         } catch(e) {}
     }
@@ -214,28 +167,11 @@ function updateSteeringWheel(vehicleName, steerVal) {
     dom.steeringVal.textContent = `${Math.round(Math.abs(steerVal) * 100)}%`;
 }
 
-const TRACK_FLAGS = {
-    'sarthe':'fr', 'mans':'fr', 'hunaudieres':'fr', 'paul ricard':'fr', 'ricard':'fr',
-    'spa':'be', 'francorchamps':'be', 'belgium':'be',
-    'monza':'it', 'imola':'it', 'mugello':'it',
-    'portim':'pt', 'algarve':'pt',
-    'fuji':'jp', 'suzuka':'jp',
-    'sebring':'us', 'daytona':'us', 'road atlanta':'us', 'atlanta':'us',
-    'michelin raceway':'us', 'watkins':'us', 'glen':'us',
-    'laguna':'us', 'cota':'us', 'americas':'us', 'texas':'us',
-    'lime rock':'us', 'limerock':'us', 'ohio':'us',
-    'bahrain':'bh',
-    'losail':'qa', 'lusail':'qa', 'qatar':'qa',
-    'barcelona':'es', 'cataluny':'es',
-    'interlagos':'br', 'pace':'br',
-    'nurburgring':'de', 'nuerburgring':'de', 'nordschleife':'de', 'hockenheim':'de',
-    'silverstone':'gb', 'brands hatch':'gb', 'donington':'gb', 'oulton':'gb',
-};
-
 const trackFlag = (name, cls = 'flag') => {
     if (!name) return '';
     const low = name.toLowerCase();
-    for (const [k, code] of Object.entries(TRACK_FLAGS)) {
+    const flags = CFG.circuits?.flags || {};
+    for (const [k, code] of Object.entries(flags)) {
         if (low.includes(k)) return `<img class="${cls}" src="flags/${code}.png" alt="${code.toUpperCase()}">`;
     }
     return '';

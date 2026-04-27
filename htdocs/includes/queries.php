@@ -31,8 +31,7 @@ function get_records_filter_options(PDO $pdo): array {
     foreach ($pdo->query("SELECT DISTINCT car_class FROM player_sessions WHERE best_lap IS NOT NULL AND car_class != '' ORDER BY car_class") as $r) {
         $classes[] = $r['car_class'];
     }
-    $classOrder = ['Hyper' => 1, 'LMP2 ELMS' => 2, 'LMP2' => 3, 'LMP3' => 4, 'GT3' => 5, 'GTE' => 6];
-    usort($classes, fn($a, $b) => ($classOrder[$a] ?? 99) <=> ($classOrder[$b] ?? 99));
+    usort($classes, fn($a, $b) => (CLASS_ORDER[$a] ?? 99) <=> (CLASS_ORDER[$b] ?? 99));
 
     $sessionTypes = [];
     foreach ($pdo->query("SELECT DISTINCT session_type FROM player_sessions WHERE best_lap IS NOT NULL ORDER BY session_type") as $r) {
@@ -49,8 +48,7 @@ function get_records_filter_options(PDO $pdo): array {
         $versions[] = $r['game_version'];
     }
     if (!empty($versions)) {
-        usort($versions, 'version_compare');
-        $versions = array_reverse($versions);
+        $versions = sort_versions_desc($versions);
     }
 
     return [

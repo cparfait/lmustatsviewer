@@ -37,8 +37,7 @@ $allAvailableVersions     = $filterOpts['versions'];
 
 $uniqueVersionsForFilter = array_keys($allAvailableVersions);
 if (!empty($uniqueVersionsForFilter)) {
-    usort($uniqueVersionsForFilter, 'version_compare');
-    $uniqueVersionsForFilter = array_reverse($uniqueVersionsForFilter);
+    $uniqueVersionsForFilter = sort_versions_desc($uniqueVersionsForFilter);
 }
 
 // --- CONSTRUCTION DE $results (meilleurs tours par circuit/voiture) ---
@@ -77,8 +76,7 @@ foreach ($groupedSessions as $key => $sessions) {
 
     [$track, $class, $type] = explode('|', $key, 3);
     $trackCourse = $bestLapRow['track_course'] ?? '';
-    $optimalLap = ($absBestS1 !== INF && $absBestS2 !== INF && $absBestS3 !== INF)
-        ? $absBestS1 + $absBestS2 + $absBestS3 : INF;
+    $optimalLap = compute_optimal_lap($absBestS1, $absBestS2, $absBestS3);
 
     $results[] = [
         'Track Venue'        => $track,
@@ -160,12 +158,7 @@ $uniqueSettingsForFilter = array_keys($allAvailableSettings);
 sort($uniqueTrackVenuesForFilter);
 
 // Tri personnalisé pour les classes
-$classOrder = ['Hyper' => 1, 'LMP2 ELMS' => 2, 'LMP2' => 3, 'LMP3' => 4, 'GT3' => 5, 'GTE' => 6];
-usort($uniqueCarClassesForFilter, function($a, $b) use ($classOrder) {
-    $a_prio = $classOrder[$a] ?? 99;
-    $b_prio = $classOrder[$b] ?? 99;
-    return $a_prio <=> $b_prio;
-});
+usort($uniqueCarClassesForFilter, fn($a, $b) => (CLASS_ORDER[$a] ?? 99) <=> (CLASS_ORDER[$b] ?? 99));
 
 sort($uniqueCarTypesForFilter);
 sort($uniqueSessionTypesForFilter);
@@ -205,8 +198,7 @@ foreach ($trackLayoutsMap as &$courses) {
 unset($courses);
 
 // Tri par circuit, PUIS par classe, PUIS par meilleur temps
-$classOrder = ['Hyper' => 1, 'LMP2 ELMS' => 2, 'LMP2' => 3, 'LMP3' => 4, 'GT3' => 5, 'GTE' => 6];
-usort($filteredResults, function($a, $b) use ($classOrder) {
+usort($filteredResults, function($a, $b) {
     // 1. Tri par circuit principal
     if ($a['Track Venue'] !== $b['Track Venue']) {
         return strcmp($a['Track Venue'], $b['Track Venue']);
@@ -223,8 +215,8 @@ usort($filteredResults, function($a, $b) use ($classOrder) {
     }
 
     // 3. Si le circuit et le tracé sont identiques, tri par classe prioritaire
-    $a_prio = $classOrder[$a['Car Class']] ?? 99;
-    $b_prio = $classOrder[$b['Car Class']] ?? 99;
+    $a_prio = CLASS_ORDER[$a['Car Class']] ?? 99;
+    $b_prio = CLASS_ORDER[$b['Car Class']] ?? 99;
     if ($a_prio !== $b_prio) {
         return $a_prio <=> $b_prio;
     }

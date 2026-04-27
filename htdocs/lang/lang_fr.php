@@ -129,7 +129,6 @@ $lang = [
     'compound_header' => 'Gomme',
     'wear_header' => 'Usure (%)',
     'fuel_header' => 'Carburant (%)',
-    'time_header' => 'Temps',
     'incident_header' => 'Incident',
     'penalty_header' => 'Pénalité',
     'no_laps_recorded' => 'Ce pilote n\'a enregistré aucun tour complet durant cette session.',

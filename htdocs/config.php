@@ -122,8 +122,7 @@ foreach (get_db()->query("SELECT DISTINCT game_version FROM player_sessions
                           ORDER BY game_version") as $r) {
     $all_versions[] = $r['game_version'];
 }
-usort($all_versions, 'version_compare');
-$all_versions = array_reverse($all_versions);
+$all_versions = sort_versions_desc($all_versions);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $current_lang; ?>" data-theme="<?php echo $current_theme; ?>">

@@ -181,8 +181,7 @@ foreach ($rowsAsc as $r) {
 }
 
 $daysSinceLastPB = $lastPBTimestamp !== null ? (int)floor((time() - $lastPBTimestamp) / 86400) : null;
-$statOptimalLap  = ($optimalS1g !== INF && $optimalS2g !== INF && $optimalS3g !== INF)
-                   ? ($optimalS1g + $optimalS2g + $optimalS3g) : null;
+$statOptimalLap  = compute_optimal_lap($optimalS1g, $optimalS2g, $optimalS3g, true);
 $statVmax        = $statVmax > 0 ? (int)round($statVmax) : null;
 // Formatage du temps total cumulé (h min ou min s)
 $_tcMin = (int)floor($totalCumulatedTime / 60);
@@ -219,7 +218,7 @@ if ($hasSelection && $paramCar2 !== '') {
             if (!empty($r['best_lap_s3']) && (float)$r['best_lap_s3'] < $c2s3)  $c2s3  = (float)$r['best_lap_s3'];
             if ($r['is_pb']) $c2lpb = $r['timestamp'];
         }
-        $c2opt  = ($c2s1 !== INF && $c2s2 !== INF && $c2s3 !== INF) ? ($c2s1 + $c2s2 + $c2s3) : null;
+        $c2opt  = compute_optimal_lap($c2s1, $c2s2, $c2s3, true);
         $c2vmx  = $c2vmx > 0 ? (int)round($c2vmx) : null;
         $c2days = $c2lpb !== null ? (int)floor((time() - $c2lpb) / 86400) : null;
         $_c2m   = (int)floor($c2cum / 60); $_c2s = (int)round($c2cum % 60);

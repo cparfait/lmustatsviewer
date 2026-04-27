@@ -1,7 +1,8 @@
 {
-  "_comment": "Distribution OvertakeGG — contient release_url vers la page overtake.gg (pas de download_url direct). C'est ce fichier qui est utilisé par VERSION_CHECK_URL dans init.php.",
+  "_comment": "Fichier utilisé par VERSION_CHECK_URL dans init.php pour les mises à jour automatiques.",
   "latest_version": "0.9.4",
-  "release_url": "https://www.overtake.gg/downloads/lmu-stats-viewer.79131",
+  "release_url": "https://github.com/cparfait/lmustatsviewer/releases/latest",
+  "download_url": "https://github.com/cparfait/lmustatsviewer/releases/download/0.9.4/SETUP-LSV-0-9-4.exe",
   "changelog": {
     "0.9.4": {
       "date": "2026-04-02",

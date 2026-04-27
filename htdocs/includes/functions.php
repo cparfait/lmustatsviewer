@@ -3,9 +3,26 @@
 
 const CLASS_ORDER = ['Hyper' => 1, 'LMP2 ELMS' => 2, 'LMP2' => 3, 'LMP3' => 4, 'GT3' => 5, 'GTE' => 6];
 
+const CLASS_RESULT_KEYS = [
+    'Hyper'     => 'hypercar_drivers',
+    'LMP2 ELMS' => 'lmp2elms_drivers',
+    'LMP2'      => 'lmp2_drivers',
+    'LMP3'      => 'lmp3_drivers',
+    'GT3'       => 'gt3_drivers',
+    'GTE'       => 'gte_drivers',
+];
+
 function sort_versions_desc(array $versions): array {
     usort($versions, 'version_compare');
     return array_reverse($versions);
+}
+
+function resolve_default_version(array $versions, array $config): string {
+    $default = $config['default_since_version'] ?? '1.0000';
+    if ($default !== 'all' && !empty($versions) && !in_array($default, $versions)) {
+        $default = $versions[0] ?? 'all';
+    }
+    return $default;
 }
 
 function compute_optimal_lap(float $s1, float $s2, float $s3, bool $null_on_fail = false): float|null {
@@ -724,20 +741,11 @@ function process_session_data(SimpleXMLElement $sessionData, string $sessionType
             ];
         }
         
-        $result['hypercar_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'Hyper');
-        $result['lmp2elms_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'LMP2 ELMS');
-        $result['lmp2_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'LMP2');
-        $result['lmp3_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'LMP3');
-        $result['gt3_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'GT3');
-        $result['gte_drivers'] = array_filter($result['drivers'], fn($d) => (string)$d->CarClass === 'GTE');
-
+        foreach (CLASS_RESULT_KEYS as $class => $key) {
+            $result[$key] = array_values(array_filter($result['drivers'], fn($d) => (string)$d->CarClass === $class));
+            usort($result[$key], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
+        }
         usort($result['drivers'], fn($a, $b) => (int)$a->Position <=> (int)$b->Position);
-        usort($result['hypercar_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
-        usort($result['lmp2elms_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
-        usort($result['lmp2_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
-        usort($result['lmp3_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
-        usort($result['gt3_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
-        usort($result['gte_drivers'], fn($a, $b) => (int)$a->ClassPosition <=> (int)$b->ClassPosition);
     }
     
     if (isset($sessionData->Stream)) {

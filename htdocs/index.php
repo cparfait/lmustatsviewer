@@ -122,11 +122,7 @@ $selectedCar1 = $_GET['car1'] ?? 'all';
 $selectedSessionType = $_GET['session_type'] ?? 'all';
 $selectedSetting = $_GET['setting'] ?? 'all';
 
-$defaultVersion = $config['default_since_version'] ?? '1.0000';
-if ($defaultVersion !== 'all' && !empty($uniqueVersionsForFilter) && !in_array($defaultVersion, $uniqueVersionsForFilter)) {
-    $defaultVersion = $uniqueVersionsForFilter[0] ?? 'all';
-}
-$selectedVersion = $_GET['version'] ?? $defaultVersion;
+$selectedVersion = $_GET['version'] ?? resolve_default_version($uniqueVersionsForFilter, $config);
 $filterOnlyVersion = !empty($_GET['filter_only_version']);
 
 // ÉTAPE 3 : On génère les listes pour les menus de filtres

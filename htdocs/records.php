@@ -57,11 +57,7 @@ $paramCar          = trim($_GET['car']           ?? '');
 $paramCar2         = trim($_GET['car2']          ?? '');
 $paramSessionType  = trim($_GET['session_type']  ?? '');
 $paramSetting      = trim($_GET['setting']       ?? '');
-$defaultVersion    = $config['default_since_version'] ?? '1.0000';
-if ($defaultVersion !== 'all' && !empty($allVersionList) && !in_array($defaultVersion, $allVersionList)) {
-    $defaultVersion = $allVersionList[0] ?? 'all';
-}
-$paramVersion      = $_GET['version'] ?? $defaultVersion;
+$paramVersion      = $_GET['version'] ?? resolve_default_version($allVersionList, $config);
 $filterOnlyVersion = !empty($_GET['filter_only_version']);
 
 // Cascade : voiture → circuits

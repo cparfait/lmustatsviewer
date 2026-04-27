@@ -1,5 +1,7 @@
 <?php
 require_once 'includes/init.php';
+require_once 'includes/db.php';
+require_once 'includes/indexer.php';
 
 // Premier lancement : redirection vers la config si le dossier de résultats n'est pas défini
 if (empty($config['results_dir'])) {
@@ -7,341 +9,109 @@ if (empty($config['results_dir'])) {
     exit;
 }
 
-// --- FONCTIONS UTILITAIRES (désormais dans includes/functions.php) ---
-
-// --- GESTION DU CACHE ---
-$appDataPath = getenv('APPDATA');
-if ($appDataPath) {
-    $cacheDir = $appDataPath . DIRECTORY_SEPARATOR . 'LMU_Stats_Viewer';
-    if (!is_dir($cacheDir)) {
-        @mkdir($cacheDir, 0777, true);
-    }
-    define('CACHE_FILE', $cacheDir . DIRECTORY_SEPARATOR . 'lm_ultimate_cache.json');
-} else {
-    define('CACHE_FILE', __DIR__ . '/lm_ultimate_cache.json');
+// --- DELTA SYNC : parse uniquement les fichiers nouveaux ou modifiés ---
+// Pas de limite de temps : le premier indexage avec des milliers de sessions peut dépasser 30 s.
+set_time_limit(0);
+$syncStats   = sync_xml_to_db();
+$syncMessage = null;
+if ($syncStats['added'] > 0 || $syncStats['updated'] > 0 || $syncStats['removed'] > 0) {
+    $parts = [];
+    if ($syncStats['added'])   $parts[] = $syncStats['added']   . ' ajoutée(s)';
+    if ($syncStats['updated']) $parts[] = $syncStats['updated'] . ' mise(s) à jour';
+    if ($syncStats['removed']) $parts[] = $syncStats['removed'] . ' supprimée(s)';
+    $syncMessage = 'Base de données synchronisée — ' . implode(', ', $parts) . '.';
 }
+$db = get_db();
 
-$results = [];
-$stats = [];
-$cacheUsedSuccessfully = false;
-
-// --- GESTION DU CACHE (AMÉLIORÉE) ---
-$cache_key = '';
-if (defined('RESULTS_DIR') && is_dir(RESULTS_DIR)) {
-    $files = glob(RESULTS_DIR . '*.xml');
-    if ($files) {
-        $file_info = '';
-        foreach ($files as $file) {
-            $file_info .= $file . filemtime($file);
-        }
-        $cache_key = md5($file_info);
-    }
-}
-
-if (defined('CACHE_FILE') && file_exists(CACHE_FILE)) {
-    $cachedJson = @file_get_contents(CACHE_FILE);
-    if ($cachedJson) {
-        $cachedData = json_decode($cachedJson, true);
-        if (is_array($cachedData) && isset($cachedData['cache_key']) && $cachedData['cache_key'] === $cache_key && isset($cachedData['results']) && isset($cachedData['stats'])) {
-            $results = $cachedData['results'];
-            $stats = $cachedData['stats'];
-            $cacheUsedSuccessfully = true;
-        }
-    }
-}
-
-$events = get_race_events();
-
-// --- NOUVEAU : Pré-scan pour les options de filtre ---
-$allAvailableClasses = [];
-$allAvailableCars = [];
-$allAvailableTracks = [];
-$allAvailableSessionTypes = [];
-$allAvailableSettings = [];
-$allAvailableVersions = [];
-$trackLayoutsMap = []; // Rebuild this here
-
-foreach ($events as $event_files) {
-    foreach ($event_files as $file_data) {
-        $xml = $file_data['xml'];
-        $trackVenue = trim((string)$xml->RaceResults->TrackVenue);
-        $trackCourse = trim((string)$xml->RaceResults->TrackCourse);
-        $setting = trim((string)$xml->RaceResults->Setting);
-        
-        $rawVersion = (string)($xml->RaceResults->GameVersion ?? '0.0');
-        $parts = explode('.', $rawVersion);
-        if (count($parts) > 1) {
-            $major = array_shift($parts);
-            $minor_parts = implode('', $parts);
-            $formatted_minor = str_pad(substr($minor_parts, 0, 4), 4, '0', STR_PAD_RIGHT);
-            $gameVersion = $major . '.' . $formatted_minor;
-        } else {
-            $gameVersion = $rawVersion . '.0000';
-        }
-
-        if ($gameVersion !== '0.0') {
-            $allAvailableVersions[$gameVersion] = true;
-        }
-
-        if (!empty($trackVenue)) $allAvailableTracks[$trackVenue] = true;
-        if (!empty($setting)) $allAvailableSettings[$setting] = true;
-
-        // Build trackLayoutsMap
-        if ($trackVenue !== $trackCourse && !empty($trackCourse)) {
-            if (!isset($trackLayoutsMap[$trackVenue])) {
-                $trackLayoutsMap[$trackVenue] = [];
-            }
-            if (!in_array($trackCourse, $trackLayoutsMap[$trackVenue])) {
-                $trackLayoutsMap[$trackVenue][] = $trackCourse;
-            }
-        }
-
-        foreach (['Practice1', 'Qualify', 'Race'] as $section) {
-            if (isset($xml->RaceResults->{$section})) {
-                $allAvailableSessionTypes[$section] = true;
-                foreach ($xml->RaceResults->{$section}->Driver as $driverElem) {
-                        $carClass = trim((string)$driverElem->CarClass);
-                        if (strcasecmp($carClass, 'Hyper') == 0) {
-                            $carClass = 'Hyper';
-                        }
-                        if (str_replace('_', ' ', $carClass) === 'LMP2 ELMS' || strcasecmp($carClass, 'LMP2 Elms') == 0) {
-                            $carClass = 'LMP2 ELMS';
-                        }
-                    if (!empty($carClass)) $allAvailableClasses[$carClass] = true;
-                    
-                    $carType = trim((string)$driverElem->CarType);
-                    if (!empty($carType) && trim((string)$driverElem->Name) === PLAYER_NAME) {
-                        $allAvailableCars[$carType] = true;
-                    }
-                }
-            }
-        }
-    }
-}
-foreach ($trackLayoutsMap as &$courses) {
-    sort($courses);
-}
-unset($courses);
+// --- OPTIONS DE FILTRE (depuis la DB, sans parser aucun XML) ---
+$filterOpts               = get_index_filter_options($db);
+$allAvailableTracks       = $filterOpts['tracks'];
+$trackLayoutsMap          = $filterOpts['layouts_map'];
+$allAvailableClasses      = $filterOpts['classes'];
+$allAvailableCars         = $filterOpts['cars'];
+$carClassMap              = $filterOpts['car_class_map'];
+$carsByClassMap           = $filterOpts['cars_by_class'];
+$allAvailableSessionTypes = $filterOpts['session_types'];
+$allAvailableSettings     = $filterOpts['settings'];
+$allAvailableVersions     = $filterOpts['versions'];
 
 $uniqueVersionsForFilter = array_keys($allAvailableVersions);
 if (!empty($uniqueVersionsForFilter)) {
     usort($uniqueVersionsForFilter, 'version_compare');
     $uniqueVersionsForFilter = array_reverse($uniqueVersionsForFilter);
 }
-// --- FIN DU NOUVEAU BLOC ---
 
-if (!$cacheUsedSuccessfully) {
-    $allLapsData = [];
-    $rawStats = ['totalLaps' => 0, 'totalDrivingTime' => 0, 'lapsPerTrack' => [], 'lapsPerCar' => [], 'bestFinish' => 99, 'raceResults' => [], 'allSessionsLaps' => [], 'bestProgression' => -99];
+// --- CONSTRUCTION DE $results (meilleurs tours par circuit/voiture) ---
+$allPlayerSessions = get_sessions_with_best_laps($db);
 
-    foreach ($events as $event_files) {
-        $eventSessionID = $event_files[0]['timestamp'];
-
-        foreach ($event_files as $file_data) {
-            $xml = $file_data['xml'];
-            $filename = $file_data['filename'];
-            
-            $settings = $xml->RaceResults;
-            $sessionSetting = trim((string)$settings->Setting);
-            $trackVenue = trim((string)$settings->TrackVenue);
-            $trackCourse = trim((string)$settings->TrackCourse);
-            
-            $rawVersion = (string)($settings->GameVersion ?? '0.0');
-            $parts = explode('.', $rawVersion);
-            if (count($parts) > 1) {
-                $major = array_shift($parts);
-                $minor_parts = implode('', $parts);
-                $formatted_minor = str_pad(substr($minor_parts, 0, 4), 4, '0', STR_PAD_RIGHT);
-                $gameVersion = $major . '.' . $formatted_minor;
-            } else {
-                $gameVersion = $rawVersion . '.0000';
-            }
-
-            foreach (['Practice1', 'Qualify', 'Race'] as $section) {
-                if (isset($settings->{$section})) {
-                    $sessionData = $settings->{$section};
-                    $sessionType = $section;
-
-                    foreach ($sessionData->Driver as $driverElem) {
-                        if (trim((string)$driverElem->Name) === PLAYER_NAME) {
-                            $carType = trim((string)$driverElem->CarType);
-                            $carClass = trim((string)$driverElem->CarClass);
-                            if (strcasecmp($carClass, 'Hyper') == 0) {
-                                $carClass = 'Hyper';
-                            }
-                            if (str_replace('_', ' ', $carClass) === 'LMP2 ELMS' || strcasecmp($carClass, 'LMP2 Elms') == 0) {
-                                $carClass = 'LMP2 ELMS';
-                            }
-                            $carCategory = trim((string)$driverElem->Category);
-
-                            $uniqueCarName = $carType;
-                            if (str_contains($carType, 'Peugeot 9x8')) {
-                                if (preg_match('/WEC (\d{4})/', $carCategory, $matches)) {
-                                    $year = $matches[1];
-                                    $displayYear = ($year === '2024' || $year === '2025') ? '2024/25' : $year;
-                                    $uniqueCarName = $carType . " ($displayYear)";
-                                }
-                            }
-                            
-                            $finishPos = (int)($driverElem->ClassPosition ?? 0);
-                            $fastestLapTime = INF;
-                            $currentSessionLaps = [];
-                            $sessionTimestampForLaps = (int)$settings->DateTime;
-
-                            $status = (string)($driverElem->FinishStatus ?? 'N/A');
-                            $position = (int)($driverElem->ClassPosition ?? 0);
-                            $gridPos = (int)($driverElem->ClassGridPos ?? 0);
-                            $progression = null;
-
-                            if ($sessionType === 'Race' && $gridPos > 0 && $status === 'Finished Normally') {
-                                $progression = $gridPos - $position;
-                                if ($progression > $rawStats['bestProgression']) $rawStats['bestProgression'] = $progression;
-                            }
-                            if ($sessionType === 'Race' && $sessionSetting === 'Multiplayer' && $status === 'Finished Normally') {
-                                if ($position < $rawStats['bestFinish']) $rawStats['bestFinish'] = $position;
-                            }
-
-if (isset($driverElem->Lap)) {
-    foreach ($driverElem->Lap as $lapElem) {
-        $lapTime = (float)$lapElem[0];
-        $s1 = (float)($lapElem['s1'] ?? 0); $s2 = (float)($lapElem['s2'] ?? 0); $s3 = (float)($lapElem['s3'] ?? 0);
-        $topspeed = (float)($lapElem['topspeed'] ?? 0);
-
-        // On ajoute le tour au pool de données si au moins une information (temps total ou un secteur) est valide
-        if ($lapTime > 0 || $s1 > 0 || $s2 > 0 || $s3 > 0) {
-            $key = "$trackVenue|$trackCourse|$carClass|$uniqueCarName";
-            $allLapsData[$key][] = [
-                'lap' => $lapTime, 's1' => $s1, 's2' => $s2, 's3' => $s3, 'topspeed' => $topspeed, 
-                'date' => $sessionTimestampForLaps, 'carName' => trim((string)$driverElem->VehName), 
-                'sessionType' => $sessionType, 'finishPos' => $finishPos, 'filename' => $filename, 
-                'Setting' => $sessionSetting, 'progression' => $progression, 
-                'session_id_event' => $eventSessionID, 'GameVersion' => $gameVersion,
-                'status' => $status
-            ];
-        }
-
-        // Pour les statistiques générales (temps de conduite, etc.), on ne compte que les tours 100% valides.
-        if ($lapTime > 0 && $s1 > 0 && $s2 > 0 && $s3 > 0) {
-            $rawStats['totalLaps']++;
-            $rawStats['totalDrivingTime'] += $lapTime;
-            $rawStats['lapsPerTrack'][$trackVenue] = ($rawStats['lapsPerTrack'][$trackVenue] ?? 0) + 1;
-            $rawStats['lapsPerCar'][$uniqueCarName] = ($rawStats['lapsPerCar'][$uniqueCarName] ?? 0) + 1;
-            $fastestLapTime = min($fastestLapTime, $lapTime);
-            $currentSessionLaps[] = $lapTime;
-        }
-    }
+// Grouper par (track|carClass|uniqueCarName) — sans track_course pour éviter
+// les doublons quand un circuit a plusieurs layouts (Paul Ricard, Silverstone…)
+$groupedSessions = [];
+foreach ($allPlayerSessions as $s) {
+    $key = $s['track'] . '|' . $s['car_class'] . '|' . $s['unique_car_name'];
+    $groupedSessions[$key][] = $s;
 }
-
-                          if (!empty($currentSessionLaps)) {
-                                $rawStats['allSessionsLaps'][$sessionTimestampForLaps] = $currentSessionLaps;
-                            }
-                            
-                            $rawStats['raceResults'][] = [
-                                'Filename' => $filename, 'SessionID' => $eventSessionID, 'SessionType' => $sessionType,
-                                'Date' => $sessionTimestampForLaps, 'Track' => $trackVenue, 'TrackCourse' => $trackCourse, 'Car' => $uniqueCarName,
-                                'Livery' => trim((string)$driverElem->VehName), 'Class' => $carClass,
-                                'GridPos' => $gridPos, 'Position' => $position, 'Progression' => $progression,
-                                'Participants' => count($sessionData->Driver), 'Pitstops' => (int)($driverElem->Pitstops ?? 0),
-                                'Status' => $status, 'BestLap' => ($fastestLapTime === INF ? null : $fastestLapTime),
-                                'Setting' => $sessionSetting, 'GameVersion' => $gameVersion
-                            ];
-                            break; 
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-// NOUVEAU BLOC FINAL (remplace l'ancien à partir de la ligne 355)
 
 $results = [];
-foreach ($allLapsData as $key => $laps) {
-    list($track, $trackCourse, $class, $type) = explode('|', $key);
-    
-    // Initialisation des variables pour ce groupe (piste/voiture)
-    $bestLapObj = ['lap' => INF];
-    $bestS1 = INF; $bestS1Date = 0;
-    $bestS2 = INF; $bestS2Date = 0;
-    $bestS3 = INF; $bestS3Date = 0;
-    $bestVmax = 0;
+foreach ($groupedSessions as $key => $sessions) {
+    $bestLapRow  = $sessions[0]; // déjà trié par best_lap ASC, premier = meilleur
+    $absBestS1   = INF; $absBestS1Date = 0;
+    $absBestS2   = INF; $absBestS2Date = 0;
+    $absBestS3   = INF; $absBestS3Date = 0;
+    $bestVmax    = 0.0;
 
-    foreach ($laps as $lap) {
-        // Recherche du meilleur tour global (doit être un tour 100% valide)
-        if ($lap['lap'] > 0 && $lap['s1'] > 0 && $lap['s2'] > 0 && $lap['s3'] > 0) {
-            if ($lap['lap'] < $bestLapObj['lap']) {
-                $bestLapObj = $lap;
-            }
+    foreach ($sessions as $s) {
+        if ($s['abs_best_s1'] !== null && $s['abs_best_s1'] < $absBestS1) {
+            $absBestS1 = $s['abs_best_s1']; $absBestS1Date = $s['abs_best_s1_date'] ?? $s['timestamp'];
         }
-        
-        // Recherche des meilleurs secteurs, indépendamment de la validité du tour complet
-        if ($lap['s1'] > 0 && $lap['s1'] < $bestS1) {
-            $bestS1 = $lap['s1'];
-            $bestS1Date = $lap['date'];
+        if ($s['abs_best_s2'] !== null && $s['abs_best_s2'] < $absBestS2) {
+            $absBestS2 = $s['abs_best_s2']; $absBestS2Date = $s['abs_best_s2_date'] ?? $s['timestamp'];
         }
-        if ($lap['s2'] > 0 && $lap['s2'] < $bestS2) {
-            $bestS2 = $lap['s2'];
-            $bestS2Date = $lap['date'];
+        if ($s['abs_best_s3'] !== null && $s['abs_best_s3'] < $absBestS3) {
+            $absBestS3 = $s['abs_best_s3']; $absBestS3Date = $s['abs_best_s3_date'] ?? $s['timestamp'];
         }
-        if ($lap['s3'] > 0 && $lap['s3'] < $bestS3) {
-            $bestS3 = $lap['s3'];
-            $bestS3Date = $lap['date'];
+        if ($s['vmax'] !== null && (float)$s['vmax'] > $bestVmax) {
+            $bestVmax = (float)$s['vmax'];
         }
-        
-        $bestVmax = max($bestVmax, $lap['topspeed']);
     }
 
-    // On ajoute la ligne au tableau uniquement si on a trouvé au moins un tour valide
-    if ($bestLapObj['lap'] !== INF) {
-        $optimalLapTime = ($bestS1 === INF || $bestS2 === INF || $bestS3 === INF) ? INF : ($bestS1 + $bestS2 + $bestS3);
+    [$track, $class, $type] = explode('|', $key, 3);
+    $trackCourse = $bestLapRow['track_course'] ?? '';
+    $optimalLap = ($absBestS1 !== INF && $absBestS2 !== INF && $absBestS3 !== INF)
+        ? $absBestS1 + $absBestS2 + $absBestS3 : INF;
 
-        $results[] = [
-            'Filename' => $bestLapObj['filename'],
-            'Track Venue' => $track,
-            'Track Course' => $trackCourse,
-            'Car Class' => $class,
-            'Car Type' => $type,
-            'Car Name' => $bestLapObj['carName'],
-            'Date' => date('d/m/Y H:i', $bestLapObj['date']),
-            'DateRaw' => $bestLapObj['date'],
-            'SessionTimestamp' => $bestLapObj['session_id_event'],
-            'SessionType' => $bestLapObj['sessionType'],
-            'FinishPos' => $bestLapObj['finishPos'],
-            'Setting' => $bestLapObj['Setting'],
-            'Progression' => $bestLapObj['progression'],
-            'GameVersion' => $bestLapObj['GameVersion'],
-            'Status' => $bestLapObj['status'],
-            'BestLapRaw' => $bestLapObj['lap'],
-            'BestLapS1' => $bestLapObj['s1'],
-            'BestLapS2' => $bestLapObj['s2'],
-            'BestLapS3' => $bestLapObj['s3'],
-            'AbsoluteBestS1Raw' => $bestS1,
-            'AbsoluteBestS2Raw' => $bestS2,
-            'AbsoluteBestS3Raw' => $bestS3,
-            'AbsoluteBestS1_Date' => date('d/m/Y H:i', $bestS1Date),
-            'AbsoluteBestS2_Date' => date('d/m/Y H:i', $bestS2Date),
-            'AbsoluteBestS3_Date' => date('d/m/Y H:i', $bestS3Date),
-            'OptimalLapRaw' => $optimalLapTime,
-            'BestVmaxRaw' => $bestVmax,
-        ];
-    }
-}    
-    $favoriteTrack = 'N/A';
-    if (!empty($rawStats['lapsPerTrack'])) { arsort($rawStats['lapsPerTrack']); $favoriteTrack = key($rawStats['lapsPerTrack']); }
-    $favoriteCar = 'N/A';
-    if (!empty($rawStats['lapsPerCar'])) { arsort($rawStats['lapsPerCar']); $favoriteCar = key($rawStats['lapsPerCar']); }
-    
-    $stats = ['totalLaps' => $rawStats['totalLaps'], 'totalDrivingTime' => round($rawStats['totalDrivingTime'] / 3600, 1), 'favoriteTrack' => $favoriteTrack, 'favoriteCar' => $favoriteCar, 'bestFinish' => ($rawStats['bestFinish'] === 99) ? 'N/A' : $rawStats['bestFinish'], 'bestProgression' => ($rawStats['bestProgression'] === -99) ? 'N/A' : $rawStats['bestProgression'], 'raceResults' => $rawStats['raceResults'], 'allSessionsLaps' => $rawStats['allSessionsLaps']];
-
-    if (defined('CACHE_FILE') && (!empty($results) || !empty($stats['totalLaps']))) {
-        $cache_data = [
-            'cache_key' => $cache_key,
-            'results' => $results,
-            'stats' => $stats
-        ];
-        @file_put_contents(CACHE_FILE, json_encode($cache_data));
-    }
+    $results[] = [
+        'Track Venue'        => $track,
+        'Track Course'       => $trackCourse,
+        'Car Class'          => $class,
+        'Car Type'           => $type,
+        'Car Name'           => $bestLapRow['car_name'],
+        'Date'               => date('d/m/Y H:i', $bestLapRow['timestamp']),
+        'DateRaw'            => $bestLapRow['timestamp'],
+        'SessionTimestamp'   => $bestLapRow['event_id'],
+        'SessionType'        => $bestLapRow['session_type'],
+        'FinishPos'          => $bestLapRow['class_position'],
+        'Setting'            => $bestLapRow['setting'],
+        'Progression'        => $bestLapRow['progression'],
+        'GameVersion'        => $bestLapRow['game_version'],
+        'Status'             => $bestLapRow['finish_status'],
+        'BestLapRaw'         => $bestLapRow['best_lap'],
+        'BestLapS1'          => $bestLapRow['best_lap_s1'],
+        'BestLapS2'          => $bestLapRow['best_lap_s2'],
+        'BestLapS3'          => $bestLapRow['best_lap_s3'],
+        'AbsoluteBestS1Raw'  => $absBestS1 !== INF ? $absBestS1 : null,
+        'AbsoluteBestS2Raw'  => $absBestS2 !== INF ? $absBestS2 : null,
+        'AbsoluteBestS3Raw'  => $absBestS3 !== INF ? $absBestS3 : null,
+        'AbsoluteBestS1_Date'=> $absBestS1Date ? date('d/m/Y H:i', $absBestS1Date) : 'N/A',
+        'AbsoluteBestS2_Date'=> $absBestS2Date ? date('d/m/Y H:i', $absBestS2Date) : 'N/A',
+        'AbsoluteBestS3_Date'=> $absBestS3Date ? date('d/m/Y H:i', $absBestS3Date) : 'N/A',
+        'OptimalLapRaw'      => $optimalLap !== INF ? $optimalLap : null,
+        'BestVmaxRaw'        => $bestVmax,
+    ];
 }
+
+// --- CONSTRUCTION DE $stats ---
+$stats = get_player_overview_stats($db);
 
 // --- LOGIQUE DE TRI ET FILTRAGE ---
 
@@ -379,6 +149,10 @@ if ($selectedTrack !== 'all' && isset($trackLayoutsMap[$selectedTrack])) {
 
 $uniqueCarClassesForFilter = array_keys($allAvailableClasses);
 $uniqueCarTypesForFilter = array_keys($allAvailableCars);
+// Cascade classe → voitures disponibles
+if ($selectedClass !== 'all' && isset($carsByClassMap[$selectedClass])) {
+    $uniqueCarTypesForFilter = array_values(array_filter($uniqueCarTypesForFilter, fn($car) => isset($carsByClassMap[$selectedClass][$car])));
+}
 $uniqueSessionTypesForFilter = array_keys($allAvailableSessionTypes);
 $uniqueSettingsForFilter = array_keys($allAvailableSettings);
 
@@ -399,9 +173,12 @@ sort($uniqueSettingsForFilter);
 
 
 // ÉTAPE 4 : On applique les filtres sur les résultats
-$isComparison = false; // Comparison logic removed for now
-
 $selectedCar = ($selectedCar1 !== 'all') ? $selectedCar1 : 'all';
+
+// Auto-sélection de la classe quand une voiture est choisie sans classe explicite
+if ($selectedCar !== 'all' && $selectedClass === 'all' && isset($carClassMap[$selectedCar])) {
+    $selectedClass = $carClassMap[$selectedCar];
+}
 $filteredResults = array_filter($results, function ($time) use ($selectedTrack, $selectedTrackCourse, $selectedClass, $selectedCar, $selectedSessionType, $selectedSetting, $selectedVersion, $filterOnlyVersion) {
     $matchTrack = ($selectedTrack === 'all' || $time['Track Venue'] === $selectedTrack);
     $matchTrackCourse = ($selectedTrackCourse === 'all' || (isset($time['Track Course']) && $time['Track Course'] === $selectedTrackCourse));
@@ -456,108 +233,120 @@ usort($filteredResults, function($a, $b) use ($classOrder) {
     return $a['BestLapRaw'] <=> $b['BestLapRaw'];
 });
 
-// Filtre des sessions
-$filteredSessions = array_filter($stats['raceResults'] ?? [], function ($race) use ($selectedTrack, $selectedTrackCourse, $selectedClass, $selectedCar, $selectedSessionType, $selectedSetting, $selectedVersion, $filterOnlyVersion) {
-    $matchTrack = ($selectedTrack === 'all' || $race['Track'] === $selectedTrack);
-    $matchTrackCourse = ($selectedTrackCourse === 'all' || (isset($race['TrackCourse']) && $race['TrackCourse'] === $selectedTrackCourse));
-    $matchClass = ($selectedClass === 'all' || $race['Class'] === $selectedClass);
-    $matchCar = ($selectedCar === 'all' || $race['Car'] === $selectedCar);
-    $matchSessionType = ($selectedSessionType === 'all' || $race['SessionType'] === $selectedSessionType);
-    $matchSetting = ($selectedSetting === 'all' || $race['Setting'] === $selectedSetting);
+// --- SESSIONS : filtrage, tri et pagination via SQL ---
+$sortBy  = $_GET['sort_by']  ?? 'Date';
+$sortDir = (isset($_GET['sort_dir']) && strtolower($_GET['sort_dir']) === 'asc') ? 'asc' : 'desc';
 
-    // LOGIQUE DE FILTRE DE VERSION AJOUTÉE POUR LE TABLEAU DES SESSIONS
-    $matchVersion = true;
-    if ($selectedVersion !== 'all') {
-        if ($filterOnlyVersion) {
-            $matchVersion = $race['GameVersion'] === $selectedVersion;
-        } else {
-            $matchVersion = version_compare($race['GameVersion'], $selectedVersion, '>=');
-        }
-    }
-    
-    return $matchTrack && $matchTrackCourse && $matchClass && $matchCar && $matchSessionType && $matchSetting && $matchVersion;
-});
+// Construction du WHERE dynamique
+$conditions = [];
+$sqlParams  = [];
 
-// --- Logique de Tri Côté Serveur ---
-$sortBy = $_GET['sort_by'] ?? 'Date';
-$sortDir = $_GET['sort_dir'] ?? 'desc';
-
-$classOrder = ['Hyper' => 1, 'LMP2 ELMS' => 2, 'LMP2' => 3, 'LMP3' => 4, 'GT3' => 5, 'GTE' => 6];
-
-if (!empty($filteredSessions)) {
-    // Définir l'ordre des sessions pour le tri (Course en premier)
-    $sessionOrder = ['Race' => 1, 'Qualify' => 2, 'Practice1' => 3];
-
-    usort($filteredSessions, function($a, $b) use ($sortBy, $sortDir, $sessionOrder, $classOrder) {
-        // Comportement de tri spécial pour le tri par défaut (par date)
-        if ($sortBy === 'Date') {
-            // Tri principal par l'ID de l'événement (timestamp commun)
-            $eventCmp = $b['SessionID'] <=> $a['SessionID'];
-            if ($eventCmp !== 0) {
-                return $sortDir === 'desc' ? $eventCmp : -$eventCmp;
-            }
-
-            // Tri secondaire par type de session (Course -> Qualif -> Essais)
-            $aOrder = $sessionOrder[$a['SessionType']] ?? 99;
-            $bOrder = $sessionOrder[$b['SessionType']] ?? 99;
-            
-            // On veut toujours cet ordre chronologique, quelle que soit la direction du tri principal
-            return $aOrder <=> $bOrder;
-        }
-
-        // Tri spécial pour la colonne 'Class'
-        if ($sortBy === 'Class') {
-            $a_prio = $classOrder[$a['Class']] ?? 99;
-            $b_prio = $classOrder[$b['Class']] ?? 99;
-            $cmp = $a_prio <=> $b_prio;
-            return ($sortDir === 'desc') ? -$cmp : $cmp;
-        }
-
-        // Logique de tri générique pour les autres colonnes
-        if (!array_key_exists($sortBy, $a) || !array_key_exists($sortBy, $b)) {
-            return 0;
-        }
-        $valA = $a[$sortBy];
-        $valB = $b[$sortBy];
-
-        // Spécialement pour 'BestLap', les valeurs nulles vont à la fin.
-        if ($sortBy === 'BestLap') {
-            $aIsNull = $valA === null;
-            $bIsNull = $valB === null;
-
-            if ($aIsNull && $bIsNull) return 0;
-            if ($aIsNull) return 1;
-            if ($bIsNull) return -1;
-        }
-        
-        if ($valA === null) $valA = -9999;
-        if ($valB === null) $valB = -9999;
-        
-        $cmp = 0;
-        if (is_numeric($valA) && is_numeric($valB)) {
-            $cmp = $valA <=> $valB;
-        } else {
-            $cmp = strcasecmp((string)$valA, (string)$valB);
-        }
-        return ($sortDir === 'desc') ? -$cmp : $cmp;
-    });
+if ($selectedTrack !== 'all') {
+    $conditions[] = 'ps.track = :track';
+    $sqlParams[':track'] = $selectedTrack;
+}
+if ($selectedTrackCourse !== 'all') {
+    $conditions[] = 'ps.track_course = :track_course';
+    $sqlParams[':track_course'] = $selectedTrackCourse;
+}
+if ($selectedClass !== 'all') {
+    $conditions[] = 'ps.car_class = :car_class';
+    $sqlParams[':car_class'] = $selectedClass;
+}
+if ($selectedCar !== 'all') {
+    $conditions[] = 'ps.unique_car_name = :car';
+    $sqlParams[':car'] = $selectedCar;
+}
+if ($selectedSessionType !== 'all') {
+    $conditions[] = 'ps.session_type = :session_type';
+    $sqlParams[':session_type'] = $selectedSessionType;
+}
+if ($selectedSetting !== 'all') {
+    $conditions[] = 'ps.setting = :setting';
+    $sqlParams[':setting'] = $selectedSetting;
+}
+if ($selectedVersion !== 'all') {
+    $conditions[] = $filterOnlyVersion ? 'ps.game_version = :version' : 'ps.game_version >= :version';
+    $sqlParams[':version'] = $selectedVersion;
 }
 
+$whereSQL = $conditions ? ('WHERE ' . implode(' AND ', $conditions)) : '';
 
-// --- Logique de Pagination ---
+// Correspondance colonne de tri → expression SQL
+$columnMap = [
+    'Date'        => 'ps.event_id',
+    'Track'       => 'ps.track',
+    'TrackCourse' => 'ps.track_course',
+    'Setting'     => 'ps.setting',
+    'SessionType' => 'ps.session_type',
+    'Class'       => "CASE ps.car_class WHEN 'Hyper' THEN 1 WHEN 'LMP2 ELMS' THEN 2 WHEN 'LMP2' THEN 3 WHEN 'LMP3' THEN 4 WHEN 'GT3' THEN 5 WHEN 'GTE' THEN 6 ELSE 99 END",
+    'Car'         => 'ps.unique_car_name',
+    'Livery'      => 'ps.car_name',
+    'BestLap'     => 'ps.best_lap',
+    'GridPos'     => 'ps.grid_pos',
+    'Position'    => 'ps.class_position',
+    'Progression' => 'ps.progression',
+    'Pitstops'    => 'ps.pitstops',
+    'GameVersion' => 'ps.game_version',
+];
+
+$safeSort = $columnMap[$sortBy] ?? 'ps.event_id';
+$safeDir  = $sortDir === 'asc' ? 'ASC' : 'DESC';
+
+if ($sortBy === 'Date') {
+    // Tri secondaire par type de session (Course > Qualif > Essais), direction fixe
+    $orderSQL = "ORDER BY ps.event_id $safeDir, CASE ps.session_type WHEN 'Race' THEN 0 WHEN 'Qualify' THEN 1 ELSE 2 END ASC";
+} elseif ($sortBy === 'BestLap') {
+    // Valeurs NULL repoussées en fin quelle que soit la direction
+    $orderSQL = "ORDER BY CASE WHEN ps.best_lap IS NULL THEN 1 ELSE 0 END ASC, ps.best_lap $safeDir";
+} else {
+    $orderSQL = "ORDER BY $safeSort $safeDir";
+}
+
+// Comptage total (pour la pagination)
+$stmtCount = $db->prepare("SELECT COUNT(*) FROM player_sessions ps $whereSQL");
+$stmtCount->execute($sqlParams);
+$totalSessions = (int)$stmtCount->fetchColumn();
+
+// Pagination
 $racesPerPageOptions = [15, 25, 50, 100, 200];
 $racesPerPage = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $racesPerPageOptions) ? (int)$_GET['per_page'] : 15;
-$currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-if ($currentPage < 1) { $currentPage = 1; }
+$currentPage  = max(1, (int)($_GET['page'] ?? 1));
+$totalPages   = $racesPerPage > 0 ? (int)ceil($totalSessions / $racesPerPage) : 1;
+if ($totalPages < 1) $totalPages = 1;
+if ($currentPage > $totalPages) $currentPage = $totalPages;
 
-$totalSessions = count($filteredSessions);
-$totalPages = $racesPerPage > 0 ? ceil($totalSessions / $racesPerPage) : 1;
-if ($currentPage > $totalPages && $totalPages > 0) {
-    $currentPage = $totalPages;
+$sqlOffset  = ($currentPage - 1) * $racesPerPage;
+$limitSQL   = "LIMIT $racesPerPage OFFSET $sqlOffset";
+
+// Récupération de la page courante
+$stmtPage = $db->prepare("SELECT * FROM player_sessions ps $whereSQL $orderSQL $limitSQL");
+$stmtPage->execute($sqlParams);
+$pageRows = $stmtPage->fetchAll();
+
+// Mapping vers la structure attendue par le template HTML
+$paginatedSessions = [];
+foreach ($pageRows as $row) {
+    $paginatedSessions[] = [
+        'SessionID'    => $row['event_id'],
+        'SessionType'  => $row['session_type'],
+        'Date'         => $row['timestamp'],
+        'Track'        => $row['track'],
+        'TrackCourse'  => $row['track_course'],
+        'Car'          => $row['unique_car_name'],
+        'Livery'       => $row['car_name'],
+        'Class'        => $row['car_class'],
+        'GridPos'      => $row['grid_pos'],
+        'Position'     => $row['class_position'],
+        'Progression'  => $row['progression'],
+        'Participants' => $row['participants'],
+        'Pitstops'     => $row['pitstops'],
+        'Status'       => $row['finish_status'],
+        'BestLap'      => $row['best_lap'],
+        'Setting'      => $row['setting'],
+        'GameVersion'  => $row['game_version'],
+    ];
 }
-
-$offset = ($currentPage - 1) * $racesPerPage;
-$paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset, $racesPerPage) : $filteredSessions;
 
 ?>
 <!DOCTYPE html>
@@ -571,33 +360,67 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
     <link rel="stylesheet" href="css/style.css?v=<?php echo filemtime('css/style.css'); ?>">
 </head>
 <body class="<?php if ($current_theme === 'dark') echo 'dark-mode'; ?>">
+    <?php if ($syncMessage): ?>
+    <div class="sync-notice" id="syncNotice">
+        🔄 <?php echo htmlspecialchars($syncMessage); ?>
+        <button onclick="document.getElementById('syncNotice').style.display='none'" style="margin-left:12px;background:none;border:none;cursor:pointer;font-size:1em;opacity:.7;">✕</button>
+    </div>
+    <script>
+    (function () {
+        var el = document.getElementById('syncNotice');
+        if (el) {
+            setTimeout(function () {
+                el.style.transition = 'opacity 0.5s';
+                el.style.opacity = '0';
+                setTimeout(function () { el.style.display = 'none'; }, 500);
+            }, 5000);
+        }
+    })();
+    </script>
+    <?php endif; ?>
     <?php if (!empty($stats)): ?>
     <div class="stats-panel">
         <div class="panel-header">
-			<a href="index.php"><img src="logos/lmu.png" alt="Le Mans Ultimate Logo" id="page-logo"></a>            
-			</a>
+            <div class="header-left">
+                <a href="index.php"><img src="logos/lmu.png" alt="Le Mans Ultimate Logo" id="page-logo"></a>
+            </div>
             <h1><?php echo $lang['title'] . ' ' . htmlspecialchars(PLAYER_NAME); ?></h1>
-			<div id="theme-switcher">
-				<form action="index.php" method="get">
-					<label for="theme-select"><?php echo $lang['filter_theme'] ?? 'Thème'; ?></label>
-					<select id="theme-select" name="theme" onchange="this.form.submit()">
-						<option value="light" <?php echo ($current_theme === 'light') ? 'selected' : ''; ?>>
-							<?php echo $lang['theme_light'] ?? 'Clair'; ?>
-						</option>
-						<option value="dark" <?php echo ($current_theme === 'dark') ? 'selected' : ''; ?>>
-							<?php echo $lang['theme_dark'] ?? 'Sombre'; ?>
-						</option>
-					</select>
-					
-					<input type="hidden" name="lang" value="<?php echo htmlspecialchars($current_lang); ?>">
-					<input type="hidden" name="track" value="<?php echo htmlspecialchars($selectedTrack); ?>">
-					<input type="hidden" name="class" value="<?php echo htmlspecialchars($selectedClass); ?>">
-					<input type="hidden" name="car1" value="<?php echo htmlspecialchars($selectedCar1); ?>">
-					<input type="hidden" name="session_type" value="<?php echo htmlspecialchars($selectedSessionType); ?>">
-					<input type="hidden" name="version" value="<?php echo htmlspecialchars($selectedVersion); ?>">
-                    <?php if ($filterOnlyVersion): ?><input type="hidden" name="filter_only_version" value="1"><?php endif; ?>
-				</form>
-			</div>
+            <?php
+                $toggleTheme = $current_theme === 'dark' ? 'light' : 'dark';
+                $themeToggleParams = http_build_query(array_filter([
+                    'lang' => $current_lang,
+                    'theme' => $toggleTheme,
+                    'track' => $selectedTrack !== 'all' ? $selectedTrack : null,
+                    'class' => $selectedClass !== 'all' ? $selectedClass : null,
+                    'car1' => $selectedCar1 !== 'all' ? $selectedCar1 : null,
+                    'session_type' => $selectedSessionType !== 'all' ? $selectedSessionType : null,
+                    'version' => $selectedVersion,
+                ], fn($v) => $v !== null));
+            ?>
+            <div id="theme-switcher">
+                <a href="index.php?<?php echo $themeToggleParams; ?>" id="theme-toggle-btn"
+                   title="<?php echo $current_theme === 'dark' ? ($lang['theme_light'] ?? 'Thème clair') : ($lang['theme_dark'] ?? 'Thème sombre'); ?>">
+                <?php if ($current_theme === 'dark'): ?>
+                    <!-- Soleil -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="4"/>
+                        <line x1="12" y1="2"  x2="12" y2="5"/>
+                        <line x1="12" y1="19" x2="12" y2="22"/>
+                        <line x1="4.22" y1="4.22"  x2="6.34" y2="6.34"/>
+                        <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+                        <line x1="2"  y1="12" x2="5"  y2="12"/>
+                        <line x1="19" y1="12" x2="22" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
+                        <line x1="17.66" y1="6.34"  x2="19.78" y2="4.22"/>
+                    </svg>
+                <?php else: ?>
+                    <!-- Lune -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>
+                    </svg>
+                <?php endif; ?>
+                </a>
+            </div>
         </div>
         
         <div class="stat"><h3><?php echo $lang['stat_driving_time']; ?></h3><p><?php echo htmlspecialchars($stats['totalDrivingTime'] ?? '0'); ?> h</p></div>
@@ -613,8 +436,30 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
         <form action="index.php" method="get" id="filter-form">
             <input type="hidden" name="lang" value="<?php echo htmlspecialchars($current_lang); ?>">
             <input type="hidden" name="filter_version_submitted" value="1">
-            <a href="index.php?lang=<?php echo $current_lang; ?>" class="reset-filter-btn" title="<?php echo $lang['filter_reset']; ?>">🔄</a>
-            <a href="config.php?lang=<?php echo $current_lang; ?>" class="reset-filter-btn" title="<?php echo $lang['config_link_title']; ?>">⚙️</a>
+            <a href="index.php?lang=<?php echo $current_lang; ?>" class="reset-filter-btn" title="<?php echo $lang['filter_reset']; ?>">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                </svg>
+            </a>
+            <a href="config.php?lang=<?php echo $current_lang; ?>" class="reset-filter-btn" title="<?php echo $lang['config_link_title']; ?>">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="4" y1="6"  x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+                    <circle cx="8"  cy="6"  r="2" fill="currentColor" stroke="none"/>
+                    <circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/>
+                    <circle cx="10" cy="18" r="2" fill="currentColor" stroke="none"/>
+                </svg>
+            </a>
+            <a href="live.php?lang=<?php echo $current_lang; ?>" class="reset-filter-btn" title="<?php echo $lang['live_timing_title'] ?? 'Live Timing'; ?>">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+                    <line x1="12" y1="2"  x2="12" y2="6"/>
+                    <line x1="12" y1="18" x2="12" y2="22"/>
+                    <line x1="2"  y1="12" x2="6"  y2="12"/>
+                    <line x1="18" y1="12" x2="22" y2="12"/>
+                </svg>
+            </a>
             <div class="filter-group">
                 <label for="track-select"><?php echo $lang['filter_track']; ?></label>
                 <select id="track-select" name="track"><option value="all"><?php echo $lang['all']; ?></option><?php foreach ($uniqueTrackVenuesForFilter as $track): ?><option value="<?php echo htmlspecialchars($track); ?>" <?php echo ($selectedTrack === $track) ? 'selected' : ''; ?>><?php echo htmlspecialchars($track); ?></option><?php endforeach; ?></select>
@@ -666,9 +511,7 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
         </form>
     </div>
 
-    <?php if ($isComparison): ?>
-        <p class="message"><?php echo $lang['comparison_not_implemented']; ?></p>
-    <?php elseif (empty($filteredResults)): ?>
+    <?php if (empty($filteredResults)): ?>
         <p class="message"><?php echo $lang['no_data_for_filter']; ?></p>
     <?php else: ?>
         <div class="table-wrapper">
@@ -682,7 +525,7 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
             <div style="overflow-x: auto;">
                 <table id="best-laps-table">
                 <?php
-                $columnHeadersHtml = '<thead><tr><th>'.$lang['th_details'].'</th><th class="text-center">'.$lang['th_layout'].'</th><th class="text-center">'.$lang['th_type'].'</th><th class="text-center">'.$lang['th_session'].'</th><th class="text-center">'.$lang['th_class'].'</th><th class="text-center">'.$lang['th_car'].'</th><th class="text-center">'.$lang['th_livery'].'</th><th class="text-center">'.$lang['th_best_lap'].'</th><th class="text-center">S1</th><th class="text-center">S2</th><th class="text-center">S3</th><th class="text-center">'.$lang['th_optimal'].'</th><th class="text-center">'.$lang['th_vmax'].'</th><th class="text-center">'.$lang['th_finish_pos'].'</th><th class="text-center">'.$lang['th_progression'].'</th><th class="text-center">'.$lang['th_date'].'</th><th class="text-center">'.$lang['th_version'].'</th></tr></thead>';
+                $columnHeadersHtml = '<thead><tr><th>'.$lang['th_details'].'</th><th class="text-center">'.($lang['th_records'] ?? 'Records').'</th><th class="text-center">'.$lang['th_layout'].'</th><th class="text-center">'.$lang['th_type'].'</th><th class="text-center">'.$lang['th_session'].'</th><th class="text-center">'.$lang['th_class'].'</th><th class="text-center">'.$lang['th_car'].'</th><th class="text-center">'.$lang['th_livery'].'</th><th class="text-center">'.$lang['th_best_lap'].'</th><th class="text-center">S1</th><th class="text-center">S2</th><th class="text-center">S3</th><th class="text-center">'.$lang['th_optimal'].'</th><th class="text-center">'.$lang['th_vmax'].'</th><th class="text-center">'.$lang['th_finish_pos'].'</th><th class="text-center">'.$lang['th_progression'].'</th><th class="text-center">'.$lang['th_date'].'</th><th class="text-center">'.$lang['th_version'].'</th></tr></thead>';
                 $currentTrack = null;
                 $currentCourse = null;
                 $isFirstHeader = true;
@@ -696,14 +539,14 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
                         }
                         $trackGroupId = 'track-group-' . preg_replace('/[^a-zA-Z0-9-]/', '', str_replace(' ', '-', $currentTrack . '-' . $currentCourse));
                         $headerClass = 'circuit-group-header' . ($isFirstHeader ? ' first-header' : '');
-                        echo '<thead class="' . $headerClass . '" data-group-id="' . $trackGroupId . '"><tr><th colspan="17" class="group-header">';
+                        echo '<thead class="' . $headerClass . '" data-group-id="' . $trackGroupId . '"><tr><th colspan="18" class="group-header">';
                         
                         echo '<span class="collapsible-trigger">';
                         $flagUrl = getCircuitFlagUrl($currentTrack);
                         if ($flagUrl) echo '<img src="' . htmlspecialchars($flagUrl) . '" alt="" class="logo flag-icon">';
                         echo '<span class="arrow-indicator">▼</span></span>';
                         
-                        echo ' <span class="clickable-filter" data-filter-type="track" data-filter-value="' . htmlspecialchars($currentTrack) . '" title="Filtrer par ' . htmlspecialchars($currentTrack) . '">' . $trackTitle . '</span>';
+                        echo ' <span class="clickable-filter" data-filter-type="track" data-filter-value="' . htmlspecialchars($currentTrack) . '" title="' . htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $currentTrack) . '">' . $trackTitle . '</span>';
                         
                         echo '</th></tr></thead>';
                         echo $columnHeadersHtml;
@@ -714,13 +557,16 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
                 ?>
                     <tr data-track-group="<?php echo $currentRowTrackGroupId; ?>">
                         <td class="text-center">
-                            <a href="race_details.php?session_id=<?php echo urlencode($row['SessionTimestamp']); ?>&lang=<?php echo $current_lang; ?>&session_view=<?php echo $row['SessionType']; ?>&from=best-laps-table" title="Voir les détails de la session">📊</a>
+                            <a href="race_details.php?session_id=<?php echo urlencode($row['SessionTimestamp']); ?>&lang=<?php echo $current_lang; ?>&session_view=<?php echo $row['SessionType']; ?>&from=best-laps-table" title="Voir les détails de la session"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg></a>
                         </td>
-                        <td class="clickable-filter" data-filter-type="track_course" data-filter-value="<?php echo htmlspecialchars($row['Track Course'] ?? ''); ?>" title="Filtrer par <?php echo htmlspecialchars($row['Track Course'] ?? ''); ?>">
+                        <td class="text-center">
+                            <a href="records.php?track=<?php echo urlencode($row['Track Venue']); ?>&class=<?php echo urlencode($row['Car Class']); ?>&car=<?php echo urlencode($row['Car Type']); ?>&lang=<?php echo $current_lang; ?>" title="<?php echo htmlspecialchars(sprintf($lang['records_link_title'] ?? 'Records — %s · %s', $row['Track Venue'], $row['Car Type'])); ?>"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></a>
+                        </td>
+                        <td class="clickable-filter" data-filter-type="track_course" data-filter-value="<?php echo htmlspecialchars($row['Track Course'] ?? ''); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . ($row['Track Course'] ?? '')); ?>">
 							<?php echo isset($row['Track Course']) ? htmlspecialchars($row['Track Course']) : ''; ?>
 						</td>
-                        <td class="clickable-filter" data-filter-type="setting" data-filter-value="<?php echo htmlspecialchars($row['Setting']); ?>" title="Filtrer par <?php echo translateTerm($row['Setting'], $lang); ?>"><?php echo translateTerm($row['Setting'], $lang); ?></td>
-                        <td class="text-center clickable-filter" data-filter-type="session_type" data-filter-value="<?php echo htmlspecialchars($row['SessionType']); ?>" title="Filtrer par <?php echo translateTerm($row['SessionType'], $lang); ?>">
+                        <td class="text-center clickable-filter" data-filter-type="setting" data-filter-value="<?php echo htmlspecialchars($row['Setting']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ') . translateTerm($row['Setting'], $lang); ?>"><?php echo translateTerm($row['Setting'], $lang); ?></td>
+                        <td class="text-center clickable-filter" data-filter-type="session_type" data-filter-value="<?php echo htmlspecialchars($row['SessionType']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ') . translateTerm($row['SessionType'], $lang); ?>">
                             <?php
                                 $sessionType = $row['SessionType'];
                                 $sessionClass = 'session-' . strtolower($sessionType);
@@ -729,11 +575,11 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
                             <span class="badge <?php echo $sessionClass; ?>"><?php echo htmlspecialchars($sessionDisplay); ?></span>
                         </td>
                         <td class="text-center">
-                            <a href="index.php?class=<?php echo urlencode($row['Car Class']); ?>&lang=<?php echo $current_lang; ?>" title="Filtrer par <?php echo htmlspecialchars($row['Car Class']); ?>" style="text-decoration: none;">
+                            <a href="index.php?class=<?php echo urlencode($row['Car Class']); ?>&lang=<?php echo $current_lang; ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $row['Car Class']); ?>" style="text-decoration: none;">
                                 <span class="badge <?php echo $carClassCss; ?>"><?php echo htmlspecialchars($row['Car Class']); ?></span>
                             </a>
                         </td>
-                        <td class="clickable-filter" data-filter-type="car1" data-filter-value="<?php echo htmlspecialchars($row['Car Type']); ?>" title="Filtrer par <?php echo htmlspecialchars($row['Car Type']); ?>">
+                        <td class="clickable-filter" data-filter-type="car1" data-filter-value="<?php echo htmlspecialchars($row['Car Type']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $row['Car Type']); ?>">
                             <?php $logoUrl = getCarLogoUrl($row['Car Type']); if ($logoUrl):?><img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="" class="logo"><?php endif; ?>
                             <?php echo htmlspecialchars($row['Car Type']); ?>
                         </td>
@@ -788,15 +634,8 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
                         </td>
                         <td class="text-center">
                             <?php
-                                if ($row['SessionType'] === 'Race' && $row['Progression'] !== null) {
-                                    $progression = $row['Progression'];
-                                    if ($progression > 0) {
-                                        echo '<span class="prog-gain">▲ +' . $progression . '</span>';
-                                    } elseif ($progression < 0) {
-                                        echo '<span class="prog-loss">▼ ' . $progression . '</span>';
-                                    } else {
-                                        echo '<span>-</span>';
-                                    }
+                                if ($row['SessionType'] === 'Race') {
+                                    echo renderProgression($row['Progression']);
                                 } else {
                                     echo '<span style="color: grey;">' . $lang['not_available'] . '</span>';
                                 }
@@ -821,6 +660,7 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
             <thead>
                 <tr>
                     <th style="width: 40px;"><?php echo $lang['th_details']; ?></th>
+                    <th class="text-center" style="width: 40px;"><?php echo $lang['th_records'] ?? 'Records'; ?></th>
                     <?php printSortableHeader($lang['th_track'], 'Track', 'th_track', $sortBy, $sortDir, $sortableHeaderParams); ?>
                     <?php printSortableHeader($lang['th_layout'] ?? 'Layout', 'TrackCourse', 'th_layout', $sortBy, $sortDir, $sortableHeaderParams); ?>
                     <?php printSortableHeader($lang['th_type'], 'Setting', 'th_type', $sortBy, $sortDir, $sortableHeaderParams); ?>
@@ -838,21 +678,36 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($paginatedSessions as $race):
+                <?php
+                $prevEventId = null;
+                $groupIndex  = -1;
+                foreach ($paginatedSessions as $race):
+                    if ($race['SessionID'] !== $prevEventId) {
+                        $groupIndex++;
+                        $prevEventId = $race['SessionID'];
+                    }
+                    $groupClass  = ($groupIndex % 2 === 0) ? 'event-group-a' : 'event-group-b';
                     $carClassCss = 'class-' . strtolower(str_replace([' ', '-', '#'], '', $race['Class']));
                 ?>
-                <tr>
+                <tr class="<?php echo $groupClass; ?>">
                     <td class="text-center">
-                        <a href="race_details.php?session_id=<?php echo urlencode($race['SessionID']); ?>&lang=<?php echo $current_lang; ?>&session_view=<?php echo $race['SessionType']; ?>&from=race-results-table" title="Voir les détails de la session">📊</a>
+                        <a href="race_details.php?session_id=<?php echo urlencode($race['SessionID']); ?>&lang=<?php echo $current_lang; ?>&session_view=<?php echo $race['SessionType']; ?>&from=race-results-table" title="Voir les détails de la session"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg></a>
                     </td>
-                    <td class="clickable-filter" data-filter-type="track" data-filter-value="<?php echo htmlspecialchars($race['Track']); ?>" title="Filtrer par <?php echo htmlspecialchars($race['Track']); ?>">
+                    <td class="text-center">
+                        <?php if (!empty($race['Car']) && !empty($race['Track'])): ?>
+                        <a href="records.php?track=<?php echo urlencode($race['Track']); ?>&class=<?php echo urlencode($race['Class']); ?>&car=<?php echo urlencode($race['Car']); ?>&lang=<?php echo $current_lang; ?>" title="<?php echo htmlspecialchars(sprintf($lang['records_link_title'] ?? 'Records — %s · %s', $race['Track'], $race['Car'])); ?>"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></a>
+                        <?php else: ?>
+                        <span style="color:grey;">—</span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="clickable-filter" data-filter-type="track" data-filter-value="<?php echo htmlspecialchars($race['Track']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $race['Track']); ?>">
                         <?php $flagUrl = getCircuitFlagUrl($race['Track']); if ($flagUrl):?><img src="<?php echo htmlspecialchars($flagUrl); ?>" alt="" class="logo flag-icon"><?php endif; ?><?php echo htmlspecialchars($race['Track']); ?>
                     </td>
-                    <td class="clickable-filter" data-filter-type="track_course" data-filter-value="<?php echo htmlspecialchars($race['TrackCourse'] ?? ''); ?>" title="Filtrer par <?php echo htmlspecialchars($race['TrackCourse'] ?? ''); ?>">
+                    <td class="clickable-filter" data-filter-type="track_course" data-filter-value="<?php echo htmlspecialchars($race['TrackCourse'] ?? ''); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . ($race['TrackCourse'] ?? '')); ?>">
 						<?php echo isset($race['TrackCourse']) ? htmlspecialchars($race['TrackCourse']) : ''; ?>
 					</td>
-                    <td class="clickable-filter" data-filter-type="setting" data-filter-value="<?php echo htmlspecialchars($race['Setting']); ?>" title="Filtrer par <?php echo translateTerm($race['Setting'], $lang); ?>"><?php echo translateTerm($race['Setting'], $lang); ?></td>
-                    <td class="text-center clickable-filter" data-filter-type="session_type" data-filter-value="<?php echo htmlspecialchars($race['SessionType']); ?>" title="Filtrer par <?php echo translateTerm($race['SessionType'], $lang); ?>">
+                    <td class="text-center clickable-filter" data-filter-type="setting" data-filter-value="<?php echo htmlspecialchars($race['Setting']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ') . translateTerm($race['Setting'], $lang); ?>"><?php echo translateTerm($race['Setting'], $lang); ?></td>
+                    <td class="text-center clickable-filter" data-filter-type="session_type" data-filter-value="<?php echo htmlspecialchars($race['SessionType']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ') . translateTerm($race['SessionType'], $lang); ?>">
                         <?php
                             $sessionType = $race['SessionType'];
                             $sessionClass = 'session-' . strtolower($sessionType);
@@ -860,11 +715,11 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
                         ?>
                     </td>
                         <td class="text-center">
-                            <a href="index.php?class=<?php echo urlencode($race['Class']); ?>&lang=<?php echo $current_lang; ?>" title="Filtrer par <?php echo htmlspecialchars($race['Class']); ?>" style="text-decoration: none;">
+                            <a href="index.php?class=<?php echo urlencode($race['Class']); ?>&lang=<?php echo $current_lang; ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $race['Class']); ?>" style="text-decoration: none;">
                                 <span class="badge <?php echo $carClassCss; ?>"><?php echo str_replace(' ELMS', '', htmlspecialchars($race['Class'])); ?></span>
                             </a>
                         </td>
-                    <td class="clickable-filter" data-filter-type="car1" data-filter-value="<?php echo htmlspecialchars($race['Car']); ?>" title="Filtrer par <?php echo htmlspecialchars($race['Car']); ?>">
+                    <td class="clickable-filter" data-filter-type="car1" data-filter-value="<?php echo htmlspecialchars($race['Car']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $race['Car']); ?>">
                         <?php $logoUrl = getCarLogoUrl($race['Car']); if ($logoUrl):?><img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="" class="logo"><?php endif; ?><?php echo htmlspecialchars($race['Car']); ?>
                     </td>
                     <td><?php echo htmlspecialchars($race['Livery']); ?></td>
@@ -885,15 +740,8 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
                     </td>
                     <td class="text-center">
                         <?php
-                            if ($race['SessionType'] === 'Race' && $race['Progression'] !== null) {
-                                $progression = $race['Progression'];
-                                if ($progression > 0) {
-                                    echo '<span class="prog-gain">▲ +' . $progression . '</span>';
-                                } elseif ($progression < 0) {
-                                    echo '<span class="prog-loss">▼ ' . $progression . '</span>';
-                                } else {
-                                    echo '<span>-</span>';
-                                }
+                            if ($race['SessionType'] === 'Race') {
+                                echo renderProgression($race['Progression']);
                             } else {
                                 echo '<span style="color: grey;">' . $lang['not_available'] . '</span>';
                             }
@@ -984,7 +832,7 @@ $paginatedSessions = $racesPerPage > 0 ? array_slice($filteredSessions, $offset,
 const trackLayoutsMap = <?php echo json_encode($trackLayoutsMap); ?>;
 // --- Bouton Retour en Haut ---
 var mybutton = document.getElementById("back-to-top-btn");
-window.onscroll = function() {scrollFunction()};
+window.addEventListener('scroll', scrollFunction);
 
 function scrollFunction() {
   if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
@@ -1117,107 +965,101 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 	
     
-    const allSessionsLapsData = <?php echo json_encode($stats['allSessionsLaps'] ?? []); ?>;
     let lapChart = null;
     const modal = document.getElementById('lapChartModal');
     if (!modal) return;
     const closeButton = modal.querySelector('.close-button');
     closeButton.onclick = () => { modal.style.display = 'none'; };
-    window.onclick = (event) => { if (event.target == modal) { modal.style.display = 'none'; } };
+    modal.addEventListener('click', (event) => { if (event.target === modal) modal.style.display = 'none'; });
 
-    // MODIFIÉ : La fonction openLapChart a été entièrement remplacée
-function openLapChart(sessionId, track, bestLapText) {
-        const lapData = allSessionsLapsData[sessionId];
-        
-        // On vérifie qu'il y a au moins 2 tours au total (ex: 1 tour de sortie + 1 tour chronométré)
-        if (lapData && lapData.length > 1) {
-            document.getElementById('chartTitle').innerText = `${translations.chartTitle} - ${track}`;
-            document.getElementById('chartBestLap').innerText = `(${translations.bestLapPrefix}: ${bestLapText})`;
-            
-            // Le premier tour est souvent un tour de sortie, on le saute pour une meilleure échelle.
-            const slicedLapData = lapData.slice(1).filter(lap => lap !== null);
-            
-            // On vérifie maintenant s'il reste AU MOINS DEUX tours à afficher après le filtre pour dessiner une ligne.
-            if (slicedLapData.length < 2) {
-                alert(translations.noLapData);
-                return;
-            }
+    async function openLapChart(sessionId, track, bestLapText) {
+        let lapData;
+        try {
+            const res = await fetch('fetch_laps.php?session_id=' + encodeURIComponent(sessionId));
+            lapData = await res.json();
+        } catch(e) {
+            alert(translations.noLapData);
+            return;
+        }
 
-            const minLapTimeInSession = Math.min(...slicedLapData);
-            const maxLapTimeInSession = Math.max(...slicedLapData);
-            // On ajuste le label pour commencer au tour 2, car le tour 1 est retiré
-            const labels = slicedLapData.map((_, i) => `${translations.lapPrefix} ${i + 2}`);
-            
-            if (lapChart) { lapChart.destroy(); }
+        // Le premier tour est souvent un tour de sortie, on le saute pour une meilleure échelle.
+        const slicedLapData = (lapData || []).slice(1);
 
-            const ctx = document.getElementById('lapChart').getContext('2d');
-            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(0, 86, 179, 0.5)');
-            gradient.addColorStop(1, 'rgba(0, 86, 179, 0)');
+        if (slicedLapData.length < 2) {
+            alert(translations.noLapData);
+            return;
+        }
 
-            const pointColors = slicedLapData.map(lap => lap === minLapTimeInSession ? '#28a745' : 'rgba(0, 86, 179, 0.9)');
-            const pointRadii = slicedLapData.map(lap => lap === minLapTimeInSession ? 7 : 4);
+        document.getElementById('chartTitle').innerText = `${translations.chartTitle} - ${track}`;
+        document.getElementById('chartBestLap').innerText = `(${translations.bestLapPrefix}: ${bestLapText})`;
 
-            lapChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: translations.lapTimeLabel,
-                        data: slicedLapData,
-                        fill: true,
-                        backgroundColor: gradient,
-                        borderColor: 'rgba(0, 86, 179, 1)',
-                        borderWidth: 2,
-                        pointBackgroundColor: pointColors,
-                        pointRadius: pointRadii,
-                        pointHoverRadius: 8,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    interaction: {
-                        intersect: false,
-                        mode: 'index',
-                    },
-                    scales: { 
-                        y: { 
-                            min: Math.floor(minLapTimeInSession) - 1,
-                            max: Math.ceil(maxLapTimeInSession) + 1,
-                            ticks: { 
-                                callback: (value) => { 
-                                    const min = Math.floor(value / 60); 
-                                    const sec = value % 60; 
-                                    return `${min}:${String(sec.toFixed(3)).padStart(6, '0')}`; 
-                                } 
-                            } 
+        const minLapTimeInSession = Math.min(...slicedLapData);
+        const maxLapTimeInSession = Math.max(...slicedLapData);
+        // Labels commencent au tour 2 car le tour 1 est retiré
+        const labels = slicedLapData.map((_, i) => `${translations.lapPrefix} ${i + 2}`);
+
+        if (lapChart) { lapChart.destroy(); }
+
+        const ctx = document.getElementById('lapChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(0, 86, 179, 0.5)');
+        gradient.addColorStop(1, 'rgba(0, 86, 179, 0)');
+
+        const pointColors = slicedLapData.map(lap => lap === minLapTimeInSession ? '#28a745' : 'rgba(0, 86, 179, 0.9)');
+        const pointRadii  = slicedLapData.map(lap => lap === minLapTimeInSession ? 7 : 4);
+
+        lapChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: translations.lapTimeLabel,
+                    data: slicedLapData,
+                    fill: true,
+                    backgroundColor: gradient,
+                    borderColor: 'rgba(0, 86, 179, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: pointColors,
+                    pointRadius: pointRadii,
+                    pointHoverRadius: 8,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                interaction: { intersect: false, mode: 'index' },
+                scales: {
+                    y: {
+                        min: Math.floor(minLapTimeInSession) - 1,
+                        max: Math.ceil(maxLapTimeInSession) + 1,
+                        ticks: {
+                            callback: (value) => {
+                                const min = Math.floor(value / 60);
+                                const sec = value % 60;
+                                return `${min}:${String(sec.toFixed(3)).padStart(6, '0')}`;
+                            }
                         }
-                    },
-                    plugins: { 
-                        tooltip: { 
-                            callbacks: { 
-                                label: (context) => {
-                                    const value = context.parsed.y;
-                                    if (value === null) return null;
-                                    const min = Math.floor(value / 60);
-                                    const sec = value % 60;
-                                    let label = `${context.dataset.label || ''}: ${min}:${String(sec.toFixed(3)).padStart(6, '0')}`;
-                                    const delta = value - minLapTimeInSession;
-                                    const sign = delta >= 0 ? '+' : '';
-                                    if (Math.abs(delta) > 0.001) {
-                                        label += ` (${sign}${delta.toFixed(3)}s)`;
-                                    }
-                                    return label;
-                                }
-                            } 
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const value = context.parsed.y;
+                                if (value === null) return null;
+                                const min = Math.floor(value / 60);
+                                const sec = value % 60;
+                                let label = `${context.dataset.label || ''}: ${min}:${String(sec.toFixed(3)).padStart(6, '0')}`;
+                                const delta = value - minLapTimeInSession;
+                                const sign = delta >= 0 ? '+' : '';
+                                if (Math.abs(delta) > 0.001) label += ` (${sign}${delta.toFixed(3)}s)`;
+                                return label;
+                            }
                         }
                     }
                 }
-            });
-            modal.style.display = 'block';
-        } else {
-            alert(translations.noLapData);
-        }
+            }
+        });
+        modal.style.display = 'block';
     }
 
     function initializeChartClick(selector) {

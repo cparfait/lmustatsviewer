@@ -7,8 +7,9 @@ require_once 'functions.php';
 function get_latest_result_file() {
     $latest_file = null;
     $latest_time = 0;
-    // Utilise la constante RESULTS_DIR définie dans init.php
-    $files = glob(RESULTS_DIR . '*.xml'); 
+    // Live timing: intentionally reads from filesystem (not SQLite cache)
+    // because LMU writes the current session XML in real-time.
+    $files = glob(RESULTS_DIR . '*.xml');
     if ($files === false) {
         return null;
     }
@@ -20,17 +21,29 @@ function get_latest_result_file() {
             $latest_file = $file;
         }
     }
+
+    // Si le fichier le plus récent a plus de 5 minutes, le jeu n'est probablement pas lancé
+    if ($latest_file !== null && (time() - $latest_time) > 300) {
+        return null;
+    }
+
     return $latest_file;
 }
 
 header('Content-Type: application/json');
 
-$latest_file = get_latest_result_file();
+$latest_file  = get_latest_result_file();
+$session_type = '';
+$session_data = null;
 $data = ['status' => 'error', 'message' => $lang['no_live_session'] ?? 'No live session data found.'];
 
 if ($latest_file) {
     clearstatcache();
-    $file_content = @file_get_contents($latest_file);
+    if (!is_readable($latest_file)) {
+        echo json_encode($data);
+        exit;
+    }
+    $file_content = file_get_contents($latest_file);
     $xml = false;
 
     if ($file_content) {
@@ -79,6 +92,27 @@ if ($latest_file) {
                  elseif (str_contains(basename($latest_file), 'Q1')) $session_type = 'Qualify';
                  else $session_type = 'Practice1'; // Par défaut
              }
+        }
+
+        // Vérification si la session est réellement active
+        if ($session_data && isset($session_data->Driver)) {
+            $has_valid_laps = false;
+            foreach ($session_data->Driver as $driver) {
+                if (isset($driver->Lap) && count($driver->Lap) > 0) {
+                    foreach ($driver->Lap as $lap) {
+                        if ((float)$lap[0] > 0) {
+                            $has_valid_laps = true;
+                            break 2; // Sortir des deux boucles dès qu'un tour valide est trouvé
+                        }
+                    }
+                }
+            }
+
+            if (!$has_valid_laps) {
+                $data = ['status' => 'error', 'message' => $lang['no_live_session'] ?? 'No live session data found.'];
+                echo json_encode($data);
+                exit;
+            }
         }
 
         if ($session_data && isset($session_data->Driver)) {
@@ -205,6 +239,13 @@ if ($latest_file) {
             ];
         }
     }
+}
+
+// Ignorer les fichiers sans balises de session valides
+if (!$session_type || !$session_data) {
+    $data = ['status' => 'error', 'message' => $lang['no_live_session'] ?? 'No live session data found.'];
+    echo json_encode($data);
+    exit;
 }
 
 echo json_encode($data);

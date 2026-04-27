@@ -1,6 +1,22 @@
 CHANGELOG
 =========
 
+v0.9.5:
+- Add: SQLite cache — XML sessions are now indexed in a local SQLite database; only new or modified files are parsed on each page load (delta sync), making the app fast even with thousands of sessions
+- Add: Personal Records page — click the 📈 icon on any row in the best laps table to view the full historical progression of your personal best for that track / car combo, with a chart and a session-by-session breakdown
+- Add: SQL-based filtering and pagination for the sessions table — filters (track, car, class, version…) and sorting are now handled directly by SQL queries instead of loading all sessions into memory first
+- Add: Dynamic Steam path detection — configuration page scans drives C–H and common Steam library folders automatically
+- Improved: CSRF protection on all configuration forms (bin2hex token + hash_equals validation)
+- Improved: Update checker rate-limited via localStorage cache (1h TTL) — no longer polls GitHub on every page load
+- Improved: JSON payload validation in fetch_version.php — whitelist-only session storage, HTTP 400 on invalid input
+- Improved: CSS responsive layout on config page — buttons no longer overflow at intermediate viewport widths
+- Improved: PHP 8 type hints on all functions; @ error suppression replaced with is_readable() / libxml_use_internal_errors()
+- Perf: First-launch indexing no longer times out regardless of collection size (set_time_limit removed)
+- Perf: Sessions table now counts and paginates via SQL COUNT + LIMIT/OFFSET — memory usage is constant regardless of total session count
+- Perf: Empty session detection now O(1) via has_any_laps SQLite flag — no more full XML scan on config page load
+- Removed: Dead functions get_race_events(), formatDateInLocale(), calculate_avg_lap() and legacy race_details.php fallback
+
+====================
 v0.9.4:
 - Add: Automatic update checker — notifies and links to the latest release on GitHub
 - Add: Car brand logos — Genesis, Duqueine and other manufacturers now displayed in results tables

@@ -1,34 +1,67 @@
+# ─────────────────────────────────────────────
 # PHP runtime (distribué via l'installeur InnoSetup)
+# ─────────────────────────────────────────────
 php/
 
+# ─────────────────────────────────────────────
 # Binaires compilés (publiés via GitHub Releases)
+# ─────────────────────────────────────────────
 LMU_Stats_Viewer.exe
 
-# Logs générés au runtime
-launcher.log
-php_server.log
+# ─────────────────────────────────────────────
+# Logs runtime
+# ─────────────────────────────────────────────
+*.log
 
+# ─────────────────────────────────────────────
 # Artefacts de build PyInstaller
+# ─────────────────────────────────────────────
 launcher/build_temp/
 launcher/__pycache__/
 launcher/LMU_Stats_Viewer.spec
 *.spec
 
-# Cache applicatif
-htdocs/lm_ultimate_cache.json
+# ─────────────────────────────────────────────
+# Dossier de build / release (généré par build.bat + InnoSetup)
+# ─────────────────────────────────────────────
+release/
 
-# Fichiers systèmes
+# ─────────────────────────────────────────────
+# Cache et base de données applicatifs
+# ─────────────────────────────────────────────
+# Ancien cache MD5 (supprimé en 0.9.5, conservé ici par précaution)
+htdocs/lm_ultimate_cache.json
+# Base SQLite locale — stockée dans %APPDATA%, ne doit pas atterrir dans le dépôt
+*.db
+
+# ─────────────────────────────────────────────
+# Fichiers de test / développement temporaires
+# ─────────────────────────────────────────────
+test_README.txt
+htdocs/test.php
+htdocs/demo_options.html
+
+# ─────────────────────────────────────────────
+# Fichiers système
+# ─────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 desktop.ini
 
+# ─────────────────────────────────────────────
 # Éditeurs
+# ─────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
+*.swo
 
-# Dossier de build InnoSetup (généré par build.bat)
-release/
-
+# ─────────────────────────────────────────────
 # Claude Code
+# ─────────────────────────────────────────────
 .claude/
+
+# ─────────────────────────────────────────────
+# Référence externe (source d'idées, hors dépôt)
+# ─────────────────────────────────────────────
+LMU-Telemetry-Lab-1.3.1/

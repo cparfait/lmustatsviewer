@@ -8,7 +8,9 @@ if (session_status() === PHP_SESSION_NONE) {
 clearstatcache();
 
 define('APP_VERSION', trim(file_get_contents(__DIR__ . '/../../version.txt')));
-// URL vers le contenu BRUT (RAW) du fichier version.json sur GitHub
+// URL vers le contenu BRUT (RAW) de version.json sur GitHub (distribution GitHub Releases).
+// version.json     = distribution GitHub     → contient release_url + download_url vers le .exe
+// version_dev.json = distribution OvertakeGG → contient release_url vers la page overtake.gg (pas de download direct)
 define('VERSION_CHECK_URL', 'https://raw.githubusercontent.com/cparfait/lmustatsviewer/main/version.json');
 
 $appDataPath = getenv('APPDATA');
@@ -70,6 +72,7 @@ $current_theme = $_SESSION['current_theme'] ?? $default_theme;
 define('USER_CONFIG_PATH', $userConfigFile);
 
 require_once 'functions.php';
+require_once 'queries.php';
 
 // --- CHARGEMENT DU FICHIER DE LANGUE ---
 $lang_file = __DIR__ . '/../lang/lang_' . $current_lang . '.php';

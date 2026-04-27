@@ -1,7 +1,7 @@
 <?php
 // Fichier central pour les fonctions utilitaires
 
-function formatSecondsToMmSsMs($seconds, $showMinutes = true) {
+function formatSecondsToMmSsMs(mixed $seconds, bool $showMinutes = true): string {
     if ($seconds === null || !is_numeric($seconds) || $seconds <= 0 || $seconds === INF) return 'N/A';
     $sign = $seconds < 0 ? '-' : '';
     $seconds = abs($seconds);
@@ -17,18 +17,21 @@ function formatSecondsToMmSsMs($seconds, $showMinutes = true) {
     return $sign . floor($remainingSeconds) . '.' . $formattedMilliseconds . 's';
 }
 
-function cleanAndParseXmlFile($filepath) {
-    $xml_string_raw = @file_get_contents($filepath);
+function cleanAndParseXmlFile(string $filepath): ?SimpleXMLElement {
+    if (!is_readable($filepath)) {
+        return null;
+    }
+    $xml_string_raw = file_get_contents($filepath);
     if (empty($xml_string_raw)) {
         return null;
     }
     libxml_use_internal_errors(true);
-    $xml = @simplexml_load_string($xml_string_raw);
+    $xml = simplexml_load_string($xml_string_raw);
     libxml_clear_errors();
-    return $xml;
+    return $xml ?: null;
 }
 
-function getCarLogoUrl($carType) {
+function getCarLogoUrl(string $carType): ?string {
     $basePath = 'logos/';
     $carTypeLower = strtolower($carType);
     
@@ -63,7 +66,7 @@ function getCarLogoUrl($carType) {
     return null;
 }
 
-function getCircuitFlagUrl($trackVenue) {
+function getCircuitFlagUrl(string $trackVenue): ?string {
     $basePath = 'flags/';
     $countryMap = [
         'us.png' => ['Sebring', 'Circuit of the Americas', 'COTA'],
@@ -91,7 +94,7 @@ function getCircuitFlagUrl($trackVenue) {
     return null;
 }
 
-function translateTerm($term, $langArray) {
+function translateTerm(string $term, array $langArray): string {
     // Fonction utilitaire interne pour récupérer un terme traduit ou une valeur par défaut.
     $getTranslated = function($key) use ($langArray, $term) {
         // Retourne la traduction si elle existe, sinon retourne le terme original.
@@ -121,23 +124,15 @@ function translateTerm($term, $langArray) {
     }
 }
 
-function formatDateInLocale($timestamp, $locale = 'fr_FR') {
-    if (class_exists('IntlDateFormatter')) {
-        $formatter = new IntlDateFormatter($locale, IntlDateFormatter::LONG, IntlDateFormatter::NONE);
-        return $formatter->format($timestamp);
-    } else {
-        return date('d/m/Y', $timestamp);
-    }
-}
 
-function getWearColorClass($wearPercentage) {
+function getWearColorClass(mixed $wearPercentage): string {
     if ($wearPercentage === null) return '';
     if ($wearPercentage >= 30) return 'wear-high';
     if ($wearPercentage >= 15) return 'wear-medium';
     return 'wear-low';
 }
 
-function suggestPlayerName($searchPath = null) {
+function suggestPlayerName(?string $searchPath = null): ?string {
     if (empty($searchPath) || !is_dir($searchPath)) {
         if (!defined('RESULTS_DIR') || empty(RESULTS_DIR) || !is_dir(RESULTS_DIR)) {
             return null;
@@ -153,8 +148,9 @@ function suggestPlayerName($searchPath = null) {
     });
     $latest_files = array_slice($files, 0, 10);
     $names = [];
+    libxml_use_internal_errors(true);
     foreach ($latest_files as $filepath) {
-        $xml = @simplexml_load_file($filepath);
+        $xml = simplexml_load_file($filepath);
         if (!$xml) continue;
         $drivers = $xml->xpath('//Driver/Name');
         foreach ($drivers as $driver) {
@@ -164,6 +160,7 @@ function suggestPlayerName($searchPath = null) {
             }
         }
     }
+    libxml_clear_errors();
     if (empty($names)) {
         return null;
     }
@@ -172,14 +169,22 @@ function suggestPlayerName($searchPath = null) {
     return key($counts);
 }
 
-function clearCache() {
+function clearCache(): bool {
     $cacheCleared = false;
     $appDataPath = getenv('APPDATA');
     if ($appDataPath) {
         $cacheDir = $appDataPath . DIRECTORY_SEPARATOR . 'LMU_Stats_Viewer';
+        // Ancien cache JSON (legacy)
         $userCacheFile = $cacheDir . DIRECTORY_SEPARATOR . 'lm_ultimate_cache.json';
         if (file_exists($userCacheFile)) {
             if (@unlink($userCacheFile)) {
+                $cacheCleared = true;
+            }
+        }
+        // Nouveau cache SQLite : supprimer pour forcer un réindexage complet
+        $dbFile = $cacheDir . DIRECTORY_SEPARATOR . 'lmu_cache.db';
+        if (file_exists($dbFile)) {
+            if (@unlink($dbFile)) {
                 $cacheCleared = true;
             }
         }
@@ -193,81 +198,76 @@ function clearCache() {
     return $cacheCleared;
 }
 
-function countSessionsToPurge($purge_type) {
-    $count = 0;
+/**
+ * Retourne le HTML de la progression (+N / -N / -) pour une valeur entière ou null.
+ */
+function renderProgression(mixed $value): string {
+    if ($value === null) return '';
+    if ($value > 0) return '<span class="prog-gain">▲ +' . $value . '</span>';
+    if ($value < 0) return '<span class="prog-loss">▼ ' . $value . '</span>';
+    return '<span>-</span>';
+}
+
+/**
+ * Compte (dry_run=true) ou supprime (dry_run=false) les sessions XML vides
+ * via SQLite — O(1), sans scanner les fichiers sur le disque.
+ *
+ * 'global' : sessions où aucun pilote n'a de tour (has_any_laps = 0).
+ * 'player' : sessions où le joueur indexé n'a aucun tour (laps_count = 0 ou absent).
+ */
+function _scan_empty_sessions(string $purge_type, bool $dry_run): int {
     if (!defined('RESULTS_DIR') || !is_dir(RESULTS_DIR)) return 0;
-    $files = @scandir(RESULTS_DIR);
-    if (!$files) return 0;
-    foreach ($files as $filename) {
-        if (substr($filename, -4) !== '.xml') continue;
+
+    require_once __DIR__ . '/db.php';
+    $db = get_db();
+
+    if ($purge_type === 'global') {
+        $filenames = $db->query(
+            "SELECT filename FROM xml_index WHERE has_any_laps = 0"
+        )->fetchAll(PDO::FETCH_COLUMN);
+    } else {
+        // Sessions sans aucun tour du joueur dans player_sessions
+        $filenames = $db->query("
+            SELECT xi.filename FROM xml_index xi
+            WHERE NOT EXISTS (
+                SELECT 1 FROM player_sessions ps
+                WHERE ps.xml_id = xi.id AND ps.laps_count > 0
+            )
+        ")->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    if ($dry_run) {
+        return count($filenames);
+    }
+
+    $count    = 0;
+    $deleted  = [];
+    foreach ($filenames as $filename) {
         $filepath = RESULTS_DIR . $filename;
-        $xml = simplexml_load_file($filepath);
-        if (!$xml || !isset($xml->RaceResults)) continue;
-        $hasLaps = false;
-        $playerHasLaps = false;
-        foreach (['Practice1', 'Qualify', 'Race'] as $section) {
-            if (isset($xml->RaceResults->{$section}->Driver)) {
-                foreach($xml->RaceResults->{$section}->Driver as $driver) {
-                    $is_player = defined('PLAYER_NAME') && trim((string)$driver->Name) === PLAYER_NAME;
-                    $has_laps_in_section = isset($driver->Lap) && count($driver->Lap) > 0;
-                    if ($has_laps_in_section) {
-                        $hasLaps = true;
-                        if ($is_player) {
-                            $playerHasLaps = true;
-                        }
-                    }
-                }
-            }
-        }
-        if (($purge_type === 'global' && !$hasLaps) || ($purge_type === 'player' && !$playerHasLaps)) {
+        if (is_file($filepath) && unlink($filepath)) {
             $count++;
+            $deleted[] = $filename;
         }
     }
+
+    if (!empty($deleted)) {
+        $placeholders = implode(',', array_fill(0, count($deleted), '?'));
+        $db->prepare("DELETE FROM xml_index WHERE filename IN ($placeholders)")
+           ->execute($deleted);
+    }
+
     return $count;
 }
 
-function purgeEmptySessions($purge_type) {
-    $deleted_count = 0;
-    if (!defined('RESULTS_DIR') || !is_dir(RESULTS_DIR)) return 0;
-    $files = @scandir(RESULTS_DIR);
-    if (!$files) return 0;
-    foreach ($files as $filename) {
-        if (substr($filename, -4) !== '.xml') continue;
-        $filepath = RESULTS_DIR . $filename;
-        $xml = simplexml_load_file($filepath);
-        if (!$xml || !isset($xml->RaceResults)) continue;
-        $hasLaps = false;
-        $playerHasLaps = false;
-        foreach (['Practice1', 'Qualify', 'Race'] as $section) {
-            if (isset($xml->RaceResults->{$section}->Driver)) {
-                foreach($xml->RaceResults->{$section}->Driver as $driver) {
-                    $is_player = defined('PLAYER_NAME') && trim((string)$driver->Name) === PLAYER_NAME;
-                    $has_laps_in_section = isset($driver->Lap) && count($driver->Lap) > 0;
-                    if ($has_laps_in_section) {
-                        $hasLaps = true;
-                        if ($is_player) {
-                            $playerHasLaps = true;
-                        }
-                    }
-                }
-            }
-        }
-        $shouldDelete = false;
-        if ($purge_type === 'global' && !$hasLaps) {
-            $shouldDelete = true;
-        } elseif ($purge_type === 'player' && !$playerHasLaps) {
-            $shouldDelete = true;
-        }
-        if ($shouldDelete) {
-            if (@unlink($filepath)) {
-                $deleted_count++;
-            }
-        }
-    }
-    return $deleted_count;
+function countSessionsToPurge(string $purge_type): int {
+    return _scan_empty_sessions($purge_type, true);
 }
 
-function get_remote_version_data($url) {
+function purgeEmptySessions(string $purge_type): int {
+    return _scan_empty_sessions($purge_type, false);
+}
+
+function get_remote_version_data(string $url): ?array {
     if (!function_exists('curl_init')) {
         error_log("cURL non disponible.");
         return null;
@@ -283,12 +283,10 @@ function get_remote_version_data($url) {
     // Utiliser un User-Agent plus standard pour éviter les blocages
     curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36');
     
-    // --- Modifications pour la robustesse ---
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Tolérant aux problèmes de certificat SSL
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Suivre les redirections
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
     curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
-    // --- Fin des modifications ---
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 
     curl_setopt($ch, CURLOPT_FRESH_CONNECT, TRUE);
     curl_setopt($ch, CURLOPT_FORBID_REUSE, TRUE);
@@ -321,71 +319,61 @@ function get_remote_version_data($url) {
 }
 
 /**
- * Scans the results directory, parses XML files, and groups them into events.
- * This function is designed to be the central point for accessing race data.
+ * Pure grouping logic shared with indexer.php::_recompute_event_ids().
  *
- * @return array An array containing all race events. Each event is an array of file data.
+ * Rule: a Multiplayer session joins the last group when
+ *   - same track AND
+ *   - |timestamp - timestamp of the group's first session| < 7200 s
+ * Any non-Multiplayer session always starts a new group.
+ *
+ * @param array $sessions Sorted by timestamp ASC. Each item must have
+ *                        'timestamp' (int), 'track' (string), 'setting' (string).
+ * @return array Same items with an added 'event_id' key (= timestamp of the
+ *               first session in the group).
  */
-function get_race_events() {
-    // Use a static variable to cache the result within a single request
-    static $events = null;
-    if ($events !== null) {
-        return $events;
-    }
+function compute_event_groups(array $sessions): array {
+    $threshold           = 7200;
+    $groupFirstTimestamp = 0;
+    $groupTrack          = '';
+    $currentEventId      = 0;
 
-    if (!defined('RESULTS_DIR') || !is_dir(RESULTS_DIR)) {
-        return [];
-    }
+    foreach ($sessions as &$session) {
+        $isMultiplayer = ($session['setting'] === 'Multiplayer');
+        $canJoin = $isMultiplayer
+            && $currentEventId !== 0
+            && $session['track'] === $groupTrack
+            && abs($session['timestamp'] - $groupFirstTimestamp) < $threshold;
 
-    $files = @scandir(RESULTS_DIR);
-    if (!$files) {
-        return [];
-    }
-
-    $pre_parsed_files = [];
-    foreach ($files as $filename) {
-        if (substr($filename, -4) !== '.xml') continue;
-        
-        $filepath = RESULTS_DIR . $filename;
-        $xml = cleanAndParseXmlFile($filepath);
-
-        if (!$xml || !isset($xml->RaceResults)) continue;
-
-        $pre_parsed_files[] = [
-            'filename' => $filename,
-            'timestamp' => (int)$xml->RaceResults->DateTime,
-            'track' => trim((string)$xml->RaceResults->TrackVenue),
-            'trackCourse' => trim((string)$xml->RaceResults->TrackCourse),
-            'setting' => trim((string)$xml->RaceResults->Setting),
-            'xml' => $xml
-        ];
-    }
-    
-    usort($pre_parsed_files, fn($a, $b) => $a['timestamp'] <=> $b['timestamp']);
-
-    $events = [];
-    $event_time_threshold = 7200; 
-    foreach ($pre_parsed_files as $file) {
-        if ($file['setting'] !== 'Multiplayer' || empty($events)) {
-            $events[] = [$file];
-            continue;
-        }
-
-        $last_event_index = count($events) - 1;
-        $last_event_first_file = $events[$last_event_index][0];
-
-        if ($file['track'] === $last_event_first_file['track'] &&
-            abs($file['timestamp'] - $last_event_first_file['timestamp']) < $event_time_threshold) {
-            $events[$last_event_index][] = $file;
+        if ($canJoin) {
+            $session['event_id'] = $currentEventId;
         } else {
-            $events[] = [$file];
+            $currentEventId      = $session['timestamp'];
+            $groupFirstTimestamp = $session['timestamp'];
+            $groupTrack          = $session['track'];
+            $session['event_id'] = $currentEventId;
         }
     }
-
-    return $events;
+    unset($session);
+    return $sessions;
 }
 
-function render_classification_table($driver_list, $table_title, $lang, $strategyDataByDriver, $lapsLedByDriver, $is_class_table = false, $all_drivers_for_context = [], $bestLapsByDriver = [], $vmaxByDriver = [], $bestVmaxOverall = 0, $bestLapTimeOverall = 0, $incident_summary = [], $penalty_summary = [], $aidsByDriver = [], $sessionType = '') {
+
+function render_classification_table(array $driver_list, string $table_title, array $context): void {
+    $lang                    = $context['lang']                    ?? [];
+    $strategyDataByDriver    = $context['strategyDataByDriver']    ?? [];
+    $lapsLedByDriver         = $context['lapsLedByDriver']         ?? [];
+    $is_class_table          = $context['is_class_table']          ?? false;
+    $all_drivers_for_context = $context['all_drivers_for_context'] ?? [];
+    $bestLapsByDriver        = $context['bestLapsByDriver']        ?? [];
+    $vmaxByDriver            = $context['vmaxByDriver']            ?? [];
+    $bestVmaxOverall         = $context['bestVmaxOverall']         ?? 0;
+    $bestLapTimeOverall      = $context['bestLapTimeOverall']      ?? 0;
+    $incident_summary        = $context['incident_summary']        ?? [];
+    $penalty_summary         = $context['penalty_summary']         ?? [];
+    $aidsByDriver            = $context['aidsByDriver']            ?? [];
+    $sessionType             = $context['sessionType']             ?? '';
+    $trackVenue              = $context['trackVenue']              ?? '';
+
     if (empty($driver_list)) return;
 
     $maxLaps = 0;
@@ -439,10 +427,7 @@ function render_classification_table($driver_list, $table_title, $lang, $strateg
                         <?php
                         $gridPos = $is_class_table ? (int)$driver->ClassGridPos : (int)$driver->GridPos;
                         if ($gridPos > 0 && (string)$driver->FinishStatus === 'Finished Normally') {
-                            $progression = $gridPos - $position;
-                            if ($progression > 0) { echo '<span class="prog-gain">▲ +' . $progression . '</span>'; }
-                            elseif ($progression < 0) { echo '<span class="prog-loss">▼ ' . $progression . '</span>'; }
-                            else { echo '<span>-</span>'; }
+                            echo renderProgression($gridPos - $position);
                         } else { echo 'N/A'; }
                         ?>
                     </td>
@@ -489,7 +474,7 @@ function render_classification_table($driver_list, $table_title, $lang, $strateg
                     </td>
                     <td class="text-center is-pb clickable-cell" 
                         data-driver-name="<?php echo htmlspecialchars($driverName); ?>" 
-                        data-track="<?php echo htmlspecialchars($GLOBALS['trackVenue']); ?>" 
+                        data-track="<?php echo htmlspecialchars($trackVenue); ?>" 
                         data-best-lap-text="<?php echo formatSecondsToMmSsMs($bestLapsByDriver[$driverName]['lap'] ?? 0); ?>"
                         data-optimal-lap="<?php echo $bestLapsByDriver[$driverName]['optimal'] ?? 0; ?>"
                         data-overall-best-lap="<?php echo $bestLapTimeOverall ?? 0; ?>">
@@ -537,7 +522,7 @@ function render_classification_table($driver_list, $table_title, $lang, $strateg
  * @param array $lang The language array for translations.
  * @return array A structured array containing all processed statistics for the session.
  */
-function process_session_data(SimpleXMLElement $sessionData, string $sessionType, array $lang) {
+function process_session_data(SimpleXMLElement $sessionData, string $sessionType, array $lang): array {
     // Normalisation des noms de classe directement sur l'objet XML pour la cohérence
     if (isset($sessionData->Driver)) {
         foreach ($sessionData->Driver as $driver) {
@@ -798,25 +783,20 @@ function process_session_data(SimpleXMLElement $sessionData, string $sessionType
     return $result;
 }
 
-function printSortableHeader($label, $columnKey, $langKey, $currentSortBy, $currentSortDir, $queryParams) {
+function printSortableHeader(string $label, string $columnKey, string $langKey, string $currentSortBy, string $currentSortDir, array $queryParams, string $page = 'index.php', string $anchor = '#race-results-table'): void {
     $isSortingThisColumn = ($currentSortBy === $columnKey);
     $nextSortDir = ($isSortingThisColumn && $currentSortDir === 'asc') ? 'desc' : 'asc';
-    
-    $queryParams['sort_by'] = $columnKey;
+
+    $queryParams['sort_by']  = $columnKey;
     $queryParams['sort_dir'] = $nextSortDir;
-    
-    $link = 'index.php?' . http_build_query($queryParams) . '#race-results-table';
+
+    $link  = $page . '?' . http_build_query($queryParams) . $anchor;
     $class = 'sortable';
     if ($isSortingThisColumn) {
         $class .= ($currentSortDir === 'asc') ? ' sort-asc' : ' sort-desc';
     }
 
     echo '<th class="' . $class . '"><a href="' . $link . '">' . $label . '</a></th>';
-}
-
-function calculate_avg_lap($laps) {
-    if (count($laps) === 0) return 'N/A';
-    return formatSecondsToMmSsMs(array_sum($laps) / count($laps));
 }
 
 ?>

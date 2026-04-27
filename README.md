@@ -16,16 +16,6 @@
 
 ---
 
-## 📸 Captures d'écran
-
-> *(Captures à ajouter prochainement)*
-
-<!--
-![Vue principale](docs/screenshot_main.png)
-![Détails de course](docs/screenshot_details.png)
-![Mode sombre](docs/screenshot_dark.png)
--->
-
 ---
 
 ## ✨ Fonctionnalités
@@ -68,8 +58,9 @@ Toutes les classes de Le Mans Ultimate sont supportées :
 Mode clair et mode sombre — bascule en un clic, mémorisé entre les sessions.
 
 ### ⚡ Performance
-- Système de cache MD5 — rechargement instantané si aucun nouveau fichier détecté
-- Cache stocké dans `%APPDATA%\LMU_Stats_Viewer\`
+- **Base SQLite locale** — les sessions XML sont indexées dans `%APPDATA%\LMU_Stats_Viewer\lmu_cache.db` au premier lancement
+- **Delta sync** — seuls les fichiers nouveaux ou modifiés sont parsés à chaque chargement ; rechargement instantané si rien n'a changé
+- **Pagination SQL** — le tableau de sessions utilise `COUNT + LIMIT/OFFSET` ; mémoire constante quelle que soit la taille de la collection
 
 ### 🔄 Mises à jour automatiques
 Vérificateur de mise à jour intégré — vous avertit dès qu'une nouvelle version est disponible sur GitHub.
@@ -115,8 +106,10 @@ Cliquez sur l'icône ⚙️ dans l'en-tête de l'application ou clic droit sur l
 | Filtre version par défaut | Filtrer les résultats à partir d'une version du jeu |
 
 ### Maintenance
-- **Vider le cache** — force le rechargement complet de toutes les sessions
-- **Purger les sessions vides** — supprime les sessions sans tour enregistré (globale ou par joueur)
+- **Réindexer la base** — reconstruit la base SQLite à partir de tous les fichiers XML (à utiliser si des données semblent manquantes)
+- **Supprimer la base** — supprime entièrement `lmu_cache.db` (dernier recours ; une réindexation manuelle sera nécessaire)
+- **Vider le cache** — force une relecture complète de tous les fichiers XML au prochain chargement
+- **Purger les sessions vides** — supprime les fichiers XML de sessions sans tour enregistré (globale ou par joueur)
 
 ---
 
@@ -127,13 +120,16 @@ Le Mans Ultimate
     └── UserData/Log/Results/*.xml   ← fichiers de résultats (XML)
             │
             ▼
-    LMU Stats Viewer (PHP)
-            │   analyse et met en cache les données
+    LMU Stats Viewer — indexeur delta (PHP)
+            │   parse uniquement les fichiers nouveaux/modifiés
+            ▼
+    lmu_cache.db (SQLite)            ← base locale dans %APPDATA%
+            │
             ▼
     Navigateur (localhost)           ← votre tableau de bord
 ```
 
-LMU Stats Viewer lit les fichiers XML générés par le jeu après chaque session (Essais, Qualification, Course), analyse les temps au tour, temps secteurs, informations pilotes et événements de course, puis présente le tout dans une interface web interactive en local.
+LMU Stats Viewer lit les fichiers XML générés par le jeu après chaque session (Essais, Qualification, Course), les indexe en base SQLite locale via un delta sync (seuls les nouveaux fichiers sont parsés), puis présente le tout dans une interface web interactive en local.
 
 ---
 
@@ -151,8 +147,15 @@ LMU_Stats_Viewer/
 │   ├── js/
 │   ├── lang/               ← fichiers de traduction (fr/en/es/de)
 │   ├── logos/              ← logos des marques automobiles
-│   └── flags/              ← drapeaux des circuits
+│   ├── flags/              ← drapeaux des circuits
+│   └── includes/
+│       ├── db.php          ← connexion SQLite + schéma
+│       ├── indexer.php     ← delta sync XML → SQLite
+│       └── functions.php   ← fonctions utilitaires
 └── php/                    ← runtime PHP (inclus par l'installeur)
+
+%APPDATA%\LMU_Stats_Viewer\
+└── lmu_cache.db            ← base SQLite locale (générée automatiquement)
 ```
 
 ---
@@ -170,11 +173,11 @@ Copier `php/php.ini-production` en `php/php.ini`, puis décommenter ces deux lig
 
 ```ini
 extension=curl
-extension=intl
+extension=pdo_sqlite
 ```
 
-- **curl** — nécessaire pour le téléchargement des mises à jour automatiques
-- **intl** — nécessaire pour le formatage des dates localisées
+- **curl** — nécessaire pour le vérificateur de mises à jour automatiques
+- **pdo_sqlite** — nécessaire pour la base de données locale (généralement activé par défaut dans PHP pour Windows)
 
 ### Compiler le launcher
 ```bat
@@ -189,6 +192,28 @@ Ouvrez `setup.iss` avec InnoSetup et cliquez sur **Compiler**.
 ---
 
 ## 📝 Changelog
+
+> Le changelog complet est disponible dans [CHANGELOG.md](CHANGELOG.md).
+
+### v0.9.5
+- Ajout : base SQLite locale — indexation delta des sessions XML (uniquement les nouveaux fichiers à chaque chargement)
+- Ajout : page Records Personnels — historique de progression par circuit / voiture avec graphique
+- Ajout : filtrage et pagination SQL — mémoire constante quelle que soit la taille de la collection
+- Amélioration : protection CSRF sur tous les formulaires de configuration
+- Amélioration : CSS responsive corrigé sur la page de configuration
+- Amélioration : vérificateur de mise à jour avec cache localStorage (1h) — limite les appels vers GitHub
+- Amélioration : détection dynamique du chemin Steam (lecteurs C–H, dossiers multiples)
+- Optimisation : purge des sessions vides via SQLite (flag `has_any_laps`) — plus de scan XML
+
+### v0.9.4
+- Ajout : vérificateur de mise à jour automatique — notifie et liens vers le dernier release GitHub
+- Ajout : logos de marques (Genesis GMR-001, Duqueine D09 P3...)
+- Ajout : drapeaux de circuits (Barcelona, Paul Ricard...)
+- Ajout : layouts circuit Paul Ricard et Silverstone
+- Ajout : téléchargement et installation de mise à jour depuis la page dédiée
+- Ajout : icône barre système — accès rapide à la config, aux mises à jour et pour quitter
+- Ajout : démarrage automatique au boot Windows (option installeur)
+- Ajout : installeur multilingue (FR / EN / ES / DE)
 
 ### v0.9.3
 - Ajout : tableau GTE

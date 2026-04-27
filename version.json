@@ -1,4 +1,5 @@
 {
+  "_comment": "Distribution GitHub — contient download_url vers le fichier .exe du release. VERSION_CHECK_URL dans init.php pointe sur version_dev.json (OvertakeGG).",
   "latest_version": "0.9.4",
   "release_url": "https://github.com/cparfait/lmustatsviewer/releases/latest",
   "download_url": "https://github.com/cparfait/lmustatsviewer/releases/download/0.9.4/SETUP-LSV-0-9-4.exe",

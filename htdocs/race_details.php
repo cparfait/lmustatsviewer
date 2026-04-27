@@ -1,5 +1,6 @@
 <?php
 require_once 'includes/init.php';
+require_once 'includes/db.php';
 
 // Récupère l'ancre de la table d'origine pour le lien de retour
 $from_anchor = htmlspecialchars($_GET['from'] ?? 'race-results-table');
@@ -15,32 +16,19 @@ if (empty($session_id) || !is_numeric($session_id)) {
 $session_files_data = [];
 $first_xml = null;
 
-$events = get_race_events();
+// Cherche les fichiers de l'événement via SQLite (O(1) au lieu de parser tous les XML).
+$db = get_db();
+$stmtFiles = $db->prepare(
+    "SELECT filename FROM xml_index WHERE event_id = :eid ORDER BY timestamp ASC"
+);
+$stmtFiles->execute([':eid' => (int)$session_id]);
+$eventFilenames = $stmtFiles->fetchAll(PDO::FETCH_COLUMN);
 
-$found_event = [];
-foreach ($events as $event) {
-    if ($event[0]['timestamp'] == $session_id) {
-        $found_event = $event;
-        break;
-    }
-}
-
-if (empty($found_event)) {
-    foreach ($events as $event) {
-        foreach ($event as $file_in_event) {
-            if ($file_in_event['timestamp'] == $session_id) {
-                $found_event = $event;
-                break 2;
-            }
-        }
-    }
-}
-
-foreach($found_event as $file_data) {
-    $xml = $file_data['xml'];
-    $filename = $file_data['filename'];
+foreach ($eventFilenames as $filename) {
+    $filepath = RESULTS_DIR . $filename;
+    $xml = cleanAndParseXmlFile($filepath);
+    if (!$xml || !isset($xml->RaceResults)) continue;
     if (!$first_xml) $first_xml = $xml;
-
     foreach (['Practice1', 'Qualify', 'Race'] as $section) {
         if (isset($xml->RaceResults->{$section})) {
             $session_files_data[$section] = ['xml' => $xml, 'filename' => $filename];
@@ -160,6 +148,24 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
             $processed_data = process_session_data($sessionData, $sessionType, $lang);
             extract($processed_data);
 
+            // Contexte partagé par les 7 appels à render_classification_table()
+            $rct_context = [
+                'lang'                    => $lang,
+                'strategyDataByDriver'    => $strategyDataByDriver,
+                'lapsLedByDriver'         => $lapsLedByDriver,
+                'is_class_table'          => false,
+                'all_drivers_for_context' => $drivers,
+                'bestLapsByDriver'        => $bestLapsByDriver,
+                'vmaxByDriver'            => $vmaxByDriver,
+                'bestVmaxOverall'         => $bestVmaxOverall,
+                'bestLapTimeOverall'      => $bestLapTimeOverall,
+                'incident_summary'        => $incident_summary,
+                'penalty_summary'         => $penalty_summary,
+                'aidsByDriver'            => $aidsByDriver,
+                'sessionType'             => $sessionType,
+                'trackVenue'              => $trackVenue,
+            ];
+
             $winner = isset($drivers[0]) ? (string)$drivers[0]->Name : 'N/A';
             $bestLapStringForHeader = ($bestLapDriverOverall !== 'N/A') ? $bestLapDriverOverall . ' (' . formatSecondsToMmSsMs($bestLapTimeOverall) . ')' : 'N/A';
             $otherSettings = 'MechFailRate=' . (string)$raceResults->MechFailRate . ' | DamageMult=' . (string)$raceResults->DamageMult . ' | FuelMult=' . (string)$raceResults->FuelMult . ' | TireMult=' . (string)$raceResults->TireMult;
@@ -244,7 +250,7 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
 
             <div id="view-race-result-<?php echo $sessionType; ?>" class="view-content" style="<?php if ($is_comparison_view) echo 'display: none;'; ?>">
                 <?php
-                    render_classification_table($drivers, $lang['general_classification'], $lang, $strategyDataByDriver, $lapsLedByDriver, false, $drivers, $bestLapsByDriver, $vmaxByDriver, $bestVmaxOverall, $bestLapTimeOverall, $incident_summary, $penalty_summary, $aidsByDriver);
+                    render_classification_table($drivers, $lang['general_classification'], $rct_context);
                     
                     if (!empty($drivers)) {
                         $carCounts = [];
@@ -286,29 +292,30 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
                     }
 
                     if (count($unique_classes) > 1) {
+                        $rct_class = $rct_context + ['is_class_table' => true];
                         if (!empty($hypercar_drivers)) {
                             echo '<h2 id="table-hyper" class="table-title-secondary">' . htmlspecialchars($lang['hypercar_classification']) . '</h2>';
-                            render_classification_table($hypercar_drivers, '', $lang, $strategyDataByDriver, $lapsLedByDriver, true, $drivers, $bestLapsByDriver, $vmaxByDriver, $bestVmaxOverall, $bestLapTimeOverall, $incident_summary, $penalty_summary, $aidsByDriver);
+                            render_classification_table($hypercar_drivers, '', $rct_class);
                         }
                         if (!empty($lmp2_drivers)) {
                             echo '<h2 id="table-lmp2" class="table-title-secondary">' . htmlspecialchars($lang['lmp2_classification']) . '</h2>';
-                            render_classification_table($lmp2_drivers, '', $lang, $strategyDataByDriver, $lapsLedByDriver, true, $drivers, $bestLapsByDriver, $vmaxByDriver, $bestVmaxOverall, $bestLapTimeOverall, $incident_summary, $penalty_summary, $aidsByDriver);
+                            render_classification_table($lmp2_drivers, '', $rct_class);
                         }
                         if (!empty($lmp2elms_drivers)) {
                             echo '<h2 id="table-lmp2elms" class="table-title-secondary">' . htmlspecialchars($lang['lmp2elms_classification']) . '</h2>';
-                            render_classification_table($lmp2elms_drivers, '', $lang, $strategyDataByDriver, $lapsLedByDriver, true, $drivers, $bestLapsByDriver, $vmaxByDriver, $bestVmaxOverall, $bestLapTimeOverall, $incident_summary, $penalty_summary, $aidsByDriver);
+                            render_classification_table($lmp2elms_drivers, '', $rct_class);
                         }
                         if (!empty($lmp3_drivers)) {
                             echo '<h2 id="table-lmp3" class="table-title-secondary">' . htmlspecialchars($lang['lmp3_classification']) . '</h2>';
-                            render_classification_table($lmp3_drivers, '', $lang, $strategyDataByDriver, $lapsLedByDriver, true, $drivers, $bestLapsByDriver, $vmaxByDriver, $bestVmaxOverall, $bestLapTimeOverall, $incident_summary, $penalty_summary, $aidsByDriver);
+                            render_classification_table($lmp3_drivers, '', $rct_class);
                         }
                         if (!empty($gt3_drivers)) {
                             echo '<h2 id="table-gt3" class="table-title-secondary">' . htmlspecialchars($lang['gt3_classification']) . '</h2>';
-                            render_classification_table($gt3_drivers, '', $lang, $strategyDataByDriver, $lapsLedByDriver, true, $drivers, $bestLapsByDriver, $vmaxByDriver, $bestVmaxOverall, $bestLapTimeOverall, $incident_summary, $penalty_summary, $aidsByDriver);
+                            render_classification_table($gt3_drivers, '', $rct_class);
                         }
                         if (!empty($gte_drivers)) {
                             echo '<h2 id="table-gte" class="table-title-secondary">' . htmlspecialchars($lang['gte_classification']) . '</h2>';
-                            render_classification_table($gte_drivers, '', $lang, $strategyDataByDriver, $lapsLedByDriver, true, $drivers, $bestLapsByDriver, $vmaxByDriver, $bestVmaxOverall, $bestLapTimeOverall, $incident_summary, $penalty_summary, $aidsByDriver);
+                            render_classification_table($gte_drivers, '', $rct_class);
                         }
                     }
                 ?>
@@ -1313,7 +1320,7 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
         const modal = document.getElementById('lapChartModal');
         const closeButton = modal.querySelector('.close-button');
         closeButton.onclick = () => { modal.style.display = 'none'; };
-        window.onclick = (event) => { if (event.target == modal) { modal.style.display = 'none'; } };
+        modal.addEventListener('click', (event) => { if (event.target === modal) modal.style.display = 'none'; });
 
         document.querySelectorAll('.clickable-cell').forEach(cell => {
             cell.addEventListener('click', function() {
@@ -1542,7 +1549,7 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
     <button onclick="topFunction()" id="back-to-top-btn" title="Go to top">↑</button>
     <script>
         var mybutton = document.getElementById("back-to-top-btn");
-        window.onscroll = function() {scrollFunction()};
+        window.addEventListener('scroll', scrollFunction);
         function scrollFunction() {
             if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
                 mybutton.style.display = "block";

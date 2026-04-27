@@ -24,6 +24,8 @@ from pathlib import Path
 import pystray
 from PIL import Image
 
+import telemetrie_dumper
+
 # ─── Constantes ──────────────────────────────────────────────────────────────────
 
 APP_NAME    = "LMU Stats Viewer"
@@ -250,6 +252,10 @@ def _on_open(icon: pystray.Icon, item: pystray.MenuItem) -> None:
     open_browser(_url())
 
 
+def _on_live(icon: pystray.Icon, item: pystray.MenuItem) -> None:
+    open_browser(_url("/live.php"))
+
+
 def _on_config(icon: pystray.Icon, item: pystray.MenuItem) -> None:
     open_browser(_url("/config.php"))
 
@@ -261,12 +267,14 @@ def _on_update(icon: pystray.Icon, item: pystray.MenuItem) -> None:
 def _on_quit(icon: pystray.Icon, item: pystray.MenuItem) -> None:
     log.info("Quitter demandé depuis le tray")
     icon.stop()
+    telemetrie_dumper.stop()
     stop_php()
 
 
 def create_tray() -> pystray.Icon:
     menu = pystray.Menu(
         pystray.MenuItem("Ouvrir LMU Stats",  _on_open,   default=True),
+        pystray.MenuItem("Live Télémétrie",    _on_live),
         pystray.MenuItem("Configuration",      _on_config),
         pystray.MenuItem("Mises à jour",       _on_update),
         pystray.Menu.SEPARATOR,
@@ -305,6 +313,11 @@ def main() -> None:
         sys.exit(1)
 
     log.info("Serveur PHP prêt !")
+
+    # ── Démarrage du dump de télémétrie avec dossier circuits ────────────────────
+    circuits_dir = HTDOCS_DIR / "circuits"
+    circuits_dir.mkdir(parents=True, exist_ok=True)  # créer si inexistant
+    telemetrie_dumper.start(HTDOCS_DIR, circuits_dir)
 
     # ── Fichier verrou ───────────────────────────────────────────────────────────
     LOCK_FILE.write_text(str(_server_port))

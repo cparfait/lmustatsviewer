@@ -63,8 +63,8 @@ Source: "LMU_Stats_Viewer.exe"; DestDir: "{app}"
 ; Documentation
 Source: "CHANGELOG.txt"; DestDir: "{app}"; Flags: ignoreversion
 
-; Application web
-Source: "htdocs\*"; DestDir: "{app}\htdocs\"; Flags: recursesubdirs createallsubdirs
+; Application web (sans le dossier tests qui ne doit pas être distribué)
+Source: "htdocs\*"; DestDir: "{app}\htdocs\"; Flags: recursesubdirs createallsubdirs; Excludes: "tests\*"
 
 [Icons]
 ; Menu Démarrer
@@ -77,8 +77,17 @@ Name: "{commondesktop}\LMU Stats Viewer"; Filename: "{app}\LMU_Stats_Viewer.exe"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [UninstallDelete]
+; Logs
 Type: files; Name: "{userappdata}\LMU_Stats_Viewer\launcher.log"
 Type: files; Name: "{userappdata}\LMU_Stats_Viewer\php_server.log"
+; Cache SQLite
+Type: files; Name: "{userappdata}\LMU_Stats_Viewer\lmu_cache.db"
+Type: files; Name: "{userappdata}\LMU_Stats_Viewer\lmu_cache.db-shm"
+Type: files; Name: "{userappdata}\LMU_Stats_Viewer\lmu_cache.db-wal"
+; Ancien cache JSON (legacy)
+Type: files; Name: "{userappdata}\LMU_Stats_Viewer\lm_ultimate_cache.json"
+; Supprime le dossier s'il est vide (config.json conservé s'il existe)
+Type: dirifempty; Name: "{userappdata}\LMU_Stats_Viewer"
 
 [Code]
 // Désinstalle silencieusement toute version précédente de "LMU Stats Viewer"

@@ -1,14 +1,30 @@
 {
+  "_comment": "Distribution OvertakeGG — contient release_url vers la page overtake.gg (pas de download_url direct). C'est ce fichier qui est utilisé par VERSION_CHECK_URL dans init.php.",
   "latest_version": "0.9.4",
   "release_url": "https://www.overtake.gg/downloads/lmu-stats-viewer.79131",
   "changelog": {
     "0.9.4": {
+      "date": "2026-04-02",
+      "notes": [
+        "Add: Genesis GMR-001 logo",
+        "Add: Duqueine D09 P3 logo",
+        "Add: Barcelona-Catalunya flag",
+        "Add: Paul Ricard circuit layouts",
+        "Add: Silverstone circuit layouts",
+        "Add: Automatic update download & install from the update page",
+        "Add: Launcher auto-start at Windows boot (InnoSetup option)",
+        "Improved: Single source of truth for version (version.txt)",
+        "Improved: InnoSetup script (AppId, support URLs, installer icon)"
+      ]
+    },
+    "0.9.3": {
       "date": "2025-09-23",
       "notes": [
-        "Add: Race car summary",
-        "Add: LMP3 for upcoming update",
+        "Add: LMP3 (Thx: @Antotitus22)",
+        "Add: LMP2 ELMS (Thx: @Antotitus22)",
         "Add: Drivers comparison",
         "Add: Added GTE table",
+        "Add: Race car summary",
         "Add: Version of the game",
         "Bug: My laps bug",
         "Bug: Finish position display bug in best laps",

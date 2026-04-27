@@ -4,6 +4,28 @@ All notable changes to LMU Stats Viewer are documented here.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Live telemetry** — `telemetrie_dumper.py` reads LMU shared memory (rFactor2 engine) at 20 fps and writes `telemetrie.json`; circuit layout is now built live from real car positions instead of static GeoJSON files
+- **`cars.json` registry** — steering wheel images and class colours for the live page are now data-driven; adding a new car no longer requires editing JS
+- **`circuits.json` registry** — circuit flag mappings are data-driven; adding a new circuit flag requires only a one-line JSON edit
+- **Unit tests** — `htdocs/tests/run_tests.php` covers `formatSecondsToMmSsMs()`, `compute_event_groups()` and `_normalize_car_class()`
+
+### Fixed
+- Lamborghini Huracán steering wheel image was never displayed (case-sensitive key mismatch)
+- Duplicate `time_header` translation key silently overwriting the first value in all language files
+
+### Changed
+- Circuit flags and class colours on the live page are now loaded from JSON registries injected via `CFG`
+- Dead GeoJSON fallback code removed from live page (no static circuit files were present)
+
+### Internal
+- `functions.php` — new helpers: `CLASS_RESULT_KEYS`, `DATE_FORMAT`, `sort_versions_desc()`, `resolve_default_version()`, `compute_optimal_lap()`, `getClassCssName()`, `safe_dom_id()`, `getSessionCssClass()`, `class_badge_label()`, `filter_title()`, `filter_title_t()`, `isRaceSession()`
+- Per-class `array_filter` + `usort` blocks replaced by a loop over `CLASS_RESULT_KEYS`
+
+---
+
 ## [0.9.5] — 2026-04-11
 
 ### Added

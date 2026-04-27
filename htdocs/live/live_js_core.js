@@ -111,35 +111,6 @@ const showBanner = (txt,bg,col) => {
     dom.flagBanner.style.cssText = `display:block;background:${bg};color:${col};`;
 };
 
-const circuitPointsCache = {};
-
-async function loadTrackPointsForCircuit(circuitName) {
-    if (!circuitName) return null;
-    if (circuitPointsCache[circuitName]) return circuitPointsCache[circuitName];
-    const aliases = CFG.circuits?.aliases || {};
-    let baseName = aliases[circuitName];
-    if (!baseName) baseName = circuitName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    let data = null;
-    for (const ext of ['.geojson', '.json']) {
-        try {
-            const resp = await fetch(`circuits/${baseName}${ext}`);
-            if (resp.ok) { data = await resp.json(); break; }
-        } catch(e) {}
-    }
-    if (!data) return null;
-    let points = null;
-    if (data.points && Array.isArray(data.points)) points = data.points.map(p => ({ x: p.x, z: p.z }));
-    else if (data.type === "FeatureCollection") {
-        for (const feat of data.features || []) {
-            if (feat.geometry?.type === "LineString") {
-                points = feat.geometry.coordinates.map(c => ({ x: c[0], z: c[1] }));
-                break;
-            }
-        }
-    } else if (data.type === "LineString" && data.coordinates) points = data.coordinates.map(c => ({ x: c[0], z: c[1] }));
-    if (points && points.length) { circuitPointsCache[circuitName] = points; return points; }
-    return null;
-}
 
 let _lastWheelSrc = '';
 function updateSteeringWheel(vehicleName, steerVal) {
@@ -183,6 +154,34 @@ const updateMapTab = track => {
     const el = $('map-title');
     el.innerHTML = `${trackFlag(track)} ${track}`;
 };
+
+const circuitPointsCache = {};
+
+async function loadTrackPointsForCircuit(circuitName) {
+    if (!circuitName) return null;
+    if (circuitPointsCache[circuitName]) return circuitPointsCache[circuitName];
+    const baseName = circuitName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    let data = null;
+    for (const ext of ['.geojson', '.json']) {
+        try {
+            const resp = await fetch(`circuits/${baseName}${ext}`);
+            if (resp.ok) { data = await resp.json(); break; }
+        } catch(e) {}
+    }
+    if (!data) return null;
+    let points = null;
+    if (data.points && Array.isArray(data.points)) points = data.points.map(p => ({ x: p.x, z: p.z }));
+    else if (data.type === 'FeatureCollection') {
+        for (const feat of data.features || []) {
+            if (feat.geometry?.type === 'LineString') {
+                points = feat.geometry.coordinates.map(c => ({ x: c[0], z: c[1] }));
+                break;
+            }
+        }
+    } else if (data.type === 'LineString' && data.coordinates) points = data.coordinates.map(c => ({ x: c[0], z: c[1] }));
+    if (points?.length) { circuitPointsCache[circuitName] = points; return points; }
+    return null;
+}
 
 const updateUI = async (data) => {
     const { telemetry: t, scoring: sc, session, standings, weather, flags, trackLayout, trackPoints } = data;
@@ -334,7 +333,7 @@ const updateUI = async (data) => {
     if (session.track) {
         const geojsonPoints = await loadTrackPointsForCircuit(session.track);
         if (geojsonPoints) finalTrackPoints = geojsonPoints;
-        else if (trackPoints && trackPoints.length) finalTrackPoints = trackPoints;
+        else if (trackPoints?.length) finalTrackPoints = trackPoints;
     }
     lastTrackPoints = finalTrackPoints;
     lastStandings = standings;

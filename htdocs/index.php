@@ -84,7 +84,7 @@ foreach ($groupedSessions as $key => $sessions) {
         'Car Class'          => $class,
         'Car Type'           => $type,
         'Car Name'           => $bestLapRow['car_name'],
-        'Date'               => date('d/m/Y H:i', $bestLapRow['timestamp']),
+        'Date'               => date(DATE_FORMAT, $bestLapRow['timestamp']),
         'DateRaw'            => $bestLapRow['timestamp'],
         'SessionTimestamp'   => $bestLapRow['event_id'],
         'SessionType'        => $bestLapRow['session_type'],
@@ -100,9 +100,9 @@ foreach ($groupedSessions as $key => $sessions) {
         'AbsoluteBestS1Raw'  => $absBestS1 !== INF ? $absBestS1 : null,
         'AbsoluteBestS2Raw'  => $absBestS2 !== INF ? $absBestS2 : null,
         'AbsoluteBestS3Raw'  => $absBestS3 !== INF ? $absBestS3 : null,
-        'AbsoluteBestS1_Date'=> $absBestS1Date ? date('d/m/Y H:i', $absBestS1Date) : 'N/A',
-        'AbsoluteBestS2_Date'=> $absBestS2Date ? date('d/m/Y H:i', $absBestS2Date) : 'N/A',
-        'AbsoluteBestS3_Date'=> $absBestS3Date ? date('d/m/Y H:i', $absBestS3Date) : 'N/A',
+        'AbsoluteBestS1_Date'=> $absBestS1Date ? date(DATE_FORMAT, $absBestS1Date) : 'N/A',
+        'AbsoluteBestS2_Date'=> $absBestS2Date ? date(DATE_FORMAT, $absBestS2Date) : 'N/A',
+        'AbsoluteBestS3_Date'=> $absBestS3Date ? date(DATE_FORMAT, $absBestS3Date) : 'N/A',
         'OptimalLapRaw'      => $optimalLap !== INF ? $optimalLap : null,
         'BestVmaxRaw'        => $bestVmax,
     ];
@@ -525,7 +525,7 @@ foreach ($pageRows as $row) {
                         if ($currentCourse && $currentTrack !== $currentCourse) {
                             $trackTitle .= ' - ' . htmlspecialchars($currentCourse);
                         }
-                        $trackGroupId = 'track-group-' . preg_replace('/[^a-zA-Z0-9-]/', '', str_replace(' ', '-', $currentTrack . '-' . $currentCourse));
+                        $trackGroupId = safe_dom_id('track-group-', $currentTrack . '-' . $currentCourse);
                         $headerClass = 'circuit-group-header' . ($isFirstHeader ? ' first-header' : '');
                         echo '<thead class="' . $headerClass . '" data-group-id="' . $trackGroupId . '"><tr><th colspan="18" class="group-header">';
                         
@@ -540,8 +540,8 @@ foreach ($pageRows as $row) {
                         echo $columnHeadersHtml;
                         $isFirstHeader = false;
                     }
-                    $carClassCss = 'class-' . strtolower(str_replace([' ', '-', '#'], '', $row['Car Class']));
-                    $currentRowTrackGroupId = 'track-group-' . preg_replace('/[^a-zA-Z0-9-]/', '', str_replace(' ', '-', $row['Track Venue'] . '-' . ($row['Track Course'] ?? '')));
+                    $carClassCss = getClassCssName($row['Car Class']);
+                    $currentRowTrackGroupId = safe_dom_id('track-group-', $row['Track Venue'] . '-' . ($row['Track Course'] ?? ''));
                 ?>
                     <tr data-track-group="<?php echo $currentRowTrackGroupId; ?>">
                         <td class="text-center">
@@ -675,7 +675,7 @@ foreach ($pageRows as $row) {
                         $prevEventId = $race['SessionID'];
                     }
                     $groupClass  = ($groupIndex % 2 === 0) ? 'event-group-a' : 'event-group-b';
-                    $carClassCss = 'class-' . strtolower(str_replace([' ', '-', '#'], '', $race['Class']));
+                    $carClassCss = getClassCssName($race['Class']);
                 ?>
                 <tr class="<?php echo $groupClass; ?>">
                     <td class="text-center">
@@ -736,7 +736,7 @@ foreach ($pageRows as $row) {
                         ?>
                     </td>
                     <td class="text-center"><?php echo $race['Pitstops']; ?></td>
-                    <td class="text-center"><?php echo date('d/m/Y H:i', $race['Date']); ?></td>
+                    <td class="text-center"><?php echo date(DATE_FORMAT, $race['Date']); ?></td>
                     <td class="text-center"><?php echo htmlspecialchars($race['GameVersion']); ?></td>
                 </tr>
                 <?php endforeach; ?>

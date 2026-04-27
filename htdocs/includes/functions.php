@@ -1,7 +1,8 @@
 <?php
 // Fichier central pour les fonctions utilitaires
 
-const CLASS_ORDER = ['Hyper' => 1, 'LMP2 ELMS' => 2, 'LMP2' => 3, 'LMP3' => 4, 'GT3' => 5, 'GTE' => 6];
+const CLASS_ORDER  = ['Hyper' => 1, 'LMP2 ELMS' => 2, 'LMP2' => 3, 'LMP3' => 4, 'GT3' => 5, 'GTE' => 6];
+const DATE_FORMAT  = 'd/m/Y H:i';
 
 const CLASS_RESULT_KEYS = [
     'Hyper'     => 'hypercar_drivers',
@@ -15,6 +16,14 @@ const CLASS_RESULT_KEYS = [
 function sort_versions_desc(array $versions): array {
     usort($versions, 'version_compare');
     return array_reverse($versions);
+}
+
+function getClassCssName(string $class): string {
+    return 'class-' . strtolower(str_replace([' ', '-', '#'], '', $class));
+}
+
+function safe_dom_id(string $prefix, string $value): string {
+    return $prefix . preg_replace('/[^a-zA-Z0-9-]/', '', str_replace(' ', '-', $value));
 }
 
 function resolve_default_version(array $versions, array $config): string {
@@ -452,7 +461,7 @@ function render_classification_table(array $driver_list, string $table_title, ar
                         <?php 
                         $carClass = (string)$driver->CarClass;
                         // Correction pour générer la classe CSS 'class-lmp2elms'
-                        $carClassCss = 'class-' . strtolower(str_replace([' ', '-', '#'], '', $carClass));
+                        $carClassCss = getClassCssName($carClass);
                         $anchor_id = 'table-' . strtolower($carClass) . '-' . $sessionType;
                         echo '<a href="#' . $anchor_id . '" onclick="event.preventDefault(); scrollToClassTable(\'' . strtolower($carClass) . '\', \'' . $sessionType . '\')">';
                         // Afficher "LMP2" au lieu de "LMP2 ELMS" pour la cohérence avec l'index

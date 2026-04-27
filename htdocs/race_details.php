@@ -175,7 +175,7 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
             if (!empty($unique_classes)) {
                 $badges_html = '';
                 foreach ($unique_classes as $class_name) {
-                    $carClassCss = 'class-' . strtolower(str_replace([' ', '-', '#'], '', $class_name));
+                    $carClassCss = getClassCssName($class_name);
                     $anchor_id = 'table-' . strtolower($class_name);
                     $title_text = isset($lang['scroll_to_class']) ? sprintf($lang['scroll_to_class'], htmlspecialchars($class_name)) : 'Go to ' . htmlspecialchars($class_name);
                     $badges_html .= '<a href="#' . $anchor_id . '" onclick="scrollToClassTable(\'' . strtolower($class_name) . '\')" title="' . $title_text . '" style="text-decoration: none;"><span class="badge ' . $carClassCss . '">' . htmlspecialchars($class_name) . '</span></a> ';
@@ -188,7 +188,7 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
             <div class="header-grid">
                 <table>
                     <tr><th><?php echo $lang['th_session']; ?></th><td><?php echo translateTerm($sessionType, $lang); ?></td></tr>
-                    <tr class="header-date" data-timestamp="<?php echo (int)$raceResults->DateTime; ?>"><th><?php echo $lang['th_date']; ?></th><td><?php echo date('d/m/Y H:i', (int)$raceResults->DateTime); ?></td></tr>
+                    <tr class="header-date" data-timestamp="<?php echo (int)$raceResults->DateTime; ?>"><th><?php echo $lang['th_date']; ?></th><td><?php echo date(DATE_FORMAT, (int)$raceResults->DateTime); ?></td></tr>
                     <tr><th><?php echo $lang['th_track']; ?></th><td><?php echo htmlspecialchars((string)$raceResults->TrackCourse); ?></td></tr>
                     <tr><th><?php echo $lang['th_winner']; ?></th><td><?php echo htmlspecialchars($winner); ?></td></tr>
                     <tr><th><?php echo $lang['th_best_lap']; ?></th><td><?php echo $bestLapStringForHeader; ?></td></tr>
@@ -333,7 +333,7 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
                         });
                         foreach ($sorted_drivers_for_menu as $driver):
                             $driverName = (string)$driver->Name;
-                            $anchorId = 'laps-driver-' . preg_replace('/[^a-zA-Z0-9\-]/', '', str_replace(' ', '-', $driverName));
+                            $anchorId = safe_dom_id('laps-driver-', $driverName);
                         ?>
                             <option value="<?php echo $anchorId; ?>"><?php echo htmlspecialchars($driverName); ?></option>
                         <?php endforeach; ?>
@@ -343,7 +343,7 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
                 
                 <?php foreach ($drivers as $driver): 
                     $driverName = (string)$driver->Name;
-                    $anchorId = 'laps-driver-' . preg_replace('/[^a-zA-Z0-9\-]/', '', str_replace(' ', '-', $driverName));
+                    $anchorId = safe_dom_id('laps-driver-', $driverName);
                 ?>
                     <h2 id="<?php echo $anchorId; ?>-<?php echo $sessionType; ?>" class="driver-laps-title"><?php echo (int)$driver->Position . '. ' . htmlspecialchars($driverName); ?></h2>
                     <?php if (empty($lapsByDriver[$driverName])): ?>
@@ -497,7 +497,7 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
                         }
                         foreach ($sorted_drivers_for_menu as $driver):
                             $driverName = (string)$driver->Name;
-                            $anchorId = 'strategy-driver-' . preg_replace('/[^a-zA-Z0-9\-]/', '', str_replace(' ', '-', $driverName));
+                            $anchorId = safe_dom_id('strategy-driver-', $driverName);
                         ?>
                             <option value="<?php echo $anchorId; ?>"><?php echo htmlspecialchars($driverName); ?></option>
                         <?php endforeach; ?>
@@ -508,7 +508,7 @@ $page_title = isset($lang[$title_key]) ? $lang[$title_key] : $lang['details_titl
                     $driverName = (string)$driver->Name;
                     $strategyData = $strategyDataByDriver[$driverName] ?? null;
                     if (!$strategyData || empty($strategyData['stints'])) continue;
-                    $anchorId = 'strategy-driver-' . preg_replace('/[^a-zA-Z0-9\-]/', '', str_replace(' ', '-', $driverName));
+                    $anchorId = safe_dom_id('strategy-driver-', $driverName);
                 ?>
                     <h2 id="<?php echo $anchorId; ?>-<?php echo $sessionType; ?>" class="driver-laps-title"><?php echo (int)$driver->Position . '. ' . htmlspecialchars($driverName); ?></h2>
                     <div class="strategy-container">

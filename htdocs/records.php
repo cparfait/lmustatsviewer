@@ -447,7 +447,7 @@ $pageTitle = ($lang['records_title'] ?? 'Records Personnels')
                 <div class="rhc-name">
                     <?php echo htmlspecialchars($paramCar); ?>
                     <?php if ($paramClass): ?>
-                        &nbsp;<span class="badge class-<?php echo strtolower(str_replace([' ','-','#'],'',$paramClass)); ?>" style="font-size:.7em;padding:2px 8px;">
+                        &nbsp;<span class="badge <?php echo getClassCssName($paramClass); ?>" style="font-size:.7em;padding:2px 8px;">
                             <?php echo htmlspecialchars($paramClass); ?>
                         </span>
                     <?php endif; ?>
@@ -806,7 +806,7 @@ ob_start(); ?>
                                title="<?php echo htmlspecialchars($lang['th_details'] ?? 'Détails'); ?>"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg></a>
                         </td>
                         <!-- Date -->
-                        <td><?php echo date('d/m/Y H:i', $r['timestamp']); ?></td>
+                        <td><?php echo date(DATE_FORMAT, $r['timestamp']); ?></td>
                         <!-- Session (cliquable → filtre) -->
                         <td class="text-center">
                             <?php

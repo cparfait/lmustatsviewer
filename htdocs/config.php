@@ -567,7 +567,9 @@ $all_versions = sort_versions_desc($all_versions);
     </div>
 
     <!-- ── Notification de mise à jour (remplie par update-checker.js) ── -->
-    <div id="update-notification-container"></div>
+    <div id="update-notification-container"
+         data-changelog-url="changelog.php?lang=<?php echo $current_lang; ?>"
+         data-changelog-label="<?php echo htmlspecialchars($lang['changelog_title'] ?? 'Notes de version'); ?>"></div>
 
     <!-- ── Message flash ────────────────────────────────────────── -->
     <?php if ($message): ?>
@@ -763,17 +765,6 @@ $all_versions = sort_versions_desc($all_versions);
                 </button>
             </div>
         </form>
-
-        <!-- Notes de version -->
-        <div class="cfg-maction">
-            <label><?php echo htmlspecialchars($lang['changelog_title']); ?></label>
-            <div class="mhelp"><?php echo htmlspecialchars($lang['changelog_help'] ?? ''); ?></div>
-            <div class="mrow">
-                <a href="changelog.php?lang=<?php echo $current_lang; ?>" class="btn-maint" style="text-decoration:none;">
-                    📋 <?php echo htmlspecialchars($lang['changelog_title']); ?>
-                </a>
-            </div>
-        </div>
 
     </div><!-- /.cfg-maintenance -->
 

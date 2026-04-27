@@ -4,51 +4,22 @@ All notable changes to LMU Stats Viewer are documented here.
 
 ---
 
-## [Unreleased]
-
-### Added
-- **Live telemetry** — `telemetrie_dumper.py` reads LMU shared memory (rFactor2 engine) at 20 fps and writes `telemetrie.json`; circuit layout is now built live from real car positions instead of static GeoJSON files
-- **`cars.json` registry** — steering wheel images and class colours for the live page are now data-driven; adding a new car no longer requires editing JS
-- **`circuits.json` registry** — circuit flag mappings are data-driven; adding a new circuit flag requires only a one-line JSON edit
-- **Unit tests** — `htdocs/tests/run_tests.php` covers `formatSecondsToMmSsMs()`, `compute_event_groups()` and `_normalize_car_class()`
-
-### Fixed
-- Lamborghini Huracán steering wheel image was never displayed (case-sensitive key mismatch)
-- Duplicate `time_header` translation key silently overwriting the first value in all language files
-
-### Changed
-- Circuit flags and class colours on the live page are now loaded from JSON registries injected via `CFG`
-- Dead GeoJSON fallback code removed from live page (no static circuit files were present)
-
-### Internal
-- `functions.php` — new helpers: `CLASS_RESULT_KEYS`, `DATE_FORMAT`, `sort_versions_desc()`, `resolve_default_version()`, `compute_optimal_lap()`, `getClassCssName()`, `safe_dom_id()`, `getSessionCssClass()`, `class_badge_label()`, `filter_title()`, `filter_title_t()`, `isRaceSession()`
-- Per-class `array_filter` + `usort` blocks replaced by a loop over `CLASS_RESULT_KEYS`
-
----
-
 ## [0.9.5] — 2026-04-11
 
 ### Added
-- **SQLite cache** — XML sessions are now indexed in a local SQLite database (`%APPDATA%\LMU_Stats_Viewer\lmu_cache.db`); only new or modified files are parsed on each load (delta sync)
-- **Personal Records page** — click the 📈 icon on any best-lap row to view the full historical progression for that track / car combo, with an interactive chart and a session-by-session breakdown
-- **SQL-based filtering & pagination** — filters (track, car class, version…) and sorting are handled by SQL queries; memory usage is constant regardless of session count
-- **Dynamic Steam path detection** — the configuration page automatically scans drives C–H and common Steam library folders to suggest the LMU results directory
+- **SQLite cache** — sessions load faster; only new or modified files are re-parsed on each start
+- **Personal Records page** — click the 📈 icon on any best-lap row to view the full progression history for a track / car combo, with an interactive chart
+- **Dynamic Steam path detection** — the configuration page now suggests your LMU results folder automatically
+- **Live telemetry** — circuit layout on the live page is now drawn from real car positions during a session
+- **In-app changelog** — version history readable directly from the app (Configuration → Notes de version)
 
 ### Improved
-- **CSRF protection** — all four configuration forms now use `bin2hex(random_bytes(32))` tokens validated with `hash_equals()`
-- **Update checker rate limiting** — version check results are cached in `localStorage` for 1 hour to avoid hammering the GitHub API on every page load
-- **JSON payload validation** (`fetch_version.php`) — incoming update payloads are validated against an explicit whitelist before being stored in session; HTTP 400 returned on invalid input
-- **CSS responsive layout** — configuration page is fully usable on narrow viewports; buttons no longer overflow at intermediate widths
-- **PHP 8 type hints** — all previously untyped functions now carry proper parameter and return types
-- **Error handling** — `@` suppression operators replaced with `is_readable()` guards and `libxml_use_internal_errors()` blocks
+- **Update checker** — version check result is cached for 1 hour; no more repeated requests on every page load
+- **Responsive layout** — the configuration page is fully usable on narrow screens
 
-### Performance
-- **Empty session detection** — replaced full XML scan with an O(1) SQLite query using the new `has_any_laps` column in `xml_index`; flag is computed at indexing time via an early-exit driver loop
-- **First-launch indexing** no longer times out regardless of collection size
-
-### Removed
-- Dead functions: `get_race_events()`, `formatDateInLocale()`, `calculate_avg_lap()`
-- Legacy `get_race_events()` fallback from `race_details.php` (all databases are now migrated via the SQLite indexer)
+### Fixed
+- Lamborghini Huracán steering wheel image was never displayed
+- Several translation keys were silently duplicated, causing some labels to show the wrong text
 
 ---
 

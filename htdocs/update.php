@@ -58,9 +58,8 @@ $fetch_error = !$update_info;
                     <?php echo $lang['update_download_direct'] ?? '⬇️ Télécharger l\'installeur'; ?>
                 </a>
                 <?php endif; ?>
-                <a href="<?php echo htmlspecialchars($update_info['release_url']); ?>"
-                   target="_blank" class="btn btn-secondary">
-                    <?php echo $lang['update_release_notes'] ?? 'Notes de version sur GitHub'; ?>
+                <a href="changelog.php?lang=<?php echo $current_lang; ?>" class="btn btn-secondary">
+                    📋 <?php echo htmlspecialchars($lang['changelog_title'] ?? 'Notes de version'); ?>
                 </a>
                 <a href="index.php" class="btn btn-secondary"><?php echo $lang['btn_return'] ?? 'Retour'; ?></a>
             </div>
@@ -74,29 +73,6 @@ $fetch_error = !$update_info;
                 </ol>
             </div>
 
-            <div class="changelog-container">
-                <h2><?php echo $lang['changelog_title'] ?? 'Notes de version'; ?></h2>
-                <?php if (!empty($update_info['changelog'])): ?>
-                    <?php foreach ($update_info['changelog'] as $version => $details): ?>
-                        <div class="changelog-version">
-                            <div class="changelog-header">
-                                <h3>Version <?php echo htmlspecialchars($version); ?> - <?php echo htmlspecialchars($details['date']); ?></h3>
-                                <button class="btn-translate" onclick="translateChangelog('changelog-<?php echo htmlspecialchars($version); ?>', '<?php echo $current_lang; ?>')">
-                                    <?php echo $lang['translate_button'] ?? 'Traduire'; ?>
-                                </button>
-                            </div>
-                            <ul id="changelog-<?php echo htmlspecialchars($version); ?>">
-                                <?php foreach ($details['notes'] as $note): ?>
-                                    <li><?php echo htmlspecialchars($note); ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <p><?php echo $lang['changelog_not_available'] ?? 'Le journal des modifications n\'est pas disponible.'; ?></p>
-                <?php endif; ?>
-            </div>
-
         <?php else: ?>
             <div class="message info">
                 <strong>✅ <?php echo $lang['update_no_update_title'] ?? 'Application à jour'; ?></strong><br>
@@ -108,17 +84,5 @@ $fetch_error = !$update_info;
         <?php endif; ?>
     </div>
 <?php require 'includes/footer.php'; ?>
-
-<script>
-function translateChangelog(elementId, targetLang) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-    let text = '';
-    el.querySelectorAll('li').forEach(li => { text += li.textContent + '\n'; });
-    if (text) {
-        window.open('https://translate.google.com/?sl=auto&tl=' + targetLang + '&text=' + encodeURIComponent(text) + '&op=translate', '_blank');
-    }
-}
-</script>
 </body>
 </html>

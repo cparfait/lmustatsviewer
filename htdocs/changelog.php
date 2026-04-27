@@ -3,7 +3,7 @@ require_once 'includes/init.php';
 
 // ── Parsing CHANGELOG.md ─────────────────────────────────────────────────────
 
-function render_changelog(string $path): string {
+function render_changelog(string $path, string $target_lang, string $translate_label): string {
     if (!is_readable($path)) return '';
 
     $lines     = file($path, FILE_IGNORE_NEW_LINES);
@@ -35,14 +35,18 @@ function render_changelog(string $path): string {
         if (preg_match('/^## \[(.+?)\](.*)$/', $line, $m)) {
             if ($in_list)  { $html .= '</ul>'; $in_list = false; }
             if ($in_card)  { $html .= '</div></div>'; }
-            $version  = htmlspecialchars($m[1]);
-            $date     = trim($m[2]);
+            $version   = htmlspecialchars($m[1]);
+            $safe_id   = 'cl-body-' . preg_replace('/[^a-z0-9]/', '-', strtolower($m[1]));
+            $date      = trim($m[2]);
             $date_html = $date ? '<span class="cl-date">' . htmlspecialchars($date) . '</span>' : '';
             $badge_cls = ($m[1] === 'Unreleased') ? 'cl-badge cl-badge-dev' : 'cl-badge cl-badge-release';
             $html    .= '<div class="cl-card"><div class="cl-card-head">'
                       . '<span class="' . $badge_cls . '">' . $version . '</span>'
                       . $date_html
-                      . '</div><div class="cl-card-body">';
+                      . '<button class="btn-translate cl-translate" onclick="translateCard(\'' . $safe_id . '\',\'' . $target_lang . '\')">'
+                      . $translate_label
+                      . '</button>'
+                      . '</div><div class="cl-card-body" id="' . $safe_id . '">';
             $in_card  = true;
             continue;
         }
@@ -84,7 +88,11 @@ function render_changelog(string $path): string {
     return $html;
 }
 
-$changelog_html = render_changelog(__DIR__ . '/../CHANGELOG.md');
+$changelog_html = render_changelog(
+    __DIR__ . '/../CHANGELOG.md',
+    $current_lang,
+    htmlspecialchars($lang['translate_button'] ?? 'Traduire')
+);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $current_lang; ?>" data-theme="<?php echo $config['theme'] ?? 'light'; ?>">
@@ -112,21 +120,14 @@ $changelog_html = render_changelog(__DIR__ . '/../CHANGELOG.md');
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 30px;
         }
-        .cl-header-logo { height: 48px; }
-        .cl-header-text h1 { margin: 0 0 3px; font-size: 1.35em; }
+.cl-header-text h1 { margin: 0 0 3px; font-size: 1.35em; }
         .cl-header-text p  { margin: 0; font-size: 0.82em; color: var(--text-color-light); }
         .cl-back {
-            margin-left: auto;
-            text-decoration: none;
-            font-size: 0.85em;
-            color: var(--text-color-light);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
             padding: 6px 14px;
+            font-size: 0.85em;
             white-space: nowrap;
-            transition: background 0.15s, color 0.15s;
+            flex-shrink: 0;
         }
-        .cl-back:hover { background: var(--row-hover-bg-color); color: var(--text-color); }
 
         /* ── Cards de version ── */
         .cl-card {
@@ -143,6 +144,7 @@ $changelog_html = render_changelog(__DIR__ . '/../CHANGELOG.md');
             padding: 14px 20px;
             background: var(--header-bg-color);
             border-bottom: 1px solid var(--border-color);
+            color: #fff;
         }
         .cl-badge {
             font-size: 1em;
@@ -150,21 +152,18 @@ $changelog_html = render_changelog(__DIR__ . '/../CHANGELOG.md');
             letter-spacing: 0.02em;
             padding: 3px 12px;
             border-radius: 20px;
-            border: 1.5px solid transparent;
-        }
-        .cl-badge-release {
-            background: rgba(var(--primary-color-rgb, 99,102,241), 0.12);
-            border-color: var(--primary-color, #6366f1);
-            color: var(--primary-color, #6366f1);
+            border: 1.5px solid rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.12);
+            color: #fff;
         }
         .cl-badge-dev {
-            background: rgba(245,158,11,0.12);
             border-color: #f59e0b;
-            color: #f59e0b;
+            background: rgba(245,158,11,0.18);
+            color: #fcd34d;
         }
         .cl-date {
             font-size: 0.82em;
-            color: var(--text-color-light);
+            color: rgba(255,255,255,0.6);
         }
         .cl-card-body { padding: 18px 22px 14px; }
 
@@ -203,6 +202,17 @@ $changelog_html = render_changelog(__DIR__ . '/../CHANGELOG.md');
             font-size: 0.95em;
         }
 
+        /* ── Bouton traduction dans le card head sombre ── */
+        .cl-translate {
+            margin-left: auto;
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.35);
+            color: rgba(255,255,255,0.85);
+        }
+        .cl-translate:hover {
+            background: rgba(255,255,255,0.22);
+        }
+
         @media (max-width: 600px) {
             .cl-wrap { padding: 20px 16px 40px; }
             .cl-card-body { padding: 14px 16px 10px; }
@@ -213,14 +223,11 @@ $changelog_html = render_changelog(__DIR__ . '/../CHANGELOG.md');
 <div class="cl-wrap">
 
     <div class="cl-header">
-        <a href="index.php?lang=<?php echo $current_lang; ?>">
-            <img src="logos/lmu.png" alt="LMU Stats Viewer" class="cl-header-logo">
-        </a>
+        <a href="config.php?lang=<?php echo $current_lang; ?>" class="btn btn-secondary cl-back">← <?php echo htmlspecialchars($lang['btn_return'] ?? 'Retour'); ?></a>
         <div class="cl-header-text">
             <h1>📋 <?php echo htmlspecialchars($lang['changelog_title']); ?></h1>
             <p>LMU Stats Viewer</p>
         </div>
-        <a href="config.php?lang=<?php echo $current_lang; ?>" class="cl-back">← <?php echo htmlspecialchars($lang['btn_return'] ?? 'Retour'); ?></a>
     </div>
 
     <?php if ($changelog_html): ?>
@@ -231,5 +238,16 @@ $changelog_html = render_changelog(__DIR__ . '/../CHANGELOG.md');
 
 </div>
 <?php require 'includes/footer.php'; ?>
+<script>
+function translateCard(bodyId, targetLang) {
+    const el = document.getElementById(bodyId);
+    if (!el) return;
+    let text = '';
+    el.querySelectorAll('li').forEach(li => { text += li.textContent.trim() + '\n'; });
+    if (text.trim()) {
+        window.open('https://translate.google.com/?sl=auto&tl=' + targetLang + '&text=' + encodeURIComponent(text) + '&op=translate', '_blank');
+    }
+}
+</script>
 </body>
 </html>

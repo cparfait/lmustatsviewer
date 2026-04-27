@@ -21,6 +21,18 @@ document.addEventListener('DOMContentLoaded', function() {
         try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch {}
     }
 
+    function appendChangelogLink(container) {
+        const url = container.dataset.changelogUrl;
+        if (!url) return;
+        const label = container.dataset.changelogLabel || 'Changelog';
+        const notice = container.querySelector('.update-notice');
+        if (!notice) return;
+        const p = document.createElement('p');
+        p.style.cssText = 'margin:8px 0 0; font-size:.85em; opacity:.8;';
+        p.innerHTML = `<a href="${url}" style="text-decoration:none; color:inherit;">📋 ${label}</a>`;
+        notice.appendChild(p);
+    }
+
     function renderVersionData(data) {
         if (data && data.latest_version && data.latest_version > appVersion) {
             const configContainer = document.getElementById('update-notification-container');
@@ -53,6 +65,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <strong>✅ ${lang.no_update_title}</strong><br>
                         ${lang.up_to_date} (<code>${appVersion}</code>)
                     </div>`;
+                appendChangelogLink(configContainer);
             }
         }
     }
@@ -94,6 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <strong>${lang.error_title || 'Erreur de mise à jour'}</strong><br>
                         ${lang.error_message || 'Impossible de vérifier les mises à jour. Veuillez vérifier la console de votre navigateur pour les erreurs.'}
                     </div>`;
+                appendChangelogLink(configContainer);
             }
         });
 });

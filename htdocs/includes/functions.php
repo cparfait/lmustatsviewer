@@ -22,6 +22,26 @@ function getClassCssName(string $class): string {
     return 'class-' . strtolower(str_replace([' ', '-', '#'], '', $class));
 }
 
+function getSessionCssClass(string $sessionType): string {
+    return 'session-' . strtolower($sessionType);
+}
+
+function class_badge_label(string $class): string {
+    return str_replace(' ELMS', '', htmlspecialchars($class));
+}
+
+function filter_title(array $lang, string $value): string {
+    return htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $value);
+}
+
+function filter_title_t(array $lang, string $value): string {
+    return htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ') . translateTerm($value, $lang);
+}
+
+function isRaceSession(string $sessionType): bool {
+    return $sessionType === 'Race';
+}
+
 function safe_dom_id(string $prefix, string $value): string {
     return $prefix . preg_replace('/[^a-zA-Z0-9-]/', '', str_replace(' ', '-', $value));
 }
@@ -465,7 +485,7 @@ function render_classification_table(array $driver_list, string $table_title, ar
                         $anchor_id = 'table-' . strtolower($carClass) . '-' . $sessionType;
                         echo '<a href="#' . $anchor_id . '" onclick="event.preventDefault(); scrollToClassTable(\'' . strtolower($carClass) . '\', \'' . $sessionType . '\')">';
                         // Afficher "LMP2" au lieu de "LMP2 ELMS" pour la cohérence avec l'index
-                        echo '<span class="badge ' . $carClassCss . '">' . str_replace(' ELMS', '', htmlspecialchars($carClass)) . '</span>';
+                        echo '<span class="badge ' . $carClassCss . '">' . class_badge_label($carClass) . '</span>';
                         echo '</a>';
                         ?>
                     </td>

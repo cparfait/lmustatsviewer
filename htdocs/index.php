@@ -534,7 +534,7 @@ foreach ($pageRows as $row) {
                         if ($flagUrl) echo '<img src="' . htmlspecialchars($flagUrl) . '" alt="" class="logo flag-icon">';
                         echo '<span class="arrow-indicator">▼</span></span>';
                         
-                        echo ' <span class="clickable-filter" data-filter-type="track" data-filter-value="' . htmlspecialchars($currentTrack) . '" title="' . htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $currentTrack) . '">' . $trackTitle . '</span>';
+                        echo ' <span class="clickable-filter" data-filter-type="track" data-filter-value="' . htmlspecialchars($currentTrack) . '" title="' . filter_title($lang, $currentTrack) . '">' . $trackTitle . '</span>';
                         
                         echo '</th></tr></thead>';
                         echo $columnHeadersHtml;
@@ -550,24 +550,24 @@ foreach ($pageRows as $row) {
                         <td class="text-center">
                             <a href="records.php?track=<?php echo urlencode($row['Track Venue']); ?>&class=<?php echo urlencode($row['Car Class']); ?>&car=<?php echo urlencode($row['Car Type']); ?>&lang=<?php echo $current_lang; ?>" title="<?php echo htmlspecialchars(sprintf($lang['records_link_title'] ?? 'Records — %s · %s', $row['Track Venue'], $row['Car Type'])); ?>"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></a>
                         </td>
-                        <td class="clickable-filter" data-filter-type="track_course" data-filter-value="<?php echo htmlspecialchars($row['Track Course'] ?? ''); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . ($row['Track Course'] ?? '')); ?>">
+                        <td class="clickable-filter" data-filter-type="track_course" data-filter-value="<?php echo htmlspecialchars($row['Track Course'] ?? ''); ?>" title="<?php echo filter_title($lang, $row['Track Course'] ?? ''); ?>">
 							<?php echo isset($row['Track Course']) ? htmlspecialchars($row['Track Course']) : ''; ?>
 						</td>
-                        <td class="text-center clickable-filter" data-filter-type="setting" data-filter-value="<?php echo htmlspecialchars($row['Setting']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ') . translateTerm($row['Setting'], $lang); ?>"><?php echo translateTerm($row['Setting'], $lang); ?></td>
-                        <td class="text-center clickable-filter" data-filter-type="session_type" data-filter-value="<?php echo htmlspecialchars($row['SessionType']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ') . translateTerm($row['SessionType'], $lang); ?>">
+                        <td class="text-center clickable-filter" data-filter-type="setting" data-filter-value="<?php echo htmlspecialchars($row['Setting']); ?>" title="<?php echo filter_title_t($lang, $row['Setting']); ?>"><?php echo translateTerm($row['Setting'], $lang); ?></td>
+                        <td class="text-center clickable-filter" data-filter-type="session_type" data-filter-value="<?php echo htmlspecialchars($row['SessionType']); ?>" title="<?php echo filter_title_t($lang, $row['SessionType']); ?>">
                             <?php
                                 $sessionType = $row['SessionType'];
-                                $sessionClass = 'session-' . strtolower($sessionType);
+                                $sessionClass = getSessionCssClass($sessionType);
                                 $sessionDisplay = translateTerm($sessionType, $lang);
                             ?>
                             <span class="badge <?php echo $sessionClass; ?>"><?php echo htmlspecialchars($sessionDisplay); ?></span>
                         </td>
                         <td class="text-center">
-                            <a href="index.php?class=<?php echo urlencode($row['Car Class']); ?>&lang=<?php echo $current_lang; ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $row['Car Class']); ?>" style="text-decoration: none;">
+                            <a href="index.php?class=<?php echo urlencode($row['Car Class']); ?>&lang=<?php echo $current_lang; ?>" title="<?php echo filter_title($lang, $row['Car Class']); ?>" style="text-decoration: none;">
                                 <span class="badge <?php echo $carClassCss; ?>"><?php echo htmlspecialchars($row['Car Class']); ?></span>
                             </a>
                         </td>
-                        <td class="clickable-filter" data-filter-type="car1" data-filter-value="<?php echo htmlspecialchars($row['Car Type']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $row['Car Type']); ?>">
+                        <td class="clickable-filter" data-filter-type="car1" data-filter-value="<?php echo htmlspecialchars($row['Car Type']); ?>" title="<?php echo filter_title($lang, $row['Car Type']); ?>">
                             <?php $logoUrl = getCarLogoUrl($row['Car Type']); if ($logoUrl):?><img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="" class="logo"><?php endif; ?>
                             <?php echo htmlspecialchars($row['Car Type']); ?>
                         </td>
@@ -606,7 +606,7 @@ foreach ($pageRows as $row) {
 						</td>                        <td class="text-center"><?php echo round($row['BestVmaxRaw']); ?> km/h</td>
                                                 <td class="text-center">
                             <?php
-                                if ($row['SessionType'] === 'Race') {
+                                if (isRaceSession($row['SessionType'])) {
                                     // If 'Status' isn't set (old cache), assume it's a normal finish.
                                     // Otherwise, check if it's explicitly 'Finished Normally'.
                                     if (!isset($row['Status']) || $row['Status'] === 'Finished Normally') {
@@ -622,7 +622,7 @@ foreach ($pageRows as $row) {
                         </td>
                         <td class="text-center">
                             <?php
-                                if ($row['SessionType'] === 'Race') {
+                                if (isRaceSession($row['SessionType'])) {
                                     echo renderProgression($row['Progression']);
                                 } else {
                                     echo '<span style="color: grey;">' . $lang['not_available'] . '</span>';
@@ -688,35 +688,35 @@ foreach ($pageRows as $row) {
                         <span style="color:grey;">—</span>
                         <?php endif; ?>
                     </td>
-                    <td class="clickable-filter" data-filter-type="track" data-filter-value="<?php echo htmlspecialchars($race['Track']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $race['Track']); ?>">
+                    <td class="clickable-filter" data-filter-type="track" data-filter-value="<?php echo htmlspecialchars($race['Track']); ?>" title="<?php echo filter_title($lang, $race['Track']); ?>">
                         <?php $flagUrl = getCircuitFlagUrl($race['Track']); if ($flagUrl):?><img src="<?php echo htmlspecialchars($flagUrl); ?>" alt="" class="logo flag-icon"><?php endif; ?><?php echo htmlspecialchars($race['Track']); ?>
                     </td>
-                    <td class="clickable-filter" data-filter-type="track_course" data-filter-value="<?php echo htmlspecialchars($race['TrackCourse'] ?? ''); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . ($race['TrackCourse'] ?? '')); ?>">
+                    <td class="clickable-filter" data-filter-type="track_course" data-filter-value="<?php echo htmlspecialchars($race['TrackCourse'] ?? ''); ?>" title="<?php echo filter_title($lang, $race['TrackCourse'] ?? ''); ?>">
 						<?php echo isset($race['TrackCourse']) ? htmlspecialchars($race['TrackCourse']) : ''; ?>
 					</td>
-                    <td class="text-center clickable-filter" data-filter-type="setting" data-filter-value="<?php echo htmlspecialchars($race['Setting']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ') . translateTerm($race['Setting'], $lang); ?>"><?php echo translateTerm($race['Setting'], $lang); ?></td>
-                    <td class="text-center clickable-filter" data-filter-type="session_type" data-filter-value="<?php echo htmlspecialchars($race['SessionType']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ') . translateTerm($race['SessionType'], $lang); ?>">
+                    <td class="text-center clickable-filter" data-filter-type="setting" data-filter-value="<?php echo htmlspecialchars($race['Setting']); ?>" title="<?php echo filter_title_t($lang, $race['Setting']); ?>"><?php echo translateTerm($race['Setting'], $lang); ?></td>
+                    <td class="text-center clickable-filter" data-filter-type="session_type" data-filter-value="<?php echo htmlspecialchars($race['SessionType']); ?>" title="<?php echo filter_title_t($lang, $race['SessionType']); ?>">
                         <?php
                             $sessionType = $race['SessionType'];
-                            $sessionClass = 'session-' . strtolower($sessionType);
+                            $sessionClass = getSessionCssClass($sessionType);
                             echo '<span class="badge ' . $sessionClass . '">' . translateTerm($sessionType, $lang) . '</span>';
                         ?>
                     </td>
                         <td class="text-center">
-                            <a href="index.php?class=<?php echo urlencode($race['Class']); ?>&lang=<?php echo $current_lang; ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $race['Class']); ?>" style="text-decoration: none;">
-                                <span class="badge <?php echo $carClassCss; ?>"><?php echo str_replace(' ELMS', '', htmlspecialchars($race['Class'])); ?></span>
+                            <a href="index.php?class=<?php echo urlencode($race['Class']); ?>&lang=<?php echo $current_lang; ?>" title="<?php echo filter_title($lang, $race['Class']); ?>" style="text-decoration: none;">
+                                <span class="badge <?php echo $carClassCss; ?>"><?php echo class_badge_label($race['Class']); ?></span>
                             </a>
                         </td>
-                    <td class="clickable-filter" data-filter-type="car1" data-filter-value="<?php echo htmlspecialchars($race['Car']); ?>" title="<?php echo htmlspecialchars(($lang['filter_by'] ?? 'Filter by') . ' ' . $race['Car']); ?>">
+                    <td class="clickable-filter" data-filter-type="car1" data-filter-value="<?php echo htmlspecialchars($race['Car']); ?>" title="<?php echo filter_title($lang, $race['Car']); ?>">
                         <?php $logoUrl = getCarLogoUrl($race['Car']); if ($logoUrl):?><img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="" class="logo"><?php endif; ?><?php echo htmlspecialchars($race['Car']); ?>
                     </td>
                     <td><?php echo htmlspecialchars($race['Livery']); ?></td>
                     <td class="is-pb clickable-cell text-center" data-session-id="<?php echo htmlspecialchars($race['Date']); ?>" data-track="<?php echo htmlspecialchars($race['Track']); ?>" data-best-lap-text="<?php echo isset($race['BestLap']) ? htmlspecialchars(formatSecondsToMmSsMs($race['BestLap'])) : ''; ?>">
                         <?php echo isset($race['BestLap']) ? formatSecondsToMmSsMs($race['BestLap']) : $lang['not_available']; ?>
                     </td>
-                    <td class="text-center"><?php echo ($race['SessionType'] === 'Race' && $race['GridPos'] > 0) ? 'P' . $race['GridPos'] : '<span style="color: grey;">' . $lang['not_available'] . '</span>'; ?></td>
+                    <td class="text-center"><?php echo (isRaceSession($race['SessionType']) && $race['GridPos'] > 0) ? 'P' . $race['GridPos'] : '<span style="color: grey;">' . $lang['not_available'] . '</span>'; ?></td>
                     <td class="text-center">
-                        <?php if ($race['SessionType'] === 'Race'): ?>
+                        <?php if (isRaceSession($race['SessionType'])): ?>
                             <?php if ($race['Status'] === 'Finished Normally'): ?>
                                 <strong>P<?php echo $race['Position']; ?></strong> / <?php echo $race['Participants']; ?>
                             <?php else: ?>
@@ -728,7 +728,7 @@ foreach ($pageRows as $row) {
                     </td>
                     <td class="text-center">
                         <?php
-                            if ($race['SessionType'] === 'Race') {
+                            if (isRaceSession($race['SessionType'])) {
                                 echo renderProgression($race['Progression']);
                             } else {
                                 echo '<span style="color: grey;">' . $lang['not_available'] . '</span>';

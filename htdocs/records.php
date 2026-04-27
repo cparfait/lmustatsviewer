@@ -792,7 +792,7 @@ ob_start(); ?>
                 ?>
                 <?php foreach ($rowsDesc as $r):
                     $sessionType    = $r['session_type'];
-                    $sessionClass   = 'session-' . strtolower($sessionType);
+                    $sessionClass   = getSessionCssClass($sessionType);
                     $isPB           = $r['is_pb'];
                     $isCar2Row      = !empty($r['_is_car2']);
                     $isAllTimeBest  = ($combinedAllTimePB !== null && abs((float)$r['best_lap'] - $combinedAllTimePB) < 0.001);

@@ -5,7 +5,7 @@ $back_url  = 'index.php?lang=' . $current_lang;
 $is_dark   = ($current_theme === 'dark');
 $demo_mode = isset($_GET['demo']);
 
-$cars_registry     = json_decode(@file_get_contents(__DIR__ . '/live/cars.json'),     true) ?: [];
+$cars_registry     = json_decode(@file_get_contents(__DIR__ . '/includes/cars.json'),     true) ?: [];
 $circuits_registry = json_decode(@file_get_contents(__DIR__ . '/includes/circuits.json'), true) ?: [];
 
 $labels = [

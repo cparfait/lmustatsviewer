@@ -1,4 +1,12 @@
 {
+  "_comment": "Source unique pour les circuits LMU. 'flags' : mot-clé (lowercase) présent dans le nom du circuit → code pays (pour le drapeau). 'aliases' : nom exact LMU → clé de fichier GeoJSON dans htdocs/circuits/ (utilisé par le dumper Python).",
+
+  "aliases": {
+    "Autodromo Nazionale Monza":    "monza",
+    "Autodromo Nazionale di Monza": "monza",
+    "Monza":                        "monza"
+  },
+
   "flags": {
     "sarthe":          "fr",
     "mans":            "fr",

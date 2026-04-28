@@ -79,10 +79,10 @@ const classCol = c => c ? getClassStyle(c).col : '';
 function getSteeringWheelImage(vehicleName) {
     if (!vehicleName) return null;
     const low = vehicleName.toLowerCase();
-    const list = CFG.cars?.steering_wheels || [];
+    const list = CFG.cars?.cars || [];
     for (const entry of list) {
-        for (const key of entry.keys) {
-            if (low.includes(key)) return 'live/steering_wheels/' + entry.file;
+        for (const key of entry.keywords) {
+            if (low.includes(key)) return 'live/steering_wheels/' + entry.steeringWheel;
         }
     }
     return null;

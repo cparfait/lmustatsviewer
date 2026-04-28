@@ -45,12 +45,8 @@ _TRACK_MAX_PASSES = 2           # Nombre de passages à moyenner pour chaque buc
 _static_points_cache = {}
 _CIRCUITS_DIR = None
 
-# ── Correspondances nom LMU → nom de fichier (partagé entre load et save) ─────
-_CIRCUIT_ALIASES = {
-    "Autodromo Nazionale Monza":    "monza",
-    "Autodromo Nazionale di Monza": "monza",
-    "Monza":                        "monza",
-}
+# ── Correspondances nom LMU → nom de fichier (chargées depuis circuits.json) ──
+_CIRCUIT_ALIASES: dict = {}   # Peuplé dans start()
 
 # ── État joueur (réinitialisé à chaque reconnexion) ──────────────────────────
 
@@ -70,35 +66,9 @@ def _clean(s) -> str:
     return bytes(s).partition(b"\0")[0].decode("utf-8", errors="ignore").strip()
 
 
-_KNOWN_MODELS = [
-    # === HYPERCARS (WEC) ===
-    "Alpine A424", 
-    "Aston Martin Valkyrie", 
-    "BMW M Hybrid", 
-    "Cadillac V-Series.R", 
-    "Ferrari 499P", 
-    "Genesis", 
-    "Glickenhaus", 
-    "Isotta", 
-    "Lamborghini SC63", 
-    "Peugeot 9X8", 
-    "Porsche 963", 
-    "Toyota GR010", 
-    "Vanwall",
-    
-    # === LMP2 ===
-    "Oreca 07",
-    
-    # === LMP3 ===
-    "Duqueine", 
-    "Ginetta", 
-    "Ligier",
-
-    # === LMGT3 / GTE ===
-    "Aston Martin Vantage", "BMW M4", "Corvette C8", "Corvette Z06",
-    "Ferrari 296", "Ferrari 488", "Ford Mustang", "Lamborghini Huracan",
-    "Lexus RCF", "McLaren 720S", "Mercedes-AMG", "Porsche 911 GT3", "Porsche 911 RSR"
-]
+# Modèles connus pour extraire le nom de voiture depuis la mémoire partagée LMU.
+# Peuplé au démarrage depuis includes/cars.json (champ modelName).
+_KNOWN_MODELS: list = []
 
 def _car_model(full_name: str) -> str:
     for model in _KNOWN_MODELS:
@@ -509,13 +479,34 @@ def _run(htdocs_dir: Path) -> None:
 
 def start(htdocs_dir: Path, circuits_dir: Path = None) -> None:
     """Démarre le thread de dump télémétrie (idempotent)."""
-    global _thread, _CIRCUITS_DIR
+    global _thread, _CIRCUITS_DIR, _KNOWN_MODELS, _CIRCUIT_ALIASES
     if not _RF2DATA_OK:
         log.warning("Telemetry dumper désactivé (rF2data non disponible).")
         return
     if circuits_dir is None:
         circuits_dir = htdocs_dir / "circuits"
     _CIRCUITS_DIR = circuits_dir
+
+    # ── Chargement des données depuis includes/ ───────────────────────────────
+    includes_dir = htdocs_dir / "includes"
+
+    cars_path = includes_dir / "cars.json"
+    try:
+        with open(cars_path, "r", encoding="utf-8") as f:
+            cars_data = json.load(f)
+        _KNOWN_MODELS = [c["modelName"] for c in cars_data.get("cars", [])]
+        log.info(f"cars.json : {len(_KNOWN_MODELS)} modèles chargés.")
+    except Exception as e:
+        log.warning(f"Impossible de charger cars.json : {e}")
+
+    circuits_path = includes_dir / "circuits.json"
+    try:
+        with open(circuits_path, "r", encoding="utf-8") as f:
+            circuits_data = json.load(f)
+        _CIRCUIT_ALIASES = circuits_data.get("aliases", {})
+        log.info(f"circuits.json : {len(_CIRCUIT_ALIASES)} aliases chargés.")
+    except Exception as e:
+        log.warning(f"Impossible de charger circuits.json : {e}")
     _stop_event.clear()
     _thread = threading.Thread(
         target=_run, args=(htdocs_dir,),

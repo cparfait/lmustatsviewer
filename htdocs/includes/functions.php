@@ -90,35 +90,16 @@ function cleanAndParseXmlFile(string $filepath): ?SimpleXMLElement {
 }
 
 function getCarLogoUrl(string $carType): ?string {
-    $basePath = 'logos/';
-    $carTypeLower = strtolower($carType);
-    
-    $specificMap = [
-        'peugeot9x82024' => 'peugeot.png'
-    ];
-
-    $searchableCarType = str_replace([' ', '_', '-'], '', $carTypeLower);
-    foreach ($specificMap as $specificKey => $logoFile) {
-        if ($searchableCarType === $specificKey) {
-            return $basePath . $logoFile;
-        }
+    static $brands = null;
+    if ($brands === null) {
+        $json   = @file_get_contents(__DIR__ . '/cars.json');
+        $brands = $json ? (json_decode($json, true)['brands'] ?? []) : [];
     }
-
-    $brandMap = [
-        'acura' => 'acura.png', 'astonmartin' => 'astonmartin.png', 'audi' => 'audi.png',
-        'bentley' => 'bentley.png', 'bmw' => 'bmw.png', 'cadillac' => 'cadillac.png',
-        'corvette' => 'corvette.png', 'dallara' => 'dallara.png', 'duqueine' => 'duqueine.png',
-        'ferrari' => 'ferrari.png', 'ginetta' => 'ginetta.png', 'glickenhaus' => 'glickenhaus.png',
-        'honda' => 'honda.png', 'isottafraschini' => 'isottafraschini.png',
-        'lamborghini' => 'lamborghini.png', 'ligier' => 'ligier.png',
-        'mclaren' => 'mclaren.png', 'mercedesamg' => 'mercedes.png', 'oreca' => 'oreca.png',
-        'peugeot' => 'peugeot.png', 'porsche' => 'porsche.png', 'toyota' => 'toyota.png',
-        'vanwall' => 'vanwall.png', 'alpine' => 'alpine.png', 'chevrolet' => 'chevrolet.png',
-        'ford' => 'ford.png', 'lexus' => 'lexus.png', 'genesis' => 'genesis.png'
-    ];
-    foreach ($brandMap as $brandKey => $logoFile) {
-        if (str_contains($searchableCarType, $brandKey) && file_exists($basePath . $logoFile)) {
-            return $basePath . $logoFile;
+    $basePath    = 'logos/';
+    $searchable  = str_replace([' ', '_', '-'], '', strtolower($carType));
+    foreach ($brands as $key => $file) {
+        if (str_contains($searchable, $key) && file_exists($basePath . $file)) {
+            return $basePath . $file;
         }
     }
     return null;

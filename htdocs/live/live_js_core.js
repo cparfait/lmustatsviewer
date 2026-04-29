@@ -76,7 +76,7 @@ function getClassStyle(cls) {
 }
 const classCol = c => c ? getClassStyle(c).col : '';
 
-function getSteeringWheelImage(vehicleName) {
+function getSteeringWheelImage(vehicleName, vehicleClass) {
     if (!vehicleName) return null;
     const low = vehicleName.toLowerCase();
     const list = CFG.cars?.cars || [];
@@ -84,6 +84,13 @@ function getSteeringWheelImage(vehicleName) {
         for (const key of entry.keywords) {
             if (low.includes(key)) return 'live/steering_wheels/' + entry.steeringWheel;
         }
+    }
+    const teams = CFG.cars?.teams || {};
+    const teamKey = vehicleName + (vehicleClass ? ' ' + vehicleClass : '');
+    const modelName = teams[teamKey] || teams[vehicleName];
+    if (modelName) {
+        const match = list.find(e => e.modelName === modelName);
+        if (match) return 'live/steering_wheels/' + match.steeringWheel;
     }
     return null;
 }
@@ -113,12 +120,12 @@ const showBanner = (txt,bg,col) => {
 
 
 let _lastWheelSrc = '';
-function updateSteeringWheel(vehicleName, steerVal) {
+function updateSteeringWheel(vehicleName, steerVal, vehicleClass) {
     const steerAngle = steerVal * 180;
     const imgEl = dom.steeringImg;
     const svgEl = dom.steeringSvg;
 
-    const wheelSrc = getSteeringWheelImage(vehicleName);
+    const wheelSrc = getSteeringWheelImage(vehicleName, vehicleClass);
     if (wheelSrc && wheelSrc !== _lastWheelSrc) {
         _lastWheelSrc = wheelSrc;
         imgEl.src = wheelSrc;
@@ -183,6 +190,20 @@ async function loadTrackPointsForCircuit(circuitName) {
     return null;
 }
 
+function updateTrackPointsFromLive(circuitName, livePoints) {
+    if (!circuitName || !livePoints?.length) return;
+    const normalized = livePoints.map(p => {
+        if (typeof p.x === 'number' && typeof p.z === 'number') return { x: p.x, z: p.z };
+        if (Array.isArray(p)) return { x: p[0], z: p[1] };
+        return null;
+    }).filter(Boolean);
+    if (normalized.length < 10) return;
+    const cached = circuitPointsCache[circuitName];
+    if (!cached || normalized.length >= cached.length) {
+        circuitPointsCache[circuitName] = normalized;
+    }
+}
+
 const updateUI = async (data) => {
     const { telemetry: t, scoring: sc, session, standings, weather, flags, trackLayout, trackPoints } = data;
 
@@ -219,16 +240,17 @@ const updateUI = async (data) => {
 
 	const steerVal = t.steering ?? 0;
     
-    // On cherche le vrai nom de la voiture du joueur dans le classement
     let realCarName = sc.vehicle;
+    let realCarClass = '';
     if (standings && standings.length > 0) {
         const player = standings.find(d => d.isPlayer);
         if (player && player.vehicleName) {
             realCarName = player.vehicleName;
+            realCarClass = player.vehicleClass || '';
         }
     }
     
-    updateSteeringWheel(realCarName, steerVal);
+    updateSteeringWheel(realCarName, steerVal, realCarClass);
 
     if (t.fuelCapacity>0) fuelCap=t.fuelCapacity;
     const fp = fuelCap>0?Math.min(t.fuel/fuelCap*100,100):0;
@@ -331,6 +353,7 @@ const updateUI = async (data) => {
 
     let finalTrackPoints = null;
     if (session.track) {
+        if (trackPoints?.length) updateTrackPointsFromLive(session.track, trackPoints);
         const geojsonPoints = await loadTrackPointsForCircuit(session.track);
         if (geojsonPoints) finalTrackPoints = geojsonPoints;
         else if (trackPoints?.length) finalTrackPoints = trackPoints;
@@ -518,6 +541,7 @@ const fetchData = async () => {
                     _fuelHistory.length = 0;
                     _sparklineHistory.throttle.length = 0;
                     _sparklineHistory.brake.length = 0;
+                    Object.keys(circuitPointsCache).forEach(k => delete circuitPointsCache[k]);
                 }
             }
             lastTs = data._ts;

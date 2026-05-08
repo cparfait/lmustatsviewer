@@ -431,7 +431,7 @@ uksort($carsByCategory, fn($a, $b) => ($categoryOrder[$a] ?? 99) <=> ($categoryO
         <div id="detail-configs-list" style="margin:14px 0;"></div>
 
         <div style="margin:16px 0 8px;">
-            <button type="button" class="btn-primary" onclick="openEditorNew()">
+            <button type="button" class="btn-primary" style="font-size:.8em;padding:5px 14px;" onclick="openEditorNew()">
                 + <?php echo $lang['car_configs_add'] ?? 'Nouvelle configuration'; ?>
             </button>
         </div>

@@ -834,7 +834,7 @@ table td.text-center,
 
 .page-header .btn-action {
     color: var(--primary-color);
-    padding: 8px 14px;
+    padding: 5px 14px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     text-decoration: none;

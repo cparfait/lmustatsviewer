@@ -395,6 +395,8 @@ $all_versions = sort_versions_desc($all_versions);
             color: #fff;
             border: 2px solid #004A7C;
             box-shadow: 0 2px 6px rgba(0, 74, 124, .35);
+            font-size: .8em;
+            padding: 5px 14px;
         }
         .cfg-actions .btn-primary:hover {
             background: linear-gradient(135deg, #003d66 0%, #0a75b8 100%);
@@ -407,6 +409,8 @@ $all_versions = sort_versions_desc($all_versions);
             color: #fff;
             border: 2px solid transparent;
             box-shadow: 0 2px 6px rgba(40, 167, 69, .25);
+            font-size: .8em;
+            padding: 5px 14px;
         }
         .cfg-actions .btn-secondary:hover {
             background: linear-gradient(135deg, #218838 0%, #1a7a2e 100%);

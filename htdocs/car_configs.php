@@ -20,19 +20,6 @@ $wecCircuits = $circuitsData['circuits'] ?? [];
 $circuits = array_unique(array_merge($wecCircuits, $dbCircuits));
 sort($circuits, SORT_STRING | SORT_FLAG_CASE);
 
-$flagMap = $circuitsData['flags'] ?? [];
-
-function circuitFlag(string $name, array $flagMap): string {
-    $low = strtolower($name);
-    foreach ($flagMap as $kw => $code) {
-        if (str_contains($low, $kw)) {
-            $cc = strtoupper($code);
-            return chr(0xF0) . chr(0x9F) . chr(0x87) . chr(0xA6 + ord($cc[0]) - 65)
-                 . chr(0xF0) . chr(0x9F) . chr(0x87) . chr(0xA6 + ord($cc[1]) - 65);
-        }
-    }
-    return '';
-}
 
 $setupFields = [
     'engine_map','fuel_capacity',
@@ -453,7 +440,7 @@ uksort($carsByCategory, fn($a, $b) => ($categoryOrder[$a] ?? 99) <=> ($categoryO
                             style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:.9em;background:var(--card-bg-color);color:var(--text-color);box-sizing:border-box;">
                         <option value="">— <?php echo $lang['all'] ?? 'Tous'; ?> —</option>
                         <?php foreach ($circuits as $c): ?>
-                        <option value="<?php echo htmlspecialchars($c); ?>"><?php $f = circuitFlag($c, $flagMap); echo $f ? $f . ' ' : ''; echo htmlspecialchars($c); ?></option>
+                        <option value="<?php echo htmlspecialchars($c); ?>"><?php echo htmlspecialchars($c); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

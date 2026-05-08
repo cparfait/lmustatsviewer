@@ -1,6 +1,20 @@
 {
   "_comment": "Source unique pour les circuits LMU. 'flags' : mot-clé (lowercase) présent dans le nom du circuit → code pays (pour le drapeau). 'aliases' : nom exact LMU → clé de fichier GeoJSON dans htdocs/circuits/ (utilisé par le dumper Python).",
 
+  "circuits": [
+    "Sebring",
+    "Portimão",
+    "Spa-Francorchamps",
+    "Le Mans",
+    "Monza",
+    "Fuji",
+    "Bahrain",
+    "Imola",
+    "COTA",
+    "Interlagos",
+    "Lusail"
+  ],
+
   "aliases": {
     "Autodromo Nazionale Monza":    "monza",
     "Autodromo Nazionale di Monza": "monza",

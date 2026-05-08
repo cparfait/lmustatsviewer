@@ -438,6 +438,14 @@ foreach ($pageRows as $row) {
                     <circle cx="10" cy="18" r="2" fill="currentColor" stroke="none"/>
                 </svg>
             </a>
+            <a href="car_configs.php?lang=<?php echo $current_lang; ?>" class="reset-filter-btn" title="<?php echo $lang['car_configs_title'] ?? 'Config Voitures'; ?>">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+            </a>
             <a href="live.php?lang=<?php echo $current_lang; ?>" class="reset-filter-btn" title="<?php echo $lang['live_timing_title'] ?? 'Live Timing'; ?>">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>

@@ -124,7 +124,37 @@ function init_db_schema(PDO $pdo): void {
         CREATE INDEX IF NOT EXISTS idx_ps_xml      ON player_sessions(xml_id);
         CREATE INDEX IF NOT EXISTS idx_pl_session  ON player_laps(session_id);
         CREATE INDEX IF NOT EXISTS idx_xi_filename ON xml_index(filename);
+
+        -- Configurations par voiture — setup complet, multiples configs nommées
+        CREATE TABLE IF NOT EXISTS car_configs (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            car_model     TEXT    NOT NULL,
+            config_name   TEXT    NOT NULL DEFAULT 'Default',
+            circuit       TEXT    NOT NULL DEFAULT '',
+            comment       TEXT    DEFAULT '',
+            updated_at    INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(car_model, config_name, circuit)
+        );
     ");
+
+    try {
+        $cols = $pdo->query("PRAGMA table_info(car_configs)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        if (in_array('tc', $cols) && !in_array('config_name', $cols)) {
+            $pdo->exec("DROP TABLE IF EXISTS car_configs");
+            $pdo->exec("
+                CREATE TABLE car_configs (
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    car_model     TEXT    NOT NULL,
+                    config_name   TEXT    NOT NULL DEFAULT 'Default',
+                    circuit       TEXT    NOT NULL DEFAULT '',
+                    comment       TEXT    DEFAULT '',
+                    updated_at    INTEGER NOT NULL DEFAULT 0,
+                    UNIQUE(car_model, config_name, circuit)
+                );
+            ");
+        }
+    } catch (\Exception $e) {
+    }
 
     // Migration : ajoute event_id à xml_index si absent (bases existantes).
     // event_id = timestamp du 1er fichier du groupe d'événement (même valeur que player_sessions.event_id).
@@ -145,6 +175,69 @@ function init_db_schema(PDO $pdo): void {
         // proposer à tort comme candidates à la purge avant la prochaine réindexation.
         $pdo->exec("UPDATE xml_index SET has_any_laps = 1 WHERE has_any_laps = 0");
     } catch (\Exception $e) {
-        // Colonne déjà présente — rien à faire.
+    }
+
+    $setupCols = [
+        'engine_map'        => 'INTEGER DEFAULT NULL',
+        'fuel_capacity'     => 'REAL DEFAULT NULL',
+        'diff_preload'      => 'INTEGER DEFAULT NULL',
+        'diff_coast'        => 'INTEGER DEFAULT NULL',
+        'diff_power'        => 'INTEGER DEFAULT NULL',
+        'tc'                => 'INTEGER DEFAULT NULL',
+        'tc_power_cut'      => 'INTEGER DEFAULT NULL',
+        'tc_slip_angle'     => 'INTEGER DEFAULT NULL',
+        'abs'               => 'INTEGER DEFAULT NULL',
+        'pressure_fl'       => 'REAL DEFAULT NULL',
+        'pressure_fr'       => 'REAL DEFAULT NULL',
+        'pressure_rl'       => 'REAL DEFAULT NULL',
+        'pressure_rr'       => 'REAL DEFAULT NULL',
+        'camber_fl'         => 'REAL DEFAULT NULL',
+        'camber_fr'         => 'REAL DEFAULT NULL',
+        'camber_rl'         => 'REAL DEFAULT NULL',
+        'camber_rr'         => 'REAL DEFAULT NULL',
+        'toe_fl'            => 'REAL DEFAULT NULL',
+        'toe_fr'            => 'REAL DEFAULT NULL',
+        'toe_rl'            => 'REAL DEFAULT NULL',
+        'toe_rr'            => 'REAL DEFAULT NULL',
+        'brake_bias'        => 'REAL DEFAULT NULL',
+        'front_brake_pressure'  => 'REAL DEFAULT NULL',
+        'rear_brake_pressure'   => 'REAL DEFAULT NULL',
+        'max_pedal_force'       => 'INTEGER DEFAULT NULL',
+        'spring_rate_fl'    => 'REAL DEFAULT NULL',
+        'spring_rate_fr'    => 'REAL DEFAULT NULL',
+        'spring_rate_rl'    => 'REAL DEFAULT NULL',
+        'spring_rate_rr'    => 'REAL DEFAULT NULL',
+        'ride_height_fl'    => 'REAL DEFAULT NULL',
+        'ride_height_fr'    => 'REAL DEFAULT NULL',
+        'ride_height_rl'    => 'REAL DEFAULT NULL',
+        'ride_height_rr'    => 'REAL DEFAULT NULL',
+        'slow_bump_fl'      => 'INTEGER DEFAULT NULL',
+        'slow_bump_fr'      => 'INTEGER DEFAULT NULL',
+        'slow_bump_rl'      => 'INTEGER DEFAULT NULL',
+        'slow_bump_rr'      => 'INTEGER DEFAULT NULL',
+        'fast_bump_fl'      => 'INTEGER DEFAULT NULL',
+        'fast_bump_fr'      => 'INTEGER DEFAULT NULL',
+        'fast_bump_rl'      => 'INTEGER DEFAULT NULL',
+        'fast_bump_rr'      => 'INTEGER DEFAULT NULL',
+        'slow_rebound_fl'   => 'INTEGER DEFAULT NULL',
+        'slow_rebound_fr'   => 'INTEGER DEFAULT NULL',
+        'slow_rebound_rl'   => 'INTEGER DEFAULT NULL',
+        'slow_rebound_rr'   => 'INTEGER DEFAULT NULL',
+        'fast_rebound_fl'   => 'INTEGER DEFAULT NULL',
+        'fast_rebound_fr'   => 'INTEGER DEFAULT NULL',
+        'fast_rebound_rl'   => 'INTEGER DEFAULT NULL',
+        'fast_rebound_rr'   => 'INTEGER DEFAULT NULL',
+        'front_antiroll'    => 'INTEGER DEFAULT NULL',
+        'rear_antiroll'     => 'INTEGER DEFAULT NULL',
+    ];
+    try {
+        $pdo->exec("SELECT 1 FROM car_configs LIMIT 0");
+        foreach ($setupCols as $col => $def) {
+            try {
+                $pdo->exec("ALTER TABLE car_configs ADD COLUMN {$col} {$def}");
+            } catch (\Exception $e) {
+            }
+        }
+    } catch (\Exception $e) {
     }
 }

@@ -23,12 +23,12 @@ sort($circuits, SORT_STRING | SORT_FLAG_CASE);
 $flagMap = $circuitsData['flags'] ?? [];
 
 function circuitFlag(string $name, array $flagMap): string {
-    $low = mb_strtolower($name);
+    $low = strtolower($name);
     foreach ($flagMap as $kw => $code) {
         if (str_contains($low, $kw)) {
-            $c0 = mb_ord(mb_strtoupper(mb_substr($code, 0, 1)));
-            $c1 = mb_ord(mb_strtoupper(mb_substr($code, 1, 1)));
-            return mb_chr(0x1F1E6 - 65 + $c0) . mb_chr(0x1F1E6 - 65 + $c1);
+            $cc = strtoupper($code);
+            return chr(0xF0) . chr(0x9F) . chr(0x87) . chr(0xA6 + ord($cc[0]) - 65)
+                 . chr(0xF0) . chr(0x9F) . chr(0x87) . chr(0xA6 + ord($cc[1]) - 65);
         }
     }
     return '';

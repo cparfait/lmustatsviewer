@@ -149,6 +149,8 @@ uksort($carsByCategory, fn($a, $b) => ($categoryOrder[$a] ?? 99) <=> ($categoryO
     <link rel="icon" href="logos/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="css/style.css?v=<?php echo @filemtime('css/style.css'); ?>">
     <style>
+        #setup-tabs .view-tab { padding: 5px 12px; font-size: .78em; font-weight: 600; }
+        #setup-tabs { gap: 3px; }
         .config-panel {
             --fs-title: 1.35em;
             --fs-label: 0.9em;
@@ -218,63 +220,94 @@ uksort($carsByCategory, fn($a, $b) => ($categoryOrder[$a] ?? 99) <=> ($categoryO
         .cc-quick-val.abs { background: #ef4444; }
 
 
+        /* ── Setup editor panels (modern card-based redesign) ── */
         .setup-panel { display: none; }
         .setup-panel.active { display: block; }
 
+        .setup-section {
+            background: color-mix(in srgb, var(--primary-color) 3%, var(--card-bg-color));
+            border: 1px solid color-mix(in srgb, var(--primary-color) 12%, var(--border-color));
+            border-radius: 10px;
+            padding: 14px 18px 12px;
+            margin: 10px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,.04);
+            transition: box-shadow .2s ease;
+        }
+        .setup-section:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,.07);
+        }
+        .setup-section:first-child { margin-top: 0; }
+        .setup-section:last-child { margin-bottom: 0; }
+
         .setup-section-title {
-            font-size: .82em;
+            display: inline-block;
+            font-size: .7em;
             font-weight: 700;
             color: var(--primary-color);
-            margin: 14px 0 8px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid var(--border-color);
             text-transform: uppercase;
-            letter-spacing: .04em;
+            letter-spacing: .07em;
+            margin: 0 0 12px;
+            padding: 3px 10px;
+            background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+            border-radius: 999px;
+            line-height: 1.6;
         }
-        .setup-section-title:first-child { margin-top: 0; }
 
         .setup-row {
             display: grid;
-            grid-template-columns: 110px 1fr 110px 1fr;
-            gap: 6px 12px;
-            align-items: center;
-            margin-bottom: 4px;
-        }
-        .setup-row.single {
             grid-template-columns: 110px 1fr;
+            gap: 6px 12px;
+            align-items: start;
+            margin-bottom: 6px;
+        }
+        .setup-row:last-child { margin-bottom: 0; }
+        .setup-row .setup-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 8px;
+        }
+        .setup-row .setup-inputs .setup-sub-label {
+            font-size: .62em;
+            font-weight: 700;
+            color: var(--text-color-light);
+            text-align: center;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            opacity: .85;
         }
         .setup-label {
-            font-size: .8em;
+            font-size: .76em;
             font-weight: 600;
             color: var(--text-color);
-            text-align: right;
+            text-align: left;
+            padding-top: 7px;
+            line-height: 1.3;
         }
         .setup-input input {
             width: 100%;
-            padding: 6px 8px;
+            padding: 7px 10px;
             border: 1px solid var(--border-color);
-            border-radius: 5px;
-            font-size: .85em;
+            border-radius: 7px;
+            font-size: .82em;
             background: var(--card-bg-color);
             color: var(--text-color);
             box-sizing: border-box;
-            transition: border-color .2s;
+            transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+        }
+        .setup-input input::placeholder {
+            color: var(--text-color-light);
+            opacity: .5;
+        }
+        .setup-input input:hover {
+            border-color: color-mix(in srgb, var(--primary-color) 40%, var(--border-color));
         }
         .setup-input input:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px var(--shadow-color-focus);
+            box-shadow: 0 0 0 3px var(--shadow-color-focus);
+            background-color: color-mix(in srgb, var(--primary-color) 2%, var(--card-bg-color));
         }
-
-        .setup-sub {
-            font-size: .72em;
-            font-weight: 600;
-            color: var(--text-color-light);
-            margin: 10px 0 4px;
-            display: flex;
-            gap: 16px;
-        }
-        .setup-sub span { min-width: 55px; text-align: center; }
 
         @media (max-width: 720px) {
             .config-panel { padding: 20px 16px 24px; margin: 12px; }
@@ -282,8 +315,7 @@ uksort($carsByCategory, fn($a, $b) => ($categoryOrder[$a] ?? 99) <=> ($categoryO
             .cfg-header > a { position: static; }
             .cfg-header-logo { height: 48px; }
             .setup-row { grid-template-columns: 90px 1fr; }
-            .setup-row .setup-label:nth-child(3),
-            .setup-row .setup-input:nth-child(4) { grid-column: 1 / -1; }
+            .setup-section { padding: 10px 12px 8px; }
         }
     </style>
 </head>
@@ -455,208 +487,236 @@ uksort($carsByCategory, fn($a, $b) => ($categoryOrder[$a] ?? 99) <=> ($categoryO
             </div>
 
             <div class="setup-panel active" id="panel-drivetrain">
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_engine'] ?? 'Engine'; ?></div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_engine_map'] ?? 'Engine Map'; ?></span>
-                    <div class="setup-input"><input type="number" name="engine_map" min="0" max="20" step="1" placeholder="—"></div>
-                    <span class="setup-label"><?php echo $lang['car_configs_fuel_capacity'] ?? 'Fuel Capacity'; ?></span>
-                    <div class="setup-input"><input type="number" name="fuel_capacity" min="0" step="0.1" placeholder="—"></div>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_engine'] ?? 'Engine'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_engine_map'] ?? 'Engine Map'; ?></span>
+                        <div class="setup-input"><input type="number" name="engine_map" min="0" max="20" step="1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_fuel_capacity'] ?? 'Fuel Capacity'; ?></span>
+                        <div class="setup-input"><input type="number" name="fuel_capacity" min="0" step="0.1" placeholder="—"></div>
+                    </div>
                 </div>
-
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_diff'] ?? 'Differential'; ?></div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_diff_preload'] ?? 'Preload'; ?></span>
-                    <div class="setup-input"><input type="number" name="diff_preload" min="0" step="1" placeholder="—"></div>
-                    <span class="setup-label"><?php echo $lang['car_configs_diff_coast'] ?? 'Coast'; ?></span>
-                    <div class="setup-input"><input type="number" name="diff_coast" min="0" step="1" placeholder="—"></div>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_diff'] ?? 'Differential'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_diff_preload'] ?? 'Preload'; ?></span>
+                        <div class="setup-input"><input type="number" name="diff_preload" min="0" step="1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_diff_coast'] ?? 'Coast'; ?></span>
+                        <div class="setup-input"><input type="number" name="diff_coast" min="0" step="1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_diff_power'] ?? 'Power'; ?></span>
+                        <div class="setup-input"><input type="number" name="diff_power" min="0" step="1" placeholder="—"></div>
+                    </div>
                 </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_diff_power'] ?? 'Power'; ?></span>
-                    <div class="setup-input"><input type="number" name="diff_power" min="0" step="1" placeholder="—"></div>
-                </div>
-
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_electronics'] ?? 'Electronics'; ?></div>
-                <div class="setup-row">
-                    <span class="setup-label">TC</span>
-                    <div class="setup-input"><input type="number" name="tc" min="0" max="20" step="1" placeholder="—"></div>
-                    <span class="setup-label">TC Power Cut</span>
-                    <div class="setup-input"><input type="number" name="tc_power_cut" min="0" max="20" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label">TC Slip Angle</span>
-                    <div class="setup-input"><input type="number" name="tc_slip_angle" min="0" max="20" step="1" placeholder="—"></div>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_electronics'] ?? 'Electronics'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label">TC</span>
+                        <div class="setup-input"><input type="number" name="tc" min="0" max="20" step="1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label">TC Power Cut</span>
+                        <div class="setup-input"><input type="number" name="tc_power_cut" min="0" max="20" step="1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label">TC Slip Angle</span>
+                        <div class="setup-input"><input type="number" name="tc_slip_angle" min="0" max="20" step="1" placeholder="—"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="setup-panel" id="panel-wheels">
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_front_wheels'] ?? 'Front Wheels'; ?></div>
-                <div class="setup-sub">
-                    <span></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></span>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_front_wheels'] ?? 'Front Wheels'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_pressure'] ?? 'Pressure'; ?></span>
+                        <div class="setup-inputs">
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></div><div class="setup-input"><input type="number" name="pressure_fl" min="0" step="0.01" placeholder="—"></div></div>
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></div><div class="setup-input"><input type="number" name="pressure_fr" min="0" step="0.01" placeholder="—"></div></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_camber'] ?? 'Camber'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="camber_fl" step="0.1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="camber_fr" step="0.1" placeholder="—"></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_toe'] ?? 'Toe'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="toe_fl" step="0.01" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="toe_fr" step="0.01" placeholder="—"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_pressure'] ?? 'Pressure'; ?></span>
-                    <div class="setup-input"><input type="number" name="pressure_fl" min="0" step="0.01" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="pressure_fr" min="0" step="0.01" placeholder="—"></div>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_rear_wheels'] ?? 'Rear Wheels'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_pressure'] ?? 'Pressure'; ?></span>
+                        <div class="setup-inputs">
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></div><div class="setup-input"><input type="number" name="pressure_rl" min="0" step="0.01" placeholder="—"></div></div>
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></div><div class="setup-input"><input type="number" name="pressure_rr" min="0" step="0.01" placeholder="—"></div></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_camber'] ?? 'Camber'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="camber_rl" step="0.1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="camber_rr" step="0.1" placeholder="—"></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_toe'] ?? 'Toe'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="toe_rl" step="0.01" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="toe_rr" step="0.01" placeholder="—"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_camber'] ?? 'Camber'; ?></span>
-                    <div class="setup-input"><input type="number" name="camber_fl" step="0.1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="camber_fr" step="0.1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_toe'] ?? 'Toe'; ?></span>
-                    <div class="setup-input"><input type="number" name="toe_fl" step="0.01" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="toe_fr" step="0.01" placeholder="—"></div>
-                </div>
-
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_rear_wheels'] ?? 'Rear Wheels'; ?></div>
-                <div class="setup-sub">
-                    <span></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></span>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_pressure'] ?? 'Pressure'; ?></span>
-                    <div class="setup-input"><input type="number" name="pressure_rl" min="0" step="0.01" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="pressure_rr" min="0" step="0.01" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_camber'] ?? 'Camber'; ?></span>
-                    <div class="setup-input"><input type="number" name="camber_rl" step="0.1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="camber_rr" step="0.1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_toe'] ?? 'Toe'; ?></span>
-                    <div class="setup-input"><input type="number" name="toe_rl" step="0.01" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="toe_rr" step="0.01" placeholder="—"></div>
-                </div>
-
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_brakes'] ?? 'Brakes'; ?></div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_brake_bias'] ?? 'Brake Bias'; ?></span>
-                    <div class="setup-input"><input type="number" name="brake_bias" step="0.1" placeholder="—"></div>
-                    <span class="setup-label">ABS</span>
-                    <div class="setup-input"><input type="number" name="abs" min="0" max="20" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_front_brake_pressure'] ?? 'Front Brake Press.'; ?></span>
-                    <div class="setup-input"><input type="number" name="front_brake_pressure" step="0.1" placeholder="—"></div>
-                    <span class="setup-label"><?php echo $lang['car_configs_rear_brake_pressure'] ?? 'Rear Brake Press.'; ?></span>
-                    <div class="setup-input"><input type="number" name="rear_brake_pressure" step="0.1" placeholder="—"></div>
-                </div>
-                <div class="setup-row single">
-                    <span class="setup-label"><?php echo $lang['car_configs_max_pedal_force'] ?? 'Max Pedal Force'; ?></span>
-                    <div class="setup-input"><input type="number" name="max_pedal_force" min="0" step="1" placeholder="—"></div>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_brakes'] ?? 'Brakes'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_brake_bias'] ?? 'Brake Bias'; ?></span>
+                        <div class="setup-input"><input type="number" name="brake_bias" step="0.1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label">ABS</span>
+                        <div class="setup-input"><input type="number" name="abs" min="0" max="20" step="1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_front_brake_pressure'] ?? 'Front Brake Press.'; ?></span>
+                        <div class="setup-input"><input type="number" name="front_brake_pressure" step="0.1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_rear_brake_pressure'] ?? 'Rear Brake Press.'; ?></span>
+                        <div class="setup-input"><input type="number" name="rear_brake_pressure" step="0.1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_max_pedal_force'] ?? 'Max Pedal Force'; ?></span>
+                        <div class="setup-input"><input type="number" name="max_pedal_force" min="0" step="1" placeholder="—"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="setup-panel" id="panel-suspension">
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_front_susp'] ?? 'Front Suspension'; ?></div>
-                <div class="setup-sub">
-                    <span></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></span>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_front_susp'] ?? 'Front Suspension'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_spring_rate'] ?? 'Spring Rate'; ?></span>
+                        <div class="setup-inputs">
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></div><div class="setup-input"><input type="number" name="spring_rate_fl" step="1" placeholder="—"></div></div>
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></div><div class="setup-input"><input type="number" name="spring_rate_fr" step="1" placeholder="—"></div></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_ride_height'] ?? 'Ride Height'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="ride_height_fl" step="0.1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="ride_height_fr" step="0.1" placeholder="—"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_spring_rate'] ?? 'Spring Rate'; ?></span>
-                    <div class="setup-input"><input type="number" name="spring_rate_fl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="spring_rate_fr" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_ride_height'] ?? 'Ride Height'; ?></span>
-                    <div class="setup-input"><input type="number" name="ride_height_fl" step="0.1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="ride_height_fr" step="0.1" placeholder="—"></div>
-                </div>
-
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_rear_susp'] ?? 'Rear Suspension'; ?></div>
-                <div class="setup-sub">
-                    <span></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></span>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_spring_rate'] ?? 'Spring Rate'; ?></span>
-                    <div class="setup-input"><input type="number" name="spring_rate_rl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="spring_rate_rr" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_ride_height'] ?? 'Ride Height'; ?></span>
-                    <div class="setup-input"><input type="number" name="ride_height_rl" step="0.1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="ride_height_rr" step="0.1" placeholder="—"></div>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_rear_susp'] ?? 'Rear Suspension'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_spring_rate'] ?? 'Spring Rate'; ?></span>
+                        <div class="setup-inputs">
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></div><div class="setup-input"><input type="number" name="spring_rate_rl" step="1" placeholder="—"></div></div>
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></div><div class="setup-input"><input type="number" name="spring_rate_rr" step="1" placeholder="—"></div></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_ride_height'] ?? 'Ride Height'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="ride_height_rl" step="0.1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="ride_height_rr" step="0.1" placeholder="—"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="setup-panel" id="panel-dampers">
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_front_dampers'] ?? 'Front Dampers'; ?></div>
-                <div class="setup-sub">
-                    <span></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></span>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_front_dampers'] ?? 'Front Dampers'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_slow_bump'] ?? 'Slow Bump'; ?></span>
+                        <div class="setup-inputs">
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></div><div class="setup-input"><input type="number" name="slow_bump_fl" step="1" placeholder="—"></div></div>
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></div><div class="setup-input"><input type="number" name="slow_bump_fr" step="1" placeholder="—"></div></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_fast_bump'] ?? 'Fast Bump'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="fast_bump_fl" step="1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="fast_bump_fr" step="1" placeholder="—"></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_slow_rebound'] ?? 'Slow Rebound'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="slow_rebound_fl" step="1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="slow_rebound_fr" step="1" placeholder="—"></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_fast_rebound'] ?? 'Fast Rebound'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="fast_rebound_fl" step="1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="fast_rebound_fr" step="1" placeholder="—"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_slow_bump'] ?? 'Slow Bump'; ?></span>
-                    <div class="setup-input"><input type="number" name="slow_bump_fl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="slow_bump_fr" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_fast_bump'] ?? 'Fast Bump'; ?></span>
-                    <div class="setup-input"><input type="number" name="fast_bump_fl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="fast_bump_fr" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_slow_rebound'] ?? 'Slow Rebound'; ?></span>
-                    <div class="setup-input"><input type="number" name="slow_rebound_fl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="slow_rebound_fr" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_fast_rebound'] ?? 'Fast Rebound'; ?></span>
-                    <div class="setup-input"><input type="number" name="fast_rebound_fl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="fast_rebound_fr" step="1" placeholder="—"></div>
-                </div>
-
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_rear_dampers'] ?? 'Rear Dampers'; ?></div>
-                <div class="setup-sub">
-                    <span></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></span><span style="min-width:55px;text-align:center;"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></span>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_slow_bump'] ?? 'Slow Bump'; ?></span>
-                    <div class="setup-input"><input type="number" name="slow_bump_rl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="slow_bump_rr" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_fast_bump'] ?? 'Fast Bump'; ?></span>
-                    <div class="setup-input"><input type="number" name="fast_bump_rl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="fast_bump_rr" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_slow_rebound'] ?? 'Slow Rebound'; ?></span>
-                    <div class="setup-input"><input type="number" name="slow_rebound_rl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="slow_rebound_rr" step="1" placeholder="—"></div>
-                </div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_fast_rebound'] ?? 'Fast Rebound'; ?></span>
-                    <div class="setup-input"><input type="number" name="fast_rebound_rl" step="1" placeholder="—"></div>
-                    <span class="setup-label"></span>
-                    <div class="setup-input"><input type="number" name="fast_rebound_rr" step="1" placeholder="—"></div>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_rear_dampers'] ?? 'Rear Dampers'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_slow_bump'] ?? 'Slow Bump'; ?></span>
+                        <div class="setup-inputs">
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_left'] ?? 'Left'; ?></div><div class="setup-input"><input type="number" name="slow_bump_rl" step="1" placeholder="—"></div></div>
+                            <div><div class="setup-sub-label"><?php echo $lang['car_configs_right'] ?? 'Right'; ?></div><div class="setup-input"><input type="number" name="slow_bump_rr" step="1" placeholder="—"></div></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_fast_bump'] ?? 'Fast Bump'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="fast_bump_rl" step="1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="fast_bump_rr" step="1" placeholder="—"></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_slow_rebound'] ?? 'Slow Rebound'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="slow_rebound_rl" step="1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="slow_rebound_rr" step="1" placeholder="—"></div>
+                        </div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_fast_rebound'] ?? 'Fast Rebound'; ?></span>
+                        <div class="setup-inputs">
+                            <div class="setup-input"><input type="number" name="fast_rebound_rl" step="1" placeholder="—"></div>
+                            <div class="setup-input"><input type="number" name="fast_rebound_rr" step="1" placeholder="—"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="setup-panel" id="panel-chassis">
-                <div class="setup-section-title"><?php echo $lang['car_configs_sec_antiroll'] ?? 'Anti-Roll Bars'; ?></div>
-                <div class="setup-row">
-                    <span class="setup-label"><?php echo $lang['car_configs_front_antiroll'] ?? 'Front'; ?></span>
-                    <div class="setup-input"><input type="number" name="front_antiroll" step="1" placeholder="—"></div>
-                    <span class="setup-label"><?php echo $lang['car_configs_rear_antiroll'] ?? 'Rear'; ?></span>
-                    <div class="setup-input"><input type="number" name="rear_antiroll" step="1" placeholder="—"></div>
+                <div class="setup-section">
+                    <div class="setup-section-title"><?php echo $lang['car_configs_sec_antiroll'] ?? 'Anti-Roll Bars'; ?></div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_front_antiroll'] ?? 'Front'; ?></span>
+                        <div class="setup-input"><input type="number" name="front_antiroll" step="1" placeholder="—"></div>
+                    </div>
+                    <div class="setup-row">
+                        <span class="setup-label"><?php echo $lang['car_configs_rear_antiroll'] ?? 'Rear'; ?></span>
+                        <div class="setup-input"><input type="number" name="rear_antiroll" step="1" placeholder="—"></div>
+                    </div>
                 </div>
             </div>
 
@@ -670,8 +730,8 @@ uksort($carsByCategory, fn($a, $b) => ($categoryOrder[$a] ?? 99) <=> ($categoryO
             </div>
 
             <div class="cfg-actions" style="margin-top:16px;">
-                <button type="submit" class="btn-primary"><?php echo $lang['btn_save'] ?? 'Enregistrer'; ?></button>
-                <button type="button" class="btn-maint" onclick="closeCarEditor()"><?php echo $lang['back_to_list'] ?? 'Annuler'; ?></button>
+                <button type="submit" class="btn-primary" style="font-size:.8em;padding:5px 14px;"><?php echo $lang['btn_save'] ?? 'Enregistrer'; ?></button>
+                <button type="button" class="btn-maint" style="font-size:.8em;padding:5px 14px;" onclick="closeCarEditor()"><?php echo $lang['back_to_list'] ?? 'Annuler'; ?></button>
             </div>
         </form>
     </div>

@@ -198,7 +198,7 @@ config(key, value)
 | # | Phase | Durée estimée | Livrable |
 |---|---|---|---|
 | **POC** | Rendu visuel | 1 jour | ✅ Validation visuelle |
-| 0 | Setup | 1-2j | Tauri 2 init, archive `legacy/`, shadcn/ui, palette Le Mans dark, Header + Router (port depuis POC) |
+| 0 | Setup | 1-2j | ✅ **Terminée** : Tauri 2 init (`src-tauri/`), icônes générées, bridge IPC `src/lib/tauri.ts` avec fallback web, CI GitHub Actions, README + workflow documenté. À noter : pas d'`archive legacy/` car la branche `v2` est orphan (séparée de main). |
 | 1 | Foundations | 3-5j | SQLite + migrations, indexer XML en Rust (port du PHP), Config, profils. ~~Import `lmu_cache.db`~~ (from scratch). |
 | 2 | Dashboard + Sessions | 4-6j | Dashboard, liste sessions, détail (standings/laps/incidents/chat/graphes), filtres avec LMP2 WEC≠ELMS |
 | 3 | Records + ohne_speed | 3j | Records par circuit/voiture, fetch gviz, badges tier, deltas, courbes seuils |
@@ -299,6 +299,35 @@ npm run dev   # ouvre http://localhost:5173
 - ✅ Mock data réaliste : 10 best laps, 5 sessions, 16 setups répartis sur 4 voitures + 7 circuits
 - ✅ Page Live anime les valeurs en temps réel (drift sur secteurs/fuel/pneus, drapeaux random)
 - ⏳ En attente : retour visuel utilisateur
+
+### 2026-05-12 — Phase 0 (Setup Tauri)
+- ✅ **POC poussé** sur la branche `v2` du repo `cparfait/lmustatsviewer` (orphan, sans archive de `main`)
+- ✅ **Structure Tauri 2** complète dans `src-tauri/` :
+  - `Cargo.toml` (tauri 2 + tauri-plugin-opener + serde + thiserror), plugins futurs commentés
+  - `tauri.conf.json` configuré (fenêtre 1400×900 min 1024×700, dark theme natif, identifier `com.cparfait.lmustatsviewer`, bundle NSIS+MSI multi-langue FR/EN)
+  - `build.rs` minimaliste
+  - `src/main.rs` (entry) + `src/lib.rs` (builder Tauri avec handler IPC)
+  - `src/error.rs` (`AppError` sérialisable vers le frontend, variantes I/O, Parse, Database, Config, NotFound, Unsupported, Internal)
+  - `src/commands/mod.rs` + `src/commands/system.rs` (stubs : `get_app_version`, `get_platform`, `ping`)
+  - `capabilities/default.json` (permissions IPC par défaut)
+  - `.gitignore` Rust
+- ✅ **Icônes générées** via PowerShell System.Drawing : 32×32, 128×128, 128×128@2x (256), 512×512, .ico, .icns (placeholder). Style : fond bleu nuit #0A0E1A + cercle jaune Le Mans #FFB400 + lettre "L"
+- ✅ **Bridge IPC** `src/lib/tauri.ts` :
+  - Détection runtime du contexte Tauri (`window.__TAURI_INTERNALS__`)
+  - Helper `call<T>(cmd, args, webFallback)` typé : appelle Tauri si dispo, sinon retourne le fallback (idéal pour dev web sans Tauri)
+  - Export `system.getAppVersion()`, `system.getPlatform()`, `system.ping()`
+- ✅ **package.json** : ajout `@tauri-apps/api@^2`, `@tauri-apps/plugin-opener@^2`, devDep `@tauri-apps/cli@^2`. Scripts `tauri`, `tauri:dev`, `tauri:build`, `tauri:icon`
+- ✅ **vite.config.ts** adapté pour Tauri (clearScreen: false, strictPort, watch ignore src-tauri, envPrefix TAURI_ENV_*, host TAURI_DEV_HOST pour mobile)
+- ✅ **CI GitHub Actions** `.github/workflows/release.yml` :
+  - Trigger sur tag `v2.*` ou manuel
+  - Build sur `windows-latest` (NSIS + MSI x86_64)
+  - Cache cargo + node_modules
+  - GitHub Release en brouillon auto-générée
+  - Job `check-frontend` en parallèle (`npm run build`) à chaque push pour ne pas casser le TS
+- ✅ **README** réécrit avec : démarrage rapide (web + Tauri), prérequis détaillés (Rust install path), scripts npm, structure complète, workflow dev typique, CI/release
+- ✅ Test `npm install` OK — Tauri CLI 2.11.1 disponible via `npx tauri`
+- ✅ TypeScript build clean (`npx tsc -b`)
+- 📋 **Prochaine étape** : Phase 1 — Foundations (SQLite + parser XML Rust + Config + profils). Sur PC dev, installer Rust + VS Build Tools puis `npm run tauri:dev` pour valider que la coquille démarre.
 
 ### 2026-05-12 — Itération 6 (samples LMU reçus)
 - ✅ Reçu 3 fichiers XML LMU réels (P1, Q1, R1 sur Monza GT3 GameVersion 0.9200)

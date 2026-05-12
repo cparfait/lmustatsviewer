@@ -1,122 +1,184 @@
-# LMU Stats Viewer — v2 (POC visuel)
+# LMU Stats Viewer — v2
 
-> **POC visuel uniquement.** Pas de Tauri/Rust à ce stade, pas de SQLite, pas d'accès aux fichiers du jeu. Toutes les données affichées sont **mockées** (`src/lib/mockData.ts`). Le but : valider le rendu UI/UX avant l'implémentation du backend natif.
+> **Branche `v2`** — réécriture moderne de [LMU Stats Viewer v1](https://github.com/cparfait/lmustatsviewer/tree/main) en **Tauri 2 + React 19 + Tailwind v4**.
 >
-> Pour le contexte complet du projet et le plan de migration : **lire [`HANDOFF.md`](./HANDOFF.md)**.
+> Phase actuelle : **Phase 0 (Setup) terminée** — la coquille Tauri est en place, le frontend (POC visuel) est complet. Les commandes Rust sont des stubs, à implémenter en Phase 1+.
+>
+> Pour le contexte projet complet et le plan de migration : **lire [`HANDOFF.md`](./HANDOFF.md)**.
 
-![status](https://img.shields.io/badge/status-POC-FFB400) ![stack](https://img.shields.io/badge/stack-Vite%20%2B%20React%2019%20%2B%20Tailwind%20v4-0A0E1A)
+![status](https://img.shields.io/badge/phase-0%20setup-FFB400) ![stack](https://img.shields.io/badge/stack-Tauri%202%20%2B%20React%2019%20%2B%20Tailwind%20v4-0A0E1A)
 
 ---
 
-## Démarrage rapide
+## TL;DR — Lancer le projet
+
+### Mode web (POC visuel — pas besoin de Rust)
 
 ```bash
 git clone https://github.com/cparfait/lmustatsviewer.git
 cd lmustatsviewer
 git checkout v2
 npm install
-npm run dev
+npm run dev          # http://localhost:5173
 ```
 
-Puis ouvrir **http://localhost:5173** dans le navigateur.
+### Mode desktop (Tauri — nécessite Rust)
+
+```bash
+npm run tauri:dev    # ouvre la fenêtre native, hot reload activé
+```
+
+### Build d'un installeur Windows
+
+```bash
+npm run tauri:build  # → src-tauri/target/release/bundle/{nsis,msi}/*.exe
+```
 
 ---
 
 ## Prérequis
 
-### Pour le POC (cette branche)
+### Mode web uniquement (POC visuel)
 
-| Outil | Version min. | Installation |
+| Outil | Version min. | Lien |
 |---|---|---|
-| **Node.js** | 22.x LTS (ou 20.x) | https://nodejs.org/ — installeur officiel Windows |
+| **Node.js** | 22.x LTS (ou 20.x) | https://nodejs.org/ |
 | **npm** | 10.x | livré avec Node.js |
 | **Git** | 2.40+ | https://git-scm.com/download/win |
 
-Vérifie ton install :
+### Mode desktop / build (Tauri)
 
-```bash
-node --version    # v22.x.x
-npm --version     # 10.x.x
-git --version     # 2.x.x
-```
-
-### Pour la future v2 finale (Tauri — Phase 0+)
-
-Quand on attaquera l'intégration Tauri (cf. `HANDOFF.md` § 6 — Phases), il faudra **en plus** :
+En plus de ce qui est listé ci-dessus :
 
 | Outil | Pourquoi | Installation |
 |---|---|---|
-| **Rust** (rustup) | Backend natif Tauri | https://rustup.rs/ → télécharger `rustup-init.exe` et exécuter |
-| **Visual Studio Build Tools** | Compiler le code natif Windows (Rust en a besoin) | https://visualstudio.microsoft.com/visual-cpp-build-tools/ → cocher "Desktop development with C++" (~7 Go) |
-| **WebView2 Runtime** | Moteur de rendu Tauri | Préinstallé sur Windows 11 et Windows 10 récents. Vérif : https://developer.microsoft.com/en-us/microsoft-edge/webview2/ |
-| **Tauri CLI** | Commandes `tauri dev` / `tauri build` | Installé via `cargo install tauri-cli --version "^2.0.0"` après Rust |
+| **Rust** (`rustup`) | Compiler le backend Tauri | https://rustup.rs/ — télécharger `rustup-init.exe` et l'exécuter (toolchain par défaut MSVC stable) |
+| **Visual Studio Build Tools** | Linker C++ requis par MSVC | https://visualstudio.microsoft.com/visual-cpp-build-tools/ — installer "Desktop development with C++" (~7 Go) |
+| **WebView2 Runtime** | Moteur de rendu de la fenêtre Tauri | Préinstallé sur Win 11. Pour Win 10 : https://developer.microsoft.com/en-us/microsoft-edge/webview2/ |
+| **Tauri CLI** | Commandes `tauri dev` / `tauri build` | Installé automatiquement via `npm install` (devDep `@tauri-apps/cli`) |
 
-**Vérification post-install** :
+#### Vérification post-install Rust
 
 ```bash
 rustup --version    # rustup 1.x.x
-rustc --version     # rustc 1.8x.x
+rustc --version     # rustc 1.8x.x (stable-x86_64-pc-windows-msvc)
 cargo --version     # cargo 1.8x.x
 ```
 
-> Note : l'installation de Rust + VS Build Tools représente ~10-15 Go d'espace disque. Compter 30 min d'installation totale.
+> 🕐 **Temps total install Rust + VS Build Tools** : ~30 min, ~12 Go disque.
 
 ---
 
-## Scripts npm disponibles
+## Scripts npm
 
-```bash
-npm run dev       # Lance Vite en mode dev (HMR, port 5173)
-npm run build     # Vérifie TypeScript + build production dans dist/
-npm run preview   # Sert le build de production en local pour test
-```
+| Script | Description |
+|---|---|
+| `npm run dev` | Vite frontend uniquement, port 5173 (mode web pur, données mockées) |
+| `npm run build` | Vérifie TypeScript + build prod dans `dist/` |
+| `npm run preview` | Sert le build de production en local |
+| `npm run tauri:dev` | Lance Vite + Tauri en mode dev (fenêtre native + HMR) |
+| `npm run tauri:build` | Build production : compile Rust + frontend → installeurs `.exe` / `.msi` |
+| `npm run tauri:icon <fichier.png>` | (Re)génère les icônes depuis un PNG source (idéalement 1024x1024) |
 
 ---
 
 ## Structure du projet
 
 ```
-lmustatsviewer/
-├── HANDOFF.md             ← Document de reprise (LIRE EN PREMIER)
-├── CLAUDE.md              ← Instructions pour assistants IA
-├── README.md              ← Ce fichier
-├── samples/               ← Fixtures LMU (XML, .svm) — non commité (cf. .gitignore)
-├── src/
-│   ├── App.tsx            ← Routes + layout (Header + Footer sauf /live)
+lmustatsviewer/                  ← repo, branche v2
+├── HANDOFF.md                   ← Document de reprise (LIRE EN PREMIER)
+├── CLAUDE.md                    ← Instructions pour assistants IA
+├── README.md                    ← Ce fichier
+├── package.json                 ← Frontend + scripts Tauri
+├── vite.config.ts               ← Vite avec settings recommandés pour Tauri
+├── tsconfig.json                ← TS config référencée
+│
+├── src/                         ← Frontend React 19
+│   ├── App.tsx                  ← Routing + layout (Header/Footer sauf /live)
 │   ├── main.tsx
-│   ├── index.css          ← Tailwind v4 + tokens palette "Le Mans dark"
-│   ├── routes/            ← Pages : Dashboard, Sessions, SessionDetail,
-│   │                        Records, Setups, SetupDetail, SetupCompare,
-│   │                        Live, Config
+│   ├── index.css                ← Tailwind v4 + tokens palette "Le Mans dark"
+│   ├── routes/                  ← Pages : Dashboard, Sessions, SessionDetail,
+│   │                              Records, Setups, SetupDetail, SetupCompare,
+│   │                              Live, Config
 │   ├── components/
-│   │   ├── ui/            ← Primitives shadcn-style (Button, Card, Badge, Table, ...)
-│   │   └── layout/        ← Header, Footer, ScrollToTop
-│   ├── stores/            ← Zustand-lite : theme, version active
+│   │   ├── ui/                  ← Primitives shadcn-style
+│   │   └── layout/              ← Header, Footer, ScrollToTop
+│   ├── stores/                  ← theme + version active (Zustand-lite hooks)
 │   └── lib/
-│       ├── mockData.ts    ← TOUTES les données mockées (à remplacer en Phase 1+)
-│       └── utils.ts       ← cn() + helpers de formatage (lap time, delta, secteurs)
-├── public/
-├── package.json
-├── vite.config.ts
-├── tsconfig.json
-└── tailwind config        ← géré via @tailwindcss/vite + tokens dans index.css
+│       ├── tauri.ts             ← Bridge IPC typé avec fallback web (NOUVEAU)
+│       ├── mockData.ts          ← Données mockées (remplacées en Phase 1+)
+│       └── utils.ts             ← cn() + helpers de formatage
+│
+├── src-tauri/                   ← Backend Rust (NOUVEAU — Phase 0)
+│   ├── Cargo.toml
+│   ├── build.rs
+│   ├── tauri.conf.json          ← Config app (window, bundle, plugins)
+│   ├── capabilities/
+│   │   └── default.json         ← Permissions IPC
+│   ├── icons/                   ← Icônes générées (32, 128, 256, 512, .ico)
+│   └── src/
+│       ├── main.rs              ← Entry point
+│       ├── lib.rs               ← Builder Tauri + handler IPC
+│       ├── error.rs             ← AppError unifié (sérialisable vers JS)
+│       └── commands/
+│           ├── mod.rs
+│           └── system.rs        ← get_app_version, get_platform, ping
+│
+├── samples/                     ← Fixtures LMU (XML, .svm) — non commité (.gitignore)
+│
+└── .github/workflows/
+    └── release.yml              ← CI : push tag v2.* → installeurs .exe + GitHub Release
 ```
 
 ---
 
-## Pages disponibles
+## Pages disponibles (frontend)
 
 | Route | Description |
 |---|---|
-| `/` | **Dashboard** — stats globales, meilleurs temps par circuit, progression Hypercar, graphes secondaires |
-| `/sessions` | **Sessions** — liste filtrée par version active, cliquable vers détail |
-| `/sessions/:id` | **Race Details** — info cards, classement enrichi, 8 onglets (Résultat, Tours, Meilleurs tours, Stratégie, Incidents, Pénalités, Chat, Comparaison pilotes) |
-| `/records` | **Records personnels** — groupage par circuit avec drapeau, toutes les colonnes du v1 |
+| `/` | **Dashboard** — stats globales, meilleurs temps, progression Hypercar, 3 graphes secondaires |
+| `/sessions` | **Sessions** — liste filtrée par version active, ligne cliquable |
+| `/sessions/:id` | **Race Details** — info cards + 8 onglets (Résultat, Tours, Meilleurs tours, Stratégie, Incidents, Pénalités, Chat, Comparaison) |
+| `/records` | **Records personnels** — groupage par circuit avec drapeau, toutes colonnes v1 |
 | `/setups` | **Car setups** — liste hiérarchique Voiture → Circuit → Setups |
 | `/setups/:id` | **Setup detail** — sections repliables, édition inline |
-| `/setups/compare` | **Setup compare** — comparaison 2 setups côte à côte, diff highlightée |
-| `/live` | **Live page** (fullscreen, sans header/footer) — dashboard 4ᵉ écran avec mock telemetry animée |
+| `/setups/compare` | **Setup compare** — 2 setups côte à côte, diff highlightée |
+| `/live` | **Live page** (fullscreen, sans Header/Footer) — dashboard 4ᵉ écran avec mock telemetry |
 | `/config` | **Configuration** — chemins jeu, versions, profil, ohne_speed, maintenance |
+
+---
+
+## Workflow dev typique
+
+```bash
+# Mode web rapide (pas besoin de recompiler Rust)
+npm run dev
+
+# Mode Tauri (fenêtre native, hot reload sur le frontend + recompilation Rust si modif)
+npm run tauri:dev
+
+# Quand tu modifies du Rust :
+# Tauri détecte le changement et recompile automatiquement (10-60s selon le diff)
+
+# Pour tester un build de prod localement :
+npm run tauri:build
+# → ouvre src-tauri/target/release/bundle/nsis/LMU Stats Viewer_2.0.0_x64-setup.exe
+```
+
+---
+
+## CI / Release
+
+Le workflow `.github/workflows/release.yml` se déclenche **automatiquement** sur push d'un tag `v2.*` :
+
+```bash
+git tag v2.0.0
+git push origin v2.0.0
+```
+
+→ GitHub Actions build sur `windows-latest`, génère installeurs NSIS + MSI, crée une **GitHub Release en brouillon** avec les binaires attachés. Tu valides et publies manuellement.
+
+Le job `check-frontend` tourne aussi à chaque push pour vérifier que `npm run build` passe sans erreur TypeScript.
 
 ---
 
@@ -125,29 +187,19 @@ lmustatsviewer/
 Palette **Le Mans dark** :
 - Background `#0A0E1A` (bleu nuit profond)
 - Primary `#FFB400` (jaune Le Mans iconique)
-- Tiers : Alien (jaune), Pro (orange), Semi-Pro (vert), Amateur (cyan), Offline (gris)
+- Tiers ohne_speed : Alien (jaune), Pro (orange), Semi-Pro (vert), Amateur (cyan), Offline (gris)
 - Toggle dark/light via le bouton ☀/🌙 du Header
 - Persistance localStorage
 
 ---
 
-## Stack technique du POC
-
-- **Vite 6** + **React 19** + **TypeScript 5.7**
-- **Tailwind v4** (config CSS-first via `@tailwindcss/vite`)
-- **shadcn-style** UI primitives codées à la main (Button, Card, Badge, Table, Accordion, Tabs, DropdownMenu, Switch, Input, Separator)
-- **React Router v7** pour le routing client
-- **Recharts** pour les graphiques (LineChart, AreaChart, BarChart, RadialBar)
-- **lucide-react** pour les icônes
-- **Zustand-lite** (hooks custom) pour theme + version active
-
----
-
 ## Liens
 
-- 🐙 Repo : https://github.com/cparfait/lmustatsviewer
-- 📋 HANDOFF.md : contexte complet et roadmap
-- ☕ Buy me a coffee : (bouton en footer dans l'app)
+- 🐙 **Repo** : https://github.com/cparfait/lmustatsviewer
+- 📋 **HANDOFF.md** : contexte complet, décisions, roadmap des phases 0→6
+- ☕ **Buy me a coffee** : (bouton en footer dans l'app)
+- 📦 **Tauri docs** : https://v2.tauri.app/
+- 🎨 **shadcn/ui** (inspiration) : https://ui.shadcn.com/
 
 ---
 

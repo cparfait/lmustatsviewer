@@ -1,0 +1,82 @@
+name: Release Tauri
+
+# Builds an installer (.exe NSIS + .msi WiX) on Windows quand un tag v2.* est poussé.
+# Crée automatiquement une GitHub Release avec les binaires attachés.
+
+on:
+  push:
+    tags:
+      - "v2.*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest]
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "LMU Stats Viewer ${{ github.ref_name }}"
+          releaseBody: |
+            Voir [CHANGELOG.md](CHANGELOG.md) pour les détails.
+
+            ## Installation Windows
+            Télécharger `LMU.Stats.Viewer_${{ github.ref_name }}_x64-setup.exe` (NSIS) ou
+            `LMU.Stats.Viewer_${{ github.ref_name }}_x64_en-US.msi` (MSI), puis lancer.
+
+            ⚠️ Première installation : Windows SmartScreen peut afficher un avertissement
+            (binaire non signé). Cliquer sur "Informations complémentaires" puis "Exécuter
+            quand même".
+          releaseDraft: true
+          prerelease: false
+          args: --target x86_64-pc-windows-msvc
+
+  # Job léger : vérifie que le build POC web tourne toujours
+  check-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build

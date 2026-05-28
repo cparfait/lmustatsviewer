@@ -138,9 +138,10 @@ if (-not $SkipBuild) {
     Write-Step "Compilation (5-10 min)"
 
     if ($signed) {
-        $signingKey = (Get-Content $keyFile -Raw).Trim()
-        $env:TAURI_SIGNING_PRIVATE_KEY = $signingKey
-        Write-Ok "Cle de signature chargee"
+        $signingKey = [System.IO.File]::ReadAllText($keyFile, [System.Text.UTF8Encoding]::new($false)).Trim()
+        $env:TAURI_SIGNING_PRIVATE_KEY          = $signingKey
+        $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
+        Write-Ok "Cle de signature chargee (sans mot de passe)"
     } else {
         Write-Warn "Build sans signature"
     }
@@ -153,7 +154,8 @@ if (-not $SkipBuild) {
         Write-Fail "Erreur de build : $_"
         exit 1
     } finally {
-        $env:TAURI_SIGNING_PRIVATE_KEY = ""
+        $env:TAURI_SIGNING_PRIVATE_KEY          = ""
+        $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
         Remove-Variable signingKey -ErrorAction SilentlyContinue
     }
 

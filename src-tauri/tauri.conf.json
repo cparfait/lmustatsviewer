@@ -46,11 +46,15 @@
     "category": "Utility",
     "shortDescription": "Statistiques et analyses pour Le Mans Ultimate",
     "longDescription": "Le Mans Ultimate Stats Viewer — visualise tes sessions, analyses tes courses, compare aux temps de la communauté ohne_speed, gère tes setups (.svm). Lit directement les fichiers du jeu, fonctionne 100% en local.",
+    "resources": {
+      "nsis/rFactor2SharedMemoryMapPlugin64.dll": "rFactor2SharedMemoryMapPlugin64.dll"
+    },
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"
       },
       "nsis": {
+        "installerHooks": "nsis/hooks.nsi",
         "displayLanguageSelector": true,
         "languages": ["French", "English"]
       }

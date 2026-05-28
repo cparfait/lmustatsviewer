@@ -1,0 +1,9 @@
+# Fichiers binaires — pas de conversion de fins de ligne
+*.dll binary
+*.exe binary
+*.ico binary
+*.icns binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.svm binary

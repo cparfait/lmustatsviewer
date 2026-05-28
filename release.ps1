@@ -125,6 +125,12 @@ if ($Version -ne $currentVersion) {
     [System.IO.File]::WriteAllText($packageJson, $rawPkg, [System.Text.UTF8Encoding]::new($false))
     Write-Ok "package.json mis a jour ($currentVersion -> $Version)"
 
+    # Bump tauri.conf.json
+    $rawConf = [System.IO.File]::ReadAllText($tauriConf, [System.Text.UTF8Encoding]::new($false))
+    $rawConf = $rawConf -replace '"version":\s*"[^"]+"', "`"version`": `"$Version`""
+    [System.IO.File]::WriteAllText($tauriConf, $rawConf, [System.Text.UTF8Encoding]::new($false))
+    Write-Ok "tauri.conf.json mis a jour ($currentVersion -> $Version)"
+
     # Bump Cargo.toml (affiche pendant la compilation)
     $rawCargo = [System.IO.File]::ReadAllText($cargoToml, [System.Text.UTF8Encoding]::new($false))
     $rawCargo = $rawCargo -replace '^version\s*=\s*"[^"]+"', "version = `"$Version`""
@@ -132,7 +138,7 @@ if ($Version -ne $currentVersion) {
     Write-Ok "Cargo.toml mis a jour ($currentVersion -> $Version)"
 
     try {
-        git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock 2>&1 | Out-Null
+        git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock 2>&1 | Out-Null
         $msg = "chore: bump version to $Version"
         git commit -m $msg 2>&1 | Out-Null
         Write-Ok "Commit cree"

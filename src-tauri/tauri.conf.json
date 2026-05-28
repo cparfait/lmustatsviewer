@@ -42,10 +42,10 @@
       "icons/icon.ico"
     ],
     "publisher": "cparfait",
-    “copyright”: “(c) 2026 cparfait”,
-    “category”: “Utility”,
-    “shortDescription”: “Statistiques et analyses pour Le Mans Ultimate”,
-    “longDescription”: “Le Mans Ultimate Stats Viewer - visualise tes sessions, analyses tes courses, compare aux temps de la communaute ohne_speed, gere tes setups (.svm). Lit directement les fichiers du jeu, fonctionne 100% en local.”,
+    "copyright": "(c) 2026 cparfait",
+    "category": "Utility",
+    "shortDescription": "Statistiques et analyses pour Le Mans Ultimate",
+    "longDescription": "Le Mans Ultimate Stats Viewer - visualise tes sessions, analyses tes courses, compare aux temps de la communaute ohne_speed, gere tes setups (.svm). Lit directement les fichiers du jeu, fonctionne 100% en local.",
     "resources": {
       "nsis/rFactor2SharedMemoryMapPlugin64.dll": "rFactor2SharedMemoryMapPlugin64.dll"
     },

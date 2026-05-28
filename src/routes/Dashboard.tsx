@@ -443,9 +443,6 @@ export function Dashboard() {
               </Button>
             )}
           </div>
-          <span className="text-xs text-muted-foreground">
-            {t("dashboard.recordsCount", { count: visibleBestLaps.length })}
-          </span>
         </CardContent>
       </Card>
 

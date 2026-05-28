@@ -205,9 +205,11 @@ if (Test-Path $sigPath) {
 }
 
 # Generer latest.json (requis par le plugin updater Tauri)
-$repoBase  = "https://github.com/cparfait/lmustatsviewer"
-$pubDate   = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
-$exeUrl    = "$repoBase/releases/download/v$Version/LMU%20Stats%20Viewer_${Version}_x64-setup.exe"
+$repoBase    = "https://github.com/cparfait/lmustatsviewer"
+$pubDate     = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+# GitHub remplace les espaces par des points dans les noms d'assets
+$exeNameUrl  = $exeName -replace ' ', '.'
+$exeUrl      = "$repoBase/releases/download/v$Version/$exeNameUrl"
 
 # Echapper la signature pour JSON (remplacer les retours a la ligne)
 $sigJson   = $signature -replace '\\', '\\' -replace '"', '\"' -replace "`r`n", '\n' -replace "`n", '\n'

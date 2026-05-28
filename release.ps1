@@ -1,13 +1,11 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# release.ps1 — Script de release LMU Stats Viewer
+# release.ps1 - Script de release LMU Stats Viewer
 #
 # Usage :
-#   .\release.ps1                  → demande la version, build, instructions GitHub
-#   .\release.ps1 -Version 3.1.0   → force une version précise (pas d'invite)
-#   .\release.ps1 -SkipBuild       → repackage sans recompiler (si déjà compilé)
+#   .\release.ps1                 -> invite version, build, instructions GitHub
+#   .\release.ps1 -Version 3.1.0  -> force une version precise (pas d'invite)
+#   .\release.ps1 -SkipBuild      -> repackage sans recompiler
 #
-# Prérequis : Node.js, Rust/Cargo, _lmu_updater.key dans le dossier racine.
-# ─────────────────────────────────────────────────────────────────────────────
+# Prerequis : Node.js, Rust/Cargo, _lmu_updater.key dans le dossier racine.
 
 param(
     [string]$Version  = "",
@@ -17,11 +15,10 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Write-Step { param($msg) Write-Host "`n▶  $msg" -ForegroundColor Cyan }
-function Write-Ok   { param($msg) Write-Host "   ✓  $msg" -ForegroundColor Green }
-function Write-Warn { param($msg) Write-Host "   ⚠  $msg" -ForegroundColor Yellow }
-function Write-Fail { param($msg) Write-Host "   ✗  $msg" -ForegroundColor Red }
-function Write-Info { param($msg) Write-Host "   →  $msg" -ForegroundColor Gray }
+function Write-Step { param($msg) Write-Host "" ; Write-Host ">> $msg" -ForegroundColor Cyan }
+function Write-Ok   { param($msg) Write-Host "   OK  $msg" -ForegroundColor Green }
+function Write-Warn { param($msg) Write-Host "   !!  $msg" -ForegroundColor Yellow }
+function Write-Fail { param($msg) Write-Host "   XX  $msg" -ForegroundColor Red }
 
 $Root = $PSScriptRoot
 if (-not $Root) { $Root = Get-Location }
@@ -30,20 +27,20 @@ Set-Location $Root
 $tauriConf = Join-Path $Root "src-tauri\tauri.conf.json"
 $keyFile   = Join-Path $Root "_lmu_updater.key"
 
-# ── Titre ─────────────────────────────────────────────────────────────────────
+# Titre
 Write-Host ""
-Write-Host "════════════════════════════════════════════" -ForegroundColor Magenta
-Write-Host "   LMU Stats Viewer — Release Builder"       -ForegroundColor Magenta
-Write-Host "════════════════════════════════════════════" -ForegroundColor Magenta
+Write-Host "============================================" -ForegroundColor Magenta
+Write-Host "   LMU Stats Viewer - Release Builder"      -ForegroundColor Magenta
+Write-Host "============================================" -ForegroundColor Magenta
 
-# ── Lecture de la version actuelle ────────────────────────────────────────────
+# Lecture de la version actuelle
 if (-not (Test-Path $tauriConf)) {
-    Write-Fail "tauri.conf.json introuvable — lancez le script depuis la racine du projet."
+    Write-Fail "tauri.conf.json introuvable - lancez le script depuis la racine du projet."
     exit 1
 }
 $currentVersion = (Get-Content $tauriConf -Raw | ConvertFrom-Json).version
 
-# ── Invite de version (première interaction, avant tout le reste) ─────────────
+# Invite de version
 if ($Version -eq "") {
     $parts     = $currentVersion -split '\.'
     $major     = [int]$parts[0]
@@ -57,28 +54,29 @@ if ($Version -eq "") {
     Write-Host "  Version actuelle : $currentVersion" -ForegroundColor White
     Write-Host ""
     Write-Host "  Nouvelle version :" -ForegroundColor White
-    Write-Host "    [1]  Patch  →  $bumpPatch   (corrections de bugs)"       -ForegroundColor Gray
-    Write-Host "    [2]  Minor  →  $bumpMinor   (nouvelles fonctionnalités)"  -ForegroundColor Gray
-    Write-Host "    [3]  Major  →  $bumpMajor   (changements importants)"     -ForegroundColor Gray
-    Write-Host "    [4]  Autre  →  saisir manuellement"                       -ForegroundColor Gray
-    Write-Host "  [Entrée]  →  garder $currentVersion (build sans bump)"     -ForegroundColor DarkGray
+    Write-Host "    [1]  Patch  ->  $bumpPatch   (corrections de bugs)"      -ForegroundColor Gray
+    Write-Host "    [2]  Minor  ->  $bumpMinor   (nouvelles fonctionnalites)" -ForegroundColor Gray
+    Write-Host "    [3]  Major  ->  $bumpMajor   (changements importants)"    -ForegroundColor Gray
+    Write-Host "    [4]  Autre  ->  saisir manuellement"                      -ForegroundColor Gray
+    Write-Host "  [Entree]  ->  garder $currentVersion (build sans bump)"     -ForegroundColor DarkGray
     Write-Host ""
 
-    $choice = Read-Host "  Choix"
+    $choice = (Read-Host "  Choix").Trim()
 
-    switch ($choice.Trim()) {
-        "1"  { $Version = $bumpPatch }
-        "2"  { $Version = $bumpMinor }
-        "3"  { $Version = $bumpMajor }
-        "4"  {
-                Write-Host ""
-                $Version = (Read-Host "  Version (ex: 3.1.0)").Trim()
-             }
-        ""   { $Version = $currentVersion }
-        default {
-            Write-Warn "Choix non reconnu — version inchangée."
-            $Version = $currentVersion
-        }
+    if ($choice -eq "1") {
+        $Version = $bumpPatch
+    } elseif ($choice -eq "2") {
+        $Version = $bumpMinor
+    } elseif ($choice -eq "3") {
+        $Version = $bumpMajor
+    } elseif ($choice -eq "4") {
+        Write-Host ""
+        $Version = (Read-Host "  Version (ex: 3.1.0)").Trim()
+    } elseif ($choice -eq "") {
+        $Version = $currentVersion
+    } else {
+        Write-Warn "Choix non reconnu - version inchangee."
+        $Version = $currentVersion
     }
 }
 
@@ -89,58 +87,62 @@ if ($Version -notmatch '^\d+\.\d+\.\d+$') {
 }
 
 Write-Host ""
-Write-Host "  ──────────────────────────────────────────" -ForegroundColor DarkGray
+Write-Host "  --------------------------------------------" -ForegroundColor DarkGray
 Write-Host "  Version cible : $Version" -ForegroundColor White
 if ($Version -ne $currentVersion) {
-    Write-Host "  Bump : $currentVersion  →  $Version" -ForegroundColor DarkGray
+    Write-Host "  Bump : $currentVersion -> $Version" -ForegroundColor DarkGray
 }
-Write-Host "  ──────────────────────────────────────────" -ForegroundColor DarkGray
+Write-Host "  --------------------------------------------" -ForegroundColor DarkGray
 
-# ── Prérequis ─────────────────────────────────────────────────────────────────
-Write-Step "Prérequis"
+# Prerequis
+Write-Step "Prerequis"
 
+$signed = $false
 if (-not (Test-Path $keyFile)) {
-    Write-Warn "_lmu_updater.key introuvable — build sans signature (auto-update désactivé)"
-    $signed = $false
+    Write-Warn "_lmu_updater.key introuvable - build sans signature (auto-update desactive)"
 } else {
-    Write-Ok "_lmu_updater.key trouvé"
+    Write-Ok "_lmu_updater.key trouve"
     $signed = $true
 }
 
-# ── Bump de version dans tauri.conf.json ──────────────────────────────────────
+# Bump de version dans tauri.conf.json
 if ($Version -ne $currentVersion) {
-    Write-Step "Mise à jour de la version"
+    Write-Step "Mise a jour de la version"
+
     $rawConf = Get-Content $tauriConf -Raw
     $rawConf = $rawConf -replace '"version":\s*"[^"]+"', "`"version`": `"$Version`""
     Set-Content $tauriConf $rawConf -NoNewline -Encoding UTF8
-    Write-Ok "tauri.conf.json  ($currentVersion → $Version)"
+    Write-Ok "tauri.conf.json mis a jour ($currentVersion -> $Version)"
 
     try {
         git add src-tauri/tauri.conf.json 2>&1 | Out-Null
-        git commit -m "chore: bump version to $Version" 2>&1 | Out-Null
-        Write-Ok "Commit créé"
+        $msg = "chore: bump version to $Version"
+        git commit -m $msg 2>&1 | Out-Null
+        Write-Ok "Commit cree"
     } catch {
-        Write-Warn "Commit git échoué (continuons quand même)"
+        Write-Warn "Commit git echoue (continuons quand meme)"
     }
 } else {
     Write-Step "Version"
-    Write-Ok "Version inchangée : $Version"
+    Write-Ok "Version inchangee : $Version"
 }
 
-# ── Build ─────────────────────────────────────────────────────────────────────
+# Build
 if (-not $SkipBuild) {
-    Write-Step "Compilation  (5-10 min — vous pouvez aller faire un café ☕)"
+    Write-Step "Compilation (5-10 min)"
 
     if ($signed) {
         $signingKey = (Get-Content $keyFile -Raw).Trim()
         $env:TAURI_SIGNING_PRIVATE_KEY = $signingKey
-        Write-Ok "Clé de signature chargée"
+        Write-Ok "Cle de signature chargee"
+    } else {
+        Write-Warn "Build sans signature"
     }
 
     $buildStart = Get-Date
     try {
         & npm run tauri:build
-        if ($LASTEXITCODE -ne 0) { throw "Build échoué (code $LASTEXITCODE)" }
+        if ($LASTEXITCODE -ne 0) { throw "Build echoue (code $LASTEXITCODE)" }
     } catch {
         Write-Fail "Erreur de build : $_"
         exit 1
@@ -150,78 +152,80 @@ if (-not $SkipBuild) {
     }
 
     $elapsed = [int]((Get-Date) - $buildStart).TotalSeconds
-    Write-Ok "Compilé en ${elapsed}s"
+    Write-Ok "Compile en ${elapsed}s"
 } else {
     Write-Step "Build"
-    Write-Warn "Compilation ignorée (-SkipBuild)"
+    Write-Warn "Compilation ignoree (-SkipBuild)"
 }
 
-# ── Artefacts ─────────────────────────────────────────────────────────────────
+# Artefacts
 Write-Step "Artefacts"
 
 $bundleDir = Join-Path $Root "src-tauri\target\release\bundle\nsis"
-$artifacts = [ordered]@{
-    "Installeur"       = "LMU Stats Viewer_${Version}_x64-setup.exe"
-    "Manifeste update" = "latest.json"
-    "Archive update"   = "LMU Stats Viewer_${Version}_x64-setup.nsis.zip"
-    "Signature"        = "LMU Stats Viewer_${Version}_x64-setup.nsis.zip.sig"
-}
+$names = @(
+    "LMU Stats Viewer_${Version}_x64-setup.exe",
+    "latest.json",
+    "LMU Stats Viewer_${Version}_x64-setup.nsis.zip",
+    "LMU Stats Viewer_${Version}_x64-setup.nsis.zip.sig"
+)
 
 $allFound     = $true
 $filesToUpload = @()
-foreach ($label in $artifacts.Keys) {
-    $path = Join-Path $bundleDir $artifacts[$label]
+foreach ($name in $names) {
+    $path = Join-Path $bundleDir $name
     if (Test-Path $path) {
         $size = [math]::Round((Get-Item $path).Length / 1MB, 2)
-        Write-Ok "$label  — $($artifacts[$label])  (${size} MB)"
+        Write-Ok "$name  (${size} MB)"
         $filesToUpload += $path
     } else {
-        Write-Warn "$label introuvable : $($artifacts[$label])"
-        if ($label -eq "Installeur") { $allFound = $false }
+        Write-Warn "Introuvable : $name"
+        if ($name -like "*setup.exe") { $allFound = $false }
     }
 }
 
 if (-not $allFound) {
-    Write-Fail "L'installeur est manquant — vérifiez les erreurs ci-dessus."
+    Write-Fail "L'installeur est manquant - verifiez les erreurs ci-dessus."
     exit 1
 }
 
-# ── Push ──────────────────────────────────────────────────────────────────────
+# Push
 if ($Version -ne $currentVersion) {
     Write-Step "Push"
     try {
         git push origin V2 2>&1 | Out-Null
-        Write-Ok "Commit de version pushé (branche V2)"
+        Write-Ok "Commit de version pousse (branche V2)"
     } catch {
-        Write-Warn "Push échoué — faites-le manuellement : git push origin V2"
+        Write-Warn "Push echoue - faites-le manuellement : git push origin V2"
     }
 }
 
-# ── Récap final ───────────────────────────────────────────────────────────────
+# Recapitulatif
 Write-Host ""
-Write-Host "════════════════════════════════════════════" -ForegroundColor Green
-Write-Host "   ✓  Build v$Version terminé !"              -ForegroundColor Green
-Write-Host "════════════════════════════════════════════" -ForegroundColor Green
+Write-Host "============================================" -ForegroundColor Green
+Write-Host "   Build v$Version termine avec succes !"   -ForegroundColor Green
+Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "  GitHub Release — étapes :" -ForegroundColor White
+Write-Host "  GitHub Release :" -ForegroundColor White
+Write-Host "    Tag   : v$Version" -ForegroundColor Gray
+Write-Host "    Titre : LMU Stats Viewer v$Version" -ForegroundColor Gray
 Write-Host ""
-Write-Host "    Tag   :  v$Version" -ForegroundColor Gray
-Write-Host "    Titre :  LMU Stats Viewer v$Version" -ForegroundColor Gray
-Write-Host ""
-Write-Host "  Fichiers à joindre :" -ForegroundColor White
+Write-Host "  Fichiers a joindre :" -ForegroundColor White
 foreach ($f in $filesToUpload) {
-    Write-Host "    • $(Split-Path $f -Leaf)" -ForegroundColor Yellow
+    Write-Host "    - $(Split-Path $f -Leaf)" -ForegroundColor Yellow
 }
 Write-Host ""
 Write-Host "  Dossier : $bundleDir" -ForegroundColor DarkCyan
 Write-Host ""
 
-$r1 = Read-Host "  Ouvrir le dossier artefacts dans l'Explorateur ? [O/n]"
-if ($r1 -notmatch '^[nN]') { Start-Process "explorer.exe" $bundleDir }
+$r1 = (Read-Host "  Ouvrir le dossier artefacts dans l'Explorateur ? [O/n]").Trim()
+if ($r1 -notmatch '^[nN]') {
+    Start-Process "explorer.exe" $bundleDir
+}
 
-$r2 = Read-Host "  Ouvrir GitHub Releases dans le navigateur ? [O/n]"
+$r2 = (Read-Host "  Ouvrir GitHub Releases dans le navigateur ? [O/n]").Trim()
 if ($r2 -notmatch '^[nN]') {
-    Start-Process "https://github.com/cparfait/lmustatsviewer/releases/new?tag=v$Version&title=LMU+Stats+Viewer+v$Version"
+    $url = "https://github.com/cparfait/lmustatsviewer/releases/new?tag=v$Version&title=LMU+Stats+Viewer+v$Version"
+    Start-Process $url
 }
 
 Write-Host ""

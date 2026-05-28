@@ -7,7 +7,7 @@
  */
 
 import { check, type Update } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
+import { relaunch, exit } from "@tauri-apps/plugin-process";
 
 /** Vérifie la disponibilité d'une mise à jour. `null` si à jour. */
 export async function checkForUpdate(): Promise<Update | null> {
@@ -34,5 +34,8 @@ export async function downloadAndRelaunch(
       onProgress(1);
     }
   });
-  await relaunch();
+  // NSIS gere lui-meme le redemarrage de l'app apres installation.
+  // On ferme le processus courant pour liberer les fichiers avant que
+  // l'installeur les remplace (relaunch() relancerait l'ancien exe).
+  await exit(0);
 }

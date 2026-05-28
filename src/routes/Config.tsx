@@ -41,6 +41,7 @@ import {
   Zap,
   Check,
   ChevronDown,
+  BarChart2,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { useTheme } from "@/stores/theme";
@@ -73,6 +74,7 @@ export function Config() {
   const autoIndex = useAppStore((s) => s.autoIndex);
   const systemTray = useAppStore((s) => s.systemTray);
   const autoUpdate = useAppStore((s) => s.autoUpdate);
+  const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
   const indexing = useAppStore((s) => s.indexing);
   const indexReport = useAppStore((s) => s.indexReport);
 
@@ -185,6 +187,7 @@ export function Config() {
       </div>
 
       <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
 
           {/* ── Joueur & dossier ──────────────────────────────────────────── */}
           <Card>
@@ -462,49 +465,14 @@ export function Config() {
                 checked={autoUpdate}
                 onChange={(v) => useAppStore.getState().setAutoUpdate(v)}
               />
-            </CardContent>
-          </Card>
-
-          {/* ── À propos ─────────────────────────────────────────────────── */}
-          <Card>
-            <CardHeader className="pb-2 px-4 pt-4">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 text-primary">
-                  <Info className="h-3.5 w-3.5" />
-                </div>
-                <CardTitle className="text-sm">{t("config.about")}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-3 space-y-2">
-              <div className="flex items-center justify-between px-2.5 py-2 rounded-md bg-muted/40">
-                <span className="text-xs text-muted-foreground">{t("config.version")}</span>
-                <span className="font-mono text-sm font-semibold text-primary">
-                  v{appVersion}
-                </span>
-              </div>
-              <Link
-                to="/changelog"
-                className="flex items-center justify-between px-2.5 py-2 rounded-md bg-muted/40 hover:bg-muted/60 transition-colors group"
-              >
-                <span className="flex items-center gap-1.5 text-sm">
-                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                  {t("changelog.title")}
-                </span>
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start gap-1.5 h-8 text-xs"
-                onClick={() => {
-                  import("@tauri-apps/api/event").then(({ emit }) =>
-                    emit("tray-check-update")
-                  );
-                }}
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                {t("updater.checkButton")}
-              </Button>
+              <Separator />
+              <ToggleRow
+                icon={<BarChart2 className="h-4 w-4" />}
+                label={t("config.ohneSpeed")}
+                desc={t("config.ohneSpeedDesc")}
+                checked={showOhneSpeed}
+                onChange={(v) => useAppStore.getState().setShowOhneSpeed(v)}
+              />
             </CardContent>
           </Card>
 
@@ -604,6 +572,50 @@ export function Config() {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+          </div>{/* fin grille 2×2 */}
+
+          {/* ── À propos — pleine largeur ──────────────────────────────── */}
+          <Card>
+            <CardHeader className="pb-2 px-4 pt-4">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 text-primary">
+                  <Info className="h-3.5 w-3.5" />
+                </div>
+                <CardTitle className="text-sm">{t("config.about")}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-3 space-y-2">
+              <div className="flex items-center justify-between px-2.5 py-2 rounded-md bg-muted/40">
+                <span className="text-xs text-muted-foreground">{t("config.version")}</span>
+                <span className="font-mono text-sm font-semibold text-primary">
+                  v{appVersion}
+                </span>
+              </div>
+              <Link
+                to="/changelog"
+                className="flex items-center justify-between px-2.5 py-2 rounded-md bg-muted/40 hover:bg-muted/60 transition-colors group"
+              >
+                <span className="flex items-center gap-1.5 text-sm">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                  {t("changelog.title")}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start gap-1.5 h-8 text-xs"
+                onClick={() => {
+                  import("@tauri-apps/api/event").then(({ emit }) =>
+                    emit("tray-check-update")
+                  );
+                }}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t("updater.checkButton")}
+              </Button>
             </CardContent>
           </Card>
       </div>

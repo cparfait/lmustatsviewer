@@ -31,3 +31,16 @@ pub fn get_platform() -> PlatformInfo {
 pub fn ping(message: String) -> String {
     format!("pong: {message}")
 }
+
+/// Vérifie si le plugin shared memory rF2 est installé dans le dossier Plugins de LMU.
+/// Retourne `false` si `lmu_path` est vide ou si le DLL est absent.
+#[tauri::command]
+pub fn check_plugin_installed(lmu_path: String) -> bool {
+    if lmu_path.is_empty() {
+        return false;
+    }
+    std::path::Path::new(&lmu_path)
+        .join("Plugins")
+        .join("rFactor2SharedMemoryMapPlugin64.dll")
+        .exists()
+}

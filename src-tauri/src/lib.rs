@@ -32,6 +32,7 @@ pub fn run() {
             commands::system::get_app_version,
             commands::system::get_platform,
             commands::system::ping,
+            commands::system::check_plugin_installed,
             // Configuration + détection du jeu
             commands::config::get_config,
             commands::config::set_config,
@@ -52,8 +53,10 @@ pub fn run() {
             commands::queries::get_game_versions,
             commands::queries::get_sessions_list,
             commands::queries::get_sessions_overview,
-            // Détail d'une session
+            // Détail d'une session + graphe de tours
             commands::session_detail::get_session_detail,
+            commands::session_detail::get_lap_chart_data,
+            commands::session_detail::get_chart_compare_sessions,
             // Garage — configurations de voiture (.svm)
             commands::setups::scan_setups,
             commands::setups::list_setups,

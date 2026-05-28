@@ -53,18 +53,9 @@ import {
   TIER_COLORS,
   type PaceBenchmark,
 } from "@/lib/ohne_speed";
+import { TierBadge, OHNE_CLASS } from "@/components/TierBadge";
 
-// ── Mapping classe interne → classe ohne_speed ───────────────────────────────
-const OHNE_CLASS: Record<string, string> = {
-  Hyper: "Hypercar",
-  Hypercar: "Hypercar",
-  "LMP2 ELMS": "LMP2_ELMS",
-  LMP2: "LMP2_WEC",
-  "LMP2 WEC": "LMP2_WEC",
-  LMP3: "LMP3",
-  GT3: "GT3",
-  GTE: "GTE",
-};
+// OHNE_CLASS importé depuis @/components/TierBadge
 
 function fmtDateShort(ts: number): string {
   const d = new Date(ts * 1000);
@@ -417,40 +408,6 @@ function Overview({
         ))
       )}
     </div>
-  );
-}
-
-// ── Badge de niveau ohne_speed ───────────────────────────────────────────────
-
-function TierBadge({
-  benchmarks,
-  track,
-  layout,
-  carClass,
-  lapSeconds,
-}: {
-  benchmarks: PaceBenchmark[] | null;
-  track: string;
-  layout: string;
-  carClass: string;
-  lapSeconds: number;
-}) {
-  const muted = <span className="text-muted-foreground/40">—</span>;
-  if (!benchmarks || benchmarks.length === 0) return muted;
-  const ohneClass = OHNE_CLASS[carClass];
-  if (!ohneClass) return muted;
-  const bm = findBenchmark(benchmarks, track, ohneClass, layout);
-  if (!bm) return muted;
-  const { tier } = computeTier(lapSeconds * 1000, bm);
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
-        TIER_COLORS[tier]
-      )}
-    >
-      {TIER_LABELS[tier]}
-    </span>
   );
 }
 

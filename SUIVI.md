@@ -2,7 +2,7 @@
 
 > **Document de reprise du projet. À LIRE EN PREMIER.**
 > Mettre à jour la section « Journal de bord » à chaque session de travail.
-> Dernière mise à jour : 2026-05-28 (suite 2)
+> Dernière mise à jour : 2026-05-28 (suite 12)
 
 ---
 
@@ -199,12 +199,29 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 - Le `.git` de `zz_V1` est verrouillé (fichiers `.lock` périmés) — non bloquant, le code est ailleurs.
 - ohne_speed : CSV public Google Sheets, mapping circuits/classes, calcul tier + delta vs Alien.
 - Live : plugin shared memory rF2 (`$rFactor2SMMP_Telemetry$` / `$rFactor2SMMP_Scoring$`) — l'utilisateur doit l'installer dans `<LMU>/Plugins/`.
+- **À faire — badge Online/Solo** : afficher un badge ou icône « Online » vs « Solo » dans les tableaux Sessions et Dashboard, basé sur `xml_index.setting` (déjà en base). `Multiplayer` = online, `Race Weekend` = solo/coop (indistinguables). Purement visuel, aucun changement backend requis.
 
 ---
 
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-05-28 (suite 12) — Intégration ohne_speed : toggle config + Sessions + SessionDetail + LapChartModal
+
+- ✅ **Composant partagé `TierBadge.tsx`** (`src/components/`) : extrait de `Records.tsx`, export `TierBadge` + `OHNE_CLASS`. `TierBadge` accepte `lapSeconds: number | null` (vs `number` en V1). `Records.tsx` mis à jour pour utiliser ce composant partagé (suppression du code dupliqué).
+- ✅ **Toggle global** dans `src/stores/app.ts` : champ `showOhneSpeed: boolean` (défaut `true`) + action `setShowOhneSpeed`. Persiste via `config.set("show_ohne_speed", ...)`. Lu depuis `cfg.show_ohne_speed !== "false"` au démarrage.
+- ✅ **Config.tsx** : nouveau `ToggleRow` « Niveaux de rythme ohne_speed » dans la carte Préférences. Icône `BarChart2`. Désactiver masque toutes les intégrations.
+- ✅ **Sessions.tsx** : colonne « Niveau » insérée après Best Lap (visible seulement si `showOhneSpeed`). Benchmarks chargés une fois au montage. Icône `WifiOff` sur l'en-tête de colonne si hors-ligne.
+- ✅ **SessionDetail.tsx** : `TierBadge` affiché dans la ligne de sous-titre de l'en-tête (après la date, à côté du nom de voiture). Icône `WifiOff` ambrée si hors-ligne. Benchmarks chargés dans `SessionView`.
+- ✅ **LapChartModal.tsx** : 
+  - Nouvelle série `refAlien` (chip toggleable fuchsia `#d946ef`).
+  - `alienPaceSeconds` calculé depuis `findBenchmark(benchmarks, track, ohneClass, track_course)` → `bm.racePaceMs.alien / 1000`.
+  - `ReferenceLine` alien `👽` ajoutée (pointillés courts, position `insideBottomRight`).
+  - Entrée dans la légende compacte.
+  - Message `WifiOff` ambre discret dans les chips si hors-ligne.
+- ✅ **i18n** (4 langues) : clés `config.ohneSpeed`, `config.ohneSpeedDesc`, `config.ohneSpeedOffline` · `sessions.colTier` · `lapChart.refAlien`, `lapChart.legendAlien`.
+- 📋 **Prochaine étape** : tester en conditions réelles (rebuild Tauri) — vérifier que les benchmarks se chargent et que les tiers s'affichent correctement pour LMGT3/Monza et LMH/Le Mans.
 
 ### 2026-05-28 — SessionDetail : trophées meilleurs tours/secteurs, tooltips colonnes, analyse sessions coop
 
@@ -219,6 +236,31 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 - ✅ **Analyse XML « coop »** (informationnelle, aucun code) : comparaison des fichiers XML de Samuel Pitchoule (coop) vs propres fichiers online/solo. Conclusion : `<Setting>Multiplayer</Setting>` = vrai online multijoueur (tous `isPlayer=1`, `PlayerControl`, `<ServerName>`, `<ClientFuelVisible>`). `<Setting>Race Weekend</Setting>` = solo vs IA ET sessions « coop » — structure identique, aucun marqueur XML distinctif pour le coop.
 - ✅ Build OK (`tsc -b`).
 - 📋 **Prochaine étape** : à définir par l'utilisateur. Pistes possibles : (1) détection du type de session online/offline dans l'UI basée sur `<Setting>` ; (2) autres améliorations visuelles ou fonctionnelles.
+
+### 2026-05-28 (suite 11) — Graphe de tours (modal LapChartModal)
+
+- ✅ **Backend — 2 nouvelles commandes** (`src-tauri/src/commands/session_detail.rs`) :
+  - `get_lap_chart_data(session_id)` → `LapChartData` : tours du joueur (lap_num, position, lap_time, s1/s2/s3, fuel, fuel_used, fcompound, is_pit, is_valid) + record perso (MIN best_lap toutes sessions même circuit+voiture) + meilleur de classe (session courante).
+  - `get_chart_compare_sessions(session_id)` → `Vec<ChartCompareSession>` : sessions compatibles (même voiture + circuit, triées par best_lap, max 30).
+  - Enregistrées dans `lib.rs`.
+- ✅ **Frontend — types** (`src/lib/api.ts`) : `ChartLapRow`, `LapChartData`, `ChartCompareSession` + méthodes `queries.getLapChartData`, `queries.getChartCompareSessions`.
+- ✅ **Composant `LapChartModal.tsx`** (`src/components/`) :
+  - Modale overlay (même style SetupDetail) avec backdrop fermeture + touche Échap.
+  - Séries activables via chips colorées : Temps · Position · S1 · S2 · S3 · Carburant.
+  - Lignes de référence toggleables : record perso (vert ⭐) + meilleur de classe (bleu 🏆).
+  - Recharts `ComposedChart` : axe Y gauche temps (formaté m:ss), axe Y droit position (inversé, affiché si série Position active).
+  - Marqueurs pit stop : lignes verticales pointillées ambre.
+  - Dot personnalisé : vert (valide), ambre (pit), rouge (invalide), cercle + anneau blanc pour le best lap.
+  - Outliers filtrés sur l'axe Y (cap à 2,5× best pour ne pas écraser les tours normaux).
+  - Comparaison : bouton dropdown → liste des sessions compatibles → superpose les temps en orange pointillé + bouton × pour retirer.
+  - Tooltip riche : tour# · temps · delta vs best · S1/S2/S3 · fuel · compound · position.
+  - Lien « Détail » → `/sessions/:id?tab=laps` + fermeture modale.
+  - Mini-table des 5 meilleurs tours (tour#, temps, S1/S2/S3, fuel%, Δ best) avec clic → SessionDetail.
+- ✅ **Dashboard** (`src/routes/Dashboard.tsx`) : cellule Best Lap cliquable (underline pointillé). `openLapChart` propagé Dashboard → DashboardGroup → DashboardRow.
+- ✅ **Sessions** (`src/routes/Sessions.tsx`) : cellule Best Lap cliquable (idem). `lapChartSessionId` state local.
+- ✅ **i18n** (4 langues) : namespace `lapChart.*` — 23 clés (FR/EN/ES/DE).
+- ✅ Build OK (`cargo check`, `tsc -b`).
+- 📋 **Prochaine étape** : tester en conditions réelles (rebuild Tauri).
 
 ### 2026-05-28 (suite 10) — Fix : `best_lap` dans `results`, pas `sessions`
 
@@ -240,7 +282,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 - ✅ State `linkedSetups` déplacé dans `SessionView` (pas `SessionDetail`) car c'est là que le JSX est rendu.
 - ✅ **i18n** (4 langues) : 8 nouvelles clés (`setupUsed`, `noSetupLinked`, `linkSetup`, `pickSetupTitle`, `noSetupCandidate`, `alreadyLinked`, `openSetup`, `unlinkSetup`).
 - ✅ Build OK (`cargo check`, `tsc -b`).
-- 📋 **Prochaine étape** : tester en conditions réelles (rebuild Tauri).
+- ✅ **Testé en conditions réelles (2026-05-28)**.
 
 ### 2026-05-28 (suite 8) — Garage : toggle « Comparer tous les temps »
 
@@ -256,7 +298,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   | ✗ | ✗ | 1 ligne par circuit unique (record de chaque) |
   | ✗ | ✓ | Toutes les sessions de cette voiture, tous circuits |
 - ✅ Build OK (`cargo check`, `tsc -b`).
-- 📋 **Prochaine étape** : à définir.
+- ✅ **Testé en conditions réelles (2026-05-28)** : session liée affiche bien chrono, secteurs et date directement.
 
 ### 2026-05-28 (suite 7) — Garage : 1 seul meilleur tour par combo (groupement SQL)
 
@@ -285,7 +327,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 - ✅ **Frontend `NewSetupDialog.tsx`** : passe `circuit.trim() || null` (si l'utilisateur a rempli le champ circuit).
 - ✅ Le commentaire obsolète « On ne filtre PAS par circuit » est remplacé par une explication du matching tolérant.
 - ✅ Build OK (`cargo check`, `tsc -b`).
-- 📋 **Prochaine étape** : à définir par l'utilisateur. ⚠ Important : redémarrer Tauri (`npm run tauri:dev`) pour que les changements backend prennent effet.
+- ✅ **Testé en conditions réelles (2026-05-28)** : filtrage voiture+circuit fonctionnel, matching McLaren/Monza confirmé.
 
 ### 2026-05-28 (suite 4) — Garage : Best Lap dans la matrice (V1.5)
 
@@ -296,6 +338,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 - ✅ **`MatrixCell` enrichie** (`src/routes/Setups.tsx`) : chaque bouton-setup de la matrice affiche désormais son chrono à droite (font mono, 10px, tabular-nums). Calcul `bestOfCell` (min des `best_lap` non-null) → marquage en `text-success` (vert) pour le meilleur setup de la cellule. Setups sans session liée affichent `—` en gris. Import `formatTime` ajouté.
 - ✅ Couvre les 2 utilisations de `MatrixCell` : vue « Par voiture » (matrice circuit × type) et vue « Par circuit » (matrice voiture × type).
 - ✅ Build OK (`cargo check`, `tsc -b`).
+- ✅ **Testé en conditions réelles (2026-05-28)**.
 - 📋 **Prochaine étape** : à définir par l'utilisateur.
 
 ### 2026-05-28 (suite 3) — Dashboard : retrait des 4 cards lifetime (gardées sur Profile)
@@ -313,6 +356,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 - ✅ **Rangée secondaire étendue à 9 cards** (`lg:grid-cols-9`) : ajout de Podiums au début.
 - ✅ **Purge supprime les fichiers XML** (`src-tauri/src/commands/indexer.rs`) — règle V1 retrouvée dans `functions.php` `_scan_empty_sessions` (`unlink($filepath)` avant `DELETE FROM xml_index`). Nouvelle logique : (1) liste des `(filename, mtime)` à purger ; (2) `std::fs::remove_file` pour chacun (échec silencieux comme V1) ; (3) `INSERT INTO purged_files` (filet de sécurité si `remove_file` échoue) ; (4) `DELETE FROM xml_index` cascade. Le `results_dir` est lu depuis la config.
 - ✅ Build OK (`cargo check`, `tsc -b`).
+- ✅ **Testé en conditions réelles (2026-05-28)** : la purge supprime bien les fichiers XML physiquement.
 - 📋 **Prochaine étape** : à définir par l'utilisateur. La table `purged_files` introduite hier reste pertinente pour les cas où la suppression filesystem échoue (fichier verrouillé par LMU en cours d'exécution, permissions, etc.).
 
 ### 2026-05-28 (suite) — Dashboard & Profile : couleurs classes, graphiques, TrackFlag, temps piste

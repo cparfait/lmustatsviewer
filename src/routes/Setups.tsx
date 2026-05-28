@@ -436,12 +436,10 @@ function CarView({
         <Card className="overflow-hidden">
           <CardContent className="p-2.5 flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-md border border-border flex items-center justify-center p-1 shrink-0 bg-background/40">
-                <CarLogo
-                  carName={activeGroup.car}
-                  className="max-h-full max-w-full object-contain opacity-90"
-                />
-              </div>
+              <CarLogo
+                carName={activeGroup.car}
+                className="h-4 w-auto object-contain opacity-80 shrink-0"
+              />
               <div className="min-w-0 flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-bold tracking-tight truncate">
                   {activeGroup.car}
@@ -1010,7 +1008,7 @@ function GlobalView({
                   <td className="px-1 py-1.5 w-7">
                     <CarLogo
                       carName={r.car}
-                      className="h-4 w-auto object-contain opacity-80"
+                      className="h-3.5 w-auto object-contain opacity-80"
                     />
                   </td>
                   <td className="px-2 py-1.5 font-medium whitespace-nowrap">
@@ -1239,7 +1237,7 @@ function CircuitView({
                             <span className="inline-flex items-center gap-1.5">
                               <CarLogo
                                 carName={row.car}
-                                className="h-4 w-auto object-contain opacity-80"
+                                className="h-3.5 w-auto object-contain opacity-80"
                               />
                               <span className="font-medium truncate">
                                 {row.car}

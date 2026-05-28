@@ -273,6 +273,46 @@ export interface SessionDetail {
   stream: StreamEventRow[];
 }
 
+// ─── Graphe de tours (`session_detail::LapChartData`) ───────────────────────
+
+export interface ChartLapRow {
+  lap_num: number;
+  position: number;
+  lap_time: number | null;
+  s1: number | null;
+  s2: number | null;
+  s3: number | null;
+  fuel: number | null;
+  fuel_used: number | null;
+  fcompound: string;
+  is_pit: boolean;
+  is_valid: boolean;
+}
+
+export interface LapChartData {
+  session_id: number;
+  track: string;
+  track_course: string;
+  session_type: string;
+  timestamp: number;
+  car_type: string;
+  unique_car_name: string;
+  car_class: string;
+  laps: ChartLapRow[];
+  /** Meilleur tour perso sur ce circuit + voiture (toutes sessions). */
+  personal_record: number | null;
+  /** Meilleur tour de la classe dans cette session. */
+  class_best: number | null;
+}
+
+export interface ChartCompareSession {
+  session_id: number;
+  session_type: string;
+  timestamp: number;
+  best_lap: number | null;
+  laps_count: number;
+}
+
 // ─── Garage — configurations de voiture (.svm) (`setups`) ───────────────────
 
 export interface SvmHeader {
@@ -620,6 +660,9 @@ export const system = {
   getAppVersion: () => invoke<string>("get_app_version"),
   getPlatform: () => invoke<PlatformInfo>("get_platform"),
   ping: (message: string) => invoke<string>("ping", { message }),
+  /** Vérifie si rFactor2SharedMemoryMapPlugin64.dll est présent dans <lmuPath>/Plugins/. */
+  checkPluginInstalled: (lmuPath: string) =>
+    invoke<boolean>("check_plugin_installed", { lmuPath }),
 };
 
 // ─── Configuration + détection du jeu ───────────────────────────────────────
@@ -683,6 +726,10 @@ export const queries = {
     invoke<SessionsOverview>("get_sessions_overview"),
   getSessionDetail: (sessionId: number) =>
     invoke<SessionDetail>("get_session_detail", { sessionId }),
+  getLapChartData: (sessionId: number) =>
+    invoke<LapChartData>("get_lap_chart_data", { sessionId }),
+  getChartCompareSessions: (sessionId: number) =>
+    invoke<ChartCompareSession[]>("get_chart_compare_sessions", { sessionId }),
 };
 
 // ─── Records personnels ─────────────────────────────────────────────────────

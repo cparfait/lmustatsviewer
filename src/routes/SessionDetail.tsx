@@ -40,6 +40,7 @@ import {
   AlertTriangle,
   Wrench,
   ExternalLink,
+  WifiOff,
 } from "lucide-react";
 import {
   LineChart,
@@ -58,6 +59,9 @@ import type {
   LapRow,
   SetupForSession,
 } from "@/lib/api";
+import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
+import { TierBadge } from "@/components/TierBadge";
+import { useAppStore } from "@/stores/app";
 
 /** Fonction de traduction (typage léger pour les helpers). */
 type Tr = (key: string, opts?: Record<string, unknown>) => string;
@@ -179,6 +183,8 @@ function SessionView({ data }: { data: SessionDetailData }) {
   const { t } = useTranslation();
   const { session, siblings, results, laps, stream } = data;
   const isRace = session.session_type === "Race";
+  const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
+
   // Setups associés à cette session (vue inverse de SetupDetail). Rechargé
   // après chaque lien/délier pour refléter l'état serveur.
   const [linkedSetups, setLinkedSetups] = useState<SetupForSession[]>([]);
@@ -188,6 +194,16 @@ function SessionView({ data }: { data: SessionDetailData }) {
       .then(setLinkedSetups)
       .catch(() => setLinkedSetups([]));
   }, [session.id]);
+
+  // Benchmarks ohne_speed (best-effort, uniquement si option activée).
+  const [benchmarks, setBenchmarks] = useState<PaceBenchmark[] | null>(null);
+  const [ohneOffline, setOhneOffline] = useState(false);
+  useEffect(() => {
+    if (!showOhneSpeed) return;
+    fetchBenchmarks()
+      .then((bm) => { setBenchmarks(bm); setOhneOffline(false); })
+      .catch(() => { setBenchmarks([]); setOhneOffline(true); });
+  }, [showOhneSpeed]);
 
   const driverNames = useMemo(
     () => new Set(results.map((r) => r.driver_name)),
@@ -326,6 +342,23 @@ function SessionView({ data }: { data: SessionDetailData }) {
               <span className="text-muted-foreground">
                 · {formatDateTime(session.timestamp)}
               </span>
+              {showOhneSpeed && playerResult.best_lap != null && !ohneOffline && (
+                <TierBadge
+                  benchmarks={benchmarks}
+                  track={session.track}
+                  layout={session.track_course}
+                  carClass={playerResult.car_class}
+                  lapSeconds={playerResult.best_lap}
+                />
+              )}
+              {showOhneSpeed && ohneOffline && (
+                <span
+                  className="inline-flex items-center gap-0.5 text-[10px] text-amber-400/70"
+                  title={t("config.ohneSpeedOffline")}
+                >
+                  <WifiOff className="h-3 w-3" />
+                </span>
+              )}
             </div>
           )}
         </div>

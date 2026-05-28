@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ResponsiveContainer,
@@ -51,6 +51,7 @@ import {
   Package,
 } from "lucide-react";
 import { FilterField } from "@/components/FilterField";
+import { LapChartModal } from "@/components/LapChartModal";
 import { useAppStore } from "@/stores/app";
 import type { BestLapRow } from "@/lib/api";
 
@@ -86,6 +87,11 @@ export function Dashboard() {
   const [sessionType, setSessionType] = useState("");
   const [setting, setSetting] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  // Modale graphe de tours
+  const [lapChartSessionId, setLapChartSessionId] = useState<number | null>(null);
+  const openLapChart = useCallback((id: number) => setLapChartSessionId(id), []);
+  const closeLapChart = useCallback(() => setLapChartSessionId(null), []);
 
   const tracks = filterOptions?.tracks ?? [];
   const settings = filterOptions?.settings ?? [];
@@ -505,6 +511,7 @@ export function Dashboard() {
               rows={g.rows}
               navigate={navigate}
               t={t}
+              openLapChart={openLapChart}
             />
           );
         })}
@@ -563,6 +570,11 @@ export function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Modale graphe de tours */}
+      {lapChartSessionId != null && (
+        <LapChartModal sessionId={lapChartSessionId} onClose={closeLapChart} />
+      )}
     </div>
   );
 }
@@ -579,6 +591,7 @@ function DashboardGroup({
   rows,
   navigate,
   t,
+  openLapChart,
 }: {
   title: string;
   flag: string | null;
@@ -587,6 +600,7 @@ function DashboardGroup({
   rows: BestLapRow[];
   navigate: (to: string) => void;
   t: (k: string) => string;
+  openLapChart: (id: number) => void;
 }) {
   return (
     <Card className="overflow-hidden">
@@ -686,7 +700,7 @@ function DashboardGroup({
                 </th>
               </tr>
               {rows.map((l, i) => (
-                <DashboardRow key={i} l={l} idx={i} navigate={navigate} t={t} />
+                <DashboardRow key={i} l={l} idx={i} navigate={navigate} t={t} openLapChart={openLapChart} />
               ))}
             </tbody>
           </table>
@@ -722,11 +736,13 @@ function DashboardRow({
   idx,
   navigate,
   t,
+  openLapChart,
 }: {
   l: BestLapRow;
   idx: number;
   navigate: (to: string) => void;
   t: (k: string) => string;
+  openLapChart: (id: number) => void;
 }) {
   const isRace = l.session_type === "Race";
   return (
@@ -788,7 +804,7 @@ function DashboardRow({
       <td className="px-2 py-1 text-muted-foreground whitespace-nowrap max-w-[150px] truncate">
         {l.livery || "—"}
       </td>
-      {/* Best lap */}
+      {/* Best lap — clic → graphe de tours */}
       <td
         className={cn(
           "px-2 py-1 text-right font-mono font-semibold text-success",
@@ -796,7 +812,13 @@ function DashboardRow({
           PERF_CELL
         )}
       >
-        {formatTime(l.best_lap)}
+        <button
+          className="hover:underline decoration-dotted underline-offset-2 cursor-pointer"
+          onClick={() => openLapChart(l.session_id)}
+          title="Voir le graphe de tours"
+        >
+          {formatTime(l.best_lap)}
+        </button>
       </td>
       {/* S1 / S2 / S3 */}
       {sectorCell(l.best_lap_s1, l.abs_best_s1)}

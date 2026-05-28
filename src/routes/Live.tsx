@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import {
   live as liveApi,
+  system as systemApi,
   type LiveData,
   type LiveStanding,
   type LiveWheel,
@@ -22,7 +23,13 @@ import {
   Loader2,
   Gauge as GaugeIcon,
   AlertTriangle,
+  Download,
+  FolderOpen,
+  CheckCircle2,
+  Copy,
+  Check,
 } from "lucide-react";
+import { useAppStore } from "@/stores/app";
 
 /** Fonction de traduction (typage léger pour les helpers). */
 type Tr = (key: string, opts?: Record<string, unknown>) => string;
@@ -86,6 +93,17 @@ function pct(v: number, signed = false): string {
 export function Live() {
   const [data, setData] = useState<LiveData | null>(null);
   const [starting, setStarting] = useState(true);
+  // null = vérification en cours, true/false = résultat
+  const [pluginInstalled, setPluginInstalled] = useState<boolean | null>(null);
+  const lmuPath = useAppStore((s) => s.lmuPath);
+
+  // Vérification de la présence du plugin au montage
+  useEffect(() => {
+    systemApi
+      .checkPluginInstalled(lmuPath)
+      .then(setPluginInstalled)
+      .catch(() => setPluginInstalled(null));
+  }, [lmuPath]);
 
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
@@ -117,9 +135,9 @@ export function Live() {
     session.num_vehicles > 0 &&
     session.session_time > 0;
 
-  if (!data && starting) return <InfoScreen kind="connecting" />;
-  if (!connected) return <InfoScreen kind="no-game" />;
-  if (!inSession) return <InfoScreen kind="no-session" />;
+  if (!data && starting) return <InfoScreen kind="connecting" pluginInstalled={pluginInstalled} lmuPath={lmuPath} />;
+  if (!connected) return <InfoScreen kind="no-game" pluginInstalled={pluginInstalled} lmuPath={lmuPath} />;
+  if (!inSession) return <InfoScreen kind="no-session" pluginInstalled={pluginInstalled} lmuPath={lmuPath} />;
 
   return <Dashboard data={data!} />;
 }
@@ -128,8 +146,12 @@ export function Live() {
 
 function InfoScreen({
   kind,
+  pluginInstalled,
+  lmuPath,
 }: {
   kind: "connecting" | "no-game" | "no-session";
+  pluginInstalled: boolean | null;
+  lmuPath: string;
 }) {
   const { t } = useTranslation();
   const cfg = {
@@ -139,9 +161,15 @@ function InfoScreen({
       text: t("live.infoConnectingText"),
     },
     "no-game": {
-      icon: <WifiOff className="h-12 w-12 text-muted-foreground" />,
-      title: t("live.infoNoGameTitle"),
-      text: t("live.noSimHint"),
+      icon: pluginInstalled === false
+        ? <AlertTriangle className="h-12 w-12 text-amber-400" />
+        : <WifiOff className="h-12 w-12 text-muted-foreground" />,
+      title: pluginInstalled === false
+        ? t("live.pluginMissingTitle")
+        : t("live.infoNoGameTitle"),
+      text: pluginInstalled === false
+        ? t("live.pluginMissingText")
+        : t("live.noSimHint"),
     },
     "no-session": {
       icon: <Flag className="h-12 w-12 text-yellow-500" />,
@@ -151,18 +179,139 @@ function InfoScreen({
   }[kind];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground gap-6 select-none">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground gap-6 select-none px-4">
       {cfg.icon}
       <div className="text-center max-w-md">
         <p className="text-lg font-semibold">{cfg.title}</p>
         <p className="text-sm text-muted-foreground mt-1">{cfg.text}</p>
       </div>
+
+      {/* Guide d'installation — affiché si plugin absent */}
+      {kind === "no-game" && pluginInstalled === false && (
+        <PluginInstallGuide lmuPath={lmuPath} t={t} />
+      )}
+
       <Link
         to="/"
         className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> {t("live.quit")}
       </Link>
+    </div>
+  );
+}
+
+// ── Guide d'installation du plugin ───────────────────────────────────────────
+
+const PLUGIN_DLL = "rFactor2SharedMemoryMapPlugin64.dll";
+// Page principale du repo : le README explique comment obtenir la DLL compilée
+const PLUGIN_URL =
+  "https://github.com/TheIronWolfModding/rF2SharedMemoryMapPlugin";
+
+function PluginInstallGuide({
+  lmuPath,
+  t,
+}: {
+  lmuPath: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  t: any;
+}) {
+  const [copiedPath, setCopiedPath] = useState(false);
+
+  const pluginsDir = lmuPath
+    ? `${lmuPath.replace(/\\/g, "\\")}\\Plugins`
+    : t("live.pluginInstallDefaultDir");
+
+  function copyToClipboard(text: string, setter: (v: boolean) => void) {
+    navigator.clipboard.writeText(text).then(() => {
+      setter(true);
+      setTimeout(() => setter(false), 2000);
+    });
+  }
+
+  const steps: { icon: React.ReactNode; label: string; desc?: React.ReactNode }[] = [
+    {
+      icon: <Download className="h-4 w-4 text-primary" />,
+      label: t("live.pluginInstallStep1"),
+      desc: (
+        <a
+          href={PLUGIN_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-primary hover:underline font-mono text-[10px] mt-0.5"
+        >
+          {PLUGIN_DLL}
+        </a>
+      ),
+    },
+    {
+      icon: <FolderOpen className="h-4 w-4 text-amber-400" />,
+      label: t("live.pluginInstallStep2"),
+      desc: (
+        <div className="flex items-center gap-1.5 mt-1">
+          <code className="font-mono text-[10px] bg-muted/60 px-1.5 py-0.5 rounded text-foreground/80 max-w-[260px] truncate">
+            {pluginsDir}
+          </code>
+          <button
+            onClick={() => copyToClipboard(pluginsDir, setCopiedPath)}
+            className="shrink-0 p-0.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+            title={t("live.pluginInstallCopyPath")}
+          >
+            {copiedPath ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+          </button>
+        </div>
+      ),
+    },
+    {
+      icon: <CheckCircle2 className="h-4 w-4 text-success" />,
+      label: t("live.pluginInstallStep4"),
+    },
+  ];
+
+  return (
+    <div className="w-full max-w-md rounded-xl border border-amber-400/30 bg-amber-400/5 p-4 space-y-3">
+      <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
+        {t("live.pluginInstallGuideTitle")}
+      </p>
+
+      {/* Explication : pourquoi le plugin est nécessaire */}
+      <div className="rounded-lg bg-muted/40 border border-border/60 px-3 py-2.5 space-y-1">
+        <p className="text-xs font-semibold text-foreground/90">
+          {t("live.pluginInstallWhyTitle")}
+        </p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {t("live.pluginInstallWhyDesc")}
+        </p>
+      </div>
+
+      <ol className="space-y-3">
+        {steps.map((step, i) => (
+          <li key={i} className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted/60 text-xs font-bold text-muted-foreground">
+              {i + 1}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-sm font-medium">
+                {step.icon}
+                {step.label}
+              </div>
+              {step.desc && (
+                <div className="text-muted-foreground text-xs">{step.desc}</div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      <a
+        href={PLUGIN_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 w-full rounded-lg bg-primary/90 hover:bg-primary text-primary-foreground text-xs font-medium py-2 transition-colors"
+      >
+        <Download className="h-3.5 w-3.5" />
+        {t("live.pluginInstallDownload")}
+      </a>
     </div>
   );
 }

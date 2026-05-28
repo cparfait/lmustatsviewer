@@ -42,8 +42,12 @@ import {
   Car,
   Globe,
   Package,
+  WifiOff,
 } from "lucide-react";
 import { FilterField } from "@/components/FilterField";
+import { LapChartModal } from "@/components/LapChartModal";
+import { TierBadge } from "@/components/TierBadge";
+import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { useAppStore } from "@/stores/app";
 import { queries } from "@/lib/api";
 import type {
@@ -170,8 +174,18 @@ export function Sessions() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { filterOptions, selectedVersion, setSelectedVersion, gameVersions } =
+  const { filterOptions, selectedVersion, setSelectedVersion, gameVersions, showOhneSpeed } =
     useAppStore();
+
+  // Benchmarks ohne_speed (chargés une fois, best-effort).
+  const [benchmarks, setBenchmarks] = useState<PaceBenchmark[] | null>(null);
+  const [ohneOffline, setOhneOffline] = useState(false);
+  useEffect(() => {
+    if (!showOhneSpeed) return;
+    fetchBenchmarks()
+      .then((bm) => { setBenchmarks(bm); setOhneOffline(false); })
+      .catch(() => { setBenchmarks([]); setOhneOffline(true); });
+  }, [showOhneSpeed]);
 
   // Filtres — pré-remplis depuis l'URL (lien profond depuis Profile / Records).
   // Lecture une seule fois au montage ; les changements internes ne sont pas
@@ -203,6 +217,9 @@ export function Sessions() {
   const [data, setData] = useState<SessionsPage | null>(null);
   const [overview, setOverview] = useState<SessionsOverview | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Modale graphe de tours
+  const [lapChartSessionId, setLapChartSessionId] = useState<number | null>(null);
 
   // Listes de filtres (cascade circuit→tracé, classe→voiture).
   const tracks = filterOptions?.tracks ?? [];
@@ -620,6 +637,18 @@ export function Sessions() {
                     {...sortProps}
                     className="text-right px-2 border-l border-border/55 bg-sky-500/10"
                   />
+                  {showOhneSpeed && (
+                    <TableHead className="h-auto py-1 text-[10px] px-2 bg-sky-500/10">
+                      <span className="inline-flex items-center gap-1">
+                        {t("sessions.colTier")}
+                        {ohneOffline && (
+                          <span title={t("config.ohneSpeedOffline")}>
+                            <WifiOff className="h-3 w-3 text-amber-400" />
+                          </span>
+                        )}
+                      </span>
+                    </TableHead>
+                  )}
                   <SortHead
                     col="GridPos"
                     label={t("sessions.colStart")}
@@ -782,16 +811,36 @@ export function Sessions() {
                         </span>
                       </TableCell>
 
-                      {/* Meilleur tour */}
+                      {/* Meilleur tour — clic → graphe de tours */}
                       <TableCell className="text-right font-mono px-2 py-1.5 whitespace-nowrap border-l border-border/55 bg-sky-500/[0.06]">
                         {s.best_lap ? (
-                          <span className="text-success font-semibold">
+                          <button
+                            className="text-success font-semibold hover:underline decoration-dotted underline-offset-2 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLapChartSessionId(s.session_id);
+                            }}
+                            title="Voir le graphe de tours"
+                          >
                             {formatTime(s.best_lap)}
-                          </span>
+                          </button>
                         ) : (
                           <span className="text-muted-foreground">N/A</span>
                         )}
                       </TableCell>
+
+                      {/* Tier ohne_speed */}
+                      {showOhneSpeed && (
+                        <TableCell className="px-2 py-1.5 bg-sky-500/[0.06]">
+                          <TierBadge
+                            benchmarks={benchmarks}
+                            track={s.track}
+                            layout={s.track_course}
+                            carClass={s.car_class}
+                            lapSeconds={s.best_lap}
+                          />
+                        </TableCell>
+                      )}
 
                       {/* Départ */}
                       <TableCell className="text-center font-mono px-2 py-1.5 bg-sky-500/[0.06]">
@@ -843,7 +892,7 @@ export function Sessions() {
                 {rows.length === 0 && !loading && (
                   <TableRow>
                     <TableCell
-                      colSpan={16}
+                      colSpan={showOhneSpeed ? 17 : 16}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       {t("sessions.noResults")}
@@ -867,6 +916,14 @@ export function Sessions() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modale graphe de tours */}
+      {lapChartSessionId != null && (
+        <LapChartModal
+          sessionId={lapChartSessionId}
+          onClose={() => setLapChartSessionId(null)}
+        />
+      )}
     </div>
   );
 }

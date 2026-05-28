@@ -40,6 +40,8 @@ interface AppState {
   autoIndex: boolean;
   systemTray: boolean;
   autoUpdate: boolean;
+  /** Afficher les tiers ohne_speed dans Sessions, SessionDetail et LapChartModal. */
+  showOhneSpeed: boolean;
 
   // Données Dashboard
   dashboardStats: DashboardStats | null;
@@ -71,6 +73,7 @@ interface AppState {
   setAutoIndex: (v: boolean) => Promise<void>;
   setSystemTray: (v: boolean) => Promise<void>;
   setAutoUpdate: (v: boolean) => Promise<void>;
+  setShowOhneSpeed: (v: boolean) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -83,6 +86,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   autoIndex: true,
   systemTray: true,
   autoUpdate: true,
+  showOhneSpeed: true,
   dashboardStats: null,
   bestLaps: [],
   filterOptions: null,
@@ -111,6 +115,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       autoIndex,
       systemTray: cfg.system_tray !== "false",
       autoUpdate: cfg.auto_update !== "false",
+      showOhneSpeed: cfg.show_ohne_speed !== "false",
       selectedVersion: cfg.default_since_version ?? null,
     });
     if (isConfigured) {
@@ -219,5 +224,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAutoUpdate: async (v) => {
     await config.set("auto_update", v ? "true" : "false");
     set({ autoUpdate: v });
+  },
+
+  setShowOhneSpeed: async (v) => {
+    await config.set("show_ohne_speed", v ? "true" : "false");
+    set({ showOhneSpeed: v });
   },
 }));

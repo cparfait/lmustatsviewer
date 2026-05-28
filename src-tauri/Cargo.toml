@@ -1,0 +1,38 @@
+[package]
+name = "lmustatsviewer"
+version = "1.0.0"
+description = "Le Mans Ultimate Stats Viewer — v3"
+authors = ["cparfait"]
+edition = "2021"
+rust-version = "1.82"
+
+[lib]
+name = "lmustatsviewer_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+serde_json = "1"
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+rusqlite = { version = "0.31", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
+quick-xml = "0.36"
+walkdir = "2"
+raw-window-handle = "0.6"
+windows = { version = "0.58", features = ["Win32_System_Memory", "Win32_Foundation"] }
+
+[profile.release]
+panic = "abort"      # Strip expensive panic clean-up logic
+codegen-units = 1    # Compile crates one after another so the compiler can optimize better
+lto = true           # Enables link to optimizations
+opt-level = "s"      # Optimize for binary size
+strip = true         # Remove debug symbols

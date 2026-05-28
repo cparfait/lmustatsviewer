@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMU Stats Viewer — Color Palette Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: #000833;
+    --bg-dark: #000000;
+    --accent-orange: #FF4A0F;
+    --accent-red: #FF1D43;
+    --blue-wec: #075AB8;
+    --blue-light: #4FA1FF;
+    --text-white: #FFFFFF;
+    --text-muted: #EAEAEA;
+    --text-dim: rgba(255,255,255,0.5);
+    --border-dim: rgba(255,74,15,0.2);
+    --card-bg: rgba(0,0,0,0.25);
+    --card-bg-hover: rgba(0,0,0,0.45);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-white);
+    min-height: 100vh;
+  }
+
+  /* === HEADER / NAV === */
+  .nav {
+    background: var(--bg-dark);
+    border-bottom: 2px solid var(--accent-orange);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+  .nav-brand {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+  .nav-brand span { color: var(--accent-orange); }
+  .nav-links { display: flex; gap: 1.5rem; }
+  .nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 2px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .nav-links a:hover, .nav-links a.active {
+    color: var(--text-white);
+    border-bottom-color: var(--accent-orange);
+  }
+
+  /* === HERO SECTION === */
+  .hero {
+    background: linear-gradient(135deg, var(--accent-red) 0%, var(--bg-primary) 70%);
+    padding: 4rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent-orange);
+  }
+  .hero h1 {
+    font-size: 2.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+  }
+  .hero h1 span { color: var(--accent-orange); }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: 300;
+  }
+
+  /* === CONTENT === */
+  .content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* === STATS CARDS === */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-dim);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .stat-card:hover {
+    background: var(--card-bg-hover);
+    border-color: var(--accent-orange);
+    transform: translateY(-2px);
+  }
+  .stat-card .stat-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--accent-orange);
+  }
+  .stat-card .stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-top: 0.25rem;
+  }
+  .stat-card:nth-child(2) .stat-value { color: var(--blue-light); }
+  .stat-card:nth-child(3) .stat-value { color: var(--accent-red); }
+  .stat-card:nth-child(4) .stat-value { color: var(--text-white); }
+
+  /* === TWO COLUMN LAYOUT === */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  /* === TABLE === */
+  .panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border-dim);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .panel-header {
+    background: var(--blue-wec);
+    padding: 0.75rem 1.25rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-header.orange { background: var(--accent-orange); }
+  .panel-header.red { background: var(--accent-red); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th {
+    background: rgba(7,90,184,0.3);
+    padding: 0.6rem 1rem;
+    text-align: left;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--blue-light);
+    border-bottom: 1px solid var(--border-dim);
+  }
+  td {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: var(--text-muted);
+  }
+  tr:hover td {
+    background: rgba(255,74,15,0.05);
+    color: var(--text-white);
+  }
+  .pos { font-weight: 700; color: var(--accent-orange); }
+  .pos-1 { color: #FFD700; }
+  .pos-2 { color: #C0C0C0; }
+  .pos-3 { color: #CD7F32; }
+  .team-name { color: var(--blue-light); font-weight: 600; }
+  .gap { color: var(--text-dim); font-size: 0.8rem; }
+
+  /* === DRIVER DETAIL CARD === */
+  .driver-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-dim);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+  .driver-card .driver-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-dim);
+  }
+  .driver-number {
+    background: var(--accent-orange);
+    color: var(--bg-dark);
+    font-weight: 900;
+    font-size: 1.5rem;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+  }
+  .driver-name { font-size: 1.3rem; font-weight: 700; }
+  .driver-team { font-size: 0.8rem; color: var(--blue-light); }
+
+  .driver-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .driver-stat {
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    padding: 0.75rem;
+  }
+  .driver-stat .label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    margin-bottom: 0.25rem;
+  }
+  .driver-stat .value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-white);
+  }
+  .driver-stat .value.highlight { color: var(--accent-orange); }
+
+  /* === COLOR SWATCHES === */
+  .swatches-section {
+    margin-top: 2rem;
+  }
+  .swatches-section h2 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-dim);
+  }
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+  .swatch {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .swatch-color {
+    height: 60px;
+  }
+  .swatch-info {
+    background: var(--bg-dark);
+    padding: 0.6rem;
+    font-size: 0.75rem;
+  }
+  .swatch-info .name { font-weight: 600; margin-bottom: 0.15rem; }
+  .swatch-info .hex { color: var(--text-dim); font-family: monospace; }
+
+  /* === BUTTONS === */
+  .btn-row {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 0.6rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+  }
+  .btn-primary { background: var(--accent-orange); }
+  .btn-primary:hover { background: #e04000; }
+  .btn-danger { background: var(--accent-red); }
+  .btn-danger:hover { background: #d9183a; }
+  .btn-info { background: var(--blue-wec); }
+  .btn-info:hover { background: #064a94; }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--accent-orange);
+    color: var(--accent-orange);
+  }
+  .btn-outline:hover {
+    background: var(--accent-orange);
+    color: white;
+  }
+  .btn-ghost {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-muted);
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.15); }
+
+  /* === FOOTER === */
+  .footer {
+    background: var(--accent-red);
+    padding: 1.5rem 2rem;
+    text-align: center;
+    margin-top: 3rem;
+  }
+  .footer p {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+  }
+  .footer p strong { color: white; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">LMU <span>Stats</span> Viewer</div>
+  <div class="nav-links">
+    <a href="#" class="active">Dashboard</a>
+    <a href="#">Races</a>
+    <a href="#">Standings</a>
+    <a href="#">Drivers</a>
+    <a href="#">Settings</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>6H <span>SPA</span> FRANCORCHAMPS</h1>
+  <p>FIA WEC — Season 2025 — Round 3</p>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value">34</div>
+      <div class="stat-label">Total laps</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">2:03.456</div>
+      <div class="stat-label">Best lap</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">P3</div>
+      <div class="stat-label">Position</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">+12.3s</div>
+      <div class="stat-label">Gap to leader</div>
+    </div>
+  </div>
+
+  <!-- TWO COLUMN -->
+  <div class="two-col">
+
+    <!-- STANDINGS TABLE -->
+    <div class="panel">
+      <div class="panel-header">
+        Race Standings
+        <span style="font-weight:400; opacity:0.8; font-size:0.75rem;">LIVE</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>P</th>
+            <th>Driver</th>
+            <th>Team</th>
+            <th>Gap</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="pos pos-1">1</td>
+            <td>K. Kobayashi</td>
+            <td class="team-name">#7 Toyota</td>
+            <td class="gap">Leader</td>
+          </tr>
+          <tr>
+            <td class="pos pos-2">2</td>
+            <td>M. Conway</td>
+            <td class="team-name">#8 Toyota</td>
+            <td class="gap">+3.2s</td>
+          </tr>
+          <tr>
+            <td class="pos pos-3">3</td>
+            <td>S. Vandoorne</td>
+            <td class="team-name">#94 Peugeot</td>
+            <td class="gap">+12.3s</td>
+          </tr>
+          <tr>
+            <td class="pos">4</td>
+            <td>A. Lynn</td>
+            <td class="team-name">#2 Cadillac</td>
+            <td class="gap">+18.7s</td>
+          </tr>
+          <tr>
+            <td class="pos">5</td>
+            <td>R. Kubica</td>
+            <td class="team-name">#83 AF Corse</td>
+            <td class="gap">+24.1s</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- DRIVER CARD -->
+    <div class="driver-card">
+      <div class="driver-header">
+        <div class="driver-number">7</div>
+        <div>
+          <div class="driver-name">Kamui Kobayashi</div>
+          <div class="driver-team">Toyota Gazoo Racing #7</div>
+        </div>
+      </div>
+      <div class="driver-stats">
+        <div class="driver-stat">
+          <div class="label">Best Lap</div>
+          <div class="value highlight">2:01.847</div>
+        </div>
+        <div class="driver-stat">
+          <div class="label">Last Lap</div>
+          <div class="value">2:03.456</div>
+        </div>
+        <div class="driver-stat">
+          <div class="label">Stint Laps</div>
+          <div class="value">18</div>
+        </div>
+        <div class="driver-stat">
+          <div class="label">Tire Age</div>
+          <div class="value">18 laps</div>
+        </div>
+        <div class="driver-stat">
+          <div class="label">Fuel</div>
+          <div class="value highlight">42%</div>
+        </div>
+        <div class="driver-stat">
+          <div class="label">Pit Stops</div>
+          <div class="value">1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUTTONS DEMO -->
+  <div class="panel">
+    <div class="panel-header orange">UI Elements</div>
+    <div class="btn-row" style="padding: 1.25rem;">
+      <button class="btn btn-primary">Primary Action</button>
+      <button class="btn btn-danger">Danger / Stop</button>
+      <button class="btn btn-info">Info / Stats</button>
+      <button class="btn btn-outline">Outline</button>
+      <button class="btn btn-ghost">Ghost</button>
+    </div>
+  </div>
+
+  <!-- COLOR SWATCHES -->
+  <div class="swatches-section">
+    <h2>Palette LMU Stats Viewer</h2>
+    <div class="swatches">
+      <div class="swatch">
+        <div class="swatch-color" style="background:#000833;"></div>
+        <div class="swatch-info">
+          <div class="name">BG Primary</div>
+          <div class="hex">#000833</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#000000;"></div>
+        <div class="swatch-info">
+          <div class="name">BG Dark</div>
+          <div class="hex">#000000</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#FF4A0F;"></div>
+        <div class="swatch-info">
+          <div class="name">Accent Orange</div>
+          <div class="hex">#FF4A0F</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#FF1D43;"></div>
+        <div class="swatch-info">
+          <div class="name">Accent Red</div>
+          <div class="hex">#FF1D43</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#075AB8;"></div>
+        <div class="swatch-info">
+          <div class="name">Blue WEC</div>
+          <div class="hex">#075AB8</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#4FA1FF;"></div>
+        <div class="swatch-info">
+          <div class="name">Blue Light</div>
+          <div class="hex">#4FA1FF</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#FFFFFF;"></div>
+        <div class="swatch-info">
+          <div class="name">White</div>
+          <div class="hex">#FFFFFF</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#EAEAEA;"></div>
+        <div class="swatch-info">
+          <div class="name">Muted</div>
+          <div class="hex">#EAEAEA</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p><strong>LMU Stats Viewer</strong> — FIA WEC &amp; 24h Le Mans Official Game</p>
+</div>
+
+</body>
+</html>

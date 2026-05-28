@@ -1,0 +1,11 @@
+# Cargo / Rust build output
+/target/
+**/*.rs.bk
+
+# Tauri generated
+/gen/
+/WixTools/
+
+# OS
+.DS_Store
+Thumbs.db

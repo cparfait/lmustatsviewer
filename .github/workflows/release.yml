@@ -1,0 +1,72 @@
+name: Release
+
+# Construit l'installeur Windows (.exe NSIS), signe la mise à jour et crée
+# une GitHub Release — UNIQUEMENT quand un tag de version `vX.Y.Z` est poussé
+# (ou via déclenchement manuel). Les commits / push ordinaires ne déclenchent
+# rien : une nouvelle version n'atteint les utilisateurs que sur un tag.
+#
+# Secrets requis (Settings → Secrets and variables → Actions) :
+#   TAURI_SIGNING_PRIVATE_KEY  → contenu du fichier _lmu_updater.key
+#   (la clé a été générée sans mot de passe, voir SUIVI.md)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build, sign & release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "LMU Stats Viewer ${{ github.ref_name }}"
+          releaseBody: |
+            Notes de version : voir l'onglet « Notes de version » dans l'application.
+
+            ## Installation Windows
+            Télécharger l'installeur `.exe` (NSIS) ci-dessous et le lancer.
+
+            ⚠️ Au premier lancement, Windows SmartScreen peut afficher un
+            avertissement (binaire non signé par un certificat payant) :
+            cliquer sur « Informations complémentaires » puis « Exécuter quand même ».
+
+            Les mises à jour suivantes seront proposées automatiquement dans l'application.
+          releaseDraft: true
+          prerelease: false

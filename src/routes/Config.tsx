@@ -48,6 +48,7 @@ import { useTheme } from "@/stores/theme";
 import { system, config as configApi, indexer } from "@/lib/api";
 import { isTauri } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { checkForUpdate } from "@/lib/updater";
 
 const LANGUAGES = [
   { code: "fr", label: "Français", flag: "/flags/fr.png" },
@@ -90,6 +91,7 @@ export function Config() {
 
   const [maintMsg, setMaintMsg] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState("—");
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "uptodate" | "available" | "error">("idle");
   const [emptyGlobal, setEmptyGlobal] = useState<number | null>(null);
   const [emptyPlayer, setEmptyPlayer] = useState<number | null>(null);
 
@@ -607,15 +609,43 @@ export function Config() {
                 variant="outline"
                 size="sm"
                 className="w-full justify-start gap-1.5 h-8 text-xs"
-                onClick={() => {
-                  import("@tauri-apps/api/event").then(({ emit }) =>
-                    emit("tray-check-update")
-                  );
+                disabled={updateStatus === "checking"}
+                onClick={async () => {
+                  setUpdateStatus("checking");
+                  try {
+                    const upd = await checkForUpdate();
+                    if (upd) {
+                      setUpdateStatus("available");
+                      import("@tauri-apps/api/event").then(({ emit }) =>
+                        emit("tray-check-update")
+                      );
+                    } else {
+                      setUpdateStatus("uptodate");
+                      setTimeout(() => setUpdateStatus("idle"), 5000);
+                    }
+                  } catch {
+                    setUpdateStatus("error");
+                    setTimeout(() => setUpdateStatus("idle"), 5000);
+                  }
                 }}
               >
-                <RefreshCw className="h-3.5 w-3.5" />
+                {updateStatus === "checking"
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <RefreshCw className="h-3.5 w-3.5" />}
                 {t("updater.checkButton")}
               </Button>
+              {updateStatus === "uptodate" && (
+                <p className="flex items-center gap-1.5 px-1 text-xs text-success">
+                  <Check className="h-3 w-3" />
+                  {t("updater.upToDate")}
+                </p>
+              )}
+              {updateStatus === "error" && (
+                <p className="flex items-center gap-1.5 px-1 text-xs text-destructive">
+                  <AlertTriangle className="h-3 w-3" />
+                  {t("updater.error")}
+                </p>
+              )}
             </CardContent>
           </Card>
       </div>

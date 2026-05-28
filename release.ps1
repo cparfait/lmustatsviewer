@@ -38,7 +38,13 @@ if (-not (Test-Path $tauriConf)) {
     Write-Fail "tauri.conf.json introuvable - lancez le script depuis la racine du projet."
     exit 1
 }
-$currentVersion = ([System.IO.File]::ReadAllText($tauriConf, [System.Text.UTF8Encoding]::new($false)) | ConvertFrom-Json).version
+$rawJson = [System.IO.File]::ReadAllText($tauriConf, [System.Text.UTF8Encoding]::new($false))
+if ($rawJson -match '"version"\s*:\s*"([^"]+)"') {
+    $currentVersion = $Matches[1]
+} else {
+    Write-Fail "Impossible de lire la version dans tauri.conf.json"
+    exit 1
+}
 
 # Invite de version
 if ($Version -eq "") {

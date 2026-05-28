@@ -220,14 +220,23 @@ if ($signature -eq "") {
     Write-Warn "Signature absente - l'auto-update ne fonctionnera pas sans le .exe.sig"
 }
 
-# Push
+# Push branche + tag (depuis V2)
 if ($Version -ne $currentVersion) {
-    Write-Step "Push"
+    Write-Step "Push (branche V2)"
     try {
         git push origin V2 2>&1 | Out-Null
-        Write-Ok "Commit de version pousse (branche V2)"
+        Write-Ok "Branche V2 poussee"
     } catch {
-        Write-Warn "Push echoue - faites-le manuellement : git push origin V2"
+        Write-Warn "Push branche echoue - faites-le manuellement : git push origin V2"
+    }
+
+    Write-Step "Tag v$Version"
+    try {
+        git tag -a "v$Version" -m "LMU Stats Viewer v$Version" 2>&1 | Out-Null
+        git push origin "v$Version" 2>&1 | Out-Null
+        Write-Ok "Tag v$Version pousse (pointe sur V2)"
+    } catch {
+        Write-Warn "Tag echoue - faites-le manuellement : git tag -a v$Version -m 'LMU Stats Viewer v$Version' && git push origin v$Version"
     }
 }
 

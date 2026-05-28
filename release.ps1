@@ -1,14 +1,16 @@
 # release.ps1 - Script de release LMU Stats Viewer
 #
 # Usage :
-#   .\release.ps1                 -> invite version, build, instructions GitHub
-#   .\release.ps1 -Version 3.1.0  -> force une version precise (pas d'invite)
-#   .\release.ps1 -SkipBuild      -> repackage sans recompiler
+#   .\release.ps1                        -> invite version, build, instructions GitHub
+#   .\release.ps1 -Version 3.1.0         -> force une version precise (pas d'invite)
+#   .\release.ps1 -SkipBuild             -> repackage sans recompiler
+#   .\release.ps1 -Branch main           -> pousse sur main au lieu de V2 (test)
 #
 # Prerequis : Node.js, Rust/Cargo, _lmu_updater.key dans le dossier racine.
 
 param(
-    [string]$Version  = "",
+    [string]$Version   = "",
+    [string]$Branch    = "V2",
     [switch]$SkipBuild = $false
 )
 
@@ -222,12 +224,12 @@ if ($signature -eq "") {
 
 # Push branche + tag (depuis V2)
 if ($Version -ne $currentVersion) {
-    Write-Step "Push (branche V2)"
+    Write-Step "Push (branche $Branch)"
     try {
-        git push origin V2 2>&1 | Out-Null
+        git push origin $Branch 2>&1 | Out-Null
         Write-Ok "Branche V2 poussee"
     } catch {
-        Write-Warn "Push branche echoue - faites-le manuellement : git push origin V2"
+        Write-Warn "Push branche echoue - faites-le manuellement : git push origin $Branch"
     }
 
     Write-Step "Tag v$Version"

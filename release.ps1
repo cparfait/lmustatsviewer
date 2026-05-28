@@ -25,6 +25,7 @@ if (-not $Root) { $Root = Get-Location }
 Set-Location $Root
 
 $tauriConf = Join-Path $Root "src-tauri\tauri.conf.json"
+$cargoToml = Join-Path $Root "src-tauri\Cargo.toml"
 $keyFile   = Join-Path $Root "_lmu_updater.key"
 
 # Titre
@@ -120,8 +121,13 @@ if ($Version -ne $currentVersion) {
     [System.IO.File]::WriteAllText($tauriConf, $rawConf, [System.Text.UTF8Encoding]::new($false))
     Write-Ok "tauri.conf.json mis a jour ($currentVersion -> $Version)"
 
+    $rawCargo = [System.IO.File]::ReadAllText($cargoToml, [System.Text.UTF8Encoding]::new($false))
+    $rawCargo = $rawCargo -replace '^version\s*=\s*"[^"]+"', "version = `"$Version`""
+    [System.IO.File]::WriteAllText($cargoToml, $rawCargo, [System.Text.UTF8Encoding]::new($false))
+    Write-Ok "Cargo.toml mis a jour ($currentVersion -> $Version)"
+
     try {
-        git add src-tauri/tauri.conf.json 2>&1 | Out-Null
+        git add src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock 2>&1 | Out-Null
         $msg = "chore: bump version to $Version"
         git commit -m $msg 2>&1 | Out-Null
         Write-Ok "Commit cree"

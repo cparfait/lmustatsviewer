@@ -164,34 +164,49 @@ if (-not $SkipBuild) {
     Write-Warn "Compilation ignoree (-SkipBuild)"
 }
 
-# Artefacts
+# Artefacts  (Tauri v2 : .exe + .exe.sig — pas de .nsis.zip)
 Write-Step "Artefacts"
 
 $bundleDir = Join-Path $Root "src-tauri\target\release\bundle\nsis"
-$names = @(
-    "LMU Stats Viewer_${Version}_x64-setup.exe",
-    "latest.json",
-    "LMU Stats Viewer_${Version}_x64-setup.nsis.zip",
-    "LMU Stats Viewer_${Version}_x64-setup.nsis.zip.sig"
-)
+$exeName   = "LMU Stats Viewer_${Version}_x64-setup.exe"
+$sigName   = "LMU Stats Viewer_${Version}_x64-setup.exe.sig"
+$jsonName  = "latest.json"
+$exePath   = Join-Path $bundleDir $exeName
+$sigPath   = Join-Path $bundleDir $sigName
+$jsonPath  = Join-Path $bundleDir $jsonName
 
-$allFound     = $true
-$filesToUpload = @()
-foreach ($name in $names) {
-    $path = Join-Path $bundleDir $name
-    if (Test-Path $path) {
-        $size = [math]::Round((Get-Item $path).Length / 1MB, 2)
-        Write-Ok "$name  (${size} MB)"
-        $filesToUpload += $path
-    } else {
-        Write-Warn "Introuvable : $name"
-        if ($name -like "*setup.exe") { $allFound = $false }
-    }
+# Verifier l'installeur
+if (-not (Test-Path $exePath)) {
+    Write-Fail "Installeur introuvable : $exeName"
+    exit 1
+}
+Write-Ok "$exeName  ($([math]::Round((Get-Item $exePath).Length / 1MB, 2)) MB)"
+
+# Verifier la signature
+$signature = ""
+if (Test-Path $sigPath) {
+    Write-Ok "$sigName"
+    $signature = [System.IO.File]::ReadAllText($sigPath, [System.Text.UTF8Encoding]::new($false)).Trim()
+} else {
+    Write-Warn "$sigName introuvable - latest.json ne contiendra pas la signature"
 }
 
-if (-not $allFound) {
-    Write-Fail "L'installeur est manquant - verifiez les erreurs ci-dessus."
-    exit 1
+# Generer latest.json (requis par le plugin updater Tauri)
+$repoBase  = "https://github.com/cparfait/lmustatsviewer"
+$pubDate   = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
+$exeUrl    = "$repoBase/releases/download/v$Version/LMU%20Stats%20Viewer_${Version}_x64-setup.exe"
+
+# Echapper la signature pour JSON (remplacer les retours a la ligne)
+$sigJson   = $signature -replace '\\', '\\' -replace '"', '\"' -replace "`r`n", '\n' -replace "`n", '\n'
+
+$latestContent = "{`n  `"version`": `"$Version`",`n  `"notes`": `"LMU Stats Viewer v$Version`",`n  `"pub_date`": `"$pubDate`",`n  `"platforms`": {`n    `"windows-x86_64`": {`n      `"signature`": `"$sigJson`",`n      `"url`": `"$exeUrl`"`n    }`n  }`n}"
+[System.IO.File]::WriteAllText($jsonPath, $latestContent, [System.Text.UTF8Encoding]::new($false))
+Write-Ok "latest.json genere"
+
+$filesToUpload = @($exePath, $sigPath, $jsonPath)
+
+if ($signature -eq "") {
+    Write-Warn "Signature absente - l'auto-update ne fonctionnera pas sans le .exe.sig"
 }
 
 # Push

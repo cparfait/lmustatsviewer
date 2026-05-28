@@ -430,35 +430,6 @@ function CarView({
         </CardContent>
       </Card>
 
-      {/* Hero voiture active — compact (logo + nom + classe + total en
-          ligne, padding réduit pour ne pas écraser la matrice). */}
-      {activeGroup && (
-        <Card className="overflow-hidden">
-          <CardContent className="p-2.5 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3 min-w-0">
-              <CarLogo
-                carName={activeGroup.car}
-                className="h-4 w-auto object-contain opacity-80 shrink-0"
-              />
-              <div className="min-w-0 flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-bold tracking-tight truncate">
-                  {activeGroup.car}
-                </h2>
-                <ClassBadge carClass={activeGroup.car_class} size="sm" />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
-                {t("setups.totalSetups")}
-              </span>
-              <span className="text-base font-bold tabular-nums">
-                {totalSetups}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Matrice + QuickView */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Matrice par circuit (2/3) */}
@@ -1165,30 +1136,6 @@ function CircuitView({
           </select>
         </CardContent>
       </Card>
-
-      {/* Hero circuit actif — compact (icône + nom + total). */}
-      {activeCircuit && (
-        <Card className="overflow-hidden">
-          <CardContent className="p-2.5 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-md border border-border flex items-center justify-center p-1 shrink-0 bg-background/40">
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <h2 className="text-base font-bold tracking-tight truncate">
-                {activeCircuit}
-              </h2>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-muted-foreground">
-                {t("setups.totalSetups")}
-              </span>
-              <span className="text-base font-bold tabular-nums">
-                {totalSetups}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Matrice voiture × type + QuickView */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

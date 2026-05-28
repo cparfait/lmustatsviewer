@@ -24,9 +24,10 @@ $Root = $PSScriptRoot
 if (-not $Root) { $Root = Get-Location }
 Set-Location $Root
 
-$tauriConf = Join-Path $Root "src-tauri\tauri.conf.json"
-$cargoToml = Join-Path $Root "src-tauri\Cargo.toml"
-$keyFile   = Join-Path $Root "_lmu_updater.key"
+$packageJson = Join-Path $Root "package.json"
+$tauriConf  = Join-Path $Root "src-tauri\tauri.conf.json"
+$cargoToml  = Join-Path $Root "src-tauri\Cargo.toml"
+$keyFile    = Join-Path $Root "_lmu_updater.key"
 
 # Titre
 Write-Host ""
@@ -34,12 +35,12 @@ Write-Host "============================================" -ForegroundColor Magen
 Write-Host "   LMU Stats Viewer - Release Builder"      -ForegroundColor Magenta
 Write-Host "============================================" -ForegroundColor Magenta
 
-# Lecture de la version actuelle
-if (-not (Test-Path $tauriConf)) {
-    Write-Fail "tauri.conf.json introuvable - lancez le script depuis la racine du projet."
+# Lecture de la version actuelle depuis package.json (source de verite)
+if (-not (Test-Path $packageJson)) {
+    Write-Fail "package.json introuvable - lancez le script depuis la racine du projet."
     exit 1
 }
-$rawJson = [System.IO.File]::ReadAllText($tauriConf, [System.Text.UTF8Encoding]::new($false))
+$rawJson = [System.IO.File]::ReadAllText($packageJson, [System.Text.UTF8Encoding]::new($false))
 if ($rawJson -match '"version"\s*:\s*"([^"]+)"') {
     $currentVersion = $Matches[1]
 } else {
@@ -116,18 +117,20 @@ if (-not (Test-Path $keyFile)) {
 if ($Version -ne $currentVersion) {
     Write-Step "Mise a jour de la version"
 
-    $rawConf = [System.IO.File]::ReadAllText($tauriConf, [System.Text.UTF8Encoding]::new($false))
-    $rawConf = $rawConf -replace '"version":\s*"[^"]+"', "`"version`": `"$Version`""
-    [System.IO.File]::WriteAllText($tauriConf, $rawConf, [System.Text.UTF8Encoding]::new($false))
-    Write-Ok "tauri.conf.json mis a jour ($currentVersion -> $Version)"
+    # Bump package.json (source de verite)
+    $rawPkg = [System.IO.File]::ReadAllText($packageJson, [System.Text.UTF8Encoding]::new($false))
+    $rawPkg = $rawPkg -replace '"version":\s*"[^"]+"', "`"version`": `"$Version`""
+    [System.IO.File]::WriteAllText($packageJson, $rawPkg, [System.Text.UTF8Encoding]::new($false))
+    Write-Ok "package.json mis a jour ($currentVersion -> $Version)"
 
+    # Bump Cargo.toml (affiche pendant la compilation)
     $rawCargo = [System.IO.File]::ReadAllText($cargoToml, [System.Text.UTF8Encoding]::new($false))
     $rawCargo = $rawCargo -replace '^version\s*=\s*"[^"]+"', "version = `"$Version`""
     [System.IO.File]::WriteAllText($cargoToml, $rawCargo, [System.Text.UTF8Encoding]::new($false))
     Write-Ok "Cargo.toml mis a jour ($currentVersion -> $Version)"
 
     try {
-        git add src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock 2>&1 | Out-Null
+        git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock 2>&1 | Out-Null
         $msg = "chore: bump version to $Version"
         git commit -m $msg 2>&1 | Out-Null
         Write-Ok "Commit cree"

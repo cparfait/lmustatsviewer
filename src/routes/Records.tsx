@@ -35,6 +35,7 @@ import {
   Search,
   BarChart3,
   TrendingDown,
+  ExternalLink,
 } from "lucide-react";
 import {
   cn,
@@ -68,6 +69,7 @@ interface Combo {
   trackCourse: string;
   car: string;
   carClass: string;
+  recordSessionId?: number; // session du meilleur temps actuel
 }
 
 // ── Composant racine ─────────────────────────────────────────────────────────
@@ -192,6 +194,7 @@ function Overview({
   gameVersions: string[];
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [classFilter, setClassFilter] = useState("");
 
@@ -340,6 +343,7 @@ function Overview({
                           trackCourse: r.track_course,
                           car: r.car,
                           carClass: r.car_class,
+                          recordSessionId: r.record_session_id,
                         })
                       }
                     >
@@ -388,7 +392,23 @@ function Overview({
                         />
                       </TableCell>
                       <TableCell className="text-center">
-                        {r.sessions_count}
+                        <button
+                          className="font-mono tabular-nums hover:text-primary hover:underline underline-offset-2 transition-colors"
+                          title={t("records.viewSessions")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const q = new URLSearchParams({
+                              track: r.track,
+                              ...(r.track_course && r.track_course !== r.track
+                                ? { course: r.track_course }
+                                : {}),
+                              car: r.car,
+                            });
+                            navigate(`/sessions?${q}`);
+                          }}
+                        >
+                          {r.sessions_count}
+                        </button>
                       </TableCell>
                       <TableCell className="text-center">
                         {r.improvements}
@@ -511,11 +531,22 @@ function Progression({
         <span className="inline-flex items-center gap-1.5">
           <CarLogo
             carName={points[0]?.car_type ?? ""}
-            className="h-4 w-auto object-contain opacity-80"
+            className="h-4 w-auto object-contain opacity-80 shrink-0"
           />
           <span className="font-medium">{combo.car}</span>
           <ClassBadge carClass={combo.carClass} size="sm" />
         </span>
+        {combo.recordSessionId && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto gap-1.5 text-muted-foreground hover:text-primary text-xs"
+            onClick={() => navigate(`/sessions/${combo.recordSessionId}`)}
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            {t("records.goToSession")}
+          </Button>
+        )}
       </div>
 
       {/* Cartes stats */}

@@ -240,6 +240,8 @@ export default {
     historyTitle: "Session history",
     online: "Online",
     weekend: "Weekend",
+    goToSession: "View session",
+    viewSessions: "View filtered sessions",
   },
   setups: {
     title: "Car setups",

@@ -1172,11 +1172,11 @@ function ClassificationTab({
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <CarLogo
-                            carName={r.car_type}
-                            className="h-3.5 w-auto object-contain opacity-80"
+                            carName={r.unique_car_name || r.car_type}
+                            className="h-3.5 w-auto object-contain opacity-80 shrink-0"
                           />
-                          <span className="whitespace-nowrap">
-                            {r.car_type}
+                          <span className="font-medium whitespace-nowrap">
+                            {r.unique_car_name || r.car_type}
                           </span>
                         </div>
                       </TableCell>
@@ -1381,7 +1381,15 @@ function LapsTab({
               title={
                 <span className="inline-flex items-center gap-2">
                   <ClassBadge carClass={r.car_class} solid />
-                  {r.driver_name} — {r.car_type}
+                  {r.driver_name}
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground font-normal">
+                    <span>—</span>
+                    <CarLogo
+                      carName={r.unique_car_name || r.car_type}
+                      className="h-3.5 w-auto object-contain opacity-70 shrink-0"
+                    />
+                    {r.unique_car_name || r.car_type}
+                  </span>
                 </span>
               }
             />

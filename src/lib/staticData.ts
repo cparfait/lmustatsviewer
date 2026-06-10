@@ -63,6 +63,21 @@ export const CAR_CLASS_SOLID_COLORS: Record<string, { color: string; background:
   GTE:         { color: "#ffffff", background: "#f97316" },
 };
 
+/**
+ * Couleur de remplissage pleine pour les graphiques (recharts `fill`/`stroke`).
+ * Source unique : `CAR_CLASS_SOLID_COLORS`. Remplace les anciennes copies
+ * `CLASS_COLORS` dupliquées dans Dashboard / Profile.
+ *
+ * @param carClass Clé de classe (brute backend ou libellé).
+ * @param fallback Couleur de repli si la classe est inconnue.
+ */
+export function classChartColor(
+  carClass: string,
+  fallback = "var(--color-primary)"
+): string {
+  return CAR_CLASS_SOLID_COLORS[carClass]?.background ?? fallback;
+}
+
 export const LMU_CAR_CATEGORY_LABELS: Record<LmuCarCategory, string> = {
   hyper: "Hypercar",
   lmp2: "LMP2",
@@ -115,6 +130,10 @@ async function loadCircuitsData(): Promise<CircuitsJson> {
 /** Précharge les deux JSON en parallèle. Appeler une seule fois au démarrage. */
 export async function preloadStaticData(): Promise<void> {
   await Promise.all([loadCarsData(), loadCircuitsData()]);
+  // Renseigne aussi les caches **synchrones** (`getCachedLmuCars/Circuits`),
+  // utilisés par des composants non-async comme `NewSetupDialog` (menu voiture).
+  // Les données brutes sont déjà en cache → pas de second fetch.
+  await Promise.all([getLmuCars(), getLmuCircuits()]);
 }
 
 /** Invalide le cache (utile après un hot-reload en dev). */

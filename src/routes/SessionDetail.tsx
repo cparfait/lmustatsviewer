@@ -61,10 +61,9 @@ import type {
 } from "@/lib/api";
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { TierBadge } from "@/components/TierBadge";
+import { AICoachPanel } from "@/components/AICoachPanel";
 import { useAppStore } from "@/stores/app";
-
-/** Fonction de traduction (typage léger pour les helpers). */
-type Tr = (key: string, opts?: Record<string, unknown>) => string;
+import type { Tr } from "@/i18n";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -75,7 +74,7 @@ function Legend({
   items: { className?: string; icon?: ReactNode; label: string }[];
 }) {
   return (
-    <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
+    <div className="flex items-center gap-3 text-micro text-muted-foreground flex-wrap">
       {items.map((i) => (
         <span key={i.label} className="flex items-center gap-1">
           {i.icon ?? (
@@ -184,6 +183,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
   const { session, siblings, results, laps, stream } = data;
   const isRace = session.session_type === "Race";
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
+  const aiCoachEnabled = useAppStore((s) => s.aiCoachEnabled);
 
   // Setups associés à cette session (vue inverse de SetupDetail). Rechargé
   // après chaque lien/délier pour refléter l'état serveur.
@@ -290,6 +290,49 @@ function SessionView({ data }: { data: SessionDetailData }) {
       fuelUsed.length > 0
         ? (fuelUsed.reduce((a, b) => a + b, 0) / fuelUsed.length) * 100
         : null;
+
+    // ── Theoretical best (#101) : combinaison des meilleurs secteurs du joueur ──
+    const minSec = (sel: (l: (typeof valid)[number]) => number | null) =>
+      valid.reduce<number | null>((m, l) => {
+        const v = sel(l);
+        return v != null && v > 0 && (m == null || v < m) ? v : m;
+      }, null);
+    const bestS1 = minSec((l) => l.s1);
+    const bestS2 = minSec((l) => l.s2);
+    const bestS3 = minSec((l) => l.s3);
+    const theoBest =
+      bestS1 != null && bestS2 != null && bestS3 != null
+        ? bestS1 + bestS2 + bestS3
+        : null;
+    // Gain potentiel = meilleur tour réel − best théorique (≥ 0).
+    const theoGain =
+      theoBest != null && playerResult.best_lap != null
+        ? playerResult.best_lap - theoBest
+        : null;
+
+    // ── Race pace (#102) : moyenne des tours de course hors aberrants (IQR) ──
+    let racePace: number | null = null;
+    let racePaceLaps = 0;
+    if (isRace && times.length >= 4) {
+      const sorted = [...times].sort((a, b) => a - b);
+      const quantile = (q: number) => {
+        const pos = (sorted.length - 1) * q;
+        const lo = Math.floor(pos);
+        const hi = Math.ceil(pos);
+        return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+      };
+      const q1 = quantile(0.25);
+      const q3 = quantile(0.75);
+      const iqr = q3 - q1;
+      const lo = q1 - 1.5 * iqr;
+      const hi = q3 + 1.5 * iqr;
+      const kept = times.filter((v) => v >= lo && v <= hi);
+      if (kept.length > 0) {
+        racePace = kept.reduce((a, b) => a + b, 0) / kept.length;
+        racePaceLaps = kept.length;
+      }
+    }
+
     return {
       bestLap: playerResult.best_lap,
       worstLap: worst,
@@ -300,8 +343,15 @@ function SessionView({ data }: { data: SessionDetailData }) {
       topSpeed: playerResult.vmax,
       avgSpeed,
       fuelPerLap,
+      bestS1,
+      bestS2,
+      bestS3,
+      theoBest,
+      theoGain,
+      racePace,
+      racePaceLaps,
     };
-  }, [playerResult, playerLaps, session.track_length]);
+  }, [playerResult, playerLaps, session.track_length, isRace]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -353,7 +403,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
               )}
               {showOhneSpeed && ohneOffline && (
                 <span
-                  className="inline-flex items-center gap-0.5 text-[10px] text-amber-400/70"
+                  className="inline-flex items-center gap-0.5 text-micro text-amber-400/70"
                   title={t("config.ohneSpeedOffline")}
                 >
                   <WifiOff className="h-3 w-3" />
@@ -376,8 +426,8 @@ function SessionView({ data }: { data: SessionDetailData }) {
               </span>
             }
           />
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+          <CardContent className="p-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-3 gap-y-1.5">
               {playerResult ? (
                 <>
                   <InfoBlock
@@ -488,11 +538,11 @@ function SessionView({ data }: { data: SessionDetailData }) {
               </span>
             }
           />
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+          <CardContent className="p-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-3 gap-y-1.5">
               {/* Classes présentes dans la session (multi-classes possible). */}
               <div className="min-w-0 col-span-2 sm:col-span-1">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                <p className="text-micro uppercase tracking-wide text-muted-foreground font-medium">
                   {sessionClasses.length > 1
                     ? t("sessionDetail.fClasses")
                     : t("sessionDetail.fClass")}
@@ -581,7 +631,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
                   toggle pour naviguer entre elles. Sinon, juste un badge type
                   de session. Placé en bas de la grille (auparavant en haut). */}
               <div className="min-w-0 col-span-full">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                <p className="text-micro uppercase tracking-wide text-muted-foreground font-medium">
                   {siblings.length > 1
                     ? t("sessionDetail.fSessionsWeekend")
                     : t("sessionDetail.fSessionType")}
@@ -594,7 +644,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
                         size="sm"
                         variant={s.id === session.id ? "default" : "outline"}
                         onClick={() => navigate(`/sessions/${s.id}`)}
-                        className="h-6 px-2 text-[11px] font-semibold"
+                        className="h-6 px-2 text-mini font-semibold"
                       >
                         {sessionTypeLabel(s.session_type, t)}
                       </Button>
@@ -602,7 +652,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
                   ) : (
                     <Badge
                       variant={isRace ? "default" : "outline"}
-                      className="text-[11px] font-bold uppercase tracking-wide"
+                      className="text-mini font-bold uppercase tracking-wide"
                     >
                       {sessionTypeLabel(session.session_type, t)}
                     </Badge>
@@ -674,7 +724,35 @@ function SessionView({ data }: { data: SessionDetailData }) {
                     : "—"
                 }
               />
+              {playerPerf.racePace != null && (
+                <PerfMetric
+                  label={t("sessionDetail.mRacePace")}
+                  value={formatTime(playerPerf.racePace)}
+                  accent="text-sky-500"
+                />
+              )}
             </div>
+
+            {/* Best théorique détaillé (#101) : combinaison des meilleurs secteurs */}
+            {playerPerf.theoBest != null && (
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/60 pt-2 text-mini">
+                <span className="font-semibold text-success">
+                  {t("sessionDetail.mTheoBest")} : {formatTime(playerPerf.theoBest)}
+                </span>
+                <span className="text-muted-foreground tabular-nums">
+                  S1 {playerPerf.bestS1!.toFixed(3)} · S2{" "}
+                  {playerPerf.bestS2!.toFixed(3)} · S3 {playerPerf.bestS3!.toFixed(3)}
+                </span>
+                {playerPerf.theoGain != null && playerPerf.theoGain > 0.001 && (
+                  <span className="text-muted-foreground">
+                    {t("sessionDetail.theoGain")} :{" "}
+                    <span className="font-semibold text-emerald-500 tabular-nums">
+                      −{playerPerf.theoGain.toFixed(3)}s
+                    </span>
+                  </span>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -706,6 +784,9 @@ function SessionView({ data }: { data: SessionDetailData }) {
             <TabsTrigger value="tracklimits">
               {t("sessionDetail.tabTrackLimits")} ({trackLimitEvents.length})
             </TabsTrigger>
+          )}
+          {aiCoachEnabled && (
+            <TabsTrigger value="coach">{t("sessionDetail.tabCoach")}</TabsTrigger>
           )}
         </TabsList>
 
@@ -773,6 +854,12 @@ function SessionView({ data }: { data: SessionDetailData }) {
         <TabsContent value="tracklimits">
           <TrackLimitsTab events={trackLimitEvents} playerName={playerName} />
         </TabsContent>
+
+        {aiCoachEnabled && (
+          <TabsContent value="coach">
+            <AICoachPanel detail={data} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
@@ -793,14 +880,14 @@ function InfoBlock({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+      <p className="text-micro uppercase tracking-wide text-muted-foreground font-medium">
         {label}
       </p>
       <p
         title={value}
         className={cn(
-          "mt-0.5 font-semibold truncate",
-          mono && "font-mono text-xs font-normal",
+          "font-semibold truncate text-xs leading-tight",
+          mono && "font-mono font-normal",
           accent && "text-success font-mono",
           negative && "text-destructive font-mono"
         )}
@@ -823,7 +910,7 @@ function PerfMetric({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium leading-tight">
+      <p className="text-micro uppercase tracking-wide text-muted-foreground font-medium leading-tight">
         {label}
       </p>
       <p
@@ -865,7 +952,7 @@ function CompoundBadge({ code }: { code: string | null }) {
     <span
       title={code}
       className={cn(
-        "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
+        "inline-flex h-5 w-5 items-center justify-center rounded-full text-micro font-bold",
         def.bg,
         def.fg
       )}
@@ -980,48 +1067,6 @@ function ClassificationTab({
     }
     return out;
   }, [lapsByDriver]);
-
-  // Export CSV du classement : génère un blob côté front et déclenche le DL.
-  function exportCsv() {
-    const header = [
-      "Pos",
-      "ClassPos",
-      "Driver",
-      "Team",
-      "Car",
-      "Class",
-      "BestLap",
-      "Laps",
-      "Pits",
-      "Status",
-    ];
-    const escape = (v: string) =>
-      /[",\n;]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-    const rows = results.map((r) =>
-      [
-        String(r.position),
-        String(r.class_position),
-        r.driver_name,
-        r.team_name || "",
-        r.unique_car_name || r.car_type || "",
-        r.car_class || "",
-        r.best_lap != null ? formatTime(r.best_lap) : "",
-        String(r.laps_count),
-        String(r.pitstops),
-        r.finish_status || "",
-      ].map(escape).join(",")
-    );
-    const csv = [header.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "session_classification.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -1485,7 +1530,7 @@ function LapsTab({
                     // Carburant utilisé ce tour : positif = consommé, négatif = rechargé au stand
                     const fuelUsedDisplay = (v: number | null) => {
                       if (v == null) return "—";
-                      if (v < -0.001) return <span className="text-success text-[9px]">+PIT</span>;
+                      if (v < -0.001) return <span className="text-success text-micro">+PIT</span>;
                       if (v > 0.15) return "—"; // outlap avec réservoir plein — valeur aberrante
                       return `${(v * 100).toFixed(1)}%`;
                     };
@@ -1500,7 +1545,7 @@ function LapsTab({
                         <TableCell className="text-center font-mono">
                           {l.lap_num}
                           {l.is_pit && (
-                            <span className="text-[9px] bg-muted text-muted-foreground rounded px-0.5 ml-1">
+                            <span className="text-micro bg-muted text-muted-foreground rounded px-0.5 ml-1">
                               P
                             </span>
                           )}
@@ -1566,16 +1611,16 @@ function LapsTab({
                         <TableCell className="text-right font-mono text-amber-400/80">
                           {fuelUsedDisplay(l.fuel_used)}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-[11px]">
+                        <TableCell className="text-right font-mono text-mini">
                           {tw(l.twfl)}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-[11px]">
+                        <TableCell className="text-right font-mono text-mini">
                           {tw(l.twfr)}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-[11px]">
+                        <TableCell className="text-right font-mono text-mini">
                           {tw(l.twrl)}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-[11px]">
+                        <TableCell className="text-right font-mono text-mini">
                           {tw(l.twrr)}
                         </TableCell>
                         <TableCell className="text-center">
@@ -1819,23 +1864,23 @@ function parseSeverity(text: string): number | null {
 /** Badge de sévérité : faible / moyen / élevé selon le score LMU. */
 function SeverityBadge({ score }: { score: number | null }) {
   if (score == null)
-    return <span className="text-muted-foreground/50 text-[10px]">—</span>;
+    return <span className="text-muted-foreground/50 text-micro">—</span>;
   if (score >= 50)
     return (
-      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-destructive">
+      <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-destructive">
         <AlertTriangle className="h-3 w-3" />
         {score.toFixed(0)}
       </span>
     );
   if (score >= 20)
     return (
-      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-500">
+      <span className="inline-flex items-center gap-0.5 text-micro font-semibold text-amber-500">
         <AlertTriangle className="h-3 w-3" />
         {score.toFixed(0)}
       </span>
     );
   return (
-    <span className="text-[10px] text-muted-foreground font-mono">
+    <span className="text-micro text-muted-foreground font-mono">
       {score.toFixed(0)}
     </span>
   );
@@ -2341,7 +2386,7 @@ function ComparisonTab({
         <CardContent className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {slots.map((value, i) => (
             <div key={i} className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+              <label className="text-micro uppercase tracking-wide text-muted-foreground font-medium">
                 <span
                   className="inline-block h-2 w-2 rounded-sm mr-1.5 align-middle"
                   style={{ backgroundColor: COMPARE_COLORS[i] }}
@@ -2652,7 +2697,7 @@ function SetupUsedInline({
     <div className="pt-3 border-t border-border/40">
       {/* En-tête : label + bouton d'action (style discret, fond neutre). */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+        <span className="inline-flex items-center gap-1.5 text-micro uppercase tracking-wider text-muted-foreground font-medium">
           <Wrench className="h-3 w-3" />
           {t("sessionDetail.setupUsed")}
         </span>
@@ -2660,7 +2705,7 @@ function SetupUsedInline({
           type="button"
           onClick={handleOpenPicker}
           disabled={pickerLoading}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/60 hover:bg-accent hover:border-primary/40 disabled:opacity-50 px-2 py-0.5 text-[11px] font-medium text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/60 hover:bg-accent hover:border-primary/40 disabled:opacity-50 px-2 py-0.5 text-mini font-medium text-foreground transition-colors"
         >
           {pickerLoading ? (
             <Loader2 className="h-3 w-3 animate-spin" />
@@ -2692,7 +2737,7 @@ function SetupUsedInline({
                 <p className="font-medium truncate group-hover:text-primary transition-colors leading-tight">
                   {s.name.replace(/\.svm$/i, "")}
                 </p>
-                <p className="text-muted-foreground text-[10px] truncate leading-tight">
+                <p className="text-muted-foreground text-micro truncate leading-tight">
                   {s.car} · {s.circuit} · {s.setup_type}
                 </p>
               </button>
@@ -2728,7 +2773,7 @@ function SetupUsedInline({
       {pickerOpen && candidates.length > 0 && (
         <div className="mt-2 rounded-md border border-border bg-background/60">
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/60">
-            <span className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">
+            <span className="text-micro uppercase tracking-wide font-semibold text-muted-foreground">
               {t("sessionDetail.pickSetupTitle")}
               {playerCar ? ` — ${playerCar}` : ""}
             </span>
@@ -2760,11 +2805,11 @@ function SetupUsedInline({
                     <span className="font-medium truncate">
                       {s.name.replace(/\.svm$/i, "")}
                     </span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
+                    <span className="text-micro text-muted-foreground shrink-0">
                       {s.setup_type}
                     </span>
                   </div>
-                  <div className="text-muted-foreground text-[10px] truncate mt-0.5">
+                  <div className="text-muted-foreground text-micro truncate mt-0.5">
                     {s.car} · {s.circuit}
                     {alreadyLinked && (
                       <span className="ml-2 text-primary font-semibold">

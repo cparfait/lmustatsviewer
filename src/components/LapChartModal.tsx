@@ -24,16 +24,12 @@ import {
   Tooltip,
   ReferenceLine,
   ResponsiveContainer,
-  Legend,
-  Dot,
 } from "recharts";
 import {
   X,
   TrendingUp,
   GitCompare,
   Trophy,
-  Gauge,
-  Fuel,
   ExternalLink,
   ChevronDown,
   Loader2,
@@ -41,13 +37,39 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { SessionBadge } from "@/components/SessionBadge";
 import { queries } from "@/lib/api";
 import type { LapChartData, ChartLapRow, ChartCompareSession } from "@/lib/api";
 import { formatTime, formatDateTime, cn } from "@/lib/utils";
-import { fetchBenchmarks, findBenchmark, type PaceBenchmark } from "@/lib/ohne_speed";
-import { OHNE_CLASS } from "@/components/TierBadge";
+import { fetchBenchmarks, findBenchmark, OHNE_CLASS, type PaceBenchmark } from "@/lib/ohne_speed";
 import { useAppStore } from "@/stores/app";
+import type { Tr } from "@/i18n";
+
+// ── Types graphe ──────────────────────────────────────────────────────────────
+
+/** Ligne du graphe, enrichie des champs de la session de comparaison. */
+type ChartRow = ChartLapRow & {
+  lap_time_compare?: number | null;
+  is_pit_compare?: boolean;
+  is_valid_compare?: boolean;
+  _compare?: boolean;
+};
+
+/** Props passées par recharts au rendu d'un point (`dot`). */
+interface DotRenderProps {
+  cx?: number;
+  cy?: number;
+  key?: string | number;
+  payload: ChartRow;
+}
 
 // ── Couleurs des séries ───────────────────────────────────────────────────────
 
@@ -82,13 +104,12 @@ function ChartTooltip({
   t,
 }: {
   active?: boolean;
-  payload?: any[];
+  payload?: { payload: ChartRow }[];
   bestLap: number | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  t: any;
+  t: Tr;
 }) {
   if (!active || !payload?.length) return null;
-  const lap: ChartLapRow & { _compare?: boolean } = payload[0]?.payload;
+  const lap: ChartRow = payload[0]?.payload;
   if (!lap) return null;
 
   const delta =
@@ -101,17 +122,17 @@ function ChartTooltip({
       <div className="flex items-center gap-2 mb-2 font-semibold text-sm">
         <span className="text-muted-foreground">{t("lapChart.lap")} {lap.lap_num}</span>
         {lap.is_pit && (
-          <Badge variant="outline" className="text-amber-400 border-amber-400/40 text-[9px] px-1 py-0">
+          <Badge variant="outline" className="text-amber-400 border-amber-400/40 text-micro px-1 py-0">
             PIT
           </Badge>
         )}
         {!lap.is_valid && !lap.is_pit && (
-          <Badge variant="outline" className="text-destructive border-destructive/40 text-[9px] px-1 py-0">
+          <Badge variant="outline" className="text-destructive border-destructive/40 text-micro px-1 py-0">
             INV.
           </Badge>
         )}
         {lap._compare && (
-          <Badge variant="outline" className="text-orange-400 border-orange-400/40 text-[9px] px-1 py-0">
+          <Badge variant="outline" className="text-orange-400 border-orange-400/40 text-micro px-1 py-0">
             CMP
           </Badge>
         )}
@@ -536,7 +557,7 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
                 )}
                 {showOhneSpeed && ohneOffline && (
                   <span
-                    className="inline-flex items-center gap-1 text-[10px] text-amber-400/80"
+                    className="inline-flex items-center gap-1 text-micro text-amber-400/80"
                     title={t("config.ohneSpeedOffline")}
                   >
                     <WifiOff className="h-3 w-3" />
@@ -682,8 +703,8 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
                         dataKey="lap_time"
                         stroke={COLOR_LAP}
                         strokeWidth={2}
-                        dot={(props: any) => {
-                          const lap: ChartLapRow = props.payload;
+                        dot={(props: DotRenderProps) => {
+                          const lap = props.payload;
                           if (lap.lap_time == null) return <g key={props.key} />;
                           const isB = bestLap != null && Math.abs(lap.lap_time - bestLap) < 0.001;
                           const col = lap.is_pit
@@ -720,7 +741,7 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
                         stroke={COLOR_COMPARE}
                         strokeWidth={2}
                         strokeDasharray="6 3"
-                        dot={(props: any) => {
+                        dot={(props: DotRenderProps) => {
                           const d = props.payload;
                           if (d.lap_time_compare == null) return <g key={props.key} />;
                           const isBest = bestLapCompare != null && Math.abs(d.lap_time_compare - bestLapCompare) < 0.001;
@@ -770,7 +791,7 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
               </div>
 
               {/* ── Légende compact ── */}
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-micro text-muted-foreground">
                 {/* Session principale */}
                 <span className="flex items-center gap-1.5">
                   <span className="w-6 h-0 inline-block border-t-2 border-success" />
@@ -844,14 +865,14 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
                     </div>
                     {/* Delta central */}
                     <div className="flex flex-col items-center justify-center border-x border-border/60 gap-1">
-                      <span className="text-muted-foreground text-[10px] uppercase tracking-wide">{t("lapChart.delta")}</span>
+                      <span className="text-muted-foreground text-micro uppercase tracking-wide">{t("lapChart.delta")}</span>
                       <span className={cn(
                         "font-mono font-bold text-base",
                         mainFaster ? "text-success" : "text-destructive"
                       )}>
                         {mainFaster ? "−" : "+"}{Math.abs(delta).toFixed(3)}s
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-micro text-muted-foreground">
                         {mainFaster ? `${data.unique_car_name.split(" ")[0]} +rapide` : `${compareData.unique_car_name.split(" ")[0]} +rapide`}
                       </span>
                     </div>
@@ -889,16 +910,19 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
                     </span>
                   </div>
                   <div className="max-h-48 overflow-y-auto rounded border border-border/60">
+                    {/* Table sticky en modale : on garde le <table> brut (le wrapper de
+                        <Table> casserait le sticky), mais on utilise les sous-composants
+                        partagés, avec neutralisation du style doré (en-tête gris). */}
                     <table className="w-full text-xs border-collapse">
-                      <thead className="sticky top-0 bg-card z-10">
-                        <tr className="text-muted-foreground text-[10px] uppercase tracking-wide border-b border-border/60">
-                          <th className="py-1 px-2 text-left">{t("lapChart.lap")}</th>
-                          <th className="py-1 px-2 text-right" style={{ color: COLOR_LAP }}>Session A</th>
-                          <th className="py-1 px-2 text-right" style={{ color: COLOR_COMPARE }}>Session B</th>
-                          <th className="py-1 px-2 text-right text-muted-foreground">Δ (A−B)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                      <TableHeader className="sticky top-0 bg-card z-10 [&_tr]:bg-transparent dark:[&_tr]:bg-transparent [&_tr]:border-border/60 [&_th]:text-inherit [&_th]:font-normal">
+                        <TableRow className="text-muted-foreground text-micro uppercase tracking-wide border-b border-border/60">
+                          <TableHead className="py-1 px-2 text-left">{t("lapChart.lap")}</TableHead>
+                          <TableHead className="py-1 px-2 text-right" style={{ color: COLOR_LAP }}>Session A</TableHead>
+                          <TableHead className="py-1 px-2 text-right" style={{ color: COLOR_COMPARE }}>Session B</TableHead>
+                          <TableHead className="py-1 px-2 text-right text-muted-foreground">Δ (A−B)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {chartData
                           .filter((d) => d.lap_time != null || d.lap_time_compare != null)
                           .map((d) => {
@@ -907,18 +931,18 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
                                 ? d.lap_time - d.lap_time_compare
                                 : null;
                             return (
-                              <tr key={d.lap_num} className="border-t border-border/30 hover:bg-muted/40">
-                                <td className="py-0.5 px-2 font-medium">
+                              <TableRow key={d.lap_num} className="border-t border-border/30 hover:bg-muted/40">
+                                <TableCell className="py-0.5 px-2 font-medium">
                                   {d.lap_num}
-                                  {d.is_pit && <span className="ml-1 text-amber-400 text-[9px]">P</span>}
-                                </td>
-                                <td className="py-0.5 px-2 text-right font-mono text-success">
+                                  {d.is_pit && <span className="ml-1 text-amber-400 text-micro">P</span>}
+                                </TableCell>
+                                <TableCell className="py-0.5 px-2 text-right font-mono text-success">
                                   {d.lap_time != null ? formatTime(d.lap_time) : <span className="text-muted-foreground/40">—</span>}
-                                </td>
-                                <td className="py-0.5 px-2 text-right font-mono" style={{ color: COLOR_COMPARE }}>
+                                </TableCell>
+                                <TableCell className="py-0.5 px-2 text-right font-mono" style={{ color: COLOR_COMPARE }}>
                                   {d.lap_time_compare != null ? formatTime(d.lap_time_compare) : <span className="text-muted-foreground/40">—</span>}
-                                </td>
-                                <td className={cn(
+                                </TableCell>
+                                <TableCell className={cn(
                                   "py-0.5 px-2 text-right font-mono font-semibold",
                                   delta == null ? "text-muted-foreground/40" :
                                   delta < 0 ? "text-success" : "text-destructive"
@@ -926,11 +950,11 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
                                   {delta != null
                                     ? `${delta < 0 ? "−" : "+"}${Math.abs(delta).toFixed(3)}s`
                                     : "—"}
-                                </td>
-                              </tr>
+                                </TableCell>
+                              </TableRow>
                             );
                           })}
-                      </tbody>
+                      </TableBody>
                     </table>
                   </div>
                 </div>
@@ -943,25 +967,25 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
                       {t("lapChart.top5Title")}
                     </span>
                   </div>
-                  <table className="w-full text-xs border-collapse">
-                    <thead>
-                      <tr className="text-muted-foreground text-[10px] uppercase tracking-wide">
-                        <th className="py-1 px-2 text-left">#</th>
-                        <th className="py-1 px-2 text-left">{t("lapChart.lap")}</th>
-                        <th className="py-1 px-2 text-right">{t("lapChart.time")}</th>
-                        <th className="py-1 px-2 text-right">S1</th>
-                        <th className="py-1 px-2 text-right">S2</th>
-                        <th className="py-1 px-2 text-right">S3</th>
-                        <th className="py-1 px-2 text-right">{t("lapChart.fuel")}</th>
-                        <th className="py-1 px-2 text-right">Δ Best</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="w-full text-xs border-collapse">
+                    <TableHeader className="[&_tr]:bg-transparent dark:[&_tr]:bg-transparent [&_tr]:border-0 [&_th]:text-inherit [&_th]:font-normal">
+                      <TableRow className="text-muted-foreground text-micro uppercase tracking-wide">
+                        <TableHead className="py-1 px-2 text-left">#</TableHead>
+                        <TableHead className="py-1 px-2 text-left">{t("lapChart.lap")}</TableHead>
+                        <TableHead className="py-1 px-2 text-right">{t("lapChart.time")}</TableHead>
+                        <TableHead className="py-1 px-2 text-right">S1</TableHead>
+                        <TableHead className="py-1 px-2 text-right">S2</TableHead>
+                        <TableHead className="py-1 px-2 text-right">S3</TableHead>
+                        <TableHead className="py-1 px-2 text-right">{t("lapChart.fuel")}</TableHead>
+                        <TableHead className="py-1 px-2 text-right">Δ Best</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {top5.map((lap, i) => {
                         const isBest = i === 0;
                         const delta = !isBest && bestLap != null ? lap.lap_time! - bestLap : null;
                         return (
-                          <tr
+                          <TableRow
                             key={lap.lap_num}
                             className={cn(
                               "border-t border-border/40 cursor-pointer hover:bg-muted/50 transition-colors",
@@ -969,25 +993,25 @@ export function LapChartModal({ sessionId, onClose }: LapChartModalProps) {
                             )}
                             onClick={() => { navigate(`/sessions/${sessionId}?tab=laps`); onClose(); }}
                           >
-                            <td className="py-1 px-2">
+                            <TableCell className="py-1 px-2">
                               {isBest && <Trophy className="h-3 w-3 text-amber-400 inline" />}
-                            </td>
-                            <td className="py-1 px-2 font-medium">{lap.lap_num}</td>
-                            <td className="py-1 px-2 text-right font-mono font-semibold text-success">{formatTime(lap.lap_time)}</td>
-                            <td className="py-1 px-2 text-right font-mono text-amber-400">{lap.s1?.toFixed(3) ?? "—"}</td>
-                            <td className="py-1 px-2 text-right font-mono text-blue-400">{lap.s2?.toFixed(3) ?? "—"}</td>
-                            <td className="py-1 px-2 text-right font-mono text-purple-400">{lap.s3?.toFixed(3) ?? "—"}</td>
-                            <td className="py-1 px-2 text-right text-muted-foreground">
+                            </TableCell>
+                            <TableCell className="py-1 px-2 font-medium">{lap.lap_num}</TableCell>
+                            <TableCell className="py-1 px-2 text-right font-mono font-semibold text-success">{formatTime(lap.lap_time)}</TableCell>
+                            <TableCell className="py-1 px-2 text-right font-mono text-amber-400">{lap.s1?.toFixed(3) ?? "—"}</TableCell>
+                            <TableCell className="py-1 px-2 text-right font-mono text-blue-400">{lap.s2?.toFixed(3) ?? "—"}</TableCell>
+                            <TableCell className="py-1 px-2 text-right font-mono text-purple-400">{lap.s3?.toFixed(3) ?? "—"}</TableCell>
+                            <TableCell className="py-1 px-2 text-right text-muted-foreground">
                               {lap.fuel != null ? `${(lap.fuel * 100).toFixed(0)}%` : "—"}
-                            </td>
-                            <td className="py-1 px-2 text-right font-mono text-muted-foreground">
+                            </TableCell>
+                            <TableCell className="py-1 px-2 text-right font-mono text-muted-foreground">
                               {delta != null ? `+${delta.toFixed(3)}s` : "—"}
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         );
                       })}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </>

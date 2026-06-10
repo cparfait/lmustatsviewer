@@ -48,6 +48,27 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      # Assets vocaux (lourds, hors git) : voix neuronale Piper + modèles de
+      # reconnaissance Vosk. Mis en cache par hash des scripts de fetch (les scripts
+      # sautent les fichiers déjà présents → cache hit = quasi instantané).
+      - name: Cache voice assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            src-tauri/resources/tts/piper
+            src-tauri/resources/tts/voices
+            src-tauri/resources/stt/lib
+            src-tauri/resources/stt/models
+          key: voice-assets-${{ hashFiles('scripts/fetch-piper.ps1', 'scripts/fetch-vosk.ps1') }}
+
+      - name: Fetch Piper neural voices
+        shell: pwsh
+        run: ./scripts/fetch-piper.ps1
+
+      - name: Fetch Vosk speech models
+        shell: pwsh
+        run: ./scripts/fetch-vosk.ps1
+
       - name: Build, sign & release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -55,6 +76,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
+          # Embarque les commandes vocales (feature `stt`) + les ressources de bundle
+          # additionnelles (modèles Vosk + libvosk.dll & DLL MinGW à la racine).
+          args: --features stt --config src-tauri/tauri.stt.conf.json
           tagName: ${{ github.ref_name }}
           releaseName: "LMU Stats Viewer ${{ github.ref_name }}"
           releaseBody: |

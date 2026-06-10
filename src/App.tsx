@@ -14,11 +14,17 @@ import { Setups } from "@/routes/Setups";
 import { SetupDetail } from "@/routes/SetupDetail";
 import { SetupCompare } from "@/routes/SetupCompare";
 import { Live } from "@/routes/Live";
+import { Telemetry } from "@/routes/Telemetry";
+import { TelemetryView } from "@/routes/TelemetryView";
 import { Config } from "@/routes/Config";
+import { Overlays } from "@/routes/Overlays";
 import { Changelog } from "@/routes/Changelog";
 import { Onboarding } from "@/routes/Onboarding";
 import { Profile } from "@/routes/Profile";
 import { useAppStore } from "@/stores/app";
+import { useSpotter } from "@/lib/useSpotter";
+import { useCoachVoice } from "@/lib/useCoachVoice";
+import { useOverlayShortcut } from "@/lib/useOverlayShortcut";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function App() {
@@ -29,6 +35,32 @@ export default function App() {
 
   useEffect(() => {
     init();
+  }, [init]); // `init` est une action de store stable → effet exécuté une seule fois
+
+  // Spotter « à la demande » : raccourcis globaux Statut / Mute / Répète.
+  useSpotter();
+  // Coach IA vocal : raccourci global push-to-talk → question libre → réponse parlée.
+  useCoachVoice();
+  // Raccourci global Afficher/Masquer les overlays.
+  useOverlayShortcut();
+
+  // Resynchronisation auto quand l'utilisateur revient sur l'app après avoir
+  // couru dans LMU (sync delta silencieuse — seuls les nouveaux XML sont relus).
+  useEffect(() => {
+    const trySync = () => {
+      // Inutile de synchroniser pendant qu'on regarde le Live.
+      if (window.location.pathname.startsWith("/live")) return;
+      useAppStore.getState().syncQuiet();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") trySync();
+    };
+    window.addEventListener("focus", trySync);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", trySync);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   // Navigation déclenchée depuis le menu du system tray.
@@ -78,6 +110,9 @@ export default function App() {
             <Route path="/setups/:id" element={<SetupDetail />} />
             <Route path="/setups/compare" element={<SetupCompare />} />
             <Route path="/live" element={<Live />} />
+            <Route path="/telemetry" element={<Telemetry />} />
+            <Route path="/telemetry/view" element={<TelemetryView />} />
+            <Route path="/overlays" element={<Overlays />} />
             <Route path="/config" element={<Config />} />
             <Route path="/changelog" element={<Changelog />} />
           </Routes>

@@ -12,7 +12,7 @@
   --color-popover: #ffffff;
   --color-popover-foreground: #0b0f1e;
 
-  --color-primary: #FF4A0F;
+  --color-primary: #D93B00;
   --color-primary-foreground: #ffffff;
 
   --color-secondary: #e8eaef;
@@ -22,14 +22,14 @@
   --color-muted-foreground: #5a6070;
 
   --color-accent: #fff0e8;
-  --color-accent-foreground: #FF4A0F;
+  --color-accent-foreground: #D93B00;
 
   --color-destructive: #FF1D43;
   --color-destructive-foreground: #ffffff;
 
   --color-border: #d8dae2;
   --color-input: #d8dae2;
-  --color-ring: #FF4A0F;
+  --color-ring: #D93B00;
 
   --color-success: #00c896;
   --color-warning: #f97316;
@@ -40,6 +40,15 @@
   --color-tier-semi: #00c896;
   --color-tier-amateur: #4FA1FF;
   --color-tier-offline: #94a3b8;
+
+  /* Couleurs de type de session (badge SessionBadge) — reprises de la V1 PHP.
+     `*-accent` = teinte de fond/bordure (alizarin/jaune), distincte du texte. */
+  --color-session-race: #f87171;
+  --color-session-race-accent: #e74c3c;
+  --color-session-qualify: #fbbf24;
+  --color-session-qualify-accent: #f59e0b;
+  --color-session-practice: #facc15;
+  --color-session-practice-accent: #f1c40f;
 
   --color-chart-1: #FF4A0F;
   --color-chart-2: #075AB8;
@@ -62,7 +71,7 @@
   --color-popover: #0c1340;
   --color-popover-foreground: #e8eaed;
 
-  --color-primary: #FF4A0F;
+  --color-primary: #D93B00;
   --color-primary-foreground: #ffffff;
 
   --color-secondary: #0f1a50;
@@ -72,15 +81,23 @@
   --color-muted-foreground: #8b92a8;
 
   --color-accent: #0f1a50;
-  --color-accent-foreground: #FF4A0F;
+  --color-accent-foreground: #D93B00;
 
   --color-destructive: #FF1D43;
   --color-destructive-foreground: #ffffff;
 
   --color-border: #14205a;
   --color-input: #14205a;
-  --color-ring: #FF4A0F;
+  --color-ring: #D93B00;
 }
+
+/* Échelle typographique « micro » — nomme les tailles denses récurrentes pour
+   remplacer les magic numbers `text-[Npx]`. Ne pose QUE la font-size (comme les
+   valeurs arbitraires), sans coupler la line-height → aucun changement de rythme.
+   `text-nano` (9px) est réservé aux micro-données très denses (badge Tier…). */
+@utility text-nano { font-size: 9px; }
+@utility text-micro { font-size: 10px; }
+@utility text-mini { font-size: 11px; }
 
 @layer base {
   * {
@@ -125,12 +142,21 @@
 
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 74, 15, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(255, 74, 15, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 59, 0, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(217, 59, 0, 0); }
 }
 
 .animate-pulse-glow {
   animation: pulse-glow 2s infinite;
+}
+
+/* Clignotement « drapeau » des bords de l'écran (page Live). */
+@keyframes flag-blink {
+  0%, 100% { opacity: 0.12; }
+  50%      { opacity: 0.9; }
+}
+.animate-flag-blink {
+  animation: flag-blink 0.85s ease-in-out infinite;
 }
 
 ::-webkit-scrollbar {

@@ -10,11 +10,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  SortHeader as SortHead,
 } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/pagination";
 import { TableTitle } from "@/components/TableTitle";
 import { ClassBadge } from "@/components/ClassBadge";
-import { SessionBadge, sessionTypeLabel } from "@/components/SessionBadge";
+import { SessionBadge } from "@/components/SessionBadge";
+import { sessionTypeLabel } from "@/lib/sessionLabels";
 import { TrackFlag } from "@/components/TrackFlag";
 import { CarLogo } from "@/components/CarLogo";
 import { cn, formatTime, formatDateTime } from "@/lib/utils";
@@ -26,8 +28,6 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  ChevronUp,
-  ChevronDown,
   Loader2,
   Trophy,
   Flag,
@@ -47,6 +47,7 @@ import {
 import { FilterField } from "@/components/FilterField";
 import { LapChartModal } from "@/components/LapChartModal";
 import { TierBadge } from "@/components/TierBadge";
+import { Tip } from "@/components/ui/tooltip";
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { useAppStore } from "@/stores/app";
 import { queries } from "@/lib/api";
@@ -75,46 +76,6 @@ type SortKey =
   | "Pitstops"
   | "GameVersion";
 
-function SortHead({
-  col,
-  label,
-  sortBy,
-  sortDir,
-  onSort,
-  className,
-}: {
-  col: SortKey;
-  label: string;
-  sortBy: SortKey;
-  sortDir: "asc" | "desc";
-  onSort: (k: SortKey) => void;
-  className?: string;
-}) {
-  return (
-    <TableHead
-      className={cn(
-        // Aligné sur l'en-tête de tableau du Dashboard (text-[10px], py-1, fond muted)
-        "h-auto py-1 text-[10px] cursor-pointer select-none hover:text-foreground",
-        className
-      )}
-      onClick={() => onSort(col)}
-    >
-      <span className="inline-flex items-center gap-0.5">
-        {label}
-        {col === sortBy ? (
-          sortDir === "asc" ? (
-            <ChevronUp className="h-3 w-3 text-primary ml-0.5" />
-          ) : (
-            <ChevronDown className="h-3 w-3 text-primary ml-0.5" />
-          )
-        ) : (
-          <ChevronDown className="h-3 w-3 opacity-20 ml-0.5" />
-        )}
-      </span>
-    </TableHead>
-  );
-}
-
 function ProgCell({ row }: { row: SessionListRow }) {
   if (row.session_type !== "Race" || row.progression == null) {
     return <span className="text-muted-foreground text-xs">—</span>;
@@ -142,6 +103,7 @@ function ProgCell({ row }: { row: SessionListRow }) {
 
 /** Arrivée : P{pos} / {participants} (Race terminé), ou statut (V1). */
 function FinishCell({ row }: { row: SessionListRow }) {
+  const { t } = useTranslation();
   if (row.session_type !== "Race") {
     return <span className="text-muted-foreground">—</span>;
   }
@@ -160,7 +122,7 @@ function FinishCell({ row }: { row: SessionListRow }) {
   }
   if (row.finish_status === "Driver Swap") {
     return (
-      <span className="text-blue-400 text-xs font-medium italic">Relais</span>
+      <span className="text-blue-400 text-xs font-medium italic">{t("sessions.statusDriverSwap")}</span>
     );
   }
   return (
@@ -330,7 +292,8 @@ export function Sessions() {
       setter(value);
     };
 
-  const rows = data?.rows ?? [];
+  // Mémoïsé pour une référence stable (dépendance des useMemo ci-dessous).
+  const rows = useMemo(() => data?.rows ?? [], [data]);
 
   // Striping par événement (event_id) — sessions d'un même événement groupées.
   const groupParity = useMemo(() => {
@@ -422,7 +385,7 @@ export function Sessions() {
               <CardContent className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium leading-tight">
+                    <p className="text-micro uppercase tracking-wide text-muted-foreground font-medium leading-tight">
                       {label}
                     </p>
                     <p
@@ -583,10 +546,14 @@ export function Sessions() {
         </TableTitle>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <Table>
+            {/* Tableau très dense (~16 colonnes) : on resserre le padding
+                horizontal de toutes ses cellules pour éviter le scroll latéral.
+                Le sélecteur `[&_th]/[&_td]` l'emporte (spécificité classe+élément)
+                sur les `px-2` posés sur chaque cellule. */}
+            <Table className="[&_th]:px-1 [&_td]:px-1">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="h-auto py-1 text-[10px] w-20 text-center px-2">
+                  <TableHead className="h-auto py-1 text-micro w-20 text-center px-2">
                     {t("sessions.colDetails")}
                   </TableHead>
                   <SortHead
@@ -638,7 +605,7 @@ export function Sessions() {
                     className="text-right px-2 border-l border-border/55 bg-sky-500/10"
                   />
                   {showOhneSpeed && (
-                    <TableHead className="h-auto py-1 text-[10px] px-2 bg-sky-500/10">
+                    <TableHead className="h-auto py-1 text-micro px-2 bg-sky-500/10 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1">
                         {t("sessions.colTier")}
                         {ohneOffline && (
@@ -685,7 +652,7 @@ export function Sessions() {
                     {...sortProps}
                     className="px-2"
                   />
-                  <TableHead className="h-auto py-1 text-[10px] w-6 px-1" />
+                  <TableHead className="h-auto py-1 text-micro w-6 px-1" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -707,22 +674,24 @@ export function Sessions() {
                           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                             <Eye className="h-3 w-3" />
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const qs = new URLSearchParams({
-                                track: s.track,
-                                course: s.track_course,
-                                class: s.car_class,
-                                car: s.car,
-                              });
-                              navigate(`/records?${qs}`);
-                            }}
-                            className="flex h-6 w-6 items-center justify-center rounded-md bg-success/10 text-success hover:bg-success hover:text-white transition-colors"
-                            title={t("sessions.colRecords")}
-                          >
-                            <BarChart3 className="h-3 w-3" />
-                          </button>
+                          <Tip content={t("sessions.colRecords")}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const qs = new URLSearchParams({
+                                  track: s.track,
+                                  course: s.track_course,
+                                  class: s.car_class,
+                                  car: s.car,
+                                });
+                                navigate(`/records?${qs}`);
+                              }}
+                              className="flex h-6 w-6 items-center justify-center rounded-md bg-success/10 text-success hover:bg-success hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              aria-label={t("sessions.colRecords")}
+                            >
+                              <BarChart3 className="h-3 w-3" />
+                            </button>
+                          </Tip>
                         </div>
                       </TableCell>
 
@@ -758,7 +727,7 @@ export function Sessions() {
 
                       {/* Type online/offline (cliquable-filtre) */}
                       <TableCell
-                        className="px-2 py-1.5"
+                        className="px-2 py-1.5 whitespace-nowrap"
                         onClick={cellFilter(setSetting, s.setting)}
                       >
                         <span className="text-xs">
@@ -814,16 +783,17 @@ export function Sessions() {
                       {/* Meilleur tour — clic → graphe de tours */}
                       <TableCell className="text-right font-mono px-2 py-1.5 whitespace-nowrap border-l border-border/55 bg-sky-500/[0.06]">
                         {s.best_lap ? (
-                          <button
-                            className="text-success font-semibold hover:underline decoration-dotted underline-offset-2 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setLapChartSessionId(s.session_id);
-                            }}
-                            title="Voir le graphe de tours"
-                          >
-                            {formatTime(s.best_lap)}
-                          </button>
+                          <Tip content="Voir le graphe de tours">
+                            <button
+                              className="text-success font-semibold underline decoration-dotted underline-offset-2 cursor-pointer rounded-sm hover:text-success/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLapChartSessionId(s.session_id);
+                              }}
+                            >
+                              {formatTime(s.best_lap)}
+                            </button>
+                          </Tip>
                         ) : (
                           <span className="text-muted-foreground">N/A</span>
                         )}
@@ -877,7 +847,7 @@ export function Sessions() {
 
                       {/* Version */}
                       <TableCell className="px-2 py-1.5">
-                        <span className="font-mono text-[10px] text-muted-foreground">
+                        <span className="font-mono text-nano text-muted-foreground">
                           {s.game_version}
                         </span>
                       </TableCell>

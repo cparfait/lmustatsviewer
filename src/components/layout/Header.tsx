@@ -20,6 +20,8 @@ const navKeys = [
   { to: "/sessions", key: "sessions" },
   { to: "/setups", key: "setups" },
   { to: "/live", key: "live" },
+  { to: "/telemetry", key: "telemetry" },
+  { to: "/overlays", key: "overlays" },
   { to: "/config", key: "config" },
 ];
 

@@ -52,11 +52,10 @@ import {
   computeTier,
   TIER_LABELS,
   TIER_COLORS,
+  OHNE_CLASS,
   type PaceBenchmark,
 } from "@/lib/ohne_speed";
-import { TierBadge, OHNE_CLASS } from "@/components/TierBadge";
-
-// OHNE_CLASS importé depuis @/components/TierBadge
+import { TierBadge } from "@/components/TierBadge";
 
 function fmtDateShort(ts: number): string {
   const d = new Date(ts * 1000);
@@ -626,7 +625,7 @@ function Progression({
                 <span className="inline-flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" /> {t("records.progTitle")}
                 </span>
-                <div className="flex items-center gap-3 text-[11px] font-normal">
+                <div className="flex items-center gap-3 text-mini font-normal">
                   <ChartToggle
                     label={t("records.togRecordLine")}
                     checked={showPbLine}
@@ -933,7 +932,7 @@ function StatCard({
   return (
     <Card>
       <CardContent className="p-3">
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+        <p className="text-micro uppercase tracking-wide text-muted-foreground font-medium">
           {label}
         </p>
         <p

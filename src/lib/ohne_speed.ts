@@ -31,26 +31,11 @@ const CLASS_MAP: Record<string, CarClass> = {
   LMP2wec: "LMP2_WEC",
 };
 
-const CLASS_HEADERS: [RegExp, string][] = [
-  [/L\s*M\s*G\s*T\s*3/, "LMGT3"],
-  [/L\s*M\s*H(?!\s*\w)/, "LMH"],
-  [/L\s*M\s*P\s*3/, "LMP3"],
-  [/L\s*M\s*P\s*2\s*E\s*L\s*M\s*S/, "LMP2elms"],
-  [/L\s*M\s*P\s*2\s*W\s*E\s*C/, "LMP2wec"],
-  [/G\s*T\s*E/, "GTE"],
-];
-
-function detectClassHeader(cells: string[]): string | null {
-  const joined = cells.join(" ");
-  for (const [re, key] of CLASS_HEADERS) {
-    if (re.test(joined)) return key;
-  }
-  return null;
-}
 
 function parseLapTimeToMs(raw: string): number | null {
-  if (!raw || raw.startsWith("calculated")) return null;
+  if (!raw) return null;
   const s = raw.trim();
+  if (!s || s.startsWith("calculated") || s.startsWith("--")) return null;
   const m = s.match(/^(\d+):(\d{1,2})\.(\d{1,3})$/);
   if (!m) return null;
   const min = parseInt(m[1], 10);
@@ -58,7 +43,29 @@ function parseLapTimeToMs(raw: string): number | null {
   let ms = parseInt(m[3], 10);
   if (m[3].length === 1) ms *= 100;
   else if (m[3].length === 2) ms *= 10;
-  return min * 60_000 + sec * 1_000 + ms;
+  const total = min * 60_000 + sec * 1_000 + ms;
+  return total > 0 ? total : null;
+}
+
+/** Parse une ligne CSV en gérant les champs entre guillemets. */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current);
+  return result;
 }
 
 const TRACK_MAP: Record<string, string> = {
@@ -121,67 +128,67 @@ export function mapTrackName(trackFromDb: string, layoutFromDb?: string): string
 }
 
 function parseCSV(text: string): PaceBenchmark[] {
+  // Structure du CSV ohne_speed (d'après lmu-analyzer / arminreiter) :
+  // col[0] = clé combinée  ex. "Bahrain (wec)LMGT3"  → identifie les lignes de données
+  // col[1] = nom du circuit
+  // col[2] = patch (ignoré)
+  // col[3] = hotlap
+  // col[4] = alien (100%)
+  // col[5] = competitive (101%)
+  // col[6] = good (102%)
+  // col[7] = 103% (ignoré)
+  // col[8] = midpack (104%)
+  // col[9] = 105% (ignoré)
+  // col[10] = tail-ender (106%)
+  // col[11] = offline (107%)
+  // col[12] = voiture la plus rapide
+  // col[13] = meilleur temps
+
   const lines = text.split(/\r?\n/);
   const benchmarks: PaceBenchmark[] = [];
   let currentClass: string | null = null;
 
   for (const line of lines) {
-    const cells = line.split(",").map((c) => c.trim());
-
-    const headerKey = detectClassHeader(cells);
-    if (headerKey) {
-      currentClass = headerKey;
-      continue;
-    }
+    // Détection des en-têtes de section (lettres espacées ex. "L M G T 3")
+    if (line.includes('L M G T 3')) { currentClass = 'LMGT3'; continue; }
+    if (line.includes('L M H') && !line.includes('L M G')) { currentClass = 'LMH'; continue; }
+    if (line.includes('L M P 3')) { currentClass = 'LMP3'; continue; }
+    if (line.includes('L M P 2   E L M S')) { currentClass = 'LMP2elms'; continue; }
+    if (line.includes('L M P 2   W E C')) { currentClass = 'LMP2wec'; continue; }
+    if (line.includes('G T E') && !line.includes('LMGT')) { currentClass = 'GTE'; continue; }
 
     if (!currentClass) continue;
 
-    const trackKey = cells[0];
-    if (!trackKey || trackKey.startsWith("Track") || trackKey.startsWith("Hotlap") || trackKey.startsWith("Alien") || cells.length < 14) continue;
+    const cols = parseCSVLine(line);
+    if (cols.length < 12) continue;
 
-    const classInRow = cells[15] || "";
-    if (!classInRow || !(classInRow in CLASS_MAP)) continue;
+    // Ligne de données : col[0] contient la classe en suffixe (ex. "Spa-FrancorchampsLMGT3")
+    if (!cols[0]?.includes(currentClass)) continue;
 
-    const hotlapRaw = cells[3];
-    if (!hotlapRaw || hotlapRaw.startsWith("calculated")) continue;
+    const track = cols[1]?.trim();
+    if (!track || track === 'Track') continue;
 
-    const hotlapMs = parseLapTimeToMs(hotlapRaw);
-    if (!hotlapMs) continue;
+    const hotlapMs    = parseLapTimeToMs(cols[3]);
+    const alien       = parseLapTimeToMs(cols[4]);
+    const competitive = parseLapTimeToMs(cols[5]);
+    const good        = parseLapTimeToMs(cols[6]);
+    const midpack     = parseLapTimeToMs(cols[8]);   // col[7] = 103%, ignoré
+    const tailEnder   = parseLapTimeToMs(cols[10]);  // col[9] = 105%, ignoré
+    const offline     = parseLapTimeToMs(cols[11]);  // 107%
 
-    const alien = parseLapTimeToMs(cells[3]);
-    const competitive = parseLapTimeToMs(cells[4]);
-    const good = parseLapTimeToMs(cells[5]);
-    const midpack = parseLapTimeToMs(cells[7]);
-    const tailEnder = parseLapTimeToMs(cells[9]);
-    const offline = parseLapTimeToMs(cells[10]);
+    if (!hotlapMs || !alien || !competitive || !good || !midpack || !tailEnder || !offline) continue;
 
-    if (!alien || !competitive || !good || !midpack || !tailEnder || !offline) continue;
-
-    const fastestCar = cells[11] || "";
-    const fastestLapRaw = cells[12] || "";
-    const fastestLapMs = parseLapTimeToMs(fastestLapRaw);
-    const wAvgRaw = cells[14] || "";
-    const wAvgMs = parseLapTimeToMs(wAvgRaw);
-
-    const trackName = cells[1] || trackKey.replace(classInRow, "");
-    const mappedClass = CLASS_MAP[classInRow];
+    const mappedClass = CLASS_MAP[currentClass];
     if (!mappedClass) continue;
 
     benchmarks.push({
-      track: trackName,
+      track,
       carClass: mappedClass,
       hotlapTimeMs: hotlapMs,
-      racePaceMs: {
-        alien: alien!,
-        competitive: competitive!,
-        good: good!,
-        midpack: midpack!,
-        tailEnder: tailEnder!,
-        offline: offline!,
-      },
-      fastestCar,
-      fastestLapTimeMs: fastestLapMs ?? 0,
-      weightedAvgMs: wAvgMs ?? 0,
+      racePaceMs: { alien, competitive, good, midpack, tailEnder, offline },
+      fastestCar: cols[12]?.trim() ?? "",
+      fastestLapTimeMs: parseLapTimeToMs(cols[13] ?? "") ?? 0,
+      weightedAvgMs: 0,
     });
   }
 
@@ -191,7 +198,11 @@ function parseCSV(text: string): PaceBenchmark[] {
 let cachedBenchmarks: PaceBenchmark[] | null = null;
 
 export async function fetchBenchmarks(): Promise<PaceBenchmark[]> {
-  if (cachedBenchmarks) return cachedBenchmarks;
+  // Ne pas servir un cache vide : si la précédente tentative avait échoué
+  // (réseau hors-ligne, bug de parsing) l'appel suivant re-tente le fetch.
+  if (cachedBenchmarks && cachedBenchmarks.length > 0) {
+    return cachedBenchmarks;
+  }
 
   const res = await fetch(SHEET_CSV_URL);
   if (!res.ok) throw new Error(`ohne_speed fetch failed: ${res.status}`);
@@ -242,6 +253,18 @@ export function computeTier(lapTimeMs: number, benchmark: PaceBenchmark): {
 
   return { tier, percent, deltaMs };
 }
+
+/** Mapping classe interne (DB) → classe ohne_speed. */
+export const OHNE_CLASS: Record<string, string> = {
+  Hyper: "Hypercar",
+  Hypercar: "Hypercar",
+  "LMP2 ELMS": "LMP2_ELMS",
+  LMP2: "LMP2_WEC",
+  "LMP2 WEC": "LMP2_WEC",
+  LMP3: "LMP3",
+  GT3: "GT3",
+  GTE: "GTE",
+};
 
 export const TIER_LABELS: Record<OhneSpeedTier, string> = {
   Alien: "Alien",

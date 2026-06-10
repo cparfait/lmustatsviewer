@@ -13,14 +13,20 @@ import {
 import { useNavigate } from "react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { TableTitle } from "@/components/TableTitle";
 import { ClassBadge } from "@/components/ClassBadge";
 import { CarLogo } from "@/components/CarLogo";
-import {
-  SessionBadge,
-  sessionTypeLabel as sharedSessionTypeLabel,
-} from "@/components/SessionBadge";
-import { getCircuitFlagUrlSync } from "@/lib/staticData";
+import { SessionBadge } from "@/components/SessionBadge";
+import { sessionTypeLabel as sharedSessionTypeLabel } from "@/lib/sessionLabels";
+import { getCircuitFlagUrlSync, classChartColor } from "@/lib/staticData";
 import {
   cn,
   chartTooltipStyle,
@@ -37,7 +43,6 @@ import {
   Minus,
   Trophy,
   Car,
-  MapPin,
   Award,
   Loader2,
   Eye,
@@ -52,6 +57,7 @@ import {
 } from "lucide-react";
 import { FilterField } from "@/components/FilterField";
 import { LapChartModal } from "@/components/LapChartModal";
+import { Tip } from "@/components/ui/tooltip";
 import { useAppStore } from "@/stores/app";
 import type { BestLapRow } from "@/lib/api";
 
@@ -207,17 +213,17 @@ export function Dashboard() {
       },
       {
         label: t("dashboard.bestImprovement"),
-        value: ds.best_progression != null ? `▲ +${ds.best_progression}` : "N/A",
+        value: ds.best_progression != null ? `+${ds.best_progression}` : "N/A",
         icon: TrendingUp,
       },
       {
         label: t("dashboard.bestResult"),
-        value: ds.best_finish != null ? `🏆 P${ds.best_finish}` : "N/A",
+        value: ds.best_finish != null ? `P${ds.best_finish}` : "N/A",
         icon: Flag,
       },
       {
         label: t("dashboard.podiums"),
-        value: `🥇 ${ds.podiums}`,
+        value: String(ds.podiums),
         icon: Award,
       },
       {
@@ -233,19 +239,6 @@ export function Dashboard() {
     ];
   }, [dashboardStats, visibleBestLaps, t]);
 
-  const CLASS_COLORS: Record<string, string> = {
-    Hypercar: "#ef4444",
-    Hyper:    "#ef4444",
-    "LMP2 WEC":  "#3b82f6",
-    LMP2_WEC:    "#3b82f6",
-    "LMP2 ELMS": "#60a5fa",
-    LMP2_ELMS:   "#60a5fa",
-    LMP2:        "#3b82f6",
-    LMP3:        "#a855f7",
-    GT3:         "#22c55e",
-    GTE:         "#f97316",
-  };
-
   const lapsByClass = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const bl of visibleBestLaps) {
@@ -255,10 +248,10 @@ export function Dashboard() {
       .map(([cls, count]) => ({
         class: cls,
         records: count,
-        fill: CLASS_COLORS[cls] ?? "var(--color-primary)",
+        fill: classChartColor(cls),
       }))
       .sort((a, b) => b.records - a.records);
-  }, [visibleBestLaps]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visibleBestLaps]);
 
   const hasFilters =
     !!track || !!trackCourse || !!carClass || !!car || !!sessionType || !!setting;
@@ -302,7 +295,7 @@ export function Dashboard() {
               <CardContent className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium leading-tight">
+                    <p className="text-micro uppercase tracking-wide text-muted-foreground font-medium leading-tight">
                       {s.label}
                     </p>
                     <p
@@ -451,7 +444,7 @@ export function Dashboard() {
         <TableTitle
           title={t("dashboard.bestTimesByTrack")}
         >
-          <div className="flex items-center gap-3 text-[10px] font-medium">
+          <div className="flex items-center gap-3 text-micro font-medium">
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               {t("dashboard.legendRecord")}
@@ -578,8 +571,6 @@ export function Dashboard() {
 
 // ── Groupe circuit + ses lignes ──────────────────────────────────────────────
 
-const COLS = 18;
-
 function DashboardGroup({
   title,
   flag,
@@ -621,14 +612,13 @@ function DashboardGroup({
         <span className="text-yellow-700 dark:text-yellow-300 font-semibold text-xs uppercase tracking-[0.12em]">
           {title}
         </span>
-        <span className="rounded-full bg-primary/20 px-1.5 py-0 text-[9px] font-bold text-yellow-700 dark:text-yellow-300 tabular-nums">
+        <span className="rounded-full bg-primary/20 px-1.5 py-0 text-micro font-bold text-yellow-700 dark:text-yellow-300 tabular-nums">
           {rows.length}
         </span>
       </div>
       {!collapsed && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs table-fixed min-w-[1100px]">
-            <colgroup>
+        <Table className="w-full text-xs table-fixed min-w-[1100px]">
+          <colgroup>
               <col className="w-[3.5%]" />
               <col className="w-[3.5%]" />
               <col className="w-[6%]" />
@@ -647,65 +637,73 @@ function DashboardGroup({
               <col className="w-[5%]" />
               <col className="w-[6.5%]" />
               <col className="w-[9%]" />
-            </colgroup>
-            <tbody>
-              <tr className="text-[10px] uppercase tracking-wide text-yellow-900 dark:text-yellow-100 bg-primary/15 border-b border-primary/40 font-semibold">
-                <th className="px-2 py-1 font-medium text-center">
+          </colgroup>
+          <TableHeader>
+              <TableRow className="border-primary/40">
+                <TableHead className="font-medium text-center">
                   {t("dashboard.details")}
-                </th>
-                <th className="px-2 py-1 font-medium text-center">
+                </TableHead>
+                <TableHead className="font-medium text-center">
                   {t("sessions.colRecords")}
-                </th>
-                <th className="px-2 py-1 font-medium text-left border-l border-border/55">
+                </TableHead>
+                <TableHead className="font-medium border-l border-border/55">
                   {t("sessions.type")}
-                </th>
-                <th className="px-2 py-1 font-medium text-left">
+                </TableHead>
+                <TableHead className="font-medium">
                   {t("dashboard.session")}
-                </th>
-                <th className="px-2 py-1 font-medium text-left">
+                </TableHead>
+                <TableHead className="font-medium">
                   {t("dashboard.class")}
-                </th>
-                <th className="px-2 py-1 font-medium text-left" colSpan={2}>
+                </TableHead>
+                <TableHead className="font-medium" colSpan={2}>
                   {t("dashboard.car")}
-                </th>
-                <th className="px-2 py-1 font-medium text-left">
+                </TableHead>
+                <TableHead className="font-medium">
                   {t("sessions.colLivery")}
-                </th>
-                <th className="px-2 py-1 font-medium text-right border-l border-border/55 bg-sky-500/10">
+                </TableHead>
+                <TableHead className="font-medium text-right border-l border-border/55 bg-sky-500/10">
                   {t("dashboard.bestLap")}
-                </th>
-                <th className="px-2 py-1 font-medium text-right bg-sky-500/10">S1</th>
-                <th className="px-2 py-1 font-medium text-right bg-sky-500/10">S2</th>
-                <th className="px-2 py-1 font-medium text-right bg-sky-500/10">S3</th>
-                <th className="px-2 py-1 font-medium text-right bg-sky-500/10">
+                </TableHead>
+                <TableHead className="font-medium text-right bg-sky-500/10">S1</TableHead>
+                <TableHead className="font-medium text-right bg-sky-500/10">S2</TableHead>
+                <TableHead className="font-medium text-right bg-sky-500/10">S3</TableHead>
+                <TableHead className="font-medium text-right bg-sky-500/10">
                   {t("dashboard.optimal")}
-                </th>
-                <th className="px-2 py-1 font-medium text-right">
+                </TableHead>
+                <TableHead className="font-medium text-right">
                   {t("dashboard.maxSpeed")}
-                </th>
-                <th className="px-2 py-1 font-medium text-center border-l border-border/55">
+                </TableHead>
+                <TableHead className="font-medium text-center border-l border-border/55">
                   {t("sessions.colFinish")}
-                </th>
-                <th className="px-2 py-1 font-medium text-center">
+                </TableHead>
+                <TableHead className="font-medium text-center">
                   {t("sessions.colProg")}
-                </th>
-                <th className="px-2 py-1 font-medium text-left border-l border-border/55">
+                </TableHead>
+                <TableHead className="font-medium border-l border-border/55">
                   {t("dashboard.ver")}
-                </th>
-                <th className="px-2 py-1 font-medium text-left">
+                </TableHead>
+                <TableHead className="font-medium">
                   {t("sessions.date")}
-                </th>
-              </tr>
+                </TableHead>
+              </TableRow>
+          </TableHeader>
+          <TableBody>
               {rows.map((l, i) => (
                 <DashboardRow key={i} l={l} idx={i} navigate={navigate} t={t} openLapChart={openLapChart} />
               ))}
-            </tbody>
-          </table>
-        </div>
+          </TableBody>
+        </Table>
       )}
     </Card>
   );
 }
+
+/**
+ * Bouton d'action en icône (colonnes Détails / Records) : zone cliquable
+ * confortable (24 px) + état focus clavier visible. Couleur posée à part.
+ */
+const ACTION_BTN =
+  "inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /** Fond teinté discret du bloc « Performance ». */
 const PERF_CELL = "bg-sky-500/[0.06]";
@@ -716,7 +714,7 @@ function sectorCell(value: number | null, abs: number | null) {
   const isBest =
     value != null && abs != null && Math.abs(value - abs) < 0.001;
   return (
-    <td
+    <TableCell
       className={cn(
         "px-2 py-1 text-right font-mono",
         PERF_CELL,
@@ -724,7 +722,7 @@ function sectorCell(value: number | null, abs: number | null) {
       )}
     >
       {value != null ? `${formatSectorSeconds(value)}s` : "—"}
-    </td>
+    </TableCell>
   );
 }
 
@@ -743,111 +741,116 @@ function DashboardRow({
 }) {
   const isRace = l.session_type === "Race";
   return (
-    <tr
+    <TableRow
       className={cn(
         "border-b border-border/50 hover:bg-muted/40",
         idx % 2 === 1 && "bg-muted/25"
       )}
     >
       {/* Détails */}
-      <td className="px-2 py-1 text-center">
-        <button
-          onClick={() => navigate(`/sessions/${l.session_id}`)}
-          className="text-primary hover:opacity-70"
-          title={t("dashboard.details")}
-        >
-          <Eye className="h-3.5 w-3.5 inline" />
-        </button>
-      </td>
+      <TableCell className="px-2 py-1 text-center">
+        <Tip content={t("dashboard.details")}>
+          <button
+            onClick={() => navigate(`/sessions/${l.session_id}`)}
+            className={cn(ACTION_BTN, "text-primary hover:bg-primary/10")}
+            aria-label={t("dashboard.details")}
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </button>
+        </Tip>
+      </TableCell>
       {/* Records */}
-      <td className="px-2 py-1 text-center">
-        <button
-          onClick={() => {
-            const qs = new URLSearchParams({
-              track: l.track,
-              course: l.track_course,
-              class: l.car_class,
-              car: l.car,
-            });
-            navigate(`/records?${qs}`);
-          }}
-          className="text-success hover:opacity-70"
-          title={t("sessions.colRecords")}
-        >
-          <BarChart3 className="h-3.5 w-3.5 inline" />
-        </button>
-      </td>
+      <TableCell className="px-2 py-1 text-center">
+        <Tip content={t("sessions.colRecords")}>
+          <button
+            onClick={() => {
+              const qs = new URLSearchParams({
+                track: l.track,
+                course: l.track_course,
+                class: l.car_class,
+                car: l.car,
+              });
+              navigate(`/records?${qs}`);
+            }}
+            className={cn(ACTION_BTN, "text-success hover:bg-success/10")}
+            aria-label={t("sessions.colRecords")}
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+          </button>
+        </Tip>
+      </TableCell>
       {/* Type */}
-      <td className={cn("px-2 py-1 whitespace-nowrap", GROUP_SEP)}>
+      <TableCell className={cn("px-2 py-1 whitespace-nowrap", GROUP_SEP)}>
         {settingLabel(l.setting, t)}
-      </td>
+      </TableCell>
       {/* Session */}
-      <td className="px-2 py-1">
+      <TableCell className="px-2 py-1">
         <SessionBadge type={l.session_type} />
-      </td>
+      </TableCell>
       {/* Classe */}
-      <td className="px-2 py-1">
+      <TableCell className="px-2 py-1">
         <ClassBadge carClass={l.car_class} size="sm" />
-      </td>
+      </TableCell>
       {/* Logo + voiture */}
-      <td className="px-1 py-1 w-7">
+      <TableCell className="px-1 py-1 w-7">
         <CarLogo
           carName={l.car}
           className="h-3.5 w-auto object-contain opacity-80"
         />
-      </td>
-      <td className="px-2 py-1 font-medium whitespace-nowrap">{l.car}</td>
+      </TableCell>
+      <TableCell className="px-2 py-1 font-medium whitespace-nowrap">{l.car}</TableCell>
       {/* Livrée */}
-      <td className="px-2 py-1 text-muted-foreground whitespace-nowrap max-w-[150px] truncate">
+      <TableCell className="px-2 py-1 text-muted-foreground whitespace-nowrap max-w-[150px] truncate">
         {l.livery || "—"}
-      </td>
+      </TableCell>
       {/* Best lap — clic → graphe de tours */}
-      <td
+      <TableCell
         className={cn(
           "px-2 py-1 text-right font-mono font-semibold text-success",
           GROUP_SEP,
           PERF_CELL
         )}
       >
-        <button
-          className="hover:underline decoration-dotted underline-offset-2 cursor-pointer"
-          onClick={() => openLapChart(l.session_id)}
-          title="Voir le graphe de tours"
-        >
-          {formatTime(l.best_lap)}
-        </button>
-      </td>
+        <Tip content="Voir le graphe de tours">
+          <button
+            className="underline decoration-dotted underline-offset-2 cursor-pointer rounded-sm hover:text-success/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={() => openLapChart(l.session_id)}
+          >
+            {formatTime(l.best_lap)}
+          </button>
+        </Tip>
+      </TableCell>
       {/* S1 / S2 / S3 */}
       {sectorCell(l.best_lap_s1, l.abs_best_s1)}
       {sectorCell(l.best_lap_s2, l.abs_best_s2)}
       {sectorCell(l.best_lap_s3, l.abs_best_s3)}
       {/* Optimal */}
-      <td className={cn("px-2 py-1 text-right font-mono text-purple", PERF_CELL)}>
+      <TableCell className={cn("px-2 py-1 text-right font-mono text-purple", PERF_CELL)}>
         {formatTime(l.optimal_lap)}
         {l.best_lap != null && l.optimal_lap != null && l.best_lap - l.optimal_lap > 0.001 && (
-          <div className="text-[9px] text-emerald-500 font-semibold">(-{(l.best_lap - l.optimal_lap).toFixed(3)}s)</div>
+          <div className="text-micro text-emerald-500 font-semibold">(-{(l.best_lap - l.optimal_lap).toFixed(3)}s)</div>
         )}
-      </td>
+      </TableCell>
       {/* Vmax */}
-      <td className="px-2 py-1 text-right font-mono text-muted-foreground whitespace-nowrap">
+      <TableCell className="px-2 py-1 text-right font-mono text-muted-foreground whitespace-nowrap">
         {l.vmax != null ? `${l.vmax.toFixed(2)}` : "—"}
-      </td>
+      </TableCell>
       {/* Position arrivée */}
-      <td className={cn("px-2 py-1 text-center font-mono", GROUP_SEP)}>
+      <TableCell className={cn("px-2 py-1 text-center font-mono", GROUP_SEP)}>
         {!isRace ? (
           <span className="text-muted-foreground">N/A</span>
         ) : l.finish_status === "Driver Swap" ? (
-          <span className="text-blue-400 italic text-[11px]">Relais</span>
+          <span className="text-blue-400 italic text-mini">{t("sessions.statusDriverSwap")}</span>
         ) : l.finish_status && l.finish_status !== "Finished Normally" ? (
-          <span className="text-destructive italic text-[11px]">
+          <span className="text-destructive italic text-mini">
             {l.finish_status}
           </span>
         ) : (
           `P${l.class_position}`
         )}
-      </td>
+      </TableCell>
       {/* Progression */}
-      <td className="px-2 py-1 text-center font-mono">
+      <TableCell className="px-2 py-1 text-center font-mono">
         {!isRace || l.progression == null ? (
           <span className="text-muted-foreground">N/A</span>
         ) : l.progression > 0 ? (
@@ -864,15 +867,15 @@ function DashboardRow({
             <Minus className="h-3 w-3" />0
           </span>
         )}
-      </td>
+      </TableCell>
       {/* Version */}
-      <td className={cn("px-2 py-1 text-muted-foreground whitespace-nowrap font-mono text-[10px]", GROUP_SEP)}>
+      <TableCell className={cn("px-2 py-1 text-muted-foreground whitespace-nowrap font-mono text-micro", GROUP_SEP)}>
         {l.game_version || "\u2014"}
-      </td>
+      </TableCell>
       {/* Date */}
-      <td className="px-2 py-1 text-muted-foreground whitespace-nowrap">
+      <TableCell className="px-2 py-1 text-muted-foreground whitespace-nowrap">
         {formatDateTime(l.timestamp)}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

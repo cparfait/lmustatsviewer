@@ -3,6 +3,14 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { type SetupGroup, type SetupDiffSection, setups as setupsApi } from "@/lib/api";
@@ -179,7 +187,7 @@ export function SetupCompare() {
                         <span>{section.name}</span>
                         <Badge
                           variant={diffCount > 0 ? "default" : "secondary"}
-                          className="font-mono text-[10px]"
+                          className="font-mono text-micro"
                         >
                           {diffCount} {diffCount === 1 ? t("setupCompare.diff") : t("setupCompare.diff_many")}
                         </Badge>
@@ -187,37 +195,37 @@ export function SetupCompare() {
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="overflow-hidden rounded-md border border-border/60">
-                        <table className="w-full text-sm">
-                          <thead className="bg-primary/15 dark:bg-primary/10">
-                            <tr>
-                              <th className="text-left px-3 py-2 font-medium text-yellow-900 dark:text-yellow-100 text-xs uppercase tracking-wide">
+                        <Table className="w-full text-sm">
+                          <TableHeader className="bg-primary/15 dark:bg-primary/10">
+                            <TableRow>
+                              <TableHead className="text-left px-3 py-2 font-medium text-yellow-900 dark:text-yellow-100 text-xs uppercase tracking-wide">
                                 {t("setupCompare.parameter")}
-                              </th>
-                              <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide w-32">A</th>
-                              <th className="w-8" />
-                              <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide w-32">B</th>
-                              <th className="w-8" />
-                            </tr>
-                          </thead>
-                          <tbody>
+                              </TableHead>
+                              <TableHead className="text-right px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide w-32">A</TableHead>
+                              <TableHead className="w-8" />
+                              <TableHead className="text-right px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wide w-32">B</TableHead>
+                              <TableHead className="w-8" />
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
                             {section.params.map((p, i) => (
-                              <tr key={i} className={cn("border-t border-border/40", p.is_diff && "bg-primary/5")}>
-                                <td className="px-3 py-2">
+                              <TableRow key={i} className={cn("border-t border-border/40", p.is_diff && "bg-primary/5")}>
+                                <TableCell className="px-3 py-2">
                                   <span className="text-muted-foreground">{p.key}</span>
                                   {p.comment_a && (
                                     <span className="block text-xs text-muted-foreground/60">{p.comment_a}</span>
                                   )}
-                                </td>
-                                <td className="px-3 py-2 font-mono text-right">{p.value_a}</td>
-                                <td className="text-center text-muted-foreground">{p.is_diff ? "→" : ""}</td>
-                                <td className={cn("px-3 py-2 font-mono text-right", p.is_diff && "text-primary font-semibold")}>
+                                </TableCell>
+                                <TableCell className="px-3 py-2 font-mono text-right">{p.value_a}</TableCell>
+                                <TableCell className="px-1 py-2 text-center text-muted-foreground">{p.is_diff ? "→" : ""}</TableCell>
+                                <TableCell className={cn("px-3 py-2 font-mono text-right", p.is_diff && "text-primary font-semibold")}>
                                   {p.value_b}
-                                </td>
-                                <td className="px-2">{p.is_diff && <span className="text-primary text-xs">●</span>}</td>
-                              </tr>
+                                </TableCell>
+                                <TableCell className="px-2 py-2">{p.is_diff && <span className="text-primary text-xs">●</span>}</TableCell>
+                              </TableRow>
                             ))}
-                          </tbody>
-                        </table>
+                          </TableBody>
+                        </Table>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -244,7 +252,7 @@ function SetupChip({
   return (
     <div className="flex items-center gap-2 min-w-0">
       <span className={cn(
-        "flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold",
+        "flex h-5 w-5 shrink-0 items-center justify-center rounded text-micro font-bold",
         label === "A" ? "bg-primary/20 text-primary" : "bg-sky-500/20 text-sky-400"
       )}>
         {label}
@@ -332,7 +340,7 @@ function SetupPick({
                   <ClassBadge carClass={info.car_class} size="sm" />
                   <span className="text-xs text-muted-foreground truncate">{info.car}</span>
                   {info.circuit && (
-                    <span className="text-[10px] text-muted-foreground/60 truncate">· {info.circuit}</span>
+                    <span className="text-micro text-muted-foreground/60 truncate">· {info.circuit}</span>
                   )}
                 </div>
               </div>
@@ -367,7 +375,7 @@ function SetupPick({
             {info ? info.setup.name : t("setupCompare.choose")}
           </span>
           {info && clsColor && (
-            <span className="text-[10px] font-bold shrink-0" style={{ color: clsColor }}>
+            <span className="text-micro font-bold shrink-0" style={{ color: clsColor }}>
               {info.car_class}
             </span>
           )}
@@ -400,10 +408,10 @@ function SetupPick({
                       className="px-3 py-1.5 flex items-center gap-2 bg-muted/50 border-t border-border/40"
                       style={{ borderLeftWidth: 3, borderLeftColor: color, borderLeftStyle: "solid" }}
                     >
-                      <span className="text-[10px] font-bold uppercase tracking-widest shrink-0" style={{ color }}>
+                      <span className="text-micro font-bold uppercase tracking-widest shrink-0" style={{ color }}>
                         {g.car_class}
                       </span>
-                      <span className="text-muted-foreground/50 text-[10px]">·</span>
+                      <span className="text-muted-foreground/50 text-micro">·</span>
                       <CarLogo carName={g.car} className="h-3.5 w-auto object-contain opacity-70 shrink-0" />
                       <span className="text-xs font-medium truncate text-foreground/80">{g.car}</span>
                     </div>
@@ -426,7 +434,7 @@ function SetupPick({
                         )} />
                         <span className="font-mono text-xs truncate flex-1">{s.name}</span>
                         {s.setup_type && s.setup_type !== "Autres" && (
-                          <span className="text-[10px] text-muted-foreground shrink-0 ml-auto">
+                          <span className="text-micro text-muted-foreground shrink-0 ml-auto">
                             {s.setup_type}
                           </span>
                         )}

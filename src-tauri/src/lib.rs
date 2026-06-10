@@ -27,6 +27,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             // Système
             commands::system::get_app_version,
@@ -53,6 +54,7 @@ pub fn run() {
             commands::queries::get_game_versions,
             commands::queries::get_sessions_list,
             commands::queries::get_sessions_overview,
+            commands::queries::get_race_activity,
             // Détail d'une session + graphe de tours
             commands::session_detail::get_session_detail,
             commands::session_detail::get_lap_chart_data,
@@ -77,11 +79,41 @@ pub fn run() {
             // Records personnels
             commands::records::get_records_overview,
             commands::records::get_record_progression,
+            // Télémétrie post-session (fichiers .duckdb de LMU)
+            commands::telemetry::list_telemetry_files,
+            commands::telemetry::get_telemetry_meta,
+            commands::telemetry::get_telemetry_channels,
+            // AI Coach — proxy HTTP générique vers les fournisseurs d'IA
+            commands::ai::ai_chat,
+            commands::ai::ai_chat_stream,
+            commands::ai::ai_list_models,
+            commands::ai::ai_set_key,
+            commands::ai::ai_get_key,
+            commands::ai::coach_note_add,
+            commands::ai::coach_notes_for_combo,
+            commands::ai::coach_note_delete,
             // Live timing — shared memory rF2/LMU
             commands::live::get_live_data,
             commands::live::is_sim_running,
             commands::live::start_live_polling,
             commands::live::stop_live_polling,
+            // Overlays in-game (fenêtre transparente always-on-top)
+            commands::overlay::open_overlay_window,
+            commands::overlay::close_overlay_window,
+            commands::overlay::set_overlay_edit_mode,
+            commands::overlay::set_overlay_clickthrough,
+            commands::overlay::is_overlay_open,
+            // Synthèse vocale neuronale (Piper)
+            commands::tts::tts_synthesize,
+            commands::tts::tts_available,
+            commands::tts::tts_list_voices,
+            // Reconnaissance vocale par commandes (Vosk, spotter Couche 2 ; feature `stt`)
+            #[cfg(feature = "stt")]
+            commands::stt::stt_available,
+            #[cfg(feature = "stt")]
+            commands::stt::stt_recognize,
+            #[cfg(feature = "stt")]
+            commands::stt::stt_recognize_free,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]

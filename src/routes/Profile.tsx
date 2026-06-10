@@ -34,9 +34,15 @@ import { useAppStore } from "@/stores/app";
 import { queries, records } from "@/lib/api";
 import { formatTime, chartTooltipStyle, cn } from "@/lib/utils";
 import { ClassBadge } from "@/components/ClassBadge";
+import { classChartColor } from "@/lib/staticData";
 import { CarLogo } from "@/components/CarLogo";
 import { TrackFlag } from "@/components/TrackFlag";
-import type { BestLapRow, RecordOverviewRow, SessionsOverview } from "@/lib/api";
+import { ProfileActivity } from "@/components/ProfileActivity";
+import type {
+  RaceActivityRow,
+  RecordOverviewRow,
+  SessionsOverview,
+} from "@/lib/api";
 
 interface ProfileStats {
   totalSessions: number;
@@ -59,6 +65,20 @@ interface ProfileStats {
   favoriteCar: string | null;
 }
 
+// Ordre des classes V1 (cf. SUIVI §3.6) — constante stable (hors composant).
+const CLASS_ORDER = [
+  "Hypercar",
+  "Hyper",
+  "LMP2 ELMS",
+  "LMP2_ELMS",
+  "LMP2 WEC",
+  "LMP2_WEC",
+  "LMP2",
+  "LMP3",
+  "GT3",
+  "GTE",
+];
+
 export function Profile() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -66,10 +86,12 @@ export function Profile() {
   const dashboardStats = useAppStore((s) => s.dashboardStats);
   const [sessionsOverview, setSessionsOverview] = useState<SessionsOverview | null>(null);
   const [recordOverview, setRecordOverview] = useState<RecordOverviewRow[]>([]);
+  const [raceActivity, setRaceActivity] = useState<RaceActivityRow[]>([]);
 
   useEffect(() => {
     queries.getSessionsOverview().then(setSessionsOverview).catch(() => {});
     records.getOverview().then(setRecordOverview).catch(() => {});
+    queries.getRaceActivity().then(setRaceActivity).catch(() => {});
   }, []);
 
   const stats = useMemo<ProfileStats>(() => {
@@ -141,19 +163,7 @@ export function Profile() {
   }, [recordOverview]);
 
   // Voiture la plus utilisée pour chaque classe présente (par nombre de sessions).
-  // Tri suivant l'ordre des classes V1 (cf. SUIVI §3.6).
-  const CLASS_ORDER = [
-    "Hypercar",
-    "Hyper",
-    "LMP2 ELMS",
-    "LMP2_ELMS",
-    "LMP2 WEC",
-    "LMP2_WEC",
-    "LMP2",
-    "LMP3",
-    "GT3",
-    "GTE",
-  ];
+  // Tri suivant l'ordre des classes V1 (cf. SUIVI §3.6, constante `CLASS_ORDER`).
   // Toutes les voitures groupées par classe, triées sessions desc dans chaque
   // classe. Le rendu affiche par défaut les 3 premières et un toggle dévoile
   // le reste du classement.
@@ -208,19 +218,6 @@ export function Profile() {
     }));
   }, [carsStats]);
 
-  const CLASS_COLORS: Record<string, string> = {
-    Hypercar: "#ef4444",
-    Hyper: "#ef4444",
-    LMP2_WEC: "#3b82f6",
-    "LMP2 WEC": "#3b82f6",
-    LMP2_ELMS: "#3b82f6",
-    "LMP2 ELMS": "#3b82f6",
-    LMP2: "#3b82f6",
-    LMP3: "#a855f7",
-    GT3: "#22c55e",
-    GTE: "#f97316",
-  };
-
   const classPieData = useMemo(() => {
     const totals = new Map<string, number>();
     for (const c of carsStats) {
@@ -230,7 +227,7 @@ export function Profile() {
       .map(([name, value]) => ({
         name,
         value,
-        fill: CLASS_COLORS[name] ?? "var(--color-chart-1)",
+        fill: classChartColor(name, "var(--color-chart-1)"),
       }))
       .sort((a, b) => b.value - a.value);
   }, [carsStats]);
@@ -247,16 +244,18 @@ export function Profile() {
         stats={stats}
       />
 
+      <ProfileActivity races={raceActivity} />
+
       {carsByClass.length > 0 && (
         <section>
           <div className="bg-primary text-primary-foreground rounded-md mb-1.5 px-4 py-1 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold tracking-tight uppercase">
+            <h2 className="text-sm font-bold tracking-tight">
               {t("profile.topByClass")}
             </h2>
             <button
               type="button"
               onClick={() => setExpandCars((v) => !v)}
-              className="text-[11px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+              className="text-mini font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
             >
               {expandCars ? t("profile.collapseAll") : t("profile.expandAll")}
             </button>
@@ -270,7 +269,7 @@ export function Profile() {
                 <Card key={group.carClass} className="overflow-hidden">
                   <div className="px-3 py-2 border-b border-border/40 bg-muted/30 flex items-center justify-between">
                     <ClassBadge carClass={group.carClass} size="sm" />
-                    <span className="text-[10px] text-muted-foreground font-mono">
+                    <span className="text-micro text-muted-foreground font-mono">
                       {group.cars.length} {t("profile.cars")}
                     </span>
                   </div>
@@ -284,7 +283,7 @@ export function Profile() {
                         >
                           <span
                             className={cn(
-                              "text-[10px] font-mono font-bold w-4 text-center shrink-0",
+                              "text-micro font-mono font-bold w-4 text-center shrink-0",
                               i === 0
                                 ? "text-amber-500"
                                 : "text-muted-foreground"
@@ -301,7 +300,7 @@ export function Profile() {
                           >
                             {c.car}
                           </span>
-                          <span className="text-[10px] text-muted-foreground font-mono tabular-nums shrink-0">
+                          <span className="text-micro text-muted-foreground font-mono tabular-nums shrink-0">
                             {t("profile.sessionsCount", { count: c.sessions })}
                           </span>
                         </Link>
@@ -312,7 +311,7 @@ export function Profile() {
                     <button
                       type="button"
                       onClick={() => setExpandCars(true)}
-                      className="w-full px-3 py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors border-t border-border/40"
+                      className="w-full px-3 py-1.5 text-micro font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors border-t border-border/40"
                     >
                       +{hidden} {t("profile.more")}
                     </button>
@@ -372,9 +371,9 @@ export function Profile() {
                               {displayedData.map((entry, idx) => (
                                 <Cell
                                   key={idx}
-                                  fill={CLASS_COLORS[entry.carClass] ?? "var(--color-primary)"}
+                                  fill={classChartColor(entry.carClass)}
                                   fillOpacity={0.65}
-                                  stroke={CLASS_COLORS[entry.carClass] ?? "var(--color-primary)"}
+                                  stroke={classChartColor(entry.carClass)}
                                   strokeOpacity={0.85}
                                   strokeWidth={1}
                                 />
@@ -394,7 +393,7 @@ export function Profile() {
                         <button
                           type="button"
                           onClick={() => setExpandCarChart((v) => !v)}
-                          className="w-full mt-1 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors rounded"
+                          className="w-full mt-1 py-1 text-micro font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors rounded"
                         >
                           {expandCarChart
                             ? t("profile.collapseAll")
@@ -409,7 +408,7 @@ export function Profile() {
               {classPieData.length > 1 && (
                 <Card className="overflow-hidden">
                   <CardContent className="pt-3 pb-2">
-                    <h3 className="text-[10px] uppercase tracking-wider text-muted-foreground text-center mb-2">
+                    <h3 className="text-micro uppercase tracking-wider text-muted-foreground text-center mb-2">
                       {t("profile.classDistribution")}
                     </h3>
                     <div className="h-[210px]">
@@ -449,7 +448,7 @@ export function Profile() {
                     </div>
                     <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-1">
                       {classPieData.map((d) => (
-                        <span key={d.name} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <span key={d.name} className="flex items-center gap-1.5 text-micro text-muted-foreground">
                           <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: d.fill }} />
                           {d.name}
                         </span>
@@ -466,14 +465,14 @@ export function Profile() {
       {allTracks.length > 0 && (
         <section>
           <div className="bg-primary text-primary-foreground rounded-md mb-1.5 px-4 py-1 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold tracking-tight uppercase">
+            <h2 className="text-sm font-bold tracking-tight">
               {t("profile.topCircuits")}
             </h2>
             {allTracks.length > 3 && (
               <button
                 type="button"
                 onClick={() => setExpandTracks((v) => !v)}
-                className="text-[11px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
+                className="text-mini font-bold uppercase tracking-wider hover:opacity-80 transition-opacity"
               >
                 {expandTracks ? t("profile.collapseAll") : t("profile.expandAll")}
               </button>
@@ -523,7 +522,7 @@ export function Profile() {
               <button
                 type="button"
                 onClick={() => setExpandTracks(true)}
-                className="w-full px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors border-t border-border/40"
+                className="w-full px-3 py-1.5 text-mini font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors border-t border-border/40"
               >
                 +{allTracks.length - 3} {t("profile.more")}
               </button>
@@ -535,7 +534,7 @@ export function Profile() {
       {bestByTrack.length > 0 && (
         <section>
           <div className="bg-primary text-primary-foreground rounded-md mb-1.5 px-4 py-1">
-            <h2 className="text-sm font-bold tracking-tight uppercase">
+            <h2 className="text-sm font-bold tracking-tight">
               {t("profile.bestLapsByTrack")}
             </h2>
           </div>
@@ -555,7 +554,7 @@ export function Profile() {
                       </span>
                       <ClassBadge carClass={r.car_class} />
                     </div>
-                    <div className="text-[11px] text-muted-foreground truncate">
+                    <div className="text-mini text-muted-foreground truncate">
                       {r.car}
                     </div>
                   </div>
@@ -564,7 +563,7 @@ export function Profile() {
                       {formatTime(r.best_lap)}
                     </div>
                     {r.optimal_lap != null && r.optimal_lap > 0 && (
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="text-micro text-muted-foreground">
                         {t("profile.optimal")}: {formatTime(r.optimal_lap)}
                       </div>
                     )}
@@ -700,7 +699,7 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
             {initial}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-medium">
+            <p className="text-micro uppercase tracking-[0.18em] text-muted-foreground font-medium">
               LMU Driver
             </p>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">
@@ -737,7 +736,7 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
                 <s.icon className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-semibold">
+                <p className="text-micro uppercase tracking-[0.15em] text-muted-foreground font-semibold">
                   {s.label}
                 </p>
                 <p
@@ -754,7 +753,7 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
                   )}
                 </p>
                 {(s.sublineMain || s.sublineAccent) && (
-                  <p className="mt-1 text-[10px] text-muted-foreground font-medium leading-tight">
+                  <p className="mt-1 text-micro text-muted-foreground font-medium leading-tight">
                     {s.sublineMain}
                     {s.sublineMain && s.sublineAccent && (
                       <span className="mx-1 opacity-60">·</span>
@@ -777,7 +776,7 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
           <Card key={s.label} className="overflow-hidden">
             <CardContent className="p-2.5 flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <p className="text-[9px] uppercase tracking-wide text-muted-foreground font-semibold leading-tight">
+                <p className="text-micro uppercase tracking-wide text-muted-foreground font-semibold leading-tight">
                   {s.label}
                 </p>
                 <p

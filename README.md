@@ -198,10 +198,27 @@ npm run tauri:dev       # application native avec hot-reload
 npm run dev             # interface seule (http://localhost:5173, sans backend Rust)
 ```
 
+### Assets vocaux (optionnels, recommandés)
+La **voix neuronale** (Piper) et les **commandes vocales** du spotter (Vosk) reposent
+sur des assets lourds, **hors git**, à télécharger une fois via scripts PowerShell :
+```powershell
+./scripts/fetch-piper.ps1   # voix neuronale Piper (TTS)
+./scripts/fetch-vosk.ps1    # modèles de reconnaissance Vosk (commandes vocales)
+```
+Sans ces assets, l'app fonctionne quand même : la voix retombe sur la synthèse système
+et les commandes vocales sont « indisponibles » (repli sur la touche Statut).
+
+> Les **commandes vocales** sont derrière une **feature Cargo `stt`** (désactivée par
+> défaut). Pour les activer en dev : `npm run tauri:dev:stt`.
+
 ### Build de production
 ```bash
-npm run tauri:build     # génère l'installeur NSIS dans src-tauri/target/release/bundle/
+npm run tauri:build         # installeur NSIS (sans commandes vocales)
+npm run tauri:build:stt     # installeur complet (voix neuronale + commandes vocales)
 ```
+> `tauri:build:stt` exige d'avoir lancé `fetch-piper.ps1` **et** `fetch-vosk.ps1` au
+> préalable. L'installeur est généré dans `src-tauri/target/release/bundle/`.
+> La **release officielle** (CI sur tag `vX.Y.Z`) embarque automatiquement ces assets.
 
 ### Vérifications
 ```bash

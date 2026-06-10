@@ -23,7 +23,48 @@ fn main() {
         version,
     );
 
+    setup_vosk();
+
     tauri_build::build()
+}
+
+/// Expose la lib native `libvosk` au linker et copie la DLL à côté du binaire de
+/// dev (chargement implicite → la DLL doit être trouvable au démarrage du process).
+/// Les assets sont fetchés par `scripts/fetch-vosk.ps1` dans `resources/stt/lib/`.
+/// No-op si la feature `stt` n'est pas activée (l'app compile sans les assets Vosk).
+fn setup_vosk() {
+    if std::env::var("CARGO_FEATURE_STT").is_err() {
+        return;
+    }
+    let lib_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("resources")
+        .join("stt")
+        .join("lib");
+    println!("cargo:rustc-link-search=native={}", lib_dir.display());
+    println!("cargo:rerun-if-changed={}", lib_dir.display());
+
+    // Copie TOUTES les DLL (libvosk.dll + ses dépendances MinGW : libgcc, libstdc++,
+    // libwinpthread) dans le dossier de profil (target/<profile>/) pour le dev. Elles
+    // doivent être à côté de l'exe car libvosk.dll est chargée au démarrage du process
+    // (lien implicite) et résout ses propres dépendances à ce moment-là.
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(out) = std::env::var("OUT_DIR") {
+            // OUT_DIR = target/<profile>/build/<pkg>/out → remonter à target/<profile>.
+            if let Some(profile_dir) = Path::new(&out).ancestors().nth(3) {
+                if let Ok(rd) = fs::read_dir(&lib_dir) {
+                    for e in rd.flatten() {
+                        let p = e.path();
+                        if p.extension().and_then(|x| x.to_str()) == Some("dll") {
+                            if let Some(name) = p.file_name() {
+                                let _ = fs::copy(&p, profile_dir.join(name));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn sync_json_version(path: &Path, version: &str) {

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
@@ -53,7 +54,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
     <th
       ref={ref}
       className={cn(
-        "h-auto py-1 px-2 text-left align-middle text-[10px] font-semibold uppercase tracking-wide text-yellow-900 dark:text-yellow-100",
+        "h-auto py-1 px-2 text-left align-middle text-micro font-semibold uppercase tracking-wide text-yellow-900 dark:text-yellow-100",
         className
       )}
       {...props}
@@ -69,4 +70,61 @@ const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<
 );
 TableCell.displayName = "TableCell";
 
-export { Table, TableHeader, TableBody, TableHead, TableRow, TableCell };
+/**
+ * En-tête de colonne **triable** : `TableHead` cliquable avec chevrons de tri.
+ * Générique sur le type de clé de tri (`T`). Partagé par tous les tableaux triables
+ * (ex. Sessions) pour éviter la duplication.
+ *
+ * Rappels d'intégration (les primitives rendent un vrai `<table>`) :
+ *  - `<colgroup>`/`<col>` natifs fonctionnent dans `<Table>` (largeurs fixes) ;
+ *  - `table-fixed` / `min-w-*` → via `className` sur `<Table>` ;
+ *  - en-tête collant → `className` sur `<TableHeader>`.
+ */
+function SortHeader<T extends string>({
+  col,
+  label,
+  sortBy,
+  sortDir,
+  onSort,
+  className,
+}: {
+  col: T;
+  label: string;
+  sortBy: T;
+  sortDir: "asc" | "desc";
+  onSort: (k: T) => void;
+  className?: string;
+}) {
+  return (
+    <TableHead
+      className={cn(
+        "h-auto py-1 text-micro cursor-pointer select-none hover:text-foreground whitespace-nowrap",
+        className
+      )}
+      onClick={() => onSort(col)}
+    >
+      <span className="inline-flex items-center gap-0.5">
+        {label}
+        {col === sortBy ? (
+          sortDir === "asc" ? (
+            <ChevronUp className="h-3 w-3 text-primary ml-0.5" />
+          ) : (
+            <ChevronDown className="h-3 w-3 text-primary ml-0.5" />
+          )
+        ) : (
+          <ChevronDown className="h-3 w-3 opacity-20 ml-0.5" />
+        )}
+      </span>
+    </TableHead>
+  );
+}
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+  SortHeader,
+};

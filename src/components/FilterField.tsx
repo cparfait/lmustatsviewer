@@ -31,7 +31,7 @@ export function FilterField({
       )}
     >
       <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-      <span className="ml-1.5 mr-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/80 select-none whitespace-nowrap">
+      <span className="ml-1.5 mr-2 text-micro font-medium uppercase tracking-wide text-muted-foreground/80 select-none whitespace-nowrap">
         {label}
       </span>
       <span className="mr-1 h-4 w-px bg-border" />

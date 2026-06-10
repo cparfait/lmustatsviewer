@@ -18,13 +18,6 @@ export function classOrder(cls: string): number {
   return order[cls] ?? 99;
 }
 
-export function formatLapTime(ms: number): string {
-  const totalSec = ms / 1000;
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec - min * 60;
-  return `${min}:${sec.toFixed(3).padStart(6, "0")}`;
-}
-
 /**
  * Formate un temps exprimé en SECONDES au format `m:ss.mmm` (règle V1
  * `formatSecondsToMmSsMs`). Renvoie `N/A` si null / ≤ 0 / non fini.
@@ -108,39 +101,6 @@ export function formatDateTime(epochSeconds: number): string {
     }
   }
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-export function formatDelta(ms: number): string {
-  const sign = ms >= 0 ? "+" : "−";
-  return `${sign}${(Math.abs(ms) / 1000).toFixed(3)}`;
-}
-
-export function formatSectorTime(ms: number): string {
-  return (ms / 1000).toFixed(3);
-}
-
-export function formatDuration(totalMinutes: number): string {
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  return `${h}h ${m.toString().padStart(2, "0")}m`;
-}
-
-/**
- * Extracts the session date from the XML result file name.
- * LMU files are typically named "YYYY-MM-DD_HH-MM-SS-R.xml" or similar.
- * Returns "DD/MM/YYYY HH:mm" if a date is found, null otherwise.
- */
-export function dateFromFileName(fileName: string): string | null {
-  // Match YYYY-MM-DD_HH-MM (with optional -SS suffix before extension/type code)
-  const m = fileName.match(/(\d{4})-(\d{2})-(\d{2})[_\s](\d{2})-(\d{2})/);
-  if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
-  // Match YYYYMMDD_HHMM
-  const m2 = fileName.match(/(\d{4})(\d{2})(\d{2})[_-](\d{2})(\d{2})/);
-  if (m2) return `${m2[3]}/${m2[2]}/${m2[1]} ${m2[4]}:${m2[5]}`;
-  // Match just YYYY-MM-DD (date only, no time)
-  const m3 = fileName.match(/(\d{4})-(\d{2})-(\d{2})/);
-  if (m3) return `${m3[3]}/${m3[2]}/${m3[1]}`;
-  return null;
 }
 
 export const chartTooltipStyle = {

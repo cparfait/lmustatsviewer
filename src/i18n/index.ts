@@ -6,6 +6,12 @@ import en from "./en";
 import de from "./de";
 import es from "./es";
 
+/**
+ * Fonction de traduction (typage léger pour les helpers/sous-composants qui
+ * reçoivent `t` en prop). Le `t` de react-i18next y est assignable.
+ */
+export type Tr = (key: string, opts?: Record<string, unknown>) => string;
+
 // i18next v26: init() is always async even with inline resources.
 // We export the promise so main.tsx can defer rendering until translations are ready.
 export const i18nReady = i18n

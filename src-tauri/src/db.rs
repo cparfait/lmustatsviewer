@@ -186,6 +186,20 @@ CREATE TABLE IF NOT EXISTS purged_files (
     purged_at  INTEGER NOT NULL DEFAULT 0
 );
 
+-- Objectifs de coaching épinglés par le pilote (mémoire longitudinale du
+-- Coach IA). Une note = un conseil/objectif retenu après une analyse, attaché
+-- à un combo circuit/voiture. Réinjectée dans le contexte IA à la prochaine
+-- session sur le même combo pour fermer la boucle conseil → pratique → vérif.
+CREATE TABLE IF NOT EXISTS coach_notes (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at   INTEGER NOT NULL DEFAULT 0,
+    track        TEXT    NOT NULL,
+    track_course TEXT    NOT NULL DEFAULT '',
+    car          TEXT    NOT NULL DEFAULT '',   -- unique_car_name (clé combo)
+    car_class    TEXT    NOT NULL DEFAULT '',
+    note         TEXT    NOT NULL
+);
+
 -- Cache des temps de référence communautaires ohne_speed.
 CREATE TABLE IF NOT EXISTS ohne_speed_cache (
     track      TEXT NOT NULL,
@@ -208,6 +222,7 @@ CREATE INDEX IF NOT EXISTS idx_results_track  ON results(car_class, unique_car_n
 CREATE INDEX IF NOT EXISTS idx_laps_result    ON laps(result_id);
 CREATE INDEX IF NOT EXISTS idx_laps_session   ON laps(session_id);
 CREATE INDEX IF NOT EXISTS idx_stream_session ON stream_events(session_id);
+CREATE INDEX IF NOT EXISTS idx_coach_notes_combo ON coach_notes(track, car);
 ";
 
 pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {

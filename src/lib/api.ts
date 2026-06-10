@@ -38,6 +38,7 @@ export interface IndexReport {
 export interface DetectResult {
   lmu_path: string;
   results_dir: string;
+  telemetry_dir: string;
   player_name: string;
   xml_count: number;
 }
@@ -157,6 +158,14 @@ export interface SessionsPage {
   page: number;
   per_page: number;
   total_pages: number;
+}
+
+/** Une course du joueur réduite à date + mode (`queries::RaceActivityRow`). */
+export interface RaceActivityRow {
+  /** Epoch secondes du départ de la course. */
+  timestamp: number;
+  /** Course en ligne (`setting = Multiplayer`). */
+  online: boolean;
 }
 
 /** Compteurs en-tête de la page Sessions (`queries::SessionsOverview`). */
@@ -603,6 +612,8 @@ export interface LiveSession {
   track: string;
   session: number;
   session_time: number;
+  /** Fin de session (mEndET) : > 0 pour les courses au temps (endurance). */
+  end_et: number;
   max_laps: number;
   num_vehicles: number;
 }
@@ -643,6 +654,8 @@ export interface TrackBounds {
 
 export interface LiveData {
   connected: boolean;
+  /** Session en cours mais figée (jeu en pause, ou session quittée). */
+  paused: boolean;
   telemetry: LiveTelemetry | null;
   player: LivePlayer | null;
   session: LiveSession | null;
@@ -653,6 +666,130 @@ export interface LiveData {
   track_layout: TrackBounds | null;
   track_points: [number, number][];
 }
+
+// ─── Télémétrie post-session (.duckdb) (`telemetry`) ────────────────────────
+
+/** Résumé d'un fichier télémétrie (`telemetry::TelemetryFileInfo`). */
+export interface TelemetryFileInfo {
+  path: string;
+  filename: string;
+  track: string;
+  track_layout: string;
+  /** Nom brut LMU = équipe/livrée (ex. `Team WRT 2026 #32:WEC`). */
+  car_name: string;
+  /** Vrai modèle (ex. `BMW M4 LMGT3`) relié aux sessions indexées ; "" si inconnu. */
+  car_model: string;
+  car_class: string;
+  session_type: string;
+  driver: string;
+  weather: string;
+  recording_time: string;
+  size_bytes: number;
+  mtime: number;
+}
+
+/** Description d'un canal (`telemetry::ChannelInfo`). */
+export interface TelemetryChannelInfo {
+  name: string;
+  frequency: number;
+  unit: string;
+  /** 1 = scalaire, 4 = par roue (FL/FR/RL/RR). */
+  dims: number;
+  is_event: boolean;
+}
+
+/** Un tour segmenté (`telemetry::LapInfo`). */
+export interface TelemetryLapInfo {
+  lap: number;
+  start_time: number;
+  end_time: number;
+  duration: number;
+}
+
+/** Métadonnées complètes d'un fichier (`telemetry::TelemetryMeta`). */
+export interface TelemetryMeta {
+  info: TelemetryFileInfo;
+  metadata: Record<string, string>;
+  channels: TelemetryChannelInfo[];
+  laps: TelemetryLapInfo[];
+  t0: number;
+  duration: number;
+}
+
+/** Une série rééchantillonnée (`telemetry::ChannelSeries`). */
+export interface TelemetryChannelSeries {
+  name: string;
+  unit: string;
+  dims: number;
+  /** `dims` tableaux, chacun de longueur `time.length`. */
+  values: number[][];
+}
+
+/** Données prêtes pour le tracé (`telemetry::ChannelData`). */
+export interface TelemetryChannelData {
+  time: number[];
+  dist: number[];
+  channels: TelemetryChannelSeries[];
+}
+
+export const telemetry = {
+  /** Liste les enregistrements `.duckdb` du dossier UserData/Telemetry. */
+  listFiles: () => invoke<TelemetryFileInfo[]>("list_telemetry_files"),
+  /** Métadonnées + canaux + tours segmentés d'un fichier. */
+  getMeta: (path: string) => invoke<TelemetryMeta>("get_telemetry_meta", { path }),
+  /** Charge et rééchantillonne des canaux (optionnellement restreints à un tour). */
+  getChannels: (
+    path: string,
+    channels: string[],
+    lap: number | null = null,
+    maxPoints: number | null = null
+  ) =>
+    invoke<TelemetryChannelData>("get_telemetry_channels", {
+      path,
+      channels,
+      lap,
+      maxPoints,
+    }),
+};
+
+// ─── AI Coach — proxy HTTP générique (`ai`) ─────────────────────────────────
+
+/** Objectif de coaching épinglé par le pilote (combo circuit/voiture). */
+export interface CoachNote {
+  id: number;
+  created_at: number;
+  track: string;
+  track_course: string;
+  car: string;
+  car_class: string;
+  note: string;
+}
+
+export const ai = {
+  /** Appel chat (POST JSON) relayé par le backend. Réponse brute du fournisseur. */
+  chat: (url: string, headers: [string, string][], body: unknown) =>
+    invoke<unknown>("ai_chat", { url, headers, body }),
+  /** Liste des modèles (GET) relayée par le backend. Réponse brute du fournisseur. */
+  listModels: (url: string, headers: [string, string][]) =>
+    invoke<unknown>("ai_list_models", { url, headers }),
+  /** Stocke la clé API chiffrée localement (vide = efface). */
+  setKey: (value: string) => invoke<void>("ai_set_key", { value }),
+  /** Lit la clé API déchiffrée ("" si absente / machine différente). */
+  getKey: () => invoke<string>("ai_get_key"),
+  /** Épingle un objectif de coaching pour un combo (5 max conservés). */
+  addNote: (args: {
+    track: string;
+    trackCourse: string;
+    car: string;
+    carClass: string;
+    note: string;
+  }) => invoke<void>("coach_note_add", args),
+  /** Objectifs épinglés d'un combo, le plus récent en premier. */
+  notesForCombo: (track: string, car: string) =>
+    invoke<CoachNote[]>("coach_notes_for_combo", { track, car }),
+  /** Supprime un objectif épinglé. */
+  deleteNote: (id: number) => invoke<void>("coach_note_delete", { id }),
+};
 
 // ─── Commandes système ──────────────────────────────────────────────────────
 
@@ -680,9 +817,23 @@ export const config = {
 // ─── Indexation ─────────────────────────────────────────────────────────────
 
 export const indexer = {
-  /** Configure chemin + joueur puis indexe tout. */
-  runSetup: (lmuPath: string, playerName: string) =>
-    invoke<IndexReport>("run_setup", { lmuPath, playerName }),
+  /**
+   * Configure chemin du jeu + joueur puis indexe tout. `resultsDir` et
+   * `telemetryDir` sont des surcharges optionnelles : si vides, le backend les
+   * dérive de `lmuPath` (`UserData/Log/Results`, `UserData/Telemetry`).
+   */
+  runSetup: (
+    lmuPath: string,
+    playerName: string,
+    resultsDir?: string,
+    telemetryDir?: string,
+  ) =>
+    invoke<IndexReport>("run_setup", {
+      lmuPath,
+      playerName,
+      resultsDir: resultsDir?.trim() ? resultsDir.trim() : null,
+      telemetryDir: telemetryDir?.trim() ? telemetryDir.trim() : null,
+    }),
   /** Sync delta à partir du dossier déjà configuré. */
   syncIndex: () => invoke<IndexReport>("sync_index"),
   /** Réindexation complète. */
@@ -724,6 +875,7 @@ export const queries = {
     }),
   getSessionsOverview: () =>
     invoke<SessionsOverview>("get_sessions_overview"),
+  getRaceActivity: () => invoke<RaceActivityRow[]>("get_race_activity"),
   getSessionDetail: (sessionId: number) =>
     invoke<SessionDetail>("get_session_detail", { sessionId }),
   getLapChartData: (sessionId: number) =>
@@ -830,4 +982,21 @@ export const live = {
   /** S'abonne aux mises à jour `live-data` poussées par le backend. */
   onData: (cb: (data: LiveData) => void): Promise<UnlistenFn> =>
     listen<LiveData>("live-data", (e) => cb(e.payload)),
+};
+
+// ─── Overlays in-game (`overlay`) ───────────────────────────────────────────
+
+export const overlay = {
+  /** Ouvre (ou ré-affiche) la fenêtre overlay transparente always-on-top. */
+  open: () => invoke<void>("open_overlay_window"),
+  /** Ferme la fenêtre overlay. */
+  close: () => invoke<void>("close_overlay_window"),
+  /** Bascule le mode Édition (réactive la souris / click-through). */
+  setEditMode: (editing: boolean) =>
+    invoke<void>("set_overlay_edit_mode", { editing }),
+  /** Force l'état click-through (rappelé au montage du webview overlay). */
+  setClickThrough: (enable: boolean) =>
+    invoke<void>("set_overlay_clickthrough", { enable }),
+  /** Indique si la fenêtre overlay est ouverte. */
+  isOpen: () => invoke<boolean>("is_overlay_open"),
 };

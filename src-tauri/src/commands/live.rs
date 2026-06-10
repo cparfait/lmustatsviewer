@@ -449,6 +449,8 @@ pub struct LiveSession {
     pub track: String,
     pub session: i32,
     pub session_time: f64,
+    /// Fin de session (mEndET) : > 0 pour les courses au temps (endurance). */
+    pub end_et: f64,
     pub max_laps: i32,
     pub num_vehicles: i32,
 }
@@ -494,6 +496,8 @@ pub struct TrackBounds {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LiveData {
     pub connected: bool,
+    /// Session en cours mais figée (jeu en pause, ou session quittée). */
+    pub paused: bool,
     pub telemetry: Option<LiveTelemetry>,
     pub player: Option<LivePlayer>,
     pub session: Option<LiveSession>,
@@ -509,6 +513,7 @@ impl Default for LiveData {
     fn default() -> Self {
         LiveData {
             connected: false,
+            paused: false,
             telemetry: None,
             player: None,
             session: None,
@@ -595,6 +600,15 @@ struct PollState {
     track_slug: String,
     frames: u32,
     last_saved: usize,
+    // ── Détection pause/gel (hystérésis anti-clignotement) ──
+    /// Dernière valeur de mCurrentET observée.
+    last_et: f64,
+    /// Frames consécutives sans évolution de mCurrentET.
+    frozen_frames: u32,
+    /// Registre à décalage des 32 dernières frames (bit = mCurrentET a bougé).
+    move_history: u32,
+    /// État pause « collant » (sticky) pour éviter les oscillations.
+    paused: bool,
 }
 
 impl PollState {
@@ -612,6 +626,10 @@ impl PollState {
             track_slug: String::new(),
             frames: 0,
             last_saved: 0,
+            last_et: -1.0,
+            frozen_frames: 0,
+            move_history: 0,
+            paused: false,
         }
     }
 }
@@ -683,25 +701,102 @@ fn smooth_loop(pts: &[[f64; 2]], win: usize) -> Vec<[f64; 2]> {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn extract(state: &mut PollState) -> LiveData {
-    let scor_buf = match read_shm(SCORING_MAP, size_of::<Scoring>()) {
-        Some(b) if version_ok(&b) => b,
-        _ => return LiveData::default(),
+    // Tente de lire le buffer de scoring complet.
+    let scor_buf_raw = read_shm(SCORING_MAP, size_of::<Scoring>());
+
+    // La map n'existe pas → jeu non lancé (ou plugin absent du dossier Plugins/).
+    let Some(scor_buf_raw) = scor_buf_raw else {
+        return LiveData::default(); // connected: false
     };
+
+    // La map existe → le jeu tourne (plugin chargé).
+    // On distingue trois états selon les champs de version (begin/end, bytes 0-7) :
+    //
+    //   begin == 0           → Menus (pas de session active, données périmées ou nulles)
+    //   begin != 0, begin == end → Données cohérentes (lecture pendant fenêtre stable)
+    //   begin != 0, begin != end → Écriture en cours (race condition transitoire)
+    //                              → on lit quand même : au pire données d'il y a 50 ms.
+    //
+    // NB : dans l'ancien code, begin != end déclenchait LiveData::default() (connected:false),
+    //      masquant la session en cours. On supprime ce comportement.
+    {
+        let begin = i32::from_le_bytes(scor_buf_raw[0..4].try_into().unwrap_or([0; 4]));
+        if begin == 0 {
+            // Menus : session non démarrée.
+            return LiveData { connected: true, ..Default::default() };
+        }
+        // begin != 0 → session active ou transitoire : on lit les données.
+    }
+
+    let scor_buf = scor_buf_raw;
     let tele_buf = read_shm(TELEMETRY_MAP, size_of::<Telemetry>())
         .filter(|b| version_ok(b));
-    let ext_buf = read_shm(EXTENDED_MAP, size_of::<Extended>())
-        .filter(|b| version_ok(b));
+
+    // Lecture brute de la map Extended (sans filtre de version) : sert à détecter
+    // la FIN de session. Quand on quitte une session pour revenir aux menus, LMU
+    // FIGE le buffer Scoring avec les dernières valeurs (mCurrentET reste > 0, les
+    // véhicules restent présents) → les gardes n/current_et ne suffisent pas. Le
+    // plugin, lui, met `m_session_started` à 0 dans son callback EndSession.
+    let ext_raw = read_shm(EXTENDED_MAP, size_of::<Extended>());
+    let session_started: Option<u8> = ext_raw
+        .as_ref()
+        .and_then(|b| unsafe { read_at(b, offset_of!(Extended, m_session_started)) });
+    // Version cohérente requise seulement pour la lecture fine (physics, dégâts…).
+    let ext_buf = ext_raw.filter(|b| version_ok(b));
 
     let scor_info: ScoringInfo =
         match unsafe { read_at(&scor_buf, offset_of!(Scoring, m_scoring_info)) } {
             Some(s) => s,
-            None => return LiveData::default(),
+            None => return LiveData { connected: true, ..Default::default() },
         };
     let n = (scor_info.m_num_vehicles as usize).min(MAX_VEH);
     let current_et = scor_info.m_current_et;
-    if n == 0 {
+    // Session terminée si :
+    //   - le plugin l'indique explicitement (m_session_started == 0), OU
+    //   - plus aucun véhicule (n == 0), OU
+    //   - horloge de session non démarrée (mCurrentET <= 0, règle V1).
+    // → on masque le dashboard et on affiche « Aucune session en cours ».
+    if session_started == Some(0) || n == 0 || current_et <= 0.0 {
+        state.last_et = -1.0;
+        state.frozen_frames = 0;
+        state.move_history = 0;
+        state.paused = false;
         return LiveData {
             connected: true,
+            ..Default::default()
+        };
+    }
+
+    // ── Pause / gel (mCurrentET figé) avec hystérésis anti-clignotement ───────
+    // `mInRealtime` ne bascule pas à 0 lors de la pause LMU (Échap) → inutilisable.
+    // On détecte donc le gel de l'horloge de session (mCurrentET). MAIS le scoring
+    // est rafraîchi par rafales et peut « tiquer » isolément même en pause, ce qui
+    // faisait clignoter l'écran. D'où l'hystérésis :
+    //   - ENTRÉE en pause : 2 s (40 frames) sans évolution de mCurrentET.
+    //   - SORTIE de pause : activité SOUTENUE (≥ 3 mouvements sur les 16 dernières
+    //     frames) → une vraie reprise, pas un tic isolé.
+    const ENTER_STALE: u32 = 40; // 40 × 50 ms = 2 s
+    let changed = (current_et - state.last_et).abs() > 1e-6;
+    if changed {
+        state.last_et = current_et;
+        state.frozen_frames = 0;
+    } else {
+        state.frozen_frames = state.frozen_frames.saturating_add(1);
+    }
+    state.move_history = (state.move_history << 1) | (changed as u32);
+    let recent_moves = (state.move_history & 0xFFFF).count_ones();
+
+    if state.paused {
+        if recent_moves >= 3 {
+            state.paused = false;
+        }
+    } else if state.frozen_frames >= ENTER_STALE {
+        state.paused = true;
+    }
+    if state.paused {
+        return LiveData {
+            connected: true,
+            paused: true,
             ..Default::default()
         };
     }
@@ -748,20 +843,24 @@ fn extract(state: &mut PollState) -> LiveData {
     let telemetry = player_tele.map(|t| {
         let speed_kmh = (t.m_local_vel.z.abs() * 3.6) as f32;
 
-        // Consommation carburant (moyenne glissante sur 5 tours).
+        // Consommation carburant (moyenne glissante sur 5 tours). La référence
+        // `fuel_at_lap_start` n'est posée qu'au franchissement de ligne : le 1er
+        // passage arme la mesure, chaque passage suivant livre un tour complet.
+        // Tour avec passage aux stands ignoré (limiteur + ravitaillement faussent
+        // la mesure ; un ravitaillement rend de toute façon le delta négatif).
         let lap = t.m_lap_number;
         let fuel = t.m_fuel;
-        if lap > state.last_lap_num && state.fuel_at_lap_start > 0.0 {
-            let used = state.fuel_at_lap_start - fuel;
-            if used > 0.5 && used < 10.0 {
-                state.lap_fuel_history.push(used);
-                if state.lap_fuel_history.len() > 5 {
-                    state.lap_fuel_history.remove(0);
+        if lap > state.last_lap_num {
+            let in_pits = player_scor.map(|p| p.m_in_pits != 0).unwrap_or(false);
+            if state.fuel_at_lap_start > 0.0 && !in_pits {
+                let used = state.fuel_at_lap_start - fuel;
+                if used > 0.5 && used < 10.0 {
+                    state.lap_fuel_history.push(used);
+                    if state.lap_fuel_history.len() > 5 {
+                        state.lap_fuel_history.remove(0);
+                    }
                 }
             }
-        }
-        let in_pits = player_scor.map(|p| p.m_in_pits != 0).unwrap_or(false);
-        if !in_pits {
             state.fuel_at_lap_start = fuel;
         }
         let avg_conso = if state.lap_fuel_history.is_empty() {
@@ -882,8 +981,11 @@ fn extract(state: &mut PollState) -> LiveData {
             position: p.m_place,
             last_lap_time: p.m_last_lap_time as f32,
             best_lap_time: p.m_best_lap_time as f32,
-            current_lap_time: if p.m_time_into_lap > 0.0 {
-                p.m_time_into_lap as f32
+            // Temps écoulé sur le tour en cours = ET courant − ET de début de tour.
+            // (mTimeIntoLap de rF2 est peu fiable pour le joueur et garde une valeur
+            // résiduelle au départ ; m_lap_start_et donne le vrai chrono du tour.)
+            current_lap_time: if p.m_lap_start_et > 0.0 && current_et > p.m_lap_start_et {
+                (current_et - p.m_lap_start_et) as f32
             } else {
                 0.0
             },
@@ -916,6 +1018,10 @@ fn extract(state: &mut PollState) -> LiveData {
             None => HashMap::new(),
         };
         state.last_saved = state.track_buckets.len();
+        // Nouvelle session → la mesure de consommation repart de zéro (une
+        // référence carburant de l'ancienne session fausserait le 1er tour).
+        state.fuel_at_lap_start = 0.0;
+        state.lap_fuel_history.clear();
     }
 
     let mut standings: Vec<LiveStanding> = Vec::new();
@@ -1088,12 +1194,14 @@ fn extract(state: &mut PollState) -> LiveData {
     let wind = scor_info.m_wind;
     LiveData {
         connected: true,
+        paused: false,
         telemetry,
         player,
         session: Some(LiveSession {
             track: track_name,
             session: scor_info.m_session,
             session_time: current_et,
+            end_et: scor_info.m_end_et,
             max_laps: scor_info.m_max_laps,
             num_vehicles: n as i32,
         }),
@@ -1134,9 +1242,9 @@ pub fn get_live_data() -> Result<LiveData, AppError> {
 
 #[tauri::command]
 pub fn is_sim_running() -> Result<bool, AppError> {
-    Ok(read_shm(SCORING_MAP, 8)
-        .map(|b| version_ok(&b))
-        .unwrap_or(false))
+    // La map de scoring n'existe que quand le jeu tourne et le plugin est chargé.
+    // On n'exige plus begin!=0 : le jeu peut être dans les menus (begin==0 valide).
+    Ok(read_shm(SCORING_MAP, 8).is_some())
 }
 
 #[tauri::command]

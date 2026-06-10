@@ -7,7 +7,7 @@
  */
 
 import { check, type Update } from "@tauri-apps/plugin-updater";
-import { relaunch, exit } from "@tauri-apps/plugin-process";
+import { exit } from "@tauri-apps/plugin-process";
 
 /** Vérifie la disponibilité d'une mise à jour. `null` si à jour. */
 export async function checkForUpdate(): Promise<Update | null> {

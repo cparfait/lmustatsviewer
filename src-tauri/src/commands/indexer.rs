@@ -165,24 +165,46 @@ pub fn count_empty_sessions(
 }
 
 /// Configure le chemin du jeu + joueur, puis indexe.
+///
+/// `results_dir` et `telemetry_dir` sont des **surcharges optionnelles** : si
+/// vides/absentes, elles sont dérivées de `lmu_path` (`UserData/Log/Results` et
+/// `UserData/Telemetry`). Cela permet aux joueurs qui ont relocalisé ces
+/// dossiers de les pointer explicitement.
 #[tauri::command]
 pub fn run_setup(
     lmu_path: String,
     player_name: String,
+    results_dir: Option<String>,
+    telemetry_dir: Option<String>,
     db: State<'_, DbState>,
 ) -> Result<IndexReport, AppError> {
-    let results_dir = PathBuf::from(&lmu_path)
-        .join("UserData")
-        .join("Log")
-        .join("Results");
+    // Dossier des résultats : surcharge si fournie, sinon dérivé du chemin du jeu.
+    let results_dir = results_dir
+        .filter(|s| !s.trim().is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(&lmu_path)
+                .join("UserData")
+                .join("Log")
+                .join("Results")
+        });
     if !results_dir.is_dir() {
         return Err(AppError::NotFound(format!(
             "Dossier Results introuvable : {}",
             results_dir.display()
         )));
     }
+
+    // Dossier télémétrie : surcharge si fournie, sinon dérivé. Pas de validation
+    // d'existence (l'enregistrement peut n'avoir jamais été activé).
+    let telemetry_dir = telemetry_dir
+        .filter(|s| !s.trim().is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(&lmu_path).join("UserData").join("Telemetry"));
+
     db::config_set(&db, "lmu_path", &lmu_path)?;
     db::config_set(&db, "results_dir", &results_dir.to_string_lossy())?;
+    db::config_set(&db, "telemetry_dir", &telemetry_dir.to_string_lossy())?;
     db::config_set(&db, "player_name", &player_name)?;
 
     let mut conn = get_conn(&db)?;

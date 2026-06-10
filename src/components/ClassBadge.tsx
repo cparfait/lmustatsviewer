@@ -9,7 +9,7 @@ interface ClassBadgeProps {
   solid?: boolean;
   /**
    * @deprecated Conservé pour rétro-compat — toutes les pastilles partagent
-   * désormais la même taille (text-[10px] px-1.5 py-0) pour aligner ClassBadge
+   * désormais la même taille (text-micro px-1.5 py-0) pour aligner ClassBadge
    * et SessionBadge.
    */
   size?: "sm" | "md";
@@ -29,7 +29,7 @@ export function ClassBadge({ carClass, solid }: ClassBadgeProps) {
 
   return (
     <span
-      className="inline-flex items-center rounded-full px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap"
+      className="inline-flex items-center rounded-full px-1.5 py-0 text-micro font-semibold uppercase tracking-wide whitespace-nowrap"
       style={style}
     >
       {label}

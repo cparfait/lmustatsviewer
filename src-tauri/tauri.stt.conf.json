@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "resources": {
+      "nsis/rFactor2SharedMemoryMapPlugin64.dll": "rFactor2SharedMemoryMapPlugin64.dll",
+      "resources/tts": "tts",
+      "resources/stt/models": "stt/models",
+      "resources/stt/lib/libvosk.dll": "libvosk.dll",
+      "resources/stt/lib/libgcc_s_seh-1.dll": "libgcc_s_seh-1.dll",
+      "resources/stt/lib/libstdc++-6.dll": "libstdc++-6.dll",
+      "resources/stt/lib/libwinpthread-1.dll": "libwinpthread-1.dll"
+    }
+  }
+}

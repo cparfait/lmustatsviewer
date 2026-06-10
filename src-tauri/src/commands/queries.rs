@@ -726,3 +726,43 @@ pub fn get_sessions_overview(db: State<'_, DbState>) -> Result<SessionsOverview,
     .map_err(|e| AppError::Database(format!("sessions overview: {e}")))?;
     Ok(o)
 }
+
+// ===========================================================================
+// Activité — calendrier des courses (page Profil)
+// ===========================================================================
+
+/// Une course du joueur réduite à l'horodatage et au mode (en ligne / hors ligne).
+/// Sert à construire la heatmap d'activité et les stats de régularité du Profil.
+#[derive(Debug, Serialize)]
+pub struct RaceActivityRow {
+    pub timestamp: i64,
+    pub online: bool,
+}
+
+/// Toutes les sessions jouées (Practice / Qualify / Race, une ligne par session),
+/// triées par date. Le front en dérive la heatmap (sessions/jour) et les séries
+/// de régularité (jours pendant lesquels le joueur a joué, quel que soit le type).
+#[tauri::command]
+pub fn get_race_activity(db: State<'_, DbState>) -> Result<Vec<RaceActivityRow>, AppError> {
+    let conn = get_conn(&db)?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT s.timestamp, s.setting
+             FROM sessions s JOIN results r ON r.session_id = s.id
+             WHERE r.is_player = 1 AND s.timestamp > 0
+             ORDER BY s.timestamp ASC",
+        )
+        .map_err(|e| AppError::Database(format!("race_activity prepare: {e}")))?;
+    let rows = stmt
+        .query_map([], |row| {
+            let setting: String = row.get(1)?;
+            Ok(RaceActivityRow {
+                timestamp: row.get(0)?,
+                online: setting == "Multiplayer",
+            })
+        })
+        .map_err(|e| AppError::Database(format!("race_activity query: {e}")))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| AppError::Database(format!("race_activity collect: {e}")))?;
+    Ok(rows)
+}

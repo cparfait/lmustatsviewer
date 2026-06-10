@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SourceBadge } from "@/components/SourceBadge";
 import {
   setups as setupsApi,
   type SetupEntry,
@@ -260,7 +261,11 @@ export function SetupDetail() {
     }
   }
 
-  const sections = editing ? draft : (svm?.sections ?? []);
+  // Mémoïsé pour une référence stable (dépendance des useMemo ci-dessous).
+  const sections = useMemo(
+    () => (editing ? draft : (svm?.sections ?? [])),
+    [editing, draft, svm]
+  );
 
   // Sections (avec leurs paramètres) appartenant à l'onglet actif.
   const tabSections = useMemo(() => {
@@ -324,23 +329,9 @@ export function SetupDetail() {
               <span className="truncate">
                 {t("setupDetail.modalTitle")} — {entry.car}
               </span>
-              {entry.source === "game" ? (
-                <Badge
-                  variant="outline"
-                  className="text-[9px] uppercase tracking-wider border-primary/40 bg-primary/10 text-yellow-500"
-                >
-                  {t("setupDetail.sourceGame")}
-                </Badge>
-              ) : (
-                <Badge
-                  variant="outline"
-                  className="text-[9px] uppercase tracking-wider border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                >
-                  {t("setupDetail.sourceApp")}
-                </Badge>
-              )}
+              <SourceBadge source={entry.source} />
             </h2>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-micro text-muted-foreground">
               {t("setupDetail.modalSubtitle")}
             </p>
           </div>
@@ -359,7 +350,7 @@ export function SetupDetail() {
       {/* Meta bar — Nom (lecture seule) / Type (select) / Circuit (lecture seule) */}
       <div className="px-5 py-3 border-b border-border bg-muted/30 grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
         <div>
-          <label className="block text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1">
+          <label className="block text-micro font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1">
             {t("setupDetail.nameLabel")}
           </label>
           <div className="h-9 px-3 flex items-center rounded-md border border-input bg-background/50 font-mono text-sm truncate">
@@ -367,7 +358,7 @@ export function SetupDetail() {
           </div>
         </div>
         <div>
-          <label className="block text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1">
+          <label className="block text-micro font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1">
             {t("setupDetail.type")}
           </label>
           <select
@@ -381,7 +372,7 @@ export function SetupDetail() {
           </select>
         </div>
         <div>
-          <label className="block text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1">
+          <label className="block text-micro font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1">
             {t("setups.circuit")}
           </label>
           <div className="h-9 px-3 flex items-center rounded-md border border-input bg-background/50 text-sm truncate">
@@ -392,7 +383,7 @@ export function SetupDetail() {
 
       {/* Hint « lecture seule » pour les setups jeu */}
       {entry.source === "game" && (
-        <p className="px-5 py-1.5 text-[11px] text-yellow-500 italic bg-primary/5 border-b border-border/60 shrink-0">
+        <p className="px-5 py-1.5 text-mini text-primary italic bg-primary/5 border-b border-border/60 shrink-0">
           {t("setupDetail.gameReadOnlyHint")}
         </p>
       )}
@@ -444,7 +435,7 @@ export function SetupDetail() {
               <div className="flex flex-col gap-4">
                 {tabSections.map((section) => (
                   <div key={section.name}>
-                    <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary mb-1.5 pb-1 border-b border-primary/15">
+                    <h3 className="text-micro font-bold uppercase tracking-[0.18em] text-primary mb-1.5 pb-1 border-b border-primary/15">
                       {sectionLabel(section.name, t)}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0">
@@ -461,7 +452,7 @@ export function SetupDetail() {
                               {paramLabel(p.key)}
                             </span>
                             {p.comment && (
-                              <span className="text-[10px] text-muted-foreground truncate">
+                              <span className="text-micro text-muted-foreground truncate">
                                 {p.comment}
                               </span>
                             )}
@@ -637,7 +628,7 @@ function ModalShell({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -717,19 +708,7 @@ function MetaPanel({
             <Badge variant="outline">{entry.setup_type}</Badge>
           </InfoLine>
           <InfoLine label={t("setups.sourceLabel")}>
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-[10px] uppercase",
-                entry.source === "game"
-                  ? "border-primary/40 bg-primary/10 text-yellow-500"
-                  : "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-              )}
-            >
-              {entry.source === "game"
-                ? t("setupDetail.sourceGame")
-                : t("setupDetail.sourceApp")}
-            </Badge>
+            <SourceBadge source={entry.source} />
           </InfoLine>
           <InfoLine label={t("setupDetail.modified")}>
             {entry.updated_at}
@@ -977,7 +956,7 @@ function LinkedSessionSection({
         </h3>
         <div className="flex items-center gap-3 flex-wrap">
           <label
-            className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none"
+            className="flex items-center gap-1.5 text-mini text-muted-foreground cursor-pointer select-none"
             title={t("setupDetail.filterByCircuitTip")}
           >
             <input
@@ -989,7 +968,7 @@ function LinkedSessionSection({
             {t("setupDetail.filterByCircuit")}
           </label>
           <label
-            className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none"
+            className="flex items-center gap-1.5 text-mini text-muted-foreground cursor-pointer select-none"
             title={t("setupDetail.compareAllTip")}
           >
             <input
@@ -1048,7 +1027,7 @@ function LinkedSessionSection({
                 {(linkedSummary.best_lap_s1 != null ||
                   linkedSummary.best_lap_s2 != null ||
                   linkedSummary.best_lap_s3 != null) && (
-                  <p className="text-muted-foreground font-mono mt-0.5 text-[11px]">
+                  <p className="text-muted-foreground font-mono mt-0.5 text-mini">
                     <span>S1: </span>
                     <span className="text-foreground/90">
                       {linkedSummary.best_lap_s1 != null

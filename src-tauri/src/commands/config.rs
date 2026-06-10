@@ -51,6 +51,7 @@ pub fn get_all_config(db: State<'_, DbState>) -> Result<HashMap<String, String>,
 pub struct DetectResult {
     pub lmu_path: String,
     pub results_dir: String,
+    pub telemetry_dir: String,
     pub player_name: String,
     pub xml_count: usize,
 }
@@ -81,6 +82,12 @@ fn inspect_lmu_path(lmu_path: String) -> Result<DetectResult, AppError> {
         )));
     }
 
+    // Dossier télémétrie dérivé (peut ne pas exister si l'enregistrement n'a
+    // jamais été activé — on renvoie quand même le chemin attendu, modifiable).
+    let telemetry_dir = PathBuf::from(&lmu_path)
+        .join("UserData")
+        .join("Telemetry");
+
     let mut xml_files: Vec<PathBuf> = std::fs::read_dir(&results_dir)
         .map_err(AppError::Io)?
         .filter_map(|e| e.ok())
@@ -99,6 +106,7 @@ fn inspect_lmu_path(lmu_path: String) -> Result<DetectResult, AppError> {
     Ok(DetectResult {
         lmu_path,
         results_dir: results_dir.to_string_lossy().to_string(),
+        telemetry_dir: telemetry_dir.to_string_lossy().to_string(),
         player_name,
         xml_count,
     })

@@ -20,6 +20,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import { TableTitle } from "@/components/TableTitle";
+import { SourceBadge } from "@/components/SourceBadge";
+import {
   setups as setupsApi,
   type SetupGroup,
   type SetupSummary,
@@ -368,10 +378,6 @@ function CarView({
 }) {
   const { t } = useTranslation();
 
-  const totalSetups = activeGroup
-    ? activeGroup.tracks.reduce((acc, tr) => acc + tr.setups.length, 0)
-    : 0;
-
   // Matrice : 1 ligne par circuit ; 3 colonnes (Qualif/Course/Autres) contenant
   // les setups du combo. Tri par nom de circuit.
   const matrixRows = useMemo(() => {
@@ -435,12 +441,13 @@ function CarView({
         {/* Matrice par circuit (2/3) */}
         <div className="lg:col-span-2">
           <Card className="overflow-hidden">
-            <div className="bg-primary text-primary-foreground px-4 py-1.5 flex items-center gap-2">
-              <Grid3x3 className="h-3.5 w-3.5" />
-              <h3 className="text-sm font-bold tracking-tight">
-                {t("setups.matrixTitle")}
-              </h3>
-            </div>
+            <TableTitle
+              title={
+                <span className="inline-flex items-center gap-2">
+                  <Grid3x3 className="h-3.5 w-3.5" /> {t("setups.matrixTitle")}
+                </span>
+              }
+            />
             <CardContent className="p-0">
               {matrixRows.length === 0 ? (
                 <p className="py-12 text-center text-sm text-muted-foreground">
@@ -448,38 +455,38 @@ function CarView({
                 </p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-primary/15 dark:bg-primary/10 border-b border-primary/30">
-                      <tr className="text-[10px] uppercase tracking-wide text-yellow-900 dark:text-yellow-100">
-                        <th className="text-left px-3 py-1.5 font-medium">
+                  <Table className="w-full text-sm">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-left px-3 py-1.5">
                           <Tip content={t("setups.circuitTip")}>{t("setups.circuit")}</Tip>
-                        </th>
-                        <th className="text-left px-3 py-1.5 font-medium border-l border-border/55">
+                        </TableHead>
+                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeQualifTip")}>{t("setups.typeQualif")}</Tip>
-                        </th>
-                        <th className="text-left px-3 py-1.5 font-medium border-l border-border/55">
+                        </TableHead>
+                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeRaceTip")}>{t("setups.typeRace")}</Tip>
-                        </th>
-                        <th className="text-left px-3 py-1.5 font-medium border-l border-border/55">
+                        </TableHead>
+                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeOtherTip")}>{t("setups.typeOther")}</Tip>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {matrixRows.map((row, idx) => (
-                        <tr
+                        <TableRow
                           key={row.circuit}
                           className={cn(
                             "border-b border-border/40 last:border-0",
                             idx % 2 === 1 && "bg-muted/20"
                           )}
                         >
-                          <td className="px-3 py-1.5 font-medium">
+                          <TableCell className="px-3 py-1.5 font-medium">
                             {row.circuit}
-                          </td>
+                          </TableCell>
                           {(["Qualif", "Course", "Autres"] as const).map(
                             (type) => (
-                              <td
+                              <TableCell
                                 key={type}
                                 className="px-2 py-1.5 border-l border-border/55"
                               >
@@ -488,13 +495,13 @@ function CarView({
                                   selectedId={selectedSetupId}
                                   onSelect={setSelectedSetupId}
                                 />
-                              </td>
+                              </TableCell>
                             )
                           )}
-                        </tr>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
@@ -559,7 +566,7 @@ function MatrixCell({
             {s.best_lap != null ? (
               <span
                 className={cn(
-                  "shrink-0 tabular-nums text-[10px] font-semibold",
+                  "shrink-0 tabular-nums text-micro font-semibold",
                   selected
                     ? "text-primary-foreground/90"
                     : isCellBest
@@ -572,7 +579,7 @@ function MatrixCell({
             ) : (
               <span
                 className={cn(
-                  "shrink-0 text-[10px] font-mono",
+                  "shrink-0 text-micro font-mono",
                   selected
                     ? "text-primary-foreground/50"
                     : "text-muted-foreground/40"
@@ -661,13 +668,13 @@ function QuickView({
       <div className="px-4 py-3 border-b border-border">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-0.5">
+            <p className="text-micro uppercase tracking-widest text-muted-foreground font-bold mb-0.5">
               {summary?.setup.setup_type ?? "—"}
             </p>
             <h3 className="font-mono text-sm font-bold truncate">
               {summary?.setup.name.replace(/\.svm$/i, "") ?? "—"}
             </h3>
-            <p className="text-[11px] text-muted-foreground truncate">
+            <p className="text-mini text-muted-foreground truncate">
               {summary?.circuit ?? "—"}
             </p>
           </div>
@@ -763,7 +770,7 @@ function QuickView({
           <>
             {/* Électronique — 3 champs TC (V1) + ABS + Bias + Map. */}
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+              <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground mb-2">
                 {t("setups.qvElectronics")}
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -797,7 +804,7 @@ function QuickView({
 
             {/* Pressions pneus */}
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+              <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground mb-2">
                 {t("setups.qvPressures")}
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -811,7 +818,7 @@ function QuickView({
             {/* Notes */}
             {stats.notes && stats.notes.trim() !== "" && (
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground mb-2">
                   {t("setups.qvNotes")}
                 </p>
                 <div className="rounded-md border border-border/60 bg-background/40 p-3">
@@ -847,7 +854,7 @@ function QvCard({
         center && "text-center"
       )}
     >
-      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
+      <p className="text-micro font-bold uppercase tracking-wider text-muted-foreground mb-0.5">
         {label}
       </p>
       <p
@@ -925,47 +932,49 @@ function GlobalView({
 
   return (
     <Card className="overflow-hidden">
-      <div className="bg-primary text-primary-foreground px-4 py-1.5 flex items-center gap-2">
-        <TableIcon className="h-3.5 w-3.5" />
-        <h3 className="text-sm font-bold tracking-tight">
-          {t("setups.globalTitle")}
-        </h3>
-        <span className="ml-auto text-xs font-semibold">
+      <TableTitle
+        title={
+          <span className="inline-flex items-center gap-2">
+            <TableIcon className="h-3.5 w-3.5" /> {t("setups.globalTitle")}
+          </span>
+        }
+      >
+        <span className="text-xs font-semibold">
           {rows.length} {t("setups.setups")}
         </span>
-      </div>
+      </TableTitle>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-primary/15 dark:bg-primary/10 border-b border-primary/30">
-              <tr className="text-[10px] uppercase tracking-wide text-yellow-900 dark:text-yellow-100">
-                <th className="text-left px-3 py-1.5 font-medium">
+          <Table className="w-full text-sm">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-left px-3 py-1.5">
                   <Tip content={t("setups.classTip")}>{t("setups.class")}</Tip>
-                </th>
-                <th className="px-1 py-1.5 w-7" aria-hidden />
-                <th className="text-left px-2 py-1.5 font-medium">
+                </TableHead>
+                <TableHead className="px-1 py-1.5 w-7" aria-hidden />
+                <TableHead className="text-left px-2 py-1.5">
                   <Tip content={t("setups.carTip")}>{t("setups.car")}</Tip>
-                </th>
-                <th className="text-left px-3 py-1.5 font-medium">
+                </TableHead>
+                <TableHead className="text-left px-3 py-1.5">
                   <Tip content={t("setups.circuitTip")}>{t("setups.circuit")}</Tip>
-                </th>
-                <th className="text-left px-3 py-1.5 font-medium">
+                </TableHead>
+                <TableHead className="text-left px-3 py-1.5">
                   <Tip content={t("setups.setupTip")}>{t("setups.setup")}</Tip>
-                </th>
-                <th className="text-left px-3 py-1.5 font-medium">
+                </TableHead>
+                <TableHead className="text-left px-3 py-1.5">
                   <Tip content={t("setups.newTypeTip")}>{t("setups.newType")}</Tip>
-                </th>
-                <th className="text-left px-3 py-1.5 font-medium">
+                </TableHead>
+                <TableHead className="text-left px-3 py-1.5">
                   <Tip content={t("setups.sourceLabelTip")}>{t("setups.sourceLabel")}</Tip>
-                </th>
-                <th className="text-right px-3 py-1.5 font-medium">
+                </TableHead>
+                <TableHead className="text-right px-3 py-1.5">
                   <Tip content={t("setups.modifiedTip")}>{t("setups.modified")}</Tip>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {rows.map((r, idx) => (
-                <tr
+                <TableRow
                   key={r.setup.id}
                   onClick={() => navigate(`/setups/${r.setup.id}`)}
                   className={cn(
@@ -973,46 +982,35 @@ function GlobalView({
                     idx % 2 === 1 && "bg-muted/20"
                   )}
                 >
-                  <td className="px-3 py-1.5">
+                  <TableCell className="px-3 py-1.5">
                     <ClassBadge carClass={r.carClass} size="sm" />
-                  </td>
-                  <td className="px-1 py-1.5 w-7">
+                  </TableCell>
+                  <TableCell className="px-1 py-1.5 w-7">
                     <CarLogo
                       carName={r.car}
                       className="h-3.5 w-auto object-contain opacity-80"
                     />
-                  </td>
-                  <td className="px-2 py-1.5 font-medium whitespace-nowrap">
+                  </TableCell>
+                  <TableCell className="px-2 py-1.5 font-medium whitespace-nowrap">
                     {r.car}
-                  </td>
-                  <td className="px-3 py-1.5 text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="px-3 py-1.5 text-muted-foreground">
                     {r.circuit}
-                  </td>
-                  <td className="px-3 py-1.5 font-mono text-xs">
+                  </TableCell>
+                  <TableCell className="px-3 py-1.5 font-mono text-xs">
                     {r.setup.name}
-                  </td>
-                  <td className="px-3 py-1.5 text-xs">{r.setup.setup_type}</td>
-                  <td className="px-3 py-1.5">
-                    <span
-                      className={cn(
-                        "text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
-                        r.setup.source === "game"
-                          ? "bg-primary/15 text-yellow-500"
-                          : "bg-emerald-500/15 text-emerald-400"
-                      )}
-                    >
-                      {r.setup.source === "game"
-                        ? t("setupDetail.sourceGame")
-                        : t("setupDetail.sourceApp")}
-                    </span>
-                  </td>
-                  <td className="px-3 py-1.5 text-right text-xs text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="px-3 py-1.5 text-xs">{r.setup.setup_type}</TableCell>
+                  <TableCell className="px-3 py-1.5">
+                    <SourceBadge source={r.setup.source} />
+                  </TableCell>
+                  <TableCell className="px-3 py-1.5 text-right text-xs text-muted-foreground">
                     {r.setup.updated_at}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </CardContent>
     </Card>
@@ -1088,15 +1086,6 @@ function CircuitView({
     return out.sort((a, b) => a.car.localeCompare(b.car));
   }, [groups, activeCircuit]);
 
-  const totalSetups = matrixRows.reduce(
-    (acc, r) =>
-      acc +
-      r.byType.Qualif.length +
-      r.byType.Course.length +
-      r.byType.Autres.length,
-    0
-  );
-
   // Setup group « virtuel » pour permettre à QuickView de retrouver le
   // résumé d'un setup sélectionné dans la matrice circuit.
   const virtualGroup = useMemo<SetupGroup | null>(() => {
@@ -1141,12 +1130,13 @@ function CircuitView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <Card className="overflow-hidden">
-            <div className="bg-primary text-primary-foreground px-4 py-1.5 flex items-center gap-2">
-              <Grid3x3 className="h-3.5 w-3.5" />
-              <h3 className="text-sm font-bold tracking-tight">
-                {t("setups.matrixCircuitTitle")}
-              </h3>
-            </div>
+            <TableTitle
+              title={
+                <span className="inline-flex items-center gap-2">
+                  <Grid3x3 className="h-3.5 w-3.5" /> {t("setups.matrixCircuitTitle")}
+                </span>
+              }
+            />
             <CardContent className="p-0">
               {matrixRows.length === 0 ? (
                 <p className="py-12 text-center text-sm text-muted-foreground">
@@ -1154,33 +1144,33 @@ function CircuitView({
                 </p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-primary/15 dark:bg-primary/10 border-b border-primary/30">
-                      <tr className="text-[10px] uppercase tracking-wide text-yellow-900 dark:text-yellow-100">
-                        <th className="text-left px-3 py-1.5 font-medium">
+                  <Table className="w-full text-sm">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-left px-3 py-1.5">
                           <Tip content={t("setups.carTip")}>{t("setups.car")}</Tip>
-                        </th>
-                        <th className="text-left px-3 py-1.5 font-medium border-l border-border/55">
+                        </TableHead>
+                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeQualifTip")}>{t("setups.typeQualif")}</Tip>
-                        </th>
-                        <th className="text-left px-3 py-1.5 font-medium border-l border-border/55">
+                        </TableHead>
+                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeRaceTip")}>{t("setups.typeRace")}</Tip>
-                        </th>
-                        <th className="text-left px-3 py-1.5 font-medium border-l border-border/55">
+                        </TableHead>
+                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeOtherTip")}>{t("setups.typeOther")}</Tip>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {matrixRows.map((row, idx) => (
-                        <tr
+                        <TableRow
                           key={row.car}
                           className={cn(
                             "border-b border-border/40 last:border-0",
                             idx % 2 === 1 && "bg-muted/20"
                           )}
                         >
-                          <td className="px-3 py-1.5">
+                          <TableCell className="px-3 py-1.5">
                             <span className="inline-flex items-center gap-1.5">
                               <CarLogo
                                 carName={row.car}
@@ -1190,10 +1180,10 @@ function CircuitView({
                                 {row.car}
                               </span>
                             </span>
-                          </td>
+                          </TableCell>
                           {(["Qualif", "Course", "Autres"] as const).map(
                             (type) => (
-                              <td
+                              <TableCell
                                 key={type}
                                 className="px-2 py-1.5 border-l border-border/55"
                               >
@@ -1202,13 +1192,13 @@ function CircuitView({
                                   selectedId={selectedSetupId}
                                   onSelect={setSelectedSetupId}
                                 />
-                              </td>
+                              </TableCell>
                             )
                           )}
-                        </tr>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>

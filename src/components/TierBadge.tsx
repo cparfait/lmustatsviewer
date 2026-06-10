@@ -2,7 +2,7 @@
  * TierBadge — badge de niveau ohne_speed (Alien / Compétitif / Bon / Peloton …)
  *
  * Composant partagé utilisé dans Records, Sessions, SessionDetail et LapChartModal.
- * OHNE_CLASS est exporté pour permettre la recherche de benchmark dans LapChartModal.
+ * OHNE_CLASS est défini dans ohne_speed.ts et utilisé par Records, LapChartModal, etc.
  */
 
 import { cn } from "@/lib/utils";
@@ -11,20 +11,10 @@ import {
   computeTier,
   TIER_LABELS,
   TIER_COLORS,
+  OHNE_CLASS,
   type PaceBenchmark,
 } from "@/lib/ohne_speed";
 
-/** Mapping classe interne (DB) → classe ohne_speed. */
-export const OHNE_CLASS: Record<string, string> = {
-  Hyper: "Hypercar",
-  Hypercar: "Hypercar",
-  "LMP2 ELMS": "LMP2_ELMS",
-  LMP2: "LMP2_WEC",
-  "LMP2 WEC": "LMP2_WEC",
-  LMP3: "LMP3",
-  GT3: "GT3",
-  GTE: "GTE",
-};
 
 /**
  * Affiche le badge de niveau ohne_speed pour un temps au tour donné.
@@ -56,7 +46,9 @@ export function TierBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap",
+        // 9 px assumé : micro-pastille de donnée dense (colonne Tier des tableaux),
+        // exemptée du plancher 10 px pour ne pas élargir la grille Sessions.
+        "inline-flex items-center rounded-full border px-1 py-px text-nano font-medium whitespace-nowrap",
         TIER_COLORS[tier]
       )}
     >

@@ -26,6 +26,7 @@ $Root = $PSScriptRoot
 if (-not $Root) { $Root = Get-Location }
 Set-Location $Root
 
+$versionJson = Join-Path $Root "version.json"
 $packageJson = Join-Path $Root "package.json"
 $tauriConf  = Join-Path $Root "src-tauri\tauri.conf.json"
 $cargoToml  = Join-Path $Root "src-tauri\Cargo.toml"
@@ -37,16 +38,20 @@ Write-Host "============================================" -ForegroundColor Magen
 Write-Host "   LMU Stats Viewer - Release Builder"      -ForegroundColor Magenta
 Write-Host "============================================" -ForegroundColor Magenta
 
-# Lecture de la version actuelle depuis package.json (source de verite)
-if (-not (Test-Path $packageJson)) {
-    Write-Fail "package.json introuvable - lancez le script depuis la racine du projet."
+# Lecture de la version actuelle depuis version.json (source de verite)
+# IMPORTANT : build.rs lit version.json au moment de la compilation Rust et
+# propage automatiquement la version vers package.json, tauri.conf.json et
+# Cargo.toml. Modifier uniquement package.json sans toucher version.json
+# fait que le build ecrase tout et revient a la version de version.json.
+if (-not (Test-Path $versionJson)) {
+    Write-Fail "version.json introuvable - lancez le script depuis la racine du projet."
     exit 1
 }
-$rawJson = [System.IO.File]::ReadAllText($packageJson, [System.Text.UTF8Encoding]::new($false))
-if ($rawJson -match '"version"\s*:\s*"([^"]+)"') {
+$rawVerJson = [System.IO.File]::ReadAllText($versionJson, [System.Text.UTF8Encoding]::new($false))
+if ($rawVerJson -match '"version"\s*:\s*"([^"]+)"') {
     $currentVersion = $Matches[1]
 } else {
-    Write-Fail "Impossible de lire la version dans tauri.conf.json"
+    Write-Fail "Impossible de lire la version dans version.json"
     exit 1
 }
 
@@ -115,30 +120,36 @@ if (-not (Test-Path $keyFile)) {
     $signed = $true
 }
 
-# Bump de version dans tauri.conf.json
+# Bump de version
 if ($Version -ne $currentVersion) {
     Write-Step "Mise a jour de la version"
 
-    # Bump package.json (source de verite)
+    # Bump version.json (source de verite — lu par build.rs au moment du build Rust)
+    $rawVer = [System.IO.File]::ReadAllText($versionJson, [System.Text.UTF8Encoding]::new($false))
+    $rawVer = $rawVer -replace '"version":\s*"[^"]+"', "`"version`": `"$Version`""
+    [System.IO.File]::WriteAllText($versionJson, $rawVer, [System.Text.UTF8Encoding]::new($false))
+    Write-Ok "version.json mis a jour ($currentVersion -> $Version)  [source de verite]"
+
+    # Bump package.json, tauri.conf.json, Cargo.toml
+    # (build.rs les ecrase de toute facon pendant la compilation, mais on les met a jour
+    # ici aussi pour que le commit soit propre et coherent avant le build)
     $rawPkg = [System.IO.File]::ReadAllText($packageJson, [System.Text.UTF8Encoding]::new($false))
     $rawPkg = $rawPkg -replace '"version":\s*"[^"]+"', "`"version`": `"$Version`""
     [System.IO.File]::WriteAllText($packageJson, $rawPkg, [System.Text.UTF8Encoding]::new($false))
     Write-Ok "package.json mis a jour ($currentVersion -> $Version)"
 
-    # Bump tauri.conf.json
     $rawConf = [System.IO.File]::ReadAllText($tauriConf, [System.Text.UTF8Encoding]::new($false))
     $rawConf = $rawConf -replace '"version":\s*"[^"]+"', "`"version`": `"$Version`""
     [System.IO.File]::WriteAllText($tauriConf, $rawConf, [System.Text.UTF8Encoding]::new($false))
     Write-Ok "tauri.conf.json mis a jour ($currentVersion -> $Version)"
 
-    # Bump Cargo.toml (affiche pendant la compilation)
     $rawCargo = [System.IO.File]::ReadAllText($cargoToml, [System.Text.UTF8Encoding]::new($false))
     $rawCargo = $rawCargo -replace '^version\s*=\s*"[^"]+"', "version = `"$Version`""
     [System.IO.File]::WriteAllText($cargoToml, $rawCargo, [System.Text.UTF8Encoding]::new($false))
     Write-Ok "Cargo.toml mis a jour ($currentVersion -> $Version)"
 
     try {
-        git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock 2>&1 | Out-Null
+        git add version.json package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock 2>&1 | Out-Null
         $msg = "chore: bump version to $Version"
         git commit -m $msg 2>&1 | Out-Null
         Write-Ok "Commit cree"
@@ -186,13 +197,16 @@ if (-not $SkipBuild) {
 # Artefacts  (Tauri v2 : .exe + .exe.sig — pas de .nsis.zip)
 Write-Step "Artefacts"
 
-$bundleDir = Join-Path $Root "src-tauri\target\release\bundle\nsis"
-$exeName   = "LMU Stats Viewer_${Version}_x64-setup.exe"
-$sigName   = "LMU Stats Viewer_${Version}_x64-setup.exe.sig"
-$jsonName  = "latest.json"
-$exePath   = Join-Path $bundleDir $exeName
-$sigPath   = Join-Path $bundleDir $sigName
-$jsonPath  = Join-Path $bundleDir $jsonName
+$bundleDir  = Join-Path $Root "src-tauri\target\release\bundle\nsis"
+$exeName    = "LMU Stats Viewer_${Version}_x64-setup.exe"
+$sigName    = "LMU Stats Viewer_${Version}_x64-setup.exe.sig"
+$jsonName   = "latest.json"
+$dllName    = "rFactor2SharedMemoryMapPlugin64.dll"
+$exePath    = Join-Path $bundleDir $exeName
+$sigPath    = Join-Path $bundleDir $sigName
+$jsonPath   = Join-Path $bundleDir $jsonName
+$dllDest    = Join-Path $bundleDir $dllName
+$dllSource  = Join-Path $Root "src-tauri\nsis\$dllName"
 
 # Verifier l'installeur
 if (-not (Test-Path $exePath)) {
@@ -200,6 +214,15 @@ if (-not (Test-Path $exePath)) {
     exit 1
 }
 Write-Ok "$exeName  ($([math]::Round((Get-Item $exePath).Length / 1MB, 2)) MB)"
+
+# Copier la DLL plugin dans le dossier de release
+if (Test-Path $dllSource) {
+    Copy-Item -Path $dllSource -Destination $dllDest -Force
+    $dllKB = [math]::Round((Get-Item $dllDest).Length / 1KB, 0)
+    Write-Ok "$dllName copie dans le dossier release  ($dllKB KB)"
+} else {
+    Write-Warn "$dllName introuvable dans src-tauri\nsis\ - a joindre manuellement a la release"
+}
 
 # Verifier la signature
 $signature = ""
@@ -225,6 +248,7 @@ $latestContent = "{`n  `"version`": `"$Version`",`n  `"notes`": `"LMU Stats View
 Write-Ok "latest.json genere"
 
 $filesToUpload = @($exePath, $sigPath, $jsonPath)
+if (Test-Path $dllDest) { $filesToUpload += $dllDest }
 
 if ($signature -eq "") {
     Write-Warn "Signature absente - l'auto-update ne fonctionnera pas sans le .exe.sig"
@@ -275,7 +299,9 @@ if ($r1 -notmatch '^[nN]') {
 
 $r2 = (Read-Host "  Ouvrir GitHub Releases dans le navigateur ? [O/n]").Trim()
 if ($r2 -notmatch '^[nN]') {
-    $url = "https://github.com/cparfait/lmustatsviewer/releases/new?tag=v$Version&title=LMU+Stats+Viewer+v$Version"
+    $urlTag   = "v$Version"
+    $urlTitle = "LMU+Stats+Viewer+v$Version"
+    $url = "https://github.com/cparfait/lmustatsviewer/releases/new?tag=$urlTag" + "&title=$urlTitle"
     Start-Process $url
 }
 

@@ -48,6 +48,14 @@ src-tauri/target/
 src-tauri/gen/
 src-tauri/WixTools/
 
+# TTS Piper — binaire + modèles de voix (lourds, fetchés via scripts/fetch-piper.ps1)
+src-tauri/resources/tts/piper/
+src-tauri/resources/tts/voices/
+
+# STT Vosk — lib native + modèles (lourds, fetchés via scripts/fetch-vosk.ps1)
+src-tauri/resources/stt/lib/
+src-tauri/resources/stt/models/
+
 # Clé privée de signature de l'updater Tauri — NE PAS COMMITER
 _lmu_updater.key
 _lmu_updater.key.pub
@@ -56,3 +64,6 @@ _lmu_updater.key.pub
 # Cf. SUIVI.md §1 : ce sont des sources externes de consultation uniquement.
 zz_V1/
 zz_V2/
+
+# Fichier de setup de test (artefact local, inutile dans le dépôt)
+src-tauri/DOM.svm

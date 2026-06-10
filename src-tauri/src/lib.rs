@@ -103,6 +103,7 @@ pub fn run() {
             commands::overlay::set_overlay_edit_mode,
             commands::overlay::set_overlay_clickthrough,
             commands::overlay::is_overlay_open,
+            commands::overlay::get_overlay_edit_mode,
             // Synthèse vocale neuronale (Piper)
             commands::tts::tts_synthesize,
             commands::tts::tts_available,

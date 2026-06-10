@@ -999,4 +999,6 @@ export const overlay = {
     invoke<void>("set_overlay_clickthrough", { enable }),
   /** Indique si la fenêtre overlay est ouverte. */
   isOpen: () => invoke<boolean>("is_overlay_open"),
+  /** État courant du mode Édition (rattrapage au montage du webview overlay). */
+  getEditMode: () => invoke<boolean>("get_overlay_edit_mode"),
 };

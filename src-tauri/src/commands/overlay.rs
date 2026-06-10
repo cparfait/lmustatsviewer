@@ -17,6 +17,8 @@
 //! tournent hors du thread principal et les opérations de fenêtre s'exécutent
 //! normalement.
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl,
     WebviewWindowBuilder,
@@ -25,6 +27,12 @@ use tauri::{
 use crate::error::AppError;
 
 const OVERLAY_LABEL: &str = "overlay";
+
+/// État courant du mode Édition. La fenêtre overlay le **relit au boot**
+/// (`get_overlay_edit_mode`) : l'event `overlay-edit-mode` émis pendant sa
+/// création serait sinon perdu (webview pas encore abonné) → le premier
+/// passage en édition n'était jamais appliqué.
+static EDIT_MODE: AtomicBool = AtomicBool::new(false);
 
 /// Ouvre (ou ré-affiche) la fenêtre overlay, dimensionnée sur le moniteur principal.
 #[tauri::command]
@@ -80,6 +88,11 @@ pub async fn close_overlay_window(app: AppHandle) -> Result<(), AppError> {
     if let Some(win) = app.get_webview_window(OVERLAY_LABEL) {
         let _ = win.close();
     }
+    // Fermer la fenêtre sort de facto du mode Édition : on synchronise l'état
+    // et l'UI (bouton de la page principale).
+    if EDIT_MODE.swap(false, Ordering::SeqCst) {
+        let _ = app.emit("overlay-edit-mode", false);
+    }
     Ok(())
 }
 
@@ -87,6 +100,7 @@ pub async fn close_overlay_window(app: AppHandle) -> Result<(), AppError> {
 /// Émet `overlay-edit-mode` (bool) à toutes les fenêtres pour piloter l'UI.
 #[tauri::command]
 pub async fn set_overlay_edit_mode(app: AppHandle, editing: bool) -> Result<(), AppError> {
+    EDIT_MODE.store(editing, Ordering::SeqCst);
     if let Some(win) = app.get_webview_window(OVERLAY_LABEL) {
         // editing → la fenêtre capte la souris ; sinon → click-through.
         let _ = win.set_ignore_cursor_events(!editing);
@@ -115,4 +129,11 @@ pub async fn set_overlay_clickthrough(app: AppHandle, enable: bool) -> Result<()
 #[tauri::command]
 pub async fn is_overlay_open(app: AppHandle) -> Result<bool, AppError> {
     Ok(app.get_webview_window(OVERLAY_LABEL).is_some())
+}
+
+/// État courant du mode Édition — interrogé par la fenêtre overlay à son
+/// montage pour rattraper un `overlay-edit-mode` émis avant son abonnement.
+#[tauri::command]
+pub async fn get_overlay_edit_mode() -> Result<bool, AppError> {
+    Ok(EDIT_MODE.load(Ordering::SeqCst))
 }

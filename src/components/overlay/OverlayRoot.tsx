@@ -45,6 +45,10 @@ export function OverlayRoot() {
   // Chargement initial + abonnements de synchro.
   useEffect(() => {
     load();
+    // Rattrapage : si le mode Édition a été activé AVANT que ce webview ne soit
+    // abonné (cas du 1er overlay activé : open() puis setEditMode(true) pendant
+    // le boot de la fenêtre), l'event est perdu → on relit l'état au backend.
+    overlayApi.getEditMode().then(setEditMode).catch(() => {});
     const unlisteners: Array<() => void> = [];
     listen<{ src: string; cfg: OverlaysConfig }>("overlays-config", (e) => {
       if (e.payload.src !== OVERLAYS_SRC) applyRemote(e.payload.cfg);
@@ -63,6 +67,22 @@ export function OverlayRoot() {
 
   return (
     <div className="fixed inset-0 overflow-hidden">
+      {/* Mode édition : voile sombre légèrement flouté sur tout l'écran pour
+          faire ressortir les overlays au premier plan + explication centrale.
+          `pointer-events: none` → ne gêne ni le drag ni le bouton Valider. */}
+      {editMode && (
+        <>
+          <div className="pointer-events-none fixed inset-0 bg-black/45 backdrop-blur-[2px]" />
+          <div className="pointer-events-none fixed left-1/2 top-1/2 z-[99999] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 rounded-xl border border-white/15 bg-black/70 px-8 py-6 text-center shadow-2xl backdrop-blur">
+            <span className="text-sm font-bold uppercase tracking-[0.25em] text-emerald-400">
+              {t("overlays.editHintTitle")}
+            </span>
+            <span className="max-w-md text-sm leading-relaxed text-white/85">
+              {t("overlays.editHintText")}
+            </span>
+          </div>
+        </>
+      )}
       {/* Sortie de secours : en mode édition la fenêtre plein écran capture toute
           la souris (on ne peut plus cliquer la fenêtre principale) → ce bouton,
           rendu SUR l'overlay, garantit qu'on peut toujours quitter l'édition. */}

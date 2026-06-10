@@ -12,8 +12,14 @@ import { OverlayRoot } from "./OverlayRoot";
 export function OverlayApp() {
   // Au montage (webview prêt), on REforce le click-through : c'est le filet de
   // sécurité contre une fenêtre overlay qui figerait toute la souris au lancement.
+  // Exception : si le mode Édition a été demandé pendant la création de la
+  // fenêtre (1er overlay activé), forcer le click-through annulerait le drag —
+  // on aligne donc le click-through sur l'état édition courant.
   useEffect(() => {
-    overlayApi.setClickThrough(true).catch(() => {});
+    overlayApi
+      .getEditMode()
+      .then((editing) => overlayApi.setClickThrough(!editing))
+      .catch(() => overlayApi.setClickThrough(true).catch(() => {}));
   }, []);
 
   useEffect(() => {

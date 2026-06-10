@@ -40,14 +40,27 @@ const FULL: Record<string, string> = {
 5. Empfehlungen — 3 konkrete, mit Zahlen belegte Tipps für die nächste Session.`,
 };
 
+/**
+ * Consigne de sortie structurée (mode complet uniquement) : objectifs
+ * mesurables en JSON, parsés par `CoachPanel` et rendus en cartes épinglables.
+ * Clés en anglais (stables pour le parseur), valeurs dans la langue de la
+ * réponse. Le bloc est retiré du texte affiché/lu.
+ */
+const OBJECTIVES_JSON = `
+
+At the very end of your answer, append a fenced \`\`\`json block (nothing after it) of the form:
+{"objectives":[{"title":"...","metric":"...","current":"...","target":"..."}]}
+1 to 3 objectives max, written in the same language as the rest of your answer, each measurable against the provided data.`;
+
 export function postRacePrompt(mode: PostRaceMode, lang: string): string {
   const code = lang.slice(0, 2).toLowerCase();
   const table = mode === "quick" ? QUICK : FULL;
-  return table[code] ?? table.en;
+  const base = table[code] ?? table.en;
+  return mode === "full" ? base + OBJECTIVES_JSON : base;
 }
 
-/** Budget de tokens de sortie par mode. */
+/** Budget de tokens de sortie par mode (complet : + marge pour le bloc JSON). */
 export const POST_RACE_MAX_TOKENS: Record<PostRaceMode, number> = {
   quick: 300,
-  full: 1000,
+  full: 1200,
 };

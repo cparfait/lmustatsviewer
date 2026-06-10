@@ -115,6 +115,7 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vPurpleSector", vars: [] },
       { key: "vDeltaGain", vars: ["d"], sample: { d: "0.3" } },
       { key: "vDeltaLoss", vars: ["d"], sample: { d: "0.2" } },
+      { key: "vSectorLost", vars: ["s", "d"], sample: { s: 2, d: "0.4" } },
     ],
   },
   {

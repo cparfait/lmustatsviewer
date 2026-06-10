@@ -16,6 +16,8 @@ import {
   Headphones,
   CircleStop,
   Mic,
+  Pin,
+  Target,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
@@ -23,13 +25,14 @@ import { Input } from "@/components/ui/input";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
-import { telemetry, setups, live } from "@/lib/api";
-import type { SessionDetail, TelemetryMeta } from "@/lib/api";
+import { telemetry, setups, live, ai } from "@/lib/api";
+import type { SessionDetail, TelemetryMeta, CoachNote } from "@/lib/api";
 import { fetchBenchmarks, findBenchmark, computeTier } from "@/lib/ohne_speed";
 import { formatTime } from "@/lib/utils";
 import { getProvider } from "@/lib/ai/providers";
 import { converseStream, friendlyError } from "@/lib/ai/coach";
 import { buildPostRaceContext } from "@/lib/ai/context/postrace-context";
+import { buildDriverHistoryText } from "@/lib/ai/context/driver-history-context";
 import { buildLiveContext } from "@/lib/ai/context/live-context";
 import { buildSetupSummary } from "@/lib/ai/context/setup-context";
 import {
@@ -56,10 +59,13 @@ const ASK_MAX_TOKENS = 600;
 
 type Turn = { role: "user" | "assistant"; content: string; display?: string };
 
-/** Retire le markdown pour la synthèse vocale (gras, titres, listes, code). */
+/** Retire le markdown pour la synthèse vocale (gras, titres, listes, code).
+ *  Un bloc ``` non refermé (stream en cours) est aussi retiré : le JSON
+ *  d'objectifs ne doit jamais être lu à voix haute. */
 function stripMarkdown(s: string): string {
   return s
     .replace(/```[\s\S]*?```/g, "")
+    .replace(/```[\s\S]*$/, "")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/\*([^*]+)\*/g, "$1")
@@ -68,6 +74,36 @@ function stripMarkdown(s: string): string {
     .replace(/^\s*\d+\.\s+/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+/** Objectif structuré proposé par le coach (bloc JSON de l'analyse complète). */
+export interface CoachObjective {
+  title: string;
+  metric?: string;
+  current?: string;
+  target?: string;
+}
+
+/**
+ * Sépare la réponse du coach en corps markdown + objectifs structurés.
+ * Le bloc ```json est masqué même incomplet (streaming en cours) ; JSON
+ * invalide → simplement ignoré (le texte reste intact).
+ */
+function splitObjectives(text: string): { body: string; objectives: CoachObjective[] } {
+  const m = /```(?:json)?\s*([\s\S]*?)(?:```|$)/.exec(text);
+  if (!m || !m[1].trimStart().startsWith("{")) return { body: text, objectives: [] };
+  const body = (text.slice(0, m.index) + text.slice(m.index + m[0].length)).trim();
+  try {
+    const parsed = JSON.parse(m[1]) as { objectives?: CoachObjective[] };
+    const objectives = Array.isArray(parsed.objectives)
+      ? parsed.objectives
+          .filter((o): o is CoachObjective => !!o && typeof o.title === "string")
+          .slice(0, 5)
+      : [];
+    return { body, objectives };
+  } catch {
+    return { body, objectives: [] }; // bloc incomplet (stream) ou JSON invalide
+  }
 }
 
 /** Rendu inline minimal : **gras**. */
@@ -125,6 +161,70 @@ function CoachMarkdown({ text }: { text: string }) {
   return <div className="text-sm leading-relaxed">{blocks}</div>;
 }
 
+/** Tour assistant : corps markdown + cartes d'objectifs mesurables (épinglables). */
+function AssistantTurn({
+  text,
+  canPin,
+  onPin,
+  pinLabel,
+  header,
+}: {
+  text: string;
+  canPin: boolean;
+  onPin: (o: CoachObjective) => Promise<void>;
+  pinLabel: string;
+  header: string;
+}) {
+  const { body, objectives } = splitObjectives(text);
+  const [done, setDone] = useState<number[]>([]);
+  const pin = async (o: CoachObjective, i: number) => {
+    await onPin(o);
+    setDone((d) => (d.includes(i) ? d : [...d, i]));
+  };
+  return (
+    <div>
+      <CoachMarkdown text={body} />
+      {objectives.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+            <Target className="h-3.5 w-3.5" />
+            {header}
+          </div>
+          {objectives.map((o, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-xs"
+            >
+              <div className="flex-1">
+                <div className="font-medium">{o.title}</div>
+                {(o.metric || o.target) && (
+                  <div className="text-muted-foreground">
+                    {[o.metric, o.current && o.target ? `${o.current} → ${o.target}` : o.target]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </div>
+                )}
+              </div>
+              {canPin && (
+                <button
+                  type="button"
+                  className="shrink-0 text-muted-foreground hover:text-primary disabled:text-emerald-500"
+                  disabled={done.includes(i)}
+                  onClick={() => void pin(o, i)}
+                  aria-label={pinLabel}
+                  title={pinLabel}
+                >
+                  {done.includes(i) ? <Check className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * Panneau Coach IA générique : prend un **contexte de données** déjà construit
  * (`contextText`) et tient une **conversation continue** (analyse + questions de
@@ -134,11 +234,14 @@ function CoachMarkdown({ text }: { text: string }) {
 export function CoachPanel({
   getContext,
   resetKey,
+  combo,
 }: {
   /** Construit le contexte de données AU MOMENT de l'envoi (live = snapshot frais). */
   getContext: () => string | Promise<string>;
   /** Identifiant stable de la cible (session/fichier/"live") : son changement réinitialise le fil. */
   resetKey: string;
+  /** Combo circuit/voiture — clé des objectifs épinglés ; absent = épinglage désactivé. */
+  combo?: { track: string; trackCourse: string; car: string; carClass: string };
 }) {
   const { t, i18n } = useTranslation();
   const aiProvider = useAppStore((s) => s.aiProvider);
@@ -165,12 +268,28 @@ export function CoachPanel({
   const [costKnown, setCostKnown] = useState(true);
   const [sttOk, setSttOk] = useState(false); // B1 : reconnaissance vocale dispo
   const [recording, setRecording] = useState(false);
+  const [notes, setNotes] = useState<CoachNote[]>([]); // objectifs épinglés du combo
+  const [pinned, setPinned] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(false); // A2 : stop génération
   const spokenRef = useRef(0); // B2 : offset déjà lu à voix haute
 
   const lastAnswer = [...thread].reverse().find((x) => x.role === "assistant")?.content ?? null;
-  const resolveContext = () => Promise.resolve(getContext());
+
+  /** Contexte effectif : données + objectifs épinglés (le coach vérifie leur progression). */
+  const resolveContext = async () => {
+    const base = await Promise.resolve(getContext());
+    if (notes.length === 0) return base;
+    const noteLines = notes.map(
+      (nt) => `[${new Date(nt.created_at * 1000).toISOString().slice(0, 10)}]\n${nt.note}`,
+    );
+    return (
+      base +
+      "\n\n## Pinned coaching objectives (saved by the driver after past sessions)\n" +
+      noteLines.join("\n---\n") +
+      "\n\nCompare this session's data against these objectives and explicitly call out progress or regression on each."
+    );
+  };
 
   // Réinitialise tout au changement de cible (session/fichier).
   useEffect(() => () => cancelSpeech(), []);
@@ -184,6 +303,76 @@ export function CoachPanel({
     setCost(0);
     setCostKnown(true);
   }, [resetKey]);
+
+  // Objectifs épinglés du combo — rechargés au changement de cible.
+  const comboTrack = combo?.track ?? "";
+  const comboCar = combo?.car ?? "";
+  useEffect(() => {
+    if (!comboTrack || !comboCar) {
+      setNotes([]);
+      return;
+    }
+    let cancelled = false;
+    ai.notesForCombo(comboTrack, comboCar)
+      .then((n) => {
+        if (!cancelled) setNotes(n);
+      })
+      .catch(() => {
+        if (!cancelled) setNotes([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [resetKey, comboTrack, comboCar]);
+
+  /** Épingle la dernière réponse comme objectif (réinjecté à la prochaine session du combo). */
+  const pinNote = async () => {
+    if (!combo || !lastAnswer) return;
+    try {
+      await ai.addNote({
+        track: combo.track,
+        trackCourse: combo.trackCourse,
+        car: combo.car,
+        carClass: combo.carClass,
+        note: lastAnswer.slice(0, 1500),
+      });
+      setPinned(true);
+      setTimeout(() => setPinned(false), 1500);
+      setNotes(await ai.notesForCombo(combo.track, combo.car));
+    } catch {
+      /* persistance indisponible — non bloquant */
+    }
+  };
+
+  const removeNote = async (id: number) => {
+    try {
+      await ai.deleteNote(id);
+      setNotes((ns) => ns.filter((n) => n.id !== id));
+    } catch {
+      /* non bloquant */
+    }
+  };
+
+  /** Épingle un objectif structuré (note compacte, vérifiable à la prochaine session). */
+  const pinObjective = async (o: CoachObjective) => {
+    if (!combo) return;
+    const detail = [o.metric, o.current && o.target ? `${o.current} → ${o.target}` : o.target]
+      .filter(Boolean)
+      .join(" : ");
+    const note = detail ? `${o.title} — ${detail}` : o.title;
+    try {
+      await ai.addNote({
+        track: combo.track,
+        trackCourse: combo.trackCourse,
+        car: combo.car,
+        carClass: combo.carClass,
+        note,
+      });
+      setNotes(await ai.notesForCombo(combo.track, combo.car));
+    } catch {
+      /* non bloquant */
+    }
+  };
 
   /** B2 : lit à voix haute les phrases complètes apparues depuis le dernier appel. */
   const speakNewSentences = (acc: string) => {
@@ -436,6 +625,36 @@ export function CoachPanel({
         )}
       </div>
 
+      {/* ── Objectifs épinglés du combo (mémoire longitudinale) ── */}
+      {combo && notes.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Pin className="h-3.5 w-3.5" />
+            {t("coach.notes")} ({notes.length})
+          </div>
+          {notes.map((nt) => (
+            <div
+              key={nt.id}
+              className="flex items-start gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
+            >
+              <span className="shrink-0 tabular-nums text-muted-foreground">
+                {new Date(nt.created_at * 1000).toLocaleDateString()}
+              </span>
+              <span className="flex-1 line-clamp-2 text-foreground/80">{nt.note}</span>
+              <button
+                type="button"
+                className="shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={() => void removeNote(nt.id)}
+                aria-label={t("coach.deleteNote")}
+                title={t("coach.deleteNote")}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── Modale : fil de conversation ── */}
       {open && (
         <div
@@ -481,6 +700,19 @@ export function CoachPanel({
                   {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
                   {t("coach.copy")}
                 </Button>
+                {combo && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5"
+                    disabled={!lastAnswer || busy}
+                    onClick={() => void pinNote()}
+                    title={t("coach.pinTip")}
+                  >
+                    {pinned ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Pin className="h-3.5 w-3.5" />}
+                    {t("coach.pin")}
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={closeModal} aria-label={t("coach.close")}>
                   <X className="h-4 w-4" />
                 </Button>
@@ -496,7 +728,14 @@ export function CoachPanel({
                     </div>
                   </div>
                 ) : (
-                  <CoachMarkdown key={i} text={turn.content} />
+                  <AssistantTurn
+                    key={i}
+                    text={turn.content}
+                    canPin={!!combo}
+                    onPin={pinObjective}
+                    pinLabel={t("coach.pin")}
+                    header={t("coach.objectives")}
+                  />
                 ),
               )}
               {busy && (
@@ -609,11 +848,43 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
     };
   }, [detail, showOhneSpeed]);
 
+  // Mémoire longitudinale : historique du combo (PB, tendance secteurs) depuis SQLite.
+  const [historyText, setHistoryText] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    setHistoryText("");
+    buildDriverHistoryText(detail)
+      .then((txt) => {
+        if (!cancelled) setHistoryText(txt);
+      })
+      .catch(() => {
+        if (!cancelled) setHistoryText("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detail]);
+
   const ctx = useMemo(
-    () => buildPostRaceContext(detail, setupText, alienText),
-    [detail, setupText, alienText],
+    () => buildPostRaceContext(detail, setupText, alienText, historyText),
+    [detail, setupText, alienText, historyText],
   );
-  return <CoachPanel getContext={() => ctx.text} resetKey={`session-${detail.session.id}`} />;
+  const player = detail.results.find((r) => r.is_player);
+  const combo = player
+    ? {
+        track: detail.session.track,
+        trackCourse: detail.session.track_course,
+        car: player.unique_car_name || player.car_type,
+        carClass: player.car_class,
+      }
+    : undefined;
+  return (
+    <CoachPanel
+      getContext={() => ctx.text}
+      resetKey={`session-${detail.session.id}`}
+      combo={combo}
+    />
+  );
 }
 
 /** Coach IA pour une session de télémétrie (`.duckdb`). `analysis` = comparaison

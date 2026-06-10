@@ -150,6 +150,12 @@ export default {
     errRate: "Rate limit reached — try again in a moment.",
     errServer: "Provider server error (HTTP {{code}}).",
     errNetwork: "Provider unreachable (network down / local service stopped?).",
+    pin: "Pin as objective",
+    pinTip:
+      "Saves this answer for this track + car: the coach will check your progress next session.",
+    notes: "Pinned objectives",
+    deleteNote: "Delete objective",
+    objectives: "Suggested objectives",
   },
   telemetry: {
     title: "Telemetry",
@@ -779,6 +785,7 @@ export default {
     vPurpleSector: "Purple sector, class best",
     vDeltaGain: "You're up {{d}}",
     vDeltaLoss: "You're down {{d}}",
+    vSectorLost: "Losing {{d}} in sector {{s}}",
     vPuncture: "Puncture!",
     vTyreOverheat: "Tyres overheating",
     vWheelDetached: "Wheel torn off, pit now",
@@ -844,6 +851,7 @@ export default {
       vPurpleSector: "Class-best sector",
       vDeltaGain: "Favourable delta (per sector)",
       vDeltaLoss: "Unfavourable delta (per sector)",
+      vSectorLost: "Worst sector of the completed lap (vs your best sectors)",
       vPuncture: "Puncture",
       vTyreOverheat: "Tyres overheating",
       vWheelDetached: "Wheel torn off",

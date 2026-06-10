@@ -151,6 +151,12 @@ export default {
     errRate: "Límite de llamadas alcanzado — inténtalo de nuevo en un momento.",
     errServer: "Error del servidor del proveedor (HTTP {{code}}).",
     errNetwork: "Proveedor inaccesible (¿red caída / servicio local detenido?).",
+    pin: "Guardar como objetivo",
+    pinTip:
+      "Guarda esta respuesta para este circuito + coche: el entrenador comprobará tu progreso en la próxima sesión.",
+    notes: "Objetivos guardados",
+    deleteNote: "Eliminar objetivo",
+    objectives: "Objetivos propuestos",
   },
   telemetry: {
     title: "Telemetría",
@@ -780,6 +786,7 @@ export default {
     vPurpleSector: "Sector violeta, mejor de la categoría",
     vDeltaGain: "Ganas {{d}}",
     vDeltaLoss: "Pierdes {{d}}",
+    vSectorLost: "Dejas {{d}} en el sector {{s}}",
     vPuncture: "¡Pinchazo!",
     vTyreOverheat: "Neumáticos sobrecalentados",
     vWheelDetached: "Rueda arrancada, entra a boxes",
@@ -845,6 +852,7 @@ export default {
       vPurpleSector: "Mejor sector de la categoría",
       vDeltaGain: "Delta favorable (por sector)",
       vDeltaLoss: "Delta desfavorable (por sector)",
+      vSectorLost: "Peor sector de la vuelta completada (vs tus mejores sectores)",
       vPuncture: "Pinchazo",
       vTyreOverheat: "Sobrecalentamiento neumáticos",
       vWheelDetached: "Rueda arrancada",

@@ -150,6 +150,12 @@ export default {
     errRate: "Anfragelimit erreicht — versuche es gleich noch einmal.",
     errServer: "Serverfehler beim Anbieter (HTTP {{code}}).",
     errNetwork: "Anbieter nicht erreichbar (Netzwerk / lokaler Dienst gestoppt?).",
+    pin: "Als Ziel anheften",
+    pinTip:
+      "Speichert diese Antwort für diese Strecke + dieses Fahrzeug: Der Coach prüft deinen Fortschritt in der nächsten Sitzung.",
+    notes: "Angeheftete Ziele",
+    deleteNote: "Ziel löschen",
+    objectives: "Vorgeschlagene Ziele",
   },
   telemetry: {
     title: "Telemetrie",
@@ -780,6 +786,7 @@ export default {
     vPurpleSector: "Violetter Sektor, Klassenbestzeit",
     vDeltaGain: "Du holst {{d}} auf",
     vDeltaLoss: "Du verlierst {{d}}",
+    vSectorLost: "Du lässt {{d}} in Sektor {{s}} liegen",
     vPuncture: "Reifenschaden!",
     vTyreOverheat: "Reifen überhitzen",
     vWheelDetached: "Rad abgerissen, sofort an die Box",
@@ -845,6 +852,7 @@ export default {
       vPurpleSector: "Klassenbester Sektor",
       vDeltaGain: "Günstiges Delta (pro Sektor)",
       vDeltaLoss: "Ungünstiges Delta (pro Sektor)",
+      vSectorLost: "Schwächster Sektor der beendeten Runde (vs. deine besten Sektoren)",
       vPuncture: "Reifenschaden",
       vTyreOverheat: "Reifen überhitzen",
       vWheelDetached: "Rad abgerissen",

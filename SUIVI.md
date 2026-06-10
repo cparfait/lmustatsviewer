@@ -631,6 +631,32 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-06-10 — Live : débrief de secteur perdu au tour bouclé (P1 de l'audit)
+
+- 🔍 **Constat** : `useVoiceCallouts` était déjà très complet (PB/tour bouclé, secteur amélioré, violet, delta prédictif, écarts, pluie, mécanique, carburant 3/2/1…) — la P1 « alertes edge-triggered » était en réalité quasi couverte. Le vrai manque : l'app disait *ce que vaut* le tour, jamais *où* il s'est perdu.
+- ✅ **Nouvelle annonce `vSectorLost`** (« Tu laisses 0.4 dans le secteur 2 ») : au tour bouclé, compare `last_sectors` aux meilleurs secteurs perso (avant ce tour) et annonce **le pire secteur** (priorité chatty). Garde-fous : silencieux sur PB, seuil ≥ 0.3 s (bruit), plafond < 5 s (trafic/tête-à-queue), et **suspendu sur l'out-lap** (ref `debriefSkip` armée à l'arrêt effectué et à la sortie de voie des stands, consommée au tour suivant, reset au redémarrage de session).
+- ✅ Enregistrée dans le **catalogue personnalisable** (`voiceMessages.ts`, groupe Secteurs, vars `s`/`d` + sample) + i18n FR/EN/ES/DE (`live.vSectorLost` + `vmWhen.vSectorLost`).
+- ✅ `tsc --noEmit` + `npm run build` PASSENT.
+- 📋 **Prochaine étape** : valider en piste (annonce sur un tour avec grosse perte secteur, silence sur PB et sur l'out-lap), ajuster le seuil 0.3 s si trop bavard. Puis : étendre `combo` (objectifs épinglés) au panneau télémétrie via mapping car_model ↔ unique_car_name.
+
+### 2026-06-10 — Coach IA : objectifs structurés JSON (P3 de l'audit)
+
+- ✅ **Sortie structurée de l'analyse complète** : le prompt « Analyse complète » (`postrace.ts`) demande désormais un bloc \`\`\`json final `{"objectives":[{title, metric, current, target}]}` (1-3 objectifs, valeurs dans la langue de la réponse, clés EN stables pour le parseur). Budget tokens 1000 → 1200.
+- ✅ **Parsing + rendu en cartes** (`AICoachPanel.tsx`) : `splitObjectives()` sépare corps markdown / objectifs — bloc masqué même incomplet (streaming), JSON invalide ignoré sans casse ; nouveau composant `AssistantTurn` (corps + cartes `Target` avec `metric · current → target`).
+- ✅ **Épinglage à l'objectif** : chaque carte a son bouton Pin → note compacte (`titre — métrique : actuel → cible`) persistée dans `coach_notes`, donc **vérifiable** à la session suivante (vs épingler 1500 caractères de prose). Le bouton « Garder comme objectif » global reste pour l'analyse rapide (sans JSON).
+- ✅ **Garde-fou TTS** : `stripMarkdown` retire aussi un bloc \`\`\` non refermé — le JSON n'est jamais lu à voix haute pendant le stream (lecture auto phrase-par-phrase).
+- ✅ i18n `coach.objectives` (FR/EN/ES/DE). `tsc --noEmit` + `npm run build` PASSENT.
+- 📋 **Prochaine étape** : test réel du cycle P2+P3 (analyse complète → cartes d'objectifs → épingler → session suivante même combo → vérification par le coach). Ensuite : étendre `combo` au panneau télémétrie (mapping car_model ↔ unique_car_name), et P1 de l'audit (débrief de tour automatique déterministe + alertes edge-triggered).
+
+### 2026-06-10 — Coach IA : mémoire longitudinale du pilote (P2 de l'audit)
+
+- 🎯 **Le différenciateur** : le coach ne voit plus la session isolément, il connaît l'historique du pilote sur le combo et ses objectifs passés. Boucle fermée : conseil → épinglage → pratique → vérification automatique à la session suivante.
+- ✅ **Historique du combo dans le contexte post-race** : nouveau `src/lib/ai/context/driver-history-context.ts` — réutilise `records::get_record_progression` (zéro nouveau code requête Rust). Injecte : PB de tous les temps + Δ du jour, nb de PB, dernières 10 sessions (date/type/best/S1-S2-S3, marqueurs PB et « this session »), et **faiblesse de secteur récurrente détectée en code** (écart moyen de chaque secteur au meilleur secteur du combo sur les sessions récentes). Section omise si le combo n'a qu'une session.
+- ✅ **Objectifs épinglés persistés** : table SQLite `coach_notes` (combo = track + unique_car_name, 5 notes max/combo, élagage auto) + 3 commandes Rust dans `ai.rs` (`coach_note_add` / `coach_notes_for_combo` / `coach_note_delete`) + wrappers `ai.addNote/notesForCombo/deleteNote` dans `api.ts`.
+- ✅ **UI `CoachPanel`** : nouvelle prop `combo` (fournie par le panneau post-race) ; bouton **« Garder comme objectif »** (épingle la dernière réponse, 1500 car. max) dans la modale ; liste des objectifs épinglés (date + extrait + suppression) sous le panneau ; injection automatique dans le contexte avec consigne « compare et signale progrès/régression sur chacun ». i18n FR/EN/ES/DE (`coach.pin/pinTip/notes/deleteNote`).
+- ✅ `cargo check`, `tsc --noEmit`, `npm run build` PASSENT.
+- 📋 **Prochaine étape** : tester le cycle complet sur données réelles (session A → épingler un objectif → ouvrir session B même combo → vérifier la section « Pinned coaching objectives » dans « Voir les données envoyées » et la vérification par le coach). Ensuite : étendre `combo` au panneau télémétrie (mapper car_model ↔ unique_car_name), et sortie JSON structurée des recommandations (P3).
+
 ### 2026-06-10 — Stratégie déterministe centralisée (`lib/strategy.ts`) + i18n erreurs coach
 
 - ✅ **Nouveau module `src/lib/strategy.ts`** (suite de l'audit, P0 coach) : `computeStrategy()` → `StrategySnapshot` (conso L/tour, autonomie, tours restants de session, litres nécessaires/à ajouter) + `strategyToText()` (résumé EN pour le contexte IA). **Source unique de vérité** : remplace `computeFuelToFinish` (Live.tsx) et la logique inline divergente de `live-context.ts` (l'une faisait `+1` tour entamé au drapeau, l'autre non).

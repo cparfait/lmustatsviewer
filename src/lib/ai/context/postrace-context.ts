@@ -62,6 +62,8 @@ export function buildPostRaceContext(
   setupSummary?: string,
   /** Référence « alien » ohne_speed (temps au tour communautaire), si disponible. */
   alienText?: string,
+  /** Mémoire longitudinale (via `buildDriverHistoryText`), si disponible. */
+  historyText?: string,
 ): PostRaceContext {
   const s = detail.session;
   const player = detail.results.find((r) => r.is_player) ?? null;
@@ -144,6 +146,12 @@ export function buildPostRaceContext(
   if (alienText && alienText.trim()) {
     lines.push("");
     lines.push(alienText);
+  }
+
+  // Mémoire longitudinale : historique du combo (PB, tendance secteurs).
+  if (historyText && historyText.trim()) {
+    lines.push("");
+    lines.push(historyText);
   }
 
   // Setup réel lié (si disponible) → conseils de réglage ancrés.

@@ -231,6 +231,9 @@ function useVoiceCallouts(
   const prevSector = useRef(-1);
   const prevBestSectors = useRef<[number, number, number]>([0, 0, 0]);
   const prevPurple = useRef(false);
+  // Débrief de secteur suspendu pour le tour en cours (out-lap après un arrêt /
+  // passage par la voie des stands : secteurs non représentatifs).
+  const debriefSkip = useRef(false);
   const warmupStart = useRef(0);
   const prevSessionTime = useRef(0);
 
@@ -363,6 +366,7 @@ function useVoiceCallouts(
         prevBestSectors.current = [...player.best_sectors];
         prevPurple.current = false;
         prevSector.current = -1;
+        debriefSkip.current = false;
         // Baseline de position = position de grille courante (évite un faux
         // « place gagnée/perdue » dû au saut depuis la position de la session
         // précédente — prevPos fuyait d'une session à l'autre).
@@ -486,6 +490,34 @@ function useVoiceCallouts(
             break; // un seul rappel par tour
           }
         }
+
+        // ── Débrief de tour — pire secteur vs tes meilleurs secteurs ─────────
+        // L'app dit déjà CE QUE vaut le tour ; ceci dit OÙ il s'est perdu.
+        // Silencieux : sur PB (rien à redire), sur l'out-lap après un arrêt,
+        // sous 0.3 s (bruit) et au-delà de 5 s (trafic / tête-à-queue — pas un
+        // conseil de secteur). Une seule annonce : le pire secteur.
+        if (!isPb && !debriefSkip.current) {
+          let worstIdx = -1;
+          let worstLoss = 0.3;
+          for (let i = 0; i < 3; i++) {
+            const sec = player.last_sectors[i];
+            const ref = prevBestSectors.current[i];
+            const loss = sec > 0 && ref > 0 ? sec - ref : 0;
+            if (loss >= worstLoss && loss < 5) {
+              worstLoss = loss;
+              worstIdx = i;
+            }
+          }
+          if (worstIdx >= 0) {
+            speak(
+              t("live.vSectorLost", { s: worstIdx + 1, d: worstLoss.toFixed(1) }),
+              lang,
+              "chatty",
+            );
+          }
+        }
+        debriefSkip.current = false;
+
         prevBestSectors.current = [...player.best_sectors];
 
         // Secteur violet — le joueur détient un meilleur secteur de la catégorie.
@@ -541,6 +573,7 @@ function useVoiceCallouts(
       // ── Sortie des stands — rappel limiteur (pit_state 4 = sortie pit lane) ─
       if (player.pit_state === 4 && prevPitState.current !== 4) {
         speak(t("live.vPitExitLimiter"), lang, "normal");
+        debriefSkip.current = true; // out-lap : secteurs non représentatifs
       }
       prevPitState.current = player.pit_state;
 
@@ -548,6 +581,7 @@ function useVoiceCallouts(
       if (player.num_pitstops > prevPitstops.current) {
         speak(t("live.vPitDone"), lang, "normal");
         refuelWarned.current = false; // réarme l'alerte ravitaillement après l'arrêt
+        debriefSkip.current = true; // pas de débrief de secteur sur l'out-lap
       }
       prevPitstops.current = player.num_pitstops;
 

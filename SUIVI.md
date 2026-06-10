@@ -631,6 +631,37 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-06-10 — Télémétrie : pagination de la liste des enregistrements
+
+- ✅ **Pagination côté client** ajoutée à `routes/Telemetry.tsx` : réutilise le composant `ui/pagination.tsx` (déjà utilisé par Sessions), découpe `sortedFiles` en pages. Taille de page persistée en localStorage (`telemetry-page-size`, défaut 25, options 15/25/50/100/200 comme Sessions). Retour page 1 au changement de filtre, de tri ou de taille ; `safePage` borne la page courante si le filtrage réduit le nombre de pages.
+- ✅ `tsc --noEmit` PASSE.
+- 📋 **Prochaine étape** : vérifier visuellement avec une grosse liste d'enregistrements (barre sous le tableau, style identique à Sessions).
+
+### 2026-06-10 — Historique du combo injecté dans le contexte télémétrie
+
+- ✅ **Refactor `driver-history-context.ts`** : nouveau cœur `buildComboHistoryText({track, car, trackCourse?, currentSessionId?, currentBest?})` par clé combo directe ; `buildDriverHistoryText(detail)` devient un wrapper post-course. Marqueur « ← this session » et Δ vs PB conditionnés aux champs fournis.
+- ✅ **`TelemetryCoachPanel`** : charge l'historique via `car_model` (= `unique_car_name`, mapping backend) + `track`, **sans filtre layout** (nomenclature télémétrie ≠ résultats sur certains circuits, ex. Paul Ricard) ; `currentBest` = tour le plus rapide de l'enregistrement. Nouvelle section dans `buildTelemetryContext` (param `historyText`, placée après l'électronique).
+- ✅ Le coach télémétrie connaît désormais PB/évolution/faiblesse récurrente du combo — même mémoire que le post-race, complète la parité (combo + objectifs + historique sur les 2 panneaux).
+- ✅ `tsc --noEmit` + `npm run build` PASSENT.
+- 📋 **Prochaine étape** : test croisé réel des objectifs + historique sur les 2 pages (même combo), puis commit du lot du jour.
+
+### 2026-06-10 — Objectifs épinglés étendus au panneau télémétrie (vérifié sur données réelles)
+
+- 🔍 **Vérification préalable sur les vrais fichiers** (risque de silo de notes si les nomenclatures divergeaient) :
+  - `TrackName` des `.duckdb` = `sessions.track` SQLite **à l'identique** (Spa, Imola, Sebring, Paul Ricard testés) ;
+  - `CarName` télémétrie (livrée, ex. `Team WRT 2026 #32:WEC`) → déjà résolu par le backend en `unique_car_name` (`BMW M4 LMGT3`) via `veh_name` (`telemetry.rs::lookup_car_model`, correspondance exacte) — **le mapping existait déjà**, il alimentait `info.car_model` ;
+  - seul `TrackLayout` diverge parfois (Paul Ricard « ELMS » vs « 1A-V2 ») → sans impact, la clé des notes est `track + car` uniquement.
+- ✅ **`TelemetryCoachPanel` passe désormais `combo`** (track / layout / car_model / car_class) quand `car_model` est résolu : bouton « Garder comme objectif », liste des objectifs et injection dans le contexte fonctionnent sur la page Télémétrie, **partagés avec le post-race** (même clé). Voiture inconnue des résultats → épinglage désactivé proprement.
+- ✅ `tsc --noEmit` + `npm run build` PASSENT.
+- 📋 **Prochaine étape** : test croisé réel (épingler depuis une session → retrouver l'objectif sur un enregistrement télémétrie du même combo, et inversement). Optionnel ensuite : injecter aussi l'historique du combo (`driver-history-context`) dans le contexte télémétrie (sans filtre layout).
+
+### 2026-06-10 — README mis à jour (fonctionnalités complètes)
+
+- ✅ **README.md refondu** : il datait de la V3 « de base » et ignorait la moitié de l'app. Ajouté : sections **Coach IA** (6 fournisseurs, mémoire pilote, objectifs épinglés), **Spotter vocal & annonces** (Vosk offline, catalogue personnalisable, Piper + radio FX), **Télémétrie `.duckdb`** (cartes 2D/3D, analyse par virage), **Overlays in-game** (16 widgets vérifiés dans `widgets/`), **Profil**. Live timing complété (stratégie carburant, électronique, onglet coach). Prérequis et table Config enrichis ; section « Fonctionnement » documente les 4 sources de données.
+- 🐛 **Corrections factuelles** : badge version 3.0.0 → **1.0.9** (version réelle), `lmu_stats.db` → **`lmu_cache.db`** (nom réel, cf. db.rs), structure du projet actualisée (routes/lib/commands réels), liens morts retirés (CHANGELOG.md et LICENSE **n'existent pas** dans le repo).
+- ⚠️ **Point ouvert** : le repo annonce la licence MIT (badge + section) mais n'a **pas de fichier LICENSE** — à créer (décision auteur : texte MIT au nom de Cris Tof) pour que GitHub la détecte.
+- 📋 **Prochaine étape** : créer le fichier LICENSE (MIT), puis commiter le lot de travail du jour (audit + P0/P1/P2/P3 + README) en commits cohérents.
+
 ### 2026-06-10 — Live : débrief de secteur perdu au tour bouclé (P1 de l'audit)
 
 - 🔍 **Constat** : `useVoiceCallouts` était déjà très complet (PB/tour bouclé, secteur amélioré, violet, delta prédictif, écarts, pluie, mécanique, carburant 3/2/1…) — la P1 « alertes edge-triggered » était en réalité quasi couverte. Le vrai manque : l'app disait *ce que vaut* le tour, jamais *où* il s'est perdu.

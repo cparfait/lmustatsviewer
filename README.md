@@ -2,14 +2,14 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.9-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri-2-24C8D8)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![Langues](https://img.shields.io/badge/langues-FR%20%7C%20EN%20%7C%20ES%20%7C%20DE-green)
 ![Licence](https://img.shields.io/badge/licence-MIT-orange)
 
-**Un outil de statistiques pour [Le Mans Ultimate](https://www.lemansultimate.com/) — suivez vos meilleurs temps, résultats de course, setups et progression.**
+**L'outil tout-en-un pour [Le Mans Ultimate](https://www.lemansultimate.com/) — stats, records, setups, télémétrie, live timing, overlays in-game, spotter vocal et coach IA.**
 
 [📥 Télécharger](https://github.com/cparfait/lmustatsviewer/releases) · [🐛 Signaler un bug](https://github.com/cparfait/lmustatsviewer/issues) · [💬 Discord](https://discord.gg/G9ng9GdvSU)
 
@@ -57,9 +57,40 @@ Toutes les classes de Le Mans Ultimate sont supportées :
 ### 🔴 Live timing
 - Tableau de bord temps réel via le plugin mémoire partagée rF2/LMU
 - Vue d'ensemble (chrono, delta, SPD/GEA/RPM), télémétrie complète, classement, carte 2D
-- Indicateur d'arrêt aux stands, flags (vert / jaune / FCY / SC / rouge)
-- Météo (air, piste, vent, pluie)
+- Indicateur d'arrêt aux stands, flags (vert / jaune / FCY / SC / rouge), électronique (TC/ABS)
+- **Stratégie carburant calculée en continu** : consommation moyenne, autonomie, litres nécessaires pour finir
+- Météo (air, piste, vent, pluie) — onglet **Coach IA** intégré
 - Guide d'installation du plugin intégré si non détecté
+
+### 📉 Télémétrie (fichiers `.duckdb` du jeu)
+- Lecture native des enregistrements `UserData/Telemetry` (activer « Telemetry Recording » en jeu)
+- Dashboard multi-canaux (vitesse, freins, accélérateur, direction, hybride…) avec **curseur lié carte ↔ graphes**
+- **Carte 2D SVG** haute fidélité avec virages numérotés + **carte 3D** (élévation reconstruite, follow-cam)
+- **Analyse par virage** : détection automatique, point de freinage, vitesse d'apex, comparaison à un tour de référence, **meilleur théorique** (best apex sur tous vos tours), métriques par phase (freinage / entrée / milieu / sortie)
+- Comparaison inter-sessions, race pace, analyse assistée — le Coach IA exploite toutes ces données
+
+### 🤖 Coach IA (clé personnelle — BYO-key)
+- **6 fournisseurs au choix** : OpenAI, Anthropic (Claude), Google (Gemini), DeepSeek, Mistral, **Ollama (local, gratuit)** — liste de modèles dynamique, test de connexion, **coût estimé** par conversation
+- **Analyse post-course** (rapide ou complète) ancrée sur vos données réelles : résultat, tours, secteurs, stratégie carburant, setup `.svm` lié, référence de classe et référence communautaire ohne_speed
+- **Analyse télémétrie** : virages, métriques par phase, électronique (ABS / TC / engine map / brake bias)
+- **Coach en course** : snapshot live + verdict carburant calculé en code, et **question vocale push-to-talk** (`Alt+C`) avec réponse courte façon radio
+- **Mémoire du pilote** : historique du combo circuit/voiture (PB, tendance secteurs, faiblesse récurrente) injecté automatiquement
+- **Objectifs mesurables et épinglables** : l'analyse complète produit des cibles chiffrées (valeur actuelle → cible) ; épinglez-les et le coach **vérifie votre progression** à la session suivante
+- Conversation continue en **streaming**, lecture vocale phrase-par-phrase, dictée vocale, prompt système éditable par langue, clé API **chiffrée localement** (AES-256-GCM)
+
+### 🎙️ Spotter vocal & annonces de course
+- **Spotter à la demande** : raccourcis globaux (statut, répéter, muet) actifs même quand le jeu a le focus
+- **Commandes vocales** (`Alt+T`, push-to-talk) : écart, carburant, pneus, position, rythme, temps restant, météo… — reconnaissance **100 % hors-ligne** (Vosk, 4 langues)
+- **Annonces automatiques** : drapeaux, carburant (3/2/1 tours, ravitaillement à prévoir), pneus (froids / usure / crevaison), surchauffes, dégâts, positions, podium, sous attaque, drapeau bleu, record perso, secteur violet, **débrief du pire secteur du tour**, delta, pluie, mi-course / dernier tour…
+- **Catalogue personnalisable** : modifiez le texte de chaque annonce et testez-la, par langue
+- **Voix neuronale offline** (Piper) avec **effet radio** (bips + filtre), repli sur la voix système, file d'annonces à priorités
+
+### 🎮 Overlays in-game
+- **16 overlays** translucides au-dessus du jeu : relatif, chronos, pneus, carburant, météo, dégâts, rival, endurance, vitesse…
+- Fenêtre unique click-through, **mode édition** par glisser-déposer, opacité globale, **profils** sauvegardés, interrupteur global
+
+### 👤 Profil
+- Heatmap d'activité (courses en ligne / hors ligne) et indicateurs de régularité
 
 ### 🔍 Filtres
 - Circuit / Layout / Classe / Voiture
@@ -76,11 +107,13 @@ Toutes les classes de Le Mans Ultimate sont supportées :
 Mode clair et mode sombre — bascule en un clic, mémorisé entre les sessions.
 Palette « Le Mans dark » : `#0A0E1A` (fond) + `#FFB400` (ambre accent).
 
-### ⚡ Performance
+### ⚡ Performance & vie privée
 - **Application native** — Tauri 2 + Rust, aucun serveur local, aucun navigateur requis
 - **Base SQLite locale** — les sessions XML sont indexées dans `%APPDATA%\com.cparfait.lmustatsviewer\` au premier lancement
+- **Télémétrie DuckDB** — lecture native des fichiers haute fréquence du jeu, sans conversion
 - **Delta sync** — seuls les fichiers nouveaux ou modifiés sont parsés à chaque chargement
 - **Pagination SQL** — `COUNT + LIMIT/OFFSET` ; mémoire constante quelle que soit la taille de la collection
+- **Tout reste chez vous** — voix et reconnaissance vocale hors-ligne ; seules les requêtes du Coach IA partent vers le fournisseur que **vous** avez configuré (ou restent locales avec Ollama)
 
 ### 🔄 Mises à jour automatiques
 Vérificateur de mise à jour intégré (signé) — téléchargement et installation en un clic depuis l'application.
@@ -94,7 +127,10 @@ Vérificateur de mise à jour intégré (signé) — téléchargement et install
 | Système | Windows 10 / 11 (64 bits) |
 | Jeu | [Le Mans Ultimate](https://www.lemansultimate.com/) (Steam) |
 | Runtime | Aucun — tout est inclus dans l'installeur |
-| Live timing *(optionnel)* | Plugin `rFactor2SharedMemoryMapPlugin64.dll` dans `<LMU>/Plugins/` |
+| Live timing / overlays *(optionnel)* | Plugin `rFactor2SharedMemoryMapPlugin64.dll` dans `<LMU>/Plugins/` |
+| Télémétrie *(optionnel)* | « Telemetry Recording » activé en jeu (Settings → Controls → Gameplay) |
+| Coach IA *(optionnel)* | Une clé API (OpenAI, Anthropic, Google, DeepSeek, Mistral) **ou** [Ollama](https://ollama.com) en local |
+| Commandes vocales *(optionnel)* | Un microphone |
 
 ---
 
@@ -123,10 +159,14 @@ Cliquez sur ⚙️ dans l'en-tête de l'application.
 | Paramètre | Description |
 |---|---|
 | Nom du joueur | Votre pseudo en jeu (utilisé pour mettre vos tours en évidence) |
-| Répertoire des résultats | Chemin vers les fichiers XML de résultats LMU |
+| Répertoires | Résultats XML et enregistrements de télémétrie LMU |
 | Langue | FR / EN / ES / DE |
 | Thème | Clair / Sombre |
 | Niveaux ohne_speed | Active/désactive les badges de niveau communautaires |
+| Coach IA | Fournisseur, clé API (chiffrée), modèle, test de connexion, prompt système par langue |
+| Voix & annonces | Moteur (Piper neuronal / système), voix par langue, volume, vitesse, effet radio, personnalisation des annonces |
+| Spotter | Activation, raccourcis globaux (statut / muet / répéter / parler / coach), mode push-to-talk (maintenir / bascule) |
+| Overlays | Sélection, opacité, profils, raccourci d'affichage |
 
 ### Maintenance
 - **Réindexer la base** — reconstruit la base SQLite à partir de tous les fichiers XML
@@ -146,7 +186,7 @@ Le Mans Ultimate
     LMU Stats Viewer — indexeur delta (Rust)
             │   parse uniquement les fichiers nouveaux/modifiés
             ▼
-    lmu_stats.db (SQLite)            ← base locale dans %APPDATA%
+    lmu_cache.db (SQLite)            ← base locale dans %APPDATA%
             │
             ▼
     Interface native (Tauri/React)   ← votre tableau de bord
@@ -154,31 +194,45 @@ Le Mans Ultimate
 
 LMU Stats Viewer lit les fichiers XML générés par le jeu après chaque session (Essais, Qualification, Course), les indexe en base SQLite locale via un delta sync, puis présente le tout dans une interface native desktop.
 
+Trois autres sources de données complètent les résultats XML :
+- **Mémoire partagée** (`rFactor2SharedMemoryMapPlugin64.dll`) → live timing, overlays, spotter et annonces vocales ;
+- **Télémétrie DuckDB** (`UserData/Telemetry/*.duckdb`) → analyse par virage et Coach IA télémétrie ;
+- **Setups `.svm`** (`UserData/player/Settings/`) → garage, comparaison A/B et contexte du Coach IA.
+
 ---
 
 ## 📁 Structure du projet
 
 ```
 src/
-├── routes/              ← pages React (Dashboard, Sessions, SessionDetail,
-│   │                       Records, Setups, SetupCompare, Live, Config, Changelog)
+├── routes/              ← pages React (Dashboard, Sessions, SessionDetail, Records,
+│   │                       Setups, SetupDetail, SetupCompare, Telemetry, TelemetryView,
+│   │                       Live, Overlays, Profile, Config, Changelog, Onboarding)
 │   └── ...
-├── components/          ← composants partagés (TierBadge, LapChartModal,
-│   │                       CarLogo, TrackFlag, ClassBadge, ...)
+├── components/          ← composants partagés (AICoachPanel, LapChartModal, TierBadge,
+│   │                       overlay/ (widgets in-game), telemetry/ (TrackMap, Track3D…), ...)
 │   └── ...
-├── lib/                 ← API Tauri (api.ts), ohne_speed, utils, setupParams
-├── stores/              ← état global Zustand (app.ts)
+├── lib/                 ← api.ts (bridge Tauri), strategy.ts (calculs carburant/pit),
+│   ├── ai/              ← Coach IA : providers (6), prompts, contextes de données
+│   ├── telemetry/       ← analyse : virages, métriques par phase, meilleur théorique
+│   └── ...              ← spotter, voice (file à priorités), radioFx, voiceMessages, ohne_speed
+├── stores/              ← état global Zustand (app.ts, theme.ts)
 └── i18n/                ← traductions (fr.ts, en.ts, es.ts, de.ts)
 
 src-tauri/
 ├── src/
-│   ├── commands/        ← commandes Rust (queries, indexer, setups, session_detail, ...)
+│   ├── commands/        ← commandes Rust : queries, indexer, setups, session_detail,
+│   │                       live (shared memory), telemetry (DuckDB), ai (proxy LLM +
+│   │                       objectifs), stt (Vosk), tts (Piper), overlay, records, ...
 │   ├── lib.rs           ← enregistrement des commandes Tauri
+│   ├── db.rs            ← schéma SQLite
 │   └── xml_parser.rs    ← parser XML rFactor2
+├── resources/           ← assets vocaux (modèles Vosk + voix Piper, hors git)
 └── tauri.conf.json
 
 %APPDATA%\com.cparfait.lmustatsviewer\
-└── lmu_stats.db         ← base SQLite locale (générée automatiquement)
+├── lmu_cache.db         ← base SQLite locale (générée automatiquement)
+└── tracks\              ← tracés de circuits appris en live (persistés)
 ```
 
 ---
@@ -230,9 +284,16 @@ cargo check             # compilation Rust (dans src-tauri/)
 
 ## 📝 Changelog
 
-> Le changelog complet est disponible dans [CHANGELOG.md](CHANGELOG.md) et dans l'application (onglet Changelog).
+> Le changelog complet est disponible dans l'application (onglet **Changelog**) et sur la page [Releases](https://github.com/cparfait/lmustatsviewer/releases).
 
-### v3.0.0
+### Évolutions récentes (1.x)
+- **Coach IA** multi-fournisseurs : analyses post-course / télémétrie / live, conversation en streaming, question vocale push-to-talk, mémoire du pilote (historique du combo) et objectifs épinglés vérifiés à la session suivante
+- **Spotter vocal** hors-ligne (commandes Vosk 4 langues) + annonces de course automatiques personnalisables — voix neuronale Piper avec effet radio
+- **Télémétrie `.duckdb`** : dashboard multi-canaux, cartes 2D/3D, analyse par virage, meilleur théorique, comparaison inter-sessions
+- **Overlays in-game** : 16 widgets, mode édition par glisser-déposer, profils, opacité
+- **Profil** : heatmap d'activité et indicateurs de régularité
+
+### 1.0 — Réécriture native (V3)
 - Réécriture complète en application native (Tauri 2 + React 19 + Rust)
 - Toutes les fonctionnalités de la V1 reproduites fidèlement
 - Nouveau : Garage/Setups — scan `.svm`, éditeur, comparaison A/B, lien session
@@ -268,6 +329,6 @@ Si l'outil vous est utile, vous pouvez me remercier avec un café ☕
 
 ## 📄 Licence
 
-Ce projet est sous licence [MIT](LICENSE).
+Ce projet est sous licence MIT.
 
 > *LMU Stats Viewer n'est pas affilié à Studio 397 ou Le Mans Ultimate.*

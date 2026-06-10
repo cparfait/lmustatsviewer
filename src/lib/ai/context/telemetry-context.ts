@@ -78,6 +78,8 @@ export function buildTelemetryContext(
   comparisonText?: string,
   metricsText?: string,
   theoreticalBestText?: string,
+  /** Mémoire longitudinale du combo (via `buildComboHistoryText`), si disponible. */
+  historyText?: string,
 ): TelemetryContext {
   const info = meta.info;
   const car = info.car_model || info.car_name || "";
@@ -135,6 +137,12 @@ export function buildTelemetryContext(
     lines.push("");
     lines.push("## Electronics (recorded — adjustable: ABS / TC / engine map / brake bias)");
     lines.push(electronicsText);
+  }
+
+  // Mémoire longitudinale : historique du combo (PB, tendance secteurs).
+  if (historyText && historyText.trim()) {
+    lines.push("");
+    lines.push(historyText);
   }
 
   // Canaux disponibles (le modèle sait sur quoi il PEUT raisonner)

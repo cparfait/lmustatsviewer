@@ -1,5 +1,5 @@
 /**
- * Mémoire longitudinale du pilote pour le Coach IA post-course.
+ * Mémoire longitudinale du pilote pour le Coach IA (post-course + télémétrie).
  *
  * Source = historique du combo circuit/voiture en SQLite (réutilise
  * `records::get_record_progression`, le même backend que la page Records).
@@ -22,40 +22,53 @@ function day(ts: number): string {
   return new Date(ts * 1000).toISOString().slice(0, 10);
 }
 
-export async function buildDriverHistoryText(detail: SessionDetail): Promise<string> {
-  const player = detail.results.find((r) => r.is_player);
-  const car = player?.unique_car_name || player?.car_type || "";
-  if (!player || !car) return "";
-  const s = detail.session;
+/**
+ * Historique d'un combo par clé directe (track + unique_car_name).
+ * `trackCourse` : à omettre quand la nomenclature de layout n'est pas fiable
+ * (télémétrie : « Paul Ricard - ELMS » ≠ « Paul Ricard - 1A-V2 » des résultats).
+ * `currentSessionId` : marque la session dans la liste (page Détail de session).
+ * `currentBest` : meilleur tour de la cible courante (s) pour le Δ vs PB.
+ */
+export async function buildComboHistoryText(args: {
+  track: string;
+  car: string;
+  trackCourse?: string;
+  currentSessionId?: number;
+  currentBest?: number | null;
+}): Promise<string> {
+  const { track, car, trackCourse, currentSessionId, currentBest } = args;
+  if (!track || !car) return "";
 
   let prog;
   try {
     prog = await records.getProgression({
-      track: s.track,
+      track,
       car,
-      track_course: s.track_course || undefined,
+      track_course: trackCourse || undefined,
     });
   } catch {
     return ""; // historique indisponible → contexte sans cette section
   }
   const pts = prog.points.filter((p) => p.best_lap > 0);
-  if (!pts.some((p) => p.session_id !== s.id)) return "";
+  const hasHistory =
+    currentSessionId != null
+      ? pts.some((p) => p.session_id !== currentSessionId)
+      : pts.length > 0;
+  if (!hasHistory) return "";
 
   const st = prog.stats;
   const lines: string[] = [];
   lines.push("## Driver history on this combo (local database)");
   lines.push(
-    `Combo: ${s.track} (${s.track_course}) — ${car} · ${st.sessions_count} sessions on record`,
+    `Combo: ${track}${trackCourse ? ` (${trackCourse})` : ""} — ${car} · ${st.sessions_count} sessions on record`,
   );
   lines.push(
     `All-time PB: ${formatTime(st.all_time_pb)} · PBs set: ${st.nb_pb}` +
       (st.days_since_pb != null ? ` · last PB ${st.days_since_pb} days ago` : ""),
   );
-  if (player.best_lap && player.best_lap > 0) {
-    const gap = player.best_lap - st.all_time_pb;
-    lines.push(
-      `This session's best vs all-time PB: ${gap >= 0 ? "+" : ""}${gap.toFixed(3)}s`,
-    );
+  if (currentBest && currentBest > 0) {
+    const gap = currentBest - st.all_time_pb;
+    lines.push(`Current best vs all-time PB: ${gap >= 0 ? "+" : ""}${gap.toFixed(3)}s`);
   }
 
   const recent = pts.slice(-MAX_SESSIONS);
@@ -63,7 +76,11 @@ export async function buildDriverHistoryText(detail: SessionDetail): Promise<str
   lines.push(`Recent sessions (oldest → newest, last ${recent.length}):`);
   for (const p of recent) {
     const tag =
-      p.session_id === s.id ? "  ← this session" : p.is_pb ? "  (PB)" : "";
+      currentSessionId != null && p.session_id === currentSessionId
+        ? "  ← this session"
+        : p.is_pb
+          ? "  (PB)"
+          : "";
     lines.push(
       `${day(p.timestamp)} ${p.session_type}: ${formatTime(p.best_lap)} | S1 ${formatSectorSeconds(p.s1)} S2 ${formatSectorSeconds(p.s2)} S3 ${formatSectorSeconds(p.s3)}${tag}`,
     );
@@ -94,9 +111,23 @@ export async function buildDriverHistoryText(detail: SessionDetail): Promise<str
           avg.map((g, i) => `S${i + 1} +${g.toFixed(3)}s`).join(" · "),
       );
       lines.push(
-        `Recurring weakness: S${worst + 1} (largest average loss — check whether it repeats in this session).`,
+        `Recurring weakness: S${worst + 1} (largest average loss — check whether it repeats here).`,
       );
     }
   }
   return lines.join("\n");
+}
+
+/** Variante post-course : extrait la clé combo d'un `SessionDetail`. */
+export async function buildDriverHistoryText(detail: SessionDetail): Promise<string> {
+  const player = detail.results.find((r) => r.is_player);
+  const car = player?.unique_car_name || player?.car_type || "";
+  if (!player || !car) return "";
+  return buildComboHistoryText({
+    track: detail.session.track,
+    trackCourse: detail.session.track_course || undefined,
+    car,
+    currentSessionId: detail.session.id,
+    currentBest: player.best_lap,
+  });
 }

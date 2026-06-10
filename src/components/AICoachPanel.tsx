@@ -32,7 +32,10 @@ import { formatTime } from "@/lib/utils";
 import { getProvider } from "@/lib/ai/providers";
 import { converseStream, friendlyError } from "@/lib/ai/coach";
 import { buildPostRaceContext } from "@/lib/ai/context/postrace-context";
-import { buildDriverHistoryText } from "@/lib/ai/context/driver-history-context";
+import {
+  buildDriverHistoryText,
+  buildComboHistoryText,
+} from "@/lib/ai/context/driver-history-context";
 import { buildLiveContext } from "@/lib/ai/context/live-context";
 import { buildSetupSummary } from "@/lib/ai/context/setup-context";
 import {
@@ -1021,13 +1024,58 @@ export function TelemetryCoachPanel({
     };
   }, [meta]);
 
+  // Mémoire longitudinale : historique du combo depuis les résultats indexés.
+  // Sans filtre layout (nomenclature télémétrie ≠ résultats sur certains circuits).
+  const [historyText, setHistoryText] = useState("");
+  useEffect(() => {
+    setHistoryText("");
+    if (!meta.info.car_model) return;
+    let cancelled = false;
+    const laps = meta.laps.filter((l) => l.duration > 0);
+    const fastest = laps.length ? Math.min(...laps.map((l) => l.duration)) : null;
+    buildComboHistoryText({
+      track: meta.info.track,
+      car: meta.info.car_model,
+      currentBest: fastest,
+    })
+      .then((txt) => {
+        if (!cancelled) setHistoryText(txt);
+      })
+      .catch(() => {
+        if (!cancelled) setHistoryText("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [meta]);
+
   const comparisonText = analysis ? summarizeLapAnalysis(analysis) : "";
   const ctx = useMemo(
     () =>
-      buildTelemetryContext(meta, elecText, cornersText, comparisonText, metricsText, bestApexText),
-    [meta, elecText, cornersText, comparisonText, metricsText, bestApexText],
+      buildTelemetryContext(
+        meta,
+        elecText,
+        cornersText,
+        comparisonText,
+        metricsText,
+        bestApexText,
+        historyText,
+      ),
+    [meta, elecText, cornersText, comparisonText, metricsText, bestApexText, historyText],
   );
-  return <CoachPanel getContext={() => ctx.text} resetKey={meta.info.path} />;
+  // Objectifs épinglés : même clé de combo que le post-race — `car_model` est déjà
+  // résolu par le backend en `unique_car_name` (via veh_name, correspondance exacte)
+  // et `TrackName` télémétrie = `sessions.track` (vérifié sur données réelles).
+  // Sans correspondance (voiture jamais vue dans les résultats) → épinglage désactivé.
+  const combo = meta.info.car_model
+    ? {
+        track: meta.info.track,
+        trackCourse: meta.info.track_layout,
+        car: meta.info.car_model,
+        carClass: meta.info.car_class,
+      }
+    : undefined;
+  return <CoachPanel getContext={() => ctx.text} resetKey={meta.info.path} combo={combo} />;
 }
 
 /**

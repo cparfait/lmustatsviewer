@@ -39,6 +39,7 @@ import {
   Moon,
   Sun,
   PauseCircle,
+  Settings2,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -823,6 +824,9 @@ function InfoScreen({
   lmuPath: string;
 }) {
   const { t } = useTranslation();
+  // Tutoriel d'installation : auto-déployé si plugin absent, sinon accessible
+  // à la demande (lien) sur tous les écrans d'information.
+  const [showTuto, setShowTuto] = useState(false);
   const cfg = {
     connecting: {
       icon: <Loader2 className="h-12 w-12 animate-spin text-primary" />,
@@ -860,9 +864,18 @@ function InfoScreen({
         <p className="text-sm text-muted-foreground mt-1">{cfg.text}</p>
       </div>
 
-      {/* Guide d'installation — affiché si plugin absent */}
-      {kind === "no-game" && pluginInstalled === false && (
+      {/* Guide d'installation — auto-déployé si plugin absent, sinon sur demande */}
+      {kind !== "connecting" && (pluginInstalled === false || showTuto) && (
         <PluginInstallGuide lmuPath={lmuPath} t={t} />
+      )}
+      {kind !== "connecting" && pluginInstalled !== false && !showTuto && (
+        <button
+          type="button"
+          onClick={() => setShowTuto(true)}
+          className="text-xs text-primary hover:underline"
+        >
+          {t("live.pluginTutoShow")}
+        </button>
       )}
 
       <Link
@@ -890,10 +903,15 @@ function PluginInstallGuide({
   t: Tr;
 }) {
   const [copiedPath, setCopiedPath] = useState(false);
+  const [copiedVars, setCopiedVars] = useState(false);
 
   const pluginsDir = lmuPath
     ? `${lmuPath.replace(/\\/g, "\\")}\\Plugins`
     : t("live.pluginInstallDefaultDir");
+  // Fichier d'activation des plugins (créé/complété par le jeu au lancement).
+  const pluginVarsFile = lmuPath
+    ? `${lmuPath.replace(/\\/g, "\\")}\\UserData\\player\\CustomPluginVariables.JSON`
+    : "...\\UserData\\player\\CustomPluginVariables.JSON";
 
   function copyToClipboard(text: string, setter: (v: boolean) => void) {
     navigator.clipboard.writeText(text).then(() => {
@@ -932,6 +950,32 @@ function PluginInstallGuide({
           >
             {copiedPath ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
           </button>
+        </div>
+      ),
+    },
+    {
+      icon: <Settings2 className="h-4 w-4 text-sky-400" />,
+      label: t("live.pluginInstallStep3"),
+      desc: (
+        <div className="mt-0.5 space-y-1">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {t("live.pluginInstallStep3Desc")}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <code className="font-mono text-micro bg-muted/60 px-1.5 py-0.5 rounded text-foreground/80 max-w-[260px] truncate">
+              {pluginVarsFile}
+            </code>
+            <button
+              onClick={() => copyToClipboard(pluginVarsFile, setCopiedVars)}
+              className="shrink-0 p-0.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+              title={t("live.pluginInstallCopyPath")}
+            >
+              {copiedVars ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+            </button>
+          </div>
+          <code className="block font-mono text-micro bg-muted/60 px-1.5 py-0.5 rounded text-foreground/80">
+            {'"rFactor2SharedMemoryMapPlugin64.dll": { " Enabled": 1 }'}
+          </code>
         </div>
       ),
     },
@@ -2029,10 +2073,16 @@ function FlagPill({ flag }: { flag: FlagKind }) {
     none: { label: "—", cls: "bg-muted text-muted-foreground" },
   };
   const c = cfg[flag];
+  // Format harmonisé sur ClassBadge/SessionBadge (rounded-full, text-micro).
   return (
-    <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-md", c.cls)}>
-      <Flag className="h-4 w-4" />
-      <span className="font-mono text-xs font-bold tracking-widest">
+    <div
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-micro font-semibold uppercase tracking-wide whitespace-nowrap",
+        c.cls
+      )}
+    >
+      <Flag className="h-3 w-3" />
+      <span>
         {c.label}
       </span>
     </div>

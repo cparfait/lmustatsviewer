@@ -602,7 +602,7 @@ export function Sessions() {
                     col="BestLap"
                     label={t("sessions.colBestLap")}
                     {...sortProps}
-                    className="text-right px-2 border-l border-border/55 bg-sky-500/10"
+                    className="px-2 border-l border-border/55 bg-sky-500/10"
                   />
                   {showOhneSpeed && (
                     <TableHead className="h-auto py-1 text-micro px-2 bg-sky-500/10 whitespace-nowrap">
@@ -671,7 +671,7 @@ export function Sessions() {
                       {/* Détails + Records */}
                       <TableCell className="px-2 py-1.5">
                         <div className="flex items-center gap-1 justify-center">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                             <Eye className="h-3 w-3" />
                           </div>
                           <Tip content={t("sessions.colRecords")}>
@@ -686,7 +686,7 @@ export function Sessions() {
                                 });
                                 navigate(`/records?${qs}`);
                               }}
-                              className="flex h-6 w-6 items-center justify-center rounded-md bg-success/10 text-success hover:bg-success hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="flex h-5 w-5 items-center justify-center rounded-md bg-success/10 text-success hover:bg-success hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               aria-label={t("sessions.colRecords")}
                             >
                               <BarChart3 className="h-3 w-3" />

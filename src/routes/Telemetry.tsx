@@ -14,6 +14,7 @@ import {
   TableRow,
   SortHeader,
 } from "@/components/ui/table";
+import { Pagination } from "@/components/ui/pagination";
 import { TrackFlag } from "@/components/TrackFlag";
 import { CarLogo } from "@/components/CarLogo";
 import { ClassBadge } from "@/components/ClassBadge";
@@ -23,6 +24,8 @@ import { telemetry } from "@/lib/api";
 import type { TelemetryFileInfo } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+
+const PAGE_SIZE_KEY = "telemetry-page-size";
 
 /**
  * Navigateur des enregistrements de télémétrie (`.duckdb`). Filtrage côté client
@@ -56,6 +59,19 @@ export function Telemetry() {
       setSortBy(k);
       setSortDir("asc");
     }
+    setPage(1);
+  };
+
+  // Pagination (côté client, façon Sessions)
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(() => {
+    const s = localStorage.getItem(PAGE_SIZE_KEY);
+    return s ? Number(s) : 25;
+  });
+  const handlePerPage = (s: number) => {
+    localStorage.setItem(PAGE_SIZE_KEY, String(s));
+    setPerPage(s);
+    setPage(1);
   };
 
   /** Nom de voiture affiché/filtré : vrai modèle si connu, sinon équipe/livrée. */
@@ -100,6 +116,10 @@ export function Telemetry() {
     });
   }, [files, fTrack, fClass, fCar, fSession]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [fTrack, fClass, fCar, fSession]);
+
   const sortedFiles = useMemo(() => {
     const dir = sortDir === "asc" ? 1 : -1;
     const val = (f: TelemetryFileInfo): string | number => {
@@ -120,6 +140,13 @@ export function Telemetry() {
       return String(va).localeCompare(String(vb)) * dir;
     });
   }, [filteredFiles, sortBy, sortDir]);
+
+  const pageCount = Math.max(1, Math.ceil(sortedFiles.length / perPage));
+  const safePage = Math.min(page, pageCount);
+  const pagedFiles = useMemo(
+    () => sortedFiles.slice((safePage - 1) * perPage, safePage * perPage),
+    [sortedFiles, safePage, perPage]
+  );
 
   const hasFilters = !!(fTrack || fClass || fCar || fSession);
   const clearFilters = () => {
@@ -249,7 +276,7 @@ export function Telemetry() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedFiles.map((f) => (
+                {pagedFiles.map((f) => (
                   <TableRow
                     key={f.path}
                     onClick={() => open(f)}
@@ -289,6 +316,17 @@ export function Telemetry() {
                 ))}
               </TableBody>
             </Table>
+            <div className="border-t border-border px-4 py-3">
+              <Pagination
+                page={safePage}
+                pageCount={pageCount}
+                onPageChange={setPage}
+                pageSize={perPage}
+                onPageSizeChange={handlePerPage}
+                total={sortedFiles.length}
+                pageSizeOptions={[15, 25, 50, 100, 200]}
+              />
+            </div>
           </CardContent>
         </Card>
       )}

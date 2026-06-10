@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { SessionBadge } from "@/components/SessionBadge";
 import {
   Table,
   TableBody,
@@ -638,24 +638,21 @@ function SessionView({ data }: { data: SessionDetailData }) {
                 </p>
                 <div className="mt-0.5 flex flex-wrap gap-1">
                   {siblings.length > 1 ? (
+                    // Pastilles harmonisées sur le format ClassBadge (rounded-full,
+                    // text-micro) — la session affichée est en variante pleine.
                     siblings.map((s) => (
                       <Button
                         key={s.id}
                         size="sm"
                         variant={s.id === session.id ? "default" : "outline"}
                         onClick={() => navigate(`/sessions/${s.id}`)}
-                        className="h-6 px-2 text-mini font-semibold"
+                        className="h-5 px-1.5 text-micro font-semibold uppercase tracking-wide rounded-full"
                       >
                         {sessionTypeLabel(s.session_type, t)}
                       </Button>
                     ))
                   ) : (
-                    <Badge
-                      variant={isRace ? "default" : "outline"}
-                      className="text-mini font-bold uppercase tracking-wide"
-                    >
-                      {sessionTypeLabel(session.session_type, t)}
-                    </Badge>
+                    <SessionBadge type={session.session_type} />
                   )}
                 </div>
               </div>

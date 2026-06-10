@@ -458,16 +458,16 @@ function CarView({
                   <Table className="w-full text-sm">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-left px-3 py-1.5">
+                        <TableHead className="px-3 py-1.5">
                           <Tip content={t("setups.circuitTip")}>{t("setups.circuit")}</Tip>
                         </TableHead>
-                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
+                        <TableHead className="px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeQualifTip")}>{t("setups.typeQualif")}</Tip>
                         </TableHead>
-                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
+                        <TableHead className="px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeRaceTip")}>{t("setups.typeRace")}</Tip>
                         </TableHead>
-                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
+                        <TableHead className="px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeOtherTip")}>{t("setups.typeOther")}</Tip>
                         </TableHead>
                       </TableRow>
@@ -948,26 +948,26 @@ function GlobalView({
           <Table className="w-full text-sm">
             <TableHeader>
               <TableRow>
-                <TableHead className="text-left px-3 py-1.5">
+                <TableHead className="px-3 py-1.5">
                   <Tip content={t("setups.classTip")}>{t("setups.class")}</Tip>
                 </TableHead>
                 <TableHead className="px-1 py-1.5 w-7" aria-hidden />
-                <TableHead className="text-left px-2 py-1.5">
+                <TableHead className="px-2 py-1.5">
                   <Tip content={t("setups.carTip")}>{t("setups.car")}</Tip>
                 </TableHead>
-                <TableHead className="text-left px-3 py-1.5">
+                <TableHead className="px-3 py-1.5">
                   <Tip content={t("setups.circuitTip")}>{t("setups.circuit")}</Tip>
                 </TableHead>
-                <TableHead className="text-left px-3 py-1.5">
+                <TableHead className="px-3 py-1.5">
                   <Tip content={t("setups.setupTip")}>{t("setups.setup")}</Tip>
                 </TableHead>
-                <TableHead className="text-left px-3 py-1.5">
+                <TableHead className="px-3 py-1.5">
                   <Tip content={t("setups.newTypeTip")}>{t("setups.newType")}</Tip>
                 </TableHead>
-                <TableHead className="text-left px-3 py-1.5">
+                <TableHead className="px-3 py-1.5">
                   <Tip content={t("setups.sourceLabelTip")}>{t("setups.sourceLabel")}</Tip>
                 </TableHead>
-                <TableHead className="text-right px-3 py-1.5">
+                <TableHead className="px-3 py-1.5">
                   <Tip content={t("setups.modifiedTip")}>{t("setups.modified")}</Tip>
                 </TableHead>
               </TableRow>
@@ -1147,16 +1147,16 @@ function CircuitView({
                   <Table className="w-full text-sm">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-left px-3 py-1.5">
+                        <TableHead className="px-3 py-1.5">
                           <Tip content={t("setups.carTip")}>{t("setups.car")}</Tip>
                         </TableHead>
-                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
+                        <TableHead className="px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeQualifTip")}>{t("setups.typeQualif")}</Tip>
                         </TableHead>
-                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
+                        <TableHead className="px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeRaceTip")}>{t("setups.typeRace")}</Tip>
                         </TableHead>
-                        <TableHead className="text-left px-3 py-1.5 border-l border-border/55">
+                        <TableHead className="px-3 py-1.5 border-l border-border/55">
                           <Tip content={t("setups.typeOtherTip")}>{t("setups.typeOther")}</Tip>
                         </TableHead>
                       </TableRow>

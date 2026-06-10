@@ -13,7 +13,17 @@ const PARAM_LABEL: Record<string, string> = {
   RevLimit: "Rev Limit",
   EngineMixture: "Engine Map",
   EngineBoost: "Boost",
+  EngineBrakingMap: "Engine Braking Map",
+  ElectricMotorMap: "Electric Motor Map",
+  RegenerationMap: "Regen Map",
+  VirtualEnergy: "Virtual Energy",
+  OilRadiator: "Oil Radiator",
+  WaterRadiator: "Water Radiator",
   Fuel: "Fuel",
+  NumPitstops: "Pit Stops",
+  Pitstop1: "Pit Stop 1 (fuel)",
+  Pitstop2: "Pit Stop 2 (fuel)",
+  Pitstop3: "Pit Stop 3 (fuel)",
   Notes: "Notes",
 
   // ── Driveline / gearbox ──────────────────────────────────────────────
@@ -39,17 +49,32 @@ const PARAM_LABEL: Record<string, string> = {
   CenterDiffPreload: "Center Diff Preload",
   CenterDiffPower: "Center Diff Power",
   CenterDiffCoast: "Center Diff Coast",
+  FrontDiffPreload: "Front Diff Preload",
+  FrontDiffPower: "Front Diff Power",
+  FrontDiffCoast: "Front Diff Coast",
+  FrontDiffPump: "Front Diff Pump",
   TorqueSplit: "Torque Split",
+  RatioSet: "Gear Ratio Set",
+  GearAutoUpShift: "Auto Upshift",
+  GearAutoDownShift: "Auto Downshift",
+  RearSplit: "Rear Split",
 
   // ── Controls ──────────────────────────────────────────────────────────
   BrakeBias: "Brake Bias",
   RearBrake: "Brake Bias (rear)",
   TractionControl: "TC Level",
+  TractionControlMap: "TC Map",
+  TCPowerCutMap: "TC Power Cut",
+  TCSlipAngleMap: "TC Slip Angle",
   TC: "TC",
   TC1: "TC Slip",
   TC2: "TC Cut",
   AntiLockBrakes: "ABS",
+  AntilockBrakeSystemMap: "ABS Map",
   ABS: "ABS",
+  BrakeMigration: "Brake Migration",
+  HandbrakePress: "Handbrake Pressure",
+  HandfrontbrakePress: "Front Handbrake Pressure",
   SteerLock: "Steering Lock",
   SteerRatio: "Steering Ratio",
   StartingMap: "Starting Map",
@@ -58,6 +83,12 @@ const PARAM_LABEL: Record<string, string> = {
   Camber: "Camber",
   Toe: "Toe",
   ToeIn: "Toe-In",
+  FrontToeIn: "Front Toe-In",
+  RearToeIn: "Rear Toe-In",
+  FrontToeOffset: "Front Toe Offset",
+  RearToeOffset: "Rear Toe Offset",
+  LeftCaster: "Caster (left)",
+  RightCaster: "Caster (right)",
   Pressure: "Pressure",
   Compound: "Tyre Compound",
   TyreCompound: "Tyre Compound",
@@ -81,13 +112,18 @@ const PARAM_LABEL: Record<string, string> = {
   FastRebound: "Fast Rebound",
   TenderSpring: "Tender Spring",
   TenderTransition: "Tender Transition",
+  TenderTravel: "Tender Travel",
   CamberLink: "Camber Link",
   ToeLink: "Toe Link",
+  LeftTrackBar: "Track Bar (left)",
+  RightTrackBar: "Track Bar (right)",
 
   // ── Chassis ──────────────────────────────────────────────────────────
   AntiSway: "Anti-Roll Bar",
   AntiSwayBar: "Anti-Roll Bar",
   ARB: "Anti-Roll Bar",
+  FrontAntiSway: "Front Anti-Roll Bar",
+  RearAntiSway: "Rear Anti-Roll Bar",
   ThirdSpring: "Third Spring",
   ThirdSlowBump: "Third Slow Bump",
   ThirdFastBump: "Third Fast Bump",
@@ -95,9 +131,32 @@ const PARAM_LABEL: Record<string, string> = {
   ThirdFastRebound: "Third Fast Rebound",
   ThirdPacker: "Third Packer",
   ThirdSpringRubber: "Third Spring Rubber",
+  Front3rdSpring: "Front Third Spring",
+  Front3rdSlowBump: "Front Third Slow Bump",
+  Front3rdFastBump: "Front Third Fast Bump",
+  Front3rdSlowRebound: "Front Third Slow Rebound",
+  Front3rdFastRebound: "Front Third Fast Rebound",
+  Front3rdPacker: "Front Third Packer",
+  Front3rdTenderSpring: "Front Third Tender Spring",
+  Front3rdTenderTravel: "Front Third Tender Travel",
+  Rear3rdSpring: "Rear Third Spring",
+  Rear3rdSlowBump: "Rear Third Slow Bump",
+  Rear3rdFastBump: "Rear Third Fast Bump",
+  Rear3rdSlowRebound: "Rear Third Slow Rebound",
+  Rear3rdFastRebound: "Rear Third Fast Rebound",
+  Rear3rdPacker: "Rear Third Packer",
+  Rear3rdTenderSpring: "Rear Third Tender Spring",
+  Rear3rdTenderTravel: "Rear Third Tender Travel",
+  FrontWheelTrack: "Front Wheel Track",
+  RearWheelTrack: "Rear Wheel Track",
+  CGHeight: "CG Height",
+  CGRear: "CG Rear",
+  CGRight: "CG Right",
   Wedge: "Wedge",
   WeightDistribFront: "Weight Distribution",
   CrossWeight: "Cross Weight",
+  VehicleClass: "Vehicle Class",
+  Upgrade: "Upgrade",
 
   // ── Aero ─────────────────────────────────────────────────────────────
   FrontWing: "Front Wing",
@@ -109,6 +168,7 @@ const PARAM_LABEL: Record<string, string> = {
   Splitter: "Splitter",
   Radiator: "Radiator",
   BrakeDuctOpen: "Brake Duct Opening",
+  BrakeDuctRear: "Rear Brake Duct",
 
   // ── Fender / divers ──────────────────────────────────────────────────
   FenderFlare: "Fender Flare",
@@ -130,6 +190,7 @@ const PARAM_LABEL: Record<string, string> = {
  * Convertit une clé en libellé lisible quand elle n'est pas dans le mapping :
  *  - retire le suffixe « Setting » (insensible à la casse)
  *  - sépare le camelCase (« RevLimit » → « Rev Limit »)
+ *  - sépare les acronymes (« TCPowerCutMap » → « TC Power Cut Map »)
  *  - sépare les transitions lettre→chiffre (« Gear2 » → « Gear 2 »)
  *  - normalise les underscores en espaces
  */
@@ -138,6 +199,7 @@ function humanize(key: string): string {
     .replace(/Setting$/i, "")
     .replace(/_+/g, " ")
     .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
     .replace(/([a-zA-Z])(\d)/g, "$1 $2")
     .replace(/\s+/g, " ")
     .trim();

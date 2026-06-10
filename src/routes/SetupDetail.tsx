@@ -12,6 +12,7 @@ import {
   type SvmSection,
 } from "@/lib/api";
 import {
+  Check,
   Edit3,
   Copy,
   GitCompareArrows,
@@ -114,10 +115,12 @@ function classifyParam(section: string, key: string): TabId {
   return "chassis";
 }
 
-/** Incrémente une valeur numérique, sinon renvoie la valeur inchangée. */
+/** Incrémente une valeur numérique. Si le champ est vide ou non numérique
+ *  (« (Default) »…), on part de 0 : un clic +/− pose directement une valeur
+ *  sans obliger l'utilisateur à la taper au clavier. */
 function bump(value: string, delta: number): string {
   const num = Number(value);
-  if (value.trim() === "" || Number.isNaN(num)) return value;
+  if (value.trim() === "" || Number.isNaN(num)) return String(delta);
   const next = num + delta;
   const decimals = value.includes(".") ? value.split(".")[1].length : 0;
   return next.toFixed(decimals);
@@ -145,6 +148,8 @@ export function SetupDetail() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<SvmSection[]>([]);
   const [saving, setSaving] = useState(false);
+  // Confirmation visuelle transitoire après une sauvegarde réussie.
+  const [savedFlash, setSavedFlash] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -212,6 +217,8 @@ export function SetupDetail() {
     try {
       await setupsApi.update({ id: entry.id, sections: draft });
       await loadSetup(entry.id);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2500);
     } catch (e) {
       alert(`${t("setupDetail.errSave")} : ${e}`);
     } finally {
@@ -557,6 +564,11 @@ export function SetupDetail() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {savedFlash && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-500">
+              <Check className="h-3.5 w-3.5" /> {t("setupDetail.saved")}
+            </span>
+          )}
           {editing ? (
             <>
               <Button

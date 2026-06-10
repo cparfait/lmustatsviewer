@@ -60,34 +60,37 @@
   --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
 }
 
+/* Palette adoucie : bleus nuit désaturés (l'ancien #000833/#0c1340 saturé à
+   100 % « piquait les yeux ») + texte légèrement atténué pour réduire le
+   contraste global, sans perdre l'identité « Le Mans dark ». */
 .dark {
   color-scheme: dark;
-  --color-background: #000833;
-  --color-foreground: #e8eaed;
+  --color-background: #0b101f;
+  --color-foreground: #d9dde6;
 
-  --color-card: #0c1340;
-  --color-card-foreground: #e8eaed;
+  --color-card: #131a30;
+  --color-card-foreground: #d9dde6;
 
-  --color-popover: #0c1340;
-  --color-popover-foreground: #e8eaed;
+  --color-popover: #131a30;
+  --color-popover-foreground: #d9dde6;
 
   --color-primary: #D93B00;
   --color-primary-foreground: #ffffff;
 
-  --color-secondary: #0f1a50;
-  --color-secondary-foreground: #e8eaed;
+  --color-secondary: #1a2238;
+  --color-secondary-foreground: #d9dde6;
 
-  --color-muted: #0f1a50;
-  --color-muted-foreground: #8b92a8;
+  --color-muted: #1a2238;
+  --color-muted-foreground: #8e96aa;
 
-  --color-accent: #0f1a50;
-  --color-accent-foreground: #D93B00;
+  --color-accent: #1a2238;
+  --color-accent-foreground: #e06a3e;
 
   --color-destructive: #FF1D43;
   --color-destructive-foreground: #ffffff;
 
-  --color-border: #14205a;
-  --color-input: #14205a;
+  --color-border: #242e48;
+  --color-input: #242e48;
   --color-ring: #D93B00;
 }
 

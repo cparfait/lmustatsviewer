@@ -349,12 +349,13 @@ export function Config() {
     draftTelemetry.trim() !== "" &&
     normPath(draftTelemetry) === normPath(detected.telemetry);
 
-  // Badge « Détecté automatiquement » réutilisé par les 4 champs.
+  // Coche verte « champ détecté automatiquement » (4 champs). Le libellé
+  // complet est dans la légende au-dessus — ici une simple coche (tooltip)
+  // pour alléger la page.
   const autoBadge = (show: boolean) =>
     show ? (
-      <span className="inline-flex items-center gap-1 text-mini text-success font-normal">
-        <Check className="h-3 w-3" />
-        {t("config.autoDetected")}
+      <span title={t("config.autoDetected")}>
+        <Check className="h-3 w-3 text-success" />
       </span>
     ) : null;
 
@@ -496,7 +497,13 @@ export function Config() {
             <CardContent className="px-4 pb-4 pt-3 space-y-3">
               <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground/80">
                 <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
-                <p className="leading-snug">{t("config.autoDetectInfo")}</p>
+                <p className="leading-snug">
+                  {t("config.autoDetectInfo")}{" "}
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                    <Check className="h-3 w-3 text-success" />
+                    {t("config.autoDetectLegend")}
+                  </span>
+                </p>
               </div>
 
               <div className="space-y-1">
@@ -782,15 +789,6 @@ export function Config() {
                   ))}
                 </select>
               </SettingRow>
-              <Separator />
-              <ToggleRow
-                icon={<Zap className="h-4 w-4" />}
-                label={t("config.autoIndex")}
-                desc={t("config.autoIndexDesc")}
-                tip={t("config.autoIndexTip")}
-                checked={autoIndex}
-                onChange={(v) => useAppStore.getState().setAutoIndex(v)}
-              />
               <Separator />
               <ToggleRow
                 icon={<Settings2 className="h-4 w-4" />}
@@ -1481,6 +1479,17 @@ export function Config() {
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-3 space-y-1">
+              {/* Indexation automatique au démarrage — rangée ici avec les
+                  autres opérations d'indexation (déplacé des Préférences). */}
+              <ToggleRow
+                icon={<Zap className="h-4 w-4" />}
+                label={t("config.autoIndex")}
+                desc={t("config.autoIndexDesc")}
+                tip={t("config.autoIndexTip")}
+                checked={autoIndex}
+                onChange={(v) => useAppStore.getState().setAutoIndex(v)}
+              />
+              <Separator />
               <ActionRow
                 icon={<RefreshCw className={cn("h-4 w-4", indexing && "animate-spin")} />}
                 label={t("config.syncDelta")}

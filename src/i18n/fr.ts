@@ -18,6 +18,9 @@ export default {
     editMode: "Mode Édition",
     editModeOn: "Édition ON",
     exitEdit: "Terminer l'édition",
+    editHintTitle: "Mode édition",
+    editHintText:
+      "Déplace les overlays à la souris (glisser-déposer) et ajuste leur taille avec + / −. Valide ensuite avec le bouton vert en haut de l'écran.",
     shown: "Affichés",
     hidden: "Masqués",
     enableAll: "Tout activer",
@@ -622,6 +625,7 @@ export default {
     modalSubtitle: "Télémétrie & Réglages",
     nameLabel: "Nom du setup",
     errSave: "Erreur d'enregistrement",
+    saved: "Setup enregistré",
     errGeneric: "Erreur",
     errDuplicate: "Erreur de duplication",
     errDelete: "Erreur de suppression",
@@ -678,10 +682,14 @@ export default {
       "LMU Stats Viewer a besoin du plugin de mémoire partagée rF2 pour accéder en temps réel aux données du simulateur (position, temps au tour, carburant, températures des pneumatiques…). Sans lui, le tableau de bord Live ne peut recevoir aucune information.",
     pluginInstallStep1: "Télécharger le fichier DLL",
     pluginInstallStep2: "Copier dans le dossier Plugins",
+    pluginInstallStep3: "Activer le plugin",
+    pluginInstallStep3Desc:
+      "Lance le jeu une fois (il référence la DLL), ferme-le, puis dans ce fichier passe la valeur « Enabled » du plugin à 1 :",
     pluginInstallStep4: "Lancer LMU et entrer en piste",
     pluginInstallCopyPath: "Copier le chemin",
     pluginInstallDefaultDir: "<LMU>\\Plugins",
     pluginInstallDownload: "Voir le repo GitHub (DLL compilée)",
+    pluginTutoShow: "Voir le tutoriel d'installation du plugin (DLL + activation)",
     statTrack: "Circuit",
     statPosition: "Position",
     statLap: "Tour",
@@ -763,6 +771,9 @@ export default {
     vColdTyres: "Attention, pneus froids",
     vLapTime: "{{min}} minute {{sec}}",
     vLapTimeShort: "{{sec}} secondes",
+    /* Forme parlée de « 1 » minute — « une » en français (sinon le TTS dit
+       « un minute » au masculin). Injecté à la place de {{min}} quand min = 1. */
+    vMinOne: "une",
     vPosGain: "P{{p}}, place gagnée",
     vPosLoss: "Place perdue, P{{p}}",
     vBestLap: "Meilleur tour personnel,",
@@ -997,6 +1008,7 @@ export default {
     telemetryPathDesc:
       "Dossier des fichiers de télémétrie (.duckdb). Auto-détecté ; à modifier si besoin.",
     autoDetectInfo: "Le joueur et le dossier du jeu ont été détectés automatiquement. Si l'auto-détection n'a rien trouvé, saisis le nom du joueur et parcours le disque pour pointer ton installation de Le Mans Ultimate.",
+    autoDetectLegend: "= champ détecté automatiquement.",
     playerNameField: "Nom du joueur",
     detect: "Détecter automatiquement",
     saveAndReindex: "Enregistrer & réindexer",

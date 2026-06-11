@@ -415,12 +415,17 @@ export function Overlays() {
             placeholder={t("overlays.profilePlaceholder")}
             className="h-8 w-36 rounded-md border border-border bg-background px-2 text-sm"
           />
-          {/* Bouton UNIQUE : crée le profil ou écrase celui du même nom. */}
+          {/* Bouton UNIQUE : crée le profil ou écrase celui du même nom.
+              Le champ est vidé après coup (le profil créé reste visible dans
+              le select) — plus lisible pour enchaîner les créations. */}
           <Button
             size="sm"
             disabled={!profileName.trim()}
             className="gap-1.5 bg-emerald-600 text-white shadow hover:bg-emerald-500"
-            onClick={() => saveProfile(profileName.trim())}
+            onClick={() => {
+              saveProfile(profileName.trim());
+              setProfileName("");
+            }}
           >
             <Save className="h-4 w-4" />
             {t("overlays.profileSave")}

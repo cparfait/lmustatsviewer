@@ -690,7 +690,7 @@ export default {
     pluginInstallStep4: "Lancer LMU et entrer en piste",
     pluginInstallCopyPath: "Copier le chemin",
     pluginInstallDefaultDir: "<LMU>\\Plugins",
-    pluginInstallDownload: "Voir le repo GitHub (DLL compilée)",
+    pluginInstallDownload: "Télécharger la DLL (rFactor2SharedMemoryMapPlugin64.dll)",
     pluginTutoShow: "Voir le tutoriel d'installation du plugin (DLL + activation)",
     statTrack: "Circuit",
     statPosition: "Position",

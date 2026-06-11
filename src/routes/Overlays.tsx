@@ -13,7 +13,6 @@ import {
   ChevronLeft,
   Check,
   PencilRuler,
-  Plus,
   Gauge,
   Eye,
   EyeOff,
@@ -377,11 +376,22 @@ export function Overlays() {
         </div>
         <div className="flex items-center gap-2">
           <Save className="h-4 w-4 text-muted-foreground" />
-          {/* Sélection d'un profil → charge + pré-remplit le nom (pour ré-enregistrer). */}
+          {/* Sélection d'un profil → charge + pré-remplit le nom (pour ré-enregistrer).
+              La dernière entrée crée un profil VIERGE (tous les overlays désactivés) :
+              le select étant contrôlé (value = activeProfile), un prompt annulé
+              re-rend automatiquement la sélection courante. */}
           <select
             value={cfg.activeProfile}
             onChange={(e) => {
               const name = e.target.value;
+              if (name === "__create__") {
+                const newName = prompt(t("overlays.profileNamePrompt"))?.trim();
+                if (newName) {
+                  createEmptyProfile(newName);
+                  setProfileName(newName);
+                }
+                return;
+              }
               if (name) {
                 loadProfile(name);
                 setProfileName(name);
@@ -397,6 +407,7 @@ export function Overlays() {
                 {name}
               </option>
             ))}
+            <option value="__create__">{t("overlays.profileNew")}</option>
           </select>
           <input
             value={profileName}
@@ -413,18 +424,6 @@ export function Overlays() {
           >
             <Save className="h-4 w-4" />
             {t("overlays.profileSave")}
-          </Button>
-          {/* Nouveau profil vierge : tous les overlays désactivés. */}
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!profileName.trim()}
-            className="gap-1.5"
-            title={t("overlays.profileNewTip")}
-            onClick={() => createEmptyProfile(profileName.trim())}
-          >
-            <Plus className="h-4 w-4" />
-            {t("overlays.profileNew")}
           </Button>
           {cfg.activeProfile && (
             <Button

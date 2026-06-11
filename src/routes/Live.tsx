@@ -148,12 +148,16 @@ function pct(v: number, signed = false): string {
 // La sélection de voix (voix neuronale + masculine), la file à priorité et le
 // `speak()` vivent désormais dans `@/lib/voice` (partagé avec la page Config).
 
-/** Temps au tour en forme parlée : « 1 min 23.456 » (ou « 23.456 » si < 1 min). */
+/** Temps au tour en forme parlée : « une minute 23.456 » (ou « 23.456 » si
+ *  < 1 min). « 1 » → forme parlée localisée (`vMinOne`) : en français le TTS
+ *  prononçait « un minute » au masculin. */
 function fmtLapVoice(s: number, t: Tr): string {
   if (!s || s <= 0 || !isFinite(s)) return "";
   const m = Math.floor(s / 60);
   const sec = (s - m * 60).toFixed(3);
-  return m > 0 ? t("live.vLapTime", { min: m, sec }) : t("live.vLapTimeShort", { sec });
+  return m > 0
+    ? t("live.vLapTime", { min: m === 1 ? t("live.vMinOne") : m, sec })
+    : t("live.vLapTimeShort", { sec });
 }
 
 /**

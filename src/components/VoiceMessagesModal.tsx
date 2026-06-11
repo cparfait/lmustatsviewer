@@ -113,7 +113,8 @@ export function VoiceMessagesModal({ onClose }: { onClose: () => void }) {
   const handlePlay = (def: VoiceMsgDef) => {
     commit(def.key);
     let text = fillVars(drafts[def.key] ?? "", def.sample);
-    if (def.appendTime) text = `${text} ${t("live.vLapTime", { min: 1, sec: "23.4" })}`;
+    if (def.appendTime)
+      text = `${text} ${t("live.vLapTime", { min: t("live.vMinOne"), sec: "23.4" })}`;
     previewVoice(text, lang);
   };
 

@@ -151,6 +151,9 @@ interface OverlaysStore {
   setGlobalOpacity: (v: number) => void;
   /** Profils. */
   saveProfile: (name: string) => void;
+  /** Crée un profil **vierge** (tous les overlays désactivés, réglages par
+   *  défaut) et l'active immédiatement. */
+  createEmptyProfile: (name: string) => Promise<void>;
   loadProfile: (name: string) => Promise<void>;
   deleteProfile: (name: string) => void;
   /** Applique une config reçue d'une autre fenêtre (pas de re-broadcast). */
@@ -277,6 +280,32 @@ export const useOverlaysStore = create<OverlaysStore>((set, get) => ({
       profiles: { ...cfg.profiles, [name]: profile },
       activeProfile: name,
     });
+  },
+
+  createEmptyProfile: async (name) => {
+    const cfg = get().cfg;
+    // Base 100 % défauts : tous les overlays OFF, positions/échelles d'origine.
+    const blank = defaults().overlays;
+    const profile: OverlayProfile = {
+      overlays: blank,
+      highFps: cfg.highFps,
+      globalOpacity: cfg.globalOpacity,
+    };
+    const next: OverlaysConfig = {
+      ...cfg,
+      overlays: blank,
+      profiles: { ...cfg.profiles, [name]: profile },
+      activeProfile: name,
+    };
+    set(() => ({ cfg: next, saved: false }));
+    await persistNow(next);
+    set(() => ({ saved: true }));
+    // Plus aucun overlay actif → on libère la fenêtre overlay.
+    try {
+      await overlayApi.close();
+    } catch {
+      /* ignore */
+    }
   },
 
   loadProfile: async (name) => {

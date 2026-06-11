@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   Check,
   PencilRuler,
+  Plus,
   Gauge,
   Eye,
   EyeOff,
@@ -86,6 +87,7 @@ export function Overlays() {
   const applyRemote = useOverlaysStore((s) => s.applyRemote);
   const applyEditMode = useOverlaysStore((s) => s.applyEditMode);
   const saveProfile = useOverlaysStore((s) => s.saveProfile);
+  const createEmptyProfile = useOverlaysStore((s) => s.createEmptyProfile);
   const loadProfile = useOverlaysStore((s) => s.loadProfile);
   const deleteProfile = useOverlaysStore((s) => s.deleteProfile);
   const flush = useOverlaysStore((s) => s.flush);
@@ -411,6 +413,18 @@ export function Overlays() {
           >
             <Save className="h-4 w-4" />
             {t("overlays.profileSave")}
+          </Button>
+          {/* Nouveau profil vierge : tous les overlays désactivés. */}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!profileName.trim()}
+            className="gap-1.5"
+            title={t("overlays.profileNewTip")}
+            onClick={() => createEmptyProfile(profileName.trim())}
+          >
+            <Plus className="h-4 w-4" />
+            {t("overlays.profileNew")}
           </Button>
           {cfg.activeProfile && (
             <Button

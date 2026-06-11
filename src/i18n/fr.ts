@@ -29,6 +29,8 @@ export default {
     profileNone: "— Profil —",
     profilePlaceholder: "Nom du profil",
     profileSave: "Enregistrer",
+    profileNew: "Nouveau",
+    profileNewTip: "Crée un profil vierge : tous les overlays désactivés, réglages par défaut.",
     profileSaveAs: "Enregistrer sous",
     profileUpdate: "Mettre à jour",
     profileDelete: "Supprimer le profil",

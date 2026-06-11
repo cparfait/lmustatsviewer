@@ -631,6 +631,15 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-06-11 — Profil overlay vierge + « une minute » (code) + merge V2 → main
+
+- ✅ **Overlays — profil vierge** : bouton « Nouveau » dans la barre de profils → `createEmptyProfile(name)` (store) crée un profil avec **tous les overlays désactivés** et réglages par défaut, l'active immédiatement et ferme la fenêtre overlay. i18n FR/EN/ES/DE (`overlays.profileNew[Tip]`).
+- ✅ **« une minute » (suite)** : la clé `live.vMinOne` (commit précédent) est maintenant **utilisée par le code** — `spotter.ts::lapVoice`, `spTimeLeft` (×2), `Live.tsx::fmtLapVoice`, aperçu `VoiceMessagesModal`. Quand min = 1 le TTS dit « une minute » (FR), « eine Minute » (DE).
+- ✅ Clés EN/ES/DE complétées : `editHintTitle/Text`, `setupDetail.saved`, `pluginInstallStep3[Desc]`, `pluginTutoShow`, `vMinOne`, `autoDetectLegend`.
+- ✅ `tsc --noEmit`, `cargo check`, `vite build` PASSENT.
+- ✅ **Merge `V2` → `main`** (historiques indépendants) : les fichiers de l'ancienne V1 PHP nécessaires à sa mise à jour sont **conservés** sur main (`htdocs/`, `launcher/`, `setup.iss`, `version.txt`, `version_dev.json`, `CHANGELOG.md`, `LICENSE`). `version.json` fusionné : **double schéma** — `version` (build Tauri V3) + `latest_version`/`release_url`/`download_url` (checker de l'ancienne V1 qui lit `raw.githubusercontent.com/...:main/version.json`).
+- 📋 **Prochaine étape** : publier une release GitHub avec l'installeur V3 et vérifier que l'ancienne V1 propose bien la mise à jour (bannière update-checker).
+
 ### 2026-06-10 — Télémétrie : pagination de la liste des enregistrements
 
 - ✅ **Pagination côté client** ajoutée à `routes/Telemetry.tsx` : réutilise le composant `ui/pagination.tsx` (déjà utilisé par Sessions), découpe `sortedFiles` en pages. Taille de page persistée en localStorage (`telemetry-page-size`, défaut 25, options 15/25/50/100/200 comme Sessions). Retour page 1 au changement de filtre, de tri ou de taille ; `safePage` borne la page courante si le filtrage réduit le nombre de pages.

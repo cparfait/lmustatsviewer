@@ -15,14 +15,15 @@ import type { LiveData } from "@/lib/api";
 import type { Tr } from "@/i18n";
 import type { Intent } from "@/lib/spotterCommands";
 
-/** Temps au tour en forme parlée : « 1 minute 23.456 » / « 23.456 secondes »
- *  (millièmes inclus pour une annonce précise). */
+/** Temps au tour en forme parlée : « une minute 23.456 » / « 23.456 secondes »
+ *  (millièmes inclus pour une annonce précise). « 1 » est remplacé par sa forme
+ *  parlée localisée (`vMinOne`) — en français le TTS disait « un minute ». */
 function lapVoice(s: number, t: Tr): string {
   if (!s || s <= 0 || !isFinite(s)) return "";
   const m = Math.floor(s / 60);
   const sec = (s - m * 60).toFixed(3);
   return m > 0
-    ? t("live.vLapTime", { min: m, sec })
+    ? t("live.vLapTime", { min: m === 1 ? t("live.vMinOne") : m, sec })
     : t("live.vLapTimeShort", { sec });
 }
 
@@ -99,7 +100,10 @@ export function buildStatus(data: LiveData | null, t: Tr): string {
     if (lapsLeft > 0) parts.push(t("live.spLapsLeft", { count: lapsLeft }));
   } else if (sc.end_et > 0 && sc.end_et > sc.session_time) {
     const minLeft = Math.round((sc.end_et - sc.session_time) / 60);
-    if (minLeft > 0) parts.push(t("live.spTimeLeft", { min: minLeft }));
+    if (minLeft > 0)
+      parts.push(
+        t("live.spTimeLeft", { min: minLeft === 1 ? t("live.vMinOne") : minLeft }),
+      );
   }
 
   // Autonomie carburant (tours restants estimés par le plugin).
@@ -192,7 +196,10 @@ export function buildAnswer(intent: Intent, data: LiveData | null, t: Tr): strin
         if (lapsLeft > 0) return t("live.spLapsLeft", { count: lapsLeft });
       } else if (sc.end_et > 0 && sc.end_et > sc.session_time) {
         const minLeft = Math.round((sc.end_et - sc.session_time) / 60);
-        if (minLeft > 0) return t("live.spTimeLeft", { min: minLeft });
+        if (minLeft > 0)
+          return t("live.spTimeLeft", {
+            min: minLeft === 1 ? t("live.vMinOne") : minLeft,
+          });
       }
       return t("live.spNoData");
     }

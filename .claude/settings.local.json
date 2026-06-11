@@ -134,7 +134,13 @@
       "Bash(node -e \"for\\(const f of ['src/routes/TelemetryView.tsx','src/components/telemetry/viewParts.tsx','src/lib/telemetry/format.ts']\\){console.log\\(require\\('fs'\\).readFileSync\\(f,'utf8'\\).split\\('\\\\n'\\).length, f\\)}\")",
       "Bash(cd \"C:/tmp/__DEV__/_LMU_V3 - Copie\" && echo \"=== fichiers télémétrie ===\" && find \"/d/SteamLibrary/steamapps/common/Le Mans Ultimate/UserData/Telemetry\" -iname \"*.duckdb\" 2>/dev/null | head && echo \"\" && echo \"=== duckdb CLI dispo ? ===\" && which duckdb 2>/dev/null || echo \"pas de duckdb CLI\" && echo \"\" && echo \"=== comment telemetry.rs liste les canaux ===\" && grep -n \"channel\\\\|table\\\\|metadata\\\\|SHOW TABLES\\\\|information_schema\\\\|name\" src-tauri/src/commands/telemetry.rs | head -25)",
       "Bash(cd \"D:/SteamLibrary/steamapps/common/Le Mans Ultimate/UserData/Log/Results\" && grep -rilE \"rating|safety|discipl|reputat|\\\\belo\\\\b|skill|rank\" *R*.xml 2>/dev/null | head; echo \"=== distinct tag names containing those terms ===\"; grep -rhoiE \"<[A-Za-z]*\\(rating|safety|discipl|reput|skill|rank|score|elo\\)[A-Za-z]*>\" *R*.xml 2>/dev/null | sort -u | head -40)",
-      "Bash(grep -n \"selectLap\\\\|compareWith\\\\|{/\\\\* Session de référence\\\\|<>\" src/routes/TelemetryView.tsx)"
+      "Bash(grep -n \"selectLap\\\\|compareWith\\\\|{/\\\\* Session de référence\\\\|<>\" src/routes/TelemetryView.tsx)",
+      "Bash(git fetch *)",
+      "Bash(find \"/d/SteamLibrary/steamapps/common/Le Mans Ultimate/UserData/player/Settings\" -name \"*.svm\" 2>/dev/null | head -5)",
+      "Bash(git ls-tree *)",
+      "Bash(MSYS_NO_PATHCONV=1 git show \"origin/main:.gitignore\")",
+      "Bash(MSYS_NO_PATHCONV=1 git show \"V2:.gitignore\")",
+      "Bash(git merge *)"
     ]
   }
 }

@@ -140,7 +140,8 @@
       "Bash(git ls-tree *)",
       "Bash(MSYS_NO_PATHCONV=1 git show \"origin/main:.gitignore\")",
       "Bash(MSYS_NO_PATHCONV=1 git show \"V2:.gitignore\")",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(gh release *)"
     ]
   }
 }

@@ -895,9 +895,11 @@ function InfoScreen({
 // ── Guide d'installation du plugin ───────────────────────────────────────────
 
 const PLUGIN_DLL = "rFactor2SharedMemoryMapPlugin64.dll";
-// Page de release : l'utilisateur télécharge la DLL depuis les assets de release
+// Téléchargement DIRECT de la DLL : elle est versionnée dans le dépôt
+// (src-tauri/nsis/, également bundlée dans l'installeur NSIS) — les releases
+// GitHub ne l'exposent pas en asset isolé, donc on ne pointe pas dessus.
 const PLUGIN_URL =
-  "https://github.com/cparfait/lmustatsviewer/releases";
+  "https://raw.githubusercontent.com/cparfait/lmustatsviewer/main/src-tauri/nsis/rFactor2SharedMemoryMapPlugin64.dll";
 
 function PluginInstallGuide({
   lmuPath,

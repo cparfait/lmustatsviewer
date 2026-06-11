@@ -1,67 +1,84 @@
-# ─────────────────────────────────────────────
-# PHP runtime (distribué via l'installeur InnoSetup)
-# ─────────────────────────────────────────────
-php/
+# Dependencies
+node_modules/
+.pnpm-store/
 
-# ─────────────────────────────────────────────
-# Binaires compilés (publiés via GitHub Releases)
-# ─────────────────────────────────────────────
-LMU_Stats_Viewer.exe
+# Build output
+dist/
+dist-ssr/
+build/
+*.local
+*.tsbuildinfo
 
-# ─────────────────────────────────────────────
-# Logs runtime
-# ─────────────────────────────────────────────
+# Vite cache
+.vite/
+
+# Logs
+logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# ─────────────────────────────────────────────
-# Artefacts de build PyInstaller
-# ─────────────────────────────────────────────
-launcher/build_temp/
-launcher/__pycache__/
-launcher/LMU_Stats_Viewer.spec
-*.spec
+# Editor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
 
-# ─────────────────────────────────────────────
-# Dossier de build / release (généré par build.bat + InnoSetup)
-# ─────────────────────────────────────────────
-release/
-
-# ─────────────────────────────────────────────
-# Cache et base de données applicatifs
-# ─────────────────────────────────────────────
-# Ancien cache MD5 (supprimé en 0.9.5, conservé ici par précaution)
-htdocs/lm_ultimate_cache.json
-# Base SQLite locale — stockée dans %APPDATA%, ne doit pas atterrir dans le dépôt
-*.db
-
-# ─────────────────────────────────────────────
-# Fichiers de test / développement temporaires
-# ─────────────────────────────────────────────
-test_README.txt
-htdocs/test.php
-htdocs/demo_options.html
-
-# ─────────────────────────────────────────────
-# Fichiers système
-# ─────────────────────────────────────────────
+# OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# ─────────────────────────────────────────────
-# Éditeurs
-# ─────────────────────────────────────────────
-.vscode/
-.idea/
-*.swp
-*.swo
+# Env
+.env
+.env.local
+.env.*.local
+
+# Samples LMU — contiennent des noms de pilotes réels.
+# Décommenter cette ligne pour inclure les samples (penser à anonymiser).
+samples/
+
+# Tauri (futur)
+src-tauri/target/
+src-tauri/gen/
+src-tauri/WixTools/
+
+# TTS Piper — binaire + modèles de voix (lourds, fetchés via scripts/fetch-piper.ps1)
+src-tauri/resources/tts/piper/
+src-tauri/resources/tts/voices/
+
+# STT Vosk — lib native + modèles (lourds, fetchés via scripts/fetch-vosk.ps1)
+src-tauri/resources/stt/lib/
+src-tauri/resources/stt/models/
+
+# Clé privée de signature de l'updater Tauri — NE PAS COMMITER
+_lmu_updater.key
+_lmu_updater.key.pub
+
+# Dossiers de référence (V1 PHP et V2 Tauri) — non versionnés dans la V3.
+# Cf. SUIVI.md §1 : ce sont des sources externes de consultation uniquement.
+zz_V1/
+zz_V2/
+
+# Fichier de setup de test (artefact local, inutile dans le dépôt)
+src-tauri/DOM.svm
 
 # ─────────────────────────────────────────────
-# Claude Code
+# Héritage V1 PHP (conservé sur main pour la mise à jour de l'ancienne version)
 # ─────────────────────────────────────────────
-.claude/
-
-# ─────────────────────────────────────────────
-# Référence externe (source d'idées, hors dépôt)
-# ─────────────────────────────────────────────
-LMU-Telemetry-Lab-1.3.1/
+php/
+LMU_Stats_Viewer.exe
+launcher/build_temp/
+launcher/__pycache__/
+launcher/LMU_Stats_Viewer.spec
+*.spec
+release/
+htdocs/lm_ultimate_cache.json
+*.db
+htdocs/test.php
+htdocs/demo_options.html

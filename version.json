@@ -1,6 +1,7 @@
 {
-  "_comment": "Distribution GitHub — contient download_url vers le fichier .exe du release. VERSION_CHECK_URL dans init.php pointe sur version_dev.json (OvertakeGG).",
-  "latest_version": "0.9.4",
+  "_comment": "Double schéma. `version` = source de vérité du build Tauri V3 (src-tauri/build.rs). `latest_version`/`release_url`/`download_url` = lus par l'update-checker de l'ancienne V1 PHP (htdocs/js/update-checker.js, via raw.githubusercontent.com/.../main/version.json) — NE PAS supprimer ces champs tant que des installations V1 existent.",
+  "version": "1.0.9",
+  "latest_version": "1.0.9",
   "release_url": "https://github.com/cparfait/lmustatsviewer/releases/latest",
-  "download_url": "https://github.com/cparfait/lmustatsviewer/releases/download/0.9.4/SETUP-LSV-0-9-4.exe"
+  "download_url": "https://github.com/cparfait/lmustatsviewer/releases/latest"
 }

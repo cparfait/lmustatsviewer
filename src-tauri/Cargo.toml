@@ -1,0 +1,63 @@
+[package]
+name = "lmustatsviewer"
+version = "1.0.9"
+description = "Le Mans Ultimate Stats Viewer — v3"
+authors = ["cparfait"]
+edition = "2021"
+rust-version = "1.82"
+
+[lib]
+name = "lmustatsviewer_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+serde_json = "1"
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+# Raccourcis clavier globaux (spotter : Statut / Mute / Répète, actifs hors focus).
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+rusqlite = { version = "0.31", features = ["bundled"] }
+# Lecture de la télémétrie post-session LMU (fichiers .duckdb écrits nativement
+# par le jeu dans UserData/Telemetry/). `bundled` compile libduckdb depuis les
+# sources (comme rusqlite) → binaire autonome, pas de DLL système requise.
+duckdb = { version = "1", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
+# Proxy HTTP de l'AI Coach : les appels aux fournisseurs d'IA passent par le
+# backend (contourne CORS, sort la clé API des logs réseau de la WebView).
+# `rustls-tls` évite toute dépendance à OpenSSL/native-tls sur Windows.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+# Itération asynchrone du flux de réponse IA (streaming SSE/NDJSON).
+futures-util = "0.3"
+# Chiffrement local de la clé API IA (AES-256-GCM, clé dérivée de la machine).
+ring = "0.17"
+quick-xml = "0.36"
+walkdir = "2"
+raw-window-handle = "0.6"
+windows = { version = "0.58", features = ["Win32_System_Memory", "Win32_Foundation", "Win32_System_LibraryLoader"] }
+# Reconnaissance vocale offline par commandes (spotter Couche 2). FFI vers libvosk.
+# Optionnel : activé par la feature `stt` (nécessite les assets fetch-vosk.ps1).
+# Sans la feature, l'app compile normalement et le spotter retombe sur le Statut.
+vosk = { version = "0.3", optional = true }
+
+[features]
+# Reconnaissance vocale par commandes (spotter Couche 2). Requiert libvosk + modèles
+# (scripts/fetch-vosk.ps1). Désactivée par défaut pour que l'app compile sans assets ;
+# sans elle, les commandes stt_* renvoient « indisponible » et le spotter retombe sur
+# le Statut. Activer avec : `tauri dev --features stt` / `tauri build --features stt`.
+stt = ["dep:vosk"]
+
+[profile.release]
+panic = "abort"      # Strip expensive panic clean-up logic
+codegen-units = 1    # Compile crates one after another so the compiler can optimize better
+lto = true           # Enables link to optimizations
+opt-level = "s"      # Optimize for binary size
+strip = true         # Remove debug symbols

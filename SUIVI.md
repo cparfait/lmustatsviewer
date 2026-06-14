@@ -2,7 +2,7 @@
 
 > **Document de reprise du projet. À LIRE EN PREMIER.**
 > Mettre à jour la section « Journal de bord » à chaque session de travail.
-> Dernière mise à jour : 2026-06-08
+> Dernière mise à jour : 2026-06-12
 
 ---
 
@@ -631,7 +631,18 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
-### 2026-06-11 — Profil overlay vierge + « une minute » (code) + merge V2 → main
+### 2026-06-12 — Audit impartial complet (code + métier + sécurité)
+
+- ✅ Audit en 5 axes (backend Rust, frontend React, conformité V1 PHP, Live/overlays/télémétrie, sécurité/build). ~90 constats, dont **13 critiques** :
+  - **Live/overlays** : `stopPolling()` global gèle les overlays en quittant `/live` + threads de polling duplicables (`live.rs:1251-1284`) ; double `PollState` → annonces carburant du spotter fausses (`live.rs:1231` vs `:1264`) ; widget Relative ignore `laps_behind_leader` (écarts faux en multiclasse).
+  - **Stratégie carburant** : « carburant pour finir » basé sur `last_lap_time` (contaminé par in-lap → faux « ✓ suffisant », `strategy.ts:46-53`) + copie divergente dans `overlay/format.ts:65-89`.
+  - **Stats fausses affichées** : podiums/top10/bestFinish comptent `class_position = 0` (`queries.rs:55-63`) ; compteur DNF compte les courses finies (`Sessions.tsx:326`, compare à `"Finished"` au lieu de `"Finished Normally"`) ; `mapTrackName` code mort → tiers ohne_speed faux sur les tracés variants (`ohne_speed.ts:98-128`) ; totalLaps/drivingTime du Dashboard ≠ définition V1 « 4 chronos » (double définition de tour valide).
+  - **Métier course auto** : G-forces affichées en m/s² (`live.rs:932`) ; vitesse = composante longitudinale seule (`live.rs:844`) ; secteurs « violets » = min des *derniers* tours, pas des meilleurs (`live.rs:1106`) ; conso plafonnée 10 L/tour exclut les Hypercars au Mans (`live.rs:857`) ; best secteurs pollués par in-laps.
+  - **Sécurité/distribution** : CSP `null` (`tauri.conf.json:30`) ; clé privée updater **sans passphrase dans le dossier projet** ; proxy IA = HTTP arbitraire sans whitelist ; CI sans lint/typecheck/test (zéro test dans le repo) ; `8990.svm` tracké.
+  - Divers : `prompt()` inopérant sous WebView2 (`Setups.tsx:707`) ; `formatTime` arrondit → cas « 1:60.000 » ; « LMP2 » nu trie à 99 ; aucune Error Boundary ; pas de lazy routes (l'overlay charge tout le bundle).
+- ✅ Conformité V1 vérifiée règle par règle contre le PHP : 9/12 conformes ; écarts = totalLaps/drivingTime, arrondi temps, dates abs_best_sN perdues, méthode « Optimal » des Records.
+- 📋 **Prochaine étape** : dérouler le plan d'action de l'audit — Phase A (corrections de données fausses : DNF, podiums, mapTrackName, formatTime) puis Phase B (cycle de vie polling Live + PollState unique + stratégie carburant unifiée).
+
 
 - ✅ **Overlays — profil vierge** : bouton « Nouveau » dans la barre de profils → `createEmptyProfile(name)` (store) crée un profil avec **tous les overlays désactivés** et réglages par défaut, l'active immédiatement et ferme la fenêtre overlay. i18n FR/EN/ES/DE (`overlays.profileNew[Tip]`).
 - ✅ **« une minute » (suite)** : la clé `live.vMinOne` (commit précédent) est maintenant **utilisée par le code** — `spotter.ts::lapVoice`, `spTimeLeft` (×2), `Live.tsx::fmtLapVoice`, aperçu `VoiceMessagesModal`. Quand min = 1 le TTS dit « une minute » (FR), « eine Minute » (DE).

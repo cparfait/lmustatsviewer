@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   ChevronLeft,
   Check,
@@ -17,6 +18,7 @@ import {
   Eye,
   EyeOff,
   Save,
+  Plus,
   Trash2,
   ToggleLeft,
   ToggleRight,
@@ -92,7 +94,10 @@ export function Overlays() {
   const flush = useOverlaysStore((s) => s.flush);
 
   const [selected, setSelected] = useState<OverlayId | null>(null);
-  const [profileName, setProfileName] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  // Mémorise qu'on a ouvert la config depuis le mode Édition (clic ⚙) afin d'y
+  // revenir automatiquement au retour, sans avoir à recliquer « Mode Édition ».
+  const returnToEditRef = useRef(false);
 
   // Indicateur « Enregistré » transitoire : n'apparaît qu'au moment d'une
   // sauvegarde (flanc false→true de `saved`), puis disparaît au bout de ~1,8 s.
@@ -119,9 +124,19 @@ export function Overlays() {
       if (enabled) overlayApi.open().catch(() => {});
     });
     const unlisteners: Array<() => void> = [];
-    listen<OverlayId>("overlay-open-config", (e) => setSelected(e.payload)).then(
-      (fn) => unlisteners.push(fn),
-    );
+    listen<OverlayId>("overlay-open-config", (e) => {
+      setSelected(e.payload);
+      // Ouvert via le ⚙ → on était en édition : on y reviendra au retour.
+      returnToEditRef.current = true;
+      // Le panneau de config est rendu dans la fenêtre `main`, qui est DERRIÈRE la
+      // fenêtre overlay (always-on-top). On sort donc du mode Édition (retire le
+      // voile + rend l'overlay click-through) et on ramène la fenêtre principale
+      // au premier plan — sinon la config reste cachée sous l'overlay, inaccessible.
+      setEditMode(false);
+      const w = getCurrentWindow();
+      w.unminimize().catch(() => {});
+      w.setFocus().catch(() => {});
+    }).then((fn) => unlisteners.push(fn));
     // Synchro depuis la fenêtre overlay : quand on déplace un widget en mode
     // édition, la fenêtre overlay diffuse les nouvelles positions — la page doit
     // les appliquer, sinon « Mettre à jour » / activer un overlay ré-enregistrerait
@@ -135,7 +150,7 @@ export function Overlays() {
       (fn) => unlisteners.push(fn),
     );
     return () => unlisteners.forEach((fn) => fn());
-  }, [load, applyRemote, applyEditMode]);
+  }, [load, applyRemote, applyEditMode, setEditMode]);
 
   const activeCount = Object.values(cfg.overlays).filter((o) => o.enabled).length;
 
@@ -165,6 +180,30 @@ export function Overlays() {
     await setEditMode(next);
   };
 
+  // Retour depuis le panneau de config vers la grille. Si on y était entré via le
+  // ⚙ (donc depuis l'édition), on réactive le mode Édition pour continuer à
+  // positionner sans avoir à recliquer « Mode Édition ».
+  const handleBack = async () => {
+    setSelected(null);
+    if (!returnToEditRef.current) return;
+    returnToEditRef.current = false;
+    if (!cfg.masterEnabled) await setMasterEnabled(true);
+    await overlayApi.open().catch(() => {});
+    await setEditMode(true);
+  };
+
+  // Création d'un profil depuis la modale : on crée le profil avec les overlays
+  // cochés, puis — s'il y en a — on ouvre la fenêtre overlay et on bascule en
+  // mode édition pour les positionner directement.
+  const handleCreateProfile = async (name: string, enabledIds: OverlayId[]) => {
+    const hasActive = await createEmptyProfile(name, enabledIds);
+    setShowCreate(false);
+    if (hasActive) {
+      await overlayApi.open().catch(() => {});
+      await setEditMode(true);
+    }
+  };
+
   if (!loaded) return null;
 
   // ── Panneau de configuration d'un overlay ─────────────────────────────────
@@ -175,7 +214,7 @@ export function Overlays() {
     return (
       <div className="mx-auto max-w-3xl">
         <button
-          onClick={() => setSelected(null)}
+          onClick={handleBack}
           className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="h-4 w-4" /> {t("overlays.back")}
@@ -375,29 +414,23 @@ export function Overlays() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Save className="h-4 w-4 text-muted-foreground" />
-          {/* Sélection d'un profil → charge + pré-remplit le nom (pour ré-enregistrer).
-              La dernière entrée crée un profil VIERGE (tous les overlays désactivés) :
-              le select étant contrôlé (value = activeProfile), un prompt annulé
-              re-rend automatiquement la sélection courante. */}
+          {/* Bouton « + » : ouvre la modale de création d'un nouveau profil. */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setShowCreate(true)}
+            aria-label={t("overlays.profileNew")}
+            title={t("overlays.profileNew")}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          {/* Sélection d'un profil → le charge (le bouton ci-contre le ré-enregistre). */}
           <select
             value={cfg.activeProfile}
             onChange={(e) => {
               const name = e.target.value;
-              if (name === "__create__") {
-                const newName = prompt(t("overlays.profileNamePrompt"))?.trim();
-                if (newName) {
-                  createEmptyProfile(newName);
-                  setProfileName(newName);
-                }
-                return;
-              }
-              if (name) {
-                loadProfile(name);
-                setProfileName(name);
-              } else {
-                setProfileName("");
-              }
+              if (name) loadProfile(name);
             }}
             className="h-8 rounded-md border border-border bg-background px-2 text-sm"
           >
@@ -407,25 +440,14 @@ export function Overlays() {
                 {name}
               </option>
             ))}
-            <option value="__create__">{t("overlays.profileNew")}</option>
           </select>
-          <input
-            value={profileName}
-            onChange={(e) => setProfileName(e.target.value)}
-            placeholder={t("overlays.profilePlaceholder")}
-            className="h-8 w-36 rounded-md border border-border bg-background px-2 text-sm"
-          />
-          {/* Bouton UNIQUE : crée le profil ou écrase celui du même nom.
-              Le champ est vidé après coup (le profil créé reste visible dans
-              le select) — plus lisible pour enchaîner les créations. */}
+          {/* Ré-enregistre l'état courant dans le profil actif (désactivé si aucun).
+              La création d'un nouveau profil passe désormais par le bouton « + ». */}
           <Button
             size="sm"
-            disabled={!profileName.trim()}
-            className="gap-1.5 bg-emerald-600 text-white shadow hover:bg-emerald-500"
-            onClick={() => {
-              saveProfile(profileName.trim());
-              setProfileName("");
-            }}
+            disabled={!cfg.activeProfile}
+            className="gap-1.5"
+            onClick={() => saveProfile(cfg.activeProfile)}
           >
             <Save className="h-4 w-4" />
             {t("overlays.profileSave")}
@@ -451,7 +473,11 @@ export function Overlays() {
           return (
             <Card
               key={def.id}
-              onClick={() => setSelected(def.id)}
+              onClick={() => {
+                // Ouverture via une carte (hors édition) → pas de retour auto en édition.
+                returnToEditRef.current = false;
+                setSelected(def.id);
+              }}
               className={cn(
                 "cursor-pointer p-4 transition-all hover:border-foreground/20 hover:shadow-md",
                 s.enabled && "ring-1",
@@ -488,6 +514,144 @@ export function Overlays() {
           );
         })}
       </div>
+
+      {showCreate && (
+        <CreateProfileModal
+          existing={Object.keys(cfg.profiles)}
+          onCancel={() => setShowCreate(false)}
+          onCreate={handleCreateProfile}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Modale « Nouveau profil » aux couleurs du site : champ nom + liste des
+ * overlays à activer (cases à cocher). À la validation, le profil est créé
+ * et on bascule en mode édition pour placer les overlays choisis.
+ */
+function CreateProfileModal({
+  existing,
+  onCancel,
+  onCreate,
+}: {
+  existing: string[];
+  onCancel: () => void;
+  onCreate: (name: string, enabledIds: OverlayId[]) => void;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState("");
+  const [picked, setPicked] = useState<Set<OverlayId>>(new Set());
+
+  const togglePick = (id: OverlayId) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const trimmed = name.trim();
+  const duplicate = existing.includes(trimmed);
+  const canCreate = trimmed.length > 0 && !duplicate;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={onCancel}
+    >
+      <Card
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b border-border p-4">
+          <h2 className="text-lg font-bold">{t("overlays.createTitle")}</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {t("overlays.createDesc")}
+          </p>
+        </div>
+
+        <div className="space-y-4 overflow-y-auto p-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">{t("overlays.createName")}</label>
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("overlays.profilePlaceholder")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canCreate)
+                  onCreate(trimmed, [...picked]);
+              }}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            />
+            {duplicate && (
+              <p className="text-xs text-destructive">
+                {t("overlays.createDuplicate")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                {t("overlays.createPick")}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t("overlays.activeCount", { count: picked.size })}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              {OVERLAY_DEFS.map((def) => {
+                const Icon = def.icon;
+                const on = picked.has(def.id);
+                return (
+                  <button
+                    key={def.id}
+                    type="button"
+                    onClick={() => togglePick(def.id)}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors",
+                      on
+                        ? "border-transparent bg-accent"
+                        : "border-border hover:bg-accent/50",
+                    )}
+                    style={on ? { boxShadow: `0 0 0 1px ${def.accent}88` } : undefined}
+                  >
+                    <div
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-md"
+                      style={{ background: `${def.accent}22`, color: def.accent }}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                      {t(`overlays.items.${def.id}.title`)}
+                    </span>
+                    {on && <Check className="h-4 w-4 shrink-0 text-emerald-500" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-border p-4">
+          <Button variant="outline" size="sm" onClick={onCancel}>
+            {t("overlays.createCancel")}
+          </Button>
+          <Button
+            size="sm"
+            disabled={!canCreate}
+            className="gap-1.5 bg-emerald-600 text-white shadow hover:bg-emerald-500"
+            onClick={() => onCreate(trimmed, [...picked])}
+          >
+            <Check className="h-4 w-4" />
+            {picked.size > 0
+              ? t("overlays.createAndEdit")
+              : t("overlays.createConfirm")}
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }

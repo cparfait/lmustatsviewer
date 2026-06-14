@@ -151,9 +151,10 @@ interface OverlaysStore {
   setGlobalOpacity: (v: number) => void;
   /** Profils. */
   saveProfile: (name: string) => void;
-  /** Crée un profil **vierge** (tous les overlays désactivés, réglages par
-   *  défaut) et l'active immédiatement. */
-  createEmptyProfile: (name: string) => Promise<void>;
+  /** Crée un profil neuf (réglages par défaut) avec uniquement les overlays
+   *  de `enabledIds` activés, puis l'active immédiatement. Liste vide → profil
+   *  vierge (tous désactivés). Renvoie `true` si au moins un overlay est actif. */
+  createEmptyProfile: (name: string, enabledIds?: OverlayId[]) => Promise<boolean>;
   loadProfile: (name: string) => Promise<void>;
   deleteProfile: (name: string) => void;
   /** Applique une config reçue d'une autre fenêtre (pas de re-broadcast). */
@@ -282,10 +283,14 @@ export const useOverlaysStore = create<OverlaysStore>((set, get) => ({
     });
   },
 
-  createEmptyProfile: async (name) => {
+  createEmptyProfile: async (name, enabledIds = []) => {
     const cfg = get().cfg;
-    // Base 100 % défauts : tous les overlays OFF, positions/échelles d'origine.
+    // Base 100 % défauts (positions/échelles d'origine) puis on active la sélection.
     const blank = defaults().overlays;
+    for (const id of enabledIds) {
+      if (blank[id]) blank[id] = { ...blank[id], enabled: true };
+    }
+    const hasActive = enabledIds.length > 0;
     const profile: OverlayProfile = {
       overlays: blank,
       highFps: cfg.highFps,
@@ -294,18 +299,23 @@ export const useOverlaysStore = create<OverlaysStore>((set, get) => ({
     const next: OverlaysConfig = {
       ...cfg,
       overlays: blank,
+      // Un profil avec overlays doit être visible (sinon rien ne s'affiche).
+      masterEnabled: hasActive ? true : cfg.masterEnabled,
       profiles: { ...cfg.profiles, [name]: profile },
       activeProfile: name,
     };
     set(() => ({ cfg: next, saved: false }));
     await persistNow(next);
     set(() => ({ saved: true }));
-    // Plus aucun overlay actif → on libère la fenêtre overlay.
-    try {
-      await overlayApi.close();
-    } catch {
-      /* ignore */
+    if (!hasActive) {
+      // Aucun overlay actif → on libère la fenêtre overlay.
+      try {
+        await overlayApi.close();
+      } catch {
+        /* ignore */
+      }
     }
+    return hasActive;
   },
 
   loadProfile: async (name) => {

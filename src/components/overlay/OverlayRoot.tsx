@@ -73,32 +73,29 @@ export function OverlayRoot() {
       {editMode && (
         <>
           <div className="pointer-events-none fixed inset-0 bg-black/45 backdrop-blur-[2px]" />
-          <div className="pointer-events-none fixed left-1/2 top-1/2 z-[99999] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 rounded-xl border border-white/15 bg-black/70 px-8 py-6 text-center shadow-2xl backdrop-blur">
-            <span className="text-sm font-bold uppercase tracking-[0.25em] text-emerald-400">
+          {/* Bloc central : explication + bouton Terminer en dessous.
+              La fenêtre plein écran capture toute la souris → le bouton,
+              rendu ici sur l'overlay, garantit qu'on peut quitter l'édition. */}
+          <div className="fixed left-1/2 top-1/2 z-[99999] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4 rounded-xl border border-white/15 bg-black/70 px-8 py-6 text-center shadow-2xl backdrop-blur">
+            <span className="pointer-events-none text-sm font-bold uppercase tracking-[0.25em] text-emerald-400">
               {t("overlays.editHintTitle")}
             </span>
-            <span className="max-w-md text-sm leading-relaxed text-white/85">
+            <span className="pointer-events-none max-w-md text-sm leading-relaxed text-white/85">
               {t("overlays.editHintText")}
             </span>
+            <button
+              type="button"
+              onClick={() => {
+                setEditMode(false);
+                overlayApi.setEditMode(false).catch(() => {});
+              }}
+              className="mt-1 inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black shadow-lg hover:bg-emerald-400"
+            >
+              <Check className="h-4 w-4" />
+              {t("overlays.exitEdit")}
+            </button>
           </div>
         </>
-      )}
-      {/* Sortie de secours : en mode édition la fenêtre plein écran capture toute
-          la souris (on ne peut plus cliquer la fenêtre principale) → ce bouton,
-          rendu SUR l'overlay, garantit qu'on peut toujours quitter l'édition. */}
-      {editMode && (
-        <button
-          type="button"
-          onClick={() => {
-            setEditMode(false);
-            overlayApi.setEditMode(false).catch(() => {});
-          }}
-          style={{ pointerEvents: "auto" }}
-          className="fixed left-1/2 top-3 z-[100000] -translate-x-1/2 inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-black shadow-lg hover:bg-emerald-400"
-        >
-          <Check className="h-4 w-4" />
-          {t("overlays.exitEdit")}
-        </button>
       )}
       {OVERLAY_DEFS.map((def) => {
         const settings = cfg.overlays[def.id];

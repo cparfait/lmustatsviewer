@@ -1,7 +1,7 @@
 {
   "_comment": "Double schéma. `version` = source de vérité du build Tauri V3 (src-tauri/build.rs). `latest_version`/`release_url`/`download_url` = lus par l'update-checker de l'ancienne V1 PHP (htdocs/js/update-checker.js, via raw.githubusercontent.com/.../main/version.json) — NE PAS supprimer ces champs tant que des installations V1 existent.",
-  "version": "1.0.9",
-  "latest_version": "1.0.9",
+  "version": "0.9.4",
+  "latest_version": "0.9.4",
   "release_url": "https://github.com/cparfait/lmustatsviewer/releases/latest",
   "download_url": "https://github.com/cparfait/lmustatsviewer/releases/latest"
 }

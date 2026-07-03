@@ -118,13 +118,25 @@ export function voiceKeyForDiag(
       return { suffix: "vCornerWheelspin", vars: { n } };
     case "consistency":
       return { suffix: "vCornerConsistency", vars: { n } };
-    case "brake-timing":
+    case "brake-timing": {
       // sign +1 = freiné trop tard → « freine plus tôt » ; -1 = trop tôt.
-      return diag.sign >= 0
-        ? { suffix: "vCornerBrakeEarly", vars: { n, d: roundTo(mag, 5) } }
-        : { suffix: "vCornerBrakeLate", vars: { n, d: roundTo(mag, 5) } };
-    case "over-slow":
-      return { suffix: "vCornerOverSlow", vars: { n, d: roundTo(mag, 1) } };
+      // `relative` (réf dense périmée §3.3) → gabarit « que d'habitude ».
+      const d = roundTo(mag, 5);
+      if (diag.sign >= 0) {
+        return diag.relative
+          ? { suffix: "vCornerBrakeEarlyUsual", vars: { n, d } }
+          : { suffix: "vCornerBrakeEarly", vars: { n, d } };
+      }
+      return diag.relative
+        ? { suffix: "vCornerBrakeLateUsual", vars: { n, d } }
+        : { suffix: "vCornerBrakeLate", vars: { n, d } };
+    }
+    case "over-slow": {
+      const d = roundTo(mag, 1);
+      return diag.relative
+        ? { suffix: "vCornerOverSlowUsual", vars: { n, d } }
+        : { suffix: "vCornerOverSlow", vars: { n, d } };
+    }
     case "entry-too-fast":
       return { suffix: "vCornerEntryFast", vars: { n } };
     case "late-throttle":

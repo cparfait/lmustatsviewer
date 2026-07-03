@@ -287,6 +287,21 @@ export function computeTier(lapTimeMs: number, benchmark: PaceBenchmark): {
   return { tier, percent, deltaMs };
 }
 
+/**
+ * Classe **brute du sim** (live, ex. « LMGT3 », « Hypercar », « LMP2 ») → classe
+ * ohne_speed. Best-effort, dégradé propre (`null` si inconnu). ELMS/WEC sont
+ * indiscernables depuis la seule classe live → WEC par défaut.
+ */
+export function liveClassToOhne(raw: string): string | null {
+  const s = raw.toLowerCase();
+  if (s.includes("gt3")) return "GT3";
+  if (s.includes("hyper") || s.includes("lmh") || s.includes("lmdh")) return "Hypercar";
+  if (s.includes("gte")) return "GTE";
+  if (s.includes("lmp3") || /\bp3\b/.test(s)) return "LMP3";
+  if (s.includes("lmp2") || /\bp2\b/.test(s)) return "LMP2_WEC";
+  return null;
+}
+
 /** Mapping classe interne (DB) → classe ohne_speed. */
 export const OHNE_CLASS: Record<string, string> = {
   Hyper: "Hypercar",

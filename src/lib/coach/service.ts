@@ -12,7 +12,7 @@
  * Le moteur reste pur : toute I/O (charge/sauvegarde de réf) vit ici.
  */
 
-import { live, coachRef, type LiveData } from "@/lib/api";
+import { live, coachRef, type LiveData, type CoachRef } from "@/lib/api";
 import { frameFromLive } from "./frame";
 import {
   createCoachState,
@@ -45,6 +45,20 @@ import {
   type MacroCorner,
   type MappedMacro,
 } from "./apex";
+import { calibrateDriverLevel } from "./calibration";
+import {
+  createShortRefState,
+  shortRefTargets,
+  updateShortRef,
+  type ShortRefState,
+} from "./shortref";
+import { refFreshness, type RefConditions, type RefMode } from "./staleness";
+import {
+  fetchBenchmarks,
+  findBenchmark,
+  liveClassToOhne,
+  type PaceBenchmark,
+} from "@/lib/ohne_speed";
 import type { CoachFrame } from "./frame";
 
 type Listener = (event: CoachEvent, state: CoachEngineState) => void;
@@ -69,25 +83,52 @@ let sessionBestSaved = Infinity;
 let diag: DiagState = createDiagState();
 /** État de restitution vocale (fenêtre de délivrance + anti-spam, §1/§9). */
 let voice: CoachVoiceState = createCoachVoiceState();
-/** Niveau pilote (surchargeable ; auto-calibration = P3.2). */
+/** Niveau pilote — auto-calibré par ohne_speed (§7, P3.2) sauf override manuel. */
 let driverLevel: DriverLevel = "intermediate";
+/** Niveau épinglé par `setDriverLevel` → l'auto-calibration ne le touche plus. */
+let driverLevelPinned = false;
 /** Réf *macro* ApexPoints du combo (corrigée/enrichie, §4.2) — [] si non couvert. */
 let macro: MacroCorner[] = [];
 /** Mapping macro → fenêtres de la réf dense (matière des callouts prédictifs P3.3). */
 let mappedMacro: MappedMacro[] = [];
+
+// ── Auto-calibration niveau pilote (ohne_speed, §7, P3.2) ─────────────────────
+/** Benchmarks ohne_speed (best-effort, cache module) — tours alien par combo. */
+let benchmarks: PaceBenchmark[] | null = null;
+/** Circuit courant (nom brut live) pour résoudre le benchmark. */
+let comboTrack = "";
+/** Classe ohne_speed du combo courant, ou `null` si non mappable. */
+let comboOhneClass: string | null = null;
+/** Tour alien (ms) du combo, résolu paresseusement ; 0 tant qu'indisponible. */
+let comboAlienMs = 0;
+/** Meilleur tour **propre** (ms) vu sur le combo — base de calibration (§7). */
+let bestCleanLapMs = Infinity;
+
+/** Réf **courte** : médiane glissante par virage des passages propres (§3.3, P3.2). */
+let shortRef: ShortRefState = createShortRefState();
 
 function dispatch(events: CoachEvent[], frame: CoachFrame): void {
   for (const ev of events) {
     if (ev.type === "combo-changed") {
       diag = createDiagState(); // nouvel combo → nouveaux anneaux σ
       voice = createCoachVoiceState(); // …et nouvelle file de délivrance
+      shortRef = createShortRefState(); // …et nouvelle réf courte (conditions du combo)
+      // Nouveau combo → nouvelle cible alien : on repart sur le défaut et on
+      // re-calibrera dès le premier tour propre (§7, P3.2).
+      comboTrack = ev.track;
+      comboOhneClass = liveClassToOhne(frame.carClass);
+      comboAlienMs = 0;
+      bestCleanLapMs = Infinity;
+      if (!driverLevelPinned) driverLevel = "intermediate";
       // Réf macro ApexPoints (§4.2) : résolue dès le combo (indépendante de la
       // réf dense). Le mapping sur les fenêtres est (re)fait à la charge de réf.
       macro = macroForCombo({ track: ev.track, carClass: frame.carClass });
       mappedMacro = mapMacroToWindows(macro, state.windows);
       loadRefFor(ev.track, ev.carModel);
-    } else if (ev.type === "lap-completed") maybeCaptureRef(ev.lap);
-    else if (ev.type === "corner-passed") runDiagnostic(ev.measurement, frame);
+    } else if (ev.type === "lap-completed") {
+      maybeCaptureRef(ev.lap);
+      calibrateFromLap(ev.lap);
+    } else if (ev.type === "corner-passed") runDiagnostic(ev.measurement, frame);
     for (const l of listeners) l(ev, state);
   }
 }
@@ -100,12 +141,22 @@ function dispatch(events: CoachEvent[], frame: CoachFrame): void {
  */
 function runDiagnostic(measurement: CornerMeasurement, frame: CoachFrame): void {
   const refMaps = parseRefMaps(state.ref?.meta_json);
+  // Péremption de la réf dense (§3.3) : conditions courantes vs conditions de la réf.
+  // Périmée → cible = réf courte (deltas relatifs « que d'habitude »).
+  const refMode = currentRefMode(frame);
+  // Réf courte du virage (médiane des passages **antérieurs** : on la lit avant de
+  // pousser le passage courant, pour comparer à l'habitude et non à soi-même).
+  const short = shortRefTargets(shortRef, measurement.corner_uid) ?? undefined;
   const result = diagnoseCorner(measurement, diag, {
     level: driverLevel,
     calibrationLaps: state.validLaps,
     refTcMap: refMaps.tc,
     refAbsMap: refMaps.abs,
+    refMode,
+    shortRef: short,
   });
+  // Le passage courant nourrit l'habitude pour les virages suivants (§3.3).
+  updateShortRef(shortRef, measurement);
   const policy = policyFor(modeFromSession(frame.sessionNum, state.ref !== null));
   observeCorner(
     voice,
@@ -120,6 +171,73 @@ function runDiagnostic(measurement: CornerMeasurement, frame: CoachFrame): void 
     policy,
   );
   for (const l of diagListeners) l(result, state);
+}
+
+/** Conditions comparables d'une réf dense (méta + build + kind) pour la péremption. */
+function refConditions(ref: CoachRef): RefConditions {
+  let m: {
+    trackTemp?: number;
+    wetness?: number;
+    compoundF?: string;
+    compoundR?: string;
+  } = {};
+  try {
+    m = JSON.parse(ref.meta_json) as typeof m;
+  } catch {
+    /* méta illisible → conditions neutres (pas de fausse péremption) */
+  }
+  return {
+    gameBuild: ref.game_build ?? "",
+    trackTemp: typeof m.trackTemp === "number" ? m.trackTemp : 0,
+    wetness: typeof m.wetness === "number" ? m.wetness : 0,
+    compoundF: typeof m.compoundF === "string" ? m.compoundF : "",
+    compoundR: typeof m.compoundR === "string" ? m.compoundR : "",
+  };
+}
+
+/** Conditions courantes (dernier instantané live) pour la comparaison de péremption. */
+function liveConditions(frame: CoachFrame): RefConditions {
+  const meta = lastData ? captureMetaFromLive(lastData, frame) : null;
+  return {
+    gameBuild: frame.gameBuild,
+    trackTemp: meta?.trackTemp ?? 0,
+    wetness: meta?.wetness ?? 0,
+    compoundF: meta?.compoundF ?? "",
+    compoundR: meta?.compoundR ?? "",
+  };
+}
+
+/** Mode de la réf dense courante (§3.3) : `fresh` par défaut, `indicative` si périmée. */
+function currentRefMode(frame: CoachFrame): RefMode {
+  const ref = state.ref;
+  if (!ref) return "fresh"; // sans réf, le diag renvoie déjà `muted: no-ref`
+  return refFreshness(refConditions(ref), liveConditions(frame), ref.kind).mode;
+}
+
+/**
+ * Auto-calibration du niveau pilote (§7, P3.2) à la clôture d'un tour **éligible** :
+ * met à jour le meilleur tour propre puis re-situe le pilote vs le tour alien.
+ */
+function calibrateFromLap(lap: CompletedLap): void {
+  if (driverLevelPinned) return;
+  if (!lap.eligibility.eligible || lap.lapTime <= 0) return;
+  const ms = lap.lapTime * 1000; // `lapTime` en secondes → ms (échelle ohne_speed)
+  if (ms >= bestCleanLapMs) return;
+  bestCleanLapMs = ms;
+  recalibrateLevel();
+}
+
+/** Résout le tour alien (paresseux) puis fixe le niveau pilote depuis le best propre. */
+function recalibrateLevel(): void {
+  if (driverLevelPinned || bestCleanLapMs === Infinity) return;
+  if (comboAlienMs <= 0) {
+    if (!benchmarks || !comboTrack || !comboOhneClass) return;
+    const bm = findBenchmark(benchmarks, comboTrack, comboOhneClass);
+    comboAlienMs = bm?.racePaceMs.alien ?? 0;
+    if (comboAlienMs <= 0) return;
+  }
+  const lvl = calibrateDriverLevel(bestCleanLapMs, comboAlienMs);
+  if (lvl) driverLevel = lvl;
 }
 
 /** Extrait les maps TC/ABS des métadonnées de réf (péremption des verdicts §6). */
@@ -202,10 +320,25 @@ export async function startCoachService(): Promise<void> {
   state = createCoachState();
   diag = createDiagState();
   voice = createCoachVoiceState();
+  shortRef = createShortRefState();
   sessionBestSaved = Infinity;
   lastData = null;
   macro = [];
   mappedMacro = [];
+  comboTrack = "";
+  comboOhneClass = null;
+  comboAlienMs = 0;
+  bestCleanLapMs = Infinity;
+  if (!driverLevelPinned) driverLevel = "intermediate";
+  // Benchmarks ohne_speed (best-effort) pour l'auto-calibration §7 — sans bloquer.
+  void fetchBenchmarks()
+    .then((b) => {
+      benchmarks = b;
+      recalibrateLevel(); // au cas où un best propre serait déjà arrivé
+    })
+    .catch(() => {
+      /* hors-ligne / parsing → on garde le niveau par défaut */
+    });
   unlisten = await live.onData(onLive);
 }
 
@@ -219,11 +352,16 @@ export function stopCoachService(): void {
   state = createCoachState();
   diag = createDiagState();
   voice = createCoachVoiceState();
+  shortRef = createShortRefState();
   loadingCombo = "";
   lastData = null;
   sessionBestSaved = Infinity;
   macro = [];
   mappedMacro = [];
+  comboTrack = "";
+  comboOhneClass = null;
+  comboAlienMs = 0;
+  bestCleanLapMs = Infinity;
 }
 
 /** Abonne un auditeur aux événements du coach ; renvoie le désabonnement. */
@@ -255,9 +393,19 @@ export function onCoachSpeak(listener: SpeakListener): () => void {
   return () => speakListeners.delete(listener);
 }
 
-/** Fixe le niveau pilote (défaut `intermediate` ; auto-calibration P3.2). */
+/**
+ * Fixe le niveau pilote **manuellement** et **épingle** le réglage : l'auto-calibration
+ * ohne_speed (§7) ne le modifie plus jusqu'au prochain `start`/`stop`. Défaut : niveau
+ * auto-calibré (`intermediate` tant qu'aucun tour propre n'a été mesuré).
+ */
 export function setDriverLevel(level: DriverLevel): void {
   driverLevel = level;
+  driverLevelPinned = true;
+}
+
+/** Niveau pilote courant (auto-calibré ou épinglé) — lecture seule (debug/UI). */
+export function coachDriverLevel(): DriverLevel {
+  return driverLevel;
 }
 
 /** Réf *macro* ApexPoints du combo courant (corrigée/enrichie, §4.2) ; [] si non couvert. */

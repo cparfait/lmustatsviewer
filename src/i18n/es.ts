@@ -892,6 +892,11 @@ export default {
     vCornerBrakeEarly: "Curva {{n}}: frena {{d}} metros antes",
     vCornerBrakeLate: "Curva {{n}}: frena {{d}} metros después",
     vCornerOverSlow: "Curva {{n}}: lleva {{d}} más",
+    // Variantes «que de costumbre» (§3.3, P3.2): ref densa caducada → deltas relativos
+    // a tu mediana reciente, no al mejor.
+    vCornerBrakeEarlyUsual: "Curva {{n}}: frena {{d}} metros antes que de costumbre",
+    vCornerBrakeLateUsual: "Curva {{n}}: frena {{d}} metros después que de costumbre",
+    vCornerOverSlowUsual: "Curva {{n}}: lleva {{d}} más que de costumbre",
     vCornerEntryFast: "Curva {{n}}: entrada demasiado rápida",
     vCornerLateThrottle: "Salida {{n}}: acelera antes",
     vCornerGripUnused: "Curva {{n}}: puedes exigir más",
@@ -972,6 +977,9 @@ export default {
       vCornerBrakeEarly: "Frenada demasiado tardía",
       vCornerBrakeLate: "Frenada demasiado temprana",
       vCornerOverSlow: "Velocidad mínima muy baja",
+      vCornerBrakeEarlyUsual: "Frenas más tarde que de costumbre (ref caducada)",
+      vCornerBrakeLateUsual: "Frenas más pronto que de costumbre (ref caducada)",
+      vCornerOverSlowUsual: "Velocidad mín. bajo tu costumbre (ref caducada)",
       vCornerEntryFast: "Entrada muy rápida (salida comprometida)",
       vCornerLateThrottle: "Reaceleración muy tardía",
       vCornerGripUnused: "Grip disponible infrautilizado",

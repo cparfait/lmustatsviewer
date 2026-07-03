@@ -892,6 +892,11 @@ export default {
     vCornerBrakeEarly: "Kurve {{n}}: bremse {{d}} Meter früher",
     vCornerBrakeLate: "Kurve {{n}}: bremse {{d}} Meter später",
     vCornerOverSlow: "Kurve {{n}}: nimm {{d}} mehr mit",
+    // «Als sonst»-Varianten (§3.3, P3.2): veraltete dichte Referenz → relative Deltas
+    // zu deinem jüngsten Median, nicht zur Bestzeit.
+    vCornerBrakeEarlyUsual: "Kurve {{n}}: bremse {{d}} Meter früher als sonst",
+    vCornerBrakeLateUsual: "Kurve {{n}}: bremse {{d}} Meter später als sonst",
+    vCornerOverSlowUsual: "Kurve {{n}}: nimm {{d}} mehr mit als sonst",
     vCornerEntryFast: "Kurve {{n}}: zu schnell am Einlenken",
     vCornerLateThrottle: "Ausgang {{n}}: früher wieder aufs Gas",
     vCornerGripUnused: "Kurve {{n}}: du kannst mehr riskieren",
@@ -972,6 +977,9 @@ export default {
       vCornerBrakeEarly: "Zu spät gebremst",
       vCornerBrakeLate: "Zu früh gebremst",
       vCornerOverSlow: "Minimalgeschwindigkeit zu niedrig",
+      vCornerBrakeEarlyUsual: "Bremst später als sonst (Referenz veraltet)",
+      vCornerBrakeLateUsual: "Bremst früher als sonst (Referenz veraltet)",
+      vCornerOverSlowUsual: "Min-Speed unter deinem Üblichen (Referenz veraltet)",
       vCornerEntryFast: "Einfahrt zu schnell (Ausgang vermasselt)",
       vCornerLateThrottle: "Zu spät wieder Gas gegeben",
       vCornerGripUnused: "Verfügbarer Grip ungenutzt",

@@ -813,6 +813,52 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-07-03 — Coach par virage : P3.2 (niveau auto-calibré + réf courte + péremption) implémenté
+
+**Contexte** : suite de P3.1. Trois briques de fiabilité (§3.3, §7) : le coach cesse
+de raisonner avec un niveau pilote figé et une réf dense supposée éternellement valide.
+
+**Livré** — trois modules **purs** (rejouables §14) + câblage service :
+- ✅ **`calibration.ts`** — `driverLevelFromPercent` (§7 : `< 102 %` rapide / `102–107 %`
+  intermédiaire / `> 107 %` débutant, bornes au palier favorable) + `calibrateDriverLevel(bestMs, alienMs)`.
+  Calibration sur le **meilleur tour propre** (potentiel réel, monotone → pas de va-et-vient de palier).
+- ✅ **`shortref.ts`** — anneau des 3 derniers passages **propres** par `corner_uid`,
+  `shortRefTargets` = **médiane** par champ (robuste à un aberrant), `null` sous 2 passages.
+  Ne peut exister que si le moteur produit des `corner-passed` → jamais en Découverte pure.
+- ✅ **`staleness.ts`** — `refFreshness(refMeta, current, kind)` → `fresh | indicative` si
+  build ≠ / |trackTemp| > 8 °C / |wetness| > 0.1 / composé ≠ / `kind = stale`. Comparaisons
+  gardées sur données présentes (pas de fausse péremption si build/composé inconnu).
+- ✅ **`diagnostics.ts`** — `computeHits` scindé en `thresholds` (échelle = réf dense, même
+  périmée) + `paceHits(targets)` + `baseHits` (binaire/constance, indépendants de la cible).
+  Politique de réf (§3.3) : **frais** → cible dense mais retenue **seulement si confirmée aussi
+  sur la réf courte** (« sur les deux réfs ») ; **indicatif** → cible **courte** seule, deltas
+  **relatifs** (`relative`), sinon silence (préférer se taire §15). Champ `relative` sur le diagnostic.
+- ✅ **`voice.ts` + i18n ×4** — variantes « que d'habitude » (`vCornerBrakeEarly/LateUsual`,
+  `vCornerOverSlowUsual`) choisies quand `relative` ; registre `voiceMessages` (personnalisables).
+- ✅ **`service.ts`** — fetch benchmarks (best-effort), résolution alien paresseuse par combo
+  (`liveClassToOhne` exporté d'`ohne_speed`, réutilisé par `useAlienTarget`), re-calibration au
+  tour propre éligible ; `refMode` calculé par trame (méta réf vs conditions live) + réf courte du
+  virage passés à `diagnoseCorner`, `updateShortRef` **après** (habitude = passages antérieurs).
+  Reset au start/stop/combo. `setDriverLevel` **épingle** (override manuel, coupe l'auto-calibration).
+- ✅ **Validé** : `tsc -b` ✅, `eslint` ✅, `npm run build` ✅, + **smoke test déterministe**
+  (esbuild + node, **34 assertions**) : calibration (bornes 101/102/107/107.01 + gardes), réf courte
+  (médiane 2/3, fenêtre glissante, tainted ignoré), péremption (build/temp ±8/wetness/compound/stale/inconnu),
+  diagnostic (confirmation sur les deux réfs : émet si confirme, **silence si l'habitude contredit** ;
+  indicatif + short → **relatif** ; indicatif sans short → silence ; calibration < 3 → silence).
+
+**⚠️ Réserves** : la confirmation « sur les deux réfs » en mode frais **masque volontairement**
+un écart *systématique* vs le best qui est devenu ton habitude (anti-nag §15 ; le best reste
+aspiratif via l'analyse IA post-course). Calibration niveau sur le **meilleur** tour (un tour
+aspiré éligible pourrait sur-classer — atténué par le critère `gap_ahead > 2 s` de l'éligibilité).
+Péremption **âge > 60 jours** (re-calibration proposée §3.3) non implémentée (nécessite horloge
+mur — nicety UI, hors chemin critique). Normalisation carburant (§3.3, ~0,03 s/tour/L) non faite.
+Mapping classe ohne_speed ELMS/WEC indiscernable en live (WEC par défaut) — sans effet sur le palier.
+
+**📋 Prochaine étape** : **P3.3** — mode **Découverte prédictif** : consommer `coachMacro`/
+`coachMappedMacro` (posés en P3.1) pour émettre des callouts ApexPoints **avant** le freinage
+(déclenchement à `brakeDist − v × (durée_TTS + 2 s)`, §8), **pré-synthétisés** au chargement du
+combo (Piper asynchrone) ; s'estompent au fil des tours ; réservés Découverte/Drill/escalade (§8).
+
 ### 2026-07-03 — Coach par virage : P3.1 (mapping ApexPoints + corrections par circuit) implémenté
 
 **Contexte** : début de la phase P3 (références enrichies). Transformer le guide **macro** ApexPoints (`braking-guide-data.ts` — repères de freinage par panneau, 6-10 zones/circuit, jamais tous les virages) en source *structurée* pour le coach : parsée, **corrigée** (anomalies vérifiées §0.7), enrichie, et **mappée sur les fenêtres de la réf dense** — matière des callouts prédictifs (§8, câblés en P3.3).
@@ -948,7 +994,8 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ **P2.3** — Widget overlay `cornercoach` : event `coach-corner` émis par `useCornerCoach` à la délivrance vocale ({texte, virage, code, magnitude **exacte**, unité, sens}) ; composant + registre (`OverlayId`/`OVERLAY_DEFS`/`WIDGETS`) + i18n ×4 ; effacement 15 s (2026-07-03).
 - ✅ **P2.4** — Modes par session (`coach/mode.ts` : Practice nominal / Course = erreur répétée ≥ 3× / Qualif = muet en roulage) + pédagogie dans `voice.ts` (`observeCorner` sur **chaque** clôture de virage) : focus collant §1.3 (un chantier, tenu ≤ 5 tours, pas de zapping), dégressif §1.5 (systématique → 1/2 → 1/3 → silence), renforcement positif §1.4 (résolution sur 2 passages propres → `vCornerResolved`/`vCornerClean`, widget vert). i18n ×4 + registre `voiceMessages` (2026-07-03).
 - ✅ **P3.1** — Mapping ApexPoints (`apex.ts` : parsing `T2-T9`/`T10A`, table de correction COTA/Sebring embarquée + `validateCorrections`, réf macro enrichie, mapping ordinal monotone → fenêtres) + branchement service (getters `coachMacro`/`coachMappedMacro`) (2026-07-03).
-- **P3.2/P3.3** — Niveau pilote auto-calibré (ohne_speed) + réf courte + péremption · mode Découverte prédictif + pré-synthèse TTS.
+- ✅ **P3.2** — Niveau pilote **auto-calibré** ohne_speed (`calibration.ts`) + **réf courte** médiane glissante 3 tours propres (`shortref.ts`) + **péremption** build/temp/wetness/compound (`staleness.ts`) ; `diagnostics.ts` : cible dense **confirmée sur les deux réfs** en frais / cible **courte relative** (« que d'habitude ») si périmée ; câblage service (2026-07-03).
+- **P3.3** — Mode Découverte prédictif (callouts ApexPoints, pré-synthèse TTS) + consommation `coachMacro`/`coachMappedMacro`.
 - **P4.1/P4.2/P4.3** — Objectifs structurés + rapport 1+1+1 + `corner_history` · mode Drill · banque LLM à slots + « pourquoi ? » vocal.
 - **P5** — Ghost `.ld` · coaching de stint · heatmap · inputs/virage · risque.
 - **T** — Infra de test sans rouler (enregistreur de frames JSONL, rejeu ×1000, fixtures, corpus d'or).

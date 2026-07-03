@@ -171,6 +171,10 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vCornerBrakeEarly", vars: ["n", "d"], sample: { n: 3, d: 50 } },
       { key: "vCornerBrakeLate", vars: ["n", "d"], sample: { n: 3, d: 20 } },
       { key: "vCornerOverSlow", vars: ["n", "d"], sample: { n: 7, d: 10 } },
+      // Variantes « que d'habitude » (réf périmée §3.3, P3.2).
+      { key: "vCornerBrakeEarlyUsual", vars: ["n", "d"], sample: { n: 3, d: 50 } },
+      { key: "vCornerBrakeLateUsual", vars: ["n", "d"], sample: { n: 3, d: 20 } },
+      { key: "vCornerOverSlowUsual", vars: ["n", "d"], sample: { n: 7, d: 10 } },
       { key: "vCornerEntryFast", vars: ["n"], sample: { n: 6 } },
       { key: "vCornerLateThrottle", vars: ["n"], sample: { n: 9 } },
       { key: "vCornerGripUnused", vars: ["n"], sample: { n: 4 } },

@@ -17,6 +17,7 @@ import { config, type LiveData } from "@/lib/api";
 import {
   fetchBenchmarks,
   findBenchmark,
+  liveClassToOhne,
   type PaceBenchmark,
 } from "@/lib/ohne_speed";
 
@@ -29,18 +30,6 @@ const TIER_KEYS = [
   "offline",
 ] as const;
 export type TierKey = (typeof TIER_KEYS)[number];
-
-/** Classe brute du sim (live) → classe ohne_speed. Best-effort, dégradé propre. */
-function liveClassToOhne(raw: string): string | null {
-  const s = raw.toLowerCase();
-  if (s.includes("gt3")) return "GT3";
-  if (s.includes("hyper") || s.includes("lmh") || s.includes("lmdh")) return "Hypercar";
-  if (s.includes("gte")) return "GTE";
-  if (s.includes("lmp3") || /\bp3\b/.test(s)) return "LMP3";
-  // WEC par défaut : ELMS/WEC indiscernables depuis la seule classe live.
-  if (s.includes("lmp2") || /\bp2\b/.test(s)) return "LMP2_WEC";
-  return null;
-}
 
 export interface AlienTarget {
   tier: TierKey;

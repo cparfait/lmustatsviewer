@@ -13,4 +13,7 @@ export * from "./diagnostics";
 export * from "./mode";
 export * from "./voice";
 export * from "./apex";
+export * from "./calibration";
+export * from "./shortref";
+export * from "./staleness";
 export * from "./service";

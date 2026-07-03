@@ -893,6 +893,11 @@ export default {
     vCornerBrakeEarly: "Virage {{n}} : freine {{d}} mètres plus tôt",
     vCornerBrakeLate: "Virage {{n}} : freine {{d}} mètres plus tard",
     vCornerOverSlow: "Virage {{n}} : porte {{d}} de plus",
+    // Variantes « que d'habitude » (§3.3, P3.2) : réf dense périmée → deltas relatifs
+    // à ta médiane récente, pas au best.
+    vCornerBrakeEarlyUsual: "Virage {{n}} : freine {{d}} mètres plus tôt que d'habitude",
+    vCornerBrakeLateUsual: "Virage {{n}} : freine {{d}} mètres plus tard que d'habitude",
+    vCornerOverSlowUsual: "Virage {{n}} : porte {{d}} de plus que d'habitude",
     vCornerEntryFast: "Virage {{n}} : trop vite à l'entrée",
     vCornerLateThrottle: "Sortie {{n}} : remets les gaz plus tôt",
     vCornerGripUnused: "Virage {{n}} : tu peux pousser plus fort",
@@ -973,6 +978,9 @@ export default {
       vCornerBrakeEarly: "Freinage trop tardif",
       vCornerBrakeLate: "Freinage trop précoce",
       vCornerOverSlow: "Vitesse minimale trop basse",
+      vCornerBrakeEarlyUsual: "Freinage plus tardif que ton habitude (réf périmée)",
+      vCornerBrakeLateUsual: "Freinage plus précoce que ton habitude (réf périmée)",
+      vCornerOverSlowUsual: "Vitesse mini sous ton habitude (réf périmée)",
       vCornerEntryFast: "Entrée trop rapide (sortie compromise)",
       vCornerLateThrottle: "Réaccélération trop tardive",
       vCornerGripUnused: "Grip disponible sous-exploité",

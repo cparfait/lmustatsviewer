@@ -891,6 +891,11 @@ export default {
     vCornerBrakeEarly: "Turn {{n}}: brake {{d}} metres earlier",
     vCornerBrakeLate: "Turn {{n}}: brake {{d}} metres later",
     vCornerOverSlow: "Turn {{n}}: carry {{d}} more",
+    // "Than usual" variants (§3.3, P3.2): stale dense ref → relative deltas vs your
+    // recent median, not vs the best.
+    vCornerBrakeEarlyUsual: "Turn {{n}}: brake {{d}} metres earlier than usual",
+    vCornerBrakeLateUsual: "Turn {{n}}: brake {{d}} metres later than usual",
+    vCornerOverSlowUsual: "Turn {{n}}: carry {{d}} more than usual",
     vCornerEntryFast: "Turn {{n}}: too fast on entry",
     vCornerLateThrottle: "Exit {{n}}: get on the throttle earlier",
     vCornerGripUnused: "Turn {{n}}: you can push harder",
@@ -971,6 +976,9 @@ export default {
       vCornerBrakeEarly: "Braking too late",
       vCornerBrakeLate: "Braking too early",
       vCornerOverSlow: "Minimum speed too low",
+      vCornerBrakeEarlyUsual: "Braking later than your usual (ref stale)",
+      vCornerBrakeLateUsual: "Braking earlier than your usual (ref stale)",
+      vCornerOverSlowUsual: "Min speed below your usual (ref stale)",
       vCornerEntryFast: "Entry too fast (compromised exit)",
       vCornerLateThrottle: "Throttle reapplied too late",
       vCornerGripUnused: "Available grip underused",

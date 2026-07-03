@@ -56,9 +56,11 @@ export function RelativeWidget({ data, content, accent, t }: WidgetProps) {
                       <td className="py-0.5 text-[9px] font-bold text-amber-400">PIT</td>
                     )}
                     {content.gaps !== false && (
+                      // rel < 0 = voiture DEVANT moi (retard au leader plus petit)
+                      // → vert (cible à rattraper) ; rel > 0 = DERRIÈRE (menace) → rouge.
                       <td
                         className="w-16 py-0.5 pr-1 text-right font-mono tabular-nums"
-                        style={{ color: s.is_player ? accent : rel < 0 ? "#f87171" : "#4ade80" }}
+                        style={{ color: s.is_player ? accent : rel < 0 ? "#4ade80" : "#f87171" }}
                       >
                         {s.is_player ? "—" : `${rel > 0 ? "+" : ""}${rel.toFixed(1)}`}
                       </td>

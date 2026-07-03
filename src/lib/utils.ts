@@ -1,5 +1,22 @@
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+/**
+ * tailwind-merge enseigné à reconnaître nos tailles de police custom
+ * (`text-nano`/`text-micro`/`text-mini`, déclarées en `@utility` dans
+ * `index.css`). Sans ça, twMerge les prend pour des classes `text-*` de couleur
+ * et les **supprime** dès qu'une couleur `text-…` est présente dans le même
+ * `cn(...)` — ce qui faisait rendre `SessionBadge`/`TierBadge` en 12 px (taille
+ * héritée de la cellule) au lieu de 10 px, alors que `ClassBadge` (sans `cn`)
+ * restait en 10 px. D'où les pastilles « de tailles différentes » sur GT3.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [{ text: ["nano", "micro", "mini"] }],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -26,8 +43,12 @@ export function formatTime(
   seconds: number | null | undefined
 ): string {
   if (seconds == null || !isFinite(seconds) || seconds <= 0) return "N/A";
-  const min = Math.floor(seconds / 60);
-  const sec = seconds - min * 60;
+  // Arrondir AU MS d'abord, puis répartir min/sec — sinon un temps comme
+  // 119.9999 s donnait "1:60.000" (min sur la valeur brute, sec arrondi par
+  // toFixed(3) → "60.000") au lieu de "2:00.000".
+  const totalMs = Math.round(seconds * 1000);
+  const min = Math.floor(totalMs / 60000);
+  const sec = (totalMs % 60000) / 1000;
   return `${min}:${sec.toFixed(3).padStart(6, "0")}`;
 }
 
@@ -50,8 +71,10 @@ export function formatGap(seconds: number | null | undefined): string {
   const sign = seconds < 0 ? "-" : "";
   const abs = Math.abs(seconds);
   if (abs < 60) return `${sign}${abs.toFixed(3)}s`;
-  const min = Math.floor(abs / 60);
-  const sec = abs - min * 60;
+  // Arrondir au ms avant de répartir min/sec (évite "1:60.000", cf. formatTime).
+  const totalMs = Math.round(abs * 1000);
+  const min = Math.floor(totalMs / 60000);
+  const sec = (totalMs % 60000) / 1000;
   return `${sign}${min}:${sec.toFixed(3).padStart(6, "0")}`;
 }
 

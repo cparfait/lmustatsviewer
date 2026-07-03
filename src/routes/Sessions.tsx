@@ -224,6 +224,10 @@ export function Sessions() {
         perPage
       );
       setData(result);
+    } catch (e) {
+      // Échec backend (base verrouillée, filtre invalide…) : on trace au lieu de
+      // laisser une promesse rejetée non gérée. La liste garde son état précédent.
+      console.error("[Sessions] chargement de la liste échoué", e);
     } finally {
       setLoading(false);
     }
@@ -323,12 +327,17 @@ export function Sessions() {
             races.reduce((s, r) => s + r.class_position, 0) / races.length
           ).toFixed(1)
         : "—";
+    // DNF = course non terminée. Le statut « terminé » est la chaîne exacte
+    // "Finished Normally" (cf. FinishCell, Dashboard, SessionDetail) ; un
+    // « Driver Swap » n'est pas un abandon. Les anciennes valeurs "Finished" /
+    // "None" n'existent pas dans les données → toutes les courses finies
+    // étaient comptées comme DNF.
     const dnfs = rows.filter(
       (r) =>
         r.session_type === "Race" &&
         r.finish_status &&
-        r.finish_status !== "Finished" &&
-        r.finish_status !== "None"
+        r.finish_status !== "Finished Normally" &&
+        r.finish_status !== "Driver Swap"
     ).length;
     return { podiums, top5, top10, avgPos, dnfs };
   }, [rows]);

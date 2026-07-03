@@ -98,7 +98,9 @@ export function computeElevation(
 
   const d0 = cd[0];
   const telD = cd.map((d) => d - d0);
-  const maxTel = Math.max(...telD);
+  // `cd` est trié croissant → `telD` aussi : le max est le dernier élément
+  // (évite un `Math.max(...telD)` qui peut faire RangeError sur un grand tableau).
+  const maxTel = telD[telD.length - 1];
   if (maxTel <= 1) return new Array(n).fill(0);
 
   const xp = ref.map((p) => p[0]);
@@ -149,7 +151,8 @@ export function computeElevation(
     }
   }
 
-  // Base zéro.
-  const minZ = Math.min(...z);
+  // Base zéro. Boucle plutôt que `Math.min(...z)` (spread d'un grand tableau).
+  let minZ = Infinity;
+  for (const v of z) if (v < minZ) minZ = v;
   return z.map((v) => v - minZ);
 }

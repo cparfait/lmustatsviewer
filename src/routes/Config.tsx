@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MENU_MODULE_KEYS } from "@/components/layout/Header";
 import {
   FolderOpen,
   RefreshCw,
@@ -50,11 +51,16 @@ import {
   Eye,
   EyeOff,
   Monitor,
+  LayoutGrid,
+  Heart,
+  ExternalLink,
+  HelpCircle,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { useTheme } from "@/stores/theme";
 import { system, config as configApi, indexer } from "@/lib/api";
 import { isTauri } from "@/lib/api";
+import { toastError } from "@/stores/dialogs";
 import { invoke } from "@tauri-apps/api/core";
 import { cn } from "@/lib/utils";
 import { checkForUpdate } from "@/lib/updater";
@@ -73,12 +79,34 @@ import { fetchModels } from "@/lib/ai/models";
 import { testConnection } from "@/lib/ai/coach";
 import { systemPrompt } from "@/lib/ai/prompts/system";
 import type { ModelInfo } from "@/lib/ai/types";
+import { AiModelPicker } from "@/components/AiModelPicker";
+import { VoiceCoachConfig } from "@/components/VoiceCoachConfig";
+import { AiCoachHelpModal } from "@/components/AiCoachHelpModal";
 
 const LANGUAGES = [
   { code: "fr", label: "Français", flag: "/flags/fr.png" },
   { code: "en", label: "English", flag: "/flags/gb.png" },
   { code: "es", label: "Español", flag: "/flags/es.png" },
   { code: "de", label: "Deutsch", flag: "/flags/de.png" },
+];
+
+/** Crédits — sources de données / inspirations utilisées par l'app. */
+const CREDIT_SOURCES: { name: string; roleKey: string; url?: string }[] = [
+  {
+    name: "ApexPoints",
+    roleKey: "creditBraking",
+    url: "https://apex-brake-flow.base44.app/",
+  },
+  {
+    name: "Unleashed Drivers",
+    roleKey: "creditVideos",
+    url: "https://www.youtube.com/playlist?list=PLk_3Ekb3fRQgMjnknAxq5ZGiT3sUOyFA7",
+  },
+  {
+    name: "OhneSpeed",
+    roleKey: "creditPace",
+    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml?gid=1766901750&single=true",
+  },
 ];
 
 const TIMEZONES: string[] = (() => {
@@ -102,6 +130,8 @@ export function Config() {
   const systemTray = useAppStore((s) => s.systemTray);
   const autoUpdate = useAppStore((s) => s.autoUpdate);
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
+  const overlayTargetTier = useAppStore((s) => s.overlayTargetTier);
+  const menuModules = useAppStore((s) => s.menuModules);
   // Overlays in-game : raccourci global Afficher/Masquer (toggle).
   const overlayToggleKey = useAppStore((s) => s.overlayToggleKey);
   const voiceAnnouncements = useAppStore((s) => s.voiceAnnouncements);
@@ -171,6 +201,7 @@ export function Config() {
 
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [spotterCmdModalOpen, setSpotterCmdModalOpen] = useState(false);
+  const [aiHelpOpen, setAiHelpOpen] = useState(false);
   const [spotterOpen, setSpotterOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
 
@@ -204,6 +235,19 @@ export function Config() {
   useEffect(() => {
     void refreshAiModels();
   }, [refreshAiModels]);
+
+  // Coach vocal qui HÉRITE du fournisseur d'analyse : au changement de
+  // fournisseur, un modèle vocal spécifique devient périmé → retour à
+  // « = analyse ». Un fournisseur vocal DISTINCT est indépendant (on n'y touche pas).
+  const prevProviderRef = useRef(aiProvider);
+  useEffect(() => {
+    if (prevProviderRef.current !== aiProvider) {
+      prevProviderRef.current = aiProvider;
+      const st = useAppStore.getState();
+      if (st.aiVoiceProvider === "" && st.aiVoiceModel)
+        void st.setAIVoiceModel("");
+    }
+  }, [aiProvider]);
 
   const [aiTesting, setAiTesting] = useState(false);
   const [aiTestResult, setAiTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
@@ -445,24 +489,42 @@ export function Config() {
 
   async function handleReindex() {
     setMaintMsg(null);
-    await useAppStore.getState().reindexAll();
-    setMaintMsg(t("config.reindexDone"));
+    try {
+      await useAppStore.getState().reindexAll();
+      setMaintMsg(t("config.reindexDone"));
+    } catch (e) {
+      toastError(`${t("config.maintError")} : ${e}`);
+    }
   }
   async function handleSync() {
     setMaintMsg(null);
-    await useAppStore.getState().syncIndex();
-    setMaintMsg(t("config.syncDone"));
+    try {
+      await useAppStore.getState().syncIndex();
+      setMaintMsg(t("config.syncDone"));
+    } catch (e) {
+      toastError(`${t("config.maintError")} : ${e}`);
+    }
   }
   async function handleClearCache() {
     setMaintMsg(null);
-    await useAppStore.getState().clearCache();
-    setMaintMsg(t("config.cacheCleared"));
+    try {
+      await useAppStore.getState().clearCache();
+      setMaintMsg(t("config.cacheCleared"));
+    } catch (e) {
+      toastError(`${t("config.maintError")} : ${e}`);
+    }
   }
   async function handlePurge(purgeType: "global" | "player") {
     setMaintMsg(null);
-    const removed = await useAppStore.getState().purgeEmptySessions(purgeType);
-    setMaintMsg(t("config.purgeDone", { count: removed }));
-    refreshEmptyCounts();
+    try {
+      const removed = await useAppStore
+        .getState()
+        .purgeEmptySessions(purgeType);
+      setMaintMsg(t("config.purgeDone", { count: removed }));
+      refreshEmptyCounts();
+    } catch (e) {
+      toastError(`${t("config.maintError")} : ${e}`);
+    }
   }
 
   return (
@@ -475,26 +537,15 @@ export function Config() {
       </div>
 
       <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
 
           {/* ── Joueur & dossier ──────────────────────────────────────────── */}
-          <Card>
-            <CardHeader className="pb-2 px-4 pt-4 bg-primary/[0.08] border-b border-primary/20">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 text-primary">
-                  <User className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm text-primary">
-                    {t("config.playerAndDir")}
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    {t("config.playerAndDirDesc")}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-3 space-y-3">
+          <CollapsibleCard
+            icon={<User className="h-3.5 w-3.5" />}
+            title={t("config.playerAndDir")}
+            desc={t("config.playerAndDirDesc")}
+            contentClassName="px-4 pb-4 pt-3 space-y-3"
+          >
               <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground/80">
                 <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
                 <p className="leading-snug">
@@ -664,27 +715,96 @@ export function Config() {
                   </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+          </CollapsibleCard>
+
+          {/* Modules du menu */}
+          <CollapsibleCard
+            icon={<LayoutGrid className="h-3.5 w-3.5" />}
+            title={t("config.menuModules")}
+            desc={t("config.menuModulesDesc")}
+            contentClassName="px-4 pb-3 space-y-0"
+          >
+              {MENU_MODULE_KEYS.map((key, i) => (
+                <Fragment key={key}>
+                  {i > 0 && <Separator />}
+                  <ToggleRow
+                    icon={<LayoutGrid className="h-4 w-4" />}
+                    label={t(`nav.${key}`)}
+                    checked={menuModules[key] !== false}
+                    onChange={(v) => useAppStore.getState().setMenuModule(key, v)}
+                  />
+                  {key === "overlays" && (
+                    <Disclosure title={t("config.moduleOptions")}>
+                      <SettingRow
+                        icon={<Monitor className="h-4 w-4" />}
+                        label={t("config.overlayToggleKey")}
+                        desc={t("config.overlayToggleKeyDesc")}
+                      >
+                        <ShortcutCapture
+                          label=""
+                          value={overlayToggleKey || t("config.shortcutNone")}
+                          onChange={(a) => useAppStore.getState().setOverlayToggleKey(a)}
+                          onClear={() => useAppStore.getState().setOverlayToggleKey("")}
+                        />
+                      </SettingRow>
+                    </Disclosure>
+                  )}
+                  {/* Références (= option « Niveaux de rythme ohne_speed ») rangée à
+                      sa position du menu, juste après Sessions. */}
+                  {key === "sessions" && (
+                    <>
+                      <Separator />
+                      <ToggleRow
+                        icon={<BarChart2 className="h-4 w-4" />}
+                        label={t("nav.references")}
+                        checked={showOhneSpeed}
+                        onChange={(v) => useAppStore.getState().setShowOhneSpeed(v)}
+                      />
+                      <Disclosure title={t("config.moduleOptions")}>
+                        <div>
+                          <div className="text-xs font-medium">{t("config.ohneSpeed")}</div>
+                          <p className="text-[11px] leading-snug text-muted-foreground">
+                            {t("config.ohneSpeedDesc")}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-xs font-medium">{t("config.overlayTarget")}</div>
+                            <select
+                              value={overlayTargetTier}
+                              onChange={(e) =>
+                                useAppStore.getState().setOverlayTargetTier(e.target.value)
+                              }
+                              className="h-8 max-w-[180px] rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                            >
+                              <option value="alien">{t("config.targetAlien")}</option>
+                              <option value="competitive">{t("config.targetCompetitive")}</option>
+                              <option value="good">{t("config.targetGood")}</option>
+                              <option value="midpack">{t("config.targetMidpack")}</option>
+                            </select>
+                          </div>
+                          <p className="text-[11px] leading-snug text-muted-foreground">
+                            {t("config.overlayTargetDesc")}
+                          </p>
+                        </div>
+                      </Disclosure>
+                    </>
+                  )}
+                </Fragment>
+              ))}
+              <Separator />
+              <p className="px-1 pt-2 text-xs text-muted-foreground">
+                {t("config.menuModulesNote")}
+              </p>
+          </CollapsibleCard>
 
           {/* ── Apparence & langue ────────────────────────────────────────── */}
-          <Card>
-            <CardHeader className="pb-2 px-4 pt-4 bg-primary/[0.08] border-b border-primary/20">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 text-primary">
-                  <Settings2 className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm text-primary">
-                    {t("config.preferences")}
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    {t("config.preferencesDesc")}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-3 space-y-0">
+          <CollapsibleCard
+            icon={<Settings2 className="h-3.5 w-3.5" />}
+            title={t("config.preferences")}
+            desc={t("config.preferencesDesc")}
+            contentClassName="px-4 pb-3 space-y-0"
+          >
               <SettingRow
                 icon={<Sun className="h-4 w-4" />}
                 label={t("config.theme")}
@@ -798,49 +918,15 @@ export function Config() {
                 checked={systemTray}
                 onChange={(v) => useAppStore.getState().setSystemTray(v)}
               />
-              <Separator />
-              <ToggleRow
-                icon={<BarChart2 className="h-4 w-4" />}
-                label={t("config.ohneSpeed")}
-                desc={t("config.ohneSpeedDesc")}
-                tip={t("config.ohneSpeedTip")}
-                checked={showOhneSpeed}
-                onChange={(v) => useAppStore.getState().setShowOhneSpeed(v)}
-              />
-              <Separator />
-              <SettingRow
-                icon={<Monitor className="h-4 w-4" />}
-                label={t("config.overlayToggleKey")}
-                desc={t("config.overlayToggleKeyDesc")}
-              >
-                <ShortcutCapture
-                  label=""
-                  value={overlayToggleKey || t("config.shortcutNone")}
-                  onChange={(a) => useAppStore.getState().setOverlayToggleKey(a)}
-                  onClear={() => useAppStore.getState().setOverlayToggleKey("")}
-                />
-              </SettingRow>
-            </CardContent>
-          </Card>
+          </CollapsibleCard>
 
           {/* ── Audio / Voix ─────────────────────────────────────────────── */}
-          <Card>
-            <CardHeader className="pb-2 px-4 pt-4 bg-primary/[0.08] border-b border-primary/20">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 text-primary">
-                  <Volume2 className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm text-primary">
-                    {t("config.audioVoice")}
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    {t("config.audioVoiceDesc")}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-3 space-y-0">
+          <CollapsibleCard
+            icon={<Volume2 className="h-3.5 w-3.5" />}
+            title={t("config.audioVoice")}
+            desc={t("config.audioVoiceDesc")}
+            contentClassName="px-4 pb-3 space-y-0"
+          >
               <ToggleRow
                 icon={<Volume2 className="h-4 w-4" />}
                 label={t("config.voiceAnnounce")}
@@ -859,7 +945,7 @@ export function Config() {
                   <button
                     type="button"
                     onClick={() => setVoiceOpen((o) => !o)}
-                    className="flex w-full items-center gap-1.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex w-full items-center gap-1.5 py-1 text-xs font-medium text-orange-500 hover:text-orange-400 transition-colors"
                   >
                     <ChevronDown
                       className={cn(
@@ -1085,7 +1171,7 @@ export function Config() {
                   <button
                     type="button"
                     onClick={() => setSpotterOpen((o) => !o)}
-                    className="flex w-full items-center gap-1.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex w-full items-center gap-1.5 py-1 text-xs font-medium text-orange-500 hover:text-orange-400 transition-colors"
                   >
                     <ChevronDown
                       className={cn(
@@ -1217,30 +1303,34 @@ export function Config() {
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </CollapsibleCard>
 
           {/* ── AI Coach ─────────────────────────────────────────────────── */}
-          <Card>
-            <CardHeader className="pb-2 px-4 pt-4 bg-primary/[0.08] border-b border-primary/20">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 text-primary">
-                  <Brain className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm text-primary flex items-center gap-1.5">
-                    {t("config.aiCoach")}
-                    <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
-                      beta
-                    </span>
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    {t("config.aiCoachDesc")}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-3 space-y-0">
+          <CollapsibleCard
+            icon={<Brain className="h-3.5 w-3.5" />}
+            title={
+              <span className="flex items-center gap-1.5">
+                {t("config.aiCoach")}
+                <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                  beta
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAiHelpOpen(true);
+                  }}
+                  aria-label={t("config.aiHelpAria")}
+                  title={t("config.aiHelpTitle")}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </span>
+            }
+            desc={t("config.aiCoachDesc")}
+            contentClassName="px-4 pb-3 space-y-0"
+          >
               {/* Activer / désactiver — masque le coach de toutes les pages. */}
               <ToggleRow
                 icon={<Brain className="h-4 w-4" />}
@@ -1304,44 +1394,24 @@ export function Config() {
               )}
 
               <Separator />
-              {/* Modèle (peuplé dynamiquement via listModels) + Rafraîchir */}
+              {/* Modèle : combobox = liste à jour (fetch API `/models` +
+                  bouton Rafraîchir) OU saisie manuelle libre d'un id de modèle
+                  (nouveaux modèles pas encore listés, ou hors-ligne). */}
               <SettingRow icon={<Cpu className="h-4 w-4" />} label={t("config.aiModel")}>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={aiModel}
-                    onChange={(e) =>
-                      void useAppStore.getState().setAIModel(e.target.value)
-                    }
-                    disabled={aiModels.length === 0}
-                    className="h-8 max-w-[200px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer disabled:opacity-50"
-                  >
-                    {aiModels.length === 0 && (
-                      <option value="">{t("config.aiNoModels")}</option>
-                    )}
-                    {aiModels.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Tip content={t("config.aiRefreshModels")} side="top">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => void refreshAiModels()}
-                      disabled={aiModelsLoading}
-                      aria-label={t("config.aiRefreshModels")}
-                    >
-                      {aiModelsLoading ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </Tip>
-                </div>
+                <AiModelPicker
+                  provider={getProvider(aiProvider)}
+                  models={aiModels}
+                  loading={aiModelsLoading}
+                  value={aiModel}
+                  onChange={(v) => void useAppStore.getState().setAIModel(v)}
+                  onRefresh={() => void refreshAiModels()}
+                  listId="ai-model-options"
+                />
               </SettingRow>
+
+              {/* Coach VOCAL : même fournisseur/modèle que l'analyse, ou un
+                  fournisseur + clé + modèle DISTINCTS (cf. VoiceCoachConfig). */}
+              <VoiceCoachConfig listId="ai-voice-model-options" />
 
               <Separator />
               {/* Éditeur du prompt système (affinage par l'utilisateur) */}
@@ -1458,27 +1528,15 @@ export function Config() {
               </p>
               </>
               )}
-            </CardContent>
-          </Card>
+          </CollapsibleCard>
 
           {/* ── Maintenance ──────────────────────────────────────────────── */}
-          <Card>
-            <CardHeader className="pb-2 px-4 pt-4 bg-primary/[0.08] border-b border-primary/20">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 text-primary">
-                  <Wrench className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm text-primary">
-                    {t("config.maintenance")}
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    {t("config.maintenanceDesc")}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-3 space-y-1">
+          <CollapsibleCard
+            icon={<Wrench className="h-3.5 w-3.5" />}
+            title={t("config.maintenance")}
+            desc={t("config.maintenanceDesc")}
+            contentClassName="px-4 pb-3 space-y-1"
+          >
               {/* Indexation automatique au démarrage — rangée ici avec les
                   autres opérations d'indexation (déplacé des Préférences). */}
               <ToggleRow
@@ -1573,20 +1631,9 @@ export function Config() {
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
 
-          {/* À propos (empilé sous Maintenance) */}
-          <Card>
-            <CardHeader className="pb-2 px-4 pt-4 bg-primary/[0.08] border-b border-primary/20">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 text-primary">
-                  <Info className="h-3.5 w-3.5" />
-                </div>
-                <CardTitle className="text-sm text-primary">{t("config.about")}</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-3 space-y-2">
+              {/* « À propos » déplacé ici depuis son ancien bloc. */}
+              <Separator />
               <div className="flex items-center justify-between px-2.5 py-2 rounded-md bg-muted/40">
                 <span className="text-xs text-muted-foreground">{t("config.version")}</span>
                 <span className="font-mono text-sm font-semibold text-primary">
@@ -1652,8 +1699,24 @@ export function Config() {
                   {t("updater.error")}
                 </p>
               )}
-            </CardContent>
-          </Card>
+          </CollapsibleCard>
+
+          {/* ── Crédits & sources (pleine largeur) ───────────────────────── */}
+          <CollapsibleCard
+            icon={<Heart className="h-3.5 w-3.5" />}
+            title={t("config.credits")}
+            desc={t("config.creditsDesc")}
+            className="col-span-full"
+            contentClassName="px-4 pb-3 space-y-2"
+          >
+              {CREDIT_SOURCES.map((c) => (
+                <CreditRow key={c.name} name={c.name} role={t(`config.${c.roleKey}`)} url={c.url} />
+              ))}
+              <p className="px-1 pt-1 text-[11px] leading-snug text-muted-foreground/70">
+                {t("config.creditsNote")}
+              </p>
+          </CollapsibleCard>
+
           </div>{/* fin grille */}
       </div>
 
@@ -1701,6 +1764,37 @@ export function Config() {
       {spotterCmdModalOpen && (
         <SpotterCommandsModal onClose={() => setSpotterCmdModalOpen(false)} />
       )}
+      {aiHelpOpen && <AiCoachHelpModal onClose={() => setAiHelpOpen(false)} />}
+    </div>
+  );
+}
+
+/** Ligne de crédit : nom (lien optionnel) + rôle. */
+function CreditRow({
+  name,
+  role,
+  url,
+}: {
+  name: string;
+  role: string;
+  url?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-sm">
+      {url ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 font-medium underline-offset-2 hover:text-primary hover:underline"
+        >
+          {name}
+          <ExternalLink className="h-3 w-3 opacity-60" />
+        </a>
+      ) : (
+        <span className="font-medium">{name}</span>
+      )}
+      <span className="text-right text-xs text-muted-foreground">{role}</span>
     </div>
   );
 }
@@ -1810,6 +1904,92 @@ function ShortcutCapture({
   );
 }
 
+/** Carte de réglages repliable : clic (ou Entrée/Espace) sur l'en-tête. Ouverte par défaut. */
+function CollapsibleCard({
+  icon,
+  title,
+  desc,
+  contentClassName,
+  className,
+  defaultOpen = true,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: React.ReactNode;
+  desc?: string;
+  contentClassName?: string;
+  className?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card className={className}>
+      <CardHeader
+        role="button"
+        tabIndex={0}
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((o) => !o);
+          }
+        }}
+        className="pb-2 px-4 pt-4 bg-primary/[0.08] border-b border-primary/20 cursor-pointer select-none"
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 text-primary">
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <CardTitle className="text-sm text-primary">{title}</CardTitle>
+            {desc && <CardDescription className="text-xs">{desc}</CardDescription>}
+          </div>
+          <ChevronDown
+            className={cn(
+              "ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+              !open && "-rotate-90",
+            )}
+          />
+        </div>
+      </CardHeader>
+      {open && <CardContent className={contentClassName}>{children}</CardContent>}
+    </Card>
+  );
+}
+
+/** Sous-menu repliable (déroulant) pour les options d'un module. Fermé par défaut. */
+function Disclosure({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="ml-7 mb-1">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-orange-500 hover:bg-orange-500/10 hover:text-orange-400"
+      >
+        <ChevronDown
+          className={cn("h-3.5 w-3.5 transition-transform", !open && "-rotate-90")}
+        />
+        {title}
+      </button>
+      {/* Seul le titre du sous-menu est en orange ; le contenu (réglages)
+          garde les couleurs normales. */}
+      {open && (
+        <div className="space-y-2.5 px-2 pb-2 pt-1">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ToggleRow({
   icon,
   label,
@@ -1821,7 +2001,7 @@ function ToggleRow({
 }: {
   icon: React.ReactNode;
   label: string;
-  desc: string;
+  desc?: string;
   tip?: string;
   checked: boolean;
   onChange: (b: boolean) => void;
@@ -1840,7 +2020,9 @@ function ToggleRow({
         </Tip>
         <div className="min-w-0">
           <div className="text-sm font-medium leading-tight">{label}</div>
-          <div className="text-xs text-muted-foreground/80 mt-0.5">{desc}</div>
+          {desc && (
+            <div className="text-xs text-muted-foreground/80 mt-0.5">{desc}</div>
+          )}
         </div>
       </div>
       <Switch
@@ -1875,10 +2057,10 @@ function ActionRow({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex items-center gap-2 w-full px-2.5 py-2 rounded-md text-sm transition-colors",
+        "flex items-center gap-2 w-full px-2.5 py-2 rounded-md border text-sm transition-colors",
         destructive
-          ? "text-destructive hover:bg-destructive/5"
-          : "text-foreground hover:bg-muted/50",
+          ? "border-destructive/30 text-destructive hover:bg-destructive/10"
+          : "border-border bg-muted/30 text-foreground hover:bg-muted/70",
         disabled && "opacity-50 cursor-not-allowed"
       )}
     >

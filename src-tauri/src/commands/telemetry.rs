@@ -55,6 +55,9 @@ pub struct TelemetryFileInfo {
     pub size_bytes: u64,
     /// Date de modification du fichier (epoch secondes).
     pub mtime: i64,
+    /// Meilleur temps au tour (s) calculé depuis les tours segmentés. `None` si
+    /// le fichier ne contient aucun tour complet (un seul segment / session brute).
+    pub best_lap: Option<f64>,
 }
 
 /// Description d'un canal continu.
@@ -349,7 +352,24 @@ fn build_file_info(path: &PathBuf, meta: &HashMap<String, String>) -> TelemetryF
         recording_time: meta_get(meta, "RecordingTime").to_string(),
         size_bytes,
         mtime,
+        // Renseigné par l'appelant qui dispose de la connexion (segmentation des tours).
+        best_lap: None,
     }
+}
+
+/// Meilleur temps au tour à partir des tours segmentés : minimum des durées en
+/// excluant le **dernier** segment (toujours partiel : il s'arrête à `t_end`, pas
+/// à un passage sur la ligne). Un plancher écarte le bruit (double événement de
+/// tour). `None` s'il n'y a pas de tour complet exploitable.
+fn best_lap_time(laps: &[LapInfo]) -> Option<f64> {
+    if laps.len() < 2 {
+        return None;
+    }
+    laps[..laps.len() - 1]
+        .iter()
+        .map(|l| l.duration)
+        .filter(|&d| d > 20.0)
+        .fold(None, |acc, d| Some(acc.map_or(d, |a: f64| a.min(d))))
 }
 
 /// Relie le `CarName` brut de la télémétrie (= équipe/livrée) au vrai modèle de
@@ -442,16 +462,25 @@ pub fn list_telemetry_files(db: State<'_, DbState>) -> Result<Vec<TelemetryFileI
         }
         let path_str = path.to_string_lossy().to_string();
         // Un fichier corrompu / en cours d'écriture ne doit pas casser la liste.
-        match open_ro(&path_str).and_then(|c| read_metadata(&c)) {
-            Ok(meta) => {
-                let mut info = build_file_info(&path, &meta);
-                if let Some(model) = model_map.get(&info.car_name) {
-                    info.car_model = model.clone();
-                }
-                out.push(info);
-            }
+        let conn = match open_ro(&path_str) {
+            Ok(c) => c,
             Err(_) => continue,
+        };
+        let meta = match read_metadata(&conn) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+        let mut info = build_file_info(&path, &meta);
+        if let Some(model) = model_map.get(&info.car_name) {
+            info.car_model = model.clone();
         }
+        // Meilleur tour : segmentation légère (table `Lap` + bornes GPS). Silencieux
+        // si indisponible → la liste reste affichée sans le temps.
+        if let (Ok(tables), Ok((t0, dur))) = (table_names(&conn), gps_time_bounds(&conn)) {
+            let laps = segment_laps(&conn, &tables, t0, t0 + dur);
+            info.best_lap = best_lap_time(&laps);
+        }
+        out.push(info);
     }
 
     out.sort_by(|a, b| b.mtime.cmp(&a.mtime));
@@ -528,6 +557,7 @@ pub fn get_telemetry_meta(
     }
 
     let laps = segment_laps(&conn, &tables, t0, t_end);
+    info.best_lap = best_lap_time(&laps);
 
     Ok(TelemetryMeta {
         info,

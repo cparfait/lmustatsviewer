@@ -105,4 +105,5 @@ export const googleProvider: AIProvider = {
     { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
     { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   ],
+  docsUrl: "https://ai.google.dev/gemini-api/docs/models",
 };

@@ -1,0 +1,148 @@
+/**
+ * Sélecteur de modèle IA partagé (page Config + Config V2).
+ *
+ * Deux modes, commutables :
+ *  - LISTE : menu déroulant listant TOUS les modèles sondés via l'endpoint
+ *    `/models` du fournisseur (nécessite une clé valide pour la liste complète ;
+ *    sinon repli statique). Un `<select>` affiche tout d'un coup — contrairement
+ *    à un `<datalist>` qui filtre selon la saisie et n'en montrait qu'un.
+ *  - SAISIE : champ libre (avec suggestions) pour taper n'importe quel id —
+ *    indispensable pour les fournisseurs à des centaines de modèles (OpenRouter)
+ *    ou un modèle tout juste sorti, pas encore listé.
+ */
+
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { RefreshCw, Loader2, ExternalLink, Pencil, List } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tip } from "@/components/ui/tooltip";
+import type { AIProvider, ModelInfo } from "@/lib/ai/types";
+
+const MANUAL = "__manual__";
+
+export function AiModelPicker({
+  provider,
+  models,
+  loading,
+  value,
+  onChange,
+  onRefresh,
+  listId = "ai-model-options",
+}: {
+  provider: AIProvider | undefined;
+  models: ModelInfo[];
+  loading: boolean;
+  value: string;
+  onChange: (v: string) => void;
+  onRefresh: () => void;
+  listId?: string;
+}) {
+  const { t } = useTranslation();
+  const [manual, setManual] = useState(provider?.preferManualModel ?? false);
+  // Réinitialise le mode au changement de fournisseur (OpenRouter → saisie).
+  // `provider` a une référence stable (élément du registre statique PROVIDERS).
+  useEffect(() => {
+    setManual(provider?.preferManualModel ?? false);
+  }, [provider]);
+
+  const inList = models.some((m) => m.id === value);
+  const showInput = manual || models.length === 0;
+
+  const openDocs = () => {
+    const url = provider?.docsUrl;
+    if (!url) return;
+    void import("@tauri-apps/plugin-opener")
+      .then(({ openUrl }) => openUrl(url))
+      .catch(() => window.open(url, "_blank"));
+  };
+
+  const fieldCls =
+    "h-8 w-[210px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring";
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-2">
+        {showInput ? (
+          <input
+            list={listId}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={t("config.aiModelPlaceholder")}
+            spellCheck={false}
+            autoComplete="off"
+            className={fieldCls}
+          />
+        ) : (
+          <select
+            value={inList ? value : MANUAL}
+            onChange={(e) => {
+              if (e.target.value === MANUAL) setManual(true);
+              else onChange(e.target.value);
+            }}
+            className={`${fieldCls} cursor-pointer`}
+          >
+            {value && !inList && <option value={value}>{value}</option>}
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+            <option value={MANUAL}>{t("config.aiModelManual")}</option>
+          </select>
+        )}
+        <datalist id={listId}>
+          {models.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
+          ))}
+        </datalist>
+        <Tip content={t("config.aiRefreshModels")} side="top">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={onRefresh}
+            disabled={loading}
+            aria-label={t("config.aiRefreshModels")}
+          >
+            {loading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        </Tip>
+      </div>
+      <div className="flex items-center gap-3">
+        {models.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setManual((m) => !m)}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            {showInput ? (
+              <>
+                <List className="h-3 w-3" />
+                {t("config.aiModelFromList")}
+              </>
+            ) : (
+              <>
+                <Pencil className="h-3 w-3" />
+                {t("config.aiModelManual")}
+              </>
+            )}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={openDocs}
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ExternalLink className="h-3 w-3" />
+          {t("config.aiModelsDocs")}
+        </button>
+      </div>
+    </div>
+  );
+}

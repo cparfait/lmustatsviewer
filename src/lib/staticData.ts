@@ -211,6 +211,37 @@ export async function getCarLogoUrl(carName: string): Promise<string | null> {
   return matchBrand(carName, brands);
 }
 
+// ─── Images de voiture (rendu) ──────────────────────────────────────────────
+
+/** Slug stable pour un nom (sans accents, espaces → tirets). */
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Slug de l'image voiture pour un nom donné. Si le nom correspond à un modèle
+ * connu (via ses `keywords` dans cars.json), on prend le slug du `modelName`
+ * canonique ; sinon on slugifie le nom tel quel. → image attendue dans
+ * `public/cars/<slug>.webp` (ou `.png`). Renvoie null si data pas chargée.
+ */
+export function getCarImageSlugSync(carName: string): string | null {
+  if (!carName) return null;
+  if (_carsData) {
+    const lower = carName.toLowerCase();
+    for (const c of _carsData.cars) {
+      if (c.keywords.some((k) => lower.includes(k.toLowerCase()))) {
+        return slugify(c.modelName);
+      }
+    }
+  }
+  return slugify(carName) || null;
+}
+
 // ─── Drapeaux de circuit ────────────────────────────────────────────────────
 
 let _cachedFlagKeywords: [string, string][] | null = null;

@@ -46,7 +46,8 @@ export interface VoiceMsgGroup {
     | "pits"
     | "race"
     | "weather"
-    | "fastest";
+    | "fastest"
+    | "corners";
   items: VoiceMsgDef[];
 }
 
@@ -157,6 +158,26 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
     items: [
       { key: "vFastest", vars: ["driver", "time"], sample: { driver: "Martin", time: "1 minute 22.5" } },
       { key: "vFastestYou", vars: ["time"], sample: { time: "1 minute 22.5" } },
+    ],
+  },
+  {
+    // Coach par virage (§1/§9, P2.2) : format radio « Virage — verbe — 1 chiffre ».
+    // {{n}} = numéro de virage, {{d}} = mètres (freinage) ou km/h (vitesse).
+    id: "corners",
+    items: [
+      { key: "vCornerLockup", vars: ["n"], sample: { n: 5 } },
+      { key: "vCornerWheelspin", vars: ["n"], sample: { n: 8 } },
+      { key: "vCornerConsistency", vars: ["n"], sample: { n: 3 } },
+      { key: "vCornerBrakeEarly", vars: ["n", "d"], sample: { n: 3, d: 50 } },
+      { key: "vCornerBrakeLate", vars: ["n", "d"], sample: { n: 3, d: 20 } },
+      { key: "vCornerOverSlow", vars: ["n", "d"], sample: { n: 7, d: 10 } },
+      { key: "vCornerEntryFast", vars: ["n"], sample: { n: 6 } },
+      { key: "vCornerLateThrottle", vars: ["n"], sample: { n: 9 } },
+      { key: "vCornerGripUnused", vars: ["n"], sample: { n: 4 } },
+      { key: "vCornerNoTrail", vars: ["n"], sample: { n: 2 } },
+      // Renforcement positif §1.4 (P2.4) : {{d}} = dixièmes repris.
+      { key: "vCornerResolved", vars: ["n", "d"], sample: { n: 3, d: 2 } },
+      { key: "vCornerClean", vars: ["n"], sample: { n: 3 } },
     ],
   },
 ];

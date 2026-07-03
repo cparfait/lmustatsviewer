@@ -29,6 +29,7 @@ export function OverlayFrame({
   children,
 }: Props) {
   const def = OVERLAY_BY_ID[id];
+  const accent = settings.accent ?? def.accent;
   const updateSettings = useOverlaysStore((s) => s.updateSettings);
   const flush = useOverlaysStore((s) => s.flush);
 
@@ -102,9 +103,9 @@ export function OverlayFrame({
           className="flex items-center gap-1 mb-1 cursor-move select-none rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur"
           style={{
             background: "rgba(10,12,16,0.85)",
-            border: `1px solid ${def.accent}`,
-            color: def.accent,
-            boxShadow: `0 0 10px ${def.accent}55`,
+            border: `1px solid ${accent}`,
+            color: accent,
+            boxShadow: `0 0 10px ${accent}55`,
           }}
         >
           <span className="mr-1">{id}</span>
@@ -142,7 +143,7 @@ export function OverlayFrame({
       )}
       <div
         style={{
-          outline: editMode ? `1px dashed ${def.accent}88` : "none",
+          outline: editMode ? `1px dashed ${accent}88` : "none",
           outlineOffset: 2,
           borderRadius: 12,
         }}

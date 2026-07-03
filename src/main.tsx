@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import App from "./App";
 import { OverlayApp } from "./components/overlay/OverlayApp";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { i18nReady } from "./i18n";
 import "./index.css";
 
@@ -24,9 +25,14 @@ function currentWindowLabel(): string {
 i18nReady.then(() => {
   const root = createRoot(document.getElementById("root")!);
   if (currentWindowLabel() === "overlay") {
+    // Filet de sécurité : un crash de rendu ne doit pas laisser la fenêtre
+    // overlay transparente et gelée pendant toute la course. Repli = rien
+    // (`null`) plutôt que la carte plein écran de l'app principale.
     root.render(
       <StrictMode>
-        <OverlayApp />
+        <ErrorBoundary fallback={null}>
+          <OverlayApp />
+        </ErrorBoundary>
       </StrictMode>,
     );
   } else {

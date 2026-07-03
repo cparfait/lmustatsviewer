@@ -14,13 +14,15 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live } from "@/lib/api";
 import { announce } from "@/lib/voice";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, friendlyError } from "@/lib/ai/coach";
-import { buildLiveContext } from "@/lib/ai/context/live-context";
+import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
+import { toast, toastSuccess } from "@/stores/dialogs";
 
 /** Retire un markdown léger pour la lecture vocale. */
 function stripMd(s: string): string {
@@ -83,14 +85,24 @@ export function useCoachVoice() {
           announce(tt("coach.voiceUnclear"), lang);
           return;
         }
+        // Affiche la question reconnue (Axe 5) → l'utilisateur voit si la dictée
+        // a mal compris. Toast (fenêtre principale) + event vers l'overlay in-game.
+        const q = question.trim();
+        toast(`🎤 ${q}`);
+        void emit("coach-voice", { question: q, answer: null });
         const data = await live.getData();
-        const ctx = buildLiveContext(data);
-        const p = getProvider(useAppStore.getState().aiProvider);
+        const ctx = await buildLiveCoachContext(data, question);
+        const st = useAppStore.getState();
+        // Coach vocal : fournisseur DISTINCT si configuré, sinon celui de
+        // l'analyse. Avec un fournisseur distinct → sa propre clé + son modèle ;
+        // sinon modèle vocal (rapide) si défini, à défaut le modèle d'analyse.
+        const separateVoice = st.aiVoiceProvider !== "";
+        const p = getProvider(separateVoice ? st.aiVoiceProvider : st.aiProvider);
         if (!p) return;
         const answer = await askCoachVoice({
           provider: p,
-          model: useAppStore.getState().aiModel,
-          apiKey: useAppStore.getState().aiApiKey,
+          model: separateVoice ? st.aiVoiceModel : st.aiVoiceModel || st.aiModel,
+          apiKey: separateVoice ? st.aiVoiceApiKey : st.aiApiKey,
           lang,
           question,
           contextText: ctx,
@@ -99,7 +111,12 @@ export function useCoachVoice() {
               lang.slice(0, 2).toLowerCase()
             ] ?? "",
         });
-        if (!disposed && answer.trim()) announce(stripMd(answer), lang);
+        if (!disposed && answer.trim()) {
+          const clean = stripMd(answer);
+          announce(clean, lang);
+          toastSuccess(clean); // Axe 5 : la réponse reste lisible à l'écran.
+          void emit("coach-voice", { question: q, answer: clean }); // overlay
+        }
       } catch (e) {
         announce(friendlyError(e, tRef.current), langRef.current);
       } finally {

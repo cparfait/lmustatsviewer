@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::mem::{offset_of, size_of};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -21,6 +21,108 @@ const TELEMETRY_MAP: &str = "$rFactor2SMMP_Telemetry$";
 const SCORING_MAP: &str = "$rFactor2SMMP_Scoring$";
 const EXTENDED_MAP: &str = "$rFactor2SMMP_Extended$";
 const MAX_VEH: usize = 128;
+
+// ── Mémoire partagée NATIVE LMU (« LMU_Data ») ───────────────────────────────
+// Distincte du plugin rF2 standard : c'est l'interface intégrée de LMU (header
+// S397 `Support\SharedMemoryInterface`). Seule source des **maps électroniques
+// embarquées** (ABS/TC réels réglés au volant), absentes du bloc rF2.
+// Offsets calculés depuis le mapping officiel (cf. pyLMUSharedMemory) ; vérifiés
+// par `ctypes.sizeof(LMUObjectOut) == 324820`. Lecture par offsets bruts pour
+// éviter de transcrire les ~324 Ko de structures.
+const LMU_DATA_MAP: &str = "LMU_Data";
+const LMU_DATA_SIZE: usize = 324820; // sizeof(LMUObjectOut)
+const LMU_TELEM_BASE: usize = 128464; // offset du bloc `telemetry` (LMUTelemetryData)
+const LMU_PLAYER_IDX_OFF: usize = LMU_TELEM_BASE + 1; // playerVehicleIdx : u8
+const LMU_PLAYER_HAS_OFF: usize = LMU_TELEM_BASE + 2; // playerHasVehicle : bool
+const LMU_TELEMINFO_OFF: usize = LMU_TELEM_BASE + 4; // début de l'array telemInfo
+const LMU_VEH_STRIDE: usize = 1888; // sizeof(LMUVehicleTelemetry)
+// Offsets dans une LMUVehicleTelemetry (u8 sauf indication).
+const LMU_OFF_TC: usize = 750;
+const LMU_OFF_TC_MAX: usize = 751;
+const LMU_OFF_TC_SLIP: usize = 752;
+const LMU_OFF_TC_SLIP_MAX: usize = 753;
+const LMU_OFF_TC_CUT: usize = 754;
+const LMU_OFF_TC_CUT_MAX: usize = 755;
+const LMU_OFF_ABS: usize = 756;
+const LMU_OFF_ABS_MAX: usize = 757;
+const LMU_OFF_MOTOR_MAP: usize = 758;
+// Énergie / hybride (système WEC) :
+const LMU_OFF_BATTERY: usize = 704; // mBatteryChargeFraction : f64 (0..1)
+const LMU_OFF_BOOST_STATE: usize = 744; // mElectricBoostMotorState : u8 (0=off,1=inactif,2=propulsion,3=régén)
+const LMU_OFF_REGEN: usize = 768; // mRegen : f32 (kW)
+const LMU_OFF_SOC: usize = 772; // mStateOfCharge : f32 (%)
+const LMU_OFF_VIRTUAL_ENERGY: usize = 776; // mVirtualEnergy : f32 (fraction 0..1)
+// Quick-wins (mêmes struct joueur) :
+const LMU_OFF_DELTA_BEST: usize = 696; // mDeltaBest : f64 (s, delta roulant au PB)
+const LMU_OFF_LIFT_COAST: usize = 766; // mLiftAndCoastProgress : u8
+const LMU_OFF_TRACK_LIMITS: usize = 767; // mTrackLimitsSteps : u8 (points normalisés)
+const LMU_OFF_GAP_AHEAD: usize = 780; // mTimeGapCarAhead : f32 (s)
+const LMU_OFF_GAP_BEHIND: usize = 784; // mTimeGapCarBehind : f32 (s)
+// Seuils limites de piste : offsets ABSOLUS dans LMU_Data (bloc ScoringInfo, fixe).
+const LMU_OFF_TL_PER_PENALTY: usize = 1983; // mTrackLimitsStepsPerPenalty : u8
+
+/// Maps électroniques embarquées du joueur lues dans « LMU_Data ».
+struct LmuElectronics {
+    tc: u8,
+    tc_max: u8,
+    tc_slip: u8,
+    tc_slip_max: u8,
+    tc_cut: u8,
+    tc_cut_max: u8,
+    abs: u8,
+    abs_max: u8,
+    motor_map: u8,
+    // Énergie / hybride
+    virtual_energy: f32,
+    state_of_charge: f32,
+    regen: f32,
+    battery_charge: f32,
+    boost_state: u8,
+    // Quick-wins
+    delta_best: f32,
+    lift_coast: u8,
+    track_limits: u8,
+    track_limits_per_penalty: u8,
+    gap_ahead: f32,
+    gap_behind: f32,
+}
+
+/// Lit les maps ABS/TC réelles du joueur depuis la mémoire native LMU.
+/// Best-effort : `None` si la map n'existe pas (LMU non lancé / interface
+/// désactivée) ou si le joueur n'a pas de véhicule actif.
+fn read_lmu_electronics() -> Option<LmuElectronics> {
+    let buf = read_shm(LMU_DATA_MAP, LMU_DATA_SIZE)?;
+    let has: u8 = unsafe { read_at(&buf, LMU_PLAYER_HAS_OFF)? };
+    if has == 0 {
+        return None;
+    }
+    let idx: u8 = unsafe { read_at(&buf, LMU_PLAYER_IDX_OFF)? };
+    let veh = LMU_TELEMINFO_OFF + (idx as usize) * LMU_VEH_STRIDE;
+    Some(LmuElectronics {
+        tc: unsafe { read_at(&buf, veh + LMU_OFF_TC)? },
+        tc_max: unsafe { read_at(&buf, veh + LMU_OFF_TC_MAX)? },
+        tc_slip: unsafe { read_at(&buf, veh + LMU_OFF_TC_SLIP)? },
+        tc_slip_max: unsafe { read_at(&buf, veh + LMU_OFF_TC_SLIP_MAX)? },
+        tc_cut: unsafe { read_at(&buf, veh + LMU_OFF_TC_CUT)? },
+        tc_cut_max: unsafe { read_at(&buf, veh + LMU_OFF_TC_CUT_MAX)? },
+        abs: unsafe { read_at(&buf, veh + LMU_OFF_ABS)? },
+        abs_max: unsafe { read_at(&buf, veh + LMU_OFF_ABS_MAX)? },
+        motor_map: unsafe { read_at(&buf, veh + LMU_OFF_MOTOR_MAP)? },
+        virtual_energy: unsafe { read_at(&buf, veh + LMU_OFF_VIRTUAL_ENERGY)? },
+        state_of_charge: unsafe { read_at(&buf, veh + LMU_OFF_SOC)? },
+        regen: unsafe { read_at(&buf, veh + LMU_OFF_REGEN)? },
+        battery_charge: unsafe {
+            read_at::<f64>(&buf, veh + LMU_OFF_BATTERY)? as f32
+        },
+        boost_state: unsafe { read_at(&buf, veh + LMU_OFF_BOOST_STATE)? },
+        delta_best: unsafe { read_at::<f64>(&buf, veh + LMU_OFF_DELTA_BEST)? as f32 },
+        lift_coast: unsafe { read_at(&buf, veh + LMU_OFF_LIFT_COAST)? },
+        track_limits: unsafe { read_at(&buf, veh + LMU_OFF_TRACK_LIMITS)? },
+        track_limits_per_penalty: unsafe { read_at(&buf, LMU_OFF_TL_PER_PENALTY)? },
+        gap_ahead: unsafe { read_at(&buf, veh + LMU_OFF_GAP_AHEAD)? },
+        gap_behind: unsafe { read_at(&buf, veh + LMU_OFF_GAP_BEHIND)? },
+    })
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Structures de la mémoire partagée (transcription de rF2data.py, _pack_ = 4)
@@ -355,6 +457,15 @@ pub struct LiveWheel {
     pub surface: u8,      // 0 sec … 6 spécial
     pub flat: bool,
     pub detached: bool,
+    /// Vitesse angulaire de la roue (rad/s, signée — négatif en marche avant
+    /// selon la convention rF2). ~0 avec de la vitesse sol = blocage.
+    pub rotation: f32,
+    /// Vitesse latérale du patch de contact (m/s) — dérive/glisse latérale.
+    pub lat_patch_vel: f32,
+    /// Vitesse longitudinale du patch de contact (m/s). L'écart avec la
+    /// vitesse sol donne le glissement long. (blocage/patinage réels — les
+    /// champs `tc_*`/`abs` d'Extended ne sont que des réglages de map).
+    pub long_patch_vel: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -364,6 +475,14 @@ pub struct LiveTelemetry {
     pub rpm: f32,
     pub max_rpm: f32,
     pub speed_kmh: f32,
+    /// Distance parcourue sur le tour courant (m) — `mLapDist` du scoring joueur.
+    /// Sert à aligner deux tours par position (delta live par virage).
+    pub lap_dist: f32,
+    /// Distance estimée par dead-reckoning (m) : `lap_dist` extrapolé entre deux
+    /// rafraîchissements du scoring (~5 Hz) via l'horodatage télémétrie. Précision
+    /// ~±1 m contre ~±17 m à 300 km/h pour `lap_dist` brut. À privilégier pour
+    /// toute mesure par position (coach par virage).
+    pub lap_dist_est: f32,
     pub throttle: f32,
     pub brake: f32,
     pub steering: f32,
@@ -460,7 +579,16 @@ pub struct LiveWeather {
     pub air_temp: f32,
     pub track_temp: f32,
     pub wind_speed: f32,
+    /// Cap du vent en degrés (0-360, repère monde `atan2(x, z)`). Permet de
+    /// distinguer vent de face/dos selon l'orientation d'un virage (coach).
+    pub wind_dir_deg: f32,
     pub rain: f32,
+    /// Humidité moyenne de la trajectoire (0-1, `mAvgPathWetness`). Piste
+    /// évolutive : sert d'inhibiteur de diagnostic et de critère de péremption
+    /// de référence.
+    pub path_wetness_avg: f32,
+    /// Humidité max de la trajectoire (0-1, `mMaxPathWetness`).
+    pub path_wetness_max: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -474,6 +602,23 @@ pub struct LiveFlags {
 pub struct LiveExtended {
     pub tc: u8,
     pub abs: u8,
+    pub tc_max: u8,
+    pub abs_max: u8,
+    pub tc_slip: u8,
+    pub tc_slip_max: u8,
+    pub tc_cut: u8,
+    pub tc_cut_max: u8,
+    pub motor_map: u8,
+    pub virtual_energy: f32,
+    pub state_of_charge: f32,
+    pub regen: f32,
+    pub battery_charge: f32,
+    pub boost_state: u8,
+    pub lift_coast: u8,
+    pub track_limits: u8,
+    pub track_limits_per_penalty: u8,
+    pub gap_ahead: f32,
+    pub gap_behind: f32,
     pub stability_control: u8,
     pub auto_shift: u8,
     pub auto_clutch: u8,
@@ -483,6 +628,9 @@ pub struct LiveExtended {
     pub status_message: String,
     pub damage_max_impact: f32,
     pub damage_accum_impact: f32,
+    /// Build du jeu (`Extended.mVersion`, ex. "1.2.3.4"). Sert de critère de
+    /// péremption des références du coach (un patch change la physique).
+    pub game_version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -507,6 +655,10 @@ pub struct LiveData {
     pub extended: Option<LiveExtended>,
     pub track_layout: Option<TrackBounds>,
     pub track_points: Vec<[f64; 2]>,
+    /// Distance-tour (m) du centre de chaque `track_points[i]` (buckets 20 m).
+    /// Permet d'associer une position de virage (lap_dist) à un point (x,z) —
+    /// heatmap des pertes par virage sur le tracé.
+    pub track_dists: Vec<f64>,
 }
 
 impl Default for LiveData {
@@ -523,6 +675,7 @@ impl Default for LiveData {
             extended: None,
             track_layout: None,
             track_points: Vec::new(),
+            track_dists: Vec::new(),
         }
     }
 }
@@ -609,6 +762,17 @@ struct PollState {
     move_history: u32,
     /// État pause « collant » (sticky) pour éviter les oscillations.
     paused: bool,
+    // ── Dead-reckoning de lap_dist ────────────────────────────────────────
+    // mLapDist vient du bloc scoring, rafraîchi par rafales (~5 Hz) : à
+    // 300 km/h il peut rester figé ~17 m. On extrapole entre deux updates
+    // scoring avec l'horodatage télémétrie (mElapsedTime, frais à chaque
+    // frame) : d̂ = ancre + v_moyenne × Δt.
+    /// Valeur mLapDist scoring au moment de l'ancrage.
+    dr_anchor_dist: f64,
+    /// mElapsedTime (télémétrie) au moment de l'ancrage.
+    dr_anchor_et: f64,
+    /// Vitesse (m/s) au moment de l'ancrage (extrapolation trapézoïdale).
+    dr_anchor_speed: f64,
 }
 
 impl PollState {
@@ -630,6 +794,9 @@ impl PollState {
             frozen_frames: 0,
             move_history: 0,
             paused: false,
+            dr_anchor_dist: 0.0,
+            dr_anchor_et: 0.0,
+            dr_anchor_speed: 0.0,
         }
     }
 }
@@ -743,6 +910,10 @@ fn extract(state: &mut PollState) -> LiveData {
         .and_then(|b| unsafe { read_at(b, offset_of!(Extended, m_session_started)) });
     // Version cohérente requise seulement pour la lecture fine (physics, dégâts…).
     let ext_buf = ext_raw.filter(|b| version_ok(b));
+
+    // Maps électroniques embarquées (ABS/TC réels) depuis la mémoire native LMU :
+    // le bloc rF2 ci-dessus ne les contient pas (seules les aides de difficulté).
+    let lmu_elec = read_lmu_electronics();
 
     let scor_info: ScoringInfo =
         match unsafe { read_at(&scor_buf, offset_of!(Scoring, m_scoring_info)) } {
@@ -887,7 +1058,10 @@ fn extract(state: &mut PollState) -> LiveData {
                     (temp3[2] - 273.15) as f32,
                 ],
                 inner_temp: ((inner[0] + inner[1] + inner[2]) / 3.0 - 273.15) as f32,
-                wear: ((1.0 - w.m_wear) * 100.0) as f32,
+                // `m_wear` = fraction de gomme RESTANTE (1.0 = neuf) → on garde le
+                // % restant tel quel. (Avant : `1 - m_wear`, inversé → pneus neufs
+                // affichés à 0 % et le coach disait de les changer au départ.)
+                wear: (w.m_wear * 100.0) as f32,
                 brake_temp: bt,
                 pressure: w.m_pressure as f32,
                 camber: w.m_camber.to_degrees() as f32,
@@ -895,6 +1069,9 @@ fn extract(state: &mut PollState) -> LiveData {
                 surface: w.m_surface_type,
                 flat: w.m_flat != 0,
                 detached: w.m_detached != 0,
+                rotation: w.m_rotation as f32,
+                lat_patch_vel: w.m_lateral_patch_vel as f32,
+                long_patch_vel: w.m_longitudinal_patch_vel as f32,
             }
         });
 
@@ -902,12 +1079,37 @@ fn extract(state: &mut PollState) -> LiveData {
         let damage_total =
             dent.iter().map(|&d| d as f32).sum::<f32>() / 16.0 * 100.0;
 
+        // ── Dead-reckoning de lap_dist (cf. champs dr_* de PollState) ──────
+        // Ré-ancrage dès que le scoring publie une nouvelle valeur, au wrap de
+        // tour (valeur qui recule) ou à un retour en arrière du temps (restart).
+        let lap_dist_raw = player_scor.map(|p| p.m_lap_dist).unwrap_or(0.0);
+        let et = t.m_elapsed_time;
+        let v_ms = t.m_local_vel.z.abs();
+        if lap_dist_raw != state.dr_anchor_dist
+            || lap_dist_raw <= 0.0
+            || et < state.dr_anchor_et
+        {
+            state.dr_anchor_dist = lap_dist_raw;
+            state.dr_anchor_et = et;
+            state.dr_anchor_speed = v_ms;
+        }
+        let lap_dist_est = if lap_dist_raw > 0.0 && et > state.dr_anchor_et {
+            // Extrapolation trapézoïdale, bornée à 0,5 s sans update scoring
+            // (pause/gel : l'estimation se fige au lieu de dériver).
+            let dt = (et - state.dr_anchor_et).min(0.5);
+            lap_dist_raw + (state.dr_anchor_speed + v_ms) * 0.5 * dt
+        } else {
+            lap_dist_raw
+        };
+
         LiveTelemetry {
             gear: t.m_gear,
             max_gears: t.m_max_gears as i32,
             rpm: t.m_engine_rpm as f32,
             max_rpm: t.m_engine_max_rpm as f32,
             speed_kmh,
+            lap_dist: player_scor.map(|p| p.m_lap_dist as f32).unwrap_or(0.0),
+            lap_dist_est: lap_dist_est as f32,
             throttle: t.m_unfiltered_throttle as f32,
             brake: t.m_unfiltered_brake as f32,
             steering: t.m_unfiltered_steering as f32,
@@ -929,9 +1131,13 @@ fn extract(state: &mut PollState) -> LiveData {
             rear_flap: t.m_rear_flap_activated != 0,
             front_compound: c_str(&t.m_front_tire_compound_name),
             rear_compound: c_str(&t.m_rear_tire_compound_name),
-            g_long: t.m_local_accel.z as f32,
-            g_lat: t.m_local_accel.x as f32,
-            g_vert: t.m_local_accel.y as f32,
+            // m_local_accel est en m/s² dans le repère local rF2/LMU
+            // (x = droite, y = haut, z = ARRIÈRE). On convertit en g (÷ 9.80665)
+            // et on inverse le longitudinal pour que l'accélération soit
+            // positive (freinage négatif), comme attendu par l'affichage/overlay.
+            g_long: (-t.m_local_accel.z / 9.80665) as f32,
+            g_lat: (t.m_local_accel.x / 9.80665) as f32,
+            g_vert: (t.m_local_accel.y / 9.80665) as f32,
             last_impact_magnitude: t.m_last_impact_magnitude as f32,
             damage_total,
             damage_zones: dent,
@@ -968,12 +1174,15 @@ fn extract(state: &mut PollState) -> LiveData {
                 state.best_s3 = s3;
             }
         }
+        // Delta au meilleur tour : on privilégie `mDeltaBest` natif LMU (delta
+        // roulant, comme le HUD en jeu) quand dispo ; sinon estimation rF2
+        // (`m_estimated_lap_time − m_best_lap_time`, plus grossière).
         let est = p.m_estimated_lap_time;
         let best = p.m_best_lap_time;
-        let delta = if est > 0.0 && best > 0.0 && p.m_in_pits == 0 {
-            est - best
-        } else {
-            0.0
+        let delta = match lmu_elec.as_ref() {
+            Some(e) if p.m_in_pits == 0 => e.delta_best as f64,
+            _ if est > 0.0 && best > 0.0 && p.m_in_pits == 0 => est - best,
+            _ => 0.0,
         };
         LivePlayer {
             driver: c_str(&p.m_driver_name),
@@ -1140,6 +1349,9 @@ fn extract(state: &mut PollState) -> LiveData {
         .map(|(&k, &(p, _))| (k, p))
         .collect();
     sorted.sort_by_key(|(k, _)| *k);
+    // Distance-tour du centre de chaque bucket (clé = lapDist/20) — alignée
+    // 1:1 avec track_points (smooth_loop préserve la longueur).
+    let track_dists: Vec<f64> = sorted.iter().map(|(k, _)| *k as f64 * 20.0 + 10.0).collect();
     let raw_points: Vec<[f64; 2]> = sorted.into_iter().map(|(_, p)| p).collect();
     let track_points = smooth_loop(&raw_points, 1);
 
@@ -1160,6 +1372,8 @@ fn extract(state: &mut PollState) -> LiveData {
             unsafe { read_at(buf, offset_of!(Extended, m_current_pit_speed_limit))? };
         let status: [u8; 128] =
             unsafe { read_at(buf, offset_of!(Extended, m_status_message))? };
+        let version: [u8; 12] =
+            unsafe { read_at(buf, offset_of!(Extended, m_version))? };
         let (dmg_max, dmg_accum) = if player_id >= 0 && (player_id as usize) < 512 {
             let off = offset_of!(Extended, m_tracked_damages)
                 + (player_id as usize) * size_of::<TrackedDamage>();
@@ -1177,8 +1391,30 @@ fn extract(state: &mut PollState) -> LiveData {
             (0.0, 0.0)
         };
         Some(LiveExtended {
-            tc: physics.m_traction_control,
-            abs: physics.m_anti_lock_brakes,
+            // ABS/TC = vraies maps embarquées (LMU_Data) quand dispo, sinon 0.
+            // On n'utilise PLUS `physics.m_*` (aides de difficulté rF2, ≠ maps voiture).
+            tc: lmu_elec.as_ref().map(|e| e.tc).unwrap_or(0),
+            abs: lmu_elec.as_ref().map(|e| e.abs).unwrap_or(0),
+            tc_max: lmu_elec.as_ref().map(|e| e.tc_max).unwrap_or(0),
+            abs_max: lmu_elec.as_ref().map(|e| e.abs_max).unwrap_or(0),
+            tc_slip: lmu_elec.as_ref().map(|e| e.tc_slip).unwrap_or(0),
+            tc_slip_max: lmu_elec.as_ref().map(|e| e.tc_slip_max).unwrap_or(0),
+            tc_cut: lmu_elec.as_ref().map(|e| e.tc_cut).unwrap_or(0),
+            tc_cut_max: lmu_elec.as_ref().map(|e| e.tc_cut_max).unwrap_or(0),
+            motor_map: lmu_elec.as_ref().map(|e| e.motor_map).unwrap_or(0),
+            virtual_energy: lmu_elec.as_ref().map(|e| e.virtual_energy).unwrap_or(0.0),
+            state_of_charge: lmu_elec.as_ref().map(|e| e.state_of_charge).unwrap_or(0.0),
+            regen: lmu_elec.as_ref().map(|e| e.regen).unwrap_or(0.0),
+            battery_charge: lmu_elec.as_ref().map(|e| e.battery_charge).unwrap_or(0.0),
+            boost_state: lmu_elec.as_ref().map(|e| e.boost_state).unwrap_or(0),
+            lift_coast: lmu_elec.as_ref().map(|e| e.lift_coast).unwrap_or(0),
+            track_limits: lmu_elec.as_ref().map(|e| e.track_limits).unwrap_or(0),
+            track_limits_per_penalty: lmu_elec
+                .as_ref()
+                .map(|e| e.track_limits_per_penalty)
+                .unwrap_or(0),
+            gap_ahead: lmu_elec.as_ref().map(|e| e.gap_ahead).unwrap_or(0.0),
+            gap_behind: lmu_elec.as_ref().map(|e| e.gap_behind).unwrap_or(0.0),
             stability_control: physics.m_stability_control,
             auto_shift: physics.m_auto_shift,
             auto_clutch: physics.m_auto_clutch,
@@ -1188,6 +1424,7 @@ fn extract(state: &mut PollState) -> LiveData {
             status_message: c_str(&status),
             damage_max_impact: dmg_max,
             damage_accum_impact: dmg_accum,
+            game_version: c_str(&version),
         })
     });
 
@@ -1211,7 +1448,10 @@ fn extract(state: &mut PollState) -> LiveData {
             track_temp: track_temp as f32,
             wind_speed: ((wind.x * wind.x + wind.y * wind.y + wind.z * wind.z).sqrt()
                 * 3.6) as f32,
+            wind_dir_deg: ((wind.x.atan2(wind.z).to_degrees() + 360.0) % 360.0) as f32,
             rain: scor_info.m_raining as f32,
+            path_wetness_avg: scor_info.m_avg_path_wetness as f32,
+            path_wetness_max: scor_info.m_max_path_wetness as f32,
         }),
         flags: Some(LiveFlags {
             game_phase: scor_info.m_game_phase,
@@ -1221,6 +1461,7 @@ fn extract(state: &mut PollState) -> LiveData {
         extended,
         track_layout,
         track_points,
+        track_dists,
     }
 }
 
@@ -1229,6 +1470,12 @@ fn extract(state: &mut PollState) -> LiveData {
 // ═══════════════════════════════════════════════════════════════════════════
 
 static LIVE_POLLING: AtomicBool = AtomicBool::new(false);
+// Nombre de fenêtres qui consomment le flux `live-data` (page Live + fenêtre
+// overlay). Le thread de polling est un singleton partagé par toutes les
+// fenêtres : il ne doit s'arrêter que lorsque PLUS AUCUNE fenêtre ne l'utilise.
+// Auparavant `stop_live_polling` coupait le thread pour tout le monde dès que la
+// page Live était démontée → l'overlay in-game se figeait le reste de la course.
+static LIVE_CONSUMERS: AtomicUsize = AtomicUsize::new(0);
 static POLL_STATE: Mutex<Option<PollState>> = Mutex::new(None);
 
 #[tauri::command]
@@ -1249,6 +1496,9 @@ pub fn is_sim_running() -> Result<bool, AppError> {
 
 #[tauri::command]
 pub fn start_live_polling(app: AppHandle) -> Result<(), AppError> {
+    // Un consommateur de plus (Live ou overlay). Le thread ne démarre que s'il
+    // n'était pas déjà actif.
+    LIVE_CONSUMERS.fetch_add(1, Ordering::SeqCst);
     if LIVE_POLLING.swap(true, Ordering::SeqCst) {
         return Ok(());
     }
@@ -1279,6 +1529,13 @@ pub fn start_live_polling(app: AppHandle) -> Result<(), AppError> {
 
 #[tauri::command]
 pub fn stop_live_polling() -> Result<(), AppError> {
-    LIVE_POLLING.store(false, Ordering::SeqCst);
+    // Un consommateur de moins. On n'arrête réellement le thread que quand le
+    // compteur retombe à 0 (plus aucune fenêtre n'écoute `live-data`).
+    let prev = LIVE_CONSUMERS
+        .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| Some(n.saturating_sub(1)))
+        .unwrap_or(0);
+    if prev <= 1 {
+        LIVE_POLLING.store(false, Ordering::SeqCst);
+    }
     Ok(())
 }

@@ -60,6 +60,11 @@ export interface DashboardStats {
   podiums: number;
   wins: number;
   top10: number;
+  races_total: number;
+  races_finished: number;
+  dnf: number;
+  fastest_laps: number;
+  avg_progression: number | null;
   favorite_track: string | null;
   favorite_car: string | null;
   best_finish_track: string | null;
@@ -522,6 +527,12 @@ export interface LiveWheel {
   surface: number;
   flat: boolean;
   detached: boolean;
+  /** Vitesse angulaire de la roue (rad/s, signée). ~0 avec vitesse sol = blocage. */
+  rotation: number;
+  /** Vitesse latérale du patch de contact (m/s). */
+  lat_patch_vel: number;
+  /** Vitesse longitudinale du patch (m/s) — écart vs vitesse sol = glissement. */
+  long_patch_vel: number;
 }
 
 export interface LiveTelemetry {
@@ -530,6 +541,14 @@ export interface LiveTelemetry {
   rpm: number;
   max_rpm: number;
   speed_kmh: number;
+  /** Distance parcourue sur le tour courant (m) — pour aligner deux tours. */
+  lap_dist: number;
+  /**
+   * Distance estimée par dead-reckoning (m) : `lap_dist` (scoring ~5 Hz)
+   * extrapolé via l'horodatage télémétrie. ~±1 m contre ~±17 m à 300 km/h.
+   * À privilégier pour toute mesure par position (coach par virage).
+   */
+  lap_dist_est: number;
   throttle: number;
   brake: number;
   steering: number;
@@ -622,7 +641,13 @@ export interface LiveWeather {
   air_temp: number;
   track_temp: number;
   wind_speed: number;
+  /** Cap du vent en degrés (0-360, repère monde). */
+  wind_dir_deg: number;
   rain: number;
+  /** Humidité moyenne de la trajectoire (0-1) — piste évolutive. */
+  path_wetness_avg: number;
+  /** Humidité max de la trajectoire (0-1). */
+  path_wetness_max: number;
 }
 
 export interface LiveFlags {
@@ -634,6 +659,23 @@ export interface LiveFlags {
 export interface LiveExtended {
   tc: number;
   abs: number;
+  tc_max: number;
+  abs_max: number;
+  tc_slip: number;
+  tc_slip_max: number;
+  tc_cut: number;
+  tc_cut_max: number;
+  motor_map: number;
+  virtual_energy: number;
+  state_of_charge: number;
+  regen: number;
+  battery_charge: number;
+  boost_state: number;
+  lift_coast: number;
+  track_limits: number;
+  track_limits_per_penalty: number;
+  gap_ahead: number;
+  gap_behind: number;
   stability_control: number;
   auto_shift: number;
   auto_clutch: number;
@@ -643,6 +685,8 @@ export interface LiveExtended {
   status_message: string;
   damage_max_impact: number;
   damage_accum_impact: number;
+  /** Build du jeu (ex. "1.2.3.4") — critère de péremption des réfs coach. */
+  game_version: string;
 }
 
 export interface TrackBounds {
@@ -665,6 +709,8 @@ export interface LiveData {
   extended: LiveExtended | null;
   track_layout: TrackBounds | null;
   track_points: [number, number][];
+  /** Distance-tour (m) du centre de chaque `track_points[i]` (buckets 20 m). */
+  track_dists: number[];
 }
 
 // ─── Télémétrie post-session (.duckdb) (`telemetry`) ────────────────────────
@@ -686,6 +732,8 @@ export interface TelemetryFileInfo {
   recording_time: string;
   size_bytes: number;
   mtime: number;
+  /** Meilleur temps au tour (s) ; `null` si aucun tour complet exploitable. */
+  best_lap: number | null;
 }
 
 /** Description d'un canal (`telemetry::ChannelInfo`). */
@@ -776,6 +824,10 @@ export const ai = {
   setKey: (value: string) => invoke<void>("ai_set_key", { value }),
   /** Lit la clé API déchiffrée ("" si absente / machine différente). */
   getKey: () => invoke<string>("ai_get_key"),
+  /** Clé API du coach vocal (fournisseur distinct). Vide = efface. */
+  setVoiceKey: (value: string) => invoke<void>("ai_set_voice_key", { value }),
+  /** Lit la clé API vocale déchiffrée ("" si absente). */
+  getVoiceKey: () => invoke<string>("ai_get_voice_key"),
   /** Épingle un objectif de coaching pour un combo (5 max conservés). */
   addNote: (args: {
     track: string;
@@ -791,6 +843,72 @@ export const ai = {
   deleteNote: (id: number) => invoke<void>("coach_note_delete", { id }),
 };
 
+// ─── Coach par virage : références denses v2 (COACH-LIVE-SPEC.md §3) ────────
+
+/** Fenêtre de virage d'une référence (bornes curvilignes + métriques cibles). */
+export interface CoachCornerRow {
+  /** Identité stable du virage (survit aux re-détections). */
+  corner_uid: string;
+  /** Ordre sur le tour (affichage). */
+  n: number;
+  entry_dist: number;
+  brake_dist: number;
+  apex_dist: number;
+  exit_dist: number;
+  vmin: number;
+  ventry: number;
+  vexit: number;
+  full_throttle_dist: number;
+}
+
+/**
+ * Référence dense : 8 canaux × n_points à plat, pas constant `step_m` (4 m).
+ * Ordre des canaux : time, speed, brake, throttle, steer, gLat, gLong, gear.
+ */
+export interface CoachRef {
+  id: number;
+  track: string;
+  car_model: string;
+  car_class: string;
+  /** 'best' | 'ghost' | 'stale' (périmée → deltas relatifs seulement). */
+  kind: string;
+  created_at: number;
+  game_build: string;
+  lap_time: number;
+  step_m: number;
+  n_points: number;
+  meta_json: string;
+  channels: number[];
+  corners: CoachCornerRow[];
+}
+
+export type CoachRefSavePayload = Omit<CoachRef, "id" | "created_at">;
+
+/** Dispersion du pilote par virage (seuils adaptatifs 2σ). */
+export interface CoachCornerStats {
+  corner_uid: string;
+  sigma_brake: number;
+  sigma_vmin: number;
+  sigma_dt: number;
+  n_samples: number;
+}
+
+export const coachRef = {
+  /** Enregistre une réf (purge au-delà de 3 par combo). Renvoie son id. */
+  save: (payload: CoachRefSavePayload) =>
+    invoke<number>("coach_ref_save", { payload }),
+  /** Meilleure réf utilisable du combo (best/ghost la plus rapide, sinon stale). */
+  load: (track: string, carModel: string) =>
+    invoke<CoachRef | null>("coach_ref_load", { track, carModel }),
+  /** Rétrograde en 'stale' les réfs d'un autre build. Renvoie le nombre touché. */
+  markStale: (track: string, carModel: string, currentBuild: string) =>
+    invoke<number>("coach_ref_mark_stale", { track, carModel, currentBuild }),
+  statsForCombo: (track: string, carModel: string) =>
+    invoke<CoachCornerStats[]>("coach_stats_for_combo", { track, carModel }),
+  statsUpsert: (track: string, carModel: string, stats: CoachCornerStats[]) =>
+    invoke<void>("coach_stats_upsert", { track, carModel, stats }),
+};
+
 // ─── Commandes système ──────────────────────────────────────────────────────
 
 export const system = {
@@ -800,6 +918,9 @@ export const system = {
   /** Vérifie si rFactor2SharedMemoryMapPlugin64.dll est présent dans <lmuPath>/Plugins/. */
   checkPluginInstalled: (lmuPath: string) =>
     invoke<boolean>("check_plugin_installed", { lmuPath }),
+  /** Crée ou retire l'icône du system tray à chaud. */
+  setTrayEnabled: (enabled: boolean) =>
+    invoke<void>("set_tray_enabled", { enabled }),
 };
 
 // ─── Configuration + détection du jeu ───────────────────────────────────────

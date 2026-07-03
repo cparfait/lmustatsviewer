@@ -17,7 +17,6 @@ import {
   ChevronRight,
   Clock,
   Activity,
-  Medal,
   Repeat,
   Flag,
   Trophy,
@@ -28,6 +27,9 @@ import {
   Target,
   TrendingUp,
   Route,
+  Ban,
+  Zap,
+  ArrowUpDown,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/stores/app";
@@ -57,6 +59,11 @@ interface ProfileStats {
   wins: number;
   podiums: number;
   top10: number;
+  racesTotal: number;
+  racesFinished: number;
+  dnf: number;
+  fastestLaps: number;
+  avgProgression: number | null;
   bestFinish: number | null;
   bestProgression: number | null;
   tracksVisited: number;
@@ -110,6 +117,11 @@ export function Profile() {
       wins: ds?.wins ?? 0,
       podiums: ds?.podiums ?? 0,
       top10: ds?.top10 ?? 0,
+      racesTotal: ds?.races_total ?? 0,
+      racesFinished: ds?.races_finished ?? 0,
+      dnf: ds?.dnf ?? 0,
+      fastestLaps: ds?.fastest_laps ?? 0,
+      avgProgression: ds?.avg_progression ?? null,
       bestFinish: ds?.best_finish ?? null,
       bestProgression: ds?.best_progression ?? null,
       tracksVisited: so?.tracks ?? 0,
@@ -120,23 +132,23 @@ export function Profile() {
   }, [dashboardStats, sessionsOverview]);
 
   const bestByTrack = useMemo(() => {
+    // Meilleur temps par (circuit, CLASSE) : on ne compare pas des classes
+    // différentes entre elles (une Hypercar et une GT3 sur le même circuit ne
+    // sont pas comparables). Auparavant tout était réduit à une ligne par
+    // circuit, ne gardant que la voiture la plus rapide toutes classes
+    // confondues — ce qui masquait les records des autres classes.
     const map = new Map<string, RecordOverviewRow>();
     for (const r of recordOverview) {
-      const key = `${r.track_course}|${r.car}`;
+      const key = `${r.track_course}|${r.car_class}`;
       const existing = map.get(key);
       if (!existing || r.best_lap < existing.best_lap) {
         map.set(key, r);
       }
     }
-    const unique = new Map<string, RecordOverviewRow>();
-    for (const r of map.values()) {
-      const existing = unique.get(r.track_course);
-      if (!existing || r.best_lap < existing.best_lap) {
-        unique.set(r.track_course, r);
-      }
-    }
-    return Array.from(unique.values()).sort((a, b) =>
-      a.track_course.localeCompare(b.track_course)
+    return Array.from(map.values()).sort(
+      (a, b) =>
+        a.track_course.localeCompare(b.track_course) ||
+        a.car_class.localeCompare(b.car_class)
     );
   }, [recordOverview]);
 
@@ -291,7 +303,7 @@ export function Profile() {
                           >
                             {i + 1}
                           </span>
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center">
                             <CarLogo carName={c.car} className="h-5 w-auto" />
                           </div>
                           <span
@@ -499,7 +511,7 @@ export function Profile() {
                     >
                       #{i + 1}
                     </span>
-                    <div className="flex h-7 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 overflow-hidden">
+                    <div className="flex h-7 w-9 shrink-0 items-center justify-center overflow-hidden">
                       <TrackFlag
                         track={t2.track}
                         className="h-5 w-auto rounded-[2px]"
@@ -542,7 +554,7 @@ export function Profile() {
             <div className="divide-y divide-border/40">
               {bestByTrack.map((r) => (
                 <Link
-                  key={`${r.track_course}-${r.car}`}
+                  key={`${r.track_course}-${r.car_class}-${r.car}`}
                   to={`/records?track=${encodeURIComponent(r.track)}&car=${encodeURIComponent(r.car)}&course=${encodeURIComponent(r.track_course)}&class=${encodeURIComponent(r.car_class)}`}
                   className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40 transition-colors group"
                 >
@@ -587,11 +599,92 @@ interface HeroProps {
 }
 
 /**
+ * Tuile « cockpit » : anneau de jauge SVG pour les stats en ratio
+ * (courses finies, podiums, tours valides). Couleurs alignées sur le thème
+ * de l'app (fond carte, bordures, texte) → suit le mode clair/sombre. Le
+ * liseré haut coloré rappelle les badges secondaires ; seul l'anneau porte
+ * la couleur d'accent sémantique.
+ */
+function RingStat({
+  pct,
+  center,
+  label,
+  sub,
+  color,
+}: {
+  /** Remplissage de l'anneau, 0-100. */
+  pct: number;
+  /** Valeur affichée au centre de l'anneau. */
+  center: string;
+  label: string;
+  sub: string;
+  color: string;
+}) {
+  const R = 24;
+  const CIRC = 2 * Math.PI * R;
+  const filled = Math.max(0, Math.min(100, pct));
+  return (
+    <div
+      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+      style={{ borderTopColor: color, borderTopWidth: 2 }}
+    >
+      <svg
+        width="58"
+        height="58"
+        viewBox="0 0 58 58"
+        className="shrink-0"
+        aria-hidden="true"
+      >
+        <circle
+          cx="29"
+          cy="29"
+          r={R}
+          fill="none"
+          stroke="var(--color-muted)"
+          strokeWidth="6"
+        />
+        {filled > 0 && (
+          <circle
+            cx="29"
+            cy="29"
+            r={R}
+            fill="none"
+            stroke={color}
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={`${(filled / 100) * CIRC} ${CIRC}`}
+            transform="rotate(-90 29 29)"
+          />
+        )}
+        <text
+          x="29"
+          y="33"
+          textAnchor="middle"
+          fontSize="13"
+          fontWeight="600"
+          fill="var(--color-foreground)"
+          className="tabular-nums"
+        >
+          {center}
+        </text>
+      </svg>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-semibold text-foreground first-letter:uppercase">
+          {label}
+        </div>
+        <div className="truncate text-mini text-muted-foreground">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * En-tête de la page Profil — style Dashboard pilote pro.
  * Bandeau horizontal compact : avatar + nom + 4 stats inline avec
  * séparateurs verticaux, façon HUD de jeu de simu.
  */
 function ProfileHero({ displayName, initial, stats }: HeroProps) {
+  const { t } = useTranslation();
   const heroStats: {
     icon: typeof Clock;
     label: string;
@@ -605,7 +698,7 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
   }[] = [
     {
       icon: Activity,
-      label: "Sessions",
+      label: t("profile.statSessions"),
       value: stats.totalSessions,
       color: "text-sky-500",
       bg: "bg-sky-500/10 ring-sky-500/20",
@@ -613,27 +706,31 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
     },
     {
       icon: Clock,
-      label: "Temps piste",
+      label: t("profile.statTrackTime"),
       value: stats.drivingHours.toFixed(1),
       suffix: "h",
       color: "text-amber-500",
       bg: "bg-amber-500/10 ring-amber-500/20",
       glow: "bg-amber-500/25",
-      sublineMain: "tours chronométrés",
+      sublineMain: t("profile.statTimedLaps"),
     },
     {
       icon: Repeat,
-      label: "Tours",
+      label: t("profile.statLapsLabel"),
       value: stats.totalLaps.toLocaleString(),
       color: "text-violet-500",
       bg: "bg-violet-500/10 ring-violet-500/20",
       glow: "bg-violet-500/25",
-      sublineMain: `${stats.totalLapsValid.toLocaleString()} valides`,
-      sublineAccent: `${stats.totalLapsInvalid.toLocaleString()} non valides`,
+      sublineMain: t("profile.statValid", {
+        count: stats.totalLapsValid.toLocaleString(),
+      }),
+      sublineAccent: t("profile.statInvalid", {
+        count: stats.totalLapsInvalid.toLocaleString(),
+      }),
     },
     {
       icon: Route,
-      label: "Distance",
+      label: t("profile.statDistance"),
       value: stats.distanceKm.toLocaleString(undefined, {
         maximumFractionDigits: 0,
       }),
@@ -641,55 +738,106 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
       color: "text-emerald-500",
       bg: "bg-emerald-500/10 ring-emerald-500/20",
       glow: "bg-emerald-500/25",
-      sublineMain: "tours valides",
+      sublineMain: t("profile.statValidLaps"),
     },
   ];
 
-  // Stats secondaires (plus compactes) : courses / qualifs / essais / top10 /
-  // meilleur résultat / meilleure progression / voitures / circuits.
+  // Stats secondaires regroupées par FAMILLE (type + couleur), pour la lisibilité :
+  // 🟠 Performance · 🔵 Bilan courses · 🟣 Activité · 🟢 Exploration.
+  // `tint` = couleur de la famille (chip d'icône + liseré) ; `accent` reste la
+  // couleur sémantique de la valeur (vert/rouge/or).
+  const C_PERF = "#f59e0b"; // amber — performance / résultats
+  const C_RACE = "#3b82f6"; // blue — bilan des courses
+  const C_ACT = "#a855f7"; //  violet — activité / volume / garage
   const secondaryStats: {
     icon: typeof Flag;
     label: string;
     value: string | number;
+    tint: string;
     accent?: string;
   }[] = [
-    { icon: Flag, label: "Courses", value: stats.races },
-    {
-      icon: Medal,
-      label: "Podiums",
-      value: stats.podiums,
-      accent: stats.podiums > 0 ? "text-success" : undefined,
-    },
+    // ── 🟠 Performance ──────────────────────────────────────────────
     {
       icon: Trophy,
-      label: "Victoires",
+      label: t("profile.statWins"),
       value: stats.wins,
+      tint: C_PERF,
       accent: stats.wins > 0 ? "text-amber-500" : undefined,
     },
     {
       icon: Target,
-      label: "Top 10",
+      label: t("profile.statTop10"),
       value: stats.top10,
+      tint: C_PERF,
       accent: stats.top10 > 0 ? "text-success" : undefined,
     },
     {
-      icon: Timer,
-      label: "Qualifs",
-      value: stats.qualifs,
-    },
-    { icon: Layers, label: "Essais", value: stats.practices },
-    {
       icon: TrendingUp,
-      label: "Meilleur résultat",
+      label: t("profile.statBestResult"),
       value: stats.bestFinish && stats.bestFinish < 99 ? `P${stats.bestFinish}` : "—",
-      accent:
-        stats.bestFinish && stats.bestFinish <= 3
-          ? "text-success"
-          : undefined,
+      tint: C_PERF,
+      accent: stats.bestFinish && stats.bestFinish <= 3 ? "text-success" : undefined,
     },
-    { icon: Car, label: "Voitures", value: stats.carsUsed },
-    { icon: MapPin, label: "Circuits", value: stats.tracksVisited },
+    {
+      icon: Zap,
+      label: t("profile.statFastestLaps"),
+      value: stats.fastestLaps,
+      tint: C_PERF,
+      accent: stats.fastestLaps > 0 ? "text-purple" : undefined,
+    },
+    // ── 🔵 Bilan courses ────────────────────────────────────────────
+    { icon: Flag, label: t("profile.statRaces"), value: stats.races, tint: C_RACE },
+    {
+      icon: Ban,
+      label: t("profile.statDnf"),
+      value: stats.dnf,
+      tint: C_RACE,
+      accent: stats.dnf > 0 ? "text-destructive" : undefined,
+    },
+    {
+      icon: ArrowUpDown,
+      label: t("profile.statAvgProgression"),
+      value:
+        stats.avgProgression != null
+          ? `${stats.avgProgression > 0 ? "+" : ""}${stats.avgProgression.toFixed(1)}`
+          : "—",
+      tint: C_RACE,
+      accent:
+        stats.avgProgression != null && stats.avgProgression > 0
+          ? "text-success"
+          : stats.avgProgression != null && stats.avgProgression < 0
+            ? "text-destructive"
+            : undefined,
+    },
+    // ── 🟣 Activité & garage ────────────────────────────────────────
+    { icon: Timer, label: t("profile.statQualifs"), value: stats.qualifs, tint: C_ACT },
+    { icon: Layers, label: t("profile.statPractices"), value: stats.practices, tint: C_ACT },
+    { icon: Repeat, label: t("profile.statLapsDone"), value: stats.totalLaps, tint: C_ACT },
+    { icon: Car, label: t("profile.statCars"), value: stats.carsUsed, tint: C_ACT },
+    { icon: MapPin, label: t("profile.statTracks"), value: stats.tracksVisited, tint: C_ACT },
   ];
+
+  // Regroupe les stats consécutives de même couleur en blocs (1 ligne / famille).
+  const statBlocks: (typeof secondaryStats)[] = [];
+  for (const s of secondaryStats) {
+    const last = statBlocks[statBlocks.length - 1];
+    if (last && last[0].tint === s.tint) last.push(s);
+    else statBlocks.push([s]);
+  }
+
+  // Ratios des tuiles « cockpit » (anneaux de jauge).
+  const finishPct =
+    stats.racesTotal > 0
+      ? Math.round((stats.racesFinished / stats.racesTotal) * 100)
+      : null;
+  const podiumPct =
+    stats.racesTotal > 0
+      ? Math.round((stats.podiums / stats.racesTotal) * 100)
+      : null;
+  const validPct =
+    stats.totalLaps > 0
+      ? Math.round((stats.totalLapsValid / stats.totalLaps) * 100)
+      : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -700,7 +848,7 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-micro uppercase tracking-[0.18em] text-muted-foreground font-medium">
-              LMU Driver
+              {t("profile.driverLabel")}
             </p>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate">
               {displayName}
@@ -771,9 +919,47 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2">
-        {secondaryStats.map((s) => (
-          <Card key={s.label} className="overflow-hidden">
+      {/* Tuiles « cockpit » : anneaux de jauge pour les ratios clés
+          (remplacent les badges Courses finies et Podiums). */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <RingStat
+          pct={finishPct ?? 0}
+          center={finishPct != null ? `${finishPct}%` : "—"}
+          color="#D93B00"
+          label={t("profile.statFinished")}
+          sub={t("profile.ringOfTotal", {
+            a: stats.racesFinished,
+            b: stats.racesTotal,
+          })}
+        />
+        <RingStat
+          pct={podiumPct ?? 0}
+          center={String(stats.podiums)}
+          color="#eab308"
+          label={t("profile.statPodiums")}
+          sub={t("profile.ringWinsSub", { count: stats.wins })}
+        />
+        <RingStat
+          pct={validPct ?? 0}
+          center={validPct != null ? `${validPct}%` : "—"}
+          color="#00c896"
+          label={t("profile.statValidLaps")}
+          sub={t("profile.ringOfTotal", {
+            a: stats.totalLapsValid.toLocaleString(),
+            b: stats.totalLaps.toLocaleString(),
+          })}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        {secondaryStats.map((s) => {
+          const tint = s.tint;
+          return (
+          <Card
+            key={s.label}
+            className="overflow-hidden"
+            style={{ borderTopColor: tint, borderTopWidth: 2 }}
+          >
             <CardContent className="p-2.5 flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-micro uppercase tracking-wide text-muted-foreground font-semibold leading-tight">
@@ -788,12 +974,16 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
                   {s.value}
                 </p>
               </div>
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <div
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+                style={{ background: `${tint}1f`, color: tint }}
+              >
                 <s.icon className="h-3.5 w-3.5" />
               </div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

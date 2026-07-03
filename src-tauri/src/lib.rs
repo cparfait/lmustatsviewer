@@ -20,6 +20,89 @@ fn show_main(app: &tauri::AppHandle) {
     }
 }
 
+/// Construit l'icône du system tray et son menu.
+///
+/// Idempotent : si un tray portant l'id `main-tray` existe déjà, il est d'abord
+/// retiré pour éviter les doublons. Appelé au démarrage (si la préférence
+/// `system_tray` est active) et par la commande `set_tray_enabled` lorsque
+/// l'utilisateur réactive l'option.
+pub(crate) fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
+    // Retire un éventuel tray existant pour rester idempotent.
+    app.remove_tray_by_id("main-tray");
+
+    let open_i = MenuItem::with_id(app, "open", "Ouvrir l'application", true, None::<&str>)?;
+    let live_i = MenuItem::with_id(app, "live", "Live", true, None::<&str>)?;
+    let overlays_i = MenuItem::with_id(app, "overlays", "Overlays", true, None::<&str>)?;
+    let telemetry_i = MenuItem::with_id(app, "telemetry", "Télémétrie", true, None::<&str>)?;
+    let config_i = MenuItem::with_id(app, "config", "Configuration", true, None::<&str>)?;
+    let update_i = MenuItem::with_id(
+        app,
+        "update",
+        "Vérifier les mises à jour",
+        true,
+        None::<&str>,
+    )?;
+    let quit_i = MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?;
+    let sep = PredefinedMenuItem::separator(app)?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &open_i,
+            &live_i,
+            &overlays_i,
+            &telemetry_i,
+            &config_i,
+            &update_i,
+            &sep,
+            &quit_i,
+        ],
+    )?;
+
+    let mut tray = TrayIconBuilder::with_id("main-tray")
+        .menu(&menu)
+        .tooltip("LMU Stats Viewer")
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "open" => show_main(app),
+            "live" => {
+                show_main(app);
+                let _ = app.emit("tray-nav", "/live");
+            }
+            "overlays" => {
+                show_main(app);
+                let _ = app.emit("tray-nav", "/overlays");
+            }
+            "telemetry" => {
+                show_main(app);
+                let _ = app.emit("tray-nav", "/telemetry");
+            }
+            "config" => {
+                show_main(app);
+                let _ = app.emit("tray-nav", "/config");
+            }
+            "update" => {
+                show_main(app);
+                let _ = app.emit("tray-check-update", ());
+            }
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main(tray.app_handle());
+            }
+        });
+    if let Some(icon) = app.default_window_icon().cloned() {
+        tray = tray.icon(icon);
+    }
+    tray.build(app)?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -34,6 +117,7 @@ pub fn run() {
             commands::system::get_platform,
             commands::system::ping,
             commands::system::check_plugin_installed,
+            commands::system::set_tray_enabled,
             // Configuration + détection du jeu
             commands::config::get_config,
             commands::config::set_config,
@@ -89,6 +173,13 @@ pub fn run() {
             commands::ai::ai_list_models,
             commands::ai::ai_set_key,
             commands::ai::ai_get_key,
+            commands::ai::ai_set_voice_key,
+            commands::ai::ai_get_voice_key,
+            commands::coach::coach_ref_save,
+            commands::coach::coach_ref_load,
+            commands::coach::coach_ref_mark_stale,
+            commands::coach::coach_stats_for_combo,
+            commands::coach::coach_stats_upsert,
             commands::ai::coach_note_add,
             commands::ai::coach_notes_for_combo,
             commands::ai::coach_note_delete,
@@ -127,59 +218,17 @@ pub fn run() {
             app.manage(db_state);
 
             // ── System tray ───────────────────────────────────────────────
-            let open_i =
-                MenuItem::with_id(app, "open", "Ouvrir l'application", true, None::<&str>)?;
-            let live_i = MenuItem::with_id(app, "live", "Live", true, None::<&str>)?;
-            let config_i =
-                MenuItem::with_id(app, "config", "Configuration", true, None::<&str>)?;
-            let update_i = MenuItem::with_id(
-                app,
-                "update",
-                "Vérifier les mises à jour",
-                true,
-                None::<&str>,
-            )?;
-            let quit_i = MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?;
-            let sep = PredefinedMenuItem::separator(app)?;
-            let menu = Menu::with_items(
-                app,
-                &[&open_i, &live_i, &config_i, &update_i, &sep, &quit_i],
-            )?;
-
-            let mut tray = TrayIconBuilder::with_id("main-tray")
-                .menu(&menu)
-                .tooltip("LMU Stats Viewer")
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "open" => show_main(app),
-                    "live" => {
-                        show_main(app);
-                        let _ = app.emit("tray-nav", "/live");
-                    }
-                    "config" => {
-                        show_main(app);
-                        let _ = app.emit("tray-nav", "/config");
-                    }
-                    "update" => {
-                        show_main(app);
-                        let _ = app.emit("tray-check-update", ());
-                    }
-                    "quit" => app.exit(0),
-                    _ => {}
-                })
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        show_main(tray.app_handle());
-                    }
-                });
-            if let Some(icon) = app.default_window_icon().cloned() {
-                tray = tray.icon(icon);
+            // L'icône n'est créée que si la préférence `system_tray` est active
+            // (défaut : oui). La commande `set_tray_enabled` la crée/retire à
+            // chaud quand l'utilisateur bascule l'option.
+            let tray_enabled = db::config_get(app.state::<DbState>().inner(), "system_tray")
+                .ok()
+                .flatten()
+                .map(|v| v != "false")
+                .unwrap_or(true);
+            if tray_enabled {
+                build_tray(app.handle())?;
             }
-            tray.build(app)?;
 
             Ok(())
         })

@@ -58,10 +58,17 @@ export function LiftCoastWidget({ data, content, accent, t }: WidgetProps) {
               TC {ext && ext.tc > 0 ? ext.tc : "—"}
             </span>
           )}
-          {coasting && (
+          {/* Lift & Coast réel (valeur native LMU) — sinon repli sur l'heuristique. */}
+          {ext && ext.lift_coast > 0 ? (
             <span className="font-semibold text-yellow-400">
-              {t("overlays.elements.coast")}
+              {t("overlays.elements.coast")} {ext.lift_coast}
             </span>
+          ) : (
+            coasting && (
+              <span className="font-semibold text-yellow-400">
+                {t("overlays.elements.coast")}
+              </span>
+            )
           )}
           {content.abs !== false && (
             <span

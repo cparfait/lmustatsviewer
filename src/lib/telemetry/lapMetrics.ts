@@ -240,11 +240,19 @@ export function computeLapMetrics(
     }
     const L = soc.length;
     const ve = ch.virtualEnergy?.filter((x) => isFinite(x)) ?? [];
+    // Boucle plutôt que `Math.min/max(...soc)` : le spread d'un tableau pleine
+    // résolution peut dépasser la limite d'arguments du moteur JS (RangeError).
+    let socMin = Infinity;
+    let socMax = -Infinity;
+    for (const v of soc) {
+      if (v < socMin) socMin = v;
+      if (v > socMax) socMax = v;
+    }
     hybrid = {
       socStart: Math.round(soc[0]),
       socEnd: Math.round(soc[L - 1]),
-      socMin: Math.round(Math.min(...soc)),
-      socMax: Math.round(Math.max(...soc)),
+      socMin: Math.round(socMin),
+      socMax: Math.round(socMax),
       highSoCPct: Math.round((high / L) * 100),
       deployPct: Math.round((deploy / L) * 100),
       regenPct: Math.round((regenT / L) * 100),

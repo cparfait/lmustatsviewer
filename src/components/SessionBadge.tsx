@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { sessionTypeLabel } from "@/lib/sessionLabels";
+import { BADGE_BASE } from "./badgeBase";
 
 /**
  * Bulle de type de session (Course / Qualif / Essais).
@@ -37,13 +38,7 @@ export function SessionBadge({
 }) {
   const { t } = useTranslation();
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-1.5 py-0 text-micro font-semibold uppercase tracking-wide whitespace-nowrap",
-        classFor(type),
-        className
-      )}
-    >
+    <span className={cn(BADGE_BASE, classFor(type), className)}>
       {sessionTypeLabel(type, t)}
     </span>
   );

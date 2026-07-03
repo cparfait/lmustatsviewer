@@ -66,4 +66,5 @@ export const ollamaProvider: AIProvider = {
 
   // Dépend de ce que l'utilisateur a installé localement → pas de repli figé.
   fallbackModels: [],
+  docsUrl: "https://ollama.com/library",
 };

@@ -78,11 +78,24 @@ export function strategyToText(s: StrategySnapshot): string {
     lines.push(`Session laps remaining: ~${s.sessionLapsLeft}`);
   }
   if (s.fuelNeeded != null && s.fuelToAdd != null) {
-    lines.push(
-      s.fuelToAdd > 0.05
-        ? `Verdict: FUEL SHORT — need ${s.fuelNeeded.toFixed(1)} L total, ADD ${s.fuelToAdd.toFixed(1)} L (or save fuel)`
-        : `Verdict: fuel sufficient to the end (margin ${Math.abs(s.fuelToAdd).toFixed(1)} L)`,
-    );
+    const excess = -s.fuelToAdd; // litres en trop (>0 = excédent embarqué)
+    // Marge de sécurité « normale » = ~1 tour de conso (min 1 L).
+    const safety = Math.max(s.fuelPerLap, 1);
+    if (s.fuelToAdd > 0.05) {
+      lines.push(
+        `Verdict: FUEL SHORT — need ${s.fuelNeeded.toFixed(1)} L total, ADD ${s.fuelToAdd.toFixed(1)} L (or save fuel)`,
+      );
+    } else if (excess > safety * 2) {
+      // Sur-remplissage notable : surpoids inutile → conseiller d'alléger.
+      const couldDrop = excess - safety; // on garde ~1 tour de marge
+      lines.push(
+        `Verdict: OVER-FUELED — carrying ~${excess.toFixed(1)} L more than needed for the remaining ${s.sessionLapsLeft} laps. Recommend removing ~${couldDrop.toFixed(1)} L to save weight (keep ~1 lap safety margin). This is NOT "fine" — excess fuel = dead weight and lost lap time.`,
+      );
+    } else {
+      lines.push(
+        `Verdict: fuel sufficient to the end (healthy margin ${excess.toFixed(1)} L)`,
+      );
+    }
   }
   return lines.join("\n");
 }

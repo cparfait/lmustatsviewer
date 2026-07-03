@@ -33,6 +33,16 @@ pub struct DashboardStats {
     pub podiums: i64,
     pub wins: i64,
     pub top10: i64,
+    /// Nombre de courses (session_type = Race).
+    pub races_total: i64,
+    /// Courses terminées « Finished Normally ».
+    pub races_finished: i64,
+    /// Abandons (finish_status = DNF).
+    pub dnf: i64,
+    /// Courses où le joueur a signé le meilleur tour de SA classe.
+    pub fastest_laps: i64,
+    /// Moyenne de progression (places gagnées/perdues) sur les courses finies.
+    pub avg_progression: Option<f64>,
     pub favorite_track: Option<String>,
     pub favorite_car: Option<String>,
     pub best_finish_track: Option<String>,
@@ -60,7 +70,15 @@ pub fn get_dashboard_stats(db: State<'_, DbState>) -> Result<DashboardStats, App
                       AND r.class_position = 1 THEN 1 ELSE 0 END), 0),
             COALESCE(SUM(CASE WHEN s.session_type = 'Race'
                       AND r.finish_status = 'Finished Normally'
-                      AND r.class_position <= 10 THEN 1 ELSE 0 END), 0)
+                      AND r.class_position <= 10 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race'
+                      AND r.finish_status = 'Finished Normally' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race'
+                      AND r.finish_status = 'DNF' THEN 1 ELSE 0 END), 0),
+            AVG(CASE WHEN s.session_type = 'Race'
+                      AND r.finish_status = 'Finished Normally'
+                      THEN r.progression END)
          FROM results r JOIN sessions s ON s.id = r.session_id
          WHERE r.is_player = 1",
         [],
@@ -71,15 +89,39 @@ pub fn get_dashboard_stats(db: State<'_, DbState>) -> Result<DashboardStats, App
             stats.podiums = row.get(3)?;
             stats.wins = row.get(4)?;
             stats.top10 = row.get(5)?;
+            stats.races_total = row.get(6)?;
+            stats.races_finished = row.get(7)?;
+            stats.dnf = row.get(8)?;
+            stats.avg_progression = row.get(9)?;
             Ok(())
         },
     )
     .map_err(|e| AppError::Database(format!("dashboard stats: {e}")))?;
 
+    // Meilleurs tours : nombre de courses où le joueur a signé le meilleur tour
+    // de SA classe (comparaison intra-session, classe par classe).
+    stats.fastest_laps = conn
+        .query_row(
+            "SELECT COUNT(*) FROM results r JOIN sessions s ON s.id = r.session_id
+             WHERE r.is_player = 1 AND s.session_type = 'Race'
+               AND r.best_lap IS NOT NULL AND r.best_lap > 0
+               AND r.best_lap = (
+                 SELECT MIN(r2.best_lap) FROM results r2
+                 WHERE r2.session_id = r.session_id
+                   AND r2.car_class = r.car_class
+                   AND r2.best_lap > 0)",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+
     // Statistiques depuis la table `laps` : tours valides/invalides, temps et distance.
     // - is_valid = 1 → lap_time > 0 (tour chronométré, partiel ou non)
     // - is_valid = 0 → lap_time = 0 (tour sans temps : sortie des stands, 1er/dernier tour)
     // - track_length en mètres → distance en km
+    // Approximation assumée : un tour valide = 1 longueur de circuit. Un tour
+    // chronométré mais partiel (rare) est compté plein → surcompte négligeable, et
+    // aucune donnée de distance par tour n'est stockée pour faire mieux.
     let laps_stats: (i64, i64, f64, f64) = conn
         .query_row(
             "SELECT
@@ -330,7 +372,11 @@ pub fn get_best_laps(db: State<'_, DbState>) -> Result<Vec<BestLapRow>, AppError
             .cmp(&b.track)
             .then(a.track_course.cmp(&b.track_course))
             .then(class_order(&a.car_class).cmp(&class_order(&b.car_class)))
-            .then(a.best_lap.partial_cmp(&b.best_lap).unwrap())
+            .then(
+                a.best_lap
+                    .partial_cmp(&b.best_lap)
+                    .unwrap_or(std::cmp::Ordering::Equal),
+            )
     });
 
     Ok(out)

@@ -5,9 +5,18 @@ import { ArrowLeft, Languages } from "lucide-react";
 import {
   CHANGELOG,
   type ChangelogEntry,
-  type ChangelogSectionKind,
+  normalizeItem,
+  pickLang,
 } from "@/lib/changelog";
+import type { ChangelogSectionKind } from "@/lib/changelog";
 import { cn } from "@/lib/utils";
+
+/** Sépare un libellé « Titre : description » pour mettre le titre en gras. */
+function splitLead(text: string): { lead: string | null; rest: string } {
+  const idx = text.search(/[:：]/);
+  if (idx <= 0 || idx > 40) return { lead: null, rest: text };
+  return { lead: text.slice(0, idx), rest: text.slice(idx + 1).trim() };
+}
 
 const SECTION_META: Record<
   ChangelogSectionKind,
@@ -27,16 +36,20 @@ const LANG_MAP: Record<string, string> = {
   de: "de",
 };
 
-function translateEntry(entry: ChangelogEntry, targetLang: string) {
+async function translateEntry(entry: ChangelogEntry, targetLang: string) {
   const text = entry.sections
-    .flatMap((s) => s.items)
+    .flatMap((s) => s.items.map((it) => pickLang(normalizeItem(it).text, "en")))
     .join("\n");
   if (!text.trim()) return;
   const lang = LANG_MAP[targetLang] ?? "en";
-  window.open(
-    `https://translate.google.com/?sl=en&tl=${lang}&text=${encodeURIComponent(text)}&op=translate`,
-    "_blank"
-  );
+  const url = `https://translate.google.com/?sl=en&tl=${lang}&text=${encodeURIComponent(text)}&op=translate`;
+  // `window.open` est bloqué dans la webview Tauri → on passe par le plugin opener.
+  try {
+    const { openUrl } = await import("@tauri-apps/plugin-opener");
+    await openUrl(url);
+  } catch {
+    window.open(url, "_blank");
+  }
 }
 
 export function Changelog() {
@@ -80,14 +93,16 @@ export function Changelog() {
                 {t("changelog.dev")}
               </span>
             )}
-            <button
-              onClick={() => translateEntry(entry, i18n.language)}
-              className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-              title={t("changelog.translate")}
-            >
-              <Languages className="h-3.5 w-3.5" />
-              {t("changelog.translate")}
-            </button>
+            {!entry.localized && (
+              <button
+                onClick={() => translateEntry(entry, i18n.language)}
+                className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                title={t("changelog.translate")}
+              >
+                <Languages className="h-3.5 w-3.5" />
+                {t("changelog.translate")}
+              </button>
+            )}
           </div>
           <CardContent className="p-4 flex flex-col gap-4">
             {entry.sections.map((section) => {
@@ -104,17 +119,42 @@ export function Changelog() {
                     {t(`changelog.${section.kind}`)}
                   </h3>
                   <ul className="flex flex-col gap-1 pl-1">
-                    {section.items.map((item, i) => (
-                      <li
-                        key={i}
-                        className="text-sm text-foreground/90 flex gap-2"
-                      >
-                        <span className="text-muted-foreground/50 select-none">
-                          •
-                        </span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
+                    {section.items.map((item, i) => {
+                      const norm = normalizeItem(item);
+                      const text = pickLang(norm.text, i18n.language);
+                      if (norm.featured) {
+                        const { lead, rest } = splitLead(text);
+                        return (
+                          <li
+                            key={i}
+                            className="text-sm flex gap-2 items-start rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5"
+                          >
+                            <span className="text-primary select-none leading-5">
+                              ★
+                            </span>
+                            <span className="text-foreground/90">
+                              {lead && (
+                                <span className="font-bold text-primary">
+                                  {lead} :{" "}
+                                </span>
+                              )}
+                              {lead ? rest : text}
+                            </span>
+                          </li>
+                        );
+                      }
+                      return (
+                        <li
+                          key={i}
+                          className="text-sm text-foreground/90 flex gap-2"
+                        >
+                          <span className="text-muted-foreground/50 select-none">
+                            •
+                          </span>
+                          <span>{text}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               );

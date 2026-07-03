@@ -7,13 +7,14 @@
  */
 
 import { create } from "zustand";
-import { config, indexer, queries, ai } from "@/lib/api";
+import { config, indexer, queries, ai, system } from "@/lib/api";
 import { setAppTimezone } from "@/lib/utils";
 import { preloadStaticData } from "@/lib/staticData";
 import { configureVoice } from "@/lib/voice";
 import { initVoiceOverrides } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled } from "@/lib/radioFx";
+import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
 import type {
   BestLapRow,
   DashboardStats,
@@ -50,6 +51,10 @@ interface AppState {
   autoUpdate: boolean;
   /** Afficher les tiers ohne_speed dans Sessions, SessionDetail et LapChartModal. */
   showOhneSpeed: boolean;
+  /** Rythme cible de l'overlay live (clé tier ohne_speed : alien/competitive/good/midpack). */
+  overlayTargetTier: string;
+  /** Modules du menu activés (clé nav → bool). Absent/true = visible. */
+  menuModules: Record<string, boolean>;
   /** Annonces vocales sur la page Live (off par défaut — doublon avec CrewChief). */
   voiceAnnouncements: boolean;
   /** voiceURI de la voix système choisie par langue ("" / absent = auto). */
@@ -90,8 +95,14 @@ interface AppState {
   aiProvider: string;
   /** Clé API du fournisseur (vide pour Ollama). Persistée chiffrée côté backend (`ai_set_key`). */
   aiApiKey: string;
-  /** id du modèle sélectionné. */
+  /** id du modèle sélectionné (analyse / panneau). */
   aiModel: string;
+  /** id du modèle dédié au coach VOCAL (rapide). Vide = même que `aiModel`. */
+  aiVoiceModel: string;
+  /** Fournisseur DISTINCT pour le coach vocal. Vide = même que `aiProvider`. */
+  aiVoiceProvider: string;
+  /** Clé API du fournisseur vocal (si distinct). Persistée chiffrée (`ai_set_voice_key`). */
+  aiVoiceApiKey: string;
   /** Prompt système personnalisé par langue (code 2 lettres → texte ; absent = défaut). */
   aiSystemPromptByLang: Record<string, string>;
 
@@ -133,6 +144,8 @@ interface AppState {
   setSystemTray: (v: boolean) => Promise<void>;
   setAutoUpdate: (v: boolean) => Promise<void>;
   setShowOhneSpeed: (v: boolean) => Promise<void>;
+  setOverlayTargetTier: (v: string) => Promise<void>;
+  setMenuModule: (key: string, value: boolean) => Promise<void>;
   setVoiceAnnouncements: (v: boolean) => Promise<void>;
   setVoiceUri: (lang: string, v: string) => Promise<void>;
   setPiperVoice: (lang: string, id: string) => Promise<void>;
@@ -152,6 +165,9 @@ interface AppState {
   setAIProvider: (v: string) => Promise<void>;
   setAIApiKey: (v: string) => Promise<void>;
   setAIModel: (v: string) => Promise<void>;
+  setAIVoiceModel: (v: string) => Promise<void>;
+  setAIVoiceProvider: (v: string) => Promise<void>;
+  setAIVoiceApiKey: (v: string) => Promise<void>;
   setAISystemPrompt: (lang: string, v: string) => Promise<void>;
 }
 
@@ -167,6 +183,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   systemTray: true,
   autoUpdate: true,
   showOhneSpeed: true,
+  overlayTargetTier: "competitive",
+  menuModules: {},
   voiceAnnouncements: false,
   voiceUriByLang: {},
   piperVoiceByLang: {},
@@ -187,6 +205,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   aiProvider: "google",
   aiApiKey: "",
   aiModel: "",
+  aiVoiceModel: "",
+  aiVoiceProvider: "",
+  aiVoiceApiKey: "",
   aiSystemPromptByLang: {},
   dashboardStats: null,
   bestLaps: [],
@@ -199,6 +220,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   loading: false,
 
   init: async () => {
+   try {
     await preloadStaticData();
     const cfg = await config.getAll();
     const resultsDir = cfg.results_dir ?? "";
@@ -236,6 +258,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch {
       /* ancienne valeur (string brute) ou JSON corrompu → map vide */
     }
+    // Modules du menu (clé nav → bool). Absent/true = visible.
+    let menuModules: Record<string, boolean> = {};
+    try {
+      const parsed = cfg.menu_modules ? JSON.parse(cfg.menu_modules) : null;
+      if (parsed && typeof parsed === "object") menuModules = parsed;
+    } catch {
+      /* JSON corrompu → tous les modules visibles */
+    }
     // Voix FR par défaut = Pierre (upmc, locuteur 1) tant que l'utilisateur n'a pas
     // choisi explicitement. Non persisté (reste un défaut) ; repli auto sur `tom`
     // côté backend si `upmc` n'est pas installé.
@@ -252,6 +282,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const voiceEngine = cfg.voice_engine === "system" ? "system" : "piper";
     // Clé API IA : lue déchiffrée via le backend (migration douce de l'ancien clair).
     const aiApiKey = await ai.getKey().catch(() => "");
+    const aiVoiceApiKey = await ai.getVoiceKey().catch(() => "");
     configureVoice({
       voiceByLang: voiceUriByLang,
       piperByLang: piperVoiceByLang,
@@ -276,6 +307,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       systemTray: cfg.system_tray !== "false",
       autoUpdate: cfg.auto_update !== "false",
       showOhneSpeed: cfg.show_ohne_speed !== "false",
+      overlayTargetTier: cfg.overlay_target_tier || "competitive",
+      menuModules,
       voiceAnnouncements: cfg.voice_announcements === "true",
       voiceUriByLang,
       piperVoiceByLang,
@@ -296,6 +329,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       aiProvider: cfg.ai_provider || "google",
       aiApiKey,
       aiModel: cfg.ai_model ?? "",
+      aiVoiceModel: cfg.ai_voice_model ?? "",
+      aiVoiceProvider: cfg.ai_voice_provider ?? "",
+      aiVoiceApiKey,
       aiSystemPromptByLang,
       selectedVersion: cfg.default_since_version ?? null,
     });
@@ -314,6 +350,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       await get().loadDashboard();
     }
+   } catch (e) {
+      // Échec IPC/DB au boot (base verrouillée, migration ratée, IPC KO) : ne
+      // pas laisser l'app figée sur le spinner infini. On marque la config
+      // « chargée » en mode dégradé → l'app rend l'onboarding au lieu de geler.
+      console.error("[app.init] échec d'initialisation", e);
+      set({ configLoaded: true, isConfigured: false });
+   }
   },
 
   runSetup: async (lmuPath, playerName, resultsDir, telemetryDir) => {
@@ -367,6 +410,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Ne rafraîchir le dashboard que si quelque chose a changé (évite un reload inutile).
       if (report.added + report.updated + report.removed > 0) {
         set({ indexReport: report });
+        // Les records ont pu changer → invalide le cache du digest coach.
+        resetRecordsDigestCache();
         await get().loadDashboard();
       }
     } catch {
@@ -379,6 +424,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const report = await indexer.reindexAll();
       set({ indexReport: report });
+      resetRecordsDigestCache();
       await get().loadDashboard();
     } finally {
       set({ indexing: false });
@@ -428,6 +474,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSystemTray: async (v) => {
     await config.set("system_tray", v ? "true" : "false");
+    // Crée/retire l'icône du tray immédiatement (sans redémarrage).
+    await system.setTrayEnabled(v).catch(() => {});
     set({ systemTray: v });
   },
 
@@ -439,6 +487,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   setShowOhneSpeed: async (v) => {
     await config.set("show_ohne_speed", v ? "true" : "false");
     set({ showOhneSpeed: v });
+  },
+
+  setOverlayTargetTier: async (v) => {
+    await config.set("overlay_target_tier", v);
+    set({ overlayTargetTier: v });
+  },
+
+  setMenuModule: async (key, value) => {
+    const next = { ...get().menuModules, [key]: value };
+    set({ menuModules: next });
+    await config.set("menu_modules", JSON.stringify(next));
   },
 
   setVoiceAnnouncements: async (v) => {
@@ -558,6 +617,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAIModel: async (v) => {
     await config.set("ai_model", v);
     set({ aiModel: v });
+  },
+
+  setAIVoiceModel: async (v) => {
+    await config.set("ai_voice_model", v);
+    set({ aiVoiceModel: v });
+  },
+
+  setAIVoiceProvider: async (v) => {
+    await config.set("ai_voice_provider", v);
+    set({ aiVoiceProvider: v });
+  },
+
+  setAIVoiceApiKey: async (v) => {
+    await ai.setVoiceKey(v); // stockée chiffrée côté backend
+    set({ aiVoiceApiKey: v });
   },
 
   setAISystemPrompt: async (lang, v) => {

@@ -18,12 +18,26 @@ const navKeys = [
   { to: "/profile", key: "profile" },
   { to: "/", key: "records", end: true },
   { to: "/sessions", key: "sessions" },
+  { to: "/references", key: "references" },
   { to: "/setups", key: "setups" },
   { to: "/live", key: "live" },
-  { to: "/telemetry", key: "telemetry" },
   { to: "/overlays", key: "overlays" },
+  { to: "/telemetry", key: "telemetry" },
   { to: "/config", key: "config" },
+  { to: "/config-v2", key: "configV2" },
 ];
+
+/** Entrées de menu désactivables par l'utilisateur (Records=accueil & Config toujours
+ *  visibles ; Références est piloté par l'option ohne_speed). */
+export const MENU_MODULE_KEYS = [
+  "profile",
+  "sessions",
+  "setups",
+  "live",
+  "overlays",
+  "telemetry",
+] as const;
+const TOGGLEABLE = new Set<string>(MENU_MODULE_KEYS);
 
 const languages = [
   { code: "fr", label: "Français", flag: "fr" },
@@ -36,9 +50,19 @@ export function Header() {
   const { theme, toggle } = useTheme();
   const { t, i18n } = useTranslation();
   const playerName = useAppStore((s) => s.playerName);
+  const menuModules = useAppStore((s) => s.menuModules);
+  const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
 
   const currentLang =
     languages.find((l) => i18n.language?.startsWith(l.code)) ?? languages[0];
+
+  // Références : visible seulement si l'option ohne_speed est active. Autres
+  // modules désactivables : masqués si explicitement mis à false.
+  const visibleNav = navKeys.filter((item) => {
+    if (item.key === "references") return showOhneSpeed;
+    if (TOGGLEABLE.has(item.key)) return menuModules[item.key] !== false;
+    return true;
+  });
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -55,7 +79,7 @@ export function Header() {
         </NavLink>
 
         <nav className="flex items-center gap-1 ml-4">
-          {navKeys.map((item) => (
+          {visibleNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

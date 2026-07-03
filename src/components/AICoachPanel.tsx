@@ -18,6 +18,8 @@ import {
   Mic,
   Pin,
   Target,
+  Youtube,
+  ExternalLink,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
@@ -36,7 +38,10 @@ import {
   buildDriverHistoryText,
   buildComboHistoryText,
 } from "@/lib/ai/context/driver-history-context";
-import { buildLiveContext } from "@/lib/ai/context/live-context";
+import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
+import { buildTrackKnowledgeText } from "@/lib/ai/knowledge/track-knowledge";
+import { getVideoGuide } from "@/lib/ai/knowledge/video-guides";
+import i18nGlobal from "@/i18n";
 import { buildSetupSummary } from "@/lib/ai/context/setup-context";
 import {
   buildTelemetryContext,
@@ -239,8 +244,10 @@ export function CoachPanel({
   resetKey,
   combo,
 }: {
-  /** Construit le contexte de données AU MOMENT de l'envoi (live = snapshot frais). */
-  getContext: () => string | Promise<string>;
+  /** Construit le contexte de données AU MOMENT de l'envoi (live = snapshot frais).
+   *  `question` permet d'adapter le contexte (ex. joindre l'historique seulement
+   *  si la question vocale/live est historique). Ignoré par le post-course. */
+  getContext: (question?: string) => string | Promise<string>;
   /** Identifiant stable de la cible (session/fichier/"live") : son changement réinitialise le fil. */
   resetKey: string;
   /** Combo circuit/voiture — clé des objectifs épinglés ; absent = épinglage désactivé. */
@@ -280,8 +287,8 @@ export function CoachPanel({
   const lastAnswer = [...thread].reverse().find((x) => x.role === "assistant")?.content ?? null;
 
   /** Contexte effectif : données + objectifs épinglés (le coach vérifie leur progression). */
-  const resolveContext = async () => {
-    const base = await Promise.resolve(getContext());
+  const resolveContext = async (question?: string) => {
+    const base = await Promise.resolve(getContext(question));
     if (notes.length === 0) return base;
     const noteLines = notes.map(
       (nt) => `[${new Date(nt.created_at * 1000).toISOString().slice(0, 10)}]\n${nt.note}`,
@@ -475,7 +482,7 @@ export function CoachPanel({
     const q = question.trim();
     if (!q) return;
     const isFirst = thread.length === 0;
-    const context = isFirst ? await resolveContext() : "";
+    const context = isFirst ? await resolveContext(q) : "";
     const user: Turn = {
       role: "user",
       content: isFirst ? `${q}\n\n--- Session data ---\n${context}` : q,
@@ -545,6 +552,12 @@ export function CoachPanel({
 
   const hasThread = thread.length > 0;
 
+  // Guide vidéo (lap guide) correspondant au combo — proposé en lien visible.
+  const videoGuide = useMemo(
+    () => (combo ? getVideoGuide(combo.track, combo.trackCourse, combo.carClass) : null),
+    [combo],
+  );
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-primary">
@@ -610,6 +623,24 @@ export function CoachPanel({
             {provider?.name} · {aiModel}
           </div>
         </div>
+      )}
+
+      {/* Guide vidéo du combo (lap guide) — lien direct visible. */}
+      {videoGuide && (
+        <a
+          href={videoGuide.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-red-500/40 hover:bg-red-500/5 hover:text-foreground"
+          title={videoGuide.title}
+        >
+          <Youtube className="h-3.5 w-3.5 text-red-500" />
+          {t("coach.videoGuide")}
+          <span className="max-w-[220px] truncate text-muted-foreground/70">
+            · {videoGuide.title}
+          </span>
+          <ExternalLink className="h-3 w-3 opacity-60" />
+        </a>
       )}
 
       <div>
@@ -751,6 +782,9 @@ export function CoachPanel({
               {lastAnswer && !busy && (
                 <p className="text-[11px] text-muted-foreground/70">{t("coach.disclaimer")}</p>
               )}
+              <p className="text-[10px] leading-snug text-muted-foreground/50">
+                {t("coach.sources")}
+              </p>
             </div>
 
             <div className="flex shrink-0 items-center gap-2 border-t border-border px-5 py-3">
@@ -868,9 +902,22 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
     };
   }, [detail]);
 
+  // Connaissance circuit (référence statique) : freinages ApexPoints + guide
+  // vidéo/transcription Unleashed Drivers, couplés en une seule rubrique.
+  const lang = i18nGlobal.language;
+  const knowledgeText = useMemo(() => {
+    const pl = detail.results.find((r) => r.is_player);
+    return buildTrackKnowledgeText({
+      track: detail.session.track,
+      trackCourse: detail.session.track_course,
+      carClass: pl?.car_class ?? "",
+      lang,
+    });
+  }, [detail, lang]);
+
   const ctx = useMemo(
-    () => buildPostRaceContext(detail, setupText, alienText, historyText),
-    [detail, setupText, alienText, historyText],
+    () => buildPostRaceContext(detail, setupText, alienText, historyText, knowledgeText),
+    [detail, setupText, alienText, historyText, knowledgeText],
   );
   const player = detail.results.find((r) => r.is_player);
   const combo = player
@@ -1050,6 +1097,17 @@ export function TelemetryCoachPanel({
   }, [meta]);
 
   const comparisonText = analysis ? summarizeLapAnalysis(analysis) : "";
+  // Connaissance circuit : freinages ApexPoints + guide vidéo/transcription, couplés.
+  const knowledgeText = useMemo(
+    () =>
+      buildTrackKnowledgeText({
+        track: meta.info.track,
+        trackCourse: meta.info.track_layout,
+        carClass: meta.info.car_class ?? "",
+        lang: i18nGlobal.language,
+      }),
+    [meta],
+  );
   const ctx = useMemo(
     () =>
       buildTelemetryContext(
@@ -1060,8 +1118,9 @@ export function TelemetryCoachPanel({
         metricsText,
         bestApexText,
         historyText,
+        knowledgeText,
       ),
-    [meta, elecText, cornersText, comparisonText, metricsText, bestApexText, historyText],
+    [meta, elecText, cornersText, comparisonText, metricsText, bestApexText, historyText, knowledgeText],
   );
   // Objectifs épinglés : même clé de combo que le post-race — `car_model` est déjà
   // résolu par le backend en `unique_car_name` (via veh_name, correspondance exacte)
@@ -1086,7 +1145,7 @@ export function TelemetryCoachPanel({
 export function LiveCoachPanel() {
   return (
     <CoachPanel
-      getContext={async () => buildLiveContext(await live.getData())}
+      getContext={async (q) => buildLiveCoachContext(await live.getData(), q)}
       resetKey="live"
     />
   );

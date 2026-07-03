@@ -26,6 +26,8 @@ export interface OverlaySettings {
   scale: number;
   /** 0 → 1 */
   opacity: number;
+  /** Couleur d'accent personnalisée (hex) ; absent = couleur par défaut du registre. */
+  accent?: string;
   /** Éléments de contenu activés (clé → bool). */
   content: Record<string, boolean>;
 }
@@ -60,6 +62,7 @@ function defaults(): OverlaysConfig {
       y: def.defaultY,
       scale: 1,
       opacity: 0.95,
+      accent: def.accent,
       content: Object.fromEntries(
         def.elements.map((e) => [e.key, e.default ?? true]),
       ),
@@ -90,6 +93,7 @@ function mergeOverlays(
       y: s?.y ?? d.y,
       scale: s?.scale ?? d.scale,
       opacity: s?.opacity ?? d.opacity,
+      accent: s?.accent ?? d.accent,
       content: { ...d.content, ...(s?.content ?? {}) },
     };
   }

@@ -16,6 +16,7 @@ import {
   type SetupSessionMatch,
 } from "@/lib/api";
 import { formatTime, formatDateTime, cn } from "@/lib/utils";
+import { CarImage } from "@/components/CarImage";
 import {
   getCachedLmuCars,
   getCachedLmuCircuits,
@@ -171,6 +172,12 @@ export function NewSetupDialog({
                 )
               )}
             </select>
+            {car && (
+              <CarImage
+                carName={car}
+                className="mt-1 h-10 w-auto max-w-[170px] self-end object-contain opacity-80 [mask-image:linear-gradient(to_right,transparent,black_18%)]"
+              />
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">

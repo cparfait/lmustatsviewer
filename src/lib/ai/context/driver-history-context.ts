@@ -63,7 +63,7 @@ export async function buildComboHistoryText(args: {
     `Combo: ${track}${trackCourse ? ` (${trackCourse})` : ""} — ${car} · ${st.sessions_count} sessions on record`,
   );
   lines.push(
-    `All-time PB: ${formatTime(st.all_time_pb)} · PBs set: ${st.nb_pb}` +
+    `All-time PB: ${formatTime(st.all_time_pb)} · PB improvements: ${st.nb_pb}` +
       (st.days_since_pb != null ? ` · last PB ${st.days_since_pb} days ago` : ""),
   );
   if (currentBest && currentBest > 0) {
@@ -115,6 +115,25 @@ export async function buildComboHistoryText(args: {
       );
     }
   }
+
+  // Tendance de progression (déterministe) : 3 dernières sessions vs 3 précédentes.
+  // Donne au coach une « mémoire » de la trajectoire du pilote sur ce combo.
+  const series = pts.map((p) => p.best_lap).filter((x) => x > 0);
+  if (series.length >= 6) {
+    const mean = (a: number[]) => a.reduce((s, x) => s + x, 0) / a.length;
+    const recentAvg = mean(series.slice(-3));
+    const prevAvg = mean(series.slice(-6, -3));
+    const diff = recentAvg - prevAvg; // négatif = plus rapide récemment
+    const trend =
+      diff < -0.1 ? "improving" : diff > 0.1 ? "regressing" : "plateau";
+    lines.push("");
+    lines.push(
+      `Progress trend: ${trend} — last 3 sessions avg ${formatTime(recentAvg)} vs previous 3 ${formatTime(prevAvg)}` +
+        (st.days_since_pb != null ? ` · no PB for ${st.days_since_pb} days` : "") +
+        ".",
+    );
+  }
+
   return lines.join("\n");
 }
 

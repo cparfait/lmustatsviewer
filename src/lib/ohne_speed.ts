@@ -5,19 +5,40 @@ export type OhneSpeedTier = "Alien" | "Competitive" | "Good" | "Midpack" | "Tail
 export interface PaceBenchmark {
   track: string;
   carClass: CarClass;
+  /** Patch du jeu de la mesure (ex. "1.3 +"). */
+  patch: string;
   hotlapTimeMs: number;
   racePaceMs: {
-    alien: number;
-    competitive: number;
-    good: number;
-    midpack: number;
-    tailEnder: number;
-    offline: number;
+    alien: number; // 100%
+    competitive: number; // 101%
+    good: number; // 102%
+    pct103: number; // 103%
+    midpack: number; // 104%
+    pct105: number; // 105%
+    tailEnder: number; // 106%
+    offline: number; // 107%
   };
   fastestCar: string;
   fastestLapTimeMs: number;
   weightedAvgMs: number;
 }
+
+/** Colonnes de tiers, dans l'ordre d'affichage (100 % → 107 %), avec couleur. */
+export interface TierColumn {
+  pct: number;
+  key: keyof PaceBenchmark["racePaceMs"];
+  color: string;
+}
+export const TIER_COLUMNS: TierColumn[] = [
+  { pct: 100, key: "alien", color: "#34d399" },
+  { pct: 101, key: "competitive", color: "#4ade80" },
+  { pct: 102, key: "good", color: "#a3e635" },
+  { pct: 103, key: "pct103", color: "#eab308" },
+  { pct: 104, key: "midpack", color: "#f59e0b" },
+  { pct: 105, key: "pct105", color: "#fb923c" },
+  { pct: 106, key: "tailEnder", color: "#f87171" },
+  { pct: 107, key: "offline", color: "#ef4444" },
+];
 
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pub?gid=1766901750&single=true&output=csv";
@@ -172,8 +193,10 @@ function parseCSV(text: string): PaceBenchmark[] {
     const alien       = parseLapTimeToMs(cols[4]);
     const competitive = parseLapTimeToMs(cols[5]);
     const good        = parseLapTimeToMs(cols[6]);
-    const midpack     = parseLapTimeToMs(cols[8]);   // col[7] = 103%, ignoré
-    const tailEnder   = parseLapTimeToMs(cols[10]);  // col[9] = 105%, ignoré
+    const p103        = parseLapTimeToMs(cols[7]);   // 103%
+    const midpack     = parseLapTimeToMs(cols[8]);   // 104%
+    const p105        = parseLapTimeToMs(cols[9]);   // 105%
+    const tailEnder   = parseLapTimeToMs(cols[10]);  // 106%
     const offline     = parseLapTimeToMs(cols[11]);  // 107%
 
     if (!hotlapMs || !alien || !competitive || !good || !midpack || !tailEnder || !offline) continue;
@@ -184,8 +207,18 @@ function parseCSV(text: string): PaceBenchmark[] {
     benchmarks.push({
       track,
       carClass: mappedClass,
+      patch: cols[2]?.trim() ?? "",
       hotlapTimeMs: hotlapMs,
-      racePaceMs: { alien, competitive, good, midpack, tailEnder, offline },
+      racePaceMs: {
+        alien,
+        competitive,
+        good,
+        pct103: p103 ?? 0,
+        midpack,
+        pct105: p105 ?? 0,
+        tailEnder,
+        offline,
+      },
       fastestCar: cols[12]?.trim() ?? "",
       fastestLapTimeMs: parseLapTimeToMs(cols[13] ?? "") ?? 0,
       weightedAvgMs: 0,

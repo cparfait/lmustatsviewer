@@ -211,6 +211,61 @@ CREATE TABLE IF NOT EXISTS ohne_speed_cache (
     PRIMARY KEY (track, layout, class, tier)
 );
 
+-- ── Coach par virage : références denses v2 (cf. COACH-LIVE-SPEC.md §3) ─────
+-- Un tour de référence par combo circuit × voiture (clé par VOITURE, pas par
+-- classe : une 499P et une 963 n'ont pas les mêmes freinages). Canaux
+-- rééchantillonnés à pas constant (step_m, 4 m par défaut) et sérialisés en
+-- BLOB Float32 little-endian : 8 canaux concaténés dans l'ordre
+-- time,speed,brake,throttle,steer,g_lat,g_long,gear (n_points chacun).
+-- kind : 'best' (tour du joueur), 'ghost' (importé), 'stale' (périmé —
+-- lisible mais deltas relatifs uniquement).
+CREATE TABLE IF NOT EXISTS coach_ref (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    track       TEXT    NOT NULL,
+    car_model   TEXT    NOT NULL,
+    car_class   TEXT    NOT NULL DEFAULT '',
+    kind        TEXT    NOT NULL DEFAULT 'best',
+    created_at  INTEGER NOT NULL DEFAULT 0,
+    game_build  TEXT    NOT NULL DEFAULT '',
+    lap_time    REAL    NOT NULL,
+    step_m      REAL    NOT NULL DEFAULT 4.0,
+    n_points    INTEGER NOT NULL,
+    meta_json   TEXT    NOT NULL DEFAULT '{}',
+    channels    BLOB    NOT NULL
+);
+
+-- Fenêtres de virage de la réf (bornes curvilignes + métriques cibles).
+-- corner_uid = identité STABLE du virage, conservée entre re-détections par
+-- appariement d'apex_dist (< 40 m) — la mémoire longitudinale s'indexe dessus.
+CREATE TABLE IF NOT EXISTS coach_corner (
+    ref_id             INTEGER NOT NULL REFERENCES coach_ref(id) ON DELETE CASCADE,
+    corner_uid         TEXT    NOT NULL,
+    n                  INTEGER NOT NULL,
+    entry_dist         REAL    NOT NULL,
+    brake_dist         REAL    NOT NULL,
+    apex_dist          REAL    NOT NULL,
+    exit_dist          REAL    NOT NULL,
+    vmin               REAL    NOT NULL,
+    ventry             REAL    NOT NULL,
+    vexit              REAL    NOT NULL,
+    full_throttle_dist REAL    NOT NULL,
+    PRIMARY KEY (ref_id, corner_uid)
+);
+
+-- Dispersion du pilote par virage (seuils adaptatifs 2σ, EWMA sur tours
+-- propres). Clé stable combo+virage, indépendante de ref_id.
+CREATE TABLE IF NOT EXISTS coach_stats (
+    track        TEXT    NOT NULL,
+    car_model    TEXT    NOT NULL,
+    corner_uid   TEXT    NOT NULL,
+    sigma_brake  REAL    NOT NULL DEFAULT 0,
+    sigma_vmin   REAL    NOT NULL DEFAULT 0,
+    sigma_dt     REAL    NOT NULL DEFAULT 0,
+    n_samples    INTEGER NOT NULL DEFAULT 0,
+    updated_at   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (track, car_model, corner_uid)
+);
+
 CREATE INDEX IF NOT EXISTS idx_xi_filename    ON xml_index(filename);
 CREATE INDEX IF NOT EXISTS idx_xi_event       ON xml_index(event_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_xml   ON sessions(xml_id);
@@ -223,6 +278,7 @@ CREATE INDEX IF NOT EXISTS idx_laps_result    ON laps(result_id);
 CREATE INDEX IF NOT EXISTS idx_laps_session   ON laps(session_id);
 CREATE INDEX IF NOT EXISTS idx_stream_session ON stream_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_coach_notes_combo ON coach_notes(track, car);
+CREATE INDEX IF NOT EXISTS idx_coach_ref_combo   ON coach_ref(track, car_model);
 ";
 
 pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {

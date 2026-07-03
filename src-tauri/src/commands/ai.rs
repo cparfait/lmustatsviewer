@@ -23,6 +23,8 @@ use tauri::State;
 
 const KEY_ENC: &str = "ai_api_key_enc";
 const KEY_LEGACY: &str = "ai_api_key"; // ancien stockage en clair (migration douce)
+// Clé du coach VOCAL quand il utilise un fournisseur DIFFÉRENT de l'analyse.
+const VOICE_KEY_ENC: &str = "ai_voice_api_key_enc";
 
 fn machine_key() -> [u8; 32] {
     use ring::digest;
@@ -124,6 +126,29 @@ pub fn ai_get_key(db: State<'_, DbState>) -> Result<String, AppError> {
         }
     }
     Ok(db::config_get(&db, KEY_LEGACY)?.unwrap_or_default())
+}
+
+/// Stocke la clé API du coach vocal (fournisseur distinct). Vide = efface.
+#[tauri::command]
+pub fn ai_set_voice_key(value: String, db: State<'_, DbState>) -> Result<(), AppError> {
+    let stored = if value.is_empty() {
+        String::new()
+    } else {
+        encrypt_key(&value)?
+    };
+    db::config_set(&db, VOICE_KEY_ENC, &stored)?;
+    Ok(())
+}
+
+/// Lit la clé API déchiffrée du coach vocal ("" si absente).
+#[tauri::command]
+pub fn ai_get_voice_key(db: State<'_, DbState>) -> Result<String, AppError> {
+    if let Some(enc) = db::config_get(&db, VOICE_KEY_ENC)? {
+        if !enc.is_empty() {
+            return Ok(decrypt_key(&enc).unwrap_or_default());
+        }
+    }
+    Ok(String::new())
 }
 
 fn build_client() -> Result<reqwest::Client, AppError> {

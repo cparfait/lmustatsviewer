@@ -24,10 +24,10 @@ const COSTS: { match: RegExp; cost: TokenCost }[] = [
   { match: /^o3/i, cost: { input: 2.0, output: 8.0 } },
   { match: /^gpt-4o-mini/i, cost: { input: 0.15, output: 0.6 } },
   { match: /^gpt-4o/i, cost: { input: 2.5, output: 10.0 } },
-  // Anthropic
-  { match: /haiku/i, cost: { input: 0.8, output: 4.0 } },
+  // Anthropic (tarifs 2026-07 ; l'ancien Opus 15/75 était le tarif Opus 3 périmé)
+  { match: /haiku/i, cost: { input: 1.0, output: 5.0 } },
   { match: /sonnet/i, cost: { input: 3.0, output: 15.0 } },
-  { match: /opus/i, cost: { input: 15.0, output: 75.0 } },
+  { match: /opus/i, cost: { input: 5.0, output: 25.0 } },
   // Google
   { match: /flash/i, cost: { input: 0.15, output: 0.6 } },
   { match: /gemini.*pro/i, cost: { input: 1.25, output: 10.0 } },

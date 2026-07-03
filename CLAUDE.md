@@ -15,8 +15,7 @@ Il contient : objectif, décisions verrouillées, règles métier extraites de l
 
 ## Règle d'or
 
-La **V1 PHP** (`C:\tmp\__DEV__\OLDLMU_Stats_Viewer_095\htdocs\`) est la **source de vérité fonctionnelle**.
-Avant d'implémenter un calcul ou un affichage, consulter le fichier PHP correspondant. Le visuel et la stack viennent de la V2.
+La migration depuis la V1 PHP est **terminée** : la V3 fait foi. Les calculs et affichages se basent sur le code TypeScript/Rust actuel et sur `SUIVI.md` (règles métier verrouillées). La V1 PHP n'est plus une référence.
 
 ## Langue
 

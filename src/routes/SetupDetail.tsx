@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/SourceBadge";
+import { CarImage } from "@/components/CarImage";
 import {
   setups as setupsApi,
   type SetupEntry,
@@ -35,6 +36,7 @@ import {
 } from "lucide-react";
 import { cn, formatTime, formatDateTime } from "@/lib/utils";
 import { paramLabel } from "@/lib/setupParams";
+import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 
 // ── Onglets de l'éditeur (regroupement logique des sections SVM) ─────────────
 
@@ -220,7 +222,7 @@ export function SetupDetail() {
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 2500);
     } catch (e) {
-      alert(`${t("setupDetail.errSave")} : ${e}`);
+      toastError(`${t("setupDetail.errSave")} : ${e}`);
     } finally {
       setSaving(false);
     }
@@ -232,7 +234,7 @@ export function SetupDetail() {
       await setupsApi.setType(entry.id, newType);
       setEntry({ ...entry, setup_type: newType });
     } catch (e) {
-      alert(`${t("setupDetail.errGeneric")} : ${e}`);
+      toastError(`${t("setupDetail.errGeneric")} : ${e}`);
     }
   }
 
@@ -243,18 +245,23 @@ export function SetupDetail() {
       const dup = await setupsApi.duplicate(entry.id, `${baseName}_copy`);
       navigate(`/setups/${dup.id}`);
     } catch (e) {
-      alert(`${t("setupDetail.errDuplicate")} : ${e}`);
+      toastError(`${t("setupDetail.errDuplicate")} : ${e}`);
     }
   }
 
   async function handleDelete() {
     if (!entry) return;
-    if (!confirm(t("setupDetail.deleted"))) return;
+    const ok = await confirmDialog({
+      message: t("setups.confirmDelete"),
+      destructive: true,
+      confirmLabel: t("setups.delete"),
+    });
+    if (!ok) return;
     try {
       await setupsApi.remove(entry.id, true);
       navigate("/setups");
     } catch (e) {
-      alert(`${t("setupDetail.errDelete")} : ${e}`);
+      toastError(`${t("setupDetail.errDelete")} : ${e}`);
     }
   }
 
@@ -262,9 +269,9 @@ export function SetupDetail() {
     if (!entry) return;
     try {
       await setupsApi.export(entry.id, entry.name);
-      alert(t("setupDetail.exported"));
+      toastSuccess(t("setupDetail.exported"));
     } catch (e) {
-      alert(`${t("setupDetail.errExport")} : ${e}`);
+      toastError(`${t("setupDetail.errExport")} : ${e}`);
     }
   }
 
@@ -343,15 +350,21 @@ export function SetupDetail() {
             </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0"
-          onClick={closeModal}
-          title={t("config.cancel")}
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <CarImage
+            carName={entry.car}
+            className="hidden sm:block h-8 w-auto max-w-[140px] object-contain opacity-80 [mask-image:linear-gradient(to_right,transparent,black_25%)]"
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={closeModal}
+            title={t("config.cancel")}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Meta bar — Nom (lecture seule) / Type (select) / Circuit (lecture seule) */}

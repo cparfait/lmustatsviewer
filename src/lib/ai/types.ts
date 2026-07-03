@@ -53,4 +53,16 @@ export interface AIProvider {
 
   /** Liste statique de repli si l'appel `listModels` échoue (hors-ligne, 401…). */
   fallbackModels: ModelInfo[];
+  /**
+   * Lien vers la doc/liste officielle des modèles du fournisseur. Les modèles
+   * évoluent vite chez tous les fournisseurs : plutôt qu'une liste figée à
+   * maintenir, l'UI renvoie l'utilisateur à la source à jour (il saisit l'id).
+   */
+  docsUrl: string;
+  /**
+   * Certains fournisseurs (OpenRouter…) exposent des centaines de modèles :
+   * on privilégie alors la saisie manuelle (avec suggestions) plutôt qu'un
+   * menu déroulant géant. `true` = champ de saisie par défaut.
+   */
+  preferManualModel?: boolean;
 }

@@ -20,6 +20,13 @@ export interface Corner {
   minSpeed: number;
 }
 
+/**
+ * @param rawSpeed vitesse (km/h)
+ * @param brake pression de frein en POURCENTS (0-100) — les seuils internes
+ *   (appui ≥ 5) supposent cette échelle. Un canal fraction [0,1] (télémétrie
+ *   live brute) doit être multiplié par 100 par l'appelant.
+ * @param dist distance parcourue sur le tour (m)
+ */
 export function detectCorners(
   rawSpeed: number[],
   brake: number[],
@@ -43,7 +50,10 @@ export function detectCorners(
     }
     sp[k] = s / c;
   }
-  const maxS = Math.max(...sp);
+  // Boucle (et non `Math.max(...sp)`) : le spread d'un tableau pleine résolution
+  // peut dépasser la limite d'arguments du moteur JS (RangeError).
+  let maxS = -Infinity;
+  for (const v of sp) if (v > maxS) maxS = v;
 
   // Apex = minima locaux de vitesse, avec proéminence.
   const WIN = 12;

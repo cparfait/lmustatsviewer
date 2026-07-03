@@ -6,7 +6,7 @@
  * Toute la persistance/synchro est gérée par `useOverlaysStore`.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -29,6 +29,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { overlay as overlayApi } from "@/lib/api";
+import { toastError } from "@/stores/dialogs";
+import { useAppStore } from "@/stores/app";
 import { OVERLAY_DEFS, OVERLAY_BY_ID, type OverlayId } from "@/lib/overlays";
 import {
   useOverlaysStore,
@@ -85,6 +87,7 @@ export function Overlays() {
   const setAllEnabled = useOverlaysStore((s) => s.setAllEnabled);
   const setMasterEnabled = useOverlaysStore((s) => s.setMasterEnabled);
   const setGlobalOpacity = useOverlaysStore((s) => s.setGlobalOpacity);
+  const overlayTargetTier = useAppStore((s) => s.overlayTargetTier);
   const applyRemote = useOverlaysStore((s) => s.applyRemote);
   const applyEditMode = useOverlaysStore((s) => s.applyEditMode);
   const saveProfile = useOverlaysStore((s) => s.saveProfile);
@@ -113,6 +116,13 @@ export function Overlays() {
     prevSavedRef.current = saved;
   }, [saved]);
 
+  // Ouverture de la fenêtre overlay avec retour utilisateur en cas d'échec
+  // (sinon : on active un overlay et rien n'apparaît, sans explication).
+  const openOverlay = useCallback(
+    () => overlayApi.open().catch(() => toastError(t("overlays.openError"))),
+    [t],
+  );
+
   useEffect(() => {
     // Charge la config puis ré-ouvre la fenêtre overlay si des overlays sont actifs
     // (ouverture faite ici, app déjà chargée — et non au démarrage où créer une
@@ -121,7 +131,7 @@ export function Overlays() {
       const enabled = Object.values(
         useOverlaysStore.getState().cfg.overlays,
       ).some((o) => o.enabled);
-      if (enabled) overlayApi.open().catch(() => {});
+      if (enabled) openOverlay();
     });
     const unlisteners: Array<() => void> = [];
     listen<OverlayId>("overlay-open-config", (e) => {
@@ -150,7 +160,7 @@ export function Overlays() {
       (fn) => unlisteners.push(fn),
     );
     return () => unlisteners.forEach((fn) => fn());
-  }, [load, applyRemote, applyEditMode, setEditMode]);
+  }, [load, applyRemote, applyEditMode, setEditMode, openOverlay]);
 
   const activeCount = Object.values(cfg.overlays).filter((o) => o.enabled).length;
 
@@ -164,7 +174,7 @@ export function Overlays() {
     if (willEnable) {
       // Ajouter un overlay → l'afficher et passer en mode édition pour le positionner.
       if (!cfg.masterEnabled) await setMasterEnabled(true);
-      await overlayApi.open().catch(() => {});
+      await openOverlay();
       await setEditMode(true);
     } else if (nextCount <= 0 && !editMode) {
       await overlayApi.close().catch(() => {});
@@ -176,7 +186,7 @@ export function Overlays() {
     await flush();
     // Le mode édition implique d'afficher les overlays.
     if (next && !cfg.masterEnabled) await setMasterEnabled(true);
-    if (next) await overlayApi.open().catch(() => {});
+    if (next) await openOverlay();
     await setEditMode(next);
   };
 
@@ -188,7 +198,7 @@ export function Overlays() {
     if (!returnToEditRef.current) return;
     returnToEditRef.current = false;
     if (!cfg.masterEnabled) await setMasterEnabled(true);
-    await overlayApi.open().catch(() => {});
+    await openOverlay();
     await setEditMode(true);
   };
 
@@ -199,7 +209,7 @@ export function Overlays() {
     const hasActive = await createEmptyProfile(name, enabledIds);
     setShowCreate(false);
     if (hasActive) {
-      await overlayApi.open().catch(() => {});
+      await openOverlay();
       await setEditMode(true);
     }
   };
@@ -274,6 +284,28 @@ export function Overlays() {
                   />
                 </label>
               ))}
+              {selected === "cornerdelta" && s.content.target !== false && (
+                <div className="mt-2 space-y-1.5 rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <div className="text-xs font-medium">
+                    {t("overlays.targetLevel")}
+                  </div>
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    {t("overlays.targetLevelHint")}
+                  </p>
+                  <select
+                    value={overlayTargetTier}
+                    onChange={(e) =>
+                      useAppStore.getState().setOverlayTargetTier(e.target.value)
+                    }
+                    className="h-8 w-full cursor-pointer rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="alien">{t("config.targetAlien")}</option>
+                    <option value="competitive">{t("config.targetCompetitive")}</option>
+                    <option value="good">{t("config.targetGood")}</option>
+                    <option value="midpack">{t("config.targetMidpack")}</option>
+                  </select>
+                </div>
+              )}
             </TabsContent>
 
             {/* Appearance */}
@@ -299,6 +331,33 @@ export function Overlays() {
                   onChange={(v) => updateSettings(selected, { scale: v })}
                   format={(v) => `${Math.round(v * 100)}%`}
                 />
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">{t("overlays.color")}</div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={s.accent ?? def.accent}
+                    onChange={(e) =>
+                      updateSettings(selected, { accent: e.target.value })
+                    }
+                    className="h-8 w-14 cursor-pointer rounded-md border border-border bg-background p-0.5"
+                    aria-label={t("overlays.color")}
+                  />
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {(s.accent ?? def.accent).toUpperCase()}
+                  </span>
+                  {(s.accent ?? def.accent).toLowerCase() !==
+                    def.accent.toLowerCase() && (
+                    <button
+                      type="button"
+                      onClick={() => updateSettings(selected, { accent: def.accent })}
+                      className="ml-auto text-xs text-muted-foreground underline-offset-2 hover:underline"
+                    >
+                      {t("overlays.colorReset")}
+                    </button>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
@@ -495,8 +554,11 @@ export function Overlays() {
               <div className="mb-0.5 font-semibold">
                 {t(`overlays.items.${def.id}.title`)}
               </div>
-              <div className="mb-3 line-clamp-2 text-xs text-muted-foreground">
+              <div className="text-xs font-medium text-muted-foreground">
                 {t(`overlays.items.${def.id}.desc`)}
+              </div>
+              <div className="mb-3 mt-1 text-[11px] leading-snug text-muted-foreground/70">
+                {t(`overlays.items.${def.id}.tip`)}
               </div>
               <div
                 className="flex items-center justify-between border-t border-border pt-2.5"
@@ -547,7 +609,8 @@ function CreateProfileModal({
   const togglePick = (id: OverlayId) =>
     setPicked((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
 

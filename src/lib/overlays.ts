@@ -5,6 +5,10 @@
  * et le moteur de rendu (`components/overlay/OverlayRoot.tsx`). Chaque overlay
  * déclare son icône, sa couleur d'accent, ses clés i18n, sa position par défaut
  * et la liste des éléments de contenu activables (onglet « Content »).
+ *
+ * Ordre = par **fonction** (l'ordre d'affichage dans la grille de gestion en
+ * découle) : ① Chrono & performance, ② Course & positions, ③ Voiture & pilotage,
+ * ④ Stratégie & session.
  */
 
 import {
@@ -19,11 +23,17 @@ import {
   Map as MapIcon,
   LayoutGrid,
   Swords,
-  Clock,
+  MessageSquare,
   Timer,
   AlertTriangle,
   TrendingUp,
   Activity,
+  Crosshair,
+  Radar,
+  SlidersHorizontal,
+  Orbit,
+  Split,
+  Waypoints,
   type LucideIcon,
 } from "lucide-react";
 
@@ -39,11 +49,18 @@ export type OverlayId =
   | "trackmap"
   | "dashboard"
   | "rival"
-  | "session"
+  | "tracklimits"
+  | "coach"
+  | "cornercoach"
   | "endurance"
   | "damage"
   | "speed"
-  | "liftcoast";
+  | "liftcoast"
+  | "cornerdelta"
+  | "radar"
+  | "aids"
+  | "gforce"
+  | "sectors";
 
 /** Un élément de contenu activable d'un overlay (onglet « Content »). */
 export interface OverlayElement {
@@ -68,27 +85,58 @@ export interface OverlayDef {
 
 /**
  * Définitions. Les libellés (titre/description/éléments) viennent de l'i18n :
- *   overlays.items.<id>.title / .desc
+ *   overlays.items.<id>.title / .desc / .tip
  *   overlays.elements.<key>
  */
 export const OVERLAY_DEFS: OverlayDef[] = [
+  // ── ① Chrono & performance ────────────────────────────────────────────────
   {
-    id: "telemetry",
-    icon: Zap,
-    accent: "#10b981",
-    defaultX: 40,
-    defaultY: 600,
-    width: 420,
-    elements: [
-      { key: "speed" },
-      { key: "gear" },
-      { key: "rpm" },
-      { key: "pedals" },
-      { key: "trace" },
-      { key: "shiftAnim" },
-      { key: "lockup" },
-    ],
+    id: "delta",
+    icon: Triangle,
+    accent: "#22d3ee",
+    defaultX: 700,
+    defaultY: 40,
+    width: 360,
+    elements: [{ key: "bar" }, { key: "trace" }],
   },
+  {
+    id: "cornerdelta",
+    icon: Crosshair,
+    accent: "#fbbf24",
+    defaultX: 700,
+    defaultY: 320,
+    width: 360,
+    elements: [{ key: "bar" }, { key: "corners" }, { key: "target" }],
+  },
+  {
+    id: "cornercoach",
+    icon: Waypoints,
+    accent: "#a855f7",
+    defaultX: 520,
+    defaultY: 480,
+    width: 340,
+    elements: [],
+  },
+  {
+    id: "sectors",
+    icon: Split,
+    accent: "#a3e635",
+    defaultX: 1120,
+    defaultY: 220,
+    width: 320,
+    elements: [{ key: "delta" }, { key: "optimal" }, { key: "lap" }],
+  },
+  {
+    id: "speed",
+    icon: TrendingUp,
+    accent: "#22c55e",
+    defaultX: 520,
+    defaultY: 840,
+    width: 320,
+    elements: [{ key: "topSpeed" }, { key: "minSpeed" }, { key: "current" }],
+  },
+
+  // ── ② Course & positions ──────────────────────────────────────────────────
   {
     id: "standings",
     icon: List,
@@ -113,17 +161,99 @@ export const OVERLAY_DEFS: OverlayDef[] = [
     elements: [{ key: "classColors" }, { key: "gaps" }, { key: "pitFlag" }],
   },
   {
-    id: "fuel",
-    icon: Fuel,
-    accent: "#f59e0b",
-    defaultX: 1480,
-    defaultY: 120,
-    width: 320,
+    id: "rival",
+    icon: Swords,
+    accent: "#ef4444",
+    defaultX: 700,
+    defaultY: 260,
+    width: 380,
+    elements: [{ key: "ahead" }, { key: "behind" }, { key: "lastLap" }],
+  },
+  {
+    id: "radar",
+    icon: Radar,
+    accent: "#f472b6",
+    defaultX: 1540,
+    defaultY: 420,
+    width: 220,
+    elements: [{ key: "classColors" }, { key: "warning" }],
+  },
+  {
+    id: "trackmap",
+    icon: MapIcon,
+    accent: "#2dd4bf",
+    defaultX: 1420,
+    defaultY: 760,
+    width: 360,
+    elements: [{ key: "classColors" }, { key: "playerHighlight" }],
+  },
+  {
+    id: "flags",
+    icon: Flag,
+    accent: "#84cc16",
+    defaultX: 760,
+    defaultY: 160,
+    width: 280,
+    elements: [{ key: "sectors" }],
+  },
+
+  // ── ③ Voiture & pilotage ──────────────────────────────────────────────────
+  {
+    id: "telemetry",
+    icon: Zap,
+    accent: "#10b981",
+    defaultX: 40,
+    defaultY: 600,
+    width: 420,
     elements: [
-      { key: "toAdd" },
-      { key: "lapsLeft" },
-      { key: "consumption" },
+      { key: "speed" },
+      { key: "gear" },
+      { key: "rpm" },
+      { key: "pedals" },
+      { key: "trace" },
+      { key: "shiftAnim" },
+      { key: "lockup" },
     ],
+  },
+  {
+    id: "gforce",
+    icon: Orbit,
+    accent: "#fb923c",
+    defaultX: 1200,
+    defaultY: 760,
+    width: 220,
+    elements: [
+      { key: "circle" },
+      { key: "peak" },
+      { key: "inputs" },
+      { key: "values" },
+    ],
+  },
+  {
+    id: "aids",
+    icon: SlidersHorizontal,
+    accent: "#818cf8",
+    defaultX: 680,
+    defaultY: 720,
+    width: 360,
+    elements: [
+      { key: "bias" },
+      { key: "tc" },
+      { key: "abs" },
+      { key: "fuelMix" },
+      { key: "turbo" },
+      { key: "drs" },
+      { key: "limiter" },
+    ],
+  },
+  {
+    id: "liftcoast",
+    icon: Activity,
+    accent: "#eab308",
+    defaultX: 860,
+    defaultY: 840,
+    width: 340,
+    elements: [{ key: "ledBar" }, { key: "tc" }, { key: "abs" }],
   },
   {
     id: "tyres",
@@ -140,13 +270,57 @@ export const OVERLAY_DEFS: OverlayDef[] = [
     ],
   },
   {
-    id: "delta",
-    icon: Triangle,
-    accent: "#22d3ee",
-    defaultX: 700,
+    id: "damage",
+    icon: AlertTriangle,
+    accent: "#dc2626",
+    defaultX: 1120,
+    defaultY: 600,
+    width: 320,
+    elements: [
+      { key: "bodywork" },
+      { key: "impact" },
+      { key: "tyreWear" },
+      { key: "punctures" },
+      { key: "engine" },
+    ],
+  },
+
+  // ── ④ Stratégie & session ─────────────────────────────────────────────────
+  {
+    id: "fuel",
+    icon: Fuel,
+    accent: "#f59e0b",
+    defaultX: 1480,
+    defaultY: 120,
+    width: 320,
+    elements: [{ key: "toAdd" }, { key: "lapsLeft" }, { key: "consumption" }],
+  },
+  {
+    id: "tracklimits",
+    icon: AlertTriangle,
+    accent: "#ef4444",
+    defaultX: 1120,
     defaultY: 40,
-    width: 360,
-    elements: [{ key: "bar" }, { key: "trace" }],
+    width: 300,
+    elements: [],
+  },
+  {
+    id: "coach",
+    icon: MessageSquare,
+    accent: "#8b5cf6",
+    defaultX: 40,
+    defaultY: 880,
+    width: 380,
+    elements: [],
+  },
+  {
+    id: "endurance",
+    icon: Timer,
+    accent: "#14b8a6",
+    defaultX: 1480,
+    defaultY: 840,
+    width: 320,
+    elements: [{ key: "stint" }, { key: "lapTimes" }, { key: "position" }],
   },
   {
     id: "weather",
@@ -156,24 +330,6 @@ export const OVERLAY_DEFS: OverlayDef[] = [
     defaultY: 620,
     width: 320,
     elements: [{ key: "temps" }, { key: "wind" }, { key: "rain" }],
-  },
-  {
-    id: "flags",
-    icon: Flag,
-    accent: "#84cc16",
-    defaultX: 760,
-    defaultY: 160,
-    width: 280,
-    elements: [{ key: "sectors" }],
-  },
-  {
-    id: "trackmap",
-    icon: MapIcon,
-    accent: "#2dd4bf",
-    defaultX: 1420,
-    defaultY: 760,
-    width: 360,
-    elements: [{ key: "classColors" }, { key: "playerHighlight" }],
   },
   {
     id: "dashboard",
@@ -189,66 +345,6 @@ export const OVERLAY_DEFS: OverlayDef[] = [
       { key: "bestLap" },
       { key: "fuel" },
     ],
-  },
-  {
-    id: "rival",
-    icon: Swords,
-    accent: "#ef4444",
-    defaultX: 700,
-    defaultY: 260,
-    width: 380,
-    elements: [{ key: "ahead" }, { key: "behind" }, { key: "lastLap" }],
-  },
-  {
-    id: "session",
-    icon: Clock,
-    accent: "#0ea5e9",
-    defaultX: 1120,
-    defaultY: 40,
-    width: 320,
-    elements: [{ key: "type" }, { key: "timeLeft" }, { key: "lapsLeft" }],
-  },
-  {
-    id: "endurance",
-    icon: Timer,
-    accent: "#14b8a6",
-    defaultX: 1480,
-    defaultY: 840,
-    width: 320,
-    elements: [{ key: "stint" }, { key: "lapTimes" }, { key: "position" }],
-  },
-  {
-    id: "damage",
-    icon: AlertTriangle,
-    accent: "#dc2626",
-    defaultX: 1120,
-    defaultY: 600,
-    width: 320,
-    elements: [
-      { key: "bodywork" },
-      { key: "impact" },
-      { key: "tyreWear" },
-      { key: "punctures" },
-      { key: "engine" },
-    ],
-  },
-  {
-    id: "speed",
-    icon: TrendingUp,
-    accent: "#22c55e",
-    defaultX: 520,
-    defaultY: 840,
-    width: 320,
-    elements: [{ key: "topSpeed" }, { key: "minSpeed" }, { key: "current" }],
-  },
-  {
-    id: "liftcoast",
-    icon: Activity,
-    accent: "#eab308",
-    defaultX: 860,
-    defaultY: 840,
-    width: 340,
-    elements: [{ key: "ledBar" }, { key: "tc" }, { key: "abs" }],
   },
 ];
 

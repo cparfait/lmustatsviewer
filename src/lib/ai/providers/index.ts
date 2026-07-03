@@ -4,12 +4,18 @@ import type { AIProvider } from "../types";
 import { googleProvider } from "./google";
 import { ollamaProvider } from "./ollama";
 import { anthropicProvider } from "./anthropic";
-import { openaiProvider, deepseekProvider, mistralProvider } from "./openai-compat";
+import {
+  openaiProvider,
+  deepseekProvider,
+  mistralProvider,
+  openrouterProvider,
+} from "./openai-compat";
 
 export const PROVIDERS: AIProvider[] = [
   openaiProvider,
   anthropicProvider,
   googleProvider,
+  openrouterProvider,
   deepseekProvider,
   mistralProvider,
   ollamaProvider,

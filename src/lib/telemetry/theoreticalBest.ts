@@ -31,11 +31,20 @@ export function compareToBestApex(target: Corner[], allLaps: Corner[][]): ApexBe
   return target.map((c) => {
     let best = c.minSpeed;
     for (const laps of allLaps) {
+      // Sur chaque tour, on ne retient que le virage LE PLUS PROCHE de `c` dans la
+      // fenêtre — et non n'importe quel virage qui la chevauche. Sur un tracé serré
+      // (enchaînement, chicane), deux virages voisins ne se prêtent plus leur
+      // vitesse d'apex, ce qui évite un « meilleur théorique » trop optimiste.
+      let nearest: Corner | null = null;
+      let nearestGap = MATCH_WINDOW_M;
       for (const o of laps) {
-        if (Math.abs(o.brakeDist - c.brakeDist) <= MATCH_WINDOW_M && o.minSpeed > best) {
-          best = o.minSpeed;
+        const gap = Math.abs(o.brakeDist - c.brakeDist);
+        if (gap <= nearestGap) {
+          nearestGap = gap;
+          nearest = o;
         }
       }
+      if (nearest && nearest.minSpeed > best) best = nearest.minSpeed;
     }
     return {
       n: c.n,

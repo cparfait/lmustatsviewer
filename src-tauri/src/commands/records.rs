@@ -138,10 +138,17 @@ pub fn get_records_overview(
             let r = &rows[j];
             count += 1;
             if r.best_lap < running_pb {
+                // Ne compte pas la 1ʳᵉ session (rien à battre) : `improvements` =
+                // nombre de fois où un meilleur tour ANTÉRIEUR a réellement été battu.
+                if running_pb.is_finite() {
+                    improvements += 1;
+                }
                 running_pb = r.best_lap;
-                improvements += 1;
             }
-            if r.best_lap <= record.best_lap {
+            // `<` (et non `<=`) : en cas d'égalité du meilleur tour, on conserve la
+            // PREMIÈRE session qui l'a réalisé (les lignes sont triées par date ASC) —
+            // la « date du record » correspond donc à sa première occurrence.
+            if r.best_lap < record.best_lap {
                 record = r;
             }
             if let Some(o) = r.optimal_lap {
@@ -334,7 +341,12 @@ pub fn get_record_progression(
         };
         if is_pb {
             running_pb = r.best_lap;
-            nb_pb += 1;
+            // `nb_pb` (stat « Records battus ») ne compte pas la 1ʳᵉ pose de temps :
+            // il n'y avait aucun record antérieur à battre. Le marqueur `is_pb` du
+            // point, lui, reste vrai (c'était bien le meilleur à cet instant).
+            if prev_pb.is_finite() {
+                nb_pb += 1;
+            }
             if first_pb.is_none() {
                 first_pb = Some(r.best_lap);
             }

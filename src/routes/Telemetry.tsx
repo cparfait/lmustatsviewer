@@ -22,7 +22,7 @@ import { SessionBadge } from "@/components/SessionBadge";
 import { sessionTypeLabel } from "@/lib/sessionLabels";
 import { telemetry } from "@/lib/api";
 import type { TelemetryFileInfo } from "@/lib/api";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatTime } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
 const PAGE_SIZE_KEY = "telemetry-page-size";
@@ -50,6 +50,7 @@ export function Telemetry() {
     | "class"
     | "session"
     | "driver"
+    | "bestlap"
     | "date";
   const [sortBy, setSortBy] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -130,6 +131,8 @@ export function Telemetry() {
         case "class": return f.car_class;
         case "session": return f.session_type;
         case "driver": return f.driver;
+        // Sans temps → rejeté en fin de tri (valeur sentinelle).
+        case "bestlap": return f.best_lap ?? Number.POSITIVE_INFINITY;
         case "date": return f.mtime;
       }
     };
@@ -272,6 +275,7 @@ export function Telemetry() {
                   <SortHeader col="session" label={t("sessions.fSession")} sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
                   <SortHeader col="driver" label={t("telemetry.driver")} sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
                   <TableHead className="h-auto py-1 text-micro whitespace-nowrap">{t("telemetry.weather")}</TableHead>
+                  <SortHeader col="bestlap" label={t("telemetry.bestLap")} sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="text-right" />
                   <SortHeader col="date" label={t("sessions.colDate")} sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="text-right" />
                 </TableRow>
               </TableHeader>
@@ -308,6 +312,9 @@ export function Telemetry() {
                     </TableCell>
                     <TableCell className="py-1.5 text-muted-foreground whitespace-nowrap max-w-[160px] truncate">
                       {f.weather}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-right tabular-nums whitespace-nowrap font-medium">
+                      {f.best_lap != null ? formatTime(f.best_lap) : <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="py-1.5 text-right text-muted-foreground whitespace-nowrap">
                       {formatDateTime(f.mtime)}

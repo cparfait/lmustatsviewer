@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
+import { Header } from "@/components/layout/Header";
 import { LiveCoachPanel } from "@/components/AICoachPanel";
 import { useTheme } from "@/stores/theme";
 import { ClassBadge } from "@/components/ClassBadge";
@@ -861,7 +862,11 @@ function InfoScreen({
   }[kind];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground gap-6 select-none px-4">
+    <div className="min-h-screen bg-background flex flex-col text-foreground">
+      {/* Menu de navigation : hors session active, on garde l'accès à l'app
+          (sinon l'écran d'info plein écran bloquait toute navigation). */}
+      <Header />
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 select-none px-4">
       {cfg.icon}
       <div className="text-center max-w-md">
         <p className="text-lg font-semibold">{cfg.title}</p>
@@ -888,6 +893,7 @@ function InfoScreen({
       >
         <ArrowLeft className="h-3.5 w-3.5" /> {t("live.quit")}
       </Link>
+      </div>
     </div>
   );
 }
@@ -1076,13 +1082,31 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
       {/* Halo « drapeau » clignotant sur les bords (tous onglets) */}
       <FlagOverlay flag={flag} />
 
-      {/* Filigrane d'état (pause / fin de course) — les infos restent visibles dessous */}
+      {/* Hors session active (figé / pause / fin de course) : on remet le menu de
+          navigation AU-DESSUS du voile (z-50 > z-40) pour pouvoir quitter la page
+          Live sans être bloqué. Masqué pendant une session (mode immersif). */}
       {overlay && (
-        <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center">
-          <div className="rounded-2xl bg-background/35 px-8 py-4 backdrop-blur-[1px]">
-            <div className="text-center text-4xl font-bold uppercase tracking-widest text-foreground/30">
+        <div className="relative z-50">
+          <Header />
+        </div>
+      )}
+
+      {/* Bandeau d'état (pause / fin de course) — bien visible : on assombrit le
+          dashboard figé dessous et on met en avant une carte avec icône + message. */}
+      {overlay && (
+        <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-background/60 backdrop-blur-[2px]">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-primary bg-card px-14 py-10 shadow-2xl">
+            {overlay === "paused" && (
+              <PauseCircle className="h-16 w-16 text-primary animate-pulse" />
+            )}
+            <div className="text-center text-5xl font-bold uppercase tracking-widest text-foreground">
               {overlayLabel}
             </div>
+            {overlay === "paused" && (
+              <div className="max-w-md text-center text-base text-muted-foreground">
+                {t("live.infoPausedText")}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1358,12 +1382,8 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
                     v={`${Math.round(tel.engine_torque)} Nm`}
                   />
                   <KV
-                    label={t("live.lTurbo")}
-                    v={`${(tel.turbo_boost / 1000).toFixed(0)} kPa`}
-                  />
-                  <KV
                     label={t("live.lBrakeBias")}
-                    v={`${(tel.rear_brake_bias * 100).toFixed(0)}%`}
+                    v={`${(100 - tel.rear_brake_bias * 100).toFixed(1)} : ${(tel.rear_brake_bias * 100).toFixed(1)}`}
                   />
                   <KV
                     label={t("live.lTcAbs")}
@@ -1397,8 +1417,6 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
                     warn
                   />
                   <Tag on={tel.anti_stall} label={t("live.tagAntiStall")} />
-                  <Tag on={tel.front_flap} label={t("live.tagFrontFlap")} />
-                  <Tag on={tel.rear_flap} label={t("live.tagDrs")} />
                 </div>
               )}
             </Panel>
@@ -1574,16 +1592,21 @@ function OverviewView({ data }: { data: LiveData }) {
   const best = player?.best_lap_time ?? 0;
   const delta = player?.lap_delta ?? 0;
 
-  // Écarts : déduits du classement (le V3 ne fournit pas gap_ahead direct).
-  // `time_behind_next` sur la ligne du joueur = écart au pilote devant.
-  // L'écart au pilote derrière = `time_behind_next` du pilote en position+1.
+  // Écarts : on privilégie les valeurs natives LMU (`mTimeGapCarAhead/Behind`, à
+  // fréquence télémétrie = plus lisses) ; sinon repli sur le classement rF2 (~5 Hz).
   const playerStanding = standings.find((s) => s.is_player);
-  const gapAhead = playerStanding?.time_behind_next ?? 0;
+  const ext = data.extended;
+  const gapAhead =
+    ext && ext.gap_ahead > 0
+      ? ext.gap_ahead
+      : (playerStanding?.time_behind_next ?? 0);
   const gapBehind =
-    playerStanding != null
-      ? (standings.find((s) => s.position === playerStanding.position + 1)
-          ?.time_behind_next ?? 0)
-      : 0;
+    ext && ext.gap_behind > 0
+      ? ext.gap_behind
+      : playerStanding != null
+        ? (standings.find((s) => s.position === playerStanding.position + 1)
+            ?.time_behind_next ?? 0)
+        : 0;
 
   // Tours restants estimés (carburant restant / conso au tour).
   const fuelLaps =
@@ -1597,6 +1620,35 @@ function OverviewView({ data }: { data: LiveData }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 w-full max-w-6xl">
           {/* Tour en cours + dernier tour + delta + meilleur tour */}
           <div className="flex flex-col items-center justify-center text-center">
+            {/* Position : classe (mise en avant) + général */}
+            {playerStanding && (
+              <div className="mb-10 flex flex-col items-center">
+                <span className="text-sm uppercase tracking-[0.3em] text-muted-foreground mb-2">
+                  {t("live.position")}
+                </span>
+                <div className="flex items-center gap-4">
+                  <span
+                    className="font-mono text-7xl font-bold tabular-nums leading-none"
+                    style={{
+                      color:
+                        liveClassColor(playerStanding.vehicle_class) ?? undefined,
+                    }}
+                  >
+                    P{playerStanding.class_position}
+                  </span>
+                  <div className="flex flex-col items-start gap-1">
+                    <ClassBadge
+                      carClass={liveClassKey(playerStanding.vehicle_class)}
+                      solid
+                    />
+                    <span className="font-mono text-base text-muted-foreground">
+                      P{playerStanding.position} {t("live.overall")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <span className="text-sm uppercase tracking-[0.3em] text-muted-foreground mb-2">
               {t("live.lCurrentLap")}
             </span>
@@ -2316,8 +2368,42 @@ function TrackMap({ data }: { data: LiveData }) {
 
 // ── Classement ───────────────────────────────────────────────────────────────
 
+/** Ordre canonique des classes pour la barre de filtres du classement. */
+const STANDINGS_CLASS_ORDER = [
+  "Hypercar",
+  "LMP2_WEC",
+  "LMP2_ELMS",
+  "LMP3",
+  "GT3",
+  "GTE",
+];
+
 function StandingsTable({ standings }: { standings: LiveStanding[] }) {
   const { t } = useTranslation();
+  // Filtre par classe : ensemble vide = toutes affichées (comportement par défaut).
+  const [activeClasses, setActiveClasses] = useState<Set<string>>(new Set());
+
+  // Classes réellement présentes dans la session, dans l'ordre canonique.
+  const presentClasses = useMemo(() => {
+    const set = new Set(standings.map((s) => liveClassKey(s.vehicle_class)));
+    const ordered = STANDINGS_CLASS_ORDER.filter((k) => set.has(k));
+    const extras = [...set].filter((k) => !STANDINGS_CLASS_ORDER.includes(k));
+    return [...ordered, ...extras];
+  }, [standings]);
+
+  const shown =
+    activeClasses.size === 0
+      ? standings
+      : standings.filter((s) => activeClasses.has(liveClassKey(s.vehicle_class)));
+
+  const toggleClass = (k: string) =>
+    setActiveClasses((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+
   const sectorOf = (s: LiveStanding, i: number) =>
     i === 0 ? s.last_s1 : i === 1 ? s.last_s2 : s.last_s3;
   const sectorBest = (s: LiveStanding, i: number) =>
@@ -2327,7 +2413,37 @@ function StandingsTable({ standings }: { standings: LiveStanding[] }) {
         ? s.is_class_best_s2
         : s.is_class_best_s3;
   return (
-    <Table className="w-full text-xs">
+    <div className="flex flex-col gap-2">
+      {presentClasses.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {presentClasses.map((k) => {
+            const on = activeClasses.size === 0 || activeClasses.has(k);
+            return (
+              <button
+                key={k}
+                onClick={() => toggleClass(k)}
+                className={cn(
+                  "rounded transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  on ? "opacity-100" : "opacity-35 hover:opacity-60",
+                )}
+                aria-pressed={on}
+                title={k}
+              >
+                <ClassBadge carClass={k} solid />
+              </button>
+            );
+          })}
+          {activeClasses.size > 0 && (
+            <button
+              onClick={() => setActiveClasses(new Set())}
+              className="ml-1 text-micro text-muted-foreground underline hover:text-foreground"
+            >
+              {t("live.filterAllClasses")}
+            </button>
+          )}
+        </div>
+      )}
+      <Table className="w-full text-xs">
         {/* En-tête ambre propre au Live : on neutralise les défauts dorés des
             primitives (tint primary, texte jaune) via des overrides `[&_tr]`/`[&_th]`. */}
         <TableHeader className="[&_tr]:bg-amber-500/15 dark:[&_tr]:bg-amber-500/15 [&_tr]:border-y [&_tr]:border-amber-500/40 [&_tr]:hover:bg-amber-500/15 [&_th]:text-amber-700 dark:[&_th]:text-amber-200 [&_th]:font-medium">
@@ -2349,7 +2465,7 @@ function StandingsTable({ standings }: { standings: LiveStanding[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {standings.map((s) => {
+          {shown.map((s) => {
             const classColor = liveClassColor(s.vehicle_class);
             return (
             <TableRow
@@ -2437,5 +2553,6 @@ function StandingsTable({ standings }: { standings: LiveStanding[] }) {
           })}
         </TableBody>
       </Table>
+    </div>
   );
 }

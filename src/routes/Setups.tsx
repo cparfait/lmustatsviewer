@@ -37,8 +37,15 @@ import {
 } from "@/lib/api";
 import { useAppStore } from "@/stores/app";
 import { cn, formatTime } from "@/lib/utils";
+import {
+  confirmDialog,
+  promptDialog,
+  toastError,
+  toastSuccess,
+} from "@/stores/dialogs";
 import { ClassBadge } from "@/components/ClassBadge";
 import { CarLogo } from "@/components/CarLogo";
+import { CarImage } from "@/components/CarImage";
 import { NewSetupDialog } from "@/components/NewSetupDialog";
 import { paramLabel } from "@/lib/setupParams";
 
@@ -433,6 +440,12 @@ function CarView({
               </optgroup>
             ))}
           </select>
+          {activeCar && (
+            <CarImage
+              carName={activeCar}
+              className="ml-auto h-9 w-auto max-w-[170px] shrink-0 object-contain opacity-80 [mask-image:linear-gradient(to_right,transparent,black_22%)]"
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -704,13 +717,16 @@ function QuickView({
               onClick={async () => {
                 if (!summary) return;
                 const baseName = summary.setup.name.replace(/\.svm$/i, "");
-                const newName = prompt(t("setups.duplicateAs"), `${baseName}_copy`);
+                const newName = await promptDialog({
+                  message: t("setups.duplicateAs"),
+                  defaultValue: `${baseName}_copy`,
+                });
                 if (!newName) return;
                 try {
                   const e = await setupsApi.duplicate(setupId, newName);
                   navigate(`/setups/${e.id}`);
                 } catch (err) {
-                  alert(String(err));
+                  toastError(String(err));
                 }
               }}
               title={t("setups.duplicate")}
@@ -725,9 +741,9 @@ function QuickView({
                 if (!summary) return;
                 try {
                   await setupsApi.export(setupId, summary.setup.name);
-                  alert(t("setups.exported"));
+                  toastSuccess(t("setups.exported"));
                 } catch (err) {
-                  alert(String(err));
+                  toastError(String(err));
                 }
               }}
               title={t("setups.export")}
@@ -739,13 +755,18 @@ function QuickView({
               size="icon"
               className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={async () => {
-                if (!confirm(t("setups.confirmDelete"))) return;
+                const ok = await confirmDialog({
+                  message: t("setups.confirmDelete"),
+                  destructive: true,
+                  confirmLabel: t("setups.delete"),
+                });
+                if (!ok) return;
                 try {
                   await setupsApi.remove(setupId, true);
                   // Forçage du re-scan via reset (le parent ré-affiche au prochain mount)
                   window.location.reload();
                 } catch (err) {
-                  alert(String(err));
+                  toastError(String(err));
                 }
               }}
               title={t("setups.delete")}

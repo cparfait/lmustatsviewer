@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { BADGE_BASE } from "./badgeBase";
 
 /**
  * Pastille d'origine d'un setup : « Jeu » (lecture seule) ou « App » (éditable).
- * Même style que les autres pastilles de l'app (ClassBadge / SessionBadge) :
- * pilule `rounded-full`, `text-micro`, contour visible.
+ * Même taille que toutes les pastilles de l'app via `BADGE_BASE` (cf.
+ * `badgeBase.ts`) — ne pas redéfinir les classes de forme ici.
  */
 export function SourceBadge({
   source,
@@ -18,7 +19,7 @@ export function SourceBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-1.5 py-0 text-micro font-semibold uppercase tracking-wide whitespace-nowrap",
+        BADGE_BASE,
         game
           ? "border-primary/45 bg-primary/15 text-primary"
           : "border-emerald-500/45 bg-emerald-500/15 text-emerald-400",

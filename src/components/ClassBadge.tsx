@@ -3,6 +3,7 @@ import {
   CAR_CLASS_LABELS,
   CAR_CLASS_SOLID_COLORS,
 } from "@/lib/staticData";
+import { BADGE_BASE } from "./badgeBase";
 
 interface ClassBadgeProps {
   carClass: string;
@@ -28,10 +29,7 @@ export function ClassBadge({ carClass, solid }: ClassBadgeProps) {
     : {};
 
   return (
-    <span
-      className="inline-flex items-center rounded-full px-1.5 py-0 text-micro font-semibold uppercase tracking-wide whitespace-nowrap"
-      style={style}
-    >
+    <span className={BADGE_BASE} style={style}>
       {label}
     </span>
   );

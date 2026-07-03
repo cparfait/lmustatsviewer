@@ -10,6 +10,7 @@ import { Dashboard } from "@/routes/Dashboard";
 import { Sessions } from "@/routes/Sessions";
 import { SessionDetail } from "@/routes/SessionDetail";
 import { Records } from "@/routes/Records";
+import { References } from "@/routes/References";
 import { Setups } from "@/routes/Setups";
 import { SetupDetail } from "@/routes/SetupDetail";
 import { SetupCompare } from "@/routes/SetupCompare";
@@ -17,13 +18,19 @@ import { Live } from "@/routes/Live";
 import { Telemetry } from "@/routes/Telemetry";
 import { TelemetryView } from "@/routes/TelemetryView";
 import { Config } from "@/routes/Config";
+import { ConfigV2 } from "@/routes/ConfigV2";
 import { Overlays } from "@/routes/Overlays";
 import { Changelog } from "@/routes/Changelog";
 import { Onboarding } from "@/routes/Onboarding";
 import { Profile } from "@/routes/Profile";
+import { NotFound } from "@/routes/NotFound";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { DialogHost } from "@/components/DialogHost";
 import { useAppStore } from "@/stores/app";
+import { fetchBenchmarks } from "@/lib/ohne_speed";
 import { useSpotter } from "@/lib/useSpotter";
 import { useCoachVoice } from "@/lib/useCoachVoice";
+import { useCornerCoach } from "@/lib/useCornerCoach";
 import { useOverlayShortcut } from "@/lib/useOverlayShortcut";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -37,10 +44,18 @@ export default function App() {
     init();
   }, [init]); // `init` est une action de store stable → effet exécuté une seule fois
 
+  // Préchargement en tâche de fond des références OhneSpeed (cache module, 1×/
+  // lancement) → page Références + badges de tier instantanés ensuite. Best-effort.
+  useEffect(() => {
+    fetchBenchmarks().catch(() => {});
+  }, []);
+
   // Spotter « à la demande » : raccourcis globaux Statut / Mute / Répète.
   useSpotter();
   // Coach IA vocal : raccourci global push-to-talk → question libre → réponse parlée.
   useCoachVoice();
+  // Coach par virage : conseils vocaux automatiques en roulage (fenêtre de délivrance).
+  useCornerCoach();
   // Raccourci global Afficher/Masquer les overlays.
   useOverlayShortcut();
 
@@ -88,6 +103,7 @@ export default function App() {
   return (
     <TooltipProvider>
     <div className="min-h-screen flex flex-col">
+      <DialogHost />
       {!isLive && !needsOnboarding && <Header />}
       {!isLive && !needsOnboarding && <UpdateBanner />}
       <main
@@ -100,12 +116,14 @@ export default function App() {
         {needsOnboarding ? (
           <Onboarding />
         ) : (
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/sessions/:id" element={<SessionDetail />} />
             <Route path="/records" element={<Records />} />
+            <Route path="/references" element={<References />} />
             <Route path="/setups" element={<Setups />} />
             <Route path="/setups/:id" element={<SetupDetail />} />
             <Route path="/setups/compare" element={<SetupCompare />} />
@@ -114,8 +132,11 @@ export default function App() {
             <Route path="/telemetry/view" element={<TelemetryView />} />
             <Route path="/overlays" element={<Overlays />} />
             <Route path="/config" element={<Config />} />
+            <Route path="/config-v2" element={<ConfigV2 />} />
             <Route path="/changelog" element={<Changelog />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
         )}
       </main>
       {!isLive && !needsOnboarding && <Footer />}

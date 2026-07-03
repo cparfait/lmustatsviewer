@@ -11,13 +11,11 @@ function Row({
   car,
   gap,
   showLast,
-  t,
 }: {
   label: string;
   car: LiveStanding | undefined;
   gap: number;
   showLast: boolean;
-  t: WidgetProps["t"];
 }) {
   const color = car ? liveClassColor(car.vehicle_class) : null;
   return (
@@ -59,7 +57,6 @@ export function RivalWidget({ data, content, accent, t }: WidgetProps) {
             car={ahead}
             gap={player?.time_behind_next ?? 0}
             showLast={content.lastLap !== false}
-            t={t}
           />
         )}
         <div className="my-1 h-px bg-white/10" />
@@ -69,7 +66,6 @@ export function RivalWidget({ data, content, accent, t }: WidgetProps) {
             car={behind}
             gap={behind?.time_behind_next ?? 0}
             showLast={content.lastLap !== false}
-            t={t}
           />
         )}
       </div>

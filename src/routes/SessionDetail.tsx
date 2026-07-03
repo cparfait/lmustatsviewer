@@ -1103,7 +1103,7 @@ function ClassificationTab({
             }
           />
           <CardContent className="p-0 overflow-x-auto">
-            <Table className="text-xs [&_tbody_td:nth-child(n+6):nth-child(-n+10)]:bg-sky-500/[0.06] [&_tbody_td:nth-child(3)]:border-l [&_tbody_td:nth-child(3)]:border-border/55 [&_tbody_td:nth-child(6)]:border-l [&_tbody_td:nth-child(6)]:border-border/55 [&_tbody_td:nth-child(11)]:border-l [&_tbody_td:nth-child(11)]:border-border/55">
+            <Table className="text-xs [&_tbody_td:nth-child(n+7):nth-child(-n+11)]:bg-sky-500/[0.06] [&_tbody_td:nth-child(3)]:border-l [&_tbody_td:nth-child(3)]:border-border/55 [&_tbody_td:nth-child(7)]:border-l [&_tbody_td:nth-child(7)]:border-border/55 [&_tbody_td:nth-child(12)]:border-l [&_tbody_td:nth-child(12)]:border-border/55">
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-center">
@@ -1116,7 +1116,9 @@ function ClassificationTab({
                     {t("sessionDetail.colClass")}
                   </TableHead>
                   <TableHead>{t("sessionDetail.colDriver")}</TableHead>
-                  <TableHead>{t("sessionDetail.colCar")}</TableHead>
+                  <TableHead colSpan={2} className="text-center">
+                    {t("sessionDetail.colCar")}
+                  </TableHead>
                   <TableHead className="text-center border-l border-border/55 bg-sky-500/10">
                     {t("sessionDetail.colLaps")}
                   </TableHead>
@@ -1211,16 +1213,14 @@ function ClassificationTab({
                       >
                         {r.driver_name}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <CarLogo
-                            carName={r.unique_car_name || r.car_type}
-                            className="h-3.5 w-auto object-contain opacity-80 shrink-0"
-                          />
-                          <span className="font-medium whitespace-nowrap">
-                            {r.unique_car_name || r.car_type}
-                          </span>
-                        </div>
+                      <TableCell className="px-1 w-7">
+                        <CarLogo
+                          carName={r.unique_car_name || r.car_type}
+                          className="h-3.5 w-auto object-contain opacity-80"
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {r.unique_car_name || r.car_type}
                       </TableCell>
                       <TableCell className="text-center">
                         {r.laps_count}
@@ -2001,7 +2001,7 @@ function parseTrackLimitEvent(ev: SessionDetailData["stream"][number]): TrackLim
     if (parts.length >= 5) {
       return {
         et: ev.et,
-        lap: parseInt(parts[0]) ?? null,
+        lap: parseInt(parts[0]) || null,
         warningPts: parseFloat(parts[1]) || null,
         totalPts: parseFloat(parts[2]) || null,
         driver: parts[3] || null,
@@ -2293,18 +2293,21 @@ function ComparisonTab({
     {
       key: "avg_best_5",
       label: t("sessionDetail.statAvg5"),
+      lowerBetter: true,
       value: (r) => r.avg_best_5 ?? Infinity,
       render: (r) => formatTime(r.avg_best_5),
     },
     {
       key: "median_lap",
       label: t("sessionDetail.statMedian"),
+      lowerBetter: true,
       value: (r) => r.median_lap ?? Infinity,
       render: (r) => formatTime(r.median_lap),
     },
     {
       key: "std_dev",
       label: t("sessionDetail.statStdDev"),
+      lowerBetter: true, // écart-type faible = pilotage plus régulier = meilleur
       value: (r) => r.std_dev ?? Infinity,
       render: (r) =>
         r.std_dev != null ? `${r.std_dev.toFixed(3)}s` : "N/A",

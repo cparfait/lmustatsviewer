@@ -697,7 +697,7 @@ fn compute_aggregates(d: &ParsedDriver, session_type: &str) -> Aggregates {
     };
 
     // Statistiques comparateur (sur les tours avec temps > 0, triés croissant).
-    valid_times.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    valid_times.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let n = valid_times.len();
     let median_lap = if n > 0 {
         let mid = (n - 1) / 2;
@@ -709,6 +709,9 @@ fn compute_aggregates(d: &ParsedDriver, session_type: &str) -> Aggregates {
     } else {
         None
     };
+    // Écart-type de régularité : variance de POPULATION (÷ n), volontaire — on
+    // dispose de TOUS les tours de la session, pas d'un échantillon ; ce n'est donc
+    // pas un estimateur sample (÷ n−1). Cohérent avec la V1 et stocké tel quel.
     let std_dev = if n > 1 {
         let mean = valid_times.iter().sum::<f64>() / n as f64;
         let variance =

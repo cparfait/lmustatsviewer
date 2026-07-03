@@ -31,6 +31,10 @@ interface OpenAICompatConfig {
   chatEndpoint: string;
   modelsEndpoint: string;
   fallbackModels: ModelInfo[];
+  /** Lien vers la doc des modèles du fournisseur. */
+  docsUrl: string;
+  /** Saisie manuelle par défaut (fournisseurs à très nombreux modèles). */
+  preferManualModel?: boolean;
   /** Filtre optionnel des id de modèles (en plus de l'exclusion non-chat). */
   modelFilter?: (id: string) => boolean;
 }
@@ -86,6 +90,8 @@ export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
     },
 
     fallbackModels: cfg.fallbackModels,
+    docsUrl: cfg.docsUrl,
+    preferManualModel: cfg.preferManualModel,
   } satisfies AIProvider;
 }
 
@@ -102,6 +108,7 @@ export const openaiProvider = makeOpenAICompatProvider({
     { id: "gpt-4.1", label: "gpt-4.1" },
     { id: "o4-mini", label: "o4-mini" },
   ],
+  docsUrl: "https://platform.openai.com/docs/models",
 });
 
 export const deepseekProvider = makeOpenAICompatProvider({
@@ -113,6 +120,7 @@ export const deepseekProvider = makeOpenAICompatProvider({
     { id: "deepseek-chat", label: "deepseek-chat (V3)" },
     { id: "deepseek-reasoner", label: "deepseek-reasoner (R1)" },
   ],
+  docsUrl: "https://api-docs.deepseek.com/quick_start/pricing",
 });
 
 export const mistralProvider = makeOpenAICompatProvider({
@@ -124,4 +132,27 @@ export const mistralProvider = makeOpenAICompatProvider({
     { id: "mistral-large-latest", label: "Mistral Large" },
     { id: "mistral-medium-latest", label: "Mistral Medium" },
   ],
+  docsUrl: "https://docs.mistral.ai/getting-started/models/models_overview/",
+});
+
+// OpenRouter : passerelle vers des centaines de modèles (dont des gratuits,
+// suffixés « :free »). API compatible OpenAI. La liste est énorme → saisie
+// manuelle par défaut, avec suggestions issues de l'endpoint /models.
+export const openrouterProvider = makeOpenAICompatProvider({
+  id: "openrouter",
+  name: "OpenRouter",
+  chatEndpoint: "https://openrouter.ai/api/v1/chat/completions",
+  modelsEndpoint: "https://openrouter.ai/api/v1/models",
+  fallbackModels: [
+    {
+      id: "meta-llama/llama-3.3-70b-instruct:free",
+      label: "Llama 3.3 70B (gratuit)",
+    },
+    {
+      id: "deepseek/deepseek-chat-v3-0324:free",
+      label: "DeepSeek V3 (gratuit)",
+    },
+  ],
+  docsUrl: "https://openrouter.ai/models",
+  preferManualModel: true,
 });

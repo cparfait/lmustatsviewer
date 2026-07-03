@@ -9,6 +9,7 @@
 import type { LiveData } from "@/lib/api";
 import type { Tr } from "@/i18n";
 import { CAR_CLASS_COLORS } from "@/lib/staticData";
+import { computeStrategy } from "@/lib/strategy";
 
 /** Étiquettes de position des roues, localisées (ordre rF2 : FL, FR, RL, RR). */
 export function wheelLabels(t: Tr): [string, string, string, string] {
@@ -23,8 +24,10 @@ export function wheelLabels(t: Tr): [string, string, string, string] {
 /** Chrono « M:SS.mmm » (— si invalide). */
 export function fmtLap(s: number): string {
   if (!s || s <= 0 || !isFinite(s)) return "—:——.———";
-  const m = Math.floor(s / 60);
-  const sec = s - m * 60;
+  // Arrondir au ms avant de répartir min/sec (évite "1:60.000", cf. formatTime).
+  const totalMs = Math.round(s * 1000);
+  const m = Math.floor(totalMs / 60000);
+  const sec = (totalMs % 60000) / 1000;
   return `${m}:${sec.toFixed(3).padStart(6, "0")}`;
 }
 
@@ -59,31 +62,22 @@ export function liveClassColor(vehicleClass: string): string | null {
 }
 
 /**
- * Estimation « carburant pour finir » (identique à Live.tsx).
- * Renvoie null si non calculable.
+ * Estimation « carburant pour finir ».
+ * Délègue à `computeStrategy` (source unique de vérité, cf. lib/strategy.ts)
+ * pour garantir la parité EXACTE avec la page Live et le Coach IA — auparavant
+ * dupliquée ici et sujette à divergence. Renvoie null si non calculable.
  */
 export function computeFuelToFinish(
   sc: LiveData["session"],
   player: LiveData["player"],
   tel: LiveData["telemetry"],
 ): { lapsLeft: number; fuelNeeded: number; fuelToAdd: number } | null {
-  if (!sc || !tel || tel.fuel_consumption <= 0) return null;
-
-  let lapsLeft = 0;
-  if (sc.max_laps > 0 && sc.max_laps < 1000) {
-    lapsLeft = sc.max_laps - (player?.total_laps ?? 0);
-  } else if (sc.end_et > 0 && sc.end_et > sc.session_time) {
-    const lapTime =
-      player && player.last_lap_time > 0
-        ? player.last_lap_time
-        : player?.best_lap_time ?? 0;
-    if (lapTime > 0) {
-      const timeLeft = sc.end_et - sc.session_time;
-      lapsLeft = Math.ceil(timeLeft / lapTime) + 1;
-    }
-  }
-  if (lapsLeft <= 0) return null;
-
-  const fuelNeeded = lapsLeft * tel.fuel_consumption;
-  return { lapsLeft, fuelNeeded, fuelToAdd: fuelNeeded - tel.fuel };
+  const s = computeStrategy(sc, player, tel);
+  if (!s || s.sessionLapsLeft == null || s.fuelNeeded == null || s.fuelToAdd == null)
+    return null;
+  return {
+    lapsLeft: s.sessionLapsLeft,
+    fuelNeeded: s.fuelNeeded,
+    fuelToAdd: s.fuelToAdd,
+  };
 }

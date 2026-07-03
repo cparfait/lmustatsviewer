@@ -64,6 +64,8 @@ export function buildPostRaceContext(
   alienText?: string,
   /** Mémoire longitudinale (via `buildDriverHistoryText`), si disponible. */
   historyText?: string,
+  /** Connaissance circuit couplée (freinages + vidéo, via `buildTrackKnowledgeText`). */
+  trackKnowledgeText?: string,
 ): PostRaceContext {
   const s = detail.session;
   const player = detail.results.find((r) => r.is_player) ?? null;
@@ -152,6 +154,12 @@ export function buildPostRaceContext(
   if (historyText && historyText.trim()) {
     lines.push("");
     lines.push(historyText);
+  }
+
+  // Connaissance circuit couplée (freinages ApexPoints + guide vidéo) — référence macro.
+  if (trackKnowledgeText && trackKnowledgeText.trim()) {
+    lines.push("");
+    lines.push(trackKnowledgeText);
   }
 
   // Setup réel lié (si disponible) → conseils de réglage ancrés.

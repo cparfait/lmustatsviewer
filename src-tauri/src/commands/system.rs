@@ -32,6 +32,23 @@ pub fn ping(message: String) -> String {
     format!("pong: {message}")
 }
 
+/// Active ou désactive l'icône du system tray à chaud.
+///
+/// `enabled = true`  → (re)construit l'icône et son menu.
+/// `enabled = false` → retire l'icône du tray.
+///
+/// La persistance de la préférence (`system_tray`) est gérée côté frontend via
+/// `set_config` ; cette commande ne touche qu'à l'icône elle-même.
+#[tauri::command]
+pub fn set_tray_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    if enabled {
+        crate::build_tray(&app).map_err(|e| e.to_string())
+    } else {
+        app.remove_tray_by_id("main-tray");
+        Ok(())
+    }
+}
+
 /// Vérifie si le plugin shared memory rF2 est installé dans le dossier Plugins de LMU.
 /// Retourne `false` si `lmu_path` est vide ou si le DLL est absent.
 #[tauri::command]

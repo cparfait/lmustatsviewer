@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { Line, OrbitControls } from "@react-three/drei";
+import type { TrackSurface } from "@/lib/telemetry/trackSurface";
 
 interface Track3DProps {
   lat: number[];
@@ -12,6 +13,8 @@ interface Track3DProps {
   brake: number[];
   /** Index de la voiture (mode lecteur). */
   carIndex: number;
+  /** Bords de piste reconstruits (vraie largeur) → ruban de piste 3D. */
+  trackSurface?: TrackSurface;
   /** Exagération verticale du relief. */
   zScale?: number;
   height?: number;
@@ -35,16 +38,17 @@ export function Track3D({
   throttle,
   brake,
   carIndex,
+  trackSurface,
   zScale = 4,
   height = 300,
   theme,
 }: Track3DProps) {
   // Projection locale (mètres) centrée + couleurs par point. Mémoïsé → la
   // géométrie n'est pas reconstruite à chaque frame de lecture.
-  const { points, colors, size, carPoints } = useMemo(() => {
+  const { points, colors, size, carPoints, proj } = useMemo(() => {
     const n = Math.min(lat.length, lon.length, elevation.length);
     if (n < 2) {
-      return { points: [] as [number, number, number][], colors: [] as [number, number, number][], size: 100, carPoints: [] as [number, number, number][] };
+      return { points: [] as [number, number, number][], colors: [] as [number, number, number][], size: 100, carPoints: [] as [number, number, number][], proj: null as null | { latC: number; lonC: number; lonScale: number; DEG: number } };
     }
     let latC = 0;
     let lonC = 0;
@@ -75,8 +79,78 @@ export function Track3D({
       cols[i] = br > 5 ? COL_BRAKE : th > 5 ? COL_THROTTLE : COL_COAST;
     }
     const sz = Math.max(maxX - minX, maxZ - minZ) || 100;
-    return { points: pts, colors: cols, size: sz, carPoints: pts };
+    return { points: pts, colors: cols, size: sz, carPoints: pts, proj: { latC, lonC, lonScale, DEG } };
   }, [lat, lon, elevation, throttle, brake, zScale]);
+
+  // Ruban de piste 3D : maillage entre bord gauche et bord droit. L'altitude de
+  // chaque sommet est reprise du point de la trajectoire le plus proche (la piste
+  // est ~plane latéralement → bonne approximation, dévers ignoré).
+  const roadGeom = useMemo(() => {
+    if (!trackSurface || !proj || points.length < 2) return null;
+    const { latC, lonC, lonScale, DEG } = proj;
+    const m = Math.min(trackSurface.leftLat.length, trackSurface.rightLat.length);
+    if (m < 3) return null;
+
+    // Altitude par plus proche voisin (échantillonnage de la trajectoire).
+    const rn = points.length;
+    const searchStep = Math.max(1, Math.floor(rn / 1200));
+    const nearestY = (x: number, z: number): number => {
+      let bestD = Infinity;
+      let bestY = 0;
+      for (let j = 0; j < rn; j += searchStep) {
+        const dx = points[j][0] - x;
+        const dz = points[j][2] - z;
+        const d = dx * dx + dz * dz;
+        if (d < bestD) {
+          bestD = d;
+          bestY = points[j][1];
+        }
+      }
+      return bestY;
+    };
+
+    const drop = Math.max(0.5, size * 0.0015); // ruban juste sous la ligne
+    const positions = new Float32Array(m * 2 * 3);
+    const leftLine: [number, number, number][] = new Array(m);
+    const rightLine: [number, number, number][] = new Array(m);
+    for (let i = 0; i < m; i++) {
+      const lx = (trackSurface.leftLon[i] - lonC) * lonScale * DEG;
+      const lz = -(trackSurface.leftLat[i] - latC) * DEG;
+      const rx = (trackSurface.rightLon[i] - lonC) * lonScale * DEG;
+      const rz = -(trackSurface.rightLat[i] - latC) * DEG;
+      const ly = nearestY(lx, lz) - drop;
+      const ry = nearestY(rx, rz) - drop;
+      positions[i * 6] = lx;
+      positions[i * 6 + 1] = ly;
+      positions[i * 6 + 2] = lz;
+      positions[i * 6 + 3] = rx;
+      positions[i * 6 + 4] = ry;
+      positions[i * 6 + 5] = rz;
+      // Liseré de bord légèrement au-dessus de la surface (z-fight évité).
+      leftLine[i] = [lx, ly + drop * 0.5, lz];
+      rightLine[i] = [rx, ry + drop * 0.5, rz];
+    }
+    // Ferme la boucle pour les liserés.
+    leftLine.push(leftLine[0]);
+    rightLine.push(rightLine[0]);
+    // Deux triangles par segment (boucle fermée → dernier relié au premier).
+    const idx: number[] = [];
+    for (let i = 0; i < m; i++) {
+      const a = (i * 2) % (m * 2); // L[i]
+      const b = (i * 2 + 1) % (m * 2); // R[i]
+      const c = ((i + 1) % m) * 2; // L[i+1]
+      const dd = ((i + 1) % m) * 2 + 1; // R[i+1]
+      idx.push(a, b, c, b, dd, c);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    return { geometry: g, leftLine, rightLine };
+  }, [trackSurface, proj, points, size]);
+
+  // Libère l'ancien maillage quand il est remplacé (changement de fichier/tour).
+  useEffect(() => () => roadGeom?.geometry.dispose(), [roadGeom]);
 
   const ci = Math.max(0, Math.min(carPoints.length - 1, Math.round(carIndex)));
   const carPos = carPoints[ci] ?? [0, 0, 0];
@@ -104,6 +178,9 @@ export function Track3D({
   const cam = size * 0.85;
   const arrowScale = size * 0.0016; // forme ~23 unités → flèche visible mais discrète
   const outlineColor = theme === "dark" ? "#ffffff" : "#0A0E1A";
+  // Mêmes couleurs que la carte 2D (`TrackMap`) pour un rendu cohérent.
+  const roadColor = theme === "dark" ? "#334155" : "#d4dbe5";
+  const roadEdgeColor = theme === "dark" ? "#1e293b" : "#94a3b8";
 
   // Flèche-chevron (style LMU Telemetry Lab), pointe vers +Y dans l'espace forme.
   const arrowShape = useMemo(() => {
@@ -132,6 +209,18 @@ export function Track3D({
       >
         <ambientLight intensity={0.8} />
         <directionalLight position={[1, 2, 1]} intensity={0.6} />
+        {/* Ruban de piste reconstruit (vraie largeur), sous la trajectoire.
+            Couleur plate identique à la carte 2D (`meshBasicMaterial`, non
+            éclairé) + liserés de bord, pour un rendu cohérent et lisible. */}
+        {roadGeom && (
+          <>
+            <mesh geometry={roadGeom.geometry}>
+              <meshBasicMaterial color={roadColor} side={THREE.DoubleSide} />
+            </mesh>
+            <Line points={roadGeom.leftLine} color={roadEdgeColor} lineWidth={1.5} />
+            <Line points={roadGeom.rightLine} color={roadEdgeColor} lineWidth={1.5} />
+          </>
+        )}
         <Line points={points} vertexColors={colors} lineWidth={3} />
         {/* Flèche de position, à plat, pointant le sens de marche (style Lab).
             Contour contrasté (flèche un peu plus grande, dessous) + remplissage or. */}

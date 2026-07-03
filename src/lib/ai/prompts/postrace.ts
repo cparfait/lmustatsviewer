@@ -59,8 +59,9 @@ export function postRacePrompt(mode: PostRaceMode, lang: string): string {
   return mode === "full" ? base + OBJECTIVES_JSON : base;
 }
 
-/** Budget de tokens de sortie par mode (complet : + marge pour le bloc JSON). */
+/** Budget de tokens de sortie par mode. Complet : large, pour que l'analyse en
+ *  5 parties + le bloc d'objectifs JSON aillent au bout sans être tronqués. */
 export const POST_RACE_MAX_TOKENS: Record<PostRaceMode, number> = {
-  quick: 300,
-  full: 1200,
+  quick: 400,
+  full: 3000,
 };

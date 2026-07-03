@@ -27,6 +27,7 @@ import {
   CloudRain,
   Trophy,
   MessageSquare,
+  Waypoints,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ const GROUP_ICON: Record<VoiceMsgGroup["id"], React.ComponentType<{ className?: 
   race: Milestone,
   weather: CloudRain,
   fastest: Trophy,
+  corners: Waypoints,
 };
 
 const CAP = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

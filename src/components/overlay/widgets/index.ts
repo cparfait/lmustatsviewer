@@ -12,11 +12,18 @@ import { FlagsWidget } from "./FlagsWidget";
 import { TrackMapWidget } from "./TrackMapWidget";
 import { DashboardWidget } from "./DashboardWidget";
 import { RivalWidget } from "./RivalWidget";
-import { SessionWidget } from "./SessionWidget";
 import { EnduranceWidget } from "./EnduranceWidget";
 import { DamageWidget } from "./DamageWidget";
 import { SpeedWidget } from "./SpeedWidget";
 import { LiftCoastWidget } from "./LiftCoastWidget";
+import { CornerDeltaWidget } from "./CornerDeltaWidget";
+import { RadarWidget } from "./RadarWidget";
+import { AidsWidget } from "./AidsWidget";
+import { GForceWidget } from "./GForceWidget";
+import { SectorsWidget } from "./SectorsWidget";
+import { TrackLimitsWidget } from "./TrackLimitsWidget";
+import { CoachWidget } from "./CoachWidget";
+import { CornerCoachWidget } from "./CornerCoachWidget";
 
 export const WIDGETS: Record<OverlayId, FC<WidgetProps>> = {
   telemetry: TelemetryWidget,
@@ -30,9 +37,16 @@ export const WIDGETS: Record<OverlayId, FC<WidgetProps>> = {
   trackmap: TrackMapWidget,
   dashboard: DashboardWidget,
   rival: RivalWidget,
-  session: SessionWidget,
   endurance: EnduranceWidget,
   damage: DamageWidget,
   speed: SpeedWidget,
   liftcoast: LiftCoastWidget,
+  cornerdelta: CornerDeltaWidget,
+  radar: RadarWidget,
+  aids: AidsWidget,
+  gforce: GForceWidget,
+  sectors: SectorsWidget,
+  tracklimits: TrackLimitsWidget,
+  coach: CoachWidget,
+  cornercoach: CornerCoachWidget,
 };

@@ -26,7 +26,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@/lib/api";
 
-export type VoicePriority = "critical" | "normal" | "chatty";
+export type VoicePriority = "critical" | "normal" | "chatty" | "coach";
 export type VoiceEngine = "piper" | "system";
 
 /** Code langue app (2 lettres) → BCP-47. */
@@ -171,6 +171,11 @@ const PRIORITY_RANK: Record<VoicePriority, number> = {
   critical: 3,
   normal: 2,
   chatty: 1,
+  // Le coach par virage ne coupe **jamais** le spotter (§9) : même rang que
+  // `chatty` (une condition d'interruption stricte `>` le laisse toujours passer
+  // après une annonce en cours). Sa fraîcheur est pilotée en amont par la fenêtre
+  // de délivrance (§1), pas par ce rang.
+  coach: 1,
 };
 
 /** Durée de vie d'une annonce selon sa priorité (ms). */
@@ -178,6 +183,10 @@ const TTL: Record<VoicePriority, number> = {
   critical: 12000,
   normal: 7000,
   chatty: 4000,
+  // Le conseil coach est **périssable** : décidé « frais » au moment de parler
+  // (fenêtre de délivrance §1), il ne doit pas traîner dans la file s'il n'a pas
+  // pu être joué tout de suite. TTL court par défaut, surchargeable via `speak`.
+  coach: 5000,
 };
 
 /**
@@ -356,13 +365,15 @@ export function speak(
   text: string,
   lang: string,
   priority: VoicePriority = "normal",
+  ttlMs?: number,
 ) {
   if (!text || (!speechSupported() && !isTauri())) return;
   lastSpokenText = text;
   lastSpokenLang = lang;
   if (current?.text === text) return;
   if (queue.some((it) => it.text === text)) return;
-  queue.push({ text, lang, priority, expiry: Date.now() + TTL[priority] });
+  const ttl = ttlMs !== undefined && ttlMs > 0 ? ttlMs : TTL[priority];
+  queue.push({ text, lang, priority, expiry: Date.now() + ttl });
   if (current && PRIORITY_RANK[priority] > current.rank) {
     current.end(false); // interrompt l'annonce en cours, moins prioritaire
   }

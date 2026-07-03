@@ -9,6 +9,7 @@
 
 import { formatTime } from "../../utils";
 import { computeStrategy, strategyToText } from "../../strategy";
+import { buildTyreInsights } from "../insights";
 import type { LiveData } from "../../api";
 
 function sessionTypeLabel(s: number): string {
@@ -87,12 +88,57 @@ export function buildLiveContext(data: LiveData): string {
     } else {
       lines.push("Consumption not measured yet (needs 2 flying lap crossings).");
     }
+
+    // Verdicts pneus/freins déterministes (déséquilibres calculés en code).
+    const tyreInsights = buildTyreInsights(data);
+    if (tyreInsights) {
+      lines.push("");
+      lines.push(tyreInsights);
+    }
   }
 
-  if (data.extended) {
+  // Maps électroniques embarquées (ABS/TC/map moteur) — désormais issues de la
+  // mémoire native LMU (`LMU_Data`), donc les **vraies** valeurs réglées au volant
+  // (et non plus les aides de difficulté rF2 qui sortaient toujours à 0). Affiché
+  // seulement si renseigné (>0), pour ne rien affirmer si la source est absente.
+  if (data.extended && (data.extended.abs > 0 || data.extended.tc > 0)) {
+    const e = data.extended;
     lines.push("");
-    lines.push("## Electronics (adjustable)");
-    lines.push(`TC ${data.extended.tc} · ABS ${data.extended.abs}`);
+    lines.push("## In-car electronics maps");
+    lines.push(
+      `ABS ${e.abs}/${e.abs_max} · Traction Control (TC) ${e.tc}/${e.tc_max}` +
+        ` · TC power cut ${e.tc_cut}/${e.tc_cut_max}` +
+        ` · TC slip angle ${e.tc_slip}/${e.tc_slip_max}` +
+        (e.motor_map > 0 ? ` · Engine map ${e.motor_map}` : ""),
+    );
+  }
+
+  // Énergie virtuelle & hybride (voitures WEC) — la métrique de relais qui compte
+  // vraiment (carburant + hybride combinés). Section omise si non-hybride (=0).
+  if (data.extended && data.extended.virtual_energy > 0) {
+    const e = data.extended;
+    const BOOST = ["unavailable", "inactive", "deploying", "regenerating"];
+    lines.push("");
+    lines.push("## Hybrid / virtual energy");
+    lines.push(
+      `Virtual energy: ${(e.virtual_energy * 100).toFixed(1)}% remaining` +
+        ` · Battery SoC: ${e.state_of_charge.toFixed(0)}%` +
+        ` · Regen: ${e.regen.toFixed(0)} kW` +
+        ` · Hybrid: ${BOOST[e.boost_state] ?? "?"}`,
+    );
+  }
+
+  // Limites de piste (si la session les sanctionne) — le coach peut alerter.
+  if (data.extended && data.extended.track_limits_per_penalty > 0) {
+    const e = data.extended;
+    lines.push("");
+    lines.push("## Track limits");
+    lines.push(
+      `${e.track_limits}/${e.track_limits_per_penalty} points before a penalty` +
+        (e.track_limits / e.track_limits_per_penalty >= 0.6
+          ? " — WARNING, close to a penalty, advise caution"
+          : ""),
+    );
   }
 
   if (w) {

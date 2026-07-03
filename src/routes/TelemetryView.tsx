@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Loader2, ArrowLeft, Play, Pause, ChevronDown, ChevronUp, LocateFixed } from "lucide-react";
+import { Loader2, ArrowLeft, Play, Pause, ChevronDown, ChevronUp, LocateFixed, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TrackFlag } from "@/components/TrackFlag";
 import { CarLogo } from "@/components/CarLogo";
@@ -17,6 +17,7 @@ import { SteeringWheel } from "@/components/telemetry/SteeringWheel";
 import { TyreCard } from "@/components/telemetry/TyreCard";
 import { Gauge } from "@/components/telemetry/Gauge";
 import { computeElevation } from "@/lib/elevation";
+import { reconstructTrackSurface, type TrackSurface } from "@/lib/telemetry/trackSurface";
 
 // Vue 3D chargée à la demande (Three.js hors du bundle principal).
 const Track3D = lazy(() =>
@@ -41,7 +42,7 @@ import type {
   TelemetryFileInfo,
 } from "@/lib/api";
 import { useTheme } from "@/stores/theme";
-import { formatGap, formatDateTime } from "@/lib/utils";
+import { formatGap, formatDateTime, formatTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { sessionTypeLabel } from "@/lib/sessionLabels";
 
@@ -176,6 +177,11 @@ export function TelemetryView() {
   const [follow, setFollow] = useState(false);
   // Vue carte : 2D ou 3D (relief reconstruit).
   const [view3d, setView3d] = useState(false);
+  // Superposition de la trajectoire de référence sur la carte (comparaison).
+  const [showRefLine, setShowRefLine] = useState(true);
+  // Surface de piste reconstruite (vraie largeur, via Path Lateral/Track Edge).
+  const [showRoad, setShowRoad] = useState(true);
+  const [trackSurface, setTrackSurface] = useState<TrackSurface | null>(null);
   // Survol lié carte↔graphes : index pointé (prioritaire sur la lecture).
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   // Graphes repliés (clé de graphe) ; la valeur en direct reste visible.
@@ -210,6 +216,10 @@ export function TelemetryView() {
 
   useEffect(() => {
     if (!path) return;
+    // Garde de course : si `path` change avant la réponse, on ignore le résultat
+    // tardif (sinon meta/lap du fichier A écrasent l'état alors que path = B →
+    // données désynchronisées, index de tour potentiellement hors borne).
+    let cancelled = false;
     setMeta(null);
     setData(null);
     setRefPath(null);
@@ -219,11 +229,17 @@ export function TelemetryView() {
     telemetry
       .getMeta(path)
       .then((m) => {
+        if (cancelled) return;
         setMeta(m);
         // Défaut : 1er tour « roulé » si présent, sinon session entière.
         setLap(m.laps.length > 1 ? m.laps[0].lap : null);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) => {
+        if (!cancelled) setError(String(e));
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [path]);
 
   useEffect(() => {
@@ -245,6 +261,55 @@ export function TelemetryView() {
       cancelled = true;
     };
   }, [path, meta, lap]);
+
+  // Surface de piste reconstruite (vraie largeur) à partir du **tour le plus
+  // rapide** — méthode de LMU Telemetry Lab : bords = trajectoire ± largeur via
+  // les canaux `Path Lateral` / `Track Edge`. Tour découpé proprement par la
+  // table `Lap` du jeu (`getChannels(lap=N)`), statique pour la session.
+  useEffect(() => {
+    if (!path || !meta) {
+      setTrackSurface(null);
+      return;
+    }
+    // Tour le plus rapide (hors dernier segment, toujours partiel).
+    let best: { lap: number; duration: number } | null = null;
+    for (let i = 0; i < meta.laps.length - 1; i++) {
+      const l = meta.laps[i];
+      if (l.duration > 30 && (!best || l.duration < best.duration)) {
+        best = { lap: l.lap, duration: l.duration };
+      }
+    }
+    if (!best) {
+      setTrackSurface(null);
+      return;
+    }
+    let cancelled = false;
+    telemetry
+      .getChannels(
+        path,
+        ["GPS Latitude", "GPS Longitude", "Path Lateral", "Track Edge", "In Pits"],
+        best.lap,
+        4000,
+      )
+      .then((d) => {
+        if (cancelled) return;
+        const ch = (name: string) =>
+          d.channels.find((c) => c.name === name)?.values[0];
+        const la = ch("GPS Latitude");
+        const lo = ch("GPS Longitude");
+        const pl = ch("Path Lateral");
+        const te = ch("Track Edge");
+        setTrackSurface(
+          la && lo && pl && te
+            ? reconstructTrackSurface(la, lo, pl, te, ch("In Pits"))
+            : null,
+        );
+      })
+      .catch(() => !cancelled && setTrackSurface(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [path, meta]);
 
   // Métadonnées du fichier de référence (peut être un autre fichier).
   useEffect(() => {
@@ -315,6 +380,24 @@ export function TelemetryView() {
   }, [lap, data, refData]);
 
   const comparing = compare !== null;
+
+  // Avertissement : référence d'un circuit ou d'une voiture différents → le
+  // réalignement par distance n'a alors aucun sens.
+  const refMismatch = useMemo<string[] | null>(() => {
+    if (!meta || !refMeta) return null;
+    const a = meta.info;
+    const b = refMeta.info;
+    const issues: string[] = [];
+    if (a.track !== b.track) issues.push(t("telemetry.refDiffTrack"));
+    if (a.car_class && b.car_class && a.car_class !== b.car_class) {
+      issues.push(t("telemetry.refDiffClass"));
+    } else {
+      const carA = a.car_model || a.car_name;
+      const carB = b.car_model || b.car_name;
+      if (carA && carB && carA !== carB) issues.push(t("telemetry.refDiffCar"));
+    }
+    return issues.length ? issues : null;
+  }, [meta, refMeta, t]);
 
   // ── Axe X (distance) + lecture ───────────────────────────────────────────────
   const chartX = useMemo(() => {
@@ -505,6 +588,12 @@ export function TelemetryView() {
   const throttle = scal("Throttle Pos");
   const brake = scal("Brake Pos");
   const hasGps = lat.length >= 2;
+  // GPS du tour de référence (même circuit) → superposition des trajectoires.
+  const refScal = (name: string): number[] =>
+    refData?.channels.find((c) => c.name === name)?.values[0] ?? [];
+  const refLat = refScal("GPS Latitude");
+  const refLon = refScal("GPS Longitude");
+  const hasRefGps = comparing && showRefLine && refLat.length >= 2;
   const hasHybrid = data.channels.some(
     (c) => (c.name === "SoC" || c.name === "Virtual Energy") && (c.values[0]?.some((v) => v > 0) ?? false)
   );
@@ -616,7 +705,9 @@ export function TelemetryView() {
                         {f.path === path ? `★ ${t("telemetry.sameSession")}` : ""}
                         {f.path === path ? " · " : ""}
                         {sessionTypeLabel(f.session_type, t)} ·{" "}
-                        {f.car_model || f.car_name} · {formatDateTime(f.mtime)}
+                        {f.car_model || f.car_name}
+                        {f.best_lap != null ? ` · ${formatTime(f.best_lap)}` : ""} ·{" "}
+                        {formatDateTime(f.mtime)}
                       </option>
                     ))}
                 </select>
@@ -646,6 +737,14 @@ export function TelemetryView() {
                         </option>
                       ))}
                   </select>
+                )}
+                {refMismatch && (
+                  <div className="flex items-start gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      {t("telemetry.refMismatch")} {refMismatch.join(" · ")}
+                    </span>
+                  </div>
                 )}
               </>
             )}
@@ -716,6 +815,38 @@ export function TelemetryView() {
                   <LocateFixed className="h-3 w-3" /> {t("telemetry.follow")}
                 </button>
               )}
+              {/* Surface de piste (vraie largeur) — disponible en 2D et 3D */}
+              {trackSurface && (
+                <button
+                  onClick={() => setShowRoad((s) => !s)}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-micro transition-colors",
+                    showRoad
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border text-muted-foreground hover:bg-accent/60"
+                  )}
+                  title={t("telemetry.trackSurfaceHint")}
+                >
+                  <span className="h-2 w-3 rounded-sm bg-slate-500/70" aria-hidden />
+                  {t("telemetry.trackSurface")}
+                </button>
+              )}
+              {/* Superposition de la trajectoire de référence (visible en comparaison) */}
+              {!view3d && comparing && (
+                <button
+                  onClick={() => setShowRefLine((s) => !s)}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-micro transition-colors",
+                    showRefLine
+                      ? "border-[#a855f7] bg-[#a855f7]/10 text-foreground"
+                      : "border-border text-muted-foreground hover:bg-accent/60"
+                  )}
+                  title={t("telemetry.refLineHint")}
+                >
+                  <span className="h-0.5 w-3 rounded-full bg-[#a855f7]" aria-hidden />
+                  {t("telemetry.refLine")}
+                </button>
+              )}
               <span className="tabular-nums">
                 {t("telemetry.axisDistanceShort")}: {(curDist / 1000).toFixed(2)} km
               </span>
@@ -737,6 +868,7 @@ export function TelemetryView() {
                   throttle={throttle}
                   brake={brake}
                   carIndex={dispIdx}
+                  trackSurface={showRoad ? trackSurface ?? undefined : undefined}
                   height={300}
                   theme={theme}
                 />
@@ -748,6 +880,9 @@ export function TelemetryView() {
                   lon={lon}
                   throttle={throttle}
                   brake={brake}
+                  refLat={hasRefGps ? refLat : undefined}
+                  refLon={hasRefGps ? refLon : undefined}
+                  trackSurface={showRoad ? trackSurface ?? undefined : undefined}
                   markerIndex={dispIdx}
                   markers={follow ? undefined : corners.map((c) => c.brakeIdx)}
                   corners={

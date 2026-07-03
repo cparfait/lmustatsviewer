@@ -6,6 +6,7 @@
  */
 
 import { cn } from "@/lib/utils";
+import { BADGE_BASE } from "./badgeBase";
 import {
   findBenchmark,
   computeTier,
@@ -44,14 +45,7 @@ export function TierBadge({
   if (!bm) return muted;
   const { tier } = computeTier(lapSeconds * 1000, bm);
   return (
-    <span
-      className={cn(
-        // 9 px assumé : micro-pastille de donnée dense (colonne Tier des tableaux),
-        // exemptée du plancher 10 px pour ne pas élargir la grille Sessions.
-        "inline-flex items-center rounded-full border px-1 py-px text-nano font-medium whitespace-nowrap",
-        TIER_COLORS[tier]
-      )}
-    >
+    <span className={cn(BADGE_BASE, TIER_COLORS[tier])}>
       {TIER_LABELS[tier]}
     </span>
   );

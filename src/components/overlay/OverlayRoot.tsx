@@ -16,6 +16,7 @@ import { overlay as overlayApi, type LiveData } from "@/lib/api";
 import { useOverlayData } from "./useOverlayData";
 import { OverlayFrame } from "./OverlayFrame";
 import { WIDGETS } from "./widgets";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 /** Instantané vide : les widgets s'affichent (placeholders « — ») même hors jeu. */
 const EMPTY_LIVE_DATA: LiveData = {
@@ -30,6 +31,7 @@ const EMPTY_LIVE_DATA: LiveData = {
   extended: null,
   track_layout: null,
   track_points: [],
+  track_dists: [],
 };
 
 export function OverlayRoot() {
@@ -109,12 +111,16 @@ export function OverlayRoot() {
             editMode={editMode}
             globalOpacity={cfg.globalOpacity}
           >
-            <Widget
-              data={live}
-              content={settings.content}
-              accent={def.accent}
-              t={t}
-            />
+            {/* Isolation par widget : un widget qui plante disparaît (repli
+                `null`) sans emporter les autres overlays ni geler la fenêtre. */}
+            <ErrorBoundary fallback={null}>
+              <Widget
+                data={live}
+                content={settings.content}
+                accent={settings.accent ?? def.accent}
+                t={t}
+              />
+            </ErrorBoundary>
           </OverlayFrame>
         );
       })}

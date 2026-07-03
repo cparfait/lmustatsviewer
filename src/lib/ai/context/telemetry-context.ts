@@ -80,6 +80,8 @@ export function buildTelemetryContext(
   theoreticalBestText?: string,
   /** Mémoire longitudinale du combo (via `buildComboHistoryText`), si disponible. */
   historyText?: string,
+  /** Connaissance circuit couplée (freinages + vidéo, via `buildTrackKnowledgeText`). */
+  trackKnowledgeText?: string,
 ): TelemetryContext {
   const info = meta.info;
   const car = info.car_model || info.car_name || "";
@@ -130,6 +132,13 @@ export function buildTelemetryContext(
     lines.push("");
     lines.push("## Corners (fastest lap — braking point + apex speed)");
     lines.push(cornersText);
+  }
+
+  // Connaissance circuit couplée (freinages ApexPoints + guide vidéo) — à
+  // confronter aux points de freinage réels ci-dessus.
+  if (trackKnowledgeText && trackKnowledgeText.trim()) {
+    lines.push("");
+    lines.push(trackKnowledgeText);
   }
 
   // Réglages électroniques enregistrés (ajustables) → le coach peut les commenter.

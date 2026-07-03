@@ -7,6 +7,7 @@ import type { WidgetProps } from "./types";
 
 export function FuelWidget({ data, content, accent, t }: WidgetProps) {
   const tel = data.telemetry;
+  const ext = data.extended;
   const calc = computeFuelToFinish(data.session, data.player, tel);
 
   return (
@@ -34,9 +35,19 @@ export function FuelWidget({ data, content, accent, t }: WidgetProps) {
         {content.toAdd !== false && (
           <Stat
             label={t("overlays.elements.toAdd")}
-            value={calc ? (calc.fuelToAdd > 0 ? `+${calc.fuelToAdd.toFixed(1)}` : "OK") : "—"}
-            unit={calc && calc.fuelToAdd > 0 ? "L" : undefined}
-            color={calc ? (calc.fuelToAdd > 0 ? "#f87171" : "#4ade80") : undefined}
+            // Seuil « OK » = 0.05 L, cohérent avec la page Live et le Coach IA
+            // (strategy.ts) — évite d'afficher « OK » à carburant pile-poil.
+            value={calc ? (calc.fuelToAdd > 0.05 ? `+${calc.fuelToAdd.toFixed(1)}` : "OK") : "—"}
+            unit={calc && calc.fuelToAdd > 0.05 ? "L" : undefined}
+            color={calc ? (calc.fuelToAdd > 0.05 ? "#f87171" : "#4ade80") : undefined}
+          />
+        )}
+        {/* Énergie virtuelle (voitures hybrides WEC uniquement) */}
+        {content.virtualEnergy !== false && ext && ext.virtual_energy > 0 && (
+          <Stat
+            label={t("overlays.elements.virtualEnergy")}
+            value={(ext.virtual_energy * 100).toFixed(1)}
+            unit="%"
           />
         )}
       </div>

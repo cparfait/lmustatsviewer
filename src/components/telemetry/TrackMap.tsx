@@ -9,6 +9,21 @@ interface TrackMapProps {
   throttle: number[];
   /** Frein 0–100 % (aligné par index). */
   brake: number[];
+  /** Latitudes GPS du tour de référence (comparaison) — superposées dans le même repère. */
+  refLat?: number[];
+  /** Longitudes GPS du tour de référence. */
+  refLon?: number[];
+  /**
+   * Bords de piste reconstruits (vraie largeur, via `Path Lateral`/`Track Edge`).
+   * Dessine un **ruban de piste plein** sous la ligne du tour courant. Prioritaire
+   * sur `roadLaps`.
+   */
+  trackSurface?: {
+    leftLat: number[];
+    leftLon: number[];
+    rightLat: number[];
+    rightLon: number[];
+  };
   /** Index de la position courante (mode lecteur) ; -1 = aucun marqueur. */
   markerIndex?: number;
   /** Index de points statiques à marquer (ex. points de freinage). */
@@ -28,6 +43,8 @@ interface TrackMapProps {
 const COLOR_THROTTLE = "#22c55e";
 const COLOR_BRAKE = "#ef4444";
 const COLOR_COAST = "#94a3b8";
+/** Trajectoire de référence (comparaison) — violet, contrasté avec accel/frein/coast. */
+const COLOR_REF = "#a855f7";
 
 /** Côté du repère interne (unités de la `viewBox`) ; le plus grand côté du circuit. */
 const VIEW = 1000;
@@ -90,6 +107,9 @@ export function TrackMap({
   lon,
   throttle,
   brake,
+  refLat,
+  refLon,
+  trackSurface,
   markerIndex = -1,
   markers,
   corners,
@@ -141,8 +161,94 @@ export function TrackMap({
       sumX += x;
       sumY += y;
     }
-    return { pts, boxW, boxH, centroid: { x: sumX / n, y: sumY / n } };
+    // Paramètres de projection conservés → une 2ᵉ trajectoire (référence) est
+    // projetée dans le MÊME repère absolu et se superpose exactement.
+    const proj = { lat0, lon0, cosLat, minX, minY, scale, pad };
+    return { pts, boxW, boxH, proj, centroid: { x: sumX / n, y: sumY / n } };
   }, [lat, lon, plain]);
+
+  // Projette une trace GPS (lat/lon) dans le repère de `geom` (même origine /
+  // échelle que le tour courant → superposition exacte) puis renvoie un chemin
+  // lissé. Réutilisé pour la référence et pour la surface de piste.
+  const projectLine = useCallback(
+    (la: number[], lo: number[], maxNodes: number): string => {
+      if (!geom) return "";
+      const n = Math.min(la.length, lo.length);
+      if (n < 2) return "";
+      const { proj, boxH } = geom;
+      const pts: Pt[] = new Array(n);
+      for (let i = 0; i < n; i++) {
+        const rx = (lo[i] - proj.lon0) * proj.cosLat;
+        const ry = la[i] - proj.lat0;
+        pts[i] = {
+          x: proj.pad + (rx - proj.minX) * proj.scale,
+          y: boxH - proj.pad - (ry - proj.minY) * proj.scale,
+        };
+      }
+      const step = Math.max(1, Math.ceil(n / maxNodes));
+      const idx: number[] = [];
+      for (let i = 0; i < n; i += step) idx.push(i);
+      if (idx[idx.length - 1] !== n - 1) idx.push(n - 1);
+      return smoothPath(idx.map((i) => pts[i]));
+    },
+    [geom],
+  );
+
+  // ── Trajectoire de référence (comparaison), même projection (mémoïsé) ──
+  const refPath = useMemo(
+    () =>
+      !geom || plain || !refLat || !refLon
+        ? null
+        : projectLine(refLat, refLon, 520) || null,
+    [geom, refLat, refLon, plain, projectLine],
+  );
+
+  // Projette une trace GPS en points bruts (sans lissage) dans le repère `geom`.
+  const projectPts = useCallback(
+    (la: number[], lo: number[]): Pt[] => {
+      if (!geom) return [];
+      const n = Math.min(la.length, lo.length);
+      const { proj, boxH } = geom;
+      const pts: Pt[] = new Array(n);
+      for (let i = 0; i < n; i++) {
+        const rx = (lo[i] - proj.lon0) * proj.cosLat;
+        const ry = la[i] - proj.lat0;
+        pts[i] = {
+          x: proj.pad + (rx - proj.minX) * proj.scale,
+          y: boxH - proj.pad - (ry - proj.minY) * proj.scale,
+        };
+      }
+      return pts;
+    },
+    [geom],
+  );
+
+  // ── Ruban de piste plein (vraie largeur) : polygone bord gauche → bord droit ──
+  // Renvoie aussi `lineW` = épaisseur de ligne adaptée à l'échelle (≈ une largeur
+  // de voiture), pour que la trajectoire ne paraisse pas démesurée sur la piste.
+  const surfacePath = useMemo(() => {
+    if (!geom || plain || !trackSurface) return null;
+    const L = projectPts(trackSurface.leftLat, trackSurface.leftLon);
+    const R = projectPts(trackSurface.rightLat, trackSurface.rightLon);
+    const len = Math.min(L.length, R.length);
+    if (len < 3) return null;
+    let d = `M${f(L[0].x)},${f(L[0].y)}`;
+    for (let i = 1; i < L.length; i++) d += ` L${f(L[i].x)},${f(L[i].y)}`;
+    for (let i = R.length - 1; i >= 0; i--) d += ` L${f(R[i].x)},${f(R[i].y)}`;
+    d += "Z";
+    // Largeur de piste projetée (médiane) → ligne ≈ 30 % de la largeur.
+    const widths: number[] = [];
+    for (let i = 0; i < len; i += Math.max(1, Math.floor(len / 60))) {
+      widths.push(Math.hypot(L[i].x - R[i].x, L[i].y - R[i].y));
+    }
+    widths.sort((a, b) => a - b);
+    const medW = widths[widths.length >> 1] || 0;
+    // Ligne ≈ 20 % de la largeur de piste (fine → on lit bien la corde dans les
+    // virages). Plancher bas pour rester fine sur les grands circuits ; plafond
+    // = largeur de ligne par défaut hors mode `plain` (cf. `surfaceW`).
+    const lineW = Math.max(0.8, Math.min(9, medW * 0.2));
+    return { d, lineW };
+  }, [geom, trackSurface, plain, projectPts]);
 
   // ── Chemins lissés : ruban + segments colorés (mémoïsé) ──
   const paths = useMemo(() => {
@@ -243,6 +349,9 @@ export function TrackMap({
   const outlineW = surfaceW + 6; // largeur de la bordure (ruban)
   const borderColor = theme === "dark" ? "#0b1120" : "#cbd5e1";
   const plainColor = theme === "dark" ? "#475569" : "#94a3b8";
+  // Surface de piste reconstruite (route + liseré de bord).
+  const roadFill = theme === "dark" ? "#334155" : "#d4dbe5";
+  const roadEdge = theme === "dark" ? "#1e293b" : "#94a3b8";
   const startColor = theme === "dark" ? "#64748b" : "#94a3b8";
   const tickColor = theme === "dark" ? "#e2e8f0" : "#1e293b";
   const markerStroke = theme === "dark" ? "#0A0E1A" : "#ffffff";
@@ -420,39 +529,92 @@ export function TrackMap({
         onPointerLeave={hoverable ? onLeave : undefined}
         onDoubleClick={zoomable ? onDouble : undefined}
       >
-        {/* Ruban : bordure (passe épaisse) */}
-        <path
-          d={paths.border}
-          fill="none"
-          stroke={borderColor}
-          strokeWidth={plain ? surfaceW + 2 : outlineW}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-
-        {plain ? (
-          /* Mini‑carte monochrome */
-          <path
-            d={paths.border}
-            fill="none"
-            stroke={plainColor}
-            strokeWidth={surfaceW}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-        ) : (
-          /* Surface colorée par accél./frein/roue libre (passe fine, par-dessus) */
-          paths.colored?.map((seg, i) => (
+        {surfacePath ? (
+          /* Vraie surface de piste reconstruite : ruban plein + liseré de bord,
+             puis la ligne du tour courant colorée accél./frein par‑dessus. */
+          <>
             <path
-              key={i}
-              d={seg.d}
+              d={surfacePath.d}
+              fill={roadFill}
+              stroke={roadEdge}
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+              fillRule="evenodd"
+            />
+            {paths.colored?.map((seg, i) => (
+              <path
+                key={i}
+                d={seg.d}
+                fill="none"
+                stroke={seg.color}
+                strokeWidth={surfacePath.lineW}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            ))}
+          </>
+        ) : (
+          <>
+            {/* Ruban : bordure (passe épaisse) */}
+            <path
+              d={paths.border}
               fill="none"
-              stroke={seg.color}
-              strokeWidth={surfaceW}
+              stroke={borderColor}
+              strokeWidth={plain ? surfaceW + 2 : outlineW}
               strokeLinejoin="round"
               strokeLinecap="round"
             />
-          ))
+
+            {plain ? (
+              /* Mini‑carte monochrome */
+              <path
+                d={paths.border}
+                fill="none"
+                stroke={plainColor}
+                strokeWidth={surfaceW}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            ) : (
+              /* Surface colorée par accél./frein/roue libre (passe fine, par-dessus) */
+              paths.colored?.map((seg, i) => (
+                <path
+                  key={i}
+                  d={seg.d}
+                  fill="none"
+                  stroke={seg.color}
+                  strokeWidth={surfaceW}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              ))
+            )}
+          </>
+        )}
+
+        {/* Trajectoire de référence (comparaison) : liseré sombre + violet pointillé,
+            superposé au tracé principal pour révéler l'écart de ligne au zoom. */}
+        {refPath && (
+          <>
+            <path
+              d={refPath}
+              fill="none"
+              stroke={borderColor}
+              strokeWidth={surfaceW * 0.7 + 3}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              opacity={0.6}
+            />
+            <path
+              d={refPath}
+              fill="none"
+              stroke={COLOR_REF}
+              strokeWidth={surfaceW * 0.7}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              strokeDasharray="6 5"
+            />
+          </>
         )}
 
         {/* Repère départ/arrivée */}

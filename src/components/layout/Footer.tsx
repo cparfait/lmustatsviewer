@@ -1,6 +1,8 @@
 import { Coffee, Github, Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { APP_VERSION } from "@/lib/changelog";
+import { DiscordIcon } from "@/components/DiscordIcon";
+import { DISCORD_URL } from "@/lib/links";
 
 export function Footer() {
   const { t } = useTranslation();
@@ -21,6 +23,16 @@ export function Footer() {
         </div>
 
         <div className="flex items-center gap-2">
+          <a
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-[#5865F2] hover:bg-[#5865F2]/10 transition-colors"
+          >
+            <DiscordIcon className="h-3.5 w-3.5" />
+            Discord
+          </a>
+
           <a
             href="https://github.com/cparfait/lmustatsviewer"
             target="_blank"

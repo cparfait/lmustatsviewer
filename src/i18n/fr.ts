@@ -905,6 +905,19 @@ export default {
     // Renforcement positif §1.4 (chantier résolu) : {{d}} = dixièmes repris.
     vCornerResolved: "Voilà, c'est ça : {{d}} dixièmes repris au {{n}}",
     vCornerClean: "Virage {{n}} : propre, c'est comme ça",
+    // Callouts prédictifs Découverte (§8, P3.3) : repère ApexPoints avant le
+    // freinage. {{name}} = nom du virage, {{marker}} = panneau (m), {{gear}} = rapport.
+    vPredictBrakeGear: "{{name}} : freinage au {{marker}}, {{gear}}ᵉ",
+    vPredictBrake: "{{name}} : freinage au {{marker}}",
+    vPredictGear: "{{name}} : {{gear}}ᵉ",
+    vPredictName: "{{name}} : prépare-toi",
+    // Boucle d'apprentissage §11 (P4.1) : rapport « 1+1+1 » de fin de session + rappel.
+    // {{n}} = virage, {{d}} = dixièmes repris, {{made}}/{{total}} = passages propres, {{time}} = temps cible.
+    vReportProgress: "Virage {{n}} : réglé — {{d}} dixièmes repris, propre {{made}} fois sur {{total}}",
+    vReportChantierPace: "Prochain chantier : virage {{n}}, porte plus de vitesse",
+    vReportChantierConsistency: "Prochain chantier : virage {{n}}, cale le même freinage",
+    vReportCap: "Prochain objectif : sous {{time}}",
+    vRecallChantier: "La dernière fois, ton chantier était le virage {{n}} — on reprend là",
     // ── Personnalisation des annonces (modale) ──
     vmTitle: "Personnaliser les annonces",
     vmSubtitle: "Modifier le texte des messages vocaux pour plus de fun",
@@ -987,6 +1000,15 @@ export default {
       vCornerNoTrail: "Trail-braking insuffisant",
       vCornerResolved: "Chantier résolu (dixièmes repris)",
       vCornerClean: "Chantier résolu (passage propre)",
+      vPredictBrakeGear: "Repère prédictif (freinage + rapport)",
+      vPredictBrake: "Repère prédictif (freinage)",
+      vPredictGear: "Repère prédictif (rapport)",
+      vPredictName: "Repère prédictif (virage à venir)",
+      vReportProgress: "Débrief de session — virage amélioré",
+      vReportChantierPace: "Débrief de session — prochain chantier (rythme)",
+      vReportChantierConsistency: "Débrief de session — prochain chantier (constance)",
+      vReportCap: "Débrief de session — prochain temps cible",
+      vRecallChantier: "Rappel inter-sessions (dernier chantier)",
     },
     flagOver: "TERMINÉE",
     stPos: "Pos",

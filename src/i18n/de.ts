@@ -904,6 +904,19 @@ export default {
     // Positive Bestätigung §1.4 (Baustelle gelöst): {{d}} = zurückgewonnene Zehntel.
     vCornerResolved: "Genau so: {{d}} Zehntel gut in Kurve {{n}}",
     vCornerClean: "Kurve {{n}}: sauber, so ist es richtig",
+    // Prädiktive Discovery-Ansagen (§8, P3.3): ApexPoints-Hinweis vor dem Bremsen.
+    // {{name}} = Kurvenname, {{marker}} = Bremstafel (m), {{gear}} = Gang.
+    vPredictBrakeGear: "{{name}}: Bremspunkt {{marker}}, {{gear}}. Gang",
+    vPredictBrake: "{{name}}: Bremspunkt {{marker}}",
+    vPredictGear: "{{name}}: {{gear}}. Gang",
+    vPredictName: "{{name}}: mach dich bereit",
+    // Lernschleife §11 (P4.1): „1+1+1“-Bericht zum Sitzungsende + Rückblick.
+    // {{n}} = Kurve, {{d}} = zurückgeholte Zehntel, {{made}}/{{total}} = saubere Durchfahrten, {{time}} = Zielrunde.
+    vReportProgress: "Kurve {{n}}: gelöst — {{d}} Zehntel zurück, {{made}} von {{total}} sauber",
+    vReportChantierPace: "Nächster Fokus: Kurve {{n}}, trag mehr Speed",
+    vReportChantierConsistency: "Nächster Fokus: Kurve {{n}}, triff denselben Bremspunkt",
+    vReportCap: "Nächstes Ziel: unter {{time}}",
+    vRecallChantier: "Letztes Mal war dein Fokus Kurve {{n}} — da machen wir weiter",
     // ── Ansagen anpassen (Modal) ──
     vmTitle: "Ansagen anpassen",
     vmSubtitle: "Texte der Sprachansagen bearbeiten – für mehr Spaß",
@@ -986,6 +999,15 @@ export default {
       vCornerNoTrail: "Zu wenig Trail-Braking",
       vCornerResolved: "Baustelle gelöst (Zehntel zurück)",
       vCornerClean: "Baustelle gelöst (saubere Runde)",
+      vPredictBrakeGear: "Prädiktiver Hinweis (Bremsen + Gang)",
+      vPredictBrake: "Prädiktiver Hinweis (Bremsen)",
+      vPredictGear: "Prädiktiver Hinweis (Gang)",
+      vPredictName: "Prädiktiver Hinweis (nächste Kurve)",
+      vReportProgress: "Sitzungs-Debrief — Kurve verbessert",
+      vReportChantierPace: "Sitzungs-Debrief — nächster Fokus (Tempo)",
+      vReportChantierConsistency: "Sitzungs-Debrief — nächster Fokus (Konstanz)",
+      vReportCap: "Sitzungs-Debrief — nächste Zielzeit",
+      vRecallChantier: "Sitzungsübergreifender Rückblick (letzter Fokus)",
     },
     flagOver: "BEENDET",
     stPos: "Pos",

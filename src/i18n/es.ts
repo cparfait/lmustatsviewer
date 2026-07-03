@@ -904,6 +904,19 @@ export default {
     // Refuerzo positivo §1.4 (objetivo resuelto): {{d}} = décimas recuperadas.
     vCornerResolved: "Eso es: {{d}} décimas recuperadas en la {{n}}",
     vCornerClean: "Curva {{n}}: limpia, así es",
+    // Avisos predictivos Descubrimiento (§8, P3.3): referencia ApexPoints antes de
+    // frenar. {{name}} = nombre de la curva, {{marker}} = panel (m), {{gear}} = marcha.
+    vPredictBrakeGear: "{{name}}: frena en {{marker}}, {{gear}}ª",
+    vPredictBrake: "{{name}}: frena en {{marker}}",
+    vPredictGear: "{{name}}: {{gear}}ª",
+    vPredictName: "{{name}}: prepárate",
+    // Bucle de aprendizaje §11 (P4.1): informe «1+1+1» de fin de sesión + recordatorio.
+    // {{n}} = curva, {{d}} = décimas recuperadas, {{made}}/{{total}} = pasadas limpias, {{time}} = vuelta objetivo.
+    vReportProgress: "Curva {{n}}: resuelta — {{d}} décimas recuperadas, limpia {{made}} de {{total}}",
+    vReportChantierPace: "Próximo foco: curva {{n}}, lleva más velocidad",
+    vReportChantierConsistency: "Próximo foco: curva {{n}}, clava la misma frenada",
+    vReportCap: "Próximo objetivo: bajar de {{time}}",
+    vRecallChantier: "La última vez tu foco fue la curva {{n}} — retomamos ahí",
     // ── Personalización de anuncios (modal) ──
     vmTitle: "Personalizar anuncios",
     vmSubtitle: "Edita el texto de los mensajes de voz para más diversión",
@@ -986,6 +999,15 @@ export default {
       vCornerNoTrail: "Trail-braking insuficiente",
       vCornerResolved: "Objetivo resuelto (décimas recuperadas)",
       vCornerClean: "Objetivo resuelto (vuelta limpia)",
+      vPredictBrakeGear: "Aviso predictivo (frenada + marcha)",
+      vPredictBrake: "Aviso predictivo (frenada)",
+      vPredictGear: "Aviso predictivo (marcha)",
+      vPredictName: "Aviso predictivo (curva próxima)",
+      vReportProgress: "Resumen de sesión — curva mejorada",
+      vReportChantierPace: "Resumen de sesión — próximo foco (ritmo)",
+      vReportChantierConsistency: "Resumen de sesión — próximo foco (constancia)",
+      vReportCap: "Resumen de sesión — próximo tiempo objetivo",
+      vRecallChantier: "Recordatorio entre sesiones (último foco)",
     },
     flagOver: "FINALIZADA",
     stPos: "Pos",

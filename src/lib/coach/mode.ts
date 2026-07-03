@@ -4,10 +4,11 @@
  * chaque mode vers une **politique de restitution** que l'ordonnanceur vocal
  * (`voice.ts`) consulte pour décider quoi (et combien) prononcer en roulage.
  *
- * Périmètre P2.4 (cf. spec §13) : **Practice / Course / Qualif**. Les modes
- * **Découverte** (callouts prédictifs, pré-synthèse TTS) et **Drill** (virages
- * choisis, feedback à chaque passage) sont respectivement P3.3 et P4.2 : ils sont
- * nommés ici pour la complétude du type, mais retombent sur la politique nominale.
+ * Périmètre P2.4 (cf. spec §13) : **Practice / Course / Qualif**. Le mode
+ * **Découverte** (callouts prédictifs, pré-synthèse TTS) est câblé en **P3.3**
+ * (`predictive: true`) ; le mode **Drill** (virages choisis, feedback à chaque
+ * passage) est P4.2 : nommé ici pour la complétude du type, il retombe sur la
+ * politique nominale.
  */
 
 /** Les 5 modes de la spec §8 (Découverte/Drill = P3.3/P4.2). */
@@ -21,6 +22,9 @@ export type CoachMode = "practice" | "race" | "qualify" | "discovery" | "drill";
  *    Course), sans focus collant ni renforcement.
  *  - `positive` : appliquer le renforcement positif §1.4.
  *  - `degressive` : appliquer le feedback dégressif §1.5.
+ *  - `predictive` : émettre des **callouts ApexPoints prédictifs** avant le
+ *    freinage (§8 Découverte, P3.3). Réservé à la Découverte (pas de réf joueur) :
+ *    jamais de prédictif permanent quand une réf existe (dépendance, §8).
  */
 export interface ModePolicy {
   mode: CoachMode;
@@ -29,6 +33,7 @@ export interface ModePolicy {
   escalationOnly: boolean;
   positive: boolean;
   degressive: boolean;
+  predictive: boolean;
 }
 
 /**
@@ -59,6 +64,7 @@ export function policyFor(mode: CoachMode): ModePolicy {
         escalationOnly: true,
         positive: false,
         degressive: false,
+        predictive: false,
       };
     case "qualify":
       // Aucun message pendant un tour lancé (§8). Le coaching sur l'out-lap /
@@ -70,12 +76,15 @@ export function policyFor(mode: CoachMode): ModePolicy {
         escalationOnly: false,
         positive: false,
         degressive: false,
+        predictive: false,
       };
     case "practice":
     case "discovery":
     case "drill":
     default:
-      // Nominal (§1) : focus collant + dégressif + renforcement positif.
+      // Nominal (§1) : focus collant + dégressif + renforcement positif. En
+      // **Découverte** (pas de réf → le moteur mute tout diagnostic), on ajoute
+      // les callouts prédictifs ApexPoints (§8, P3.3) : `predictive: true`.
       return {
         mode: mode ?? "practice",
         live: true,
@@ -83,6 +92,7 @@ export function policyFor(mode: CoachMode): ModePolicy {
         escalationOnly: false,
         positive: true,
         degressive: true,
+        predictive: mode === "discovery",
       };
   }
 }

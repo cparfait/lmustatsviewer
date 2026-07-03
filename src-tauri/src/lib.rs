@@ -180,6 +180,8 @@ pub fn run() {
             commands::coach::coach_ref_mark_stale,
             commands::coach::coach_stats_for_combo,
             commands::coach::coach_stats_upsert,
+            commands::coach::coach_history_upsert,
+            commands::coach::coach_history_load,
             commands::ai::coach_note_add,
             commands::ai::coach_notes_for_combo,
             commands::ai::coach_note_delete,

@@ -306,6 +306,73 @@ function playBuffer(ctx: AudioContext, buffer: AudioBuffer, item: QueueItem) {
   src.start(ctx.currentTime + 0.13);
 }
 
+// ── Pré-synthèse (callouts prédictifs coach, COACH-LIVE-SPEC.md §8, P3.3) ──────
+// Piper est asynchrone (~100-300 ms) : synthétiser au moment du déclenchement
+// prédictif raterait la fenêtre « ≥ 2 s avant le freinage ». On pré-synthétise les
+// textes fixes au chargement du combo et on rejoue l'`AudioBuffer` décodé (un
+// `AudioBuffer` est réutilisable via plusieurs `BufferSource`).
+const synthCache = new Map<string, AudioBuffer>();
+
+/** Clé de cache : dépend du texte **et** des paramètres qui changent le rendu. */
+function synthKey(code: string, text: string): string {
+  const voice = preferredPiperByLang[code] || "";
+  const speaker = preferredSpeakerByLang[code] || 0;
+  return `${code}|${voice}|${speaker}|${speechRate}|${text}`;
+}
+
+/** Synthétise un texte via Piper et renvoie l'`AudioBuffer` décodé (ou `null`). */
+async function synthBuffer(
+  ctx: AudioContext,
+  code: string,
+  text: string,
+): Promise<AudioBuffer | null> {
+  let b64: string;
+  try {
+    b64 = await invoke<string>("tts_synthesize", {
+      text,
+      lang: code,
+      voiceId: preferredPiperByLang[code] || undefined,
+      rate: speechRate,
+      speakerId: preferredSpeakerByLang[code] || undefined,
+    });
+  } catch {
+    piperUnavailable.add(code); // évite de réessayer en boucle
+    return null;
+  }
+  if (!b64) return null;
+  try {
+    return await ctx.decodeAudioData(base64ToArrayBuffer(b64));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pré-synthétise une liste de textes fixes (callouts prédictifs) pour une langue,
+ * best-effort. À appeler au chargement du combo (P3.3) : les callouts joueront
+ * ensuite sans latence de synthèse. Ne fait rien hors Piper/Tauri.
+ */
+export async function prewarmSpeech(texts: string[], lang: string): Promise<void> {
+  if (engine !== "piper" || !isTauri()) return;
+  const code = norm(lang);
+  if (piperUnavailable.has(code)) return;
+  const ctx = audioContext();
+  if (!ctx) return;
+  for (const text of texts) {
+    if (!text) continue;
+    const key = synthKey(code, text);
+    if (synthCache.has(key)) continue;
+    const buffer = await synthBuffer(ctx, code, text);
+    if (buffer) synthCache.set(key, buffer);
+    else if (piperUnavailable.has(code)) return; // Piper indisponible → inutile d'insister
+  }
+}
+
+/** Vide le cache de pré-synthèse (changement de combo / arrêt du coach). */
+export function clearSpeechCache() {
+  synthCache.clear();
+}
+
 /** Tente la synthèse Piper + lecture. Renvoie false si indisponible/échec. */
 async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
   if (engine !== "piper" || !isTauri()) return false;
@@ -314,27 +381,15 @@ async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
   const ctx = audioContext();
   if (!ctx) return false;
   const g = generation;
-  let b64: string;
-  try {
-    b64 = await invoke<string>("tts_synthesize", {
-      text: item.text,
-      lang: code,
-      voiceId: preferredPiperByLang[code] || undefined,
-      rate: speechRate,
-      speakerId: preferredSpeakerByLang[code] || undefined,
-    });
-  } catch {
-    piperUnavailable.add(code); // évite de réessayer en boucle
-    return false;
+  // Callout pré-synthétisé (P3.3) → lecture immédiate, sans appel Piper.
+  const cached = synthCache.get(synthKey(code, item.text));
+  if (cached) {
+    if (g !== generation) return false;
+    playBuffer(ctx, cached, item);
+    return true;
   }
-  if (!b64 || g !== generation) return false; // annulé entre-temps
-  let buffer: AudioBuffer;
-  try {
-    buffer = await ctx.decodeAudioData(base64ToArrayBuffer(b64));
-  } catch {
-    return false;
-  }
-  if (g !== generation) return false;
+  const buffer = await synthBuffer(ctx, code, item.text);
+  if (!buffer || g !== generation) return false; // annulé / indisponible entre-temps
   playBuffer(ctx, buffer, item);
   return true;
 }

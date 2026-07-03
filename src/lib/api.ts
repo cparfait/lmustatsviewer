@@ -893,6 +893,27 @@ export interface CoachCornerStats {
   n_samples: number;
 }
 
+/**
+ * Résumé d'un virage sur une session (boucle d'apprentissage §11, P4.1).
+ * `session_at` est fixé côté backend au débrief (epoch s, commun aux lignes d'une
+ * même session) ; envoyé à 0 à l'écriture.
+ */
+export interface CornerHistoryRow {
+  corner_uid: string;
+  n: number;
+  session_at: number;
+  /** Passages propres mesurés (non muets). */
+  passes: number;
+  /** Pace : Δt médian vs réf (s). */
+  median_dt: number;
+  /** Constance : IQR des Δt (s). */
+  iqr_dt: number;
+  /** Taux de réussite : % passages sous seuil [0,1]. */
+  success_rate: number;
+  /** Meilleur (min) Δt de la session (s). */
+  best_dt: number;
+}
+
 export const coachRef = {
   /** Enregistre une réf (purge au-delà de 3 par combo). Renvoie son id. */
   save: (payload: CoachRefSavePayload) =>
@@ -907,6 +928,12 @@ export const coachRef = {
     invoke<CoachCornerStats[]>("coach_stats_for_combo", { track, carModel }),
   statsUpsert: (track: string, carModel: string, stats: CoachCornerStats[]) =>
     invoke<void>("coach_stats_upsert", { track, carModel, stats }),
+  /** Écrit le résumé d'une session (§11, P4.1) ; purge au-delà de 30 sessions/combo. */
+  historyUpsert: (track: string, carModel: string, rows: CornerHistoryRow[]) =>
+    invoke<void>("coach_history_upsert", { track, carModel, rows }),
+  /** Historique par virage d'un combo (trié `session_at` croissant). */
+  historyLoad: (track: string, carModel: string) =>
+    invoke<CornerHistoryRow[]>("coach_history_load", { track, carModel }),
 };
 
 // ─── Commandes système ──────────────────────────────────────────────────────

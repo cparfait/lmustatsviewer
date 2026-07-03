@@ -32,8 +32,17 @@ import type { ModePolicy } from "./mode";
 
 // ── 1. Formateur : verdict → clé i18n + variables ─────────────────────────────
 
-/** Type d'un message coach : 9 diagnostics (§5) + retours positifs §1.4. */
-export type CoachMsgKind = DiagCode | "resolved" | "clean";
+/**
+ * Type d'un message coach : 9 diagnostics (§5) + retours positifs §1.4 + prédictif
+ * §8 + apprentissage §11 (rappel inter-sessions + rapport « 1+1+1 », P4.1).
+ */
+export type CoachMsgKind =
+  | DiagCode
+  | "resolved"
+  | "clean"
+  | "predict"
+  | "recall"
+  | "report";
 
 /** Un message vocal prêt à formater + à afficher (widget P2.3). */
 export interface CoachVoiceMsg {

@@ -73,6 +73,25 @@ pub struct CoachCornerStats {
     pub n_samples: i64,
 }
 
+/// Résumé d'un virage sur une session (boucle d'apprentissage §11, P4.1).
+/// Écrit au débrief ; `session_at` est renseigné côté backend (horloge mur), commun
+/// à toutes les lignes d'un même appel `coach_history_upsert`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CornerHistoryRow {
+    pub corner_uid: String,
+    pub n: i32,
+    #[serde(default)]
+    pub session_at: i64,
+    pub passes: i64,
+    pub median_dt: f64,
+    pub iqr_dt: f64,
+    pub success_rate: f64,
+    pub best_dt: f64,
+}
+
+/// Nombre de sessions conservées par combo dans `corner_history` (tendance §11).
+const KEEP_SESSIONS_PER_COMBO: i64 = 30;
+
 fn now_secs() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -294,6 +313,103 @@ pub fn coach_stats_for_combo(
         .map_err(|e| AppError::Database(format!("coach_stats query: {e}")))?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| AppError::Database(format!("coach_stats rows: {e}")))?;
+    Ok(rows)
+}
+
+/// Écrit le résumé d'une session (une ligne par virage travaillé) dans
+/// `corner_history` (§11, P4.1) et purge au-delà de `KEEP_SESSIONS_PER_COMBO`
+/// sessions du combo (les plus anciennes). Toutes les lignes du batch partagent le
+/// même `session_at` (horloge mur, ici) → un débrief = une session.
+#[tauri::command]
+pub fn coach_history_upsert(
+    track: String,
+    car_model: String,
+    rows: Vec<CornerHistoryRow>,
+    db: State<'_, DbState>,
+) -> Result<(), AppError> {
+    if rows.is_empty() {
+        return Ok(());
+    }
+    let mut conn = db::get_conn(&db)?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| AppError::Database(format!("corner_history tx: {e}")))?;
+    let now = now_secs();
+    for r in &rows {
+        tx.execute(
+            "INSERT INTO corner_history (track, car_model, corner_uid, n, session_at,
+                                         passes, median_dt, iqr_dt, success_rate, best_dt)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            rusqlite::params![
+                track,
+                car_model,
+                r.corner_uid,
+                r.n,
+                now,
+                r.passes,
+                r.median_dt,
+                r.iqr_dt,
+                r.success_rate,
+                r.best_dt,
+            ],
+        )
+        .map_err(|e| AppError::Database(format!("corner_history insert: {e}")))?;
+    }
+
+    // Purge : garde les KEEP_SESSIONS_PER_COMBO sessions (session_at distincts) les
+    // plus récentes du combo.
+    tx.execute(
+        "DELETE FROM corner_history
+         WHERE track = ?1 AND car_model = ?2
+           AND session_at NOT IN (
+             SELECT session_at FROM corner_history
+             WHERE track = ?1 AND car_model = ?2
+             GROUP BY session_at
+             ORDER BY session_at DESC LIMIT ?3
+           )",
+        rusqlite::params![track, car_model, KEEP_SESSIONS_PER_COMBO],
+    )
+    .map_err(|e| AppError::Database(format!("corner_history prune: {e}")))?;
+
+    tx.commit()
+        .map_err(|e| AppError::Database(format!("corner_history commit: {e}")))?;
+    Ok(())
+}
+
+/// Historique par virage d'un combo (§11, P4.1), trié chronologiquement
+/// (`session_at` croissant) pour le calcul de tendance côté front.
+#[tauri::command]
+pub fn coach_history_load(
+    track: String,
+    car_model: String,
+    db: State<'_, DbState>,
+) -> Result<Vec<CornerHistoryRow>, AppError> {
+    let conn = db::get_conn(&db)?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT corner_uid, n, session_at, passes, median_dt, iqr_dt,
+                    success_rate, best_dt
+             FROM corner_history
+             WHERE track = ?1 AND car_model = ?2
+             ORDER BY session_at ASC, n ASC",
+        )
+        .map_err(|e| AppError::Database(format!("corner_history prepare: {e}")))?;
+    let rows = stmt
+        .query_map(rusqlite::params![track, car_model], |r| {
+            Ok(CornerHistoryRow {
+                corner_uid: r.get(0)?,
+                n: r.get(1)?,
+                session_at: r.get(2)?,
+                passes: r.get(3)?,
+                median_dt: r.get(4)?,
+                iqr_dt: r.get(5)?,
+                success_rate: r.get(6)?,
+                best_dt: r.get(7)?,
+            })
+        })
+        .map_err(|e| AppError::Database(format!("corner_history query: {e}")))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| AppError::Database(format!("corner_history rows: {e}")))?;
     Ok(rows)
 }
 

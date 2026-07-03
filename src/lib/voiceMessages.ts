@@ -182,6 +182,26 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       // Renforcement positif §1.4 (P2.4) : {{d}} = dixièmes repris.
       { key: "vCornerResolved", vars: ["n", "d"], sample: { n: 3, d: 2 } },
       { key: "vCornerClean", vars: ["n"], sample: { n: 3 } },
+      // Callouts prédictifs Découverte (§8, P3.3) : repère ApexPoints avant le
+      // freinage. {{name}} = nom du virage, {{marker}} = panneau (m), {{gear}} = rapport.
+      {
+        key: "vPredictBrakeGear",
+        vars: ["name", "marker", "gear"],
+        sample: { name: "Dunlop", marker: 150, gear: 3 },
+      },
+      { key: "vPredictBrake", vars: ["name", "marker"], sample: { name: "Dunlop", marker: 150 } },
+      { key: "vPredictGear", vars: ["name", "gear"], sample: { name: "Dunlop", gear: 3 } },
+      { key: "vPredictName", vars: ["name"], sample: { name: "Dunlop" } },
+      // Boucle d'apprentissage §11 (P4.1) : rapport « 1+1+1 » + rappel inter-sessions.
+      {
+        key: "vReportProgress",
+        vars: ["n", "d", "made", "total"],
+        sample: { n: 3, d: 2, made: 8, total: 10 },
+      },
+      { key: "vReportChantierPace", vars: ["n"], sample: { n: 9 } },
+      { key: "vReportChantierConsistency", vars: ["n"], sample: { n: 9 } },
+      { key: "vReportCap", vars: ["time"], sample: { time: "3:52.0" } },
+      { key: "vRecallChantier", vars: ["n"], sample: { n: 9 } },
     ],
   },
 ];

@@ -266,6 +266,26 @@ CREATE TABLE IF NOT EXISTS coach_stats (
     PRIMARY KEY (track, car_model, corner_uid)
 );
 
+-- Progression par virage inter-sessions (boucle d'apprentissage §11, P4.1). Une
+-- ligne = résumé d'UN virage sur UNE session de roulage, écrit au débrief (retour
+-- stand / fin de session). Sert la tendance (pente sur les N dernières sessions),
+-- le taux de réussite et le rappel du chantier au prochain roulage sur le combo.
+-- corner_uid = identité stable (comme coach_corner). session_at = horodatage
+-- commun à toutes les lignes d'un même débrief (regroupe la session).
+CREATE TABLE IF NOT EXISTS corner_history (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    track        TEXT    NOT NULL,
+    car_model    TEXT    NOT NULL,
+    corner_uid   TEXT    NOT NULL,
+    n            INTEGER NOT NULL,
+    session_at   INTEGER NOT NULL,          -- epoch s, commun aux lignes d'un débrief
+    passes       INTEGER NOT NULL DEFAULT 0,-- passages propres mesurés (non muets)
+    median_dt    REAL    NOT NULL DEFAULT 0,-- pace : Δt médian vs réf (s)
+    iqr_dt       REAL    NOT NULL DEFAULT 0,-- constance : IQR des Δt (s)
+    success_rate REAL    NOT NULL DEFAULT 0,-- % passages sous seuil [0,1]
+    best_dt      REAL    NOT NULL DEFAULT 0 -- meilleur (min) Δt de la session (s)
+);
+
 CREATE INDEX IF NOT EXISTS idx_xi_filename    ON xml_index(filename);
 CREATE INDEX IF NOT EXISTS idx_xi_event       ON xml_index(event_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_xml   ON sessions(xml_id);
@@ -279,6 +299,7 @@ CREATE INDEX IF NOT EXISTS idx_laps_session   ON laps(session_id);
 CREATE INDEX IF NOT EXISTS idx_stream_session ON stream_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_coach_notes_combo ON coach_notes(track, car);
 CREATE INDEX IF NOT EXISTS idx_coach_ref_combo   ON coach_ref(track, car_model);
+CREATE INDEX IF NOT EXISTS idx_corner_hist_combo ON corner_history(track, car_model);
 ";
 
 pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {

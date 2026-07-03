@@ -2,7 +2,7 @@
 
 > **Document de reprise du projet. À LIRE EN PREMIER.**
 > Mettre à jour la section « Journal de bord » à chaque session de travail.
-> Dernière mise à jour : 2026-07-03
+> Dernière mise à jour : 2026-07-03 (Coach par virage P4.1)
 
 ---
 
@@ -813,6 +813,120 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-07-03 — Coach par virage : P4.1 (apprentissage : objectifs + rapport 1+1+1 + corner_history + rappel) implémenté
+
+**Contexte** : début de la phase P4 (apprentissage §11). Fermer la boucle **conseil →
+pratique → rapport → objectif** : mémoriser la progression **par virage** d'une session
+à l'autre, débriefer au retour aux stands (« 1+1+1 »), et **rappeler** le chantier au
+prochain roulage sur le combo. Premier morceau de P4 (Drill = P4.2, banque LLM = P4.3).
+
+**Livré** :
+- ✅ **Backend (Rust, rebuild requis)** : table `corner_history` (`db.rs`, une ligne par
+  virage × session : `passes`, `median_dt`, `iqr_dt`, `success_rate`, `best_dt`,
+  `session_at` commun au débrief) + 2 commandes `commands/coach.rs` — `coach_history_upsert`
+  (batch, `session_at` = horloge mur, **purge 30 sessions/combo**) et `coach_history_load`
+  (trié `session_at` ↑). Enregistrées dans `lib.rs` ; wrappers + type `CornerHistoryRow`
+  dans `api.ts` (`coachRef.historyUpsert/historyLoad`). `cargo check` ✅.
+- ✅ **`history.ts` (pur, rejouable §14)** : accumulateur de session (`recordPass`,
+  `passFromResult` = ne compte que les passages **avec réf, non muets**), résumé par
+  virage (`summarizeSession` : **pace** = Δt médian, **constance** = IQR, **taux de
+  réussite** = % `none`, ≥ 3 passages sinon bruit) → `toHistoryRows` ; agrégation
+  inter-sessions `buildProgression` (dernière valeur + **tendance** = pente OLS du Δt
+  médian sur 5 sessions). Stats robustes (`median`/`iqr` par quantiles interpolés/`slope`).
+- ✅ **`report.ts` (pur)** : `buildSessionReport` = rapport **« 1+1+1 »** (progrès =
+  plus gros gain vs dernière session persistée · chantier = pire virage restant, pace vs
+  **constance** si IQR domine · cap = prochain palier ohne_speed), `buildRecall` (chantier
+  du dernier passage), `pickObjectives` (1-2 faiblesses chroniques structurées), `nextCapMs`
+  (palier de temps juste sous le best). Δt négatif (réf courte/périmée) jamais compté faiblesse.
+- ✅ **`service.ts`** : accumule les passages au diagnostic ; **débrief au front d'entrée
+  aux stands** (`inPits` ↑, ≥ 6 passages) → résume + persiste + émet le rapport ; flush
+  **silencieux** au `combo-changed`/stop (ne perd rien) ; charge l'historique au combo
+  (`buildProgression`/`pickObjectives`/`buildRecall`) → **rappel** au 1ᵉʳ virage (1×/combo) ;
+  cap calculé des benchmarks ohne_speed + `formatTime`. Listeners `onCoachReport`/`onCoachRecall`,
+  getters `coachProgression`/`coachObjectives`.
+- ✅ **Hook `useCornerCoach`** : prononce le rapport d'un bloc (TTL 15 s) + rappel (priorité
+  `coach`) et miroir widget (`coach-corner`, codes `report`/`recall`). **Widget** : `report`
+  ambre / `recall` violet ; pastille `T{n}` masquée quand le cap n'a pas de virage.
+- ✅ **i18n ×4** : `vReportProgress`/`vReportChantierPace`/`vReportChantierConsistency`/
+  `vReportCap`/`vRecallChantier` (+ `vmWhen`) + registre `voiceMessages` (groupe `corners`,
+  personnalisables). Équilibré (10 occurrences × 4).
+- ✅ **Validé** : `cargo check` ✅, `tsc -b` ✅, `eslint` ✅, `npm run build` ✅, +
+  **smoke test déterministe** (esbuild + node, **48 assertions**) : stats (median/iqr/slope),
+  éligibilité (`passFromResult` : muted/tainted/no-ref → null, none → succès), résumé
+  (MIN_PASSES, médiane/IQR/taux/best), progression (regroupement, tendance < 0, prev/1-point),
+  rapport (progrès 0.5→0.2 = 3 dixièmes + 8/10, chantier pace vs constance, ordre 1+1+1),
+  rappel (pire virage / null vide), objectifs (rang + métrique), `nextCapMs` (4 cas).
+
+**⚠️ Réserves** : le rapport se déclenche au **retour stand** (front `inPits`), pas sur un
+vrai signal « fin de session » (LMU n'en expose pas de propre) — un pilote qui quitte via
+menu sans passer par les stands déclenche le flush **silencieux** au `combo-changed`/stop
+(persisté, non parlé). Deux relais dans la même session comparent au **même** historique
+pré-session (la progression n'est rechargée qu'au combo suivant) → un progrès peut être
+re-annoncé au 2ᵉ arrêt (mineur). Les **objectifs structurés** (`pickObjectives`) sont exposés
+(getter) mais la seule **délivrance** P4.1 est le rappel vocal ; une UI dédiée (page
+Progression/`/training`) = P7 du plan trophi (différé). Rappel = pas d'horloge mur dans le
+service (déterminisme) ; l'âge des sessions vient de `session_at` backend. Pas de branchement
+sur le **panneau complet** page Live (§11) — miroir widget in-game seulement pour l'instant.
+
+**📋 Prochaine étape** : **P4.2** — mode **Drill** (l'utilisateur choisit 1-2 virages, budget
+levé, feedback à **chaque** passage : callout prédictif « ton virage » + verdict après +
+compteur de réussites, silence ailleurs). **Rebuild `npm run tauri:build:stt` requis** avant
+test live (table `corner_history` + commandes ajoutées).
+
+### 2026-07-03 — Coach par virage : P3.3 (mode Découverte prédictif + pré-synthèse TTS) implémenté
+
+**Contexte** : dernière brique de la phase P3. En **Découverte** (pas de réf joueur →
+le moteur mute tout diagnostic §5), remplacer le « silence radio » de la v1 par des
+**callouts prédictifs** ApexPoints prononcés *avant* le freinage — le moment où le
+pilote a le plus besoin d'aide (§8).
+
+**Livré** :
+- ✅ **`predictive.ts` (pur, rejouable §14)** : `voiceKeyForMacro` (repère parlé →
+  clé i18n `vPredict*` + vars, gabarit choisi selon marqueur/rapport connus) ·
+  `buildPredictiveTargets` (chaque virage macro **apparié** à une fenêtre reçoit le
+  `brakeDist` **absolu** de cette fenêtre — jamais le marqueur, position de panneau
+  sans coordonnée piste §3.3) · `windowsFromDetected` (Découverte pure : fenêtres
+  bâties des virages **auto-détectés** du tour, UID stable via `assignUid`) ·
+  `stepPredictive` (déclenche la **prochaine** zone à `brakeDist − v·(TTS 2,2 s +
+  2 s)`, un callout/virage/tour, **fade** après 3 émissions §8).
+- ✅ **Pré-synthèse TTS** (`voice.ts`) : Piper étant asynchrone (~100-300 ms),
+  synthétiser au déclenchement raterait la fenêtre « ≥ 2 s avant ». `prewarmSpeech`
+  synthétise+décode les textes fixes au (re)calcul des cibles et met en cache
+  l'`AudioBuffer` (réutilisable) ; `trySynthAndPlay` rejoue le cache → **zéro
+  latence** ; `clearSpeechCache` à l'arrêt/combo.
+- ✅ **`mode.ts`** : `ModePolicy.predictive` (true **seulement** en Découverte ;
+  jamais de prédictif permanent quand une réf existe — dépendance §8).
+- ✅ **`service.ts`** : `refreshPredictiveTargets` au `lap-completed` (Découverte
+  pure : fenêtres détectées → mapping macro → cibles, ne remplace que par une
+  géométrie **plus complète**) ; `stepPredictive` par trame gardé sur `state.ref ===
+  null` ; abonnements `onCoachPredict` (parler) + `onPredictTargets` (pré-synthèse).
+- ✅ **`useCornerCoach.ts`** : prononce le callout (priorité `coach`), émet le widget
+  (`coach-corner` code `predict`) ; localise+`prewarmSpeech` à la pose des cibles.
+- ✅ **Widget `CornerCoachWidget`** : code `predict` stylé bleu « repère à venir ».
+- ✅ **i18n ×4** : `vPredictBrakeGear/Brake/Gear/Name` (+ `vmWhen` + registre
+  `voiceMessages` groupe `corners`, personnalisables).
+- ✅ **Validé** : `tsc -b` ✅, `eslint` ✅, `npm run build` ✅, i18n équilibré (8×4),
+  + **smoke test déterministe** (esbuild + node, **22 assertions**) : sélection de
+  gabarit, cibles ancrées/triées (brakeDist = fenêtre ≠ marqueur), `windowsFromDetected`
+  (UID réutilisé < 40 m / forgé sinon), ordonnanceur (fenêtre de déclenchement,
+  1×/tour, fade 3 tours, pit/vitesse basse muets, première zone seulement).
+
+**⚠️ Réserves** : la Découverte pure ne délivre **pas de callout au 1ᵉʳ tour** (aucune
+coordonnée piste a priori : les fenêtres viennent des virages détectés du tour
+précédent → callouts dès le tour 2). Le `brakeDist` des fenêtres détectées est celui
+**du pilote** (pas un idéal) — suffisant pour ancrer un repère parlé, jamais un delta.
+`markerM`/`gearN` **anglais** des noms ApexPoints (proper nouns, non traduits). Le
+mode **Drill** (feedback à chaque passage, prédictif « ton virage ») reste **P4.2**
+(retombe sur la politique nominale, `predictive:false`). Escalade prédictive (un
+chantier qui résiste à 3 correctifs, §8) non câblée (P4). Durée TTS toujours estimée
+forfaitairement 2,2 s (pas de mesure réelle avant synthèse).
+
+**📋 Prochaine étape** : **P4** — apprentissage : objectifs structurés + rapport
+1+1+1 + `corner_history` (mémoire chronique inter-sessions), mode **Drill** (virages
+choisis, budget levé, prédictif + verdict + compteur de réussites), banque de phrases
+LLM à slots (0 appel sur le chemin critique) + « pourquoi ? » vocal (Alt+C après un
+callout → le LLM répond avec le diagnostic chiffré + extrait transcript).
+
 ### 2026-07-03 — Coach par virage : P3.2 (niveau auto-calibré + réf courte + péremption) implémenté
 
 **Contexte** : suite de P3.1. Trois briques de fiabilité (§3.3, §7) : le coach cesse
@@ -995,12 +1109,13 @@ combo (Piper asynchrone) ; s'estompent au fil des tours ; réservés Découverte
 - ✅ **P2.4** — Modes par session (`coach/mode.ts` : Practice nominal / Course = erreur répétée ≥ 3× / Qualif = muet en roulage) + pédagogie dans `voice.ts` (`observeCorner` sur **chaque** clôture de virage) : focus collant §1.3 (un chantier, tenu ≤ 5 tours, pas de zapping), dégressif §1.5 (systématique → 1/2 → 1/3 → silence), renforcement positif §1.4 (résolution sur 2 passages propres → `vCornerResolved`/`vCornerClean`, widget vert). i18n ×4 + registre `voiceMessages` (2026-07-03).
 - ✅ **P3.1** — Mapping ApexPoints (`apex.ts` : parsing `T2-T9`/`T10A`, table de correction COTA/Sebring embarquée + `validateCorrections`, réf macro enrichie, mapping ordinal monotone → fenêtres) + branchement service (getters `coachMacro`/`coachMappedMacro`) (2026-07-03).
 - ✅ **P3.2** — Niveau pilote **auto-calibré** ohne_speed (`calibration.ts`) + **réf courte** médiane glissante 3 tours propres (`shortref.ts`) + **péremption** build/temp/wetness/compound (`staleness.ts`) ; `diagnostics.ts` : cible dense **confirmée sur les deux réfs** en frais / cible **courte relative** (« que d'habitude ») si périmée ; câblage service (2026-07-03).
-- **P3.3** — Mode Découverte prédictif (callouts ApexPoints, pré-synthèse TTS) + consommation `coachMacro`/`coachMappedMacro`.
-- **P4.1/P4.2/P4.3** — Objectifs structurés + rapport 1+1+1 + `corner_history` · mode Drill · banque LLM à slots + « pourquoi ? » vocal.
+- ✅ **P3.3** — Mode Découverte prédictif (`predictive.ts` : cibles ApexPoints ancrées aux fenêtres auto-détectées + ordonnanceur `brakeDist − v·(TTS+2 s)` + fade 3 tours) ; pré-synthèse TTS (`prewarmSpeech`/cache `voice.ts`) ; `mode.ts` `predictive` en Découverte ; câblage service (`onCoachPredict`/`onPredictTargets`) + hook + widget (code `predict`) + i18n ×4 (2026-07-03).
+- ✅ **P4.1** — Apprentissage : table `corner_history` (backend) + modules purs `history.ts` (agrégation session : Δt médian/IQR/taux de réussite + progression/tendance) & `report.ts` (rapport « 1+1+1 », rappel inter-sessions, objectifs, cap ohne_speed) ; câblage service (débrief au retour stand, rappel au 1ᵉʳ virage, persistance) + hook + widget (codes `report`/`recall`) + i18n ×4 (2026-07-03).
+- **P4.2/P4.3** (reste) — mode Drill · banque LLM à slots + « pourquoi ? » vocal.
 - **P5** — Ghost `.ld` · coaching de stint · heatmap · inputs/virage · risque.
 - **T** — Infra de test sans rouler (enregistreur de frames JSONL, rejeu ×1000, fixtures, corpus d'or).
 
-**📋 Prochaine étape** : implémenter **P1.2** (le cœur, gros morceau) sur une session dédiée. Rappel : rebuild `npm run tauri:build:stt` nécessaire (backend Rust modifié).
+**📋 Prochaine étape** : **P4.2** — mode **Drill** (virages choisis, budget levé, feedback à chaque passage : prédictif « ton virage » + verdict + compteur de réussites) ; puis **P4.3** (banque de phrases LLM à slots hors chemin critique + « pourquoi ? » vocal `Alt+C`). Rappel : **rebuild `npm run tauri:build:stt` nécessaire** (backend Rust modifié : table `corner_history` + commandes `coach_history_*`).
 
 ### 2026-06-22 — Étude trophi.ai + plan évolution coach IA
 

@@ -903,6 +903,19 @@ export default {
     // Positive reinforcement §1.4 (chantier resolved): {{d}} = tenths regained.
     vCornerResolved: "That's it — {{d}} tenths back at turn {{n}}",
     vCornerClean: "Turn {{n}}: clean, that's the one",
+    // Predictive Discovery callouts (§8, P3.3): ApexPoints cue before braking.
+    // {{name}} = corner name, {{marker}} = brake board (m), {{gear}} = gear.
+    vPredictBrakeGear: "{{name}}: brake at {{marker}}, gear {{gear}}",
+    vPredictBrake: "{{name}}: brake at {{marker}}",
+    vPredictGear: "{{name}}: gear {{gear}}",
+    vPredictName: "{{name}}: get ready",
+    // Learning loop §11 (P4.1): end-of-session "1+1+1" report + cross-session recall.
+    // {{n}} = turn, {{d}} = tenths regained, {{made}}/{{total}} = clean passes, {{time}} = target lap.
+    vReportProgress: "Turn {{n}}: sorted — {{d}} tenths back, clean {{made}} of {{total}}",
+    vReportChantierPace: "Next focus: turn {{n}}, carry more speed",
+    vReportChantierConsistency: "Next focus: turn {{n}}, nail the same braking",
+    vReportCap: "Next target: under {{time}}",
+    vRecallChantier: "Last time your focus was turn {{n}} — let's pick it up there",
     // ── Announcement customisation (modal) ──
     vmTitle: "Customise announcements",
     vmSubtitle: "Edit the voice message texts for extra fun",
@@ -985,6 +998,15 @@ export default {
       vCornerNoTrail: "Insufficient trail-braking",
       vCornerResolved: "Focus corner resolved (tenths regained)",
       vCornerClean: "Focus corner resolved (clean run)",
+      vPredictBrakeGear: "Predictive cue (braking + gear)",
+      vPredictBrake: "Predictive cue (braking)",
+      vPredictGear: "Predictive cue (gear)",
+      vPredictName: "Predictive cue (upcoming corner)",
+      vReportProgress: "Session debrief — corner improved",
+      vReportChantierPace: "Session debrief — next focus (pace)",
+      vReportChantierConsistency: "Session debrief — next focus (consistency)",
+      vReportCap: "Session debrief — next lap-time target",
+      vRecallChantier: "Cross-session recall (last focus corner)",
     },
     flagOver: "FINISHED",
     stPos: "Pos",

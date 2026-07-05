@@ -286,6 +286,23 @@ CREATE TABLE IF NOT EXISTS corner_history (
     best_dt      REAL    NOT NULL DEFAULT 0 -- meilleur (min) Δt de la session (s)
 );
 
+-- Banque de phrases LLM à slots (COACH-LIVE-SPEC.md §10, P4.3). Un seul appel
+-- batch par combo × langue génère des variantes de formulation par (virage,
+-- diagnostic) ; les chiffres (delta, vmin…) restent des slots remplis EN CODE au
+-- moment du virage → zéro appel LLM sur le chemin critique, fonctionne hors-ligne
+-- après génération. `ref_key` invalide la banque quand la réf du combo change ;
+-- `variants` = JSON PhraseEntry[] (voir src/lib/coach/phrasebank.ts).
+CREATE TABLE IF NOT EXISTS coach_phrasebank (
+    track       TEXT    NOT NULL,
+    car_model   TEXT    NOT NULL,
+    lang        TEXT    NOT NULL,          -- code 2 lettres (fr/en/es/de)
+    class_id    TEXT    NOT NULL DEFAULT '',
+    ref_key     TEXT    NOT NULL DEFAULT '',
+    variants    TEXT    NOT NULL DEFAULT '[]',
+    created_at  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (track, car_model, lang)
+);
+
 CREATE INDEX IF NOT EXISTS idx_xi_filename    ON xml_index(filename);
 CREATE INDEX IF NOT EXISTS idx_xi_event       ON xml_index(event_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_xml   ON sessions(xml_id);
@@ -300,6 +317,7 @@ CREATE INDEX IF NOT EXISTS idx_stream_session ON stream_events(session_id);
 CREATE INDEX IF NOT EXISTS idx_coach_notes_combo ON coach_notes(track, car);
 CREATE INDEX IF NOT EXISTS idx_coach_ref_combo   ON coach_ref(track, car_model);
 CREATE INDEX IF NOT EXISTS idx_corner_hist_combo ON corner_history(track, car_model);
+CREATE INDEX IF NOT EXISTS idx_phrasebank_combo   ON coach_phrasebank(track, car_model);
 ";
 
 pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {

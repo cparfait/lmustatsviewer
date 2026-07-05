@@ -57,6 +57,14 @@ interface AppState {
   menuModules: Record<string, boolean>;
   /** Annonces vocales sur la page Live (off par défaut — doublon avec CrewChief). */
   voiceAnnouncements: boolean;
+  /** Coach par virage — mode Drill (§8/§11) : entraînement ciblé sur les virages-chantiers. */
+  coachDrill: boolean;
+  /** Coach par virage — coaching de stint (§12) : dérive pneus, lift & coast, out-lap. */
+  coachStint: boolean;
+  /** Coach par virage — coaching du risque + cible de classe (§12) : track_limits + secteurs. */
+  coachRisk: boolean;
+  /** Coach par virage — banque de phrases LLM à slots (§10) : formulation variée pré-générée. */
+  coachPhrasebank: boolean;
   /** voiceURI de la voix système choisie par langue ("" / absent = auto). */
   voiceUriByLang: Record<string, string>;
   /** id du modèle Piper choisi par langue ("" / absent = défaut de la langue). */
@@ -87,6 +95,12 @@ interface AppState {
   overlayToggleKey: string;
   /** Mode du « Parler » : maintenir la touche (`hold`) ou appui/re-appui (`toggle`). */
   spotterPttMode: "hold" | "toggle";
+  /** Perte estimée au stand (s) — base de la prédiction « sortie stands » du spotter (T13 #151). */
+  pitLossSeconds: number;
+  /** Pertes au stand **mesurées** par combo `track::car` (T13 #152) — persistées. */
+  pitLossByCombo: Record<string, number>;
+  /** Réserve carburant (tours) ajoutée au « carburant pour finir » du spotter (T13 #157). */
+  fuelReserveLaps: number;
 
   // AI Coach
   /** Coach IA activé : si false, le coach disparaît de toutes les pages. */
@@ -147,6 +161,10 @@ interface AppState {
   setOverlayTargetTier: (v: string) => Promise<void>;
   setMenuModule: (key: string, value: boolean) => Promise<void>;
   setVoiceAnnouncements: (v: boolean) => Promise<void>;
+  setCoachDrill: (v: boolean) => Promise<void>;
+  setCoachStint: (v: boolean) => Promise<void>;
+  setCoachRisk: (v: boolean) => Promise<void>;
+  setCoachPhrasebank: (v: boolean) => Promise<void>;
   setVoiceUri: (lang: string, v: string) => Promise<void>;
   setPiperVoice: (lang: string, id: string) => Promise<void>;
   setPiperSpeaker: (lang: string, speaker: number) => Promise<void>;
@@ -160,6 +178,12 @@ interface AppState {
     accel: string,
   ) => Promise<void>;
   setSpotterPttMode: (mode: "hold" | "toggle") => Promise<void>;
+  setPitLossSeconds: (v: number) => Promise<void>;
+  /** Enregistre une perte au stand mesurée (T13 #152) pour un combo + l'applique. */
+  recordPitLoss: (combo: string, seconds: number) => Promise<void>;
+  /** Applique la perte mesurée d'un combo à `pitLossSeconds` si connue (T13 #152). */
+  applyPitLossForCombo: (combo: string) => void;
+  setFuelReserveLaps: (v: number) => Promise<void>;
   setOverlayToggleKey: (accel: string) => Promise<void>;
   setAICoachEnabled: (v: boolean) => Promise<void>;
   setAIProvider: (v: string) => Promise<void>;
@@ -186,6 +210,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   overlayTargetTier: "competitive",
   menuModules: {},
   voiceAnnouncements: false,
+  coachDrill: false,
+  coachStint: false,
+  coachRisk: false,
+  coachPhrasebank: false,
   voiceUriByLang: {},
   piperVoiceByLang: {},
   piperSpeakerByLang: {},
@@ -200,6 +228,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   spotterKeyTalk: "Alt+T",
   spotterKeyCoach: "Alt+C",
   spotterPttMode: "hold",
+  pitLossSeconds: 25,
+  pitLossByCombo: {},
+  fuelReserveLaps: 1,
   overlayToggleKey: "",
   aiCoachEnabled: true,
   aiProvider: "google",
@@ -310,6 +341,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       overlayTargetTier: cfg.overlay_target_tier || "competitive",
       menuModules,
       voiceAnnouncements: cfg.voice_announcements === "true",
+      coachDrill: cfg.coach_drill === "true",
+      coachStint: cfg.coach_stint === "true",
+      coachRisk: cfg.coach_risk === "true",
+      coachPhrasebank: cfg.coach_phrasebank === "true",
       voiceUriByLang,
       piperVoiceByLang,
       piperSpeakerByLang,
@@ -325,6 +360,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       spotterKeyCoach: cfg.spotter_key_coach || "Alt+C",
       overlayToggleKey: cfg.overlay_toggle_key || "",
       spotterPttMode: cfg.spotter_ptt_mode === "toggle" ? "toggle" : "hold",
+      pitLossSeconds: Number(cfg.pit_loss_seconds) > 0 ? Number(cfg.pit_loss_seconds) : 25,
+      pitLossByCombo: ((): Record<string, number> => {
+        try {
+          const m = JSON.parse(cfg.pit_loss_map || "{}");
+          return m && typeof m === "object" ? (m as Record<string, number>) : {};
+        } catch {
+          return {};
+        }
+      })(),
+      fuelReserveLaps: Number.isFinite(Number(cfg.fuel_reserve_laps)) && Number(cfg.fuel_reserve_laps) >= 0
+        ? Number(cfg.fuel_reserve_laps)
+        : 1,
       aiCoachEnabled: cfg.ai_coach_enabled !== "false",
       aiProvider: cfg.ai_provider || "google",
       aiApiKey,
@@ -505,6 +552,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ voiceAnnouncements: v });
   },
 
+  setCoachDrill: async (v) => {
+    await config.set("coach_drill", v ? "true" : "false");
+    set({ coachDrill: v });
+  },
+
+  setCoachStint: async (v) => {
+    await config.set("coach_stint", v ? "true" : "false");
+    set({ coachStint: v });
+  },
+
+  setCoachRisk: async (v) => {
+    await config.set("coach_risk", v ? "true" : "false");
+    set({ coachRisk: v });
+  },
+
+  setCoachPhrasebank: async (v) => {
+    await config.set("coach_phrasebank", v ? "true" : "false");
+    set({ coachPhrasebank: v });
+  },
+
   setVoiceUri: async (lang, v) => {
     const code = (lang || "fr").slice(0, 2).toLowerCase();
     const map = { ...get().voiceUriByLang };
@@ -592,6 +659,31 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSpotterPttMode: async (mode) => {
     await config.set("spotter_ptt_mode", mode);
     set({ spotterPttMode: mode });
+  },
+
+  setPitLossSeconds: async (v) => {
+    const n = Number.isFinite(v) && v > 0 ? Math.round(v) : 25;
+    await config.set("pit_loss_seconds", String(n));
+    set({ pitLossSeconds: n });
+  },
+
+  recordPitLoss: async (combo, seconds) => {
+    const n = Math.round(seconds);
+    const map = { ...get().pitLossByCombo, [combo]: n };
+    await config.set("pit_loss_map", JSON.stringify(map));
+    await config.set("pit_loss_seconds", String(n));
+    set({ pitLossByCombo: map, pitLossSeconds: n });
+  },
+
+  applyPitLossForCombo: (combo) => {
+    const v = get().pitLossByCombo[combo];
+    if (v && v > 0 && v !== get().pitLossSeconds) set({ pitLossSeconds: v });
+  },
+
+  setFuelReserveLaps: async (v) => {
+    const n = Number.isFinite(v) && v >= 0 ? Math.round(v * 2) / 2 : 1; // pas de 0.5 tour
+    await config.set("fuel_reserve_laps", String(n));
+    set({ fuelReserveLaps: n });
   },
 
   setOverlayToggleKey: async (accel) => {

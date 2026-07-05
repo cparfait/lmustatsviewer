@@ -64,6 +64,29 @@ export function computeStrategy(
   };
 }
 
+/** Bilan « carburant pour finir » avec réserve (T13 #157). */
+export interface FuelToEnd {
+  /** Litres à ajouter pour finir **avec la réserve** ; ≤ 0 = suffisant. */
+  toAdd: number;
+  sufficient: boolean;
+  /** Tours de marge au-delà du besoin exact (positif = surplus). */
+  marginLaps: number;
+}
+
+/**
+ * « Carburant pour finir » avec une **réserve** configurable (en tours), T13 #157.
+ * `null` si les tours restants ou la conso ne sont pas connus.
+ */
+export function fuelToEnd(s: StrategySnapshot, reserveLaps: number): FuelToEnd | null {
+  if (s.sessionLapsLeft == null || s.fuelToAdd == null || s.fuelPerLap <= 0) return null;
+  const toAdd = s.fuelToAdd + Math.max(0, reserveLaps) * s.fuelPerLap;
+  return {
+    toAdd,
+    sufficient: toAdd <= 0,
+    marginLaps: -s.fuelToAdd / s.fuelPerLap,
+  };
+}
+
 /**
  * Résumé compact (anglais) pour le contexte du Coach IA, sous le marqueur
  * `--- STRATEGY COMPUTER ---` : le prompt indique au modèle de faire confiance

@@ -194,8 +194,9 @@ pub fn coach_ref_save(
     Ok(ref_id)
 }
 
-/// Charge la meilleure référence utilisable d'un combo : le tour `best`/`ghost`
-/// le plus rapide, à défaut la plus récente `stale`. `None` si aucune.
+/// Charge la meilleure référence utilisable d'un combo. Hiérarchie de confiance
+/// (§3.4) : `ghost` importé (P5.5) d'abord, puis `best` du joueur, puis `stale` ;
+/// à rang égal, le tour le plus rapide. `None` si aucune.
 #[tauri::command]
 pub fn coach_ref_load(
     track: String,
@@ -209,7 +210,8 @@ pub fn coach_ref_load(
                     lap_time, step_m, n_points, meta_json, channels
              FROM coach_ref
              WHERE track = ?1 AND car_model = ?2
-             ORDER BY CASE kind WHEN 'stale' THEN 1 ELSE 0 END, lap_time ASC
+             ORDER BY CASE kind WHEN 'ghost' THEN 0 WHEN 'stale' THEN 2 ELSE 1 END,
+                      lap_time ASC
              LIMIT 1",
             rusqlite::params![track, car_model],
             |r| {
@@ -411,6 +413,95 @@ pub fn coach_history_load(
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| AppError::Database(format!("corner_history rows: {e}")))?;
     Ok(rows)
+}
+
+/// Banque de phrases LLM à slots d'un combo × langue (§10, P4.3). `variants` est un
+/// blob JSON opaque au backend (PhraseEntry[] côté front) ; `ref_key` sert à
+/// invalider la banque quand la réf du combo change.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CoachPhrasebank {
+    pub track: String,
+    pub car_model: String,
+    pub lang: String,
+    pub class_id: String,
+    pub ref_key: String,
+    pub variants: String,
+    pub created_at: i64,
+}
+
+/// Charge la banque de phrases d'un combo × langue (§10, P4.3), ou `None`.
+#[tauri::command]
+pub fn coach_phrasebank_load(
+    track: String,
+    car_model: String,
+    lang: String,
+    db: State<'_, DbState>,
+) -> Result<Option<CoachPhrasebank>, AppError> {
+    let conn = db::get_conn(&db)?;
+    conn.query_row(
+        "SELECT track, car_model, lang, class_id, ref_key, variants, created_at
+         FROM coach_phrasebank
+         WHERE track = ?1 AND car_model = ?2 AND lang = ?3",
+        rusqlite::params![track, car_model, lang],
+        |r| {
+            Ok(CoachPhrasebank {
+                track: r.get(0)?,
+                car_model: r.get(1)?,
+                lang: r.get(2)?,
+                class_id: r.get(3)?,
+                ref_key: r.get(4)?,
+                variants: r.get(5)?,
+                created_at: r.get(6)?,
+            })
+        },
+    )
+    .map(Some)
+    .or_else(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => Ok(None),
+        other => Err(AppError::Database(format!("phrasebank load: {other}"))),
+    })
+}
+
+/// Enregistre (remplace) la banque de phrases d'un combo × langue (§10, P4.3).
+#[tauri::command]
+pub fn coach_phrasebank_save(
+    track: String,
+    car_model: String,
+    lang: String,
+    class_id: String,
+    ref_key: String,
+    variants: String,
+    db: State<'_, DbState>,
+) -> Result<(), AppError> {
+    let conn = db::get_conn(&db)?;
+    conn.execute(
+        "INSERT INTO coach_phrasebank (track, car_model, lang, class_id, ref_key,
+                                       variants, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+         ON CONFLICT(track, car_model, lang) DO UPDATE SET
+           class_id   = excluded.class_id,
+           ref_key    = excluded.ref_key,
+           variants   = excluded.variants,
+           created_at = excluded.created_at",
+        rusqlite::params![track, car_model, lang, class_id, ref_key, variants, now_secs()],
+    )
+    .map(|_| ())
+    .map_err(|e| AppError::Database(format!("phrasebank save: {e}")))
+}
+
+/// Supprime la banque de phrases d'un combo (toutes langues). Renvoie le nombre supprimé.
+#[tauri::command]
+pub fn coach_phrasebank_clear(
+    track: String,
+    car_model: String,
+    db: State<'_, DbState>,
+) -> Result<usize, AppError> {
+    let conn = db::get_conn(&db)?;
+    conn.execute(
+        "DELETE FROM coach_phrasebank WHERE track = ?1 AND car_model = ?2",
+        rusqlite::params![track, car_model],
+    )
+    .map_err(|e| AppError::Database(format!("phrasebank clear: {e}")))
 }
 
 /// Upsert des stats de dispersion (le moteur envoie les σ mis à jour en EWMA).

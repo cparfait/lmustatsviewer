@@ -3,7 +3,9 @@
 //! Sert principalement à valider que le bridge IPC fonctionne, et à exposer
 //! quelques infos statiques au frontend.
 
+use crate::error::AppError;
 use serde::Serialize;
+use tauri::Manager;
 
 #[derive(Debug, Serialize)]
 pub struct PlatformInfo {
@@ -60,4 +62,27 @@ pub fn check_plugin_installed(lmu_path: String) -> bool {
         .join("Plugins")
         .join("rFactor2SharedMemoryMapPlugin64.dll")
         .exists()
+}
+
+/// Installe le plugin shared memory : copie le DLL **fourni avec l'app** (ressource
+/// bundlée) dans `<lmu>/Plugins/` (créé au besoin). N'est appelée qu'**après
+/// confirmation explicite** de l'utilisateur (écriture dans le dossier du jeu, T13 #161).
+#[tauri::command]
+pub fn install_plugin(lmu_path: String, app: tauri::AppHandle) -> Result<(), AppError> {
+    if lmu_path.is_empty() {
+        return Err(AppError::NotFound("chemin LMU vide".into()));
+    }
+    let src = app
+        .path()
+        .resolve(
+            "rFactor2SharedMemoryMapPlugin64.dll",
+            tauri::path::BaseDirectory::Resource,
+        )
+        .map_err(|e| AppError::NotFound(format!("DLL du plugin introuvable (ressource) : {e}")))?;
+    let plugins_dir = std::path::Path::new(&lmu_path).join("Plugins");
+    std::fs::create_dir_all(&plugins_dir)?;
+    let dst = plugins_dir.join("rFactor2SharedMemoryMapPlugin64.dll");
+    std::fs::copy(&src, &dst)
+        .map_err(|e| AppError::Internal(format!("copie du plugin échouée : {e}")))?;
+    Ok(())
 }

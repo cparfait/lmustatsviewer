@@ -14,6 +14,11 @@
 import type { LiveData } from "@/lib/api";
 import type { Tr } from "@/i18n";
 import type { Intent } from "@/lib/spotterCommands";
+import { buildRivalInfo } from "@/lib/rival";
+import { computeStrategy, fuelToEnd } from "@/lib/strategy";
+
+/** Écart max (s) pour considérer un rival « à portée » (commande Rival). */
+const RIVAL_MAX_GAP = 3;
 
 /** Temps au tour en forme parlée : « une minute 23.456 » / « 23.456 secondes »
  *  (millièmes inclus pour une annonce précise). « 1 » est remplacé par sa forme
@@ -39,6 +44,39 @@ function gapBehind(data: LiveData): number {
   const pos = data.player?.position ?? 0;
   const behind = data.standings.find((s) => s.position === pos + 1);
   return behind && behind.time_behind_next > 0 ? behind.time_behind_next : 0;
+}
+
+/** Prédiction de position à la sortie des stands (T13 #151). */
+export interface PitExitPrediction {
+  currentPos: number;
+  /** Position estimée après un arrêt immédiat. */
+  newPos: number;
+  /** Nombre de voitures qui passeraient devant (positions perdues). */
+  lost: number;
+}
+
+/**
+ * Estime la position à la **sortie des stands si on rentre maintenant** (T13 #151) :
+ * en perdant `pitLossSec` secondes, les voitures **derrière** dont l'écart est
+ * inférieur à cette perte passent devant. On ne compte que les voitures **sur le
+ * même tour** (celles à un tour d'écart ne se jouent pas en secondes). Position vs
+ * la tête via `time_behind_leader`. `null` hors course / perte nulle.
+ */
+export function predictPitExit(
+  data: LiveData,
+  pitLossSec: number,
+): PitExitPrediction | null {
+  const me = data.standings.find((s) => s.is_player);
+  if (!me || pitLossSec <= 0 || me.position <= 0) return null;
+  const myGap = me.time_behind_leader;
+  let jumped = 0;
+  for (const s of data.standings) {
+    if (s.is_player) continue;
+    if (s.laps_behind_leader !== me.laps_behind_leader) continue; // même tour seulement
+    const gapToMe = s.time_behind_leader - myGap; // > 0 = derrière moi
+    if (gapToMe > 0 && gapToMe < pitLossSec) jumped++;
+  }
+  return { currentPos: me.position, newPos: me.position + jumped, lost: jumped };
 }
 
 /**
@@ -121,7 +159,13 @@ export function buildStatus(data: LiveData | null, t: Tr): string {
  * de contrôle (`repeat`/`mute`) ne produisent pas de phrase (gérées par le hook) →
  * repli sur le statut si jamais elles arrivent ici. Repli `spNoSession` hors session.
  */
-export function buildAnswer(intent: Intent, data: LiveData | null, t: Tr): string {
+export function buildAnswer(
+  intent: Intent,
+  data: LiveData | null,
+  t: Tr,
+  pitLossSec = 25,
+  fuelReserveLaps = 1,
+): string {
   if (!data || !data.connected || data.paused || !data.session || !data.player) {
     return t("live.spNoSession");
   }
@@ -142,6 +186,15 @@ export function buildAnswer(intent: Intent, data: LiveData | null, t: Tr): strin
     }
 
     case "fuel": {
+      // « Carburant pour finir » avec réserve si les tours restants sont connus (T13 #157),
+      // sinon repli sur l'autonomie brute (tours d'essence).
+      const strat = computeStrategy(sc, p, data.telemetry);
+      const fte = strat ? fuelToEnd(strat, fuelReserveLaps) : null;
+      if (fte) {
+        return fte.toAdd > 0.1
+          ? t("live.spFuelShort", { n: fte.toAdd.toFixed(1) })
+          : t("live.spFuelToEnd", { n: Math.max(0, Math.floor(fte.marginLaps)) });
+      }
       const fuelLaps = data.telemetry?.fuel_laps_remaining ?? 0;
       return fuelLaps > 0
         ? t("live.spFuel", { n: Math.floor(fuelLaps) })
@@ -218,6 +271,39 @@ export function buildAnswer(intent: Intent, data: LiveData | null, t: Tr): strin
         air: Math.round(w.air_temp),
         track: Math.round(w.track_temp),
       });
+    }
+
+    case "pit": {
+      // Prédiction de position à la sortie des stands (T13 #151).
+      const pred = predictPitExit(data, pitLossSec);
+      if (!pred) return t("live.spNoData");
+      return pred.lost > 0
+        ? t("live.spPitExit", { pos: pred.newPos })
+        : t("live.spPitKeep", { pos: pred.newPos });
+    }
+
+    case "rival": {
+      // Rival le plus proche : classe (#149) + où tu es fort/faible par secteur (#148).
+      const info = buildRivalInfo(data, RIVAL_MAX_GAP);
+      if (!info) return t("live.spNoData");
+      const parts: string[] = [];
+      parts.push(
+        t(info.side === "ahead" ? "live.spRivalAhead" : "live.spRivalBehind", {
+          time: info.gap.toFixed(1),
+        }),
+      );
+      const classKey =
+        info.classRel === "same"
+          ? "live.spRivalSameClass"
+          : info.classRel === "faster"
+            ? "live.spRivalFasterClass"
+            : info.classRel === "slower"
+              ? "live.spRivalSlowerClass"
+              : "live.spRivalOtherClass";
+      parts.push(t(classKey));
+      if (info.strongSector) parts.push(t("live.spRivalStrong", { s: info.strongSector }));
+      if (info.weakSector) parts.push(t("live.spRivalWeak", { s: info.weakSector }));
+      return parts.join(", ");
     }
 
     case "status":

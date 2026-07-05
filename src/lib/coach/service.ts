@@ -30,6 +30,8 @@ import {
   type DiagState,
   type DiagResult,
   type DriverLevel,
+  type DiagCode,
+  type CoachDiagnostic,
 } from "./diagnostics";
 import {
   createCoachVoiceState,
@@ -55,6 +57,41 @@ import {
   type PredictiveMsg,
   type PredictiveTarget,
 } from "./predictive";
+import {
+  createDrillState,
+  setDrillTargets,
+  buildDrillPredictTargets,
+  recordDrillPass,
+  type DrillState,
+  type DrillVerdictMsg,
+} from "./drill";
+import {
+  createStintState,
+  resetStint,
+  recordStintCorner,
+  fuelAdvice,
+  takeOutLapAdvice,
+  type StintState,
+  type StintAdvisory,
+} from "./stint";
+import {
+  createRiskState,
+  resetRisk,
+  noteCorner as noteRiskCorner,
+  recordTrackLimit,
+  classTargetAdvice,
+  type RiskState,
+  type RiskAdvisory,
+} from "./risk";
+import { computeStrategy } from "@/lib/strategy";
+import {
+  buildPhraseBank,
+  resolvePhrase,
+  isDiagCode,
+  phrasebankRefKey,
+  type PhraseBank,
+  type PhraseEntry,
+} from "./phrasebank";
 import { calibrateDriverLevel } from "./calibration";
 import {
   createShortRefState,
@@ -100,6 +137,9 @@ type PredictListener = (msg: PredictiveMsg) => void;
 type PredictTargetsListener = (targets: PredictiveTarget[]) => void;
 type ReportListener = (report: SessionReport) => void;
 type RecallListener = (line: ReportLine) => void;
+type DrillVerdictListener = (msg: DrillVerdictMsg) => void;
+type StintListener = (adv: StintAdvisory) => void;
+type RiskListener = (adv: RiskAdvisory) => void;
 
 let state: CoachEngineState = createCoachState();
 let unlisten: (() => void) | null = null;
@@ -112,6 +152,9 @@ const predictListeners = new Set<PredictListener>();
 const predictTargetsListeners = new Set<PredictTargetsListener>();
 const reportListeners = new Set<ReportListener>();
 const recallListeners = new Set<RecallListener>();
+const drillVerdictListeners = new Set<DrillVerdictListener>();
+const stintListeners = new Set<StintListener>();
+const riskListeners = new Set<RiskListener>();
 /** Combo pour lequel une charge de réf est en vol (évite les doublons). */
 let loadingCombo = "";
 /** Dernier instantané live (pour bâtir les métadonnées de réf à la clôture). */
@@ -149,6 +192,26 @@ let shortRef: ShortRefState = createShortRefState();
 /** État des callouts prédictifs Découverte (cibles + fade, §8, P3.3). */
 let predict: PredictiveState = createPredictiveState();
 
+// ── Mode Drill (§8/§11, P4.2) ─────────────────────────────────────────────────
+/** Drill actif ? (activé par la Config via le hook — corners = objectifs auto). */
+let drillActive = false;
+/** Compteurs par virage travaillé (§8). */
+let drill: DrillState = createDrillState();
+/** Ordonnanceur des callouts « ton virage » (réutilise `stepPredictive`, sans fade). */
+let drillPredict: PredictiveState = createPredictiveState();
+
+// ── Coaching de stint (§12 P2, P5.3) ──────────────────────────────────────────
+/** Coaching de stint actif ? (interrupteur Config via le hook). */
+let stintActive = false;
+/** État du relais courant (dérive `vmin`/virage + cooldown lift & coast). */
+let stint: StintState = createStintState();
+
+// ── Coaching du risque + cible de classe (§12 P3, P5.4) ───────────────────────
+/** Coaching du risque actif ? (interrupteur Config via le hook). */
+let riskActive = false;
+/** État risque (coupures/virage + cooldown cible de classe). */
+let risk: RiskState = createRiskState();
+
 // ── Boucle d'apprentissage (§11, P4.1) ────────────────────────────────────────
 /** Modèle de voiture du combo courant (clé combo avec `comboTrack`, pour l'historique). */
 let comboCarModel = "";
@@ -167,6 +230,38 @@ let lastInPits = false;
 /** Passages minimaux accumulés pour déclencher un débrief au retour stand. */
 const MIN_REPORT_PASSES = 6;
 
+// ── Banque de phrases LLM à slots (§10, P4.3) ─────────────────────────────────
+/** Banque de formulation du combo × langue (injectée par le hook), ou `null`. */
+let phraseBank: PhraseBank | null = null;
+/** Classe (brute live) du combo courant — sert la clé d'invalidation (§10). */
+let comboCarClass = "";
+/** `corner_uid` → n° de virage **macro** (ApexPoints) — cible des variantes par virage. */
+let uidToMacroN = new Map<string, number>();
+
+// ── « Pourquoi ? » vocal (§12, P4.3) ──────────────────────────────────────────
+/** Un diagnostic récent (matière du « pourquoi ? » — les N derniers corner-passed). */
+export interface RecentDiag {
+  n: number;
+  code: DiagCode;
+  magnitude: number;
+  unit: CoachDiagnostic["unit"];
+  sign: number;
+  lapNum: number;
+}
+/** Anneau des derniers diagnostics émis (injectés au contexte du « pourquoi ? »). */
+let recentDiags: RecentDiag[] = [];
+/** Taille de l'anneau des diagnostics récents (§12). */
+const RECENT_DIAG_MAX = 6;
+
+/** (Re)construit la table `corner_uid → n° macro` depuis le mapping ApexPoints (§4.2). */
+function rebuildUidToMacroN(): void {
+  const next = new Map<string, number>();
+  for (const m of mappedMacro) {
+    if (m.corner_uid) next.set(m.corner_uid, m.corner.parsed.start);
+  }
+  uidToMacroN = next;
+}
+
 function dispatch(events: CoachEvent[], frame: CoachFrame): void {
   for (const ev of events) {
     if (ev.type === "combo-changed") {
@@ -177,12 +272,21 @@ function dispatch(events: CoachEvent[], frame: CoachFrame): void {
       voice = createCoachVoiceState(); // …et nouvelle file de délivrance
       shortRef = createShortRefState(); // …et nouvelle réf courte (conditions du combo)
       predict = createPredictiveState(); // …et nouvelles cibles prédictives (§8)
+      drill = createDrillState(); // …et nouveaux compteurs de drill (§8, P4.2)
+      drillPredict = createPredictiveState(); // …et nouvelles cibles « ton virage »
+      resetStint(stint); // …et nouveau relais (dérive `vmin`/virage, §12, P5.3)
+      resetRisk(risk); // …et remise à zéro du risque/cible de classe (§12, P5.4)
       // Nouveau combo → nouvelle cible alien : on repart sur le défaut et on
       // re-calibrera dès le premier tour propre (§7, P3.2).
       comboTrack = ev.track;
       comboCarModel = ev.carModel;
+      comboCarClass = frame.carClass;
       comboOhneClass = liveClassToOhne(frame.carClass);
       comboAlienMs = 0;
+      // Banque de phrases (§10) + diagnostics récents (§12) : neufs par combo. Le
+      // hook (I/O) rechargera/régénérera la banque du nouveau combo si le mode est actif.
+      phraseBank = null;
+      recentDiags = [];
       bestCleanLapMs = Infinity;
       if (!driverLevelPinned) driverLevel = "intermediate";
       // Apprentissage (§11) : session neuve + charge de l'historique du combo
@@ -196,14 +300,37 @@ function dispatch(events: CoachEvent[], frame: CoachFrame): void {
       // réf dense). Le mapping sur les fenêtres est (re)fait à la charge de réf.
       macro = macroForCombo({ track: ev.track, carClass: frame.carClass });
       mappedMacro = mapMacroToWindows(macro, state.windows);
+      rebuildUidToMacroN();
       loadRefFor(ev.track, ev.carModel);
     } else if (ev.type === "lap-completed") {
       maybeCaptureRef(ev.lap);
       calibrateFromLap(ev.lap);
       refreshPredictiveTargets(ev.lap);
+      // Cible de classe (§12, P5.4) : à la clôture d'un tour, compare tes meilleurs
+      // secteurs au meilleur de ta classe présent en session (standings).
+      if (riskActive) {
+        const me = lastData?.player;
+        if (me) {
+          const adv = classTargetAdvice(risk, {
+            playerBest: me.best_sectors,
+            classBest: classBestSectors(),
+            lapNum: frame.lapNum,
+          });
+          if (adv) for (const l of riskListeners) l(adv);
+        }
+      }
       maybeEmitRecall();
     } else if (ev.type === "corner-passed") {
       runDiagnostic(ev.measurement, frame);
+      // Coaching de stint (§12, P5.3) : dérive de la vitesse de passage au fil du
+      // relais (une alerte par virage et par stint). Canal indépendant du nominal.
+      if (stintActive) {
+        const adv = recordStintCorner(stint, ev.measurement);
+        if (adv) for (const l of stintListeners) l(adv);
+      }
+      // Risque (§12, P5.4) : mémorise le dernier virage franchi pour attribuer les
+      // coupures de piste suivantes (elles surviennent en sortie de virage).
+      if (riskActive) noteRiskCorner(risk, ev.measurement);
       maybeEmitRecall();
     }
     for (const l of listeners) l(ev, state);
@@ -234,19 +361,41 @@ function runDiagnostic(measurement: CornerMeasurement, frame: CoachFrame): void 
   });
   // Le passage courant nourrit l'habitude pour les virages suivants (§3.3).
   updateShortRef(shortRef, measurement);
-  const policy = policyFor(modeFromSession(frame.sessionNum, state.ref !== null));
-  observeCorner(
-    voice,
-    {
-      corner_uid: measurement.corner_uid,
-      n: measurement.n,
-      lapNum: measurement.lapNum,
-      dtVsRef: measurement.dtVsRef,
-    },
-    result,
-    frame.elapsed,
-    policy,
-  );
+  // « Pourquoi ? » (§12) : mémorise les derniers diagnostics chiffrés pour les
+  // injecter au contexte live si le pilote demande une explication vocale (Alt+C).
+  if (result.kind === "diagnostic") {
+    const d = result.diag;
+    recentDiags.push({
+      n: d.n,
+      code: d.code,
+      magnitude: d.magnitude,
+      unit: d.unit,
+      sign: d.sign,
+      lapNum: d.lapNum,
+    });
+    if (recentDiags.length > RECENT_DIAG_MAX) recentDiags.shift();
+  }
+  if (drillActive) {
+    // Mode Drill (§8) : verdict à **chaque** passage sur un virage travaillé,
+    // silence ailleurs. Court-circuite la pédagogie nominale (focus/dégressif) —
+    // le drill a sa propre cadence (feedback systématique + compteur).
+    const verdict = recordDrillPass(drill, measurement, result);
+    if (verdict) for (const l of drillVerdictListeners) l(verdict);
+  } else {
+    const policy = policyFor(modeFromSession(frame.sessionNum, state.ref !== null));
+    observeCorner(
+      voice,
+      {
+        corner_uid: measurement.corner_uid,
+        n: measurement.n,
+        lapNum: measurement.lapNum,
+        dtVsRef: measurement.dtVsRef,
+      },
+      result,
+      frame.elapsed,
+      policy,
+    );
+  }
   // Progression inter-sessions (§11, P4.1) : accumule les passages propres mesurés
   // (réf présente, non muet) pour le résumé de session au débrief.
   const pass = passFromResult(measurement, result);
@@ -358,9 +507,37 @@ async function loadHistoryFor(track: string, carModel: string): Promise<void> {
     progression = buildProgression(rows);
     objectives = pickObjectives(progression);
     recallLine = buildRecall(progression);
+    if (drillActive) applyDrillTargets(); // Drill = objectifs auto (§11)
   } catch {
     /* pas d'historique → rien à rappeler (nouveau combo) */
   }
+}
+
+// ── Mode Drill (§8/§11, P4.2) ─────────────────────────────────────────────────
+
+/**
+ * Fixe les virages travaillés depuis les **objectifs** chroniques du combo (§11 :
+ * « le coach propose ») — les 1-2 faiblesses les plus fortes déjà calculées à la
+ * charge de l'historique. Recalcule ensuite les cibles prédictives « ton virage ».
+ */
+function applyDrillTargets(): void {
+  setDrillTargets(
+    drill,
+    objectives.map((o) => ({ corner_uid: o.corner_uid, n: o.n })),
+  );
+  refreshDrillPredict();
+}
+
+/**
+ * (Re)pose les cibles prédictives « ton virage » (§8) : chaque virage travaillé
+ * apparié à sa fenêtre dense. Sans fade (feedback à chaque tour). Notifie les
+ * abonnés pour la **pré-synthèse TTS** (réutilise le canal Découverte).
+ */
+function refreshDrillPredict(): void {
+  if (!drillActive) return;
+  const targets = buildDrillPredictTargets(drill.targets, state.windows);
+  setPredictiveTargets(drillPredict, targets, drill.targets.length);
+  if (targets.length) for (const l of predictTargetsListeners) l(targets);
 }
 
 /** Délivre le rappel inter-sessions une seule fois, au 1ᵉʳ virage/tour du combo. */
@@ -415,6 +592,26 @@ function flushSession(track: string, carModel: string, speak: boolean): void {
   if (report.lines.length) for (const l of reportListeners) l(report);
 }
 
+/**
+ * Meilleurs secteurs (s) des **rivaux de la même classe** présents en session
+ * (§12, P5.4) : minimum positif de `last_sN` parmi les standings de la classe du
+ * joueur (hors joueur). `null` par secteur si aucun rival n'a de temps.
+ */
+function classBestSectors(): (number | null)[] {
+  const data = lastData;
+  const out: (number | null)[] = [null, null, null];
+  if (!data) return out;
+  const myClass = data.standings.find((s) => s.is_player)?.vehicle_class ?? "";
+  for (const s of data.standings) {
+    if (s.is_player || s.vehicle_class !== myClass) continue;
+    const secs = [s.last_s1, s.last_s2, s.last_s3];
+    for (let i = 0; i < 3; i++) {
+      if (secs[i] > 0 && (out[i] == null || secs[i] < (out[i] as number))) out[i] = secs[i];
+    }
+  }
+  return out;
+}
+
 /** Extrait les maps TC/ABS des métadonnées de réf (péremption des verdicts §6). */
 function parseRefMaps(metaJson: string | undefined): { tc?: number; abs?: number } {
   if (!metaJson) return {};
@@ -436,6 +633,9 @@ async function loadRefFor(track: string, carModel: string): Promise<void> {
       setCoachRef(state, ref);
       // Réaligne la réf macro sur les fenêtres fraîchement projetées (§4.2).
       mappedMacro = mapMacroToWindows(macro, state.windows);
+      rebuildUidToMacroN(); // les variantes par virage (§10) suivent le nouveau mapping
+      // Drill (§8, P4.2) : les cibles « ton virage » s'ancrent aux nouvelles fenêtres.
+      refreshDrillPredict();
     }
   } catch {
     /* pas de réf → mode sans référence (découverte) */
@@ -488,18 +688,55 @@ function onLive(data: LiveData): void {
   if (frame.inPits && !lastInPits && totalPasses(hist) >= MIN_REPORT_PASSES) {
     flushSession(comboTrack, comboCarModel, true);
   }
+  // Nouveau relais au **front de sortie** des stands (§12, P5.3) : la dérive `vmin`
+  // se juge par rapport au début de ce relais, et un conseil out-lap est armé.
+  if (stintActive && lastInPits && !frame.inPits) {
+    resetStint(stint, { outLap: true });
+  }
   lastInPits = frame.inPits;
+
+  // Coaching de stint (§12, P5.3) : prudence out-lap (pneus froids) puis lift & coast
+  // si le carburant est juste, délivré sur une fenêtre haute charge (fin de ligne
+  // droite). Hors chemin critique — canal `coach` distinct du diagnostic par virage.
+  if (stintActive && !frame.inPits) {
+    const out = takeOutLapAdvice(stint);
+    if (out) for (const l of stintListeners) l(out);
+    const strat = lastData
+      ? computeStrategy(lastData.session, lastData.player, lastData.telemetry)
+      : null;
+    const fuelShort = !!strat && strat.fuelToAdd != null && strat.fuelToAdd > 0.05;
+    const fuel = fuelAdvice(stint, {
+      fuelShort,
+      lapNum: frame.lapNum,
+      onThrottle: frame.throttle > 90,
+    });
+    if (fuel) for (const l of stintListeners) l(fuel);
+  }
+
+  // Coaching du risque (§12, P5.4) : coupures de piste répétées sur un même virage
+  // → « pas rentable ». Compteur cumulé lu à chaque trame, attribué au dernier virage.
+  if (riskActive) {
+    const adv = recordTrackLimit(risk, frame.trackLimits);
+    if (adv) for (const l of riskListeners) l(adv);
+  }
   // Fenêtre de délivrance (§1) : évaluée **après** le pas moteur, `state.nextWin`
   // pointe alors le prochain virage à venir (borne de la fenêtre calme).
   const msg = stepCoachVoice(voice, frame, state.windows, state.nextWin);
   if (msg) for (const l of speakListeners) l(msg, state);
 
-  // Callouts prédictifs Découverte (§8, P3.3) : uniquement sans réf joueur. Jamais
-  // de prédictif permanent quand une réf existe (dépendance §8) → gate `ref === null`
-  // (= mode `discovery`, seul mode qui porte `predictive`).
-  if (state.ref === null && policyFor(modeFromSession(frame.sessionNum, false)).predictive) {
+  // Callouts prédictifs Découverte (§8, P3.3) : uniquement sans réf joueur **et**
+  // hors Drill. Jamais de prédictif permanent quand une réf existe (dépendance §8)
+  // → gate `ref === null` (= mode `discovery`, seul mode qui porte `predictive`).
+  if (!drillActive && state.ref === null && policyFor(modeFromSession(frame.sessionNum, false)).predictive) {
     const pmsg = stepPredictive(predict, frame);
     if (pmsg) for (const l of predictListeners) l(pmsg);
+  }
+
+  // Callouts prédictifs Drill (§8, P4.2) : « ton virage » avant chaque virage
+  // travaillé, à **chaque** tour (sans fade). Fonctionne avec réf présente.
+  if (drillActive && drillPredict.targets.length) {
+    const dmsg = stepPredictive(drillPredict, frame, Infinity);
+    if (dmsg) for (const l of predictListeners) l(dmsg);
   }
 }
 
@@ -512,6 +749,10 @@ export async function startCoachService(): Promise<void> {
   voice = createCoachVoiceState();
   shortRef = createShortRefState();
   predict = createPredictiveState();
+  drill = createDrillState();
+  drillPredict = createPredictiveState();
+  stint = createStintState();
+  risk = createRiskState();
   hist = createSessionHistory();
   progression = [];
   objectives = [];
@@ -524,9 +765,13 @@ export async function startCoachService(): Promise<void> {
   mappedMacro = [];
   comboTrack = "";
   comboCarModel = "";
+  comboCarClass = "";
   comboOhneClass = null;
   comboAlienMs = 0;
   bestCleanLapMs = Infinity;
+  phraseBank = null;
+  recentDiags = [];
+  uidToMacroN = new Map();
   if (!driverLevelPinned) driverLevel = "intermediate";
   // Benchmarks ohne_speed (best-effort) pour l'auto-calibration §7 — sans bloquer.
   void fetchBenchmarks()
@@ -555,6 +800,10 @@ export function stopCoachService(): void {
   voice = createCoachVoiceState();
   shortRef = createShortRefState();
   predict = createPredictiveState();
+  drill = createDrillState();
+  drillPredict = createPredictiveState();
+  stint = createStintState();
+  risk = createRiskState();
   hist = createSessionHistory();
   progression = [];
   objectives = [];
@@ -568,9 +817,13 @@ export function stopCoachService(): void {
   mappedMacro = [];
   comboTrack = "";
   comboCarModel = "";
+  comboCarClass = "";
   comboOhneClass = null;
   comboAlienMs = 0;
   bestCleanLapMs = Infinity;
+  phraseBank = null;
+  recentDiags = [];
+  uidToMacroN = new Map();
 }
 
 /** Abonne un auditeur aux événements du coach ; renvoie le désabonnement. */
@@ -642,6 +895,96 @@ export function onCoachRecall(listener: RecallListener): () => void {
   return () => recallListeners.delete(listener);
 }
 
+/**
+ * Abonne un auditeur aux **verdicts de drill** (§8, P4.2) : le retour à chaque
+ * passage sur un virage travaillé (propre / série / diagnostic chiffré). L'appelant
+ * localise (`t(live.<suffix>, vars)`), prononce (priorité `coach`) et miroir widget.
+ */
+export function onCoachDrillVerdict(listener: DrillVerdictListener): () => void {
+  drillVerdictListeners.add(listener);
+  return () => drillVerdictListeners.delete(listener);
+}
+
+/**
+ * Abonne un auditeur aux **conseils de stint** (§12, P5.3) : dérive de la vitesse
+ * de passage (pneus qui fatiguent), lift & coast (carburant juste), prudence
+ * out-lap. L'appelant localise (`t(live.<suffix>, vars)`), prononce (priorité
+ * `coach`) et miroir widget. Renvoie le désabonnement.
+ */
+export function onCoachStint(listener: StintListener): () => void {
+  stintListeners.add(listener);
+  return () => stintListeners.delete(listener);
+}
+
+/**
+ * Abonne un auditeur au **coaching du risque / cible de classe** (§12, P5.4) :
+ * coupures de piste répétées (« pas rentable ») et écart de secteur vs le meilleur
+ * de ta classe présent en session. L'appelant localise (`t(live.<suffix>, vars)`),
+ * prononce (priorité `coach`) et miroir widget. Renvoie le désabonnement.
+ */
+export function onCoachRisk(listener: RiskListener): () => void {
+  riskListeners.add(listener);
+  return () => riskListeners.delete(listener);
+}
+
+/**
+ * Active/désactive le **mode Drill** (§8/§11, P4.2). Les virages travaillés sont
+ * les **objectifs** chroniques du combo (§11 « le coach propose ») : à l'activation,
+ * on (re)pose les cibles depuis les objectifs déjà chargés ; à la désactivation, on
+ * vide les cibles prédictives. Le service reprend alors sa restitution nominale.
+ */
+export function setDrillMode(active: boolean): void {
+  if (drillActive === active) return;
+  drillActive = active;
+  if (active) {
+    applyDrillTargets();
+  } else {
+    drill = createDrillState();
+    drillPredict = createPredictiveState();
+  }
+}
+
+/** Le mode Drill est-il actif ? — lecture seule (UI/debug). */
+export function coachDrillActive(): boolean {
+  return drillActive;
+}
+
+/**
+ * Active/désactive le **coaching de stint** (§12, P5.3). À la désactivation, le
+ * relais courant est oublié (aucune alerte de dérive en attente). Canal indépendant
+ * du diagnostic par virage et du mode Drill.
+ */
+export function setStintMode(active: boolean): void {
+  if (stintActive === active) return;
+  stintActive = active;
+  if (!active) stint = createStintState();
+}
+
+/** Le coaching de stint est-il actif ? — lecture seule (UI/debug). */
+export function coachStintActive(): boolean {
+  return stintActive;
+}
+
+/**
+ * Active/désactive le **coaching du risque / cible de classe** (§12, P5.4). À la
+ * désactivation, l'état (coupures/virage, cooldown cible) est remis à zéro.
+ */
+export function setRiskMode(active: boolean): void {
+  if (riskActive === active) return;
+  riskActive = active;
+  if (!active) risk = createRiskState();
+}
+
+/** Le coaching du risque est-il actif ? — lecture seule (UI/debug). */
+export function coachRiskActive(): boolean {
+  return riskActive;
+}
+
+/** Compteurs de réussite par virage travaillé (§8, P4.2) — lecture seule (UI/debug). */
+export function coachDrillCounts() {
+  return [...drill.counts.values()];
+}
+
 /** Progression par virage du combo courant (§11, P4.1) — lecture seule (UI/debug). */
 export function coachProgression(): CornerProgress[] {
   return progression;
@@ -680,4 +1023,67 @@ export function coachMappedMacro(): MappedMacro[] {
 /** État courant du moteur (lecture seule ; pour debug/inspection). */
 export function coachState(): CoachEngineState {
   return state;
+}
+
+// ── Banque de phrases LLM à slots (§10, P4.3) ─────────────────────────────────
+
+/**
+ * Combo courant + virages macro (pour le hook qui charge/génère la banque, §10) :
+ * clé combo, classe, langue-agnostique. `refKey` sert l'invalidation (§10).
+ */
+export function coachComboInfo(): {
+  track: string;
+  carModel: string;
+  carClass: string;
+  macro: MacroCorner[];
+  refKey: string;
+} {
+  return {
+    track: comboTrack,
+    carModel: comboCarModel,
+    carClass: comboCarClass,
+    macro,
+    refKey: phrasebankRefKey(comboCarClass, macro.map((c) => c.parsed.start)),
+  };
+}
+
+/**
+ * Injecte la banque de phrases du combo courant (§10) : le hook la charge (SQLite)
+ * ou la génère (LLM) puis la pose ici. `null`/`[]` désactive le mode (repli i18n).
+ */
+export function setCoachPhraseBank(entries: PhraseEntry[] | null): void {
+  phraseBank = entries && entries.length ? buildPhraseBank(entries) : null;
+}
+
+/** Une banque de phrases est-elle chargée pour le combo courant ? */
+export function coachHasPhraseBank(): boolean {
+  return phraseBank !== null && phraseBank.byKey.size > 0;
+}
+
+/**
+ * Résout un message coach vers une variante de la banque LLM (§10), slots remplis
+ * **en code** (les chiffres ne passent jamais par le modèle). Renvoie `null` si le
+ * mode est inactif, si le message n'est pas un diagnostic, ou si aucune variante ne
+ * convient → l'appelant retombe sur le gabarit déterministe i18n.
+ */
+export function resolveCoachPhrase(msg: {
+  kind: string;
+  corner_uid: string;
+  sign: number;
+  vars: Record<string, string | number>;
+}): string | null {
+  if (!phraseBank || !isDiagCode(msg.kind)) return null;
+  return resolvePhrase(phraseBank, {
+    code: msg.kind,
+    sign: msg.sign,
+    macroN: uidToMacroN.get(msg.corner_uid) ?? null,
+    vars: msg.vars,
+  });
+}
+
+// ── « Pourquoi ? » vocal (§12, P4.3) ──────────────────────────────────────────
+
+/** Les N derniers diagnostics chiffrés émis (matière du « pourquoi ? », §12). */
+export function coachRecentDiagnostics(): RecentDiag[] {
+  return recentDiags;
 }

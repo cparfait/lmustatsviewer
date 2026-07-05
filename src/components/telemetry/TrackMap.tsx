@@ -9,6 +9,11 @@ interface TrackMapProps {
   throttle: number[];
   /** Frein 0–100 % (aligné par index). */
   brake: number[];
+  /**
+   * Coloration alternative par index (heatmap des pertes P5.1) : si fourni,
+   * remplace la coloration accél./frein/coast. `null` sur un index → gris coast.
+   */
+  heatColors?: (string | null)[] | null;
   /** Latitudes GPS du tour de référence (comparaison) — superposées dans le même repère. */
   refLat?: number[];
   /** Longitudes GPS du tour de référence. */
@@ -107,6 +112,7 @@ export function TrackMap({
   lon,
   throttle,
   brake,
+  heatColors,
   refLat,
   refLon,
   trackSurface,
@@ -267,12 +273,15 @@ export function TrackMap({
     if (plain) return { border, colored: null };
 
     // Découpage en segments par état (frein / accél. / roue libre), nœuds de frontière partagés.
+    // En mode heatmap des pertes (P5.1), la couleur vient de `heatColors` (par virage).
     const stateOf = (i: number) =>
-      (brake[i] ?? 0) > 5
-        ? COLOR_BRAKE
-        : (throttle[i] ?? 0) > 5
-          ? COLOR_THROTTLE
-          : COLOR_COAST;
+      heatColors
+        ? (heatColors[i] ?? COLOR_COAST)
+        : (brake[i] ?? 0) > 5
+          ? COLOR_BRAKE
+          : (throttle[i] ?? 0) > 5
+            ? COLOR_THROTTLE
+            : COLOR_COAST;
 
     const runs: { color: string; pts: Pt[] }[] = [];
     let cur: { color: string; pts: Pt[] } | null = null;
@@ -288,7 +297,7 @@ export function TrackMap({
     }
     const colored = runs.map((r) => ({ color: r.color, d: smoothPath(r.pts) }));
     return { border, colored };
-  }, [geom, throttle, brake, plain]);
+  }, [geom, throttle, brake, plain, heatColors]);
 
   // ── Zoom / pan manuel (molette + glisser) ──────────────────────────────────
   const [manualVB, setManualVB] = useState<VB | null>(null);

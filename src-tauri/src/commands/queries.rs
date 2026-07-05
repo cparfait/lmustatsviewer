@@ -25,14 +25,37 @@ pub struct DashboardStats {
     /// Tours avec `is_valid = 0` (tours partiels, sorties des stands…).
     pub total_laps_invalid: i64,
     pub total_driving_hours: f64,
-    /// Distance totale en km (tours valides × longueur du circuit).
+    /// Distance en km sur les tours valides (tours valides × longueur du circuit).
     pub total_distance_km: f64,
+    /// Distance en km sur tous les tours (valides + invalides × longueur du circuit).
+    pub total_distance_all_km: f64,
     pub total_sessions: i64,
     pub best_finish: Option<i64>,
     pub best_progression: Option<i64>,
     pub podiums: i64,
     pub wins: i64,
     pub top10: i64,
+    /// Résultats sur les courses EN LIGNE (setting = Multiplayer) uniquement.
+    pub online_wins: i64,
+    pub online_podiums: i64,
+    pub online_top5: i64,
+    pub online_top10: i64,
+    /// Bilan des courses en ligne : total, finies « normalement », abandons.
+    pub online_races_total: i64,
+    pub online_races_finished: i64,
+    pub online_dnf: i64,
+    /// Progression moyenne (places gagnées/perdues) sur les courses en ligne finies.
+    pub online_avg_progression: Option<f64>,
+    /// Résultats sur les courses HORS LIGNE (setting != Multiplayer) uniquement.
+    pub offline_wins: i64,
+    pub offline_podiums: i64,
+    pub offline_top5: i64,
+    pub offline_top10: i64,
+    pub offline_races_total: i64,
+    pub offline_races_finished: i64,
+    pub offline_dnf: i64,
+    pub offline_avg_progression: Option<f64>,
+    pub offline_best_finish: Option<i64>,
     /// Nombre de courses (session_type = Race).
     pub races_total: i64,
     /// Courses terminées « Finished Normally ».
@@ -78,7 +101,51 @@ pub fn get_dashboard_stats(db: State<'_, DbState>) -> Result<DashboardStats, App
                       AND r.finish_status = 'DNF' THEN 1 ELSE 0 END), 0),
             AVG(CASE WHEN s.session_type = 'Race'
                       AND r.finish_status = 'Finished Normally'
-                      THEN r.progression END)
+                      THEN r.progression END),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting = 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      AND r.class_position = 1 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting = 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      AND r.class_position <= 3 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting = 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      AND r.class_position <= 5 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting = 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      AND r.class_position <= 10 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting = 'Multiplayer'
+                      THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting = 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting = 'Multiplayer'
+                      AND r.finish_status = 'DNF' THEN 1 ELSE 0 END), 0),
+            AVG(CASE WHEN s.session_type = 'Race' AND s.setting = 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      THEN r.progression END),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting <> 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      AND r.class_position = 1 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting <> 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      AND r.class_position <= 3 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting <> 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      AND r.class_position <= 5 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting <> 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      AND r.class_position <= 10 THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting <> 'Multiplayer'
+                      THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting <> 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN s.session_type = 'Race' AND s.setting <> 'Multiplayer'
+                      AND r.finish_status = 'DNF' THEN 1 ELSE 0 END), 0),
+            AVG(CASE WHEN s.session_type = 'Race' AND s.setting <> 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally'
+                      THEN r.progression END),
+            MIN(CASE WHEN s.session_type = 'Race' AND s.setting <> 'Multiplayer'
+                      AND r.finish_status = 'Finished Normally' THEN r.class_position END)
          FROM results r JOIN sessions s ON s.id = r.session_id
          WHERE r.is_player = 1",
         [],
@@ -93,6 +160,23 @@ pub fn get_dashboard_stats(db: State<'_, DbState>) -> Result<DashboardStats, App
             stats.races_finished = row.get(7)?;
             stats.dnf = row.get(8)?;
             stats.avg_progression = row.get(9)?;
+            stats.online_wins = row.get(10)?;
+            stats.online_podiums = row.get(11)?;
+            stats.online_top5 = row.get(12)?;
+            stats.online_top10 = row.get(13)?;
+            stats.online_races_total = row.get(14)?;
+            stats.online_races_finished = row.get(15)?;
+            stats.online_dnf = row.get(16)?;
+            stats.online_avg_progression = row.get(17)?;
+            stats.offline_wins = row.get(18)?;
+            stats.offline_podiums = row.get(19)?;
+            stats.offline_top5 = row.get(20)?;
+            stats.offline_top10 = row.get(21)?;
+            stats.offline_races_total = row.get(22)?;
+            stats.offline_races_finished = row.get(23)?;
+            stats.offline_dnf = row.get(24)?;
+            stats.offline_avg_progression = row.get(25)?;
+            stats.offline_best_finish = row.get(26)?;
             Ok(())
         },
     )
@@ -122,28 +206,30 @@ pub fn get_dashboard_stats(db: State<'_, DbState>) -> Result<DashboardStats, App
     // Approximation assumée : un tour valide = 1 longueur de circuit. Un tour
     // chronométré mais partiel (rare) est compté plein → surcompte négligeable, et
     // aucune donnée de distance par tour n'est stockée pour faire mieux.
-    let laps_stats: (i64, i64, f64, f64) = conn
+    let laps_stats: (i64, i64, f64, f64, f64) = conn
         .query_row(
             "SELECT
                 COALESCE(SUM(CASE WHEN l.is_valid = 1 THEN 1 ELSE 0 END), 0),
                 COALESCE(SUM(CASE WHEN l.is_valid = 0 THEN 1 ELSE 0 END), 0),
                 COALESCE(SUM(CASE WHEN l.is_valid = 1 THEN l.lap_time ELSE 0.0 END), 0.0),
-                COALESCE(SUM(CASE WHEN l.is_valid = 1 THEN x.track_length ELSE 0.0 END), 0.0)
+                COALESCE(SUM(CASE WHEN l.is_valid = 1 THEN x.track_length ELSE 0.0 END), 0.0),
+                COALESCE(SUM(x.track_length), 0.0)
              FROM laps l
              JOIN results r ON r.id = l.result_id
              JOIN sessions s ON s.id = r.session_id
              JOIN xml_index x ON x.id = s.xml_id
              WHERE r.is_player = 1",
             [],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)),
         )
-        .unwrap_or((0, 0, 0.0, 0.0));
+        .unwrap_or((0, 0, 0.0, 0.0, 0.0));
 
     stats.total_laps_valid   = laps_stats.0;
     stats.total_laps_invalid = laps_stats.1;
     stats.total_laps         = laps_stats.0 + laps_stats.1;
     stats.total_driving_hours = (laps_stats.2 / 3600.0 * 10.0).round() / 10.0;
     stats.total_distance_km   = (laps_stats.3 / 1000.0 * 10.0).round() / 10.0;
+    stats.total_distance_all_km = (laps_stats.4 / 1000.0 * 10.0).round() / 10.0;
 
     // Circuit / voiture favoris (max de tours valides cumulés).
     stats.favorite_track = conn

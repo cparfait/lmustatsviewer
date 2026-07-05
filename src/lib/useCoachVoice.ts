@@ -22,6 +22,7 @@ import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, friendlyError } from "@/lib/ai/coach";
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
+import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
 import { toast, toastSuccess } from "@/stores/dialogs";
 
 /** Retire un markdown léger pour la lecture vocale. */
@@ -30,6 +31,46 @@ function stripMd(s: string): string {
     .replace(/[*_`#>]/g, "")
     .replace(/\n{2,}/g, ". ")
     .trim();
+}
+
+/** Formule un diagnostic récent en une ligne neutre (matière du « pourquoi ? », §12). */
+function diagLine(d: RecentDiag): string {
+  const m = Math.round(d.magnitude);
+  const t = `T${d.n}`;
+  switch (d.code) {
+    case "lockup":
+      return `${t}: brake lockup on entry`;
+    case "wheelspin":
+      return `${t}: wheelspin on exit`;
+    case "consistency":
+      return `${t}: inconsistent braking point`;
+    case "brake-timing":
+      return d.sign >= 0 ? `${t}: braking ${m} m too late` : `${t}: braking ${m} m too early`;
+    case "over-slow":
+      return `${t}: ${m} km/h too slow at apex`;
+    case "entry-too-fast":
+      return `${t}: entering too fast, exit compromised`;
+    case "late-throttle":
+      return `${t}: ${m} m late back to full throttle`;
+    case "grip-unused":
+      return `${t}: available grip not fully used`;
+    case "no-trail":
+      return `${t}: brake released too early (no trail braking)`;
+    default:
+      return `${t}: ${d.code}`;
+  }
+}
+
+/**
+ * Bloc de contexte « coaching récent par virage » injecté avant l'appel LLM (§12) :
+ * permet de répondre à un « pourquoi ? » posé après un callout, à partir des N
+ * derniers diagnostics chiffrés du coach par virage. Vide si aucun.
+ */
+function recentDiagnosticsBlock(): string {
+  const diags = coachRecentDiagnostics();
+  if (diags.length === 0) return "";
+  const lines = diags.map((d) => `- ${diagLine(d)} (lap ${d.lapNum})`).join("\n");
+  return `--- Recent per-corner coaching (oldest first; use it to answer "why?") ---\n${lines}`;
 }
 
 export function useCoachVoice() {
@@ -91,7 +132,11 @@ export function useCoachVoice() {
         toast(`🎤 ${q}`);
         void emit("coach-voice", { question: q, answer: null });
         const data = await live.getData();
-        const ctx = await buildLiveCoachContext(data, question);
+        const baseCtx = await buildLiveCoachContext(data, question);
+        // « Pourquoi ? » (§12) : joint les derniers diagnostics par virage au
+        // contexte → le LLM peut expliquer un callout avec ses chiffres exacts.
+        const recent = recentDiagnosticsBlock();
+        const ctx = recent ? `${baseCtx}\n\n${recent}` : baseCtx;
         const st = useAppStore.getState();
         // Coach vocal : fournisseur DISTINCT si configuré, sinon celui de
         // l'analyse. Avec un fournisseur distinct → sa propre clé + son modèle ;

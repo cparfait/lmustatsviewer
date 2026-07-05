@@ -106,6 +106,12 @@
   * {
     border-color: var(--color-border);
   }
+  /* Réserve en permanence la gouttière de la scrollbar verticale : l'apparition
+     d'une barre de défilement (pages plus hautes que l'écran) ne réduit plus la
+     largeur utile → aucun décalage horizontal du contenu centré (mx-auto). */
+  html {
+    scrollbar-gutter: stable;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

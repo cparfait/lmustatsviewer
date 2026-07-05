@@ -3,6 +3,7 @@ pub mod indexer;
 pub mod config;
 pub mod ai;
 pub mod coach;
+pub mod motec;
 pub mod queries;
 pub mod session_detail;
 pub mod setups;

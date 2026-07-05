@@ -133,6 +133,54 @@ export function analyzeLap(
   return { corners: analyzed, slowest, totalCornerLoss, hasRef };
 }
 
+// ── Heatmap des pertes (P5.1) : couleur par virage selon le temps perdu ──────
+
+/** Interpolation linéaire de deux composantes 0–255, arrondie. */
+function lerp8(a: number, b: number, u: number): number {
+  return Math.round(a + (b - a) * Math.max(0, Math.min(1, u)));
+}
+
+/** Perte (s) au-delà de laquelle un virage est « rouge » (plafond de l'échelle). */
+const LOSS_FULL_S = 0.25;
+
+/**
+ * Couleur heatmap d'une perte de temps par virage (s) :
+ *  - `null` / pas de réf. → gris neutre ;
+ *  - ≤ 0 (à niveau ou gagné) → vert ;
+ *  - 0 → 0,25 s → dégradé vert → jaune → rouge.
+ * Aligné sur la palette accél./frein/coast de la carte (mêmes verts/rouges).
+ */
+export function lossColor(loss: number | null): string {
+  if (loss == null) return "#94a3b8";
+  if (loss <= 0) return "#22c55e";
+  const t = Math.min(1, loss / LOSS_FULL_S);
+  // Étapes : vert (34,197,94) → jaune (234,179,8) → rouge (239,68,68).
+  const [r, g, b] =
+    t < 0.5
+      ? [lerp8(34, 234, t / 0.5), lerp8(197, 179, t / 0.5), lerp8(94, 8, t / 0.5)]
+      : [lerp8(234, 239, (t - 0.5) / 0.5), lerp8(179, 68, (t - 0.5) / 0.5), lerp8(8, 68, (t - 0.5) / 0.5)];
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+/**
+ * Couleur de heatmap par **index de trace** (longueur `n`), colorée par virage
+ * selon `timeLost` (segment du point de freinage au virage suivant, comme
+ * `analyzeLap`). Les indices hors virage restent `null` (→ gris coast).
+ * Renvoie `null` global si l'analyse n'a pas de référence (rien à colorer).
+ */
+export function lapLossHeatColors(a: LapAnalysis, n: number): (string | null)[] | null {
+  if (!a.hasRef) return null;
+  const out = new Array<string | null>(n).fill(null);
+  const cs = a.corners;
+  for (let i = 0; i < cs.length; i++) {
+    const start = Math.max(0, cs[i].brakeIdx);
+    const end = i + 1 < cs.length ? cs[i + 1].brakeIdx : n - 1;
+    const col = lossColor(cs[i].timeLost);
+    for (let k = start; k <= end && k < n; k++) out[k] = col;
+  }
+  return out;
+}
+
 /**
  * Résumé textuel (EN, compact) de la comparaison par virage pour le contexte du
  * Coach IA. Vide si pas de référence. Met en avant les zones à travailler.

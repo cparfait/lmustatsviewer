@@ -42,7 +42,14 @@ export type CoachMsgKind =
   | "clean"
   | "predict"
   | "recall"
-  | "report";
+  | "report"
+  // Coaching de stint (§12 P2, P5.3) : dérive pneus, lift & coast, prudence out-lap.
+  | "stint-drift"
+  | "lift-coast"
+  | "out-lap"
+  // Risque + cible de classe (§12 P3, P5.4).
+  | "risk-limits"
+  | "class-target";
 
 /** Un message vocal prêt à formater + à afficher (widget P2.3). */
 export interface CoachVoiceMsg {

@@ -6,9 +6,10 @@
  *
  * Périmètre P2.4 (cf. spec §13) : **Practice / Course / Qualif**. Le mode
  * **Découverte** (callouts prédictifs, pré-synthèse TTS) est câblé en **P3.3**
- * (`predictive: true`) ; le mode **Drill** (virages choisis, feedback à chaque
- * passage) est P4.2 : nommé ici pour la complétude du type, il retombe sur la
- * politique nominale.
+ * (`predictive: true`). Le mode **Drill** (P4.2) a sa **propre cadence** (feedback à
+ * chaque passage sur les virages travaillés) pilotée directement par le service
+ * (`drill.ts` + `setDrillMode`), **hors** `policyFor` : la valeur `drill` du type est
+ * conservée pour la complétude et retombe ici sur la politique nominale.
  */
 
 /** Les 5 modes de la spec §8 (Découverte/Drill = P3.3/P4.2). */

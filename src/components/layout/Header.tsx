@@ -23,8 +23,10 @@ const navKeys = [
   { to: "/live", key: "live" },
   { to: "/overlays", key: "overlays" },
   { to: "/telemetry", key: "telemetry" },
-  { to: "/config", key: "config" },
-  { to: "/config-v2", key: "configV2" },
+  // V2 promue comme configuration principale : affichée « Config » dans le menu.
+  // La V1 (`/config`) reste routée dans App.tsx et accessible par URL le temps de
+  // valider la V2 — à retirer ensuite.
+  { to: "/config-v2", key: "config" },
 ];
 
 /** Entrées de menu désactivables par l'utilisateur (Records=accueil & Config toujours

@@ -52,14 +52,35 @@ export interface DashboardStats {
   /** Tours avec is_valid = 0 (tours partiels sans temps). */
   total_laps_invalid: number;
   total_driving_hours: number;
-  /** Distance totale en km (tours valides × longueur du circuit). */
+  /** Distance en km sur les tours valides (tours valides × longueur du circuit). */
   total_distance_km: number;
+  /** Distance en km sur tous les tours (valides + invalides × longueur du circuit). */
+  total_distance_all_km: number;
   total_sessions: number;
   best_finish: number | null;
   best_progression: number | null;
   podiums: number;
   wins: number;
   top10: number;
+  /** Résultats sur les courses en ligne (Multiplayer) uniquement. */
+  online_wins: number;
+  online_podiums: number;
+  online_top5: number;
+  online_top10: number;
+  online_races_total: number;
+  online_races_finished: number;
+  online_dnf: number;
+  online_avg_progression: number | null;
+  /** Résultats sur les courses hors ligne (setting != Multiplayer) uniquement. */
+  offline_wins: number;
+  offline_podiums: number;
+  offline_top5: number;
+  offline_top10: number;
+  offline_races_total: number;
+  offline_races_finished: number;
+  offline_dnf: number;
+  offline_avg_progression: number | null;
+  offline_best_finish: number | null;
   races_total: number;
   races_finished: number;
   dnf: number;
@@ -884,6 +905,14 @@ export interface CoachRef {
 
 export type CoachRefSavePayload = Omit<CoachRef, "id" | "created_at">;
 
+/** Un canal brut extrait d'un fichier MoTeC `.ld` (ghost secondaire, §2.2, P5.5). */
+export interface LdChannel {
+  name: string;
+  unit: string;
+  freq: number;
+  data: number[];
+}
+
 /** Dispersion du pilote par virage (seuils adaptatifs 2σ). */
 export interface CoachCornerStats {
   corner_uid: string;
@@ -914,6 +943,21 @@ export interface CornerHistoryRow {
   best_dt: number;
 }
 
+/**
+ * Banque de phrases LLM à slots d'un combo × langue (§10, P4.3). `variants` est un
+ * JSON opaque au backend (PhraseEntry[], cf. `lib/coach/phrasebank.ts`). `ref_key`
+ * invalide la banque quand la réf du combo change.
+ */
+export interface CoachPhrasebank {
+  track: string;
+  car_model: string;
+  lang: string;
+  class_id: string;
+  ref_key: string;
+  variants: string;
+  created_at: number;
+}
+
 export const coachRef = {
   /** Enregistre une réf (purge au-delà de 3 par combo). Renvoie son id. */
   save: (payload: CoachRefSavePayload) =>
@@ -934,6 +978,23 @@ export const coachRef = {
   /** Historique par virage d'un combo (trié `session_at` croissant). */
   historyLoad: (track: string, carModel: string) =>
     invoke<CornerHistoryRow[]>("coach_history_load", { track, carModel }),
+  /** Banque de phrases LLM d'un combo × langue (§10, P4.3), ou `null`. */
+  phrasebankLoad: (track: string, carModel: string, lang: string) =>
+    invoke<CoachPhrasebank | null>("coach_phrasebank_load", { track, carModel, lang }),
+  /** Enregistre (remplace) la banque de phrases d'un combo × langue (§10, P4.3). */
+  phrasebankSave: (args: {
+    track: string;
+    carModel: string;
+    lang: string;
+    classId: string;
+    refKey: string;
+    variants: string;
+  }) => invoke<void>("coach_phrasebank_save", args),
+  /** Supprime la banque de phrases d'un combo (toutes langues). */
+  phrasebankClear: (track: string, carModel: string) =>
+    invoke<number>("coach_phrasebank_clear", { track, carModel }),
+  /** Parse un fichier MoTeC `.ld` en canaux bruts (ghost secondaire, §2.2, P5.5). */
+  parseLd: (path: string) => invoke<LdChannel[]>("coach_parse_ld", { path }),
 };
 
 // ─── Commandes système ──────────────────────────────────────────────────────
@@ -945,6 +1006,9 @@ export const system = {
   /** Vérifie si rFactor2SharedMemoryMapPlugin64.dll est présent dans <lmuPath>/Plugins/. */
   checkPluginInstalled: (lmuPath: string) =>
     invoke<boolean>("check_plugin_installed", { lmuPath }),
+  /** Installe le plugin shared memory (copie le DLL bundlé) — après confirmation (T13 #161). */
+  installPlugin: (lmuPath: string) =>
+    invoke<void>("install_plugin", { lmuPath }),
   /** Crée ou retire l'icône du system tray à chaud. */
   setTrayEnabled: (enabled: boolean) =>
     invoke<void>("set_tray_enabled", { enabled }),

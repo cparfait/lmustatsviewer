@@ -28,9 +28,22 @@ import {
   onPredictTargets,
   onCoachReport,
   onCoachRecall,
+  onCoachDrillVerdict,
+  onCoachStint,
+  onCoachRisk,
+  onCoachEvent,
+  setDrillMode,
+  setStintMode,
+  setRiskMode,
+  resolveCoachPhrase,
+  setCoachPhraseBank,
   coachCornerEvent,
   type CoachCornerEvent,
 } from "@/lib/coach";
+import {
+  applyOrGeneratePhrasebank,
+  resetPhrasebankApplied,
+} from "@/lib/coachPhrasebank";
 
 /** TTL vocal étendu du débrief (§11) : plusieurs phrases → ne pas couper trop tôt. */
 const REPORT_TTL_MS = 15000;
@@ -38,6 +51,11 @@ const REPORT_TTL_MS = 15000;
 export function useCornerCoach() {
   const { t, i18n } = useTranslation();
   const enabled = useAppStore((s) => s.voiceAnnouncements);
+  const drillMode = useAppStore((s) => s.coachDrill);
+  const stintMode = useAppStore((s) => s.coachStint);
+  const riskMode = useAppStore((s) => s.coachRisk);
+  const phrasebankMode = useAppStore((s) => s.coachPhrasebank);
+  const lang = i18n.language;
 
   // Refs « vivantes » : le handler de délivrance est enregistré une seule fois
   // mais doit lire la langue / les traductions courantes (comme `useSpotter`).
@@ -56,7 +74,10 @@ export function useCornerCoach() {
       if (disposed) return;
       // Re-vérifie le mute au moment de parler (l'utilisateur a pu couper depuis).
       if (!useAppStore.getState().voiceAnnouncements) return;
-      const text = tRef.current(`live.${msg.suffix}`, msg.vars);
+      // Banque de phrases LLM à slots (§10, P4.3) : variante pré-générée (slots
+      // remplis en code) si le mode est actif et couvre ce (virage, diagnostic) ;
+      // sinon repli sur le gabarit déterministe i18n.
+      const text = resolveCoachPhrase(msg) ?? tRef.current(`live.${msg.suffix}`, msg.vars);
       if (!text) return;
       speak(text, langRef.current, "coach");
       // Miroir visuel (P2.3) : le widget overlay `cornercoach` affiche le même
@@ -118,6 +139,71 @@ export function useCornerCoach() {
       void emit("coach-corner", ev);
     });
 
+    // Verdict de drill (§8, P4.2) : retour à chaque passage sur un virage travaillé
+    // (propre / série verte, ou le diagnostic chiffré). Réactif (TTL nominal).
+    const offDrill = onCoachDrillVerdict((msg) => {
+      if (disposed) return;
+      if (!useAppStore.getState().voiceAnnouncements) return;
+      // Verdict fautif = un diagnostic chiffré → éligible à la banque de phrases
+      // (§10) ; verdict propre (`clean`) → gabarit i18n dédié (« validé »).
+      const text =
+        resolveCoachPhrase({ kind: msg.code, corner_uid: msg.corner_uid, sign: msg.sign, vars: msg.vars }) ??
+        tRef.current(`live.${msg.suffix}`, msg.vars);
+      if (!text) return;
+      speak(text, langRef.current, "coach");
+      const ev: CoachCornerEvent = {
+        text,
+        corner: msg.corner,
+        code: msg.code,
+        magnitude: msg.magnitude,
+        unit: msg.unit,
+        sign: msg.sign,
+        positive: msg.clean, // passage propre → styling « validé » (vert)
+      };
+      void emit("coach-corner", ev);
+    });
+
+    // Conseils de stint (§12, P5.3) : dérive de la vitesse de passage (pneus qui
+    // fatiguent), lift & coast (carburant juste), prudence out-lap. Canal `coach`,
+    // gabarits i18n éditables (groupe `corners`) ; miroir widget (code dédié).
+    const offStint = onCoachStint((adv) => {
+      if (disposed) return;
+      if (!useAppStore.getState().voiceAnnouncements) return;
+      const text = tRef.current(`live.${adv.suffix}`, adv.vars);
+      if (!text) return;
+      speak(text, langRef.current, "coach");
+      const ev: CoachCornerEvent = {
+        text,
+        corner: adv.corner,
+        code: adv.kind,
+        magnitude: adv.magnitude,
+        unit: adv.unit,
+        sign: 0,
+        positive: false,
+      };
+      void emit("coach-corner", ev);
+    });
+
+    // Coaching du risque + cible de classe (§12, P5.4) : coupures de piste répétées
+    // (« pas rentable ») et écart de secteur vs le meilleur de ta classe. Canal `coach`.
+    const offRisk = onCoachRisk((adv) => {
+      if (disposed) return;
+      if (!useAppStore.getState().voiceAnnouncements) return;
+      const text = tRef.current(`live.${adv.suffix}`, adv.vars);
+      if (!text) return;
+      speak(text, langRef.current, "coach");
+      const ev: CoachCornerEvent = {
+        text,
+        corner: adv.corner,
+        code: adv.kind,
+        magnitude: adv.magnitude,
+        unit: adv.unit,
+        sign: 0,
+        positive: false,
+      };
+      void emit("coach-corner", ev);
+    });
+
     // Rappel inter-sessions (§11, P4.1) : « la dernière fois, ton chantier était le
     // virage N » au 1ᵉʳ virage d'un combo connu (code `recall`).
     const offRecall = onCoachRecall((line) => {
@@ -147,8 +233,56 @@ export function useCornerCoach() {
       offTargets();
       offReport();
       offRecall();
+      offDrill();
+      offStint();
+      offRisk();
       stopCoachService();
       clearSpeechCache(); // libère les callouts pré-synthétisés du combo
     };
   }, [enabled]);
+
+  // Mode Drill (§8/§11, P4.2) : reflète l'interrupteur Config dans le service. Actif
+  // seulement quand la voix l'est ; le service reprend son nominal à la coupure.
+  useEffect(() => {
+    setDrillMode(enabled && isTauri() ? drillMode : false);
+  }, [enabled, drillMode]);
+
+  // Coaching de stint (§12, P5.3) : reflète l'interrupteur Config dans le service.
+  // Actif seulement quand la voix l'est ; à la coupure, le relais courant est oublié.
+  useEffect(() => {
+    setStintMode(enabled && isTauri() ? stintMode : false);
+  }, [enabled, stintMode]);
+
+  // Coaching du risque + cible de classe (§12, P5.4) : reflète l'interrupteur Config.
+  useEffect(() => {
+    setRiskMode(enabled && isTauri() ? riskMode : false);
+  }, [enabled, riskMode]);
+
+  // Banque de phrases LLM à slots (§10, P4.3) : hors chemin critique. À chaque
+  // changement de combo (ou à l'activation du mode en roulage), charge la banque
+  // persistée si compatible, sinon la génère (un appel batch) et la persiste. Le
+  // service reste sur ses gabarits déterministes tant qu'aucune banque n'est posée.
+  useEffect(() => {
+    if (!enabled || !isTauri()) return;
+    if (!phrasebankMode) {
+      setCoachPhraseBank(null);
+      resetPhrasebankApplied();
+      return;
+    }
+    let disposed = false;
+    const tryApply = () => {
+      if (disposed) return;
+      void applyOrGeneratePhrasebank(langRef.current);
+    };
+    tryApply(); // combo courant (mode activé en cours de session)
+    const off = onCoachEvent((ev) => {
+      if (ev.type === "combo-changed") tryApply();
+    });
+    return () => {
+      disposed = true;
+      off();
+      setCoachPhraseBank(null);
+      resetPhrasebankApplied();
+    };
+  }, [enabled, phrasebankMode, lang]);
 }

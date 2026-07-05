@@ -114,7 +114,11 @@ export function useSpotter() {
         } else if (intent === "mute") {
           onMute();
         } else if (intent) {
-          announce(buildAnswer(intent, data, tt), lang);
+          const st = useAppStore.getState();
+          announce(
+            buildAnswer(intent, data, tt, st.pitLossSeconds, st.fuelReserveLaps),
+            lang,
+          );
         } else {
           // Commande non reconnue → repli statut (filet de sécurité §7 SUIVI).
           announce(buildStatus(data, tt), lang);

@@ -1,4 +1,5 @@
-import { Coffee, Github, Heart } from "lucide-react";
+import { Link } from "react-router";
+import { Coffee, Github, Heart, ScrollText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { APP_VERSION } from "@/lib/changelog";
 import { DiscordIcon } from "@/components/DiscordIcon";
@@ -11,6 +12,14 @@ export function Footer() {
       <div className="mx-auto max-w-[1800px] px-4 py-6 flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="font-mono">LMU Stats Viewer · v{APP_VERSION}</span>
+          <span className="text-muted-foreground/40">·</span>
+          <Link
+            to="/changelog"
+            className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            <ScrollText className="h-3 w-3" />
+            {t("changelog.title")}
+          </Link>
           <span className="text-muted-foreground/40">·</span>
           <span className="flex items-center gap-1">
             {t("footer.madeWith")}{" "}

@@ -50,7 +50,9 @@ import { useTheme } from "@/stores/theme";
 import { ClassBadge } from "@/components/ClassBadge";
 import { TrackFlag } from "@/components/TrackFlag";
 import { CAR_CLASS_COLORS } from "@/lib/staticData";
-import { speak, cancelSpeech, type VoicePriority } from "@/lib/voice";
+import { speak as rawSpeak, cancelSpeech, type VoicePriority } from "@/lib/voice";
+import { inCriticalZone } from "@/lib/driving";
+import { toastSuccess, toastError, confirmDialog } from "@/stores/dialogs";
 import { computeStrategy, type StrategySnapshot } from "@/lib/strategy";
 import type { Tr } from "@/i18n";
 
@@ -242,6 +244,8 @@ function useVoiceCallouts(
   const debriefSkip = useRef(false);
   const warmupStart = useRef(0);
   const prevSessionTime = useRef(0);
+  // Callouts non-critiques différés en zone de freinage/virage (§150, T13).
+  const deferred = useRef<{ text: string; prio: VoicePriority; at: number }[]>([]);
 
   useEffect(() => {
     if (!enabled) {
@@ -291,6 +295,27 @@ function useVoiceCallouts(
     prevSessionTime.current = sc.session_time;
     // Télémétrie stabilisée ? (seuils suspendus pendant le warm-up)
     const warmedUp = now - warmupStart.current > WARMUP_MS;
+
+    // ── Silence en zone de freinage/virage (§150, T13) ───────────────────────
+    // Les annonces **non-critiques** sont différées tant que le pilote freine fort
+    // ou braque : on ne le distrait pas dans une phase d'engagement. Les annonces
+    // de **sécurité** (`critical` : drapeaux, pénalités, dégâts, carburant) passent
+    // toujours. Les différées sont rejouées dès la sortie de zone (péremption 4 s).
+    const critical = inCriticalZone(tel?.brake ?? 0, tel?.steering ?? 0);
+    const DEFER_MAX_MS = 4000;
+    if (!critical && deferred.current.length) {
+      for (const d of deferred.current) {
+        if (now - d.at < DEFER_MAX_MS) rawSpeak(d.text, lang, d.prio);
+      }
+      deferred.current = [];
+    }
+    const speak = (text: string, l: string, prio: VoicePriority) => {
+      if (prio === "critical" || !critical) {
+        rawSpeak(text, l, prio);
+        return;
+      }
+      deferred.current.push({ text, prio, at: now });
+    };
 
     // ── Drapeaux — au changement ─────────────────────────────────────────────
     const flag = data.flags
@@ -916,6 +941,7 @@ function PluginInstallGuide({
 }) {
   const [copiedPath, setCopiedPath] = useState(false);
   const [copiedVars, setCopiedVars] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   const pluginsDir = lmuPath
     ? `${lmuPath.replace(/\\/g, "\\")}\\Plugins`
@@ -1002,6 +1028,41 @@ function PluginInstallGuide({
       <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide">
         {t("live.pluginInstallGuideTitle")}
       </p>
+
+      {/* Installation automatique (recommandé) — copie le DLL bundlé APRÈS
+          confirmation (T13 #161). Nécessite le dossier LMU connu ; sinon on
+          retombe sur le guide manuel ci-dessous. */}
+      {lmuPath && (
+        <button
+          type="button"
+          disabled={installing}
+          onClick={async () => {
+            const ok = await confirmDialog({
+              title: t("live.pluginInstallAuto"),
+              message: t("live.pluginInstallAutoConfirm", { dir: pluginsDir }),
+              confirmLabel: t("live.pluginInstallAuto"),
+            });
+            if (!ok) return;
+            setInstalling(true);
+            try {
+              await systemApi.installPlugin(lmuPath);
+              toastSuccess(t("live.pluginInstallOk"));
+            } catch {
+              toastError(t("live.pluginInstallErr"));
+            } finally {
+              setInstalling(false);
+            }
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+        >
+          {installing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Download className="h-3.5 w-3.5" />
+          )}
+          {t("live.pluginInstallAuto")}
+        </button>
+      )}
 
       {/* Explication : pourquoi le plugin est nécessaire */}
       <div className="rounded-lg bg-muted/40 border border-border/60 px-3 py-2.5 space-y-1">

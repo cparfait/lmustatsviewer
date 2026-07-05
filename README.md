@@ -86,7 +86,7 @@ Toutes les classes de Le Mans Ultimate sont supportées :
 - **Voix neuronale offline** (Piper) avec **effet radio** (bips + filtre), repli sur la voix système, file d'annonces à priorités
 
 ### 🎮 Overlays in-game
-- **16 overlays** translucides au-dessus du jeu : relatif, chronos, pneus, carburant, météo, dégâts, rival, endurance, vitesse…
+- **23 overlays** translucides au-dessus du jeu : relatif, chronos, delta, secteurs, pneus, carburant, météo, dégâts, rival, radar, carte du circuit, G-force, coach, endurance, vitesse…
 - Fenêtre unique click-through, **mode édition** par glisser-déposer, opacité globale, **profils** sauvegardés, interrupteur global
 
 ### 👤 Profil

@@ -29,6 +29,7 @@ import { DialogHost } from "@/components/DialogHost";
 import { useAppStore } from "@/stores/app";
 import { fetchBenchmarks } from "@/lib/ohne_speed";
 import { useSpotter } from "@/lib/useSpotter";
+import { usePitLoss } from "@/lib/usePitLoss";
 import { useCoachVoice } from "@/lib/useCoachVoice";
 import { useCornerCoach } from "@/lib/useCornerCoach";
 import { useOverlayShortcut } from "@/lib/useOverlayShortcut";
@@ -52,6 +53,8 @@ export default function App() {
 
   // Spotter « à la demande » : raccourcis globaux Statut / Mute / Répète.
   useSpotter();
+  // Benchmark automatique du temps perdu au stand (T13 #152) → alimente #151.
+  usePitLoss();
   // Coach IA vocal : raccourci global push-to-talk → question libre → réponse parlée.
   useCoachVoice();
   // Coach par virage : conseils vocaux automatiques en roulage (fenêtre de délivrance).

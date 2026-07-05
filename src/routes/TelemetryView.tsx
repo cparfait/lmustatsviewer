@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Loader2, ArrowLeft, Play, Pause, ChevronDown, ChevronUp, LocateFixed, AlertTriangle } from "lucide-react";
@@ -10,7 +10,7 @@ import { SessionBadge } from "@/components/SessionBadge";
 import { TelemetryCoachPanel } from "@/components/AICoachPanel";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { detectCorners } from "@/lib/telemetry/corners";
-import { analyzeLap } from "@/lib/telemetry/analysis";
+import { analyzeLap, lapLossHeatColors } from "@/lib/telemetry/analysis";
 import { useAppStore } from "@/stores/app";
 import { TrackMap } from "@/components/telemetry/TrackMap";
 import { SteeringWheel } from "@/components/telemetry/SteeringWheel";
@@ -147,6 +147,22 @@ function dominantPhaseKey(
   return arr[0][1] > 0 ? arr[0][0] : null;
 }
 
+/**
+ * Fenêtre de zoom (unités de `dist`, m) centrée sur un virage : de 40 m avant le
+ * point de freinage à 150 m après l'apex (entrée → apex → début de sortie).
+ * `null` si les indices sortent des données (P5.2 « inputs par virage »).
+ */
+function cornerZoomWindow(
+  dist: number[],
+  brakeIdx: number,
+  apexIdx: number
+): [number, number] | null {
+  if (dist.length === 0) return null;
+  const start = Math.max(dist[0] ?? 0, (dist[brakeIdx] ?? 0) - 40);
+  const end = Math.min(dist[dist.length - 1] ?? 0, (dist[apexIdx] ?? 0) + 150);
+  return end > start ? [start, end] : null;
+}
+
 export function TelemetryView() {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -173,12 +189,16 @@ export function TelemetryView() {
   const [speed, setSpeed] = useState(1);
   // Plage de zoom X partagée entre tous les graphes (null = plein tour).
   const [zoom, setZoom] = useState<[number, number] | null>(null);
+  // Virage actuellement zoomé (P5.2) ; `null` = vue plein tour ou zoom libre.
+  const [focusCorner, setFocusCorner] = useState<number | null>(null);
   // Caméra de suivi sur la carte (zoom + recentrage sur la voiture).
   const [follow, setFollow] = useState(false);
   // Vue carte : 2D ou 3D (relief reconstruit).
   const [view3d, setView3d] = useState(false);
   // Superposition de la trajectoire de référence sur la carte (comparaison).
   const [showRefLine, setShowRefLine] = useState(true);
+  // Heatmap des pertes (P5.1) : colore le tracé par temps perdu/virage (au lieu d'accél./frein).
+  const [mapLoss, setMapLoss] = useState(false);
   // Surface de piste reconstruite (vraie largeur, via Path Lateral/Track Edge).
   const [showRoad, setShowRoad] = useState(true);
   const [trackSurface, setTrackSurface] = useState<TrackSurface | null>(null);
@@ -529,6 +549,29 @@ export function TelemetryView() {
     return analyzeLap(corners, speed, data.dist, delta, refSpeed, brake, throttle);
   }, [data, corners, comparing, compare]);
 
+  // ── Heatmap des pertes (P5.1) : couleur par index de trace selon le temps perdu ──
+  const lossHeat = useMemo(
+    () => (analysis && data ? lapLossHeatColors(analysis, data.dist.length) : null),
+    [analysis, data]
+  );
+
+  // ── Deep-link « ?corner=N » (P5.2) : zoome les graphes sur ce virage à l'ouverture ──
+  const deepLinkedCorner = useRef(false);
+  useEffect(() => {
+    if (deepLinkedCorner.current) return;
+    const raw = params.get("corner");
+    if (!raw || !data || corners.length === 0) return;
+    const want = Number(raw);
+    const c = (analysis?.corners ?? corners).find((x) => x.n === want) ?? corners.find((x) => x.n === want);
+    if (!c) return;
+    const win = cornerZoomWindow(data.dist, c.brakeIdx, c.apexIdx);
+    if (win) {
+      setZoom(win);
+      setFocusCorner(c.n);
+    }
+    deepLinkedCorner.current = true;
+  }, [params, data, corners, analysis]);
+
   // ── LAP DETAILS : temps + secteurs S1/S2/S3 (tour sélectionné + référence) ────
   const lapDetail = useMemo(() => {
     if (!data || lap === null) return null;
@@ -602,6 +645,22 @@ export function TelemetryView() {
     if (!playing && i >= n - 1) setIdx(0);
     setPlaying((p) => !p);
   };
+
+  // Zoom sur un virage (P5.2) : cadre les graphes sur sa fenêtre entrée→sortie.
+  const zoomToCorner = (c: { n: number; brakeIdx: number; apexIdx: number }) => {
+    const win = cornerZoomWindow(data.dist, c.brakeIdx, c.apexIdx);
+    if (win) {
+      setZoom(win);
+      setFocusCorner(c.n);
+    }
+  };
+  // Zoom déclenché par glisser sur un graphe → efface la sélection de virage.
+  const onChartZoom = (z: [number, number] | null) => {
+    setZoom(z);
+    setFocusCorner(null);
+  };
+  // Virages disponibles pour la barre de sélection (analyse enrichie si dispo).
+  const cornerChips = data.dist.length > 0 ? analysis?.corners ?? corners : [];
 
   return (
     <div className="grid grid-cols-[260px_1fr_300px] gap-3 max-[1400px]:grid-cols-[220px_1fr] max-[1100px]:grid-cols-1">
@@ -847,6 +906,35 @@ export function TelemetryView() {
                   {t("telemetry.refLine")}
                 </button>
               )}
+              {/* Heatmap des pertes (P5.1) : colore le tracé par temps perdu/virage */}
+              {!view3d && analysis?.hasRef && (
+                <button
+                  onClick={() => setMapLoss((s) => !s)}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-micro transition-colors",
+                    mapLoss
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border text-muted-foreground hover:bg-accent/60"
+                  )}
+                  title={t("telemetry.lossHeatHint")}
+                >
+                  <span
+                    className="h-2 w-3 rounded-sm"
+                    style={{ background: "linear-gradient(90deg,#22c55e,#eab308,#ef4444)" }}
+                    aria-hidden
+                  />
+                  {t("telemetry.lossHeat")}
+                </button>
+              )}
+              {/* Légende de la heatmap des pertes */}
+              {!view3d && mapLoss && analysis?.hasRef && (
+                <span className="inline-flex items-center gap-1 text-micro text-muted-foreground">
+                  <span className="h-0.5 w-3 rounded-full bg-[#22c55e]" aria-hidden />
+                  {t("telemetry.lossLegendOk")}
+                  <span className="ml-1 h-0.5 w-3 rounded-full bg-[#ef4444]" aria-hidden />
+                  {t("telemetry.lossLegendBad")}
+                </span>
+              )}
               <span className="tabular-nums">
                 {t("telemetry.axisDistanceShort")}: {(curDist / 1000).toFixed(2)} km
               </span>
@@ -880,6 +968,7 @@ export function TelemetryView() {
                   lon={lon}
                   throttle={throttle}
                   brake={brake}
+                  heatColors={mapLoss ? lossHeat : undefined}
                   refLat={hasRefGps ? refLat : undefined}
                   refLon={hasRefGps ? refLon : undefined}
                   trackSurface={showRoad ? trackSurface ?? undefined : undefined}
@@ -960,6 +1049,52 @@ export function TelemetryView() {
           </CardContent>
         </Card>
 
+        {/* Sélecteur de virage (P5.2) : zoome tous les graphes sur T1..Tn */}
+        {cornerChips.length > 0 && (
+          <Card>
+            <CardContent className="flex flex-wrap items-center gap-1 p-2">
+              <span className="mr-1 text-micro font-medium uppercase tracking-wide text-muted-foreground">
+                {t("telemetry.cornerZoom")}
+              </span>
+              <button
+                onClick={() => {
+                  setZoom(null);
+                  setFocusCorner(null);
+                }}
+                className={cn(
+                  "rounded border px-1.5 py-0.5 text-micro transition-colors",
+                  focusCorner === null
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border text-muted-foreground hover:bg-accent/60"
+                )}
+              >
+                {t("telemetry.cornerZoomAll")}
+              </button>
+              {cornerChips.map((c) => {
+                const active = focusCorner === c.n;
+                const focus = "focusRank" in c && c.focusRank != null;
+                return (
+                  <button
+                    key={c.n}
+                    onClick={() => zoomToCorner(c)}
+                    className={cn(
+                      "rounded border px-1.5 py-0.5 text-micro tabular-nums transition-colors",
+                      active
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : focus
+                          ? "border-[#ef4444]/50 text-[#ef4444] hover:bg-accent/60"
+                          : "border-border text-muted-foreground hover:bg-accent/60"
+                    )}
+                    title={focus ? t("telemetry.cornerZoomFocus") : undefined}
+                  >
+                    T{c.n}
+                  </button>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Graphe de delta (comparaison) */}
         {comparing && compare && (
           <Card>
@@ -975,7 +1110,7 @@ export function TelemetryView() {
                 syncKey="tlmview"
                 cursorIdx={dispIdx}
                 zoom={zoom}
-                onZoom={setZoom}
+                onZoom={onChartZoom}
                 onHoverIdx={setHoverIdx}
                 theme={theme}
               />
@@ -1018,7 +1153,7 @@ export function TelemetryView() {
                       yRange={c.yRange}
                       cursorIdx={dispIdx}
                       zoom={zoom}
-                      onZoom={setZoom}
+                      onZoom={onChartZoom}
                       onHoverIdx={setHoverIdx}
                       theme={theme}
                     />
@@ -1202,13 +1337,15 @@ export function TelemetryView() {
                     onClick={() => {
                       setPlaying(false);
                       setIdx(c.brakeIdx);
+                      zoomToCorner(c);
                     }}
                     className={cn(
                       "flex items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-accent/50",
+                      focusCorner === c.n && "bg-primary/10 ring-1 ring-inset ring-primary/40",
                       c.focusRank != null &&
                         "bg-red-500/10 ring-1 ring-inset ring-red-500/30",
                     )}
-                    title={t("telemetry.seekBrake")}
+                    title={t("telemetry.cornerZoomSeek")}
                   >
                     <span className="flex w-9 shrink-0 items-center gap-1 font-semibold">
                       T{c.n}

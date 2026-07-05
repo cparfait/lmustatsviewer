@@ -2,7 +2,7 @@
 
 > **Document de reprise du projet. À LIRE EN PREMIER.**
 > Mettre à jour la section « Journal de bord » à chaque session de travail.
-> Dernière mise à jour : 2026-07-03 (Coach par virage P4.1)
+> Dernière mise à jour : 2026-07-03 (**T13 #151/152/148/149/157/161/150** : spotter → ingénieur de course ; `npm test` 121/121)
 
 ---
 
@@ -46,7 +46,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Langue de travail** | Réponses + docs en FR ; code/variables/fichiers en anglais. |
 | **Cadence** | Développement autonome jusqu'à blocage ou point de décision. |
 | **Pas de données mockées** | **Aucune donnée d'exemple/simulée.** On travaille uniquement sur les données de production (vrais fichiers du jeu). Supprimer `mockData.ts`, `webMock.ts` et tous les fallbacks web du bridge IPC. Pas de « mode web » avec données simulées. Tests faits sur les fichiers réels de `D:\SteamLibrary\...`. |
-| **Overlays in-game** | Système d'overlays façon « Trace HUB » via **une seule fenêtre Tauri transparente** (`label = overlay`) plein écran, always-on-top, click-through (réactivé en mode Édition). Source de vérité = config SQLite `overlays_config` ; synchro inter-fenêtres par event `overlays-config`. Réutilise le pipeline `live-data` existant. **Pas** de fenêtre par overlay (trop lourd). |
+| **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
 
 ---
 
@@ -175,7 +175,7 @@ Voiture · Classe · Session · Type · Version (≥, + case « cette version un
 | 6 | Live : shared memory rF2/LMU, plein écran | ✅ Fait | Page `/live` |
 | 7 | Config + Changelog + i18n + transverse | ✅ Fait | Config, Changelog, i18n complet (4 langues) |
 | 8 | Polish : auto-updater, system tray, CI, installeur | ✅ Fait | Updater signé + tray + CI tag + NSIS |
-| 9 | Overlays in-game (Trace HUB) : framework + 9 overlays + mode Édition | 🟠 Itération 1 | Page `/overlays`, fenêtre transparente, 9 widgets, drag live, persistance |
+| 9 | Overlays in-game (Trace HUB) : framework + 9 overlays + mode Édition | 🔒 **Figé (2026-07-03)** | **Fonctionnel et livré en l'état** (page `/overlays`, fenêtre transparente, 9 widgets, drag, persistance ; marche en borderless). Développement **arrêté** (plus de widgets ni de correctif plein écran) — cf. journal. |
 
 ### AI Coach — ✅ FAIT (2026-06-08) — fondations + live + analyse télémétrie avancée
 
@@ -597,8 +597,16 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Lecture des données haute fréquence (fichiers `.bt` et `.duckdb`), visualisation, comparaison.
 
-78. ⏳ 🔴 **Télémétrie par canaux `.bt`** — Lecture binaire 60+ canaux à 50-100 Hz (throttle/brake/steering filtré+brut, G-forces, temp pneus, pressions, suspension, ride height, aéro, hybrid SoC). Graphes superposés speed+throttle+brake+steering.
-79. ⏳ 🔴 **Lecteur de télémétrie DuckDB** — Exploiter les fichiers `.duckdb` de LMU pour throttle/brake/steering/speed/temps pneus à haute fréquence. Sources : alelosbrigia, underlines, lmutrace.com.
+> **📊 Statut réel (mise au propre 2026-07-03) : T7 ≈ 70 % FAIT.** Le lecteur DuckDB, la
+> comparaison de tours + delta, l'analyse assistée, les focus zones, la segmentation de
+> piste, les points de freinage et le replay 2D sont livrés ; l'AI Coach + le **coach par
+> virage P0→P5** (métriques/virage, diagnostics, heatmap des pertes P5.1, inputs/virage P5.2)
+> ont massivement étendu l'analyse. **Restant réel** : export MoTeC `.ld` (#80), rapport PDF
+> (#89), comparaison données pros (#91), ghost 3D (#81 reste). #78 (`.bt` binaire) = sans
+> objet (on lit le `.duckdb`).
+
+78. ❌ **Télémétrie par canaux `.bt`** — **sans objet** : LMU écrit nativement en `.duckdb`, lu directement (pas de parsing binaire `.bt` requis). Remplacé par #79.
+79. ✅ **Lecteur de télémétrie DuckDB** — **fait** : `TelemetryView`/`Telemetry` lisent les `.duckdb` via `telemetry.getChannels` (throttle/brake/steering/speed/temps pneus HF). Sources : alelosbrigia, underlines, lmutrace.com.
 80. ⏳ 🟡 **Export MoTeC .ld** — Convertir la télémétrie LMU au format MoTeC i2 (forte demande communauté). Source : alelosbrigia.
 81. 🟠 **Comparaison de tours + ghost car** — ✅ base faite (T7.4, 2026-06-07) : delta temps cumulé + superposition courbes (réalignées par distance). Reste : ghost car 3D (T7.6), comparaison inter-sessions. Sources : LMU Telemetry Lab, lmutrace.com, popometer.io.
 82. ✅ **Comparaison de laps avec delta overlay** — fait (T7.4, 2026-06-07) : 2 tours superposés (réf. en pointillés) + graphe de delta style MoTeC, axe distance. Source : underlines.
@@ -612,7 +620,7 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 90. ✅ **Analyse assistée** — fait (2026-06-08) : `lib/telemetry/analysis.ts` (`analyzeLap`) → temps perdu/virage (variation du delta cumulé), écart de vitesse à l'apex vs réf, point le plus lent. Carte « Analyse » dans `TelemetryView`. Source : popometer.io.
 91. ⏳ 🟢 **Comparaison avec pilotes pros** — Importer des "data packs" de référence et superposer. Source : popometer.io.
 92. ✅ **Focus zones** — fait (2026-06-08) : top-3 virages par temps perdu (surlignés 🔥) + perte totale virages, dans la carte « Analyse ». Nécessite une référence. Source : popometer.io.
-93. 🟠 🔴 **AI Coach** — Chatbot qui répond sur la télémétrie et les setups (LLM local ou API). Sources : mylmu.app, popometer.io. **Plan Phase 1 défini (2026-06-08)** — spec auditée (`TEST_TROPHY`), cf. section 5 « AI Coach — Phase 1 » + journal 2026-06-08. BYO-key, post-race d'abord, appels via Rust, `listModels`, contexte ancré sur le `.svm` réel.
+93. ✅ **AI Coach** — **fait + massivement étendu** : chatbot post-race/télémétrie/live (BYO-key, appels via Rust, contexte `.svm` réel) **+ Coach par virage P0→P5** (mesure, diagnostics, restitution vocale, apprentissage, extensions stint/risque/classe/ghost, tests §14). Cf. sections 5 « AI Coach » + spec `COACH-LIVE-SPEC.md`. Sources : mylmu.app, popometer.io.
 
 ---
 
@@ -701,26 +709,41 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Extensions du système TTS/spotter existant.
 
-148. ⏳ 🟡 **Analyse attack/defend** — Identifier le virage où on gagne/perd le plus vs adversaire direct. Source : CrewChiefV4.
-149. ⏳ 🟡 **Messages multiclasse spécifiques** — "Voiture rapide derrière, classe différente" vs "bataille dans ta classe". Source : CrewChiefV4.
-150. ⏳ 🟡 **Silence dans les virages/zones de freinage** — Retarder callouts non-critiques dans les secteurs difficiles. Source : CrewChiefV4.
-151. ⏳ 🟡 **Prediction position sortie stands** — "Si tu rentres maintenant, tu ressors P8". Source : CrewChiefV4.
-152. ⏳ 🟡 **Benchmark temps d'arrêt** — Temps perdu au pit (S3+S1 vs tour de ref), sauvegardé par circuit/voiture. Source : CrewChiefV4.
+> **📊 Statut réel (mise au propre 2026-07-03) : surtout À FAIRE.** Le spotter actuel répond
+> déjà (statut/écart/carburant/pneus/position/rythme/restant/météo/répète/mute) et le coach
+> couvre le per-corner + lift&coast + risque. **Déjà couvert dans T13** : variantes anti-
+> répétition (#155, via phrasebank P4.3 + perso `voiceMessages`), fuel-to-end (#157, partiel
+> `strategy.ts`), corner naming (#160, partiel). **Le reste = vrai travail neuf** (attack/
+> defend, multiclasse, prédictions stands, benchmark arrêt, compounds…). **✅ FAIT
+> (2026-07-03)** : #151 **prédiction position sortie stands** (commande vocale « Stand »).
+
+148. ✅ **Analyse attack/defend** — **fait (2026-07-03)** : commande vocale « Rival » → `sectorEdge` compare tes secteurs au rival le plus proche → « plus fort au secteur 1, plus faible au secteur 3 ». (Par secteur, pas par virage — pas de télémétrie rival.) Source : CrewChiefV4.
+149. ✅ **Messages multiclasse spécifiques** — **fait (2026-07-03)** : `classRelation` dans la commande « Rival » → « dans ta classe » vs « classe plus rapide, laisse passer » / « plus lente ». Source : CrewChiefV4.
+150. ✅ **Silence dans les virages/zones de freinage** — **fait (2026-07-03)** : `inCriticalZone` (frein > 0,5 ou braquage > 0,4) ; les callouts **non-critiques** de `useVoiceCallouts` sont différés (rejoués à la sortie de zone, péremption 4 s), la sécurité (`critical`) passe toujours. Source : CrewChiefV4.
+151. ✅ **Prediction position sortie stands** — **fait (2026-07-03)** : commande vocale « Stand » → `predictPitExit` (les voitures du même tour, à moins de `pitLossSeconds` derrière, passent devant) → « Si tu rentres maintenant, tu ressors P8 ». Perte au stand configurable (Config → Spotter). Source : CrewChiefV4.
+152. ✅ **Benchmark temps d'arrêt** — **fait (2026-07-03)** : `PitLossTracker` mesure auto la perte (S3 in-lap + S1 out-lap − meilleurs secteurs), sauvegardée par combo (`pit_loss_map`) et injectée dans `pitLossSeconds` → affine #151. Hook `usePitLoss` (App). Source : CrewChiefV4.
 153. ⏳ 🟡 **Comparaison de compounds pneumatiques** — "Les tendres sont 0.8s plus rapides que les durs". Source : CrewChiefV4.
 154. ⏳ 🟡 **Alerte "leader s'arrête" / "adversaire sort des stands"** — Info stratégique endurance. Source : CrewChiefV4.
-155. ⏳ 🟢 **Variantes de messages (anti-répétition)** — Variantes dans les bundles i18n. Source : CrewChiefV4.
+155. ✅ **Variantes de messages (anti-répétition)** — **fait** : banque de phrases LLM à slots (P4.3) + personnalisation `voiceMessages` (rotation des variantes). Source : CrewChiefV4.
 156. ⏳ 🟢 **Prediction changement météo** — "La pluie devrait arriver dans ~10 min". Source : CrewChiefV4.
-157. ⏳ 🟡 **"Fuel to end" avec réserve configurable** — Réponse précise avec marge de sécurité. Source : CrewChiefV4.
+157. ✅ **"Fuel to end" avec réserve configurable** — **fait (2026-07-03)** : `fuelToEnd(strategy, reserveLaps)` + commande vocale « Carburant » enrichie (« il te faut X litres de plus » / « assez, marge N tours ») ; réserve réglable (`fuelReserveLaps`, Config → Spotter). Source : CrewChiefV4.
 158. ⏳ 🟡 **Suivi arrêts obligatoires adversaires** — Savoir qui a arrêté et qui doit encore arrêter. Source : CrewChiefV4.
 159. ⏳ 🟢 **Compte à rebours emplacement stand** — "5-4-3-2-1" avant l'emplacement. Source : CrewChiefV4.
-160. ⏳ 🟡 **Corner name calling** — "Incident dans le virage 1" / "Dunlop". Source : CrewChiefV4.
-161. ⏳ 🟡 **Vérification/installation auto du plugin shared memory** — Détecter DLL absent et copier. Source : CrewChiefV4.
+160. 🟠 **Corner name calling** — base : le coach par virage nomme déjà les virages par n° + noms ApexPoints. Reste : l'associer aux **incidents** ("Incident dans le virage 1"). Source : CrewChiefV4.
+161. ✅ **Vérification/installation auto du plugin shared memory** — **fait (2026-07-03)** : commande Rust `install_plugin` (copie le DLL bundlé dans `<lmu>/Plugins/`) + bouton « Installer automatiquement » dans le guide plugin (`Live.tsx`), **après confirmation explicite** (écriture dans le dossier du jeu). Repli sur le guide manuel. Source : CrewChiefV4.
 
 ---
 
 #### T14. Overlays in-game
 
 > Widgets affichés par-dessus le jeu (always-on-top, click-through).
+
+> **📊 Statut réel (mise au propre 2026-07-03) : base FAITE (Phase 9), reste 🔒 FIGÉ.** La
+> **Phase 9** a déjà livré : fenêtre transparente always-on-top (#164), **click-through** (#163),
+> drag-to-position + persistance, et **9 des 16 widgets** (#162). ⚠️ **Décision 2026-07-03 :
+> overlays FIGÉS** (limite plein écran exclusif + redondance SimHub/TinyPedal) → l'**expansion
+> ci-dessous n'est PAS prévue** (7 widgets de plus, radar #167, ahead telemetry #168, ping #169,
+> standings enrichi #166, delta transparent #165, combi SHM+REST #170). À ignorer pour la V1.0.
 
 162. ⏳ 🔴 **16 widgets overlay natifs** — Dashboard, Delta, Track Map, Standings, Relative, Fuel, Tyres, Weather, Damage, Session, Endurance, Rival, Speed, Lift & Coast, Flags, Telemetry. Drag-to-position, redimensionnables. Sources : lmutrace.com, racepulse.
 163. ⏳ 🔴 **Mode click-through** — L'overlay laisse passer les clics vers le jeu. Sources : racepulse, momentum-lmu.
@@ -812,6 +835,572 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-07-05 — Vérification changelog 1.0.0 + posts d'annonce forum (FR/EN)
+
+**Contexte** : préparation de l'annonce publique de la v1.0 (passage 0.9.4 → 1.0.x) sur les forums LMU. Audit de l'entrée changelog 1.0.0 (`src/lib/changelog.ts`) contre l'état réel du code (routes, `overlays.ts`, README).
+
+- ✅ **Changelog 1.0.0 complété** (2 items joueur manquants, ×4 langues) : **ingénieur de course vocal / spotter** (annonces automatiques + commandes vocales offline Vosk + catalogue personnalisable — l'item « Live voice coaching » ne couvrait que le push-to-talk coach) et **page Profil** (heatmap d'activité + régularité).
+- ✅ **README corrigé** : « 16 overlays » → **23** (compte réel de `OverlayId` dans `src/lib/overlays.ts` ; le « 20+ » du changelog était correct).
+- ✅ **Posts d'annonce v1.0 rédigés** (FR + EN) pour les forums LMU — ton « pilote débutant + codeur débutant, seul avec l'aide de l'IA », remis dans la conversation (non versionnés).
+- 📋 **Prochaine étape** : penser à une entrée changelog pour la prochaine release (les travaux en cours — coach par virage P2/P3/P4, MoTeC, pit loss, rival — ne sont pas couverts par l'entrée 1.0.0).
+
+### 2026-07-05 — Documentation de release + ajout de données (`RELEASE.md`)
+
+**Livré** : nouveau fichier **`RELEASE.md`** à la racine, doc opérationnelle vérifiée contre
+le code, en deux parties :
+- **A. Sortir une version** : `version.json` (source unique ; `build.rs` synchronise
+  package.json/Cargo.toml/tauri.conf.json + injecte `APP_VERSION`) ; procédure = bump →
+  commit → `git tag vX.Y.Z` → push (déclenche `.github/workflows/release.yml` : fetch
+  Piper/Vosk → build `--features stt` → **release brouillon** signée + `latest.json`) →
+  publier ; secrets (`TAURI_SIGNING_PRIVATE_KEY` = `_lmu_updater.key`) ; build local
+  (`tauri:build` vs `:stt`, sortie `target/release/bundle/nsis/…setup.exe`) ; auto-update
+  (endpoint GitHub `latest.json` + pubkey) ; checklist.
+- **B. Ajouter des données/assets** : voiture (`public/data/cars.json`), circuit
+  (`public/data/circuits.json`), logo (`public/logos/`), image voiture (`public/cars/`,
+  slug `.webp/.png/.svg`, scripts `process_cars*.py` / `gen-car-placeholders.mjs`), volant
+  (`public/steering_wheels/` + `src/lib/steeringWheels.ts`, `optimize-steering-wheels.py`),
+  drapeau (`public/flags/<iso>.png`), élévation (`trackElevation.json`), version de jeu
+  (auto-détectée) + tableau récap « quel fichier pour quoi ».
+
+**📋 Prochaine étape** : prêt pour la V1.0 (cf. checklist §A.6 de `RELEASE.md`).
+
+### 2026-07-05 — Analyse : sortir les voix TTS/STT de l'installeur (lecture seule, aucun code modifié)
+
+Question : l'installeur pèse 650 Mo — proposer les voix en option et les télécharger au premier lancement ?
+
+- ✅ **Diagnostic** : ~890 Mo de ressources bundlées = TTS Piper 553 Mo (moteur 38 Mo + **9 voix .onnx ≈ 516 Mo**, 4 langues) + STT Vosk ~335 Mo (4 modèles ≈ 282 Mo + DLL ≈ 53 Mo). Un utilisateur n'a besoin que d'1 langue (~61 Mo TTS + ~66 Mo Vosk) → ~85 % du poids est inutile pour chacun.
+- ✅ **Faisable et recommandé** : téléchargement **in-app au premier usage** (pas une option NSIS). Le code s'y prête déjà : `tts.rs` scanne des dossiers candidats (`tts_bases()`) → ajouter `app_data_dir` est trivial ; le repli voix navigateur existe déjà si les fichiers manquent ; `scripts/fetch-piper.ps1` contient déjà les URL HuggingFace. Bonus majeur : les MàJ auto (updater) ne repousseront plus 650 Mo à chaque version.
+- ✅ **Garder bundlés** : `piper.exe` + espeak-ng-data (38 Mo) et les DLL Vosk (53 Mo) — télécharger des exécutables au runtime = risque antivirus/SmartScreen ; seuls les modèles `.onnx`/Vosk (données) sont téléchargés. Installeur cible ≈ 100 Mo.
+- 📋 **Prochaine étape** (si validé) : héberger les modèles en assets d'une release GitHub dédiée (URLs stables + SHA-256) ; commande Rust de téléchargement avec progression ; ajouter `app_data_dir` aux bases TTS/STT ; UI Config « Télécharger la voix (61 Mo) » par langue + invite au premier lancement.
+
+### 2026-07-05 — Audit complet de l'application (lecture seule, aucun code modifié)
+
+Tour d'horizon en profondeur (frontend/UX, coach/spotter, backend Rust, i18n, chantier en cours) à la demande de l'utilisateur, en vue de l'adoption par d'autres joueurs. Constats principaux :
+
+- ✅ **i18n exemplaire** : 1777 clés strictement identiques FR/EN/ES/DE ; 178 clés vocales à parité. Seules 9 strings en dur (aria-labels/titles, dont 7 en FR : `ScrollToTop.tsx`, `OverlayFrame.tsx`, `TrackMap.tsx:534`, `SetupCompare.tsx:352`).
+- ✅ **Tests verts** : 121/121 (`npm test`), tsc/eslint/build/cargo check OK. Chantier coach P0→P4 + P5.5 quasi complet ; **P5.3 (stint) et P5.4 (risque) = stubs** (~40 %, logique métier manquante).
+- ❌ **Découvrabilité** : `/changelog` n'est accessible que via un lien dans Config (aucune entrée Header/Footer) ; `/records` absente du menu (le libellé « records » du menu pointe `/`) ; 6 raccourcis globaux (Alt+S/M/R/T/C/O) documentés nulle part hors Config ; entrée « Références » disparaît silencieusement si ohne_speed OFF.
+- ❌ **Robustesse backend** : `indexer.rs:273` et `:827` (`unwrap()` sur chemin/read_dir → crash si dossier résultats invalide) ; erreurs HTTP IA remontées en string (`ai.rs:183`, 401/429/5xx indistinguables) ; parseur MoTeC `.ld` (`motec.rs`) jamais validé sur fichier réel.
+- ⚠️ **Dette** : Config.tsx (2312 l.) + ConfigV2.tsx (2113 l.) coexistent ; ~3000 insertions non commitées (monolithe) ; `driving.ts` = stub inutilisé ; pas de corpus d'or annoté pour le coach (spec §14 point 6).
+- Rapport détaillé + recommandations d'adoption livrés en conversation (session du 2026-07-05).
+
+✅ **Suite immédiate (même session)** : lien « Notes de version » ajouté au Footer (`Footer.tsx`, clé i18n `changelog.title` existante ×4) → le Changelog est désormais découvrable ; commit + push de tout le chantier en cours (demande utilisateur).
+
+📋 **Prochaine étape** : corriger les 2 `unwrap()` d'`indexer.rs`, ajouter une modale « Raccourcis clavier », finir ou masquer P5.3/P5.4 (toggles sans effet).
+
+### 2026-07-03 — T13 #157 (fuel-to-end) + #161 (install plugin) + #150 (silence en freinage)
+
+**Trois items T13, choix utilisateur** (#161 « en prévenant l'utilisateur » = pas d'install silencieuse).
+
+**#157 — « Carburant pour finir » avec réserve** :
+- ✅ **`strategy.ts`** : `fuelToEnd(snapshot, reserveLaps)` (litres à ajouter avec réserve, suffisant ?, marge en tours) + type `FuelToEnd`.
+- ✅ **`spotter.ts`** : `case "fuel"` enrichi (`computeStrategy` + `fuelToEnd`) → « il te faut X L de plus » / « assez, marge N tours » ; repli sur l'autonomie brute. Param `fuelReserveLaps` sur `buildAnswer`.
+- ✅ **Store** `fuelReserveLaps` (clé `fuel_reserve_laps`, défaut 1) + **Config** (champ, section Spotter) + `useSpotter` le passe. **i18n ×4** (`spFuelShort`/`spFuelToEnd`/`config.fuelReserve*`).
+
+**#161 — Installation auto du plugin (avec confirmation)** :
+- ✅ **Rust `install_plugin(lmu_path, app)`** (`system.rs`) : résout le **DLL bundlé** (ressource Tauri) → copie dans `<lmu>/Plugins/` (créé au besoin). Enregistré `lib.rs`. `cargo check` ✅.
+- ✅ **`api.ts`** `system.installPlugin` + **`Live.tsx`** : bouton « Installer automatiquement » en tête du `PluginInstallGuide`, **`confirmDialog` avant** toute écriture (dossier du jeu), toast succès/échec, repli sur le guide manuel. **i18n ×4** (`pluginInstallAuto/AutoConfirm/Ok/Err`).
+
+**#150 — Silence en zone de freinage/virage** :
+- ✅ **`driving.ts`** : `inCriticalZone(brake, steer)` (frein > 0,5 **ou** braquage > 0,4).
+- ✅ **`Live.tsx` `useVoiceCallouts`** : import `speak as rawSpeak` + wrapper local `speak` — les callouts **non-critiques** sont mis en file en zone critique et **rejoués à la sortie** (péremption 4 s) ; les `critical` (drapeaux, pénalités, dégâts, carburant) passent toujours.
+
+**✅ Validé** : **`npm test` = 121/121** (+10 : `fuelToEnd`, `inCriticalZone`), `tsc -b` ✅, `eslint` ✅,
+`cargo check` ✅, `npm run build` ✅.
+
+**⚠️ Réserves** : #157 réserve globale (pas par circuit). #161 nécessite le **dossier LMU connu**
+(sinon bouton masqué → guide manuel) et un **rebuild** pour que `install_plugin` existe ; écriture
+dans le dossier du jeu **uniquement après confirmation**. #150 seuils frein/braquage à confirmer
+en piste ; les commandes vocales du spotter restent immédiates (seuls les callouts **auto** sont différés).
+
+**📋 Prochaine étape** : T13 quasi épuisé (reste #153 compounds, #156 météo, #159 compte à rebours,
+#160 incidents — plus spécialisés). Sinon autre thème (T9 stats, T11 stratégie) ou pause.
+
+### 2026-07-03 — T13 #148 (attack/defend) + #149 (multiclasse) : commande vocale « Rival »
+
+**Contexte** : les deux items portent sur le **rival le plus proche** → livrés ensemble via
+une commande spotter « Rival » (choix utilisateur : #148 + #149, pas #154/#158).
+
+**Livré** :
+- ✅ **`rival.ts` (pur, testé)** : `nearestRival` (voiture la plus proche devant/derrière dans
+  3 s) ; `classRelation` (#149 : `same`/`faster`/`slower`/`other`, via `classOrder` de `utils.ts`
+  — pas de 6ᵉ copie) ; `sectorEdge` (#148 : compare tes `last_sectors` aux secteurs du rival →
+  secteur le plus fort/faible) ; `buildRivalInfo` (synthèse).
+- ✅ **Commande spotter `rival`** : intention + grammaire ×4 (« rival », « bagarre », « battle »,
+  « duel »…) + `case "rival"` dans `buildAnswer` assemblant côté/écart + classe + forces secteur.
+- ✅ **i18n ×4** : `live.spRival*` (8 clés) + `config.spotterCmdRival` + `spotterTalkCommands`.
+- ✅ **Validé** : **`npm test` = 111/111** (+17 : `classRelation`, `sectorEdge` fort/faible/vide,
+  `nearestRival`/`buildRivalInfo` côté+classe+secteur+aucun-rival), `tsc -b` ✅, `eslint` ✅,
+  `npm run build` ✅.
+
+**⚠️ Réserve** : #148 compare **par secteur** (S1/S2/S3), pas par virage (pas de télémétrie du
+rival exposée) ; faster/slower ne s'affiche que si les deux classes sont dans `classOrder`
+(sinon « autre classe »). Commande vocale → nécessite le build STT.
+
+**📋 Prochaine étape** : T13 quasi épuisé côté « faisable sans télémétrie rival ». Restant utile :
+#150 (silence dans les virages), #156 (prédiction météo), #159 (compte à rebours emplacement).
+Sinon autres thèmes (T9 stats, T11 stratégie) ou pause.
+
+### 2026-07-03 — T13 #152 : **benchmark automatique du temps d'arrêt** (affine #151)
+
+**Contexte** : complément de #151. Au lieu d'une perte au stand estimée à la main, on la
+**mesure automatiquement** à chaque arrêt et on l'applique par circuit×voiture.
+
+**Livré** :
+- ✅ **`pitLoss.ts` (pur, testé)** : `computePitLoss(inLapS3, outLapS1, refS3, refS1)` = surplus
+  du S3 d'entrée + du S1 de sortie vs meilleurs secteurs (filtré 5–120 s) ; `PitLossTracker`
+  (machine à états : entrée stands → clôture in-lap [saisit S3] → clôture out-lap [saisit S1] →
+  perte) alimenté par instantané/trame.
+- ✅ **`usePitLoss.ts`** (monté App) : abonné `live.onData`, alimente le tracker, **enregistre**
+  la perte mesurée par combo + **applique** la perte connue au changement de combo. Toast à la mesure.
+- ✅ **Store** : `pitLossByCombo` (persisté `pit_loss_map`) + `recordPitLoss`/`applyPitLossForCombo` ;
+  la mesure met à jour `pitLossSeconds` → **#151 utilise la vraie valeur**.
+- ✅ **i18n ×4** : `live.pitLossMeasured` + `config.pitLossDesc` (mention « mesuré automatiquement »).
+- ✅ **Validé** : **`npm test` = 94/94** (10 nouvelles : `computePitLoss` bornes + `PitLossTracker`
+  séquence d'arrêt complète / sans arrêt), `tsc -b` ✅, `eslint` ✅, `npm run build` ✅.
+
+**⚠️ Réserve** : l'attribution S3/S1 suppose l'entrée pit en fin de tour et la sortie en début
+de tour suivant (cas standard LMU) ; un box très en amont/aval pourrait décaler la mesure — le
+filtre 5–120 s écarte les valeurs aberrantes. Passif : ne mesure que quand le flux live tourne.
+
+**📋 Prochaine étape** : autres briques T13 — #149 messages multiclasse, #148 attack/defend,
+ou #154/#158 (suivi des arrêts adverses).
+
+### 2026-07-03 — Backlog remis au propre + **T13 #151 (prédiction position sortie stands)**
+
+**1) Mise au propre du suivi** (T7/T13/T14) : le backlog surestimait le « restant ».
+Bannières de statut ajoutées + marqueurs corrigés :
+- **T7 (Télémétrie)** ≈ **70 % FAIT** — #79 lecteur DuckDB ✅, #93 AI Coach ✅ (+ coach P0→P5).
+  Restant réel : export MoTeC (#80), PDF (#89), comparaison pros (#91), ghost 3D. #78 `.bt` sans objet.
+- **T13 (Spotter avancé)** = surtout à faire ; déjà couvert : #155 variantes ✅, #157/#160 partiels.
+- **T14 (Overlays)** = base **faite par la Phase 9** (figée) ; l'expansion (radar, ping…) reste parquée.
+
+**2) T13 #151 — Prédiction de position à la sortie des stands** (première brique T13) :
+- ✅ **`spotter.ts`** : fonction **pure** `predictPitExit(data, pitLossSec)` — les voitures **du
+  même tour** dont l'écart derrière est `< pitLossSec` passent devant → `{currentPos, newPos, lost}`.
+  Nouveau `case "pit"` dans `buildAnswer` (param `pitLossSec`, défaut 25).
+- ✅ **`spotterCommands.ts`** : intention **`pit`** + grammaire ×4 langues (« stand », « pit »,
+  « boxes », « box ») + ordres de matching/affichage.
+- ✅ **`useSpotter.ts`** : passe `pitLossSeconds` (store) à `buildAnswer`.
+- ✅ **Store** `pitLossSeconds` (clé `pit_loss_seconds`, défaut 25) + **Config** : champ numérique
+  (section Spotter) + libellé commande `spotterCmdPit`.
+- ✅ **i18n ×4** : `live.spPitExit`/`spPitKeep`, `config.spotterCmdPit`, `config.pitLoss`/`pitLossDesc`,
+  + `spotterTalkCommands` mis à jour.
+- ✅ **Validé** : **`npm test` = 84/84** (10 assertions `predictPitExit` : sauts même tour, filtrage
+  lapped, perte faible/forte, pas de joueur→null), `tsc -b` ✅, `eslint` ✅, `npm run build` ✅.
+
+**⚠️ Réserve** : `pitLossSeconds` est un **estimé global configurable** (défaut 25 s) — la vraie
+perte varie par circuit ; la mesure auto (#152 benchmark temps d'arrêt) l'affinera plus tard. La
+commande vocale « Stand » nécessite le **build STT** (`tauri:build:stt`) comme les autres commandes
+push-to-talk ; sans STT, seules les touches Statut/Mute/Répète répondent.
+
+**📋 Prochaine étape** : autres briques T13 au choix — #152 benchmark temps d'arrêt (affine #151),
+#149 messages multiclasse, ou #148 attack/defend.
+
+### 2026-07-03 — Décision : **Phase 9 (Overlays in-game) figée** (conservée, non développée)
+
+**Décision (utilisateur)** : on **arrête de développer** la Phase 9. ⚠️ Précision importante :
+les overlays **existent déjà, fonctionnent et sont livrés en l'état** (page `/overlays`,
+fenêtre transparente, 9 widgets, drag, persistance ; opérationnels en **borderless**). On ne
+les **retire pas** — on **cesse de les finir/enrichir** (« Itération 1 » stoppée). Statut =
+**figé**, pas « supprimé ».
+
+**Motifs** :
+1. **Limite technique de l'approche** : une fenêtre Tauri transparente always-on-top ne
+   s'affiche **que si LMU tourne en borderless/fenêtré**, pas en **plein écran exclusif**
+   (mode courant). Overlayer le plein écran exclusif exigerait une injection/hook DirectX
+   — hors de portée de l'archi Tauri (ce serait un sous-projet distinct).
+2. **Redondance** : terrain déjà couvert par SimHub / TinyPedal / Racelab, que beaucoup de
+   pilotes utilisent déjà. Peu de valeur à refaire un énième widget delta/pneus.
+
+**Conséquences** : le **plan principal (phases 0→8) est considéré comme complet** pour la
+V1.0 ; la Phase 9 n'est plus un pré-requis. L'alternative « plugin SimHub » (§7, sous-projet
+C# séparé) reste l'idée de repli si le besoin d'overlay in-game revient plus tard.
+
+**📋 Prochaine étape** : app **livrable** (phases 0→8 + coach P0→P5 + tests §14). Restant =
+backlog **optionnel** T1→T16 (le plus rentable : responsive T3/T4, tests T2, télémétrie/stats
+T7/T9) + validation terrain du coach. Aucun chantier obligatoire pour la V1.0.
+
+### 2026-07-03 — Coach par virage : §14 — **infra de test commitée** (`npm test`)
+
+**Contexte** : après P5, choix de **boucler le coach par §14** (« tests sans rouler »).
+Objectif : transformer les smoke tests jetables (esbuild+node one-offs) en **suite de
+régression permanente**, commitée et exécutable, sans framework lourd.
+
+**Livré** (`src/lib/coach/testkit/`) :
+- ✅ **`assert.ts`** : micro-lib d'assertions (compteurs partagés + `report()` code de sortie).
+- ✅ **`replay.ts` (§14.2)** : harnais de rejeu du **module pur** — `replayEngine(frames, ref?)`
+  passe des `CoachFrame` dans `stepCoach` et récolte les événements (corner-passed, lap-completed…) ;
+  `refFromLapFrames` bâtit une réf `ghost` depuis le 1ᵉʳ tour auto-détecté (`buildRefPayload`).
+- ✅ **`synth.ts` (§14.3)** : fixtures déterministes — `synthMeasurement` (mesure alignée sur
+  sa réf, mutée champ par champ) ; `synthSession(nLaps)` (frames 20 Hz d'un circuit à virages,
+  profil trapézoïdal + rampes de frein) ; mutations `noiseSpeed`/`duplicateFrames`/`shiftByOne`.
+- ✅ **`record.ts` (§14.1)** : format **JSONL rejouable** (`serializeFramesJsonl`/`parseFramesJsonl`
+  + `FrameRecorder` borné). Le branchement live (`live.onData → frameFromLive → rec.push`) +
+  l'écriture disque restent une petite couche applicative à ajouter (non validable hors app).
+- ✅ **Suites** : `pure.suite.ts` (consolide P5.1 heatmap, P5.3 stint, P5.4 risque, P5.5 ghost
+  duckdb+ld) ; `coach.suite.ts` (**diagnostics §14.3** : décalage franc → 1 brake-timing au 2ᵉ
+  passage, calibration < 3 → muet, inhibiteurs, sous-seuil ; **rejeu §14.2** : détection de
+  virages + mesures avec réf ; **property tests §14.4** : bruit σ=0.5, frames dupliquées, shift
+  → détection conservée ; round-trip JSONL).
+- ✅ **Runner** `scripts/run-coach-tests.mjs` (esbuild bundle `run.ts` → node ; alias `@/` via
+  tsconfig) + scripts **`npm test`** / `npm run test:coach`.
+- ✅ **Validé** : **`npm test` = 74/74** ✅, `tsc -b` ✅, `eslint` ✅, `npm run build` ✅
+  (le testkit n'est pas bundlé dans l'app — non importé par le code applicatif).
+
+**Non fait (volontaire)** : §14.5 (abstraire `read_shm` Rust derrière un trait — refactor
+backend, faible valeur immédiate) ; §14.6 **corpus d'or** (nécessite de **vrais**
+enregistrements annotés — l'`record.ts` fournit le format, la capture live reste à câbler).
+
+**📋 Prochaine étape** : coach **complet** (P0→P5 + infra de test §14). Options restantes :
+plans d'entraînement persistants (trophi §7 P5→P7), câblage capture live du recorder (→
+corpus d'or §14.6), ou reprendre **Phase 9 Overlays** (plan principal, 🟠 Itération 1).
+
+### 2026-07-03 — Coach par virage : P5.5 ghost — **support des DEUX formats** (`.duckdb` + `.ld`)
+
+**Décision (choix utilisateur)** : garder **les deux** voies d'import ghost —
+`.duckdb` (principale, format natif de l'app) **et** `.ld` MoTeC (secondaire, pour les
+tours exportés depuis MoTeC i2). Le `.ld` avait été retiré à l'étape précédente ; il est
+réintégré comme option, en plus du `.duckdb`.
+
+**Livré** :
+- ✅ **Rust `commands/motec.rs` réintégré** (parser `.ld` + commande `coach_parse_ld`,
+  ré-enregistrée `mod.rs`/`lib.rs`) + `LdChannel`/`coachRef.parseLd` (`api.ts`). `cargo check` ✅.
+- ✅ **`ghost.ts` unifié** : cœur commun `saveGhostFromBuffer` (buffer → `detectAllCorners`
+  → `buildRefPayload(kind:"ghost")` → save) partagé par **deux constructeurs de tampon** :
+  `buildLapBufferFromChannels` (`.duckdb`, canaux nommés) et `buildLapBufferFromLd` (`.ld`,
+  résolution de noms + ré-échantillonnage + normalisation unités). Trois entrées :
+  `importGhostFromDuckdb`, `importGhostFromLd`, et **`importGhost(path)`** qui **dispatche
+  selon l'extension** (`.ld` → MoTeC, sinon `.duckdb`).
+- ✅ **Config** : le dialog accepte **`duckdb` + `ld`** ; appel `importGhost` ; **i18n ×4**
+  décrivant les deux formats (`.duckdb` recommandé, `.ld` MoTeC optionnel).
+- ✅ **Validé** : `tsc -b` ✅, `eslint` ✅, `cargo check` ✅, `npm run build` ✅, +
+  **smoke test déterministe** (esbuild+node, **18 assertions**) couvrant **les deux voies**
+  (`.duckdb` : rebase distance, frein %/gaz fraction→%, volant∈[-1,1], canal absent→0,
+  no-speed→null, `pickBestLap` ; `.ld` : `resolveChannel`, frein fraction→80 %, gLat
+  m/s²→g, lapTime, distance intégrée, m/s→km/h, no-speed→null).
+
+**⚠️ Réserve** : seule la voie **`.ld`** garde la réserve « **parser binaire à valider
+sur un vrai fichier** » (rebuild backend requis pour cette voie). La voie **`.duckdb`**
+est entièrement validée et sans rebuild. En pratique, privilégier `.duckdb` ; `.ld` est
+un bonus pour les utilisateurs MoTeC.
+
+### 2026-07-03 — Coach par virage : P5.5 **pivoté vers `.duckdb`** (correction du format ghost)
+
+**Motif** : l'app **n'utilise pas** le `.ld` MoTeC — sa télémétrie native est le
+**`.duckdb`** (`UserData/Telemetry/`, lu partout via `telemetry.getChannels`). L'import
+ghost initial (`.ld`, cf. entrée précédente) lisait donc un **format étranger** au flux
+de données réel, non validable ici. Corrigé : le ghost s'importe désormais depuis un
+**`.duckdb`** (un bon tour à soi d'une autre session, ou un tour de référence partagé) —
+le même format que le reste de l'app.
+
+**Livré** :
+- ✅ **Supprimé** : `commands/motec.rs` (parser binaire), sa commande `coach_parse_ld`
+  (retirée de `lib.rs`/`mod.rs`), le type `LdChannel` + `coachRef.parseLd` (`api.ts`).
+  **Plus aucun code Rust ajouté par P5.5** → `cargo check` ✅ (le seul reste Rust de P5.5
+  est l'`ORDER BY` ghost > best de `coach_ref_load`, conservé — toujours pertinent).
+- ✅ **`ghost.ts` réécrit** : `buildLapBufferFromChannels(TelemetryChannelData)` (canaux
+  `.duckdb` `Ground Speed`/`Brake Pos`/… → tampon 8-canaux ; distance rebasée à 0 ;
+  frein/gaz normalisés en % ; volant → [-1,1] ; g/gear passthrough) ; `pickBestLap(meta)`
+  (tour le plus rapide du fichier) ; `importGhostFromDuckdb(path, combo)` (getMeta →
+  getChannels → tampon → `detectAllCorners` → `buildRefPayload(kind:"ghost")` → save).
+- ✅ **Config** : dialog `.duckdb` (au lieu de `.ld`), `importGhostFromDuckdb` ; **i18n ×4**
+  mis à jour (« tour de référence », `.duckdb`, plus de mention MoTeC/`.ld`).
+- ✅ **Validé** : `tsc -b` ✅, `eslint` ✅, `cargo check` ✅, `npm run build` ✅, +
+  **smoke test déterministe** (esbuild+node, **18 assertions**) : `buildLapBufferFromChannels`
+  (distance rebasée, lapTime = span, frein % passthrough, gaz fraction→%, volant∈[-1,1] plein
+  échelle, gLat passthrough, canal absent→zéros, vitesse nulle→null, tour court→null) ;
+  `pickBestLap` (plus rapide, ignore durée 0, vide→null).
+
+**✅ Résultat** : P5.5 est maintenant **entièrement validable et collé au workflow réel**.
+Plus de réserve « parser binaire non testé » ni de rebuild backend requis pour l'import
+ghost (le seul rebuild restant concerne les tables coach des phases P4). Reste la
+validation terrain (importer un vrai `.duckdb` en session et vérifier la réf ghost).
+
+### 2026-07-03 — Coach par virage : P5.5 (ghost `.ld` MoTeC) implémenté — **Phase P5 terminée**
+
+**Contexte** : dernier sous-item de P5. Import d'un tour « alien » MoTeC `.ld` comme
+**référence coach de meilleur rang** (§2.2/§3.4). Architecture : **Rust parse le binaire
+en canaux bruts** ; **TS réutilise le pipeline existant** (`detectAllCorners` +
+`buildRefPayload(kind:"ghost")`) → zéro logique de format dupliquée, et la seule partie
+non validable ici (le parsing binaire) est isolée. `buildRefPayload` acceptait déjà
+`kind:"ghost"`.
+
+**Livré** :
+- ✅ **Backend Rust (rebuild requis)** : module `commands/motec.rs` — `parse_ld(&[u8])`
+  (liste chaînée de canaux : offsets documentés `meta_ptr`@0x08, `data_ptr`/`n`/`freq`/
+  `scale`/`dec`/`shift`, décodage int16/int32 mis à l'échelle + float16/float32, défensif
+  bornes + garde anti-boucle) + commande `coach_parse_ld(path) -> Vec<LdChannel>`,
+  enregistrée dans `lib.rs`. `cargo check` ✅.
+- ✅ **`coach_ref_load`** : `ORDER BY` explicite **ghost > best > stale** (§3.4), puis
+  `lap_time` — un ghost importé prime désormais sur le best du joueur.
+- ✅ **`ghost.ts` (pur + orchestration, §14)** : `resolveChannel` (mapping noms de canaux
+  par priorité, insensible casse) ; `buildLapBufferFromLd` (vitesse = canal maître →
+  grille temporelle ; ré-échantillonnage linéaire des autres canaux ; **normalisation
+  unités** : m/s→km/h, frein/gaz fraction→%, volant→[-1,1], accel m/s²→g ; distance =
+  canal dédié monotone sinon intégration de la vitesse) ; `importGhostFromLd` (parse →
+  buffer → `detectAllCorners` → `buildRefPayload(kind:"ghost")` → `coachRef.save`).
+- ✅ **`api.ts`** : type `LdChannel` + `coachRef.parseLd(path)`.
+- ✅ **Config UI** : ligne « Coach — importer un ghost (.ld) » (icône Upload, gated
+  annonces) → dialog `.ld` sur le **combo actif** (`coachComboInfo()`, repli toast si aucun)
+  → import + toast (virages + temps). + **i18n ×4** (`config.coachGhost*`/`ghost*`).
+- ✅ **Validé** : `cargo check` ✅, `tsc -b` ✅, `eslint` ✅, `npm run build` ✅, +
+  **smoke test déterministe** (esbuild+node, **19 assertions**) : `resolveChannel`
+  (exact/priorité/miss) ; `buildLapBufferFromLd` (no-speed→null, longueur, lapTime, km/h,
+  frein fraction→80 %, gaz %, volant∈[-1,1], distance intégrée, gear arrondi, m/s→km/h,
+  canal distance rebasé, gLat m/s²→g).
+
+**⚠️ Réserve majeure** : le **parsing binaire `.ld` n'a PAS été validé sur un vrai
+fichier** (aucun `.ld` disponible dans cet environnement, app Tauri non lancée). Les
+offsets et la mise à l'échelle suivent le format MoTeC documenté (réf. « ldparser »)
+mais peuvent nécessiter un ajustement localisé (formule de scale, `mul` non appliqué,
+dtype float16) au premier test réel. **Tout le reste** (mapping canaux→buffer, détection
+virages, construction/priorité de la réf ghost, UI) **est validé** (smoke test + build).
+Le mapping des noms de canaux est heuristique (LMU/rF2/MoTeC varient) — `resolveChannel`
+couvre les noms usuels, à compléter si un export utilise d'autres libellés.
+
+**📋 Prochaine étape** : **Phase P5 (Extensions) terminée** — P5.1 heatmap des pertes,
+P5.2 inputs par virage, P5.3 coaching de stint, P5.4 risque + cible classe, P5.5 ghost
+`.ld`. **Rebuild `npm run tauri:build:stt` requis** (nouveau code Rust `motec.rs`).
+**Validation terrain à faire** : ghost `.ld` sur un vrai fichier + essai en session des
+canaux stint/risque/cible-classe. Le plan Coach par virage (P0→P5) est **complet**.
+
+### 2026-07-03 — Coach par virage : P5.3 (coaching de stint) + P5.4 (risque + cible classe) implémentés
+
+**Contexte** : suite de P5. Deux extensions **entièrement frontend** (canaux coach
+indépendants du diagnostic par virage), modélisées sur le pattern P4.2/Drill (module
+**pur** + câblage service + hook + toggle Config + i18n ×4). Aucun code Rust touché →
+pas de rebuild requis. Nouveaux codes widget `CoachMsgKind` (le widget applique l'accent
+par défaut aux codes non stylés).
+
+**P5.3 — Coaching de stint (§12 P2, différenciateur)** — livré :
+- ✅ **`stint.ts` (pur, rejouable §14)** : `StintState` (`vmin`/virage du relais courant) ;
+  `recordStintCorner` (dérive confirmée = médiane début vs médiane récente > max(2 km/h,
+  2 %), **une alerte par virage et par stint**) ; `fuelAdvice` (lift & coast si FUEL SHORT
+  + haute charge, cooldown 3 tours) ; `takeOutLapAdvice` (prudence pneus froids, 1×/sortie) ;
+  `resetStint({outLap})`.
+- ✅ **`service.ts`** : état `stint`/`stintActive` ; `recordStintCorner` sur `corner-passed` ;
+  `computeStrategy(lastData)` chaque trame → `fuelAdvice` ; **front de sortie des stands**
+  (`lastInPits && !inPits`) → `resetStint({outLap:true})` + `takeOutLapAdvice` ; reset au
+  combo/start/stop ; `onCoachStint`/`setStintMode`/`coachStintActive`.
+- ✅ **Hook `useCornerCoach`** : abonnement `onCoachStint` → speak `coach` + widget
+  `coach-corner` (code = `adv.kind`) ; effet `setStintMode` reflétant le toggle.
+- ✅ **Store `coachStint`** (clé `coach_stint`) + **Config ToggleRow** (icône Fuel, gated
+  annonces) + **i18n ×4** (`vStintTireFade`/`vStintLiftCoast`/`vStintOutLap` + libellés
+  éditeur + `config.coachStint*`) + enregistrement `voiceMessages` (groupe `corners`).
+- ✅ **Smoke test déterministe** (esbuild+node, **24 assertions**) : dérive (tainted/vmin≤0
+  null, stable null, drift au 4ᵉ passage = 10 km/h, 1×/virage, virages indépendants) ;
+  lift & coast (gates + cooldown 3 tours) ; out-lap (consommé 1×) ; reset.
+
+**P5.4 — Risque (track_limits) + cible de classe (§12 P3)** — livré :
+- ✅ **`risk.ts` (pur, rejouable §14)** : `recordTrackLimit` (compteur cumulé amorcé au 1ᵉʳ
+  appel, delta attribué au **dernier virage franchi** via `noteCorner` ; alerte « pas
+  rentable » à ≥ 3 coupures/virage, 1×) ; `classTargetAdvice` (secteur où l'écart aux
+  **meilleurs secteurs de la classe présente en session** est le plus grand ≥ 0,15 s,
+  cooldown 5 tours) ; `resetRisk`.
+- ✅ **`service.ts`** : `noteRiskCorner` sur `corner-passed` ; `recordTrackLimit(frame.trackLimits)`
+  chaque trame ; helper `classBestSectors()` (min positif `last_sN` des standings de la
+  classe du joueur, hors joueur) + `classTargetAdvice` sur `lap-completed` (vs `player.best_sectors`) ;
+  `onCoachRisk`/`setRiskMode`/`coachRiskActive` ; reset combo/start/stop.
+- ✅ **Hook + Store `coachRisk`** (clé `coach_risk`) + **Config ToggleRow** (icône ShieldAlert)
+  + **i18n ×4** (`vRiskLimits`/`vClassTarget` + libellés + `config.coachRisk*`) + `voiceMessages`.
+- ✅ **Smoke test déterministe** (esbuild+node, **16 assertions**) : amorçage compteur,
+  attribution au dernier virage, alerte au 3ᵉ hit + 1×, reset delta<0 ignoré, virage
+  `tainted` non attribué ; cible classe (pire secteur, écart 0,30 s, cooldown, secteurs
+  nuls ignorés, sous-seuil null) ; reset.
+
+**✅ Validé** : `tsc -b` ✅, `eslint` ✅, `npm run build` ✅ (P5.3+P5.4). **Aucun code Rust
+touché → pas de rebuild requis.**
+
+**⚠️ Réserves** : messages délivrés à des **moments intrinsèquement calmes** (sortie de
+virage, ligne droite haute charge, franchissement de ligne) plutôt que via la machinerie
+complète de fenêtre de délivrance (§1) — simple et robuste ; priorité `coach` (ne coupe
+jamais le spotter). Attribution des coupures = **dernier virage franchi** (heuristique :
+coupures en sortie) ; pas de position piste exacte. Cible de classe = `last_sN` des
+standings (meilleurs secteurs récents des rivaux) — pas les secteurs théoriques absolus.
+Stint et risque tournent **indépendamment** du Drill (chevauchement possible mais alertes
+rares + cooldowns). Le « lift & coast » exige une conso mesurée (`computeStrategy` null en
+début de session). Non branché en panneau Live dédié (widget overlay `cornercoach` partagé).
+
+**📋 Prochaine étape** : **P5.5** — ghost `.ld` MoTeC comme référence coach (parser binaire
+Rust + `kind='ghost'` + import UI). **Rebuild `npm run tauri:build:stt` requis** (code Rust).
+⚠️ Parsing binaire à **valider sur un vrai fichier `.ld`** (non disponible dans cet env).
+
+### 2026-07-03 — Coach par virage : P5.1 (heatmap des pertes) + P5.2 (inputs par virage) implémentés
+
+**Contexte** : démarrage de la **phase P5** (extensions, spec §12/§13). Choix utilisateur :
+« tout » → les 5 sous-items enchaînés. Cartographie préalable (4 agents) : découverte
+que **plusieurs prérequis annoncés sont déjà acquis** — `track_points`+`track_dists`
+(lap_dist par point) exposés en live, `analysis.ts` calcule déjà `timeLost`/virage, la
+table `coach_ref` supporte déjà `kind='ghost'`. Frontend pur pour P5.1/P5.2 (0 code Rust).
+
+**P5.1 — Heatmap des pertes (§12)** — livré :
+- ✅ **`analysis.ts` (pur)** : `lossColor(loss)` (dégradé vert→jaune→rouge, plafond
+  0,25 s ; `null`/≤0 gérés) + `lapLossHeatColors(analysis, n)` (couleur par index de
+  trace, colorée par virage du point de freinage au virage suivant ; `null` sans réf.).
+- ✅ **`TrackMap.tsx`** : prop `heatColors?: (string|null)[]` qui, si fournie, remplace
+  la coloration accél./frein/coast dans `stateOf` (ajoutée aux deps du memo `paths`).
+- ✅ **`TelemetryView.tsx`** : état `mapLoss` + memo `lossHeat` + bouton toggle « Pertes »
+  (gated sur `analysis.hasRef`) avec swatch dégradé + légende à niveau/perte ; branché
+  `heatColors={mapLoss ? lossHeat : undefined}`.
+- ✅ **i18n ×4** : `telemetry.lossHeat/lossHeatHint/lossLegendOk/lossLegendBad`.
+- ✅ **Smoke test déterministe** (esbuild+node, **21 assertions**) : `lossColor` (bornes,
+  clamp, hex valides, jaune médian), `lapLossHeatColors` (longueur, coloration par
+  segment, gain→vert, hors-virage→null, sans réf.→null).
+
+**P5.2 — Inputs superposés par virage (§12)** — livré (réutilise l'existant) :
+- ✅ **`TelemetryView.tsx`** : helper pur module `cornerZoomWindow(dist, brakeIdx, apexIdx)`
+  (fenêtre [freinage−40 m ; apex+150 m]) ; état `focusCorner` ; **barre de chips T1..Tn**
+  (+ « Tout » reset) au-dessus des graphes qui `setZoom` sur la fenêtre du virage (zoom X
+  partagé par tous les uPlot) ; zones à travailler teintées rouge ; wrapper `onChartZoom`
+  (zoom par glisser efface la sélection) ; **deep-link `?corner=N`** (effet une-fois qui
+  zoome à l'ouverture) ; **clic sur un virage de « Analyse assistée » → zoome les graphes**
+  (en plus de déplacer la tête de lecture).
+- ✅ **i18n ×4** : `telemetry.cornerZoom/cornerZoomAll/cornerZoomFocus/cornerZoomSeek`.
+
+**✅ Validé** : `tsc -b` ✅, `eslint` ✅, `npm run build` ✅ (P5.1+P5.2). **Aucun code Rust
+touché → pas de rebuild requis.**
+
+**⚠️ Réserves** : la heatmap et les chips virages exigent une **référence** (comparaison
+active) pour être pertinentes — sans réf., `lossHeat=null` (bouton masqué) et les chips
+zooment mais sans coloration de perte. Le deep-link `?corner=N` cible la vue télémétrie
+locale ; brancher un lien depuis le **rapport de session live** (page Live, P4.1) reste à
+faire (le coach live n'a pas le chemin `.duckdb`). Chips gated sur `data.dist.length>0`
+(axe distance) — en axe temps pur, pas de chips.
+
+**📋 Prochaine étape** : **P5.3** — coaching de stint (dérive Vmin/virage au fil du relais
++ lift&coast si FUEL SHORT), puis **P5.4** (risque track_limits + cible classe) et **P5.5**
+(ghost `.ld` MoTeC — rebuild requis). Cf. entrées suivantes.
+
+### 2026-07-03 — Coach par virage : P4.3 (banque de phrases LLM à slots + « pourquoi ? » vocal) implémenté
+
+**Contexte** : fin de la phase P4. Deux briques indépendantes de la spec : (1) §10
+**banque de phrases LLM à slots** — sortir la formulation des gabarits déterministes
+sans jamais mettre un appel LLM sur le chemin critique (« la latence est LE
+problème », §10) ; (2) §12 **« pourquoi ? » vocal** — après un callout, `Alt+C`
+« pourquoi ? » répond avec le diagnostic chiffré du virage.
+
+**Décisions (validées)** :
+- Banque **par (virage, diagnostic)** clé (code, sign, n° macro | générique). Les
+  chiffres réels **ne transitent jamais par le modèle** : le LLM ne produit que des
+  gabarits à slots (`{{d}}` mètres/km·h⁻¹, `{{n}}` virage) remplis **en code** au
+  franchissement → garantie mécanique du « le LLM ne recalcule rien » (§10).
+- **Un seul appel batch** par combo circuit×voiture **× langue**, déclenché au
+  changement de combo (mode actif) ou à la demande (Config). Cache SQLite ;
+  invalidation par `ref_key = classe#{virages macro}` (la réf change les *chiffres*,
+  remplis en code, pas la *formulation* → pas de régénération au moindre best).
+- Repli **toujours** sur le gabarit i18n déterministe (mode off, virage non couvert,
+  slot vide, génération échouée) — le coach ne se tait jamais faute de banque.
+- « pourquoi ? » = **enrichissement du PTT existant** (`useCoachVoice`, `Alt+C`) : pas
+  de nouveau raccourci ni de détection d'intention. Les N derniers diagnostics sont
+  injectés au contexte live → le LLM peut expliquer un callout avec ses chiffres.
+
+**Livré** :
+- ✅ **Backend (Rust, rebuild requis)** : table `coach_phrasebank` (`db.rs`, PK
+  combo×langue, `ref_key` + `variants` JSON opaque) + 3 commandes `commands/coach.rs`
+  (`coach_phrasebank_load`/`_save` upsert/`_clear`), enregistrées dans `lib.rs`.
+  `cargo check` ✅.
+- ✅ **`phrasebank.ts` (pur, rejouable §14)** : catalogue `DIAG_SITUATIONS` (10
+  situations = 9 diagnostics, `brake-timing` dédoublé par sens) ; `buildPhraseBank`
+  (index (code,sign,n)) ; `resolvePhrase` (préférence **spécifique** virage →
+  **générique**, **rotation** des variantes, `fillSlots`, slot non substitué →
+  `null`) ; `phrasebankRefKey` ; `parse`/`serialize` tolérants ; `isDiagCode`.
+- ✅ **`ai/phrasebank-gen.ts`** : `buildPhrasebankPrompt` (langue + règles radio +
+  situations + virages macro nom/tip) → **1 appel batch** ; `extractJsonArray`
+  (tolère fences markdown **et troncature** = referme au dernier objet complet) ;
+  `generatePhrasebank` filtre sur le catalogue.
+- ✅ **`coachPhrasebank.ts` (orchestration)** : `applyOrGeneratePhrasebank` (cache
+  SQLite compatible → sinon génère+persiste si Coach IA configuré → sinon repli) +
+  `clearPhrasebankForCurrentCombo`. Anti-doublon (combo×langue×refKey).
+- ✅ **`service.ts`** : état banque + `uidToMacroN` (recalculé au combo/à la charge
+  de réf) + `setCoachPhraseBank`/`resolveCoachPhrase`/`coachComboInfo` ; anneau
+  `recentDiags` (6) + `coachRecentDiagnostics` (§12). Reset au combo/start/stop.
+- ✅ **Hook `useCornerCoach`** : `resolveCoachPhrase(msg) ?? t(live.…)` dans les
+  handlers speak **et** verdict de drill (le widget porte le même texte + magnitude
+  exacte) ; effet dédié (gated `coachPhrasebank`) qui charge/génère au `combo-changed`.
+- ✅ **Hook `useCoachVoice`** : bloc « Recent per-corner coaching » (diagnostics
+  chiffrés récents) joint au contexte du PTT → « pourquoi ? » répond avec les chiffres.
+- ✅ **Store + Config** : `coachPhrasebank` (clé `coach_phrasebank`) + `setCoachPhrasebank` ;
+  **ToggleRow** « Coach — phrases variées (IA) » + boutons Générer/Effacer (gated).
+- ✅ **i18n ×4** : `config.coachPhrasebank*` + `phrasebankGenerate/Clear/GenOk/GenErr/NoCombo/Cleared`.
+- ✅ **Validé** : `cargo check` ✅, `tsc -b` ✅, `eslint` ✅, `npm run build` ✅, +
+  **smoke test déterministe** (esbuild + node, **36 assertions**) : `fillSlots`/slots
+  manquants, `situationFor`/`isDiagCode`, `buildPhraseBank` (entrées vides ignorées),
+  `resolvePhrase` (spécifique>générique, rotation, slot manquant→null, code absent→null),
+  `phrasebankRefKey` (tri/ignore null/sensible à la classe), parse/serialize tolérants,
+  `extractJsonArray` (fences + **troncature**).
+
+**⚠️ Réserves** : la génération est **automatique** au changement de combo quand le
+mode est actif (comportement §10 « à l'activation du mode sur un combo ») → 1 appel
+LLM par nouveau combo tant qu'aucune banque compatible n'est en cache ; best-effort
+(échec = repli i18n silencieux). La banque est **par langue** : changer de langue
+régénère au combo suivant (effet re-déclenché sur `lang`, mais pas re-généré pour le
+combo courant tant qu'il ne change pas). Le **seuil abaissé** en Drill (§11, réserve
+P4.2) reste non câblé. « pourquoi ? » n'a **pas** de détection d'intention dédiée : le
+contexte des diagnostics récents est joint à **toute** question PTT (léger, utile).
+Pas de branchement panneau complet page Live. Les tips ApexPoints nourrissent le
+prompt de génération mais **pas** de transcript vidéo injecté (matière §10 optionnelle).
+
+**📋 Prochaine étape** : **Phase P4 terminée**. Suite au choix — **P5** (ghost `.ld`,
+coaching de stint, heatmap des pertes, inputs par virage, coaching du risque) ou **T**
+(infra de test sans rouler §14 : enregistreur de frames JSONL + rejeu). Rappel :
+**rebuild `npm run tauri:build:stt`** requis (nouvelle table Rust `coach_phrasebank`).
+
+### 2026-07-03 — Coach par virage : P4.2 (mode Drill : entraînement ciblé + toggle Config) implémenté
+
+**Contexte** : suite de P4.1. Le **mode Drill** (§8/§11) transforme le coach en
+*entraîneur ciblé* : sur 1-2 virages-chantiers **seulement**, le budget nominal
+(3 msg/tour) saute et le coach donne un retour à **chaque** passage — repère « ton
+virage » avant, verdict + compteur de réussites après ; silence partout ailleurs.
+**Décision (validée)** : sélection des virages = **auto** (les *objectifs* chroniques
+déjà calculés par P4.1, §11 « le coach propose »), activée par un simple **toggle
+Config** ; pas de sélecteur manuel (= P7, différé). Le coach reste headless.
+
+**Livré** — module **pur** + câblage service (aucun backend touché cette fois) :
+- ✅ **`drill.ts` (pur, rejouable §14)** : compteurs par virage (série/réussites/total,
+  `setDrillTargets` **conserve** les compteurs des virages toujours ciblés) ·
+  `buildDrillPredictTargets` (ancre chaque virage à sa fenêtre dense → `PredictiveTarget`
+  `vDrillNext`) · `recordDrillPass` (muet → non compté ; propre → `vDrillClean` puis
+  `vDrillStreak` avec compteur ; fautif → série cassée + verdict = le diagnostic chiffré,
+  réutilise `voiceKeyForDiag`).
+- ✅ **`predictive.ts`** : `stepPredictive(..., fadeMax=Infinity)` — le Drill répète le
+  repère à **chaque** tour (pas de fade, contrairement à la Découverte).
+- ✅ **`service.ts`** : état Drill + `setDrillMode(active)` (corners = objectifs) ·
+  `runDiagnostic` court-circuite la pédagogie nominale et route vers `recordDrillPass` ·
+  ordonnanceur prédictif Drill dédié (`drillPredict`, réutilise les canaux `onCoachPredict`/
+  `onPredictTargets` = pré-synthèse TTS gratuite) · reset combo/start/stop · listener
+  `onCoachDrillVerdict` + getters `coachDrillActive`/`coachDrillCounts`. L'historique
+  (progression P4.1) continue d'accumuler pendant le drill.
+- ✅ **Hook `useCornerCoach`** : prononce le verdict (priorité `coach`, miroir widget —
+  propre = vert « validé », fautif = accent + détail chiffré) ; effet dédié qui reflète
+  l'interrupteur Config dans `setDrillMode` (actif seulement si la voix l'est).
+- ✅ **Store + Config** : `coachDrill` (clé `coach_drill`) + `setCoachDrill` ; **ToggleRow**
+  « Coach — mode Drill » dans la carte Audio/Voix (gated sur les annonces).
+- ✅ **i18n ×4** : `vDrillNext`/`vDrillClean`/`vDrillStreak` (+ `vmWhen` + registre
+  `voiceMessages` groupe `corners`, personnalisables) + `config.coachDrill*`.
+- ✅ **Validé** : `tsc -b` ✅, `eslint` ✅, `npm run build` ✅, + **smoke test déterministe**
+  (esbuild + node, **24 assertions**) : `setDrillTargets` (borne 2, conservation/oubli/init),
+  `recordDrillPass` (hors-cible/muet null, clean→streak, streak c=2, fautif→diagnostic +
+  détail chiffré + reset série, total/made), `buildDrillPredictTargets` (ancrage brakeDist,
+  tri, cible sans fenêtre ignorée).
+
+**⚠️ Réserves** : le « seuil abaissé » sur les virages drillés (§11) n'est **pas** câblé
+— le drill donne un feedback **systématique** (chaque passage) mais garde les seuils
+nominaux du diagnostic ; abaisser le seuil par virage exigerait un flag jusqu'à
+`diagnoseCorner` (reserve P4.3/P5). Sans **objectifs** chargés (combo neuf, aucun
+historique), le drill s'active mais n'a **aucune cible** tant qu'une session n'a pas
+alimenté `corner_history` → repli silencieux (pas de faux repère). Sélecteur **manuel**
+de virages = non fait (décision : auto ; UI dédiée = P7). Callout « ton virage » sans
+marqueur de panneau (générique) — l'enrichissement ApexPoints (`vDrillNext` + marker) est
+possible mais non retenu ici. Pas de branchement panneau complet page Live (idem P4.1).
+
+**📋 Prochaine étape** : **P4.3** — **banque de phrases LLM à slots** (§10 : un seul appel
+batch par combo, variantes par (virage, diagnostic), slots `{delta}/{vmin}/{ref}` remplis
+en code → zéro appel sur le chemin critique) + **« pourquoi ? » vocal** (`Alt+C` après un
+callout → le LLM répond avec le diagnostic chiffré + les N derniers `corner-passed`, §12).
+Rappel : **rebuild `npm run tauri:build:stt`** toujours requis (backend P4.1 : table
+`corner_history` + commandes `coach_history_*`) — P4.2 n'a touché **aucun** code Rust.
 
 ### 2026-07-03 — Coach par virage : P4.1 (apprentissage : objectifs + rapport 1+1+1 + corner_history + rappel) implémenté
 
@@ -1111,11 +1700,12 @@ combo (Piper asynchrone) ; s'estompent au fil des tours ; réservés Découverte
 - ✅ **P3.2** — Niveau pilote **auto-calibré** ohne_speed (`calibration.ts`) + **réf courte** médiane glissante 3 tours propres (`shortref.ts`) + **péremption** build/temp/wetness/compound (`staleness.ts`) ; `diagnostics.ts` : cible dense **confirmée sur les deux réfs** en frais / cible **courte relative** (« que d'habitude ») si périmée ; câblage service (2026-07-03).
 - ✅ **P3.3** — Mode Découverte prédictif (`predictive.ts` : cibles ApexPoints ancrées aux fenêtres auto-détectées + ordonnanceur `brakeDist − v·(TTS+2 s)` + fade 3 tours) ; pré-synthèse TTS (`prewarmSpeech`/cache `voice.ts`) ; `mode.ts` `predictive` en Découverte ; câblage service (`onCoachPredict`/`onPredictTargets`) + hook + widget (code `predict`) + i18n ×4 (2026-07-03).
 - ✅ **P4.1** — Apprentissage : table `corner_history` (backend) + modules purs `history.ts` (agrégation session : Δt médian/IQR/taux de réussite + progression/tendance) & `report.ts` (rapport « 1+1+1 », rappel inter-sessions, objectifs, cap ohne_speed) ; câblage service (débrief au retour stand, rappel au 1ᵉʳ virage, persistance) + hook + widget (codes `report`/`recall`) + i18n ×4 (2026-07-03).
-- **P4.2/P4.3** (reste) — mode Drill · banque LLM à slots + « pourquoi ? » vocal.
+- ✅ **P4.2** — Mode **Drill** (module pur `drill.ts` : compteurs par virage + verdict propre/série/diagnostic + cibles « ton virage » ancrées aux fenêtres) ; `stepPredictive` `fadeMax=Infinity` ; câblage service (`setDrillMode` = objectifs auto, court-circuit pédagogie, ordonnanceur dédié, `onCoachDrillVerdict`) + hook + toggle Config `coachDrill` + i18n ×4. Aucun code Rust touché (2026-07-03).
+- ✅ **P4.3** — Banque de phrases LLM à slots (`phrasebank.ts` pur + `ai/phrasebank-gen.ts` + orchestration `coachPhrasebank.ts` + backend `coach_phrasebank_*`) : 1 appel batch/combo×langue, variantes par (virage, diagnostic), slots `{{d}}`/`{{n}}` remplis en code → 0 latence/coût en roulage, hors-ligne après génération. + « pourquoi ? » vocal (§12) : anneau des N derniers diagnostics injecté au contexte du PTT `Alt+C`. Toggle Config `coachPhrasebank` + bouton Générer/Effacer + i18n ×4 (2026-07-03).
 - **P5** — Ghost `.ld` · coaching de stint · heatmap · inputs/virage · risque.
 - **T** — Infra de test sans rouler (enregistreur de frames JSONL, rejeu ×1000, fixtures, corpus d'or).
 
-**📋 Prochaine étape** : **P4.2** — mode **Drill** (virages choisis, budget levé, feedback à chaque passage : prédictif « ton virage » + verdict + compteur de réussites) ; puis **P4.3** (banque de phrases LLM à slots hors chemin critique + « pourquoi ? » vocal `Alt+C`). Rappel : **rebuild `npm run tauri:build:stt` nécessaire** (backend Rust modifié : table `corner_history` + commandes `coach_history_*`).
+**📋 Prochaine étape** : **Phase P4 terminée** (P4.1 apprentissage + P4.2 Drill + P4.3 banque LLM/« pourquoi ? »). Suite = **P5** (extensions : ghost `.ld`, coaching de stint, heatmap des pertes, inputs par virage, coaching du risque) ou **T** (infra de test sans rouler §14). Rappel : **rebuild `npm run tauri:build:stt` nécessaire** (backend Rust : table `coach_phrasebank` P4.3 + `corner_history` P4.1).
 
 ### 2026-06-22 — Étude trophi.ai + plan évolution coach IA
 

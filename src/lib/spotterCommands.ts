@@ -26,6 +26,8 @@ export type Intent =
   | "pace"
   | "remaining"
   | "weather"
+  | "pit"
+  | "rival"
   | "repeat"
   | "mute";
 
@@ -40,6 +42,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     pace: ["rythme", "mon rythme", "dernier tour", "meilleur tour", "chrono"],
     remaining: ["restant", "combien de tours", "temps restant", "il reste"],
     weather: ["météo", "pluie", "temps", "température"],
+    pit: ["stand", "aux stands", "si je rentre", "arrêt", "si je m'arrête", "pit"],
+    rival: ["rival", "bagarre", "bataille", "adversaire", "duel"],
     repeat: ["répète", "répéter", "redis", "quoi"],
     mute: ["silence", "tais-toi", "mute", "coupe", "active le son"],
   },
@@ -52,6 +56,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     pace: ["pace", "my pace", "last lap", "best lap", "lap time"],
     remaining: ["remaining", "how many laps", "time left", "laps left"],
     weather: ["weather", "rain", "temperature", "is it raining"],
+    pit: ["pit", "pit stop", "if i pit", "box", "should i pit", "pit now"],
+    rival: ["rival", "battle", "who am i racing", "fight", "duel"],
     repeat: ["repeat", "say again", "what", "again"],
     mute: ["mute", "quiet", "shut up", "silence", "unmute"],
   },
@@ -64,6 +70,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     pace: ["ritmo", "mi ritmo", "última vuelta", "mejor vuelta", "tiempo"],
     remaining: ["restante", "cuántas vueltas", "tiempo restante", "quedan"],
     weather: ["clima", "lluvia", "tiempo", "temperatura"],
+    pit: ["boxes", "entrar a boxes", "parada", "si entro", "pit"],
+    rival: ["rival", "batalla", "pelea", "adversario", "duelo"],
     repeat: ["repite", "repetir", "otra vez", "qué"],
     mute: ["silencio", "cállate", "calla", "activa el sonido"],
   },
@@ -76,6 +84,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     pace: ["tempo", "mein tempo", "letzte runde", "beste runde", "rundenzeit"],
     remaining: ["restlich", "wie viele runden", "restzeit", "verbleibend"],
     weather: ["wetter", "regen", "temperatur"],
+    pit: ["box", "boxenstopp", "wenn ich reinkomme", "boxen", "pit"],
+    rival: ["rivale", "duell", "kampf", "gegner"],
     repeat: ["wiederhole", "noch mal", "was"],
     mute: ["stumm", "ruhe", "halt den mund", "ton an"],
   },
@@ -85,6 +95,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
 const INTENT_ORDER: Intent[] = [
   "remaining",
   "weather",
+  "pit",
+  "rival",
   "position",
   "tyres",
   "fuel",
@@ -105,6 +117,8 @@ export const INTENTS: Intent[] = [
   "pace",
   "remaining",
   "weather",
+  "pit",
+  "rival",
   "repeat",
   "mute",
 ];

@@ -205,10 +205,15 @@ export function setPredictiveTargets(
  * **prononcer maintenant** (et le marque émis), ou `null`. Déclenche le callout de
  * la **prochaine** zone de freinage devant soi dès qu'il reste juste assez de
  * distance pour finir ≥ 2 s avant le freinage (`brakeDist − v·(TTS+2 s)`).
+ *
+ * `fadeMax` : nb max d'émissions par virage avant de se taire (§8 « s'estompe »).
+ * Défaut `FADE_MAX` (Découverte) ; le mode **Drill** passe `Infinity` (feedback à
+ * chaque passage, P4.2).
  */
 export function stepPredictive(
   st: PredictiveState,
   frame: PredictiveFrame,
+  fadeMax: number = FADE_MAX,
 ): PredictiveMsg | null {
   // Bascule de tour → nouveau budget (un callout par virage et par tour).
   if (frame.lapNum !== st.lapNum) {
@@ -228,7 +233,7 @@ export function stepPredictive(
     // dans sa fenêtre de déclenchement, aucune plus lointaine ne l'est non plus.
     if (frame.dist < tgt.brakeDist - lead) return null;
     if (st.firedThisLap.has(tgt.corner_uid)) return null;
-    if ((st.calledCount.get(tgt.corner_uid) ?? 0) >= FADE_MAX) return null; // fade
+    if ((st.calledCount.get(tgt.corner_uid) ?? 0) >= fadeMax) return null; // fade
     st.firedThisLap.add(tgt.corner_uid);
     st.calledCount.set(tgt.corner_uid, (st.calledCount.get(tgt.corner_uid) ?? 0) + 1);
     return {

@@ -149,7 +149,7 @@ export function ConfigV2() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
 
-  const [cat, setCat] = useState<CatId>("coach");
+  const [cat, setCat] = useState<CatId>("profile");
 
   const playerName = useAppStore((s) => s.playerName);
   const lmuPath = useAppStore((s) => s.lmuPath);
@@ -536,18 +536,16 @@ export function ConfigV2() {
   const active = SIDEBAR.find((c) => c.id === cat)!;
 
   return (
-    <div className="flex flex-col gap-4 w-full">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-bold tracking-tight">{t("nav.configV2")}</h1>
-        <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-500">
-          {t("config.subtitle")} · aperçu
-        </span>
+    <div className="flex flex-col gap-4 w-full max-w-4xl mx-auto">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight">{t("config.title")}</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">{t("config.subtitle")}</p>
       </div>
 
       <Card className="overflow-hidden">
         <div className="flex min-h-[520px] flex-col sm:flex-row">
           {/* Navigation latérale */}
-          <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-border/60 bg-muted/30 p-2 sm:w-56 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-r">
+          <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-border/60 bg-primary/5 p-2 sm:w-56 sm:flex-col sm:overflow-visible sm:border-b-0 sm:border-r">
             {SIDEBAR.map((c) => {
               const Icon = c.icon;
               const on = c.id === cat;
@@ -557,16 +555,16 @@ export function ConfigV2() {
                   type="button"
                   onClick={() => setCat(c.id)}
                   className={cn(
-                    "flex items-center gap-2 rounded-md border px-2.5 py-2 text-left text-sm transition-colors whitespace-nowrap sm:whitespace-normal",
+                    "flex items-center gap-2 rounded-md border px-2.5 py-2 text-left text-sm font-semibold transition-colors whitespace-nowrap sm:whitespace-normal",
                     on
-                      ? "border-primary/30 bg-primary/[0.12] font-medium text-primary"
-                      : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                      ? "border-primary/30 bg-primary/[0.12] text-primary"
+                      : "border-transparent text-primary/70 hover:bg-primary/10 hover:text-primary",
                   )}
                 >
                   <span
                     className={cn(
                       "flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
-                      on ? "bg-primary/10 text-primary" : "text-muted-foreground",
+                      on ? "bg-primary/10 text-primary" : "text-primary/70",
                     )}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -579,7 +577,7 @@ export function ConfigV2() {
 
           {/* Contenu de la catégorie active */}
           <section className="min-w-0 flex-1 p-5">
-            <div className="w-full max-w-xl">
+            <div className="w-full">
             <div className="mb-4 flex items-center gap-2">
               <active.icon className="h-5 w-5 text-primary" />
               <h2 className="text-base font-semibold">{t(active.labelKey)}</h2>

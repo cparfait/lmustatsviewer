@@ -117,6 +117,7 @@ pub fn run() {
             commands::system::get_platform,
             commands::system::ping,
             commands::system::check_plugin_installed,
+            commands::system::install_plugin,
             commands::system::set_tray_enabled,
             // Configuration + détection du jeu
             commands::config::get_config,
@@ -182,6 +183,10 @@ pub fn run() {
             commands::coach::coach_stats_upsert,
             commands::coach::coach_history_upsert,
             commands::coach::coach_history_load,
+            commands::coach::coach_phrasebank_load,
+            commands::coach::coach_phrasebank_save,
+            commands::coach::coach_phrasebank_clear,
+            commands::motec::coach_parse_ld,
             commands::ai::coach_note_add,
             commands::ai::coach_notes_for_combo,
             commands::ai::coach_note_delete,

@@ -202,6 +202,17 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vReportChantierConsistency", vars: ["n"], sample: { n: 9 } },
       { key: "vReportCap", vars: ["time"], sample: { time: "3:52.0" } },
       { key: "vRecallChantier", vars: ["n"], sample: { n: 9 } },
+      // Mode Drill §8/§11 (P4.2) : {{n}} = virage, {{c}} = série de passages propres.
+      { key: "vDrillNext", vars: ["n"], sample: { n: 3 } },
+      { key: "vDrillClean", vars: ["n"], sample: { n: 3 } },
+      { key: "vDrillStreak", vars: ["n", "c"], sample: { n: 3, c: 3 } },
+      // Coaching de stint §12 (P5.3) : dérive pneus (par virage), lift & coast, out-lap.
+      { key: "vStintTireFade", vars: ["n"], sample: { n: 7 } },
+      { key: "vStintLiftCoast", vars: [], sample: {} },
+      { key: "vStintOutLap", vars: [], sample: {} },
+      // Risque + cible de classe §12 (P5.4) : {{n}} virage, {{c}} coupures, {{s}} secteur, {{d}} écart s.
+      { key: "vRiskLimits", vars: ["n", "c"], sample: { n: 7, c: 3 } },
+      { key: "vClassTarget", vars: ["s", "d"], sample: { s: 2, d: "0.20" } },
     ],
   },
 ];

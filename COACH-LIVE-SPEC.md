@@ -412,14 +412,23 @@ dégressif.
 **P4 — Apprentissage** : objectifs structurés + rapport 1+1+1 + `corner_history` +
 rappel inter-sessions · mode Drill · banque de phrases LLM + « pourquoi ? » vocal.
 
-**P5 — Extensions** : ghost `.ld` · coaching de stint · heatmap · inputs par virage
-· risque/cible classe.
+**P5 — Extensions** ✅ (2026-07-03) : ghost importé comme réf `kind='ghost'` (prioritaire
+§3.4) depuis **`.duckdb`** (voie principale, télémétrie native) **ou `.ld` MoTeC** (voie
+secondaire ; ⚠️ parser binaire à valider sur vrai fichier) · coaching de stint (dérive
+`vmin`/virage, lift & coast, out-lap) · heatmap des pertes (TrackMap) · inputs par virage
+(zoom T1..Tn + deep-link) · risque (`track_limits`) + cible de classe (secteurs standings).
 
 Chaque phase est livrable seule ; P0+P1+P2 forment le premier coach utile.
 
 ---
 
-## 14. Tests sans rouler (stratégie complète)
+## 14. Tests sans rouler (stratégie complète) — ✅ socle fait (2026-07-03)
+
+> **Implémenté** (`src/lib/coach/testkit/`, `npm test` = 74 assertions) : enregistreur
+> JSONL rejouable (1), harnais de rejeu du module pur (2), fixtures synthétiques (3),
+> property tests bruit/dup/shift (4). **Restant** : trait `read_shm` Rust (5) et corpus
+> d'or annoté (6, nécessite de vrais enregistrements — le format de capture est prêt).
+
 
 1. **Enregistreur de frames** (flag dev) : sérialiser `live-data` en JSON Lines
    (~1-2 MB/min gzippé). 30 min de roulage réel = corpus rejouable à vie — l'actif

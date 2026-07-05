@@ -55,12 +55,22 @@ import {
   Heart,
   ExternalLink,
   HelpCircle,
+  Target,
+  MessagesSquare,
+  Fuel,
+  ShieldAlert,
+  Upload,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { useTheme } from "@/stores/theme";
 import { system, config as configApi, indexer } from "@/lib/api";
 import { isTauri } from "@/lib/api";
-import { toastError } from "@/stores/dialogs";
+import { toast, toastSuccess, toastError } from "@/stores/dialogs";
+import {
+  applyOrGeneratePhrasebank,
+  clearPhrasebankForCurrentCombo,
+} from "@/lib/coachPhrasebank";
+import { importGhost, coachComboInfo } from "@/lib/coach";
 import { invoke } from "@tauri-apps/api/core";
 import { cn } from "@/lib/utils";
 import { checkForUpdate } from "@/lib/updater";
@@ -135,6 +145,12 @@ export function Config() {
   // Overlays in-game : raccourci global Afficher/Masquer (toggle).
   const overlayToggleKey = useAppStore((s) => s.overlayToggleKey);
   const voiceAnnouncements = useAppStore((s) => s.voiceAnnouncements);
+  const coachDrill = useAppStore((s) => s.coachDrill);
+  const coachStint = useAppStore((s) => s.coachStint);
+  const coachRisk = useAppStore((s) => s.coachRisk);
+  const coachPhrasebank = useAppStore((s) => s.coachPhrasebank);
+  const [pbBusy, setPbBusy] = useState(false);
+  const [ghostBusy, setGhostBusy] = useState(false);
   const voiceUriByLang = useAppStore((s) => s.voiceUriByLang);
   const voiceLangCode = (i18n.language || "fr").slice(0, 2).toLowerCase();
   const voiceUri = voiceUriByLang[voiceLangCode] ?? "";
@@ -152,6 +168,8 @@ export function Config() {
   const spotterKeyRepeat = useAppStore((s) => s.spotterKeyRepeat);
   const spotterKeyTalk = useAppStore((s) => s.spotterKeyTalk);
   const spotterPttMode = useAppStore((s) => s.spotterPttMode);
+  const pitLossSeconds = useAppStore((s) => s.pitLossSeconds);
+  const fuelReserveLaps = useAppStore((s) => s.fuelReserveLaps);
   const aiCoachEnabled = useAppStore((s) => s.aiCoachEnabled);
   const aiProvider = useAppStore((s) => s.aiProvider);
   const aiApiKey = useAppStore((s) => s.aiApiKey);
@@ -940,6 +958,170 @@ export function Config() {
                     useAppStore.getState().setSpotterEnabled(false);
                 }}
               />
+              {/* Coach par virage — mode Drill (§8/§11) : entraînement ciblé sur les
+                  virages-chantiers proposés par le coach. Gated sur les annonces. */}
+              {voiceAnnouncements && (
+                <ToggleRow
+                  icon={<Target className="h-4 w-4" />}
+                  label={t("config.coachDrill")}
+                  desc={t("config.coachDrillDesc")}
+                  tip={t("config.coachDrillTip")}
+                  checked={coachDrill}
+                  onChange={(v) => void useAppStore.getState().setCoachDrill(v)}
+                />
+              )}
+              {/* Coach par virage — coaching de stint (§12, P5.3) : dérive de la
+                  vitesse de passage (pneus qui fatiguent), lift & coast (carburant
+                  juste), prudence out-lap. Gated sur les annonces. */}
+              {voiceAnnouncements && (
+                <ToggleRow
+                  icon={<Fuel className="h-4 w-4" />}
+                  label={t("config.coachStint")}
+                  desc={t("config.coachStintDesc")}
+                  tip={t("config.coachStintTip")}
+                  checked={coachStint}
+                  onChange={(v) => void useAppStore.getState().setCoachStint(v)}
+                />
+              )}
+              {/* Coach par virage — coaching du risque + cible de classe (§12, P5.4) :
+                  coupures de piste répétées (« pas rentable ») + écart de secteur vs
+                  le meilleur de ta classe en session. Gated sur les annonces. */}
+              {voiceAnnouncements && (
+                <ToggleRow
+                  icon={<ShieldAlert className="h-4 w-4" />}
+                  label={t("config.coachRisk")}
+                  desc={t("config.coachRiskDesc")}
+                  tip={t("config.coachRiskTip")}
+                  checked={coachRisk}
+                  onChange={(v) => void useAppStore.getState().setCoachRisk(v)}
+                />
+              )}
+              {/* Coach par virage — banque de phrases LLM à slots (§10, P4.3) :
+                  formulation variée pré-générée (un appel batch/combo), chiffres
+                  remplis en code → 0 latence en roulage. Gated sur les annonces. */}
+              {voiceAnnouncements && (
+                <>
+                  <ToggleRow
+                    icon={<MessagesSquare className="h-4 w-4" />}
+                    label={t("config.coachPhrasebank")}
+                    desc={t("config.coachPhrasebankDesc")}
+                    tip={t("config.coachPhrasebankTip")}
+                    checked={coachPhrasebank}
+                    onChange={(v) => void useAppStore.getState().setCoachPhrasebank(v)}
+                  />
+                  {coachPhrasebank && (
+                    <div className="ml-2 flex flex-wrap items-center gap-2 border-l border-primary/10 pl-3">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={pbBusy}
+                        onClick={async () => {
+                          setPbBusy(true);
+                          try {
+                            const r = await applyOrGeneratePhrasebank(i18n.language, {
+                              force: true,
+                            });
+                            if (r === "generated") toastSuccess(t("config.phrasebankGenOk"));
+                            else if (r === "no-combo") toast(t("config.phrasebankNoCombo"));
+                            else toastError(t("config.phrasebankGenErr"));
+                          } finally {
+                            setPbBusy(false);
+                          }
+                        }}
+                      >
+                        {pbBusy ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        )}
+                        {t("config.phrasebankGenerate")}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={pbBusy}
+                        onClick={async () => {
+                          await clearPhrasebankForCurrentCombo();
+                          toast(t("config.phrasebankCleared"));
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        {t("config.phrasebankClear")}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+              {/* Coach par virage — import d'un ghost MoTeC .ld (§2.2/§3.4, P5.5) :
+                  référence de meilleur rang pour le combo actif. Nécessite une
+                  session en cours (le combo circuit×voiture). Gated sur les annonces. */}
+              {voiceAnnouncements && (
+                <div className="flex items-center justify-between gap-3 py-2">
+                  <div className="flex min-w-0 items-start gap-2">
+                    <Tip content={t("config.coachGhostTip")} side="right">
+                      <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
+                        <Upload className="h-4 w-4" />
+                      </span>
+                    </Tip>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium leading-tight">
+                        {t("config.coachGhost")}
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground/80">
+                        {t("config.coachGhostDesc")}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={ghostBusy}
+                    onClick={async () => {
+                      const combo = coachComboInfo();
+                      if (!combo.track || !combo.carModel) {
+                        toast(t("config.ghostNoCombo"));
+                        return;
+                      }
+                      const { open } = await import("@tauri-apps/plugin-dialog");
+                      const sel = await open({
+                        multiple: false,
+                        filters: [
+                          { name: "Ghost lap", extensions: ["duckdb", "ld"] },
+                        ],
+                      });
+                      if (!sel || typeof sel !== "string") return;
+                      setGhostBusy(true);
+                      try {
+                        const r = await importGhost(sel, {
+                          track: combo.track,
+                          carModel: combo.carModel,
+                          carClass: combo.carClass,
+                        });
+                        toastSuccess(
+                          t("config.ghostImportOk", {
+                            corners: r.corners,
+                            time: r.lapTime.toFixed(1),
+                          }),
+                        );
+                      } catch {
+                        toastError(t("config.ghostImportErr"));
+                      } finally {
+                        setGhostBusy(false);
+                      }
+                    }}
+                  >
+                    {ghostBusy ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    {t("config.ghostImport")}
+                  </Button>
+                </div>
+              )}
               {voiceAnnouncements && speechSupported() && (
                 <div className="ml-2 border-l border-primary/10 pl-3">
                   <button
@@ -1274,6 +1456,50 @@ export function Config() {
                       ? t("config.spotterPttHoldDesc")
                       : t("config.spotterPttToggleDesc")}
                   </p>
+                  {/* Perte au stand (s) — base de la prédiction « position à la sortie » (T13 #151). */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground/80">
+                        {t("config.pitLoss")}
+                      </div>
+                      <p className="text-mini text-muted-foreground/60">
+                        {t("config.pitLossDesc")}
+                      </p>
+                    </div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      step={1}
+                      value={pitLossSeconds}
+                      onChange={(e) =>
+                        void useAppStore.getState().setPitLossSeconds(Number(e.target.value))
+                      }
+                      className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
+                    />
+                  </div>
+                  {/* Réserve carburant (tours) — commande vocale « Carburant » (T13 #157). */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground/80">
+                        {t("config.fuelReserve")}
+                      </div>
+                      <p className="text-mini text-muted-foreground/60">
+                        {t("config.fuelReserveDesc")}
+                      </p>
+                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={5}
+                      step={0.5}
+                      value={fuelReserveLaps}
+                      onChange={(e) =>
+                        void useAppStore.getState().setFuelReserveLaps(Number(e.target.value))
+                      }
+                      className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
+                    />
+                  </div>
                   {/* Commandes disponibles — bien visibles (chips) */}
                   <div className="pt-0.5">
                     <div className="text-xs text-muted-foreground/80 mb-1.5">

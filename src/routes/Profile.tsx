@@ -18,18 +18,10 @@ import {
   Clock,
   Activity,
   Repeat,
-  Flag,
   Trophy,
-  Timer,
-  Layers,
   Car,
   MapPin,
-  Target,
-  TrendingUp,
   Route,
-  Ban,
-  Zap,
-  ArrowUpDown,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/stores/app";
@@ -55,10 +47,28 @@ interface ProfileStats {
   totalLapsValid: number;     // is_valid = 1
   totalLapsInvalid: number;   // is_valid = 0
   drivingHours: number;
-  distanceKm: number;
+  distanceKm: number;        // distance des tours valides
+  distanceTotalKm: number;   // distance de tous les tours (valides + invalides)
   wins: number;
   podiums: number;
   top10: number;
+  onlineWins: number;
+  onlinePodiums: number;
+  onlineTop5: number;
+  onlineTop10: number;
+  onlineRacesTotal: number;
+  onlineRacesFinished: number;
+  onlineDnf: number;
+  onlineAvgProgression: number | null;
+  offlineWins: number;
+  offlinePodiums: number;
+  offlineTop5: number;
+  offlineTop10: number;
+  offlineRacesTotal: number;
+  offlineRacesFinished: number;
+  offlineDnf: number;
+  offlineAvgProgression: number | null;
+  offlineBestFinish: number | null;
   racesTotal: number;
   racesFinished: number;
   dnf: number;
@@ -114,9 +124,27 @@ export function Profile() {
       totalLapsInvalid: ds?.total_laps_invalid ?? 0,
       drivingHours: ds?.total_driving_hours ?? 0,
       distanceKm: ds?.total_distance_km ?? 0,
+      distanceTotalKm: ds?.total_distance_all_km ?? 0,
       wins: ds?.wins ?? 0,
       podiums: ds?.podiums ?? 0,
       top10: ds?.top10 ?? 0,
+      onlineWins: ds?.online_wins ?? 0,
+      onlinePodiums: ds?.online_podiums ?? 0,
+      onlineTop5: ds?.online_top5 ?? 0,
+      onlineTop10: ds?.online_top10 ?? 0,
+      onlineRacesTotal: ds?.online_races_total ?? 0,
+      onlineRacesFinished: ds?.online_races_finished ?? 0,
+      onlineDnf: ds?.online_dnf ?? 0,
+      onlineAvgProgression: ds?.online_avg_progression ?? null,
+      offlineWins: ds?.offline_wins ?? 0,
+      offlinePodiums: ds?.offline_podiums ?? 0,
+      offlineTop5: ds?.offline_top5 ?? 0,
+      offlineTop10: ds?.offline_top10 ?? 0,
+      offlineRacesTotal: ds?.offline_races_total ?? 0,
+      offlineRacesFinished: ds?.offline_races_finished ?? 0,
+      offlineDnf: ds?.offline_dnf ?? 0,
+      offlineAvgProgression: ds?.offline_avg_progression ?? null,
+      offlineBestFinish: ds?.offline_best_finish ?? null,
       racesTotal: ds?.races_total ?? 0,
       racesFinished: ds?.races_finished ?? 0,
       dnf: ds?.dnf ?? 0,
@@ -261,9 +289,15 @@ export function Profile() {
       {carsByClass.length > 0 && (
         <section>
           <div className="bg-primary text-primary-foreground rounded-md mb-1.5 px-4 py-1 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold tracking-tight">
-              {t("profile.topByClass")}
-            </h2>
+            <div className="flex items-center gap-2">
+              <Car className="h-4 w-4 opacity-90" />
+              <h2 className="text-sm font-bold tracking-tight">
+                {t("profile.topByClass")}
+              </h2>
+              <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-mini font-bold tabular-nums">
+                {carsStats.length}
+              </span>
+            </div>
             <button
               type="button"
               onClick={() => setExpandCars((v) => !v)}
@@ -477,9 +511,15 @@ export function Profile() {
       {allTracks.length > 0 && (
         <section>
           <div className="bg-primary text-primary-foreground rounded-md mb-1.5 px-4 py-1 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold tracking-tight">
-              {t("profile.topCircuits")}
-            </h2>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 opacity-90" />
+              <h2 className="text-sm font-bold tracking-tight">
+                {t("profile.topCircuits")}
+              </h2>
+              <span className="rounded-full bg-primary-foreground/20 px-2 py-0.5 text-mini font-bold tabular-nums">
+                {allTracks.length}
+              </span>
+            </div>
             {allTracks.length > 3 && (
               <button
                 type="button"
@@ -599,82 +639,169 @@ interface HeroProps {
 }
 
 /**
- * Tuile « cockpit » : anneau de jauge SVG pour les stats en ratio
- * (courses finies, podiums, tours valides). Couleurs alignées sur le thème
- * de l'app (fond carte, bordures, texte) → suit le mode clair/sombre. Le
- * liseré haut coloré rappelle les badges secondaires ; seul l'anneau porte
- * la couleur d'accent sémantique.
+ * Petit anneau de jauge (48 px) affiché à la place du picto d'une carte hero :
+ * cercle de fond + arc coloré proportionnel au pourcentage, valeur au centre.
  */
-function RingStat({
-  pct,
-  center,
-  label,
-  sub,
-  color,
-}: {
-  /** Remplissage de l'anneau, 0-100. */
-  pct: number;
-  /** Valeur affichée au centre de l'anneau. */
-  center: string;
-  label: string;
-  sub: string;
-  color: string;
-}) {
-  const R = 24;
+function GaugeIcon({ pct, color }: { pct: number; color: string }) {
+  const R = 18;
   const CIRC = 2 * Math.PI * R;
   const filled = Math.max(0, Math.min(100, pct));
   return (
-    <div
-      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
-      style={{ borderTopColor: color, borderTopWidth: 2 }}
+    <svg
+      width="48"
+      height="48"
+      viewBox="0 0 48 48"
+      className="shrink-0"
+      aria-hidden="true"
     >
-      <svg
-        width="58"
-        height="58"
-        viewBox="0 0 58 58"
-        className="shrink-0"
-        aria-hidden="true"
-      >
+      <circle
+        cx="24"
+        cy="24"
+        r={R}
+        fill="none"
+        stroke="var(--color-muted)"
+        strokeWidth="5"
+      />
+      {filled > 0 && (
         <circle
-          cx="29"
-          cy="29"
+          cx="24"
+          cy="24"
           r={R}
           fill="none"
-          stroke="var(--color-muted)"
-          strokeWidth="6"
+          stroke={color}
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={`${(filled / 100) * CIRC} ${CIRC}`}
+          transform="rotate(-90 24 24)"
         />
-        {filled > 0 && (
-          <circle
-            cx="29"
-            cy="29"
-            r={R}
-            fill="none"
-            stroke={color}
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeDasharray={`${(filled / 100) * CIRC} ${CIRC}`}
-            transform="rotate(-90 29 29)"
-          />
-        )}
-        <text
-          x="29"
-          y="33"
-          textAnchor="middle"
-          fontSize="13"
-          fontWeight="600"
-          fill="var(--color-foreground)"
-          className="tabular-nums"
-        >
-          {center}
-        </text>
-      </svg>
-      <div className="min-w-0">
-        <div className="truncate text-sm font-semibold text-foreground first-letter:uppercase">
-          {label}
+      )}
+      <text
+        x="24"
+        y="28"
+        textAnchor="middle"
+        fontSize="12"
+        fontWeight="700"
+        fill="var(--color-foreground)"
+        className="tabular-nums"
+      >
+        {`${Math.round(filled)}%`}
+      </text>
+    </svg>
+  );
+}
+
+/** Données d'un bilan course (en ligne ou hors ligne) pour `RaceResultsCard`. */
+interface RaceResults {
+  wins: number;
+  podiums: number;
+  top5: number;
+  top10: number;
+  dnf: number;
+  racesTotal: number;
+  racesFinished: number;
+  avgProgression: number | null;
+  bestFinish: number | null;
+}
+
+/** Thème couleur d'une `RaceResultsCard`. */
+interface RaceTheme {
+  /** Classes de la carte (bordure + départ du dégradé). */
+  card: string;
+  /** Classe de couleur des valeurs. */
+  value: string;
+  /** Couleur (hex) de la jauge d'en-tête. */
+  gauge: string;
+}
+
+/**
+ * Carte « bilan course » générique : en-tête = jauge des courses finies (%) +
+ * meilleur résultat ; colonnes = victoires · podiums · top 5 · top 10 · DNF ·
+ * progression. Sert aux courses en ligne (ambre) comme hors ligne (bleu) via
+ * `theme`. DNF en rouge et progression signée (vert/rouge) : seules exceptions.
+ */
+function RaceResultsCard({
+  title,
+  data,
+  theme,
+}: {
+  title: string;
+  data: RaceResults;
+  theme: RaceTheme;
+}) {
+  const { t } = useTranslation();
+  const prog = data.avgProgression;
+  const items = [
+    { label: t("profile.statWins"), value: data.wins, accent: theme.value },
+    { label: t("profile.statPodiums"), value: data.podiums, accent: theme.value },
+    { label: t("profile.statTop5"), value: data.top5, accent: theme.value },
+    { label: t("profile.statTop10"), value: data.top10, accent: theme.value },
+    { label: t("profile.statDnf"), value: data.dnf, accent: "text-destructive" },
+    {
+      label: t("profile.statAvgProgression"),
+      value: prog != null ? `${prog > 0 ? "+" : ""}${prog.toFixed(1)}` : "—",
+      accent:
+        prog != null && prog > 0
+          ? "text-success"
+          : prog != null && prog < 0
+            ? "text-destructive"
+            : "text-muted-foreground",
+    },
+  ];
+  const best =
+    data.bestFinish && data.bestFinish < 99 ? `P${data.bestFinish}` : null;
+  const finishPct =
+    data.racesTotal > 0
+      ? Math.round((data.racesFinished / data.racesTotal) * 100)
+      : 0;
+  return (
+    <Card
+      className={cn(
+        "overflow-hidden bg-gradient-to-r to-transparent",
+        theme.card
+      )}
+    >
+      <div className="flex h-full flex-col sm:flex-row sm:items-stretch">
+        {/* En-tête : jauge des courses finies */}
+        <div className="flex items-center gap-3 px-4 py-3 shrink-0">
+          <GaugeIcon pct={finishPct} color={theme.gauge} />
+          <div className="leading-tight">
+            <p className="text-sm font-bold text-foreground">{title}</p>
+            <p className="text-mini text-muted-foreground">
+              {t("profile.onlineFinished", {
+                a: data.racesFinished,
+                b: data.racesTotal,
+              })}
+            </p>
+            {best && (
+              <p className="text-mini text-muted-foreground">
+                {t("profile.ringBest", { pos: best })}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="truncate text-mini text-muted-foreground">{sub}</div>
+        {/* Stats : victoires · podiums · top 5 · top 10 · DNF · progression */}
+        <div className="flex-1 grid grid-cols-3 sm:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-border/50 border-t border-border/50 sm:border-t-0 sm:border-l">
+          {items.map((it) => (
+            <div
+              key={it.label}
+              className="flex flex-col items-center justify-center gap-0.5 py-2.5 px-1"
+            >
+              <span
+                className={cn(
+                  "text-xl font-bold font-mono tabular-nums",
+                  it.accent
+                )}
+              >
+                {it.value}
+              </span>
+              <span className="text-micro uppercase tracking-wide text-muted-foreground text-center leading-tight">
+                {it.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -695,6 +822,8 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
     glow: string;
     sublineMain?: string;
     sublineAccent?: string;
+    /** Si défini : remplace le picto par un anneau de jauge (0-100) de cette couleur. */
+    ring?: { pct: number; color: string };
   }[] = [
     {
       icon: Activity,
@@ -703,6 +832,11 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
       color: "text-sky-500",
       bg: "bg-sky-500/10 ring-sky-500/20",
       glow: "bg-sky-500/25",
+      sublineMain: t("profile.statSessionsBreakdown", {
+        races: stats.races,
+        qualifs: stats.qualifs,
+        practices: stats.practices,
+      }),
     },
     {
       icon: Clock,
@@ -712,7 +846,9 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
       color: "text-amber-500",
       bg: "bg-amber-500/10 ring-amber-500/20",
       glow: "bg-amber-500/25",
-      sublineMain: t("profile.statTimedLaps"),
+      sublineMain: t("profile.statTimedLaps", {
+        count: stats.totalLapsValid.toLocaleString(),
+      }),
     },
     {
       icon: Repeat,
@@ -721,123 +857,36 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
       color: "text-violet-500",
       bg: "bg-violet-500/10 ring-violet-500/20",
       glow: "bg-violet-500/25",
+      // Picto remplacé par l'anneau des tours valides (%). Sous-ligne : valides + DNF.
+      ring: {
+        pct:
+          stats.totalLaps > 0
+            ? Math.round((stats.totalLapsValid / stats.totalLaps) * 100)
+            : 0,
+        color: "#8b5cf6",
+      },
       sublineMain: t("profile.statValid", {
         count: stats.totalLapsValid.toLocaleString(),
       }),
-      sublineAccent: t("profile.statInvalid", {
-        count: stats.totalLapsInvalid.toLocaleString(),
-      }),
+      sublineAccent: t("profile.sessionsDnf", { count: stats.dnf }),
     },
     {
       icon: Route,
       label: t("profile.statDistance"),
-      value: stats.distanceKm.toLocaleString(undefined, {
+      value: stats.distanceTotalKm.toLocaleString(undefined, {
         maximumFractionDigits: 0,
       }),
       suffix: "km",
       color: "text-emerald-500",
       bg: "bg-emerald-500/10 ring-emerald-500/20",
       glow: "bg-emerald-500/25",
-      sublineMain: t("profile.statValidLaps"),
+      sublineMain: t("profile.statDistanceValid", {
+        count: stats.distanceKm.toLocaleString(undefined, {
+          maximumFractionDigits: 0,
+        }),
+      }),
     },
   ];
-
-  // Stats secondaires regroupées par FAMILLE (type + couleur), pour la lisibilité :
-  // 🟠 Performance · 🔵 Bilan courses · 🟣 Activité · 🟢 Exploration.
-  // `tint` = couleur de la famille (chip d'icône + liseré) ; `accent` reste la
-  // couleur sémantique de la valeur (vert/rouge/or).
-  const C_PERF = "#f59e0b"; // amber — performance / résultats
-  const C_RACE = "#3b82f6"; // blue — bilan des courses
-  const C_ACT = "#a855f7"; //  violet — activité / volume / garage
-  const secondaryStats: {
-    icon: typeof Flag;
-    label: string;
-    value: string | number;
-    tint: string;
-    accent?: string;
-  }[] = [
-    // ── 🟠 Performance ──────────────────────────────────────────────
-    {
-      icon: Trophy,
-      label: t("profile.statWins"),
-      value: stats.wins,
-      tint: C_PERF,
-      accent: stats.wins > 0 ? "text-amber-500" : undefined,
-    },
-    {
-      icon: Target,
-      label: t("profile.statTop10"),
-      value: stats.top10,
-      tint: C_PERF,
-      accent: stats.top10 > 0 ? "text-success" : undefined,
-    },
-    {
-      icon: TrendingUp,
-      label: t("profile.statBestResult"),
-      value: stats.bestFinish && stats.bestFinish < 99 ? `P${stats.bestFinish}` : "—",
-      tint: C_PERF,
-      accent: stats.bestFinish && stats.bestFinish <= 3 ? "text-success" : undefined,
-    },
-    {
-      icon: Zap,
-      label: t("profile.statFastestLaps"),
-      value: stats.fastestLaps,
-      tint: C_PERF,
-      accent: stats.fastestLaps > 0 ? "text-purple" : undefined,
-    },
-    // ── 🔵 Bilan courses ────────────────────────────────────────────
-    { icon: Flag, label: t("profile.statRaces"), value: stats.races, tint: C_RACE },
-    {
-      icon: Ban,
-      label: t("profile.statDnf"),
-      value: stats.dnf,
-      tint: C_RACE,
-      accent: stats.dnf > 0 ? "text-destructive" : undefined,
-    },
-    {
-      icon: ArrowUpDown,
-      label: t("profile.statAvgProgression"),
-      value:
-        stats.avgProgression != null
-          ? `${stats.avgProgression > 0 ? "+" : ""}${stats.avgProgression.toFixed(1)}`
-          : "—",
-      tint: C_RACE,
-      accent:
-        stats.avgProgression != null && stats.avgProgression > 0
-          ? "text-success"
-          : stats.avgProgression != null && stats.avgProgression < 0
-            ? "text-destructive"
-            : undefined,
-    },
-    // ── 🟣 Activité & garage ────────────────────────────────────────
-    { icon: Timer, label: t("profile.statQualifs"), value: stats.qualifs, tint: C_ACT },
-    { icon: Layers, label: t("profile.statPractices"), value: stats.practices, tint: C_ACT },
-    { icon: Repeat, label: t("profile.statLapsDone"), value: stats.totalLaps, tint: C_ACT },
-    { icon: Car, label: t("profile.statCars"), value: stats.carsUsed, tint: C_ACT },
-    { icon: MapPin, label: t("profile.statTracks"), value: stats.tracksVisited, tint: C_ACT },
-  ];
-
-  // Regroupe les stats consécutives de même couleur en blocs (1 ligne / famille).
-  const statBlocks: (typeof secondaryStats)[] = [];
-  for (const s of secondaryStats) {
-    const last = statBlocks[statBlocks.length - 1];
-    if (last && last[0].tint === s.tint) last.push(s);
-    else statBlocks.push([s]);
-  }
-
-  // Ratios des tuiles « cockpit » (anneaux de jauge).
-  const finishPct =
-    stats.racesTotal > 0
-      ? Math.round((stats.racesFinished / stats.racesTotal) * 100)
-      : null;
-  const podiumPct =
-    stats.racesTotal > 0
-      ? Math.round((stats.podiums / stats.racesTotal) * 100)
-      : null;
-  const validPct =
-    stats.totalLaps > 0
-      ? Math.round((stats.totalLapsValid / stats.totalLaps) * 100)
-      : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -874,15 +923,19 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
               )}
             />
             <CardContent className="relative p-4 flex items-center gap-3">
-              <div
-                className={cn(
-                  "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ring-1",
-                  s.bg,
-                  s.color
-                )}
-              >
-                <s.icon className="h-6 w-6" />
-              </div>
+              {s.ring ? (
+                <GaugeIcon pct={s.ring.pct} color={s.ring.color} />
+              ) : (
+                <div
+                  className={cn(
+                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ring-1",
+                    s.bg,
+                    s.color
+                  )}
+                >
+                  <s.icon className="h-6 w-6" />
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="text-micro uppercase tracking-[0.15em] text-muted-foreground font-semibold">
                   {s.label}
@@ -919,71 +972,46 @@ function ProfileHero({ displayName, initial, stats }: HeroProps) {
         ))}
       </div>
 
-      {/* Tuiles « cockpit » : anneaux de jauge pour les ratios clés
-          (remplacent les badges Courses finies et Podiums). */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <RingStat
-          pct={finishPct ?? 0}
-          center={finishPct != null ? `${finishPct}%` : "—"}
-          color="#D93B00"
-          label={t("profile.statFinished")}
-          sub={t("profile.ringOfTotal", {
-            a: stats.racesFinished,
-            b: stats.racesTotal,
-          })}
+      {/* Bilan course : en ligne (ambre) + hors ligne (bleu). */}
+      <div className="flex flex-col gap-3">
+        <RaceResultsCard
+          title={t("profile.onlineResults")}
+          theme={{
+            card: "border-amber-500/30 from-amber-500/[0.08]",
+            value: "text-amber-600 dark:text-amber-500",
+            gauge: "#f59e0b",
+          }}
+          data={{
+            wins: stats.onlineWins,
+            podiums: stats.onlinePodiums,
+            top5: stats.onlineTop5,
+            top10: stats.onlineTop10,
+            dnf: stats.onlineDnf,
+            racesTotal: stats.onlineRacesTotal,
+            racesFinished: stats.onlineRacesFinished,
+            avgProgression: stats.onlineAvgProgression,
+            bestFinish: stats.bestFinish,
+          }}
         />
-        <RingStat
-          pct={podiumPct ?? 0}
-          center={String(stats.podiums)}
-          color="#eab308"
-          label={t("profile.statPodiums")}
-          sub={t("profile.ringWinsSub", { count: stats.wins })}
+        <RaceResultsCard
+          title={t("profile.offlineResults")}
+          theme={{
+            card: "border-sky-500/30 from-sky-500/[0.08]",
+            value: "text-sky-600 dark:text-sky-400",
+            gauge: "#0ea5e9",
+          }}
+          data={{
+            wins: stats.offlineWins,
+            podiums: stats.offlinePodiums,
+            top5: stats.offlineTop5,
+            top10: stats.offlineTop10,
+            dnf: stats.offlineDnf,
+            racesTotal: stats.offlineRacesTotal,
+            racesFinished: stats.offlineRacesFinished,
+            avgProgression: stats.offlineAvgProgression,
+            bestFinish: stats.offlineBestFinish,
+          }}
         />
-        <RingStat
-          pct={validPct ?? 0}
-          center={validPct != null ? `${validPct}%` : "—"}
-          color="#00c896"
-          label={t("profile.statValidLaps")}
-          sub={t("profile.ringOfTotal", {
-            a: stats.totalLapsValid.toLocaleString(),
-            b: stats.totalLaps.toLocaleString(),
-          })}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-        {secondaryStats.map((s) => {
-          const tint = s.tint;
-          return (
-          <Card
-            key={s.label}
-            className="overflow-hidden"
-            style={{ borderTopColor: tint, borderTopWidth: 2 }}
-          >
-            <CardContent className="p-2.5 flex items-center justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-micro uppercase tracking-wide text-muted-foreground font-semibold leading-tight">
-                  {s.label}
-                </p>
-                <p
-                  className={cn(
-                    "mt-0.5 text-lg font-bold font-mono tabular-nums leading-none",
-                    s.accent
-                  )}
-                >
-                  {s.value}
-                </p>
-              </div>
-              <div
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
-                style={{ background: `${tint}1f`, color: tint }}
-              >
-                <s.icon className="h-3.5 w-3.5" />
-              </div>
-            </CardContent>
-          </Card>
-          );
-        })}
       </div>
     </div>
   );

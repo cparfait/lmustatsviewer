@@ -3,8 +3,13 @@
 Ce dossier reçoit le moteur **Piper** et les **modèles de voix** neuronaux,
 utilisés par les annonces vocales Live (commande Rust `tts_synthesize`).
 
-Le contenu est **lourd** et **hors git** (cf. `.gitignore`). Il faut le récupérer
-une fois en local :
+> **Bundle** : seul `tts/piper/` (moteur, ~38 Mo) est embarqué dans l'installeur.
+> Les voix `.onnx` (~60 Mo chacune) **ne sont plus bundlées** : l'utilisateur les
+> télécharge à la demande depuis Config → Audio / Voix (commande `asset_download`,
+> cf. `src/commands/assets.rs`) vers `app_data_dir/tts/voices`.
+
+Le contenu est **lourd** et **hors git** (cf. `.gitignore`). Pour le **dev**, il
+faut le récupérer une fois en local :
 
 ```powershell
 pwsh scripts/fetch-piper.ps1

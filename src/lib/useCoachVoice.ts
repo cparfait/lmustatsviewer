@@ -3,7 +3,7 @@
  *
  * On **maintient** une touche (configurable, défaut `Alt+C`), on pose une
  * question libre (« je dois pit ? », « mes pneus tiennent ? »…). Au relâchement :
- * micro → STT **dictée libre** (`stt_recognize_free`, Vosk, feature `stt`) →
+ * micro → STT **dictée libre** (`stt_recognize_free`, Vosk, modèle téléchargé) →
  * snapshot live (`live.getData` → `buildLiveContext`) → réponse **courte** du LLM
  * (`askCoachVoice`) lue à voix haute. Aucun écran/clavier requis.
  *

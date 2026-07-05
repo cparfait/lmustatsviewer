@@ -126,16 +126,16 @@ permet un déclenchement manuel sans tag.
   3. `./scripts/fetch-vosk.ps1` — télécharge la lib **Vosk** + modèles STT FR/EN/ES/DE dans `src-tauri/resources/stt/`.
   4. Action Tauri officielle avec :
      ```
-     args: --features stt --config src-tauri/tauri.stt.conf.json
      tagName: <tag>          releaseName: "LMU Stats Viewer <tag>"
      releaseDraft: true      prerelease: false
      ```
-     → compile (avec reconnaissance vocale), **signe** l'installeur, génère `latest.json`,
+     → compile (STT inclus d'office), **signe** l'installeur, génère `latest.json`,
      crée la **release brouillon** et y **uploade** les assets.
 - **Secrets utilisés** : `TAURI_SIGNING_PRIVATE_KEY`, `GITHUB_TOKEN`.
 
-> La release officielle est **toujours** buildée **avec STT** (`--features stt`) : les
-> commandes vocales du spotter/coach sont donc incluses.
+> Le STT (commandes vocales) fait partie de **tout** build ; en revanche les voix
+> Piper et les modèles Vosk **ne sont plus bundlés** — l'app les télécharge à la
+> demande (Config → Audio / Voix). L'installeur reste donc léger.
 
 ---
 
@@ -143,14 +143,14 @@ permet un déclenchement manuel sans tag.
 
 Utile pour tester un installeur sans passer par la CI.
 
-### Deux variantes
+### Une seule variante
 
-| Commande | Contenu |
-|---|---|
-| `npm run tauri:build` | Build standard **sans** reconnaissance vocale (STT). Plus léger, aucun asset Vosk requis. |
-| `npm run tauri:build:stt` | Build **avec** STT (comme la release officielle). Nécessite les assets Piper **et** Vosk. |
+`npm run tauri:build` — STT inclus d'office (identique à la release officielle).
+Nécessite les assets Piper **et** Vosk en local (libvosk est liée à la compilation ;
+le moteur Piper est bundlé). Les voix/modèles ne sont pas bundlés : l'app les
+télécharge à la demande.
 
-### Avant un build `:stt`, récupérer les assets (une fois)
+### Avant un build, récupérer les assets (une fois)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/fetch-piper.ps1
@@ -170,7 +170,7 @@ Cet installeur NSIS embarque, via `src-tauri/nsis/hooks.nsi`, une **proposition
 d'installation du plugin Live Timing** (`rFactor2SharedMemoryMapPlugin64.dll`) dans le
 dossier `Plugins` de LMU (détecté par le registre Steam).
 
-> ⚠️ Un build **local `:stt`** signera l'installeur **seulement** si `TAURI_SIGNING_PRIVATE_KEY`
+> ⚠️ Un build **local** signera l'installeur **seulement** si `TAURI_SIGNING_PRIVATE_KEY`
 > et son mot de passe sont exportés dans l'environnement. Sinon l'`.exe` se construit mais
 > sans `latest.json` signé — suffisant pour un test d'install, pas pour l'auto-update.
 

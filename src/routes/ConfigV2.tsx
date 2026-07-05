@@ -66,12 +66,23 @@ import {
   Heart,
   ExternalLink,
   HelpCircle,
+  Target,
+  Fuel,
+  ShieldAlert,
+  MessagesSquare,
+  Upload,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
+import { VoiceDownloads } from "@/components/VoiceDownloads";
 import { useTheme } from "@/stores/theme";
 import { system, config as configApi, indexer } from "@/lib/api";
 import { isTauri } from "@/lib/api";
-import { toastError } from "@/stores/dialogs";
+import { toast, toastSuccess, toastError } from "@/stores/dialogs";
+import {
+  applyOrGeneratePhrasebank,
+  clearPhrasebankForCurrentCombo,
+} from "@/lib/coachPhrasebank";
+import { importGhost, coachComboInfo } from "@/lib/coach";
 import { invoke } from "@tauri-apps/api/core";
 import { cn } from "@/lib/utils";
 import { checkForUpdate } from "@/lib/updater";
@@ -164,6 +175,14 @@ export function ConfigV2() {
   const menuModules = useAppStore((s) => s.menuModules);
   const overlayToggleKey = useAppStore((s) => s.overlayToggleKey);
   const voiceAnnouncements = useAppStore((s) => s.voiceAnnouncements);
+  const coachDrill = useAppStore((s) => s.coachDrill);
+  const coachStint = useAppStore((s) => s.coachStint);
+  const coachRisk = useAppStore((s) => s.coachRisk);
+  const coachPhrasebank = useAppStore((s) => s.coachPhrasebank);
+  const pitLossSeconds = useAppStore((s) => s.pitLossSeconds);
+  const fuelReserveLaps = useAppStore((s) => s.fuelReserveLaps);
+  const [pbBusy, setPbBusy] = useState(false);
+  const [ghostBusy, setGhostBusy] = useState(false);
   const voiceUriByLang = useAppStore((s) => s.voiceUriByLang);
   const voiceLangCode = (i18n.language || "fr").slice(0, 2).toLowerCase();
   const voiceUri = voiceUriByLang[voiceLangCode] ?? "";
@@ -313,6 +332,10 @@ export function ConfigV2() {
       window.speechSynthesis.removeEventListener("voiceschanged", refresh);
   }, [i18n.language]);
 
+  // Incrémenté après chaque téléchargement de modèle vocal (VoiceDownloads)
+  // pour re-tester tts/stt_available et recharger la liste des voix.
+  const [assetsVersion, setAssetsVersion] = useState(0);
+
   const [piperOk, setPiperOk] = useState<boolean | null>(null);
   useEffect(() => {
     if (!isTauri()) {
@@ -322,7 +345,7 @@ export function ConfigV2() {
     invoke<boolean>("tts_available", { lang: i18n.language })
       .then(setPiperOk)
       .catch(() => setPiperOk(false));
-  }, [i18n.language]);
+  }, [i18n.language, assetsVersion]);
 
   const [sttOk, setSttOk] = useState<boolean | null>(null);
   useEffect(() => {
@@ -333,7 +356,7 @@ export function ConfigV2() {
     invoke<boolean>("stt_available", { lang: i18n.language })
       .then(setSttOk)
       .catch(() => setSttOk(false));
-  }, [i18n.language]);
+  }, [i18n.language, assetsVersion]);
 
   type PiperVoiceInfo = {
     id: string;
@@ -351,7 +374,7 @@ export function ConfigV2() {
     invoke<PiperVoiceInfo[]>("tts_list_voices")
       .then(setPiperVoices)
       .catch(() => setPiperVoices([]));
-  }, [piperOk]);
+  }, [piperOk, assetsVersion]);
   const piperSelected = piperVoices.find((v) => v.id === piperVoiceCur);
   const piperNumSpeakers = piperSelected?.num_speakers ?? 1;
   const cap = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
@@ -993,6 +1016,158 @@ export function ConfigV2() {
                       useAppStore.getState().setSpotterEnabled(false);
                   }}
                 />
+                {/* Coach par virage — modes avancés (mêmes réglages que Config V1,
+                    gated sur les annonces vocales). */}
+                {voiceAnnouncements && (
+                  <>
+                    <ToggleRow
+                      icon={<Target className="h-4 w-4" />}
+                      label={t("config.coachDrill")}
+                      desc={t("config.coachDrillDesc")}
+                      tip={t("config.coachDrillTip")}
+                      checked={coachDrill}
+                      onChange={(v) => void useAppStore.getState().setCoachDrill(v)}
+                    />
+                    <ToggleRow
+                      icon={<Fuel className="h-4 w-4" />}
+                      label={t("config.coachStint")}
+                      desc={t("config.coachStintDesc")}
+                      tip={t("config.coachStintTip")}
+                      checked={coachStint}
+                      onChange={(v) => void useAppStore.getState().setCoachStint(v)}
+                    />
+                    <ToggleRow
+                      icon={<ShieldAlert className="h-4 w-4" />}
+                      label={t("config.coachRisk")}
+                      desc={t("config.coachRiskDesc")}
+                      tip={t("config.coachRiskTip")}
+                      checked={coachRisk}
+                      onChange={(v) => void useAppStore.getState().setCoachRisk(v)}
+                    />
+                    <ToggleRow
+                      icon={<MessagesSquare className="h-4 w-4" />}
+                      label={t("config.coachPhrasebank")}
+                      desc={t("config.coachPhrasebankDesc")}
+                      tip={t("config.coachPhrasebankTip")}
+                      checked={coachPhrasebank}
+                      onChange={(v) =>
+                        void useAppStore.getState().setCoachPhrasebank(v)
+                      }
+                    />
+                    {coachPhrasebank && (
+                      <div className="ml-2 flex flex-wrap items-center gap-2 border-l border-primary/10 pl-3 py-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={pbBusy}
+                          onClick={async () => {
+                            setPbBusy(true);
+                            try {
+                              const r = await applyOrGeneratePhrasebank(
+                                i18n.language,
+                                { force: true },
+                              );
+                              if (r === "generated")
+                                toastSuccess(t("config.phrasebankGenOk"));
+                              else if (r === "no-combo")
+                                toast(t("config.phrasebankNoCombo"));
+                              else toastError(t("config.phrasebankGenErr"));
+                            } finally {
+                              setPbBusy(false);
+                            }
+                          }}
+                        >
+                          {pbBusy ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          )}
+                          {t("config.phrasebankGenerate")}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          disabled={pbBusy}
+                          onClick={async () => {
+                            await clearPhrasebankForCurrentCombo();
+                            toast(t("config.phrasebankCleared"));
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {t("config.phrasebankClear")}
+                        </Button>
+                      </div>
+                    )}
+                    {/* Import d'un ghost (.duckdb / .ld MoTeC) pour le combo actif. */}
+                    <div className="flex items-center justify-between gap-3 py-2">
+                      <div className="flex min-w-0 items-start gap-2">
+                        <Tip content={t("config.coachGhostTip")} side="right">
+                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
+                            <Upload className="h-4 w-4" />
+                          </span>
+                        </Tip>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium leading-tight">
+                            {t("config.coachGhost")}
+                          </div>
+                          <div className="mt-0.5 text-xs text-muted-foreground/80">
+                            {t("config.coachGhostDesc")}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={ghostBusy}
+                        onClick={async () => {
+                          const combo = coachComboInfo();
+                          if (!combo.track || !combo.carModel) {
+                            toast(t("config.ghostNoCombo"));
+                            return;
+                          }
+                          const { open } = await import(
+                            "@tauri-apps/plugin-dialog"
+                          );
+                          const sel = await open({
+                            multiple: false,
+                            filters: [
+                              { name: "Ghost lap", extensions: ["duckdb", "ld"] },
+                            ],
+                          });
+                          if (!sel || typeof sel !== "string") return;
+                          setGhostBusy(true);
+                          try {
+                            const r = await importGhost(sel, {
+                              track: combo.track,
+                              carModel: combo.carModel,
+                              carClass: combo.carClass,
+                            });
+                            toastSuccess(
+                              t("config.ghostImportOk", {
+                                corners: r.corners,
+                                time: r.lapTime.toFixed(1),
+                              }),
+                            );
+                          } catch {
+                            toastError(t("config.ghostImportErr"));
+                          } finally {
+                            setGhostBusy(false);
+                          }
+                        }}
+                      >
+                        {ghostBusy ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5" />
+                        )}
+                        {t("config.ghostImport")}
+                      </Button>
+                    </div>
+                  </>
+                )}
                 {voiceAnnouncements && speechSupported() && (
                   <div className="ml-2 border-l border-primary/10 pl-3">
                     <button
@@ -1184,6 +1359,15 @@ export function ConfigV2() {
                             className="shrink-0"
                           />
                         </div>
+                        {voiceEngine === "piper" && (
+                          <>
+                            <Separator className="my-1" />
+                            <VoiceDownloads
+                              kind="tts"
+                              onInstalled={() => setAssetsVersion((v) => v + 1)}
+                            />
+                          </>
+                        )}
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
@@ -1333,6 +1517,54 @@ export function ConfigV2() {
                             ? t("config.spotterPttHoldDesc")
                             : t("config.spotterPttToggleDesc")}
                         </p>
+                        {/* Perte au stand (s) — base de la prédiction « position à la sortie ». */}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-xs text-muted-foreground/80">
+                              {t("config.pitLoss")}
+                            </div>
+                            <p className="text-mini text-muted-foreground/60">
+                              {t("config.pitLossDesc")}
+                            </p>
+                          </div>
+                          <input
+                            type="number"
+                            min={1}
+                            max={120}
+                            step={1}
+                            value={pitLossSeconds}
+                            onChange={(e) =>
+                              void useAppStore
+                                .getState()
+                                .setPitLossSeconds(Number(e.target.value))
+                            }
+                            className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
+                          />
+                        </div>
+                        {/* Réserve carburant (tours) — commande vocale « Carburant ». */}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-xs text-muted-foreground/80">
+                              {t("config.fuelReserve")}
+                            </div>
+                            <p className="text-mini text-muted-foreground/60">
+                              {t("config.fuelReserveDesc")}
+                            </p>
+                          </div>
+                          <input
+                            type="number"
+                            min={0}
+                            max={5}
+                            step={0.5}
+                            value={fuelReserveLaps}
+                            onChange={(e) =>
+                              void useAppStore
+                                .getState()
+                                .setFuelReserveLaps(Number(e.target.value))
+                            }
+                            className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
+                          />
+                        </div>
                         <div className="pt-0.5">
                           <div className="text-xs text-muted-foreground/80 mb-1.5">
                             {t("config.spotterCmdAvailable")}
@@ -1363,6 +1595,11 @@ export function ConfigV2() {
                           <Radio className="h-3.5 w-3.5" />
                           {t("config.spotterCmdOpen")}
                         </Button>
+                        <Separator className="my-1" />
+                        <VoiceDownloads
+                          kind="stt"
+                          onInstalled={() => setAssetsVersion((v) => v + 1)}
+                        />
                       </div>
                     )}
                   </div>

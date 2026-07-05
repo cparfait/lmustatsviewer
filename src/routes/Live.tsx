@@ -11,12 +11,14 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import {
+  isTauri,
   live as liveApi,
   system as systemApi,
   type LiveData,
   type LiveStanding,
   type LiveWheel,
 } from "@/lib/api";
+import { invoke } from "@tauri-apps/api/core";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import {
   ArrowLeft,
@@ -52,7 +54,7 @@ import { TrackFlag } from "@/components/TrackFlag";
 import { CAR_CLASS_COLORS } from "@/lib/staticData";
 import { speak as rawSpeak, cancelSpeech, type VoicePriority } from "@/lib/voice";
 import { inCriticalZone } from "@/lib/driving";
-import { toastSuccess, toastError, confirmDialog } from "@/stores/dialogs";
+import { toast, toastSuccess, toastError, confirmDialog } from "@/stores/dialogs";
 import { computeStrategy, type StrategySnapshot } from "@/lib/strategy";
 import type { Tr } from "@/i18n";
 
@@ -767,6 +769,9 @@ function useVoiceCallouts(
 
 // ── Composant racine ─────────────────────────────────────────────────────────
 
+// Invite « voix manquante » affichée au plus une fois par session d'app.
+let voiceDlHintShown = false;
+
 export function Live() {
   const [data, setData] = useState<LiveData | null>(null);
   const lastGood = useRef<LiveData | null>(null);
@@ -779,6 +784,22 @@ export function Live() {
 
   // Annonces vocales (activables en config) — drapeaux, carburant, pneus.
   useVoiceCallouts(data, voiceAnnouncements, i18n.language, t);
+
+  // Les voix neuronales ne sont plus bundlées : si celle de la langue active
+  // manque (premier lancement, ou après mise à jour), oriente une fois vers
+  // Config → Audio / Voix. En attendant, le repli voix système fonctionne.
+  useEffect(() => {
+    if (voiceDlHintShown || !voiceAnnouncements || !isTauri()) return;
+    if (useAppStore.getState().voiceEngine !== "piper") return;
+    invoke<boolean>("tts_available", { lang: i18n.language })
+      .then((ok) => {
+        if (!ok && !voiceDlHintShown) {
+          voiceDlHintShown = true;
+          toast(t("live.voiceDlHint"));
+        }
+      })
+      .catch(() => {});
+  }, [voiceAnnouncements, i18n.language, t]);
 
   // Vérification de la présence du plugin au montage
   useEffect(() => {

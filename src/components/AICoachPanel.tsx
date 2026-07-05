@@ -497,7 +497,8 @@ export function CoachPanel({
     setShowContext((v) => !v);
   };
 
-  // B1 : dispo de la reconnaissance vocale (Vosk, feature `stt`) pour la langue.
+  // B1 : dispo de la reconnaissance vocale (Vosk) pour la langue — nécessite le
+  // modèle téléchargé (Config → Audio / Voix).
   useEffect(() => {
     invoke<boolean>("stt_available", { lang: i18n.language })
       .then(setSttOk)

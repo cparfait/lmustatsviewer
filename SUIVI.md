@@ -836,6 +836,41 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-07-05 — Préparation public large : robustesse, Config V1 supprimée, visite guidée + aide
+
+Suite de l'audit du jour, décisions utilisateur : diffusion **publique large**, Config V2 validée (après vérif de parité), onboarding complet.
+
+- ✅ **Robustesse** : `indexer.rs` — l'`unwrap()` sur `path.file_name()` (chemin de prod, crash possible au premier scan) remplacé par un `continue` défensif. Le second `unwrap()` signalé (l.827) était dans `#[cfg(test)]` → non concerné. `cargo check` OK.
+- ✅ **Parité Config V1 → V2 vérifiée puis comblée** : 7 fonctions manquaient en V2 (toggles coach Drill/Stint/Risque/Phrasebank + boutons Générer/Vider, import ghost `.duckdb`/`.ld`, Perte au stand, Réserve carburant) → toutes portées dans `ConfigV2.tsx` (section Audio/Voix + Spotter). **`Config.tsx` (V1, 2312 l.) supprimée** ; `/config` et `/config-v2` pointent tous deux sur la V2 (aucun lien cassé) ; menu Header → `/config`.
+- ✅ **Visite guidée** (`src/components/GuidedTour.tsx` + `stores/tour.ts`) : 9 étapes expliquant tout (stats, références, garage, live+plugin, télémétrie+recording, spotter+raccourcis, coach par virage/IA, overlays, aide). Lancée automatiquement à la fin de l'onboarding (`Onboarding.tsx:handleFinish`), navigation clavier ←/→/Échap, rendue globalement dans `App.tsx`.
+- ✅ **Modale d'aide** (`src/components/HelpModal.tsx`) : icône « ? » dans le Header → raccourcis globaux (valeurs réelles du store, « non défini » si vide), prérequis par fonction (plugin shared memory, Telemetry Recording, voix à télécharger, clé API optionnelle), bouton « Revoir la visite guidée », liens Changelog/Discord.
+- ✅ **i18n** : +68 clés (`tour.*` 47, `help.*` 21) ×4 langues → parité stricte maintenue (extract_keys OK).
+- ✅ Vérifs : `tsc` 0 erreur, ESLint (1 warning préexistant Profile.tsx), 121/121 tests coach, `npm run build` OK, `cargo check` OK.
+- 📋 **Prochaine étape** : tester la visite guidée en conditions réelles (poste vierge) ; finir ou masquer P5.3/P5.4 (toggles stint/risque désormais visibles en Config V2 mais logique stub) ; supprimer le warning `Trophy` de Profile.tsx.
+
+### 2026-07-05 — STT obligatoire dans tout build (fin de la feature Cargo `stt`)
+
+Décision utilisateur : les commandes vocales font partie de l'app de base ; seuls les
+modèles par langue restent téléchargeables (déjà en place via `assets.rs`).
+
+- ✅ **Cargo** : `vosk` devient une dépendance standard ; feature `stt` supprimée (`Cargo.toml`, `build.rs` sans early-return, plus aucun `#[cfg(feature = "stt")]` dans `mod.rs`/`lib.rs`/`assets.rs` — le catalogue propose toujours les 4 modèles Vosk). Conséquence : `fetch-vosk.ps1` (libvosk) est **requis pour compiler**.
+- ✅ **Bundle unifié** : les 4 DLL Vosk rejoignent `tauri.conf.json` ; `tauri.stt.conf.json` supprimé ; scripts npm `tauri:dev:stt`/`tauri:build:stt` supprimés (le build standard fait tout) ; CI `release.yml` sans `args`.
+- ✅ **Textes/docs dépoussiérés** : clé i18n `config.spotterCmdTestUnavailable` (×4) pointe vers le téléchargement en Config (plus vers `tauri:dev:stt`) ; commentaires `AICoachPanel`/`SpotterCommandsModal`/`useCoachVoice`/`VoiceDownloads`/`stt.rs` ; README §assets vocaux + build ; MAINTENANCE §4.1/4.4/4.5 ; RELEASE A.3/A.4 ; hint de `fetch-vosk.ps1`.
+- ✅ Vérifs : **`cargo build` complet** (link libvosk OK), `tsc + vite build`, ESLint, 121/121 tests, i18n 1788 clés ×4.
+- 📋 **Prochaine étape** : builder l'installeur (`release.ps1` inchangé, `tauri:build` suffit) et mesurer le poids (~150 Mo attendu avec DLL Vosk) ; test E2E d'un téléchargement de voix + modèle Vosk sur poste « vierge » (renommer `resources/tts/voices` et `resources/stt/models`).
+
+### 2026-07-05 — Voix TTS/STT téléchargées à la demande (installeur 650 Mo → ~100 Mo attendu)
+
+Implémentation du plan validé (cf. entrée d'analyse du même jour) :
+
+- ✅ **Backend** : nouveau `src-tauri/src/commands/assets.rs` — catalogue des 9 voix Piper (URLs HuggingFace figées sur le commit `e21c7de8`, SHA-256 vérifiés au téléchargement via `ring`) + 4 modèles Vosk (zips alphacephei, extraits avec aplatissement du dossier racine via crate `zip`, garde anti path-traversal). Commandes `assets_catalog` / `asset_download` (async, progression via l'événement `asset-progress`, garde anti double téléchargement, écriture `.part` puis rename). Cible : `app_data_dir/tts/voices` et `app_data_dir/stt/models/<code>`.
+- ✅ **Résolution** : `tts_bases()` / `stt_bases()` scannent `app_data_dir` en premier → les modèles téléchargés sont vus par `tts_available`/`tts_list_voices`/`stt_available` sans autre changement. Les modèles STT ne sont proposés au catalogue que si la feature `stt` est compilée.
+- ✅ **Bundle** : `tauri.conf.json` n'embarque plus que `resources/tts/piper` (moteur, ~38 Mo) ; `tauri.stt.conf.json` garde les DLL Vosk mais plus les modèles. Les exécutables restent bundlés (télécharger un .exe au runtime = risque antivirus) ; seuls des fichiers de données sont téléchargés.
+- ✅ **Frontend** : composant `VoiceDownloads` (Config V2 → Audio / Voix : voix de la langue active avec bouton « Télécharger (61 Mo) », barre de progression, toasts ; idem modèle Vosk sous le spotter). Rafraîchit `tts/stt_available` après installation (`assetsVersion`). Invite unique dans Live si annonces actives + voix Piper manquante (`live.voiceDlHint`). Groupe `assets` dans `api.ts`.
+- ✅ **i18n** : 11 clés `config.asset*` + `live.voiceDlHint` + reformulation `config.voiceEngineFallback` — FR/EN/ES/DE équilibrés (1788 clés partout, extract_keys OK).
+- ✅ Vérifs : `cargo check` (avec et sans `--features stt`), `tsc + vite build`, ESLint, 121/121 tests coach.
+- 📋 **Prochaine étape** : builder l'installeur (`release.ps1`) pour mesurer le gain réel ; tester un téléchargement de bout en bout (renommer temporairement `src-tauri/resources/tts/voices` pour simuler un poste vierge) ; prévoir l'item changelog « installeur allégé, voix téléchargeables » ; si HuggingFace/alphacephei posent problème un jour, basculer les URLs du manifeste vers des assets d'une release GitHub dédiée.
+
 ### 2026-07-05 — Vérification changelog 1.0.0 + posts d'annonce forum (FR/EN)
 
 **Contexte** : préparation de l'annonce publique de la v1.0 (passage 0.9.4 → 1.0.x) sur les forums LMU. Audit de l'entrée changelog 1.0.0 (`src/lib/changelog.ts`) contre l'état réel du code (routes, `overlays.ts`, README).

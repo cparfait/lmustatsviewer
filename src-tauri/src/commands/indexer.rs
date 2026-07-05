@@ -270,7 +270,10 @@ pub fn sync_results(
         {
             continue;
         }
-        let filename = path.file_name().unwrap().to_string_lossy().to_string();
+        let filename = match path.file_name() {
+            Some(name) => name.to_string_lossy().to_string(),
+            None => continue,
+        };
         let mtime = entry
             .metadata()
             .ok()

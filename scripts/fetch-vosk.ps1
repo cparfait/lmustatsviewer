@@ -87,11 +87,10 @@ foreach ($m in $Models) {
 }
 
 # --- Build hint ---
-# STT is gated behind the `stt` cargo feature (off by default so the app builds
-# without these assets). Once fetched, build/run with the feature + the STT config
-# overlay (adds the bundle resources):
-#   npm run tauri dev   -- --features stt --config src-tauri/tauri.stt.conf.json
-#   npm run tauri build -- --features stt --config src-tauri/tauri.stt.conf.json
+# STT is part of every build (vosk is a mandatory Cargo dependency): the native
+# lib below is REQUIRED to compile. Language models are no longer bundled — the
+# app downloads them on demand (Config -> Audio/Voice, cf. commands/assets.rs);
+# fetching them here only serves local dev (they are picked up as a dev base).
 #
 # Linking: build.rs adds resources/stt/lib to the linker search path. On Windows the
 # crate links `libvosk.lib`. If only libvosk.dll is present (no import lib), generate it:

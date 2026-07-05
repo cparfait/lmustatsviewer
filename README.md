@@ -252,27 +252,25 @@ npm run tauri:dev       # application native avec hot-reload
 npm run dev             # interface seule (http://localhost:5173, sans backend Rust)
 ```
 
-### Assets vocaux (optionnels, recommandés)
+### Assets vocaux (requis pour compiler)
 La **voix neuronale** (Piper) et les **commandes vocales** du spotter (Vosk) reposent
 sur des assets lourds, **hors git**, à télécharger une fois via scripts PowerShell :
 ```powershell
-./scripts/fetch-piper.ps1   # voix neuronale Piper (TTS)
-./scripts/fetch-vosk.ps1    # modèles de reconnaissance Vosk (commandes vocales)
+./scripts/fetch-piper.ps1   # moteur + voix neuronales Piper (TTS)
+./scripts/fetch-vosk.ps1    # libvosk (requise au link) + modèles de reconnaissance
 ```
-Sans ces assets, l'app fonctionne quand même : la voix retombe sur la synthèse système
-et les commandes vocales sont « indisponibles » (repli sur la touche Statut).
-
-> Les **commandes vocales** sont derrière une **feature Cargo `stt`** (désactivée par
-> défaut). Pour les activer en dev : `npm run tauri:dev:stt`.
+> `libvosk` (fetch-vosk) est **requise pour compiler** (le STT fait partie de tout
+> build) ; le moteur Piper est bundlé dans l'installeur. En revanche, les **voix**
+> et **modèles par langue** ne sont **pas bundlés** : l'app installée les télécharge
+> à la demande (Config → Audio / Voix) vers le dossier app data. Sans eux, repli
+> voix système / touche Statut — rien ne bloque.
 
 ### Build de production
 ```bash
-npm run tauri:build         # installeur NSIS (sans commandes vocales)
-npm run tauri:build:stt     # installeur complet (voix neuronale + commandes vocales)
+npm run tauri:build         # installeur NSIS (STT inclus, modèles téléchargeables in-app)
 ```
-> `tauri:build:stt` exige d'avoir lancé `fetch-piper.ps1` **et** `fetch-vosk.ps1` au
-> préalable. L'installeur est généré dans `src-tauri/target/release/bundle/`.
-> La **release officielle** (CI sur tag `vX.Y.Z`) embarque automatiquement ces assets.
+> Exige d'avoir lancé `fetch-piper.ps1` **et** `fetch-vosk.ps1` au préalable.
+> L'installeur est généré dans `src-tauri/target/release/bundle/`.
 
 ### Vérifications
 ```bash

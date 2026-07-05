@@ -30,12 +30,9 @@ fn main() {
 
 /// Expose la lib native `libvosk` au linker et copie la DLL à côté du binaire de
 /// dev (chargement implicite → la DLL doit être trouvable au démarrage du process).
-/// Les assets sont fetchés par `scripts/fetch-vosk.ps1` dans `resources/stt/lib/`.
-/// No-op si la feature `stt` n'est pas activée (l'app compile sans les assets Vosk).
+/// Les assets sont fetchés par `scripts/fetch-vosk.ps1` dans `resources/stt/lib/`
+/// (requis : le STT fait partie du build standard).
 fn setup_vosk() {
-    if std::env::var("CARGO_FEATURE_STT").is_err() {
-        return;
-    }
     let lib_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("resources")
         .join("stt")

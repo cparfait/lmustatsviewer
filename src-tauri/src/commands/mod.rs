@@ -12,5 +12,5 @@ pub mod overlay;
 pub mod records;
 pub mod telemetry;
 pub mod tts;
-#[cfg(feature = "stt")]
+pub mod assets;
 pub mod stt;

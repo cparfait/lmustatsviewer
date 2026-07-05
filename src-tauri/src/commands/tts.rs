@@ -31,9 +31,13 @@ pub struct PiperVoice {
     pub speakers: Vec<String>,
 }
 
-/// Dossiers `tts` candidats : ressources bundlées (prod) puis dossier source (dev).
+/// Dossiers `tts` candidats : voix téléchargées à la demande (app data,
+/// prioritaires), puis ressources bundlées (prod), puis dossier source (dev).
 fn tts_bases(app: &tauri::AppHandle) -> Vec<std::path::PathBuf> {
     let mut v = Vec::new();
+    if let Ok(data) = app.path().app_data_dir() {
+        v.push(data.join("tts"));
+    }
     if let Ok(res) = app.path().resource_dir() {
         v.push(res.join("tts"));
     }
@@ -58,7 +62,8 @@ fn stem(p: &std::path::Path) -> String {
 }
 
 /// Tous les modèles `.onnx` installés (dédupliqués par nom de fichier).
-fn voice_files(app: &tauri::AppHandle) -> Vec<std::path::PathBuf> {
+/// `pub(crate)` : réutilisé par `assets.rs` pour l'état « installée » du catalogue.
+pub(crate) fn voice_files(app: &tauri::AppHandle) -> Vec<std::path::PathBuf> {
     let mut out: Vec<std::path::PathBuf> = Vec::new();
     let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
     for base in tts_bases(app) {

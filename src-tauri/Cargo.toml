@@ -39,21 +39,16 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 futures-util = "0.3"
 # Chiffrement local de la clé API IA (AES-256-GCM, clé dérivée de la machine).
 ring = "0.17"
+# Extraction des archives de modèles Vosk téléchargés à la demande (assets.rs).
+zip = { version = "2", default-features = false, features = ["deflate"] }
 quick-xml = "0.36"
 walkdir = "2"
 raw-window-handle = "0.6"
 windows = { version = "0.58", features = ["Win32_System_Memory", "Win32_Foundation", "Win32_System_LibraryLoader"] }
 # Reconnaissance vocale offline par commandes (spotter Couche 2). FFI vers libvosk.
-# Optionnel : activé par la feature `stt` (nécessite les assets fetch-vosk.ps1).
-# Sans la feature, l'app compile normalement et le spotter retombe sur le Statut.
-vosk = { version = "0.3", optional = true }
-
-[features]
-# Reconnaissance vocale par commandes (spotter Couche 2). Requiert libvosk + modèles
-# (scripts/fetch-vosk.ps1). Désactivée par défaut pour que l'app compile sans assets ;
-# sans elle, les commandes stt_* renvoient « indisponible » et le spotter retombe sur
-# le Statut. Activer avec : `tauri dev --features stt` / `tauri build --features stt`.
-stt = ["dep:vosk"]
+# La lib native (resources/stt/lib, fetchée par scripts/fetch-vosk.ps1) est requise
+# à la compilation ; les modèles par langue sont téléchargés à la demande (assets.rs).
+vosk = "0.3"
 
 [profile.release]
 panic = "abort"      # Strip expensive panic clean-up logic

@@ -1214,3 +1214,37 @@ export const overlay = {
   /** État courant du mode Édition (rattrapage au montage du webview overlay). */
   getEditMode: () => invoke<boolean>("get_overlay_edit_mode"),
 };
+
+// ─── Modèles vocaux téléchargeables (`assets`) ──────────────────────────────
+
+/** Voix Piper / modèle Vosk téléchargeable (`assets::AssetInfo`). */
+export interface AssetInfo {
+  kind: "tts" | "stt";
+  /** Voix : id de fichier (« fr », « fr_FR-siwis-medium ») ; STT : code langue. */
+  id: string;
+  lang: string;
+  label: string;
+  size_mb: number;
+  installed: boolean;
+  /** Vrai pour la voix par défaut de la langue. */
+  is_default: boolean;
+}
+
+/** Progression d'un téléchargement (`assets::AssetProgress`). */
+export interface AssetProgress {
+  kind: string;
+  id: string;
+  downloaded: number;
+  total: number;
+}
+
+export const assets = {
+  /** Catalogue des modèles téléchargeables + état d'installation. */
+  catalog: () => invoke<AssetInfo[]>("assets_catalog"),
+  /** Télécharge un modèle ; résout à la fin (progression via `onProgress`). */
+  download: (kind: "tts" | "stt", id: string) =>
+    invoke<void>("asset_download", { kind, id }),
+  /** S'abonne à la progression des téléchargements (`asset-progress`). */
+  onProgress: (cb: (p: AssetProgress) => void): Promise<UnlistenFn> =>
+    listen<AssetProgress>("asset-progress", (e) => cb(e.payload)),
+};

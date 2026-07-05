@@ -206,12 +206,12 @@ pub fn run() {
             commands::tts::tts_synthesize,
             commands::tts::tts_available,
             commands::tts::tts_list_voices,
-            // Reconnaissance vocale par commandes (Vosk, spotter Couche 2 ; feature `stt`)
-            #[cfg(feature = "stt")]
+            // Téléchargement à la demande des modèles vocaux (voix Piper, Vosk)
+            commands::assets::assets_catalog,
+            commands::assets::asset_download,
+            // Reconnaissance vocale par commandes (Vosk, spotter Couche 2)
             commands::stt::stt_available,
-            #[cfg(feature = "stt")]
             commands::stt::stt_recognize,
-            #[cfg(feature = "stt")]
             commands::stt::stt_recognize_free,
         ])
         .setup(|app| {

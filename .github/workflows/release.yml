@@ -76,9 +76,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         with:
-          # Embarque les commandes vocales (feature `stt`) + les ressources de bundle
-          # additionnelles (modèles Vosk + libvosk.dll & DLL MinGW à la racine).
-          args: --features stt --config src-tauri/tauri.stt.conf.json
+          # STT inclus d'office (libvosk liée au build, DLL bundlées via tauri.conf.json).
+          # Les voix Piper et modèles Vosk ne sont PAS bundlés : téléchargés à la
+          # demande par l'app (Config → Audio / Voix, cf. commands/assets.rs).
           tagName: ${{ github.ref_name }}
           releaseName: "LMU Stats Viewer ${{ github.ref_name }}"
           releaseBody: |

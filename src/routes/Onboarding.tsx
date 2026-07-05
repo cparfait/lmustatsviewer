@@ -18,6 +18,7 @@ import {
   FolderSearch,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
+import { useTourStore } from "@/stores/tour";
 import { config } from "@/lib/api";
 import type { DetectResult, IndexReport } from "@/lib/api";
 
@@ -93,9 +94,11 @@ export function Onboarding() {
   };
 
   // L'application sort de l'onboarding automatiquement (isConfigured passe à true
-  // après runSetup) : ce bouton ne fait que forcer un re-rendu propre.
+  // après runSetup). On enchaîne sur la visite guidée (explication de toutes les
+  // fonctions) — relançable ensuite via l'aide « ? » du header.
   const handleFinish = () => {
     useAppStore.setState({ isConfigured: true });
+    useTourStore.getState().setOpen(true);
   };
 
   return (

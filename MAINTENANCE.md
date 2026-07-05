@@ -162,7 +162,7 @@ Bump version.json → commit → tag vX.Y.Z → push tag
               1. npm ci
               2. fetch-piper.ps1  (voix neuronale)
               3. fetch-vosk.ps1   (modèles de reconnaissance)
-              4. tauri build --features stt --config src-tauri/tauri.stt.conf.json
+              4. tauri build   (STT inclus d'office ; voix/modèles NON bundlés)
               5. signe + crée une GitHub Release (draft)
 ```
 
@@ -197,32 +197,31 @@ En CI ils sont **mis en cache** (clé = hash des deux scripts) ; les scripts sau
 fichiers déjà présents, donc un cache hit est quasi instantané. Pour ajouter une voix ou
 une langue, éditer la liste en tête du script concerné (1 ligne) puis relancer.
 
-### 4.4 Feature `stt` (commandes vocales)
+### 4.4 STT (commandes vocales) — inclus d'office
 
-`vosk` est une **dépendance Cargo optionnelle** derrière la feature `stt` (OFF par défaut)
-pour que le projet compile **sans** les assets. Conséquences :
+`vosk` est une **dépendance Cargo standard** : le STT fait partie de tout build
+(`npm run tauri:build` / `tauri:dev`). Les assets natifs (`scripts/fetch-vosk.ps1`)
+sont donc **requis pour compiler**. En revanche, les **modèles par langue ne sont
+plus bundlés** : l'app les télécharge à la demande (Config → Audio / Voix, cf.
+`src-tauri/src/commands/assets.rs`), comme les voix Piper.
 
-| Build | Commande | Contenu |
-|---|---|---|
-| Standard | `npm run tauri:build` | Pas de commandes vocales (le spotter retombe sur le Statut) |
-| Complet | `npm run tauri:build:stt` | Commandes vocales incluses (feature + overlay `tauri.stt.conf.json`) |
-| Dev complet | `npm run tauri:dev:stt` | Idem en hot-reload |
-
-- L'overlay **`src-tauri/tauri.stt.conf.json`** ajoute au bundle les modèles Vosk et les DLL
-  natives (`libvosk.dll` + dépendances MinGW `libgcc`/`libstdc++`/`libwinpthread`) **à côté
-  de l'exe** (chargement implicite au démarrage).
+- Le bundle (`tauri.conf.json`) embarque les DLL natives (`libvosk.dll` + dépendances
+  MinGW `libgcc`/`libstdc++`/`libwinpthread`) **à côté de l'exe** (chargement implicite
+  au démarrage), plus le moteur Piper (`tts/piper`). Ni voix `.onnx`, ni modèles Vosk.
 - **Linking Windows** : le crate lie `libvosk.lib` ; `build.rs` ajoute `resources/stt/lib`
   au chemin du linker et copie les DLL à côté du binaire de dev. Si l'archive Vosk ne fournit
   pas `libvosk.lib`, la générer (cf. en-tête de `fetch-vosk.ps1`).
+- Les modèles téléchargés atterrissent dans `%APPDATA%/com.cparfait.lmustatsviewer/stt/models/<code>`
+  (voix : `…/tts/voices`).
 
 ### 4.5 Build local manuel (sans CI)
 
 ```powershell
-# 1. (une fois) récupérer les assets vocaux
+# 1. (une fois) récupérer les assets vocaux (requis pour compiler : libvosk + moteur Piper)
 ./scripts/fetch-piper.ps1
 ./scripts/fetch-vosk.ps1
-# 2. installeur complet
-npm run tauri:build:stt
+# 2. installeur
+npm run tauri:build
 # → src-tauri/target/release/bundle/nsis/*.exe
 ```
 La signature de l'auto-update nécessite la variable d'env `TAURI_SIGNING_PRIVATE_KEY`

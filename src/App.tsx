@@ -17,11 +17,11 @@ import { SetupCompare } from "@/routes/SetupCompare";
 import { Live } from "@/routes/Live";
 import { Telemetry } from "@/routes/Telemetry";
 import { TelemetryView } from "@/routes/TelemetryView";
-import { Config } from "@/routes/Config";
 import { ConfigV2 } from "@/routes/ConfigV2";
 import { Overlays } from "@/routes/Overlays";
 import { Changelog } from "@/routes/Changelog";
 import { Onboarding } from "@/routes/Onboarding";
+import { GuidedTour } from "@/components/GuidedTour";
 import { Profile } from "@/routes/Profile";
 import { NotFound } from "@/routes/NotFound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -134,7 +134,9 @@ export default function App() {
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/telemetry/view" element={<TelemetryView />} />
             <Route path="/overlays" element={<Overlays />} />
-            <Route path="/config" element={<Config />} />
+            {/* La Config V2 est la seule page de configuration ; /config-v2 reste
+                en alias pour les anciens liens. */}
+            <Route path="/config" element={<ConfigV2 />} />
             <Route path="/config-v2" element={<ConfigV2 />} />
             <Route path="/changelog" element={<Changelog />} />
             <Route path="*" element={<NotFound />} />
@@ -144,6 +146,8 @@ export default function App() {
       </main>
       {!isLive && !needsOnboarding && <Footer />}
       {!isLive && !needsOnboarding && <ScrollToTop />}
+      {/* Visite guidée — ouverte à la fin de l'onboarding ou depuis l'aide « ? ». */}
+      {!isLive && <GuidedTour />}
     </div>
     </TooltipProvider>
   );

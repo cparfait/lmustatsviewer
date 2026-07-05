@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { NavLink } from "react-router";
-import { Flag, Moon, Sun, Globe, User, Check } from "lucide-react";
+import { Flag, Moon, Sun, Globe, User, Check, HelpCircle } from "lucide-react";
+import { HelpModal } from "@/components/HelpModal";
 import { useTheme } from "@/stores/theme";
 import { useAppStore } from "@/stores/app";
 import { Button } from "@/components/ui/button";
@@ -23,10 +25,7 @@ const navKeys = [
   { to: "/live", key: "live" },
   { to: "/overlays", key: "overlays" },
   { to: "/telemetry", key: "telemetry" },
-  // V2 promue comme configuration principale : affichée « Config » dans le menu.
-  // La V1 (`/config`) reste routée dans App.tsx et accessible par URL le temps de
-  // valider la V2 — à retirer ensuite.
-  { to: "/config-v2", key: "config" },
+  { to: "/config", key: "config" },
 ];
 
 /** Entrées de menu désactivables par l'utilisateur (Records=accueil & Config toujours
@@ -51,6 +50,7 @@ const languages = [
 export function Header() {
   const { theme, toggle } = useTheme();
   const { t, i18n } = useTranslation();
+  const [helpOpen, setHelpOpen] = useState(false);
   const playerName = useAppStore((s) => s.playerName);
   const menuModules = useAppStore((s) => s.menuModules);
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
@@ -101,6 +101,15 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setHelpOpen(true)}
+            aria-label={t("help.title")}
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
@@ -166,6 +175,7 @@ export function Header() {
           )}
         </div>
       </div>
+      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
     </header>
   );
 }

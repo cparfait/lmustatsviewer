@@ -117,14 +117,14 @@ export function SpotterCommandsModal({ onClose }: { onClose: () => void }) {
       });
       setTestResult({ text, intent: matchIntent(text, lang) });
     } catch (e) {
-      // Distingue « commande absente / assets manquants » d'une vraie erreur reco :
-      // si stt_available échoue ou renvoie false → feature `stt` / modèle absent.
+      // Distingue « modèle absent » d'une vraie erreur reco : si stt_available
+      // échoue ou renvoie false → modèle de la langue non téléchargé (Config).
       console.error("[spotter] stt_recognize failed", e);
       let available = false;
       try {
         available = await invoke<boolean>("stt_available", { lang });
       } catch {
-        available = false; // commande non enregistrée → build sans --features stt
+        available = false;
       }
       setTestResult({ error: available ? "runtime" : "unavailable" });
     }

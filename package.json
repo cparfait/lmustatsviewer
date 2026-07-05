@@ -13,8 +13,6 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "tauri:dev:stt": "tauri dev --features stt",
-    "tauri:build:stt": "tauri build --features stt --config src-tauri/tauri.stt.conf.json",
     "tauri:icon": "tauri icon"
   },
   "dependencies": {

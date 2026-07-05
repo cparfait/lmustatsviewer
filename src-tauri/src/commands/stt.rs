@@ -5,9 +5,10 @@
 //! (liste fermée de phrases) de la langue courante. Vosk contraint la sortie à ce
 //! vocabulaire → précision maximale, déterministe, sans réseau.
 //!
-//! La lib native `libvosk` et les modèles sont bundlés en ressources (comme Piper,
-//! cf. `tts.rs`). Si la lib ou le modèle manque, les commandes renvoient une erreur /
-//! `false` et le frontend bascule sur un repli (touche = Statut).
+//! La lib native `libvosk` est bundlée en ressources ; les modèles par langue sont
+//! téléchargés à la demande (Config → Audio / Voix, cf. `assets.rs`). Si la lib ou
+//! le modèle manque, les commandes renvoient une erreur / `false` et le frontend
+//! bascule sur un repli (touche = Statut).
 
 use crate::error::{AppError, AppResult};
 use std::collections::HashMap;
@@ -15,9 +16,13 @@ use std::sync::{Mutex, OnceLock};
 use tauri::Manager;
 use vosk::{Model, Recognizer};
 
-/// Dossiers `stt` candidats : ressources bundlées (prod) puis dossier source (dev).
+/// Dossiers `stt` candidats : modèles téléchargés à la demande (app data,
+/// prioritaires), puis ressources bundlées (prod), puis dossier source (dev).
 fn stt_bases(app: &tauri::AppHandle) -> Vec<std::path::PathBuf> {
     let mut v = Vec::new();
+    if let Ok(data) = app.path().app_data_dir() {
+        v.push(data.join("stt"));
+    }
     if let Ok(res) = app.path().resource_dir() {
         v.push(res.join("stt"));
     }

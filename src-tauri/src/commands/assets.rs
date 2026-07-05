@@ -131,8 +131,6 @@ fn stt_model_installed(app: &tauri::AppHandle, code: &str) -> bool {
 }
 
 /// Catalogue des modèles téléchargeables + leur état d'installation.
-/// Les modèles STT ne sont proposés que si la feature `stt` est compilée
-/// (sinon libvosk n'est pas liée : les télécharger ne servirait à rien).
 #[tauri::command]
 pub fn assets_catalog(app: tauri::AppHandle) -> Vec<AssetInfo> {
     let installed_voices: HashSet<String> = super::tts::voice_files(&app)
@@ -151,17 +149,15 @@ pub fn assets_catalog(app: tauri::AppHandle) -> Vec<AssetInfo> {
             is_default: v.id == v.lang,
         })
         .collect();
-    if cfg!(feature = "stt") {
-        out.extend(STT_MODELS.iter().map(|m| AssetInfo {
-            kind: "stt".into(),
-            id: m.lang.into(),
-            lang: m.lang.into(),
-            label: m.name.into(),
-            size_mb: (m.size / 1_048_576) as u32 + 1,
-            installed: stt_model_installed(&app, m.lang),
-            is_default: true,
-        }));
-    }
+    out.extend(STT_MODELS.iter().map(|m| AssetInfo {
+        kind: "stt".into(),
+        id: m.lang.into(),
+        lang: m.lang.into(),
+        label: m.name.into(),
+        size_mb: (m.size / 1_048_576) as u32 + 1,
+        installed: stt_model_installed(&app, m.lang),
+        is_default: true,
+    }));
     out
 }
 

@@ -846,7 +846,8 @@ Suite de l'audit du jour, décisions utilisateur : diffusion **publique large**,
 - ✅ **Modale d'aide** (`src/components/HelpModal.tsx`) : icône « ? » dans le Header → raccourcis globaux (valeurs réelles du store, « non défini » si vide), prérequis par fonction (plugin shared memory, Telemetry Recording, voix à télécharger, clé API optionnelle), bouton « Revoir la visite guidée », liens Changelog/Discord.
 - ✅ **i18n** : +68 clés (`tour.*` 47, `help.*` 21) ×4 langues → parité stricte maintenue (extract_keys OK).
 - ✅ Vérifs : `tsc` 0 erreur, ESLint (1 warning préexistant Profile.tsx), 121/121 tests coach, `npm run build` OK, `cargo check` OK.
-- 📋 **Prochaine étape** : tester la visite guidée en conditions réelles (poste vierge) ; finir ou masquer P5.3/P5.4 (toggles stint/risque désormais visibles en Config V2 mais logique stub) ; supprimer le warning `Trophy` de Profile.tsx.
+- ✅ **Correctif d'audit (même jour)** : P5.3/P5.4 ne sont **pas** des stubs — vérification ligne à ligne : logique complète (`stint.ts` dérive vmin/lift & coast/out-lap, `risk.ts` coupures/cible de classe), branchée dans `service.ts` (y c. `classBestSectors()` l.600), 5 clés vocales ×4 langues présentes. L'audit du matin s'était trompé (les `return null` sont le chemin nominal « rien à signaler »). Seule réserve réelle : pas de suite de tests dédiée ni de validation en roulage.
+- 📋 **Prochaine étape** : tester la visite guidée en conditions réelles (poste vierge) ; valider P5.3/P5.4 en roulage + suite de tests dédiée ; supprimer le warning `Trophy` de Profile.tsx.
 
 ### 2026-07-05 — STT obligatoire dans tout build (fin de la feature Cargo `stt`)
 

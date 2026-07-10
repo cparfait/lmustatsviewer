@@ -114,7 +114,7 @@ export function Header() {
             variant="ghost"
             size="icon"
             onClick={toggle}
-            aria-label="Toggle theme"
+            aria-label={t("header.toggleTheme")}
           >
             {theme === "dark" ? (
               <Sun className="h-4 w-4" />

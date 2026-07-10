@@ -86,14 +86,6 @@ export const LMU_CAR_CATEGORY_LABELS: Record<LmuCarCategory, string> = {
   gte: "GTE",
 };
 
-export const tierColorMap: Record<Tier, "alien" | "pro" | "semi" | "amateur" | "offline"> = {
-  Alien: "alien",
-  Pro: "pro",
-  "Semi-Pro": "semi",
-  Amateur: "amateur",
-  Offline: "offline",
-};
-
 // ─── JSON loaders + préchargement ────────────────────────────────────────────
 
 interface CarsJson {
@@ -134,16 +126,6 @@ export async function preloadStaticData(): Promise<void> {
   // utilisés par des composants non-async comme `NewSetupDialog` (menu voiture).
   // Les données brutes sont déjà en cache → pas de second fetch.
   await Promise.all([getLmuCars(), getLmuCircuits()]);
-}
-
-/** Invalide le cache (utile après un hot-reload en dev). */
-export function invalidateStaticDataCache(): void {
-  _carsData = null;
-  _circuitsData = null;
-  _cachedLmuCars = null;
-  _cachedLmuCircuits = null;
-  _cachedBrandMap = null;
-  _cachedFlagKeywords = null;
 }
 
 // ─── Catalogue voitures ─────────────────────────────────────────────────────

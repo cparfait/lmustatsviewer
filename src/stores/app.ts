@@ -129,6 +129,8 @@ interface AppState {
   // Filtre de version actif (Header + pages)
   selectedVersion: string | null;
   showOutdated: boolean;
+  /** « Cette version uniquement » : filtre `=` au lieu de `>=` (spec §3.8). */
+  versionExact: boolean;
 
   // Indexation
   indexing: boolean;
@@ -153,6 +155,7 @@ interface AppState {
   loadDashboard: () => Promise<void>;
   setSelectedVersion: (v: string | null) => void;
   setShowOutdated: (v: boolean) => void;
+  setVersionExact: (v: boolean) => void;
   setTimezone: (tz: string) => Promise<void>;
   setAutoIndex: (v: boolean) => Promise<void>;
   setSystemTray: (v: boolean) => Promise<void>;
@@ -246,6 +249,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   gameVersions: [],
   selectedVersion: null,
   showOutdated: false,
+  versionExact: false,
   indexing: false,
   indexReport: null,
   loading: false,
@@ -507,6 +511,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSelectedVersion: (v) => set({ selectedVersion: v }),
   setShowOutdated: (v) => set({ showOutdated: v }),
+  setVersionExact: (v) => set({ versionExact: v }),
 
   setTimezone: async (tz) => {
     await config.set("timezone", tz);

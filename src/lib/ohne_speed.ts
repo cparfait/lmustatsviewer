@@ -244,10 +244,6 @@ export async function fetchBenchmarks(): Promise<PaceBenchmark[]> {
   return cachedBenchmarks;
 }
 
-export function clearBenchmarkCache(): void {
-  cachedBenchmarks = null;
-}
-
 export function findBenchmark(
   benchmarks: PaceBenchmark[],
   trackFromDb: string,

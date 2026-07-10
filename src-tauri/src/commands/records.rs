@@ -102,15 +102,20 @@ fn fetch_player_rows(
 #[tauri::command]
 pub fn get_records_overview(
     min_version: Option<String>,
+    version_exact: Option<bool>,
     db: State<'_, DbState>,
 ) -> Result<Vec<RecordOverviewRow>, AppError> {
     // Filtre version : sessions dont game_version >= min_version (ordre lexicographique
     // LMU "0.9200" < "1.0" → ordre correct car le jeu utilise des chaînes dotted comparables).
+    // Si `version_exact`, on filtre `=` au lieu de `>=` (case « cette version uniquement »).
     let (where_clause, params) = match min_version.as_deref().filter(|v| !v.is_empty()) {
-        Some(v) => (
-            " AND s.game_version >= ?".to_string(),
-            vec![Value::Text(v.to_string())],
-        ),
+        Some(v) => {
+            let op = if version_exact.unwrap_or(false) { "=" } else { ">=" };
+            (
+                format!(" AND s.game_version {op} ?"),
+                vec![Value::Text(v.to_string())],
+            )
+        }
         None => (String::new(), Vec::new()),
     };
     let rows = fetch_player_rows(&db, &where_clause, params)?;

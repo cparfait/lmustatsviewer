@@ -11,6 +11,9 @@ pub fn class_order(class: &str) -> i32 {
         "Hyper" => 1,
         "LMP2 WEC" => 2,
         "LMP2 ELMS" => 3,
+        // LMP2 non résolu (catégorie sans WEC/ELMS) : reste dans la famille LMP2,
+        // avant LMP3 — jamais rejeté à 99 après GTE.
+        "LMP2" => 3,
         "LMP3" => 4,
         "GT3" => 5,
         "GTE" => 6,

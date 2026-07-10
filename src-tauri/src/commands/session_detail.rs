@@ -210,15 +210,18 @@ pub fn get_session_detail(
         })?;
 
     // --- Sessions sœurs du même événement ---
+    // On filtre aussi sur le circuit : deux événements de circuits différents
+    // partageant par accident le même timestamp (donc le même event_id, cf.
+    // `recompute_event_ids`) ne doivent jamais mélanger leurs sessions.
     let mut stmt_sib = conn
         .prepare(
-            "SELECT id, session_type FROM sessions WHERE event_id = ?1
+            "SELECT id, session_type FROM sessions WHERE event_id = ?1 AND track = ?2
              ORDER BY CASE session_type WHEN 'Race' THEN 0 WHEN 'Qualify' THEN 1
                       ELSE 2 END, timestamp",
         )
         .map_err(|e| AppError::Database(format!("siblings: {e}")))?;
     let siblings: Vec<SiblingSession> = stmt_sib
-        .query_map([session.event_id], |row| {
+        .query_map(rusqlite::params![session.event_id, session.track], |row| {
             Ok(SiblingSession {
                 id: row.get(0)?,
                 session_type: row.get(1)?,

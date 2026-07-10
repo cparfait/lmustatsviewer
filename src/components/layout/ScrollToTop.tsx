@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const THRESHOLD = 300;
 
 export function ScrollToTop() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -23,8 +25,8 @@ export function ScrollToTop() {
   return (
     <button
       onClick={scrollTop}
-      aria-label="Remonter en haut de page"
-      title="Remonter en haut"
+      aria-label={t("header.scrollTop")}
+      title={t("header.scrollTop")}
       className={cn(
         "fixed bottom-6 right-6 z-50",
         "flex h-11 w-11 items-center justify-center rounded-full",

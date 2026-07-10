@@ -2,24 +2,32 @@
  * Téléchargement à la demande des modèles vocaux — voix TTS Piper (`kind="tts"`)
  * ou modèle STT Vosk (`kind="stt"`) de la langue active.
  *
- * Les modèles ne sont plus bundlés dans l'installeur (~550 Mo économisés) :
- * cette liste (Config → Audio / Voix) les installe en un clic, avec barre de
- * progression (événement `asset-progress` du backend). Rend `null` hors Tauri
- * ou si le catalogue est vide.
+ * Les modèles ne sont plus bundlés dans l'installeur (~550 Mo économisés) ;
+ * deux rendus (Config → Audio / Voix) :
+ * - `variant="banner"` : bandeau d'alerte bien visible avec le bouton de
+ *   téléchargement du modèle par défaut — affiché directement dans la page
+ *   (rien à déplier), disparaît une fois le modèle installé ;
+ * - `variant="list"` (défaut) : liste complète des modèles de la langue
+ *   (voix alternatives incluses) dans les réglages dépliés.
+ *
+ * Progression via l'événement `asset-progress` du backend. Rend `null` hors
+ * Tauri ou si le catalogue est vide.
  */
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Download, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { assets, isTauri, type AssetInfo } from "@/lib/api";
 import { toastError, toastSuccess } from "@/stores/dialogs";
 
 export function VoiceDownloads({
   kind,
+  variant = "list",
   onInstalled,
 }: {
   kind: "tts" | "stt";
+  variant?: "banner" | "list";
   /** Appelé après une installation réussie (pour rafraîchir tts/stt_available). */
   onInstalled?: () => void;
 }) {
@@ -80,6 +88,55 @@ export function VoiceDownloads({
     }
   };
 
+  const progressBar = (
+    <span className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+      <span className="relative h-1.5 w-28 overflow-hidden rounded-full bg-muted">
+        <span
+          className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width]"
+          style={{ width: `${pct}%` }}
+        />
+      </span>
+      <span className="tabular-nums w-9 text-right">{pct}%</span>
+      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+    </span>
+  );
+
+  const downloadButton = (a: AssetInfo) => (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-7 gap-1.5 shrink-0"
+      disabled={busyId !== null}
+      onClick={() => void download(a)}
+    >
+      <Download className="h-3.5 w-3.5" />
+      {t("config.assetDlBtn", { size: a.size_mb })}
+    </Button>
+  );
+
+  if (variant === "banner") {
+    // Modèle « principal » de la langue : la voix par défaut (TTS) / le modèle
+    // unique (STT). Une fois installé, le bandeau disparaît (la liste complète
+    // reste accessible dans les réglages dépliés).
+    const main = rows.find((a) => a.is_default) ?? rows[0];
+    if (!main || main.installed) return null;
+    return (
+      <div className="mt-2 flex items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+          <span className="text-xs leading-snug">
+            {t(
+              kind === "tts"
+                ? "config.assetVoiceMissing"
+                : "config.assetSttMissing",
+            )}
+          </span>
+        </div>
+        {busyId === main.id ? progressBar : downloadButton(main)}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1.5">
       <div className="text-sm font-medium leading-tight">
@@ -105,27 +162,9 @@ export function VoiceDownloads({
                 {t("config.assetInstalled")}
               </span>
             ) : busyId === a.id ? (
-              <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="relative h-1.5 w-28 overflow-hidden rounded-full bg-muted">
-                  <span
-                    className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width]"
-                    style={{ width: `${pct}%` }}
-                  />
-                </span>
-                <span className="tabular-nums w-9 text-right">{pct}%</span>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              </span>
+              progressBar
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 gap-1.5"
-                disabled={busyId !== null}
-                onClick={() => void download(a)}
-              >
-                <Download className="h-3.5 w-3.5" />
-                {t("config.assetDlBtn", { size: a.size_mb })}
-              </Button>
+              downloadButton(a)
             )}
           </div>
         </div>

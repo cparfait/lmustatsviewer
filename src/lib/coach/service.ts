@@ -832,18 +832,6 @@ export function onCoachEvent(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
-/** Abonne un auditeur aux réfs capturées (P1.3) ; renvoie le désabonnement. */
-export function onRefCaptured(listener: RefListener): () => void {
-  refListeners.add(listener);
-  return () => refListeners.delete(listener);
-}
-
-/** Abonne un auditeur aux diagnostics par virage (P2.1) ; renvoie le désabonnement. */
-export function onDiagnostic(listener: DiagListener): () => void {
-  diagListeners.add(listener);
-  return () => diagListeners.delete(listener);
-}
-
 /**
  * Abonne un auditeur aux **messages vocaux prêts à délivrer** (P2.2) : un
  * diagnostic qui a franchi sa fenêtre de délivrance (§1) et l'anti-spam (§9).
@@ -944,11 +932,6 @@ export function setDrillMode(active: boolean): void {
   }
 }
 
-/** Le mode Drill est-il actif ? — lecture seule (UI/debug). */
-export function coachDrillActive(): boolean {
-  return drillActive;
-}
-
 /**
  * Active/désactive le **coaching de stint** (§12, P5.3). À la désactivation, le
  * relais courant est oublié (aucune alerte de dérive en attente). Canal indépendant
@@ -958,11 +941,6 @@ export function setStintMode(active: boolean): void {
   if (stintActive === active) return;
   stintActive = active;
   if (!active) stint = createStintState();
-}
-
-/** Le coaching de stint est-il actif ? — lecture seule (UI/debug). */
-export function coachStintActive(): boolean {
-  return stintActive;
 }
 
 /**
@@ -975,26 +953,6 @@ export function setRiskMode(active: boolean): void {
   if (!active) risk = createRiskState();
 }
 
-/** Le coaching du risque est-il actif ? — lecture seule (UI/debug). */
-export function coachRiskActive(): boolean {
-  return riskActive;
-}
-
-/** Compteurs de réussite par virage travaillé (§8, P4.2) — lecture seule (UI/debug). */
-export function coachDrillCounts() {
-  return [...drill.counts.values()];
-}
-
-/** Progression par virage du combo courant (§11, P4.1) — lecture seule (UI/debug). */
-export function coachProgression(): CornerProgress[] {
-  return progression;
-}
-
-/** Objectifs structurés du combo courant (§11, P4.1) — lecture seule (UI/debug). */
-export function coachObjectives(): CoachObjective[] {
-  return objectives;
-}
-
 /**
  * Fixe le niveau pilote **manuellement** et **épingle** le réglage : l'auto-calibration
  * ohne_speed (§7) ne le modifie plus jusqu'au prochain `start`/`stop`. Défaut : niveau
@@ -1003,26 +961,6 @@ export function coachObjectives(): CoachObjective[] {
 export function setDriverLevel(level: DriverLevel): void {
   driverLevel = level;
   driverLevelPinned = true;
-}
-
-/** Niveau pilote courant (auto-calibré ou épinglé) — lecture seule (debug/UI). */
-export function coachDriverLevel(): DriverLevel {
-  return driverLevel;
-}
-
-/** Réf *macro* ApexPoints du combo courant (corrigée/enrichie, §4.2) ; [] si non couvert. */
-export function coachMacro(): MacroCorner[] {
-  return macro;
-}
-
-/** Mapping macro → fenêtres de la réf dense (matière des callouts prédictifs, P3.3). */
-export function coachMappedMacro(): MappedMacro[] {
-  return mappedMacro;
-}
-
-/** État courant du moteur (lecture seule ; pour debug/inspection). */
-export function coachState(): CoachEngineState {
-  return state;
 }
 
 // ── Banque de phrases LLM à slots (§10, P4.3) ─────────────────────────────────
@@ -1053,11 +991,6 @@ export function coachComboInfo(): {
  */
 export function setCoachPhraseBank(entries: PhraseEntry[] | null): void {
   phraseBank = entries && entries.length ? buildPhraseBank(entries) : null;
-}
-
-/** Une banque de phrases est-elle chargée pour le combo courant ? */
-export function coachHasPhraseBank(): boolean {
-  return phraseBank !== null && phraseBank.byKey.size > 0;
 }
 
 /**

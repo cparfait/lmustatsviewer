@@ -134,10 +134,8 @@ export default function App() {
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/telemetry/view" element={<TelemetryView />} />
             <Route path="/overlays" element={<Overlays />} />
-            {/* La Config V2 est la seule page de configuration ; /config-v2 reste
-                en alias pour les anciens liens. */}
+            {/* Config V2 = seule page de configuration. */}
             <Route path="/config" element={<ConfigV2 />} />
-            <Route path="/config-v2" element={<ConfigV2 />} />
             <Route path="/changelog" element={<Changelog />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

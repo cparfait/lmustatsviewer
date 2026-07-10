@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -116,7 +116,7 @@ function buildSummaries(
           penalties.set(d, (penalties.get(d) ?? 0) + 1);
       }
     } else if (ev.event_type === "Incident") {
-      const involved = [...ev.text.matchAll(/([a-zA-Z0-9_ .#-]+)\(/g)].map(
+      const involved = [...ev.text.matchAll(/([\p{L}0-9_ .#-]+)\(/gu)].map(
         (x) => x[1].trim()
       );
       if (involved.length === 1 || involved.length === 2) {
@@ -132,6 +132,22 @@ function buildSummaries(
 
 /** Couleurs des pilotes comparés (palette « dark » de la V1). */
 const COMPARE_COLORS = ["#5c9ce6", "#48c774", "#e57373", "#ffd700"];
+
+/** Onglets valides pour le deep-link `?tab=` de `SessionDetail`. */
+const VALID_TABS = [
+  "result",
+  "laps",
+  "best",
+  "compare",
+  "strategy",
+  "incidents",
+  "penalties",
+  "chat",
+  "tracklimits",
+  "coach",
+];
+const isValidTab = (v: string | null): v is string =>
+  !!v && VALID_TABS.includes(v);
 
 // ── Composant ────────────────────────────────────────────────────────────────
 
@@ -184,6 +200,18 @@ function SessionView({ data }: { data: SessionDetailData }) {
   const isRace = session.session_type === "Race";
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
   const aiCoachEnabled = useAppStore((s) => s.aiCoachEnabled);
+
+  // Onglet actif piloté par le paramètre d'URL `?tab=` (deep-link depuis
+  // LapChartModal, Records, etc.). Reste synchronisé si le paramètre change
+  // alors qu'on est déjà sur la page (pas de remontage du composant).
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    isValidTab(requestedTab) ? requestedTab : "result"
+  );
+  useEffect(() => {
+    if (isValidTab(requestedTab)) setActiveTab(requestedTab);
+  }, [requestedTab]);
 
   // Setups associés à cette session (vue inverse de SetupDetail). Rechargé
   // après chaque lien/délier pour refléter l'état serveur.
@@ -755,7 +783,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
       )}
 
       {/* Onglets */}
-      <Tabs defaultValue="result">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="result">
             {t("sessionDetail.tabResult")}
@@ -829,6 +857,8 @@ function SessionView({ data }: { data: SessionDetailData }) {
             empty={t("sessionDetail.noIncidents")}
             playerName={playerName}
             showSeverity
+            showType
+            driverNames={driverNames}
           />
         </TabsContent>
 
@@ -1883,11 +1913,48 @@ function SeverityBadge({ score }: { score: number | null }) {
   );
 }
 
+/**
+ * Nombre de pilotes connus impliqués dans un incident (§3.7 V1) : sert à classer
+ * un incident « entre voitures » (≥ 2) vs « individuel » (1). Filtré par
+ * `driverNames` pour ne pas compter les scores de sévérité entre parenthèses.
+ */
+function incidentInvolvedCount(text: string, driverNames: Set<string>): number {
+  const involved = new Set<string>();
+  for (const m of text.matchAll(/([\p{L}0-9_ .#-]+)\(/gu)) {
+    const d = m[1].trim();
+    if (driverNames.has(d)) involved.add(d);
+  }
+  return involved.size;
+}
+
+/** Badge de type d'incident : entre voitures (≥ 2 pilotes) vs individuel (1). */
+function IncidentTypeBadge({
+  count,
+  t,
+}: {
+  count: number;
+  t: (k: string) => string;
+}) {
+  if (count >= 2)
+    return (
+      <span className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-micro font-medium bg-amber-500/15 text-amber-500">
+        {t("sessionDetail.typeVehicle")}
+      </span>
+    );
+  return (
+    <span className="text-micro text-muted-foreground">
+      {t("sessionDetail.typeOther")}
+    </span>
+  );
+}
+
 function EventListTab({
   events,
   empty,
   playerName,
   showSeverity = false,
+  showType = false,
+  driverNames,
 }: {
   events: SessionDetailData["stream"];
   empty: string;
@@ -1895,6 +1962,10 @@ function EventListTab({
   playerName: string;
   /** Affiche la colonne de sévérité (incidents uniquement). */
   showSeverity?: boolean;
+  /** Affiche la colonne de type Vehicle/Other (incidents uniquement, §3.7). */
+  showType?: boolean;
+  /** Pilotes connus — pour classer les incidents par nb d'impliqués. */
+  driverNames?: Set<string>;
 }) {
   const { t } = useTranslation();
 
@@ -1931,6 +2002,11 @@ function EventListTab({
                   <Tip content={t("sessionDetail.colSeverityTip")}>{t("sessionDetail.colSeverity")}</Tip>
                 </TableHead>
               )}
+              {showType && (
+                <TableHead className="w-20">
+                  <Tip content={t("sessionDetail.colTypeTip")}>{t("sessionDetail.colType")}</Tip>
+                </TableHead>
+              )}
               <TableHead>{t("sessionDetail.colDescription")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -1944,6 +2020,10 @@ function EventListTab({
                 (e.text.includes(playerName) ||
                   (shortName !== "" && e.text.includes(shortName)));
               const severity = showSeverity ? parseSeverity(e.text) : null;
+              const involved =
+                showType && driverNames
+                  ? incidentInvolvedCount(e.text, driverNames)
+                  : 0;
               return (
                 <TableRow
                   key={i}
@@ -1958,6 +2038,11 @@ function EventListTab({
                   {showSeverity && (
                     <TableCell className="align-top">
                       <SeverityBadge score={severity} />
+                    </TableCell>
+                  )}
+                  {showType && (
+                    <TableCell className="align-top">
+                      <IncidentTypeBadge count={involved} t={t} />
                     </TableCell>
                   )}
                   <TableCell

@@ -76,7 +76,7 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            aria-label={t("common.close")}
+            aria-label={t("coach.close")}
           >
             <X className="h-4 w-4" />
           </button>

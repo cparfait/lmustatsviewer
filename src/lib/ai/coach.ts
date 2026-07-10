@@ -78,30 +78,6 @@ function resolveSystem(lang: string, override?: string): string {
   return override && override.trim() ? override : systemPrompt(lang);
 }
 
-/**
- * Conversation continue (multi-tours) : prepend le prompt système puis l'historique
- * complet (user/assistant). Le garde-fou de sujet et l'ancrage sur les données
- * (contexte injecté dans le 1er message user par l'appelant) sont conservés tout
- * au long de l'échange. Lève en cas d'échec (l'UI affiche `friendlyError`).
- */
-export async function converse(args: {
-  provider: AIProvider;
-  model: string;
-  apiKey: string;
-  lang: string;
-  /** Fil de la conversation (sans le message système). */
-  history: AIMessage[];
-  maxTokens: number;
-  systemOverride?: string;
-}): Promise<string> {
-  const { provider, model, apiKey, lang, history, maxTokens, systemOverride } = args;
-  const messages: AIMessage[] = [
-    { role: "system", content: resolveSystem(lang, systemOverride) },
-    ...history,
-  ];
-  return chat(provider, model, apiKey, messages, maxTokens);
-}
-
 /** Consigne de brièveté radio jointe à la question vocale, dans la langue du pilote. */
 const VOICE_STYLE: Record<string, string> = {
   fr: "(Réponds en 2 phrases maximum, style ingénieur radio, à voix haute.)",

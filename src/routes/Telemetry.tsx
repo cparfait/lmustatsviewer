@@ -276,7 +276,7 @@ export function Telemetry() {
                   <SortHeader col="driver" label={t("telemetry.driver")} sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
                   <TableHead className="h-auto py-1 text-micro whitespace-nowrap">{t("telemetry.weather")}</TableHead>
                   <SortHeader col="bestlap" label={t("telemetry.bestLap")} sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="text-right" />
-                  <SortHeader col="date" label={t("sessions.colDate")} sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="text-right" />
+                  <SortHeader col="date" label={t("sessions.date")} sortBy={sortBy} sortDir={sortDir} onSort={onSort} className="text-right" />
                 </TableRow>
               </TableHeader>
               <TableBody>

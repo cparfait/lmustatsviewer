@@ -56,6 +56,9 @@ src-tauri/resources/tts/voices/
 src-tauri/resources/stt/lib/
 src-tauri/resources/stt/models/
 
+# Sauvegardes locales de voix/modèles (lourdes, ~800 Mo) — jamais versionnées.
+src-tauri/resources/**/*_bak/
+
 # Clé privée de signature de l'updater Tauri — NE PAS COMMITER
 _lmu_updater.key
 _lmu_updater.key.pub

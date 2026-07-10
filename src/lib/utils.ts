@@ -126,6 +126,28 @@ export function formatDateTime(epochSeconds: number): string {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+/** Formate un horodatage epoch (secondes) en `JJ/MM/AA` — respecte le fuseau. */
+export function formatDateShort(epochSeconds: number): string {
+  if (!epochSeconds) return "—";
+  const d = new Date(epochSeconds * 1000);
+  const p = (n: number) => n.toString().padStart(2, "0");
+  if (appTimezone) {
+    try {
+      const parts = new Intl.DateTimeFormat("fr-FR", {
+        timeZone: appTimezone,
+        year: "2-digit",
+        month: "2-digit",
+        day: "2-digit",
+      }).formatToParts(d);
+      const get = (t: string) => parts.find((x) => x.type === t)?.value ?? "";
+      return `${get("day")}/${get("month")}/${get("year")}`;
+    } catch {
+      /* fuseau invalide → repli sur le fuseau local */
+    }
+  }
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
+}
+
 export const chartTooltipStyle = {
   contentStyle: {
     backgroundColor: "var(--color-card)",

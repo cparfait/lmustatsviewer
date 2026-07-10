@@ -77,11 +77,6 @@ export function setDrillTargets(st: DrillState, targets: DrillTarget[]): void {
   }
 }
 
-/** Le virage `corner_uid` fait-il partie du drill courant ? */
-export function isDrillTarget(st: DrillState, corner_uid: string): boolean {
-  return st.targets.some((t) => t.corner_uid === corner_uid);
-}
-
 /**
  * Cibles prédictives « ton virage » : chaque virage travaillé apparié à sa fenêtre
  * (par `corner_uid`) reçoit le `brakeDist` **absolu** de cette fenêtre (jamais un

@@ -33,10 +33,6 @@ import {
   Flag,
   Timer,
   Layers,
-  Medal,
-  Target,
-  BarChart3 as BarChartIcon,
-  CircleOff,
   Route,
   Tag,
   Car,
@@ -136,8 +132,15 @@ export function Sessions() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { filterOptions, selectedVersion, setSelectedVersion, gameVersions, showOhneSpeed } =
-    useAppStore();
+  const {
+    filterOptions,
+    selectedVersion,
+    setSelectedVersion,
+    versionExact,
+    setVersionExact,
+    gameVersions,
+    showOhneSpeed,
+  } = useAppStore();
 
   // Benchmarks ohne_speed (chargés une fois, best-effort).
   const [benchmarks, setBenchmarks] = useState<PaceBenchmark[] | null>(null);
@@ -217,6 +220,7 @@ export function Sessions() {
           session_type: sessionType || undefined,
           setting: setting || undefined,
           version: selectedVersion || undefined,
+          version_exact: selectedVersion ? versionExact : undefined,
         },
         sortBy,
         sortDir,
@@ -239,6 +243,7 @@ export function Sessions() {
     sessionType,
     setting,
     selectedVersion,
+    versionExact,
     sortBy,
     sortDir,
     page,
@@ -253,7 +258,7 @@ export function Sessions() {
   useEffect(() => setCar(""), [carClass]);
   useEffect(() => {
     setPage(1);
-  }, [track, trackCourse, carClass, car, sessionType, setting, selectedVersion]);
+  }, [track, trackCourse, carClass, car, sessionType, setting, selectedVersion, versionExact]);
 
   const handleSort = (key: SortKey) => {
     if (key === sortBy) {
@@ -314,36 +319,13 @@ export function Sessions() {
     return map;
   }, [rows]);
 
-  const raceStats = useMemo(() => {
-    const races = rows.filter(
-      (r) => r.session_type === "Race" && r.class_position > 0
-    );
-    const podiums = races.filter((r) => r.class_position <= 3).length;
-    const top5 = races.filter((r) => r.class_position <= 5).length;
-    const top10 = races.filter((r) => r.class_position <= 10).length;
-    const avgPos =
-      races.length > 0
-        ? (
-            races.reduce((s, r) => s + r.class_position, 0) / races.length
-          ).toFixed(1)
-        : "—";
-    // DNF = course non terminée. Le statut « terminé » est la chaîne exacte
-    // "Finished Normally" (cf. FinishCell, Dashboard, SessionDetail) ; un
-    // « Driver Swap » n'est pas un abandon. Les anciennes valeurs "Finished" /
-    // "None" n'existent pas dans les données → toutes les courses finies
-    // étaient comptées comme DNF.
-    const dnfs = rows.filter(
-      (r) =>
-        r.session_type === "Race" &&
-        r.finish_status &&
-        r.finish_status !== "Finished Normally" &&
-        r.finish_status !== "Driver Swap"
-    ).length;
-    return { podiums, top5, top10, avgPos, dnfs };
-  }, [rows]);
-
   const sortProps = { sortBy, sortDir, onSort: handleSort };
 
+  // Hero conforme à l'inventaire verrouillé (SUIVI.md §3.8) : compteurs globaux
+  // issus de `get_sessions_overview` (toute la base filtrée côté joueur), et NON
+  // de la page paginée courante — sinon les chiffres changeraient à chaque
+  // changement de page. Les stats de résultats de course (podiums/top/DNF) vivent
+  // sur le Dashboard et le Profil, pas ici.
   const heroTiles = overview
     ? [
         { icon: Trophy, value: overview.total, label: t("sessions.heroTotal") },
@@ -354,33 +336,9 @@ export function Sessions() {
           value: overview.practices,
           label: t("sessions.heroPractice"),
         },
-        {
-          icon: Medal,
-          value: raceStats.podiums,
-          label: t("sessions.heroPodiums"),
-          accent: "text-success",
-        },
-        {
-          icon: Target,
-          value: raceStats.top5,
-          label: t("sessions.heroTop5"),
-        },
-        {
-          icon: BarChartIcon,
-          value: raceStats.top10,
-          label: t("sessions.heroTop10"),
-        },
-        {
-          icon: TrendingUp,
-          value: raceStats.avgPos,
-          label: t("sessions.heroAvgPos"),
-        },
-        {
-          icon: CircleOff,
-          value: raceStats.dnfs,
-          label: t("sessions.heroDnf"),
-          accent: raceStats.dnfs > 0 ? "text-destructive" : undefined,
-        },
+        { icon: Car, value: overview.cars, label: t("sessions.heroCars") },
+        { icon: Globe, value: overview.tracks, label: t("sessions.heroTracks") },
+        { icon: Route, value: overview.layouts, label: t("sessions.heroLayouts") },
       ]
     : [];
 
@@ -388,8 +346,8 @@ export function Sessions() {
     <div className="flex flex-col gap-6">
       {/* Hero — compteurs (même format que les 7 stats du Dashboard) */}
       {heroTiles.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
-          {heroTiles.map(({ icon: Icon, value, label, accent }) => (
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {heroTiles.map(({ icon: Icon, value, label }) => (
             <Card key={label} className="relative overflow-hidden">
               <CardContent className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
@@ -398,10 +356,7 @@ export function Sessions() {
                       {label}
                     </p>
                     <p
-                      className={cn(
-                        "mt-0.5 text-sm font-bold font-mono tracking-tight truncate",
-                        accent
-                      )}
+                      className="mt-0.5 text-sm font-bold font-mono tracking-tight truncate"
                       title={String(value)}
                     >
                       {value}
@@ -522,10 +477,22 @@ export function Sessions() {
                 <option value="">{t("header.allVersions")}</option>
                 {gameVersions.map((v) => (
                   <option key={v} value={v}>
-                    ≥ {v}
+                    {versionExact ? "=" : "≥"} {v}
                   </option>
                 ))}
               </FilterField>
+            )}
+
+            {gameVersions.length > 0 && selectedVersion && (
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  className="accent-primary h-3.5 w-3.5"
+                  checked={versionExact}
+                  onChange={(e) => setVersionExact(e.target.checked)}
+                />
+                {t("sessions.versionExact")}
+              </label>
             )}
 
             {hasFilters && (

@@ -2,7 +2,7 @@
 
 > **Document de reprise du projet. À LIRE EN PREMIER.**
 > Mettre à jour la section « Journal de bord » à chaque session de travail.
-> Dernière mise à jour : 2026-07-03 (**T13 #151/152/148/149/157/161/150** : spotter → ingénieur de course ; `npm test` 121/121)
+> Dernière mise à jour : 2026-07-07 (**Audit pré-V1.0 + corrections + nettoyage final** — MAJEUR & MINEUR traités, 84 clés + 20 exports morts retirés ; tout vert : build/cargo/eslint 0/121 tests/i18n 1736×4)
 
 ---
 
@@ -41,7 +41,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **NON retenu de V2** | Multi-profils — V3 reste **mono-profil** comme la V1 (un seul nom de joueur). |
 | **Garage / car_config** | **Exception à la règle V1** : la gestion des configs/garage est reprise de la **V2** (plus poussée — parser/writer `.svm`, scan dossier Settings, CRUD, comparaison diff A/B). |
 | **Langues** | FR / EN / ES / DE (i18n complet). |
-| **Thèmes** | Dark + Light, toggle header, dark par défaut. Palette « Le Mans dark » (#0A0E1A + #FFB400). |
+| **Thèmes** | Dark + Light, toggle header. Palette « Le Mans dark » (#0A0E1A + #FFB400). **Défaut = Light** depuis la préparation « public large » (clé `lmu-theme-v2`, cf. `stores/theme.ts`) ; l'ancien défaut Dark est conservé comme thème au choix. *(Màj 2026-07-06 — supersède « dark par défaut ».)* |
 | **Distribution** | `.exe` Windows, installeur Tauri (NSIS), auto-update GitHub. |
 | **Langue de travail** | Réponses + docs en FR ; code/variables/fichiers en anglais. |
 | **Cadence** | Développement autonome jusqu'à blocage ou point de décision. |
@@ -124,6 +124,12 @@ Session (badge) · Classe (badge) · [logo voiture] · Voiture · Livrée · Bes
 Vmax · Position arrivée · Progression · Date · Version.
 Hero : Temps de conduite · Tours · Circuit favori · Voiture favorite · Meilleure
 progression · Meilleur résultat en ligne · Podiums.
+> **Màj 2026-07-06** : en V3, les 4 premières stats (Temps de conduite, Tours,
+> Circuit favori, Voiture favorite) vivent sur la page **/profile** (layout V3
+> assumé) ; le Dashboard porte des compteurs de portée (Records, Combos,
+> Progression, Meilleur résultat en ligne, Podiums, Victoires, Top 10). Les
+> valeurs restent calculées côté Rust (`get_dashboard_stats`), Temps de conduite
+> et Tours désormais conformes §3.4 (tours 4-chronos).
 
 **Tableau « Sessions » — `sessions.php`** (striping par événement `event_id`,
 toutes colonnes triables) :
@@ -836,6 +842,73 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-07-07 — Nettoyage final pré-V1.0 (bugs mineurs + cohérence + code mort)
+
+Traitement du reliquat MINEUR de l'audit. **Tout vert** : `cargo check` OK, `npm run build` OK, ESLint 0 sur tout le diff, `npm test` 121/121, parité i18n **1736 clés ×4**.
+
+**Bugs mineurs** :
+- ✅ Dates Records respectent le fuseau : nouveau `formatDateShort` (utils.ts) remplace le `fmtDateShort` local qui ignorait le fuseau configuré.
+- ✅ 6 libellés en dur → `t()` : ScrollToTop (aria + title, **visible**), Header/Live « Toggle theme », TrackMap, OverlayFrame (Réduire/Agrandir/Configurer). +6 clés i18n (`header.toggleTheme/scrollTop`, `telemetry.trackMapAria`, `overlays.scaleDown/scaleUp/configure`) ×4. `useTranslation` ajouté à ScrollToTop/TrackMap/OverlayFrame (la fenêtre overlay a bien le contexte i18n via OverlayRoot).
+- ✅ Garde collision `event_id` : `session_detail` filtre les sessions sœurs par `event_id` **ET** `track` (deux circuits au même timestamp ne mélangent plus leurs sessions).
+
+**Cohérence de présentation** :
+- ✅ Dashboard : `N/A` → « — » sur Arrivée/Progression hors course (aligné Sessions) ; livrée masquée si = nom voiture ; secteurs sans suffixe « s » (aligné Records) ; ordre colonnes **Date · Version** (aligné Sessions/§3.8).
+- ✅ Unité **km/h** ajoutée aux en-têtes Vmax (Dashboard + Records + stat card Records).
+
+**Code mort** :
+- ✅ **84 clés i18n mortes** supprimées dans les 4 langues (détection conservatrice : familles dynamiques `telemetry.group.*`/`phase_*` etc. préservées ; suppression par ligne exacte à leaf unique ; parité re-vérifiée). Inclut les 5 clés hero orphelinées par la refonte du hero Sessions.
+- ✅ **20 exports morts** retirés : 13 accesseurs lecture-seule de `coach/service.ts` (coachState/Macro/Objectives/Progression/DriverLevel/DrillActive/DrillCounts/StintActive/RiskActive/MappedMacro/HasPhraseBank + onDiagnostic/onRefCaptured), `ai/coach.ts::converse`, `ohne_speed::clearBenchmarkCache`, `staticData::{invalidateStaticDataCache,tierColorMap}`, `drill::isDrillTarget`, `phrasebank::{isPhraseBankEmpty,situationFor}`. (Déjà tree-shakés du bundle ; gain = propreté du source. Tests coach 121/121 inchangés.)
+
+- ✅ **Reliquat traité (même jour)** :
+  - **4 clés i18n ambiguës** restantes supprimées (vérifiées mortes : `dashboard.outdatedHidden`, `records.outdatedHidden`, `records.activeVersion`, `config.activeVersion` — 0 réf) → i18n **1736 ×4** (après ajout des 4 clés de la colonne Type ci-dessous).
+  - **Classification incidents Vehicle/Other (§3.7)** implémentée : colonne « Type » dans l'onglet Incidents (`sessionDetail.tsx`) — ≥ 2 pilotes impliqués → « Voitures », 1 → « Individuel » (comptage filtré par `driverNames`, sans compter les scores de sévérité). +4 clés i18n (`colType`, `colTypeTip`, `typeVehicle`, `typeOther`) ×4.
+  - **Alias route `/config-v2`** supprimé (`App.tsx`) — plus aucun lien ne le référençait.
+- ✅ **Points « à confronter au PHP V1 » — clos sans action** : `format_game_version` multi-segments et fuel « dernier tour ». **Règle d'or** (CLAUDE.md) : la migration est terminée, **la V3 fait foi** et la V1 PHP n'est plus une référence → le comportement V3 actuel est authoritatif. Aucune divergence à corriger.
+- 📋 **Prochaine étape** : test en conditions réelles (poste vierge) — case « version uniquement », cellules cliquables Dashboard, deep-link `?tab=`, colonne Type des incidents. **Audit fonctionnel pré-V1.0 : entièrement traité.**
+
+### 2026-07-06 — Corrections d'audit appliquées (pré-V1.0)
+
+Traitement des constats de l'audit du jour. **Tout vert** après coup : `cargo check` OK, `npm run build` OK, ESLint 0 sur tous les fichiers touchés, `npm test` 121/121, parité i18n stricte **1814 clés ×4**.
+
+**Backend Rust** :
+- ✅ Dashboard `totalLaps`/`totalDrivingTime`/distance valide → lus depuis les agrégats `results` (SUM `total_laps_valid`/`total_lap_time`), **conformes §3.4** et cohérents avec les favoris. `total_laps` = tous tours (enrichissement V3), `total_laps_valid` = 4-chronos. (`queries.rs`)
+- ✅ Garde `class_position ≥ 1` sur podiums/top5/top10/best_finish (global + online + offline) : une position 0 fantôme (balise XML absente) ne compte plus. (`queries.rs`)
+- ✅ Ordre de classe : `LMP2` nu = 3 (famille LMP2, avant LMP3) au lieu de 99 après GTE ; `models.rs::class_order` **et** le CASE SQL de tri (`queries.rs`) synchronisés.
+- ✅ `purged_files` désormais vidé au changement de joueur (`indexer.rs`).
+- ✅ Records : `get_records_overview(min_version, version_exact)` — filtre `=` si exact (`records.rs`).
+
+**i18n / frontend** :
+- ✅ 2 clés affichées brutes corrigées : `common.close` → `coach.close` (HelpModal), `sessions.colDate` → `sessions.date` (Telemetry).
+- ✅ Pluriel `sessions.filteredCount` : suffixe v3 `_plural` → `_one`/`_other` (i18next v26) ×4.
+- ✅ Regex incidents : `[a-zA-Z0-9…]` → `[\p{L}…]/u` (noms accentués comptés). (`SessionDetail.tsx`)
+- ✅ +4 clés (`sessions.heroCars/heroTracks/heroLayouts` + `sessions.versionExact`) ×4.
+
+**UI (4 des 5 MAJEUR livrés ; le 5ᵉ = hero Dashboard, acté comme layout /profile §3.8)** :
+- ✅ Hero **Sessions** conforme §3.8 (Sessions·Courses·Qualifs·Essais·Voitures·Circuits·Tracés) via `get_sessions_overview` → **fin des stats calculées sur la page paginée** (plus de chiffres « carrière » qui changeaient à chaque page).
+- ✅ **Dashboard** : cellules Type/Session/Classe/Voiture **cliquables-filtres** (comme Sessions).
+- ✅ **SessionDetail** : deep-link `?tab=` honoré (état déplacé dans `SessionView`, là où sont les onglets). Le lien `?tab=laps` de `LapChartModal` ouvre enfin l'onglet Tours.
+- ✅ **Case « cette version uniquement »** (§3.8, était non branchée) : flag store `versionExact` + case à cocher sur Sessions/Dashboard/Records, filtre `=` (backend pour Sessions/Records, client pour Dashboard). N'apparaît que si une version est sélectionnée.
+
+**Repo** :
+- ✅ `.gitignore` : `src-tauri/resources/**/*_bak/` (~800 Mo de sauvegardes voix/modèles ne risquent plus un commit accidentel).
+
+**Doc** : §2 (thème défaut = Light, supersède « dark par défaut ») et §3.8 (hero Dashboard → /profile) mis en accord avec le code.
+
+- ⏳ **Reste (non bloquant V1.0, cf. audit)** : ~153 clés i18n mortes + ~20 exports morts (nettoyage cosmétique) ; cohérences mineures N/A vs « — », Vmax sans unité, ordre Date/Version, secteurs avec/sans « s » ; dates Records hors fuseau (`fmtDateShort`) ; classification incidents Vehicle/Other (§3.7) non affichée ; alias route `/config-v2` ; divergences à confronter au PHP V1 (`format_game_version` multi-segments, fuel « dernier tour »).
+- 📋 **Prochaine étape** : décider du nettoyage des clés/exports morts (script de purge) ; passer les 6 aria-labels en dur par `t()` ; harmoniser N/A/« — » et unités.
+
+### 2026-07-06 — Audit fonctionnel complet pré-V1.0 (5 axes, en parallèle)
+
+Audit avant lancement V1.0 : calculs métier Rust vs règles §3, pont IPC, code mort, i18n, conformité UI vs §3.8/§4. Builds verts au moment de l'audit : tests 121/121, `npm run build` OK, `cargo check` OK.
+
+- ✅ **Sain** : pont IPC parfait (87 commandes Rust = 87 enregistrées = 87 appelées, 0 orphelin, events tous appariés) ; aucune donnée mockée ; 0 TODO/FIXME/console.log de debug ; aucun fichier/route mort ; parité i18n stricte 1810 clés ×4 langues ; formatage temps conforme §3.5 ; sentinelles 99/−99 proprement remplacées par NULL.
+- ❌ **MAJEUR calculs** : Dashboard `totalLaps`/`totalDrivingTime` calculés sur `laps.is_valid` (= lap_time>0 seul) au lieu des tours 4-chronos (règle §3.4) → deux définitions de « tour valide » coexistent (queries.rs:209-233 vs indexer.rs:645).
+- ❌ **MAJEUR UI** (5) : cellules cliquables-filtres absentes du Dashboard (§3.8) ; case « cette version uniquement » jamais branchée (backend `version_exact` prêt, aucune UI) ; stats hero de Sessions calculées sur la page paginée courante (trompeur) ; hero Dashboard ≠ §3.8 (Temps de conduite/Tours/favoris déplacés sur /profile sans MAJ du SUIVI) ; deep-link `?tab=laps` de LapChartModal ignoré par SessionDetail.
+- ❌ **i18n** : 2 clés utilisées non définies (`common.close` HelpModal.tsx:79, `sessions.colDate` Telemetry.tsx:279 — affichent la clé brute) ; `sessions.filteredCount_plural` en suffixe v3 ignoré par i18next v26 (→ `_one`/`_other`) ; 153 clés mortes ; 6 aria-labels en dur.
+- ⚠️ **Risque repo** : `voices_bak/` (516 Mo) + `models_bak/` (282 Mo) sous `src-tauri/resources/` NON couverts par `.gitignore` → ~800 Mo committables par accident. Supprimer ou ignorer avant release.
+- ⚠️ **Mineurs notables** : classe `LMP2` nue triée à 99 (après GTE) ; `purged_files` non purgé au changement de joueur ; incidents front sans classification Vehicle/Other + regex sans accents (SessionDetail.tsx:118) ; podiums/bestFinish sans garde `class_position ≥ 1` ; N/A vs « — » incohérents Dashboard/Sessions ; thème par défaut light ≠ §2 « dark par défaut » (choix récent non documenté) ; ~20 exports morts (13 accesseurs `coach/service.ts`) ; dates Records hors fuseau configuré (`fmtDateShort`).
+- 📋 **Prochaine étape** : corriger dans l'ordre — (1) `.gitignore` `*_bak`, (2) les 2 clés i18n cassées + pluriel `filteredCount`, (3) unification « tour valide » Dashboard, (4) les 5 MAJEUR UI (ou acter les déplacements hero/profile dans §3.8), puis nettoyage mineurs.
+
 ### 2026-07-05 — Préparation public large : robustesse, Config V1 supprimée, visite guidée + aide
 
 Suite de l'audit du jour, décisions utilisateur : diffusion **publique large**, Config V2 validée (après vérif de parité), onboarding complet.
@@ -858,7 +931,11 @@ modèles par langue restent téléchargeables (déjà en place via `assets.rs`).
 - ✅ **Bundle unifié** : les 4 DLL Vosk rejoignent `tauri.conf.json` ; `tauri.stt.conf.json` supprimé ; scripts npm `tauri:dev:stt`/`tauri:build:stt` supprimés (le build standard fait tout) ; CI `release.yml` sans `args`.
 - ✅ **Textes/docs dépoussiérés** : clé i18n `config.spotterCmdTestUnavailable` (×4) pointe vers le téléchargement en Config (plus vers `tauri:dev:stt`) ; commentaires `AICoachPanel`/`SpotterCommandsModal`/`useCoachVoice`/`VoiceDownloads`/`stt.rs` ; README §assets vocaux + build ; MAINTENANCE §4.1/4.4/4.5 ; RELEASE A.3/A.4 ; hint de `fetch-vosk.ps1`.
 - ✅ Vérifs : **`cargo build` complet** (link libvosk OK), `tsc + vite build`, ESLint, 121/121 tests, i18n 1788 clés ×4.
-- 📋 **Prochaine étape** : builder l'installeur (`release.ps1` inchangé, `tauri:build` suffit) et mesurer le poids (~150 Mo attendu avec DLL Vosk) ; test E2E d'un téléchargement de voix + modèle Vosk sur poste « vierge » (renommer `resources/tts/voices` et `resources/stt/models`).
+- ✅ **Poids mesuré** : installeur complet (STT inclus) = **44 Mo** au lieu de 650 (−93 %) — build local `npm run tauri:build` OK. Le « Error … no private key » en fin de build = signature updater sautée faute de `TAURI_SIGNING_PRIVATE_KEY` (normal hors `release.ps1`/CI, qui la fournissent).
+- ✅ **Modale d'intro aux annonces vocales** (retour utilisateur) : à l'activation du toggle « Annonces vocales », si la voix neuronale de la langue manque, `VoiceIntroModal` (pattern `AiCoachHelpModal`) explique ce qui parle (alertes/coach/spotter), pourquoi la voix se télécharge (~60 Mo, une fois, hors-ligne ensuite), le repli voix Windows, et embarque `VoiceDownloads` (liste + progression). Note sur le modèle STT séparé (proposé à l'activation du spotter). 5 clés `voiceIntro*` ×4 langues.
+- ✅ **Clarification coach vs IA** (retour utilisateur : « les 4 options Coach, c'est pas de l'IA ? ») : intertitre « Coach de pilotage (automatique) » + description (déterministe/hors-ligne, seule « Phrases variées » appelle l'IA une fois) au-dessus des 4 toggles dans Config V2 ; libellés raccourcis (`coachDrill` → « Mode Drill », etc. — le préfixe « Coach — » disparaît) ; `aiCoachDesc` précise « questions libres à un LLM, indépendant du coach automatique ». 2 clés `coachSectionTitle`/`coachSectionDesc` ×4 langues.
+- ✅ **UX retouchée** (retour utilisateur : téléchargement pas intuitif, enterré dans la section repliée) : `VoiceDownloads` gagne un `variant="banner"` — bandeau ambré affiché **directement dans la page** Config → Audio / Voix (sous le toggle Annonces pour la voix, sous le toggle Spotter pour le modèle Vosk), avec bouton « Télécharger (61 Mo) » + progression intégrés ; disparaît une fois installé. Le badge `voiceEngineFallback` (qui débordait) est raccourci (« ⚠ repli voix système ») ; 2 nouvelles clés i18n `assetVoiceMissing`/`assetSttMissing` (×4).
+- 📋 **Prochaine étape** : test E2E d'un téléchargement de voix + modèle Vosk sur poste « vierge » (installer le .exe, ou en dev renommer `resources/tts/voices` et `resources/stt/models`) ; item changelog « installeur allégé (650 → 44 Mo), voix téléchargeables ».
 
 ### 2026-07-05 — Voix TTS/STT téléchargées à la demande (installeur 650 Mo → ~100 Mo attendu)
 

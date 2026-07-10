@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface TrackMapProps {
   /** Latitudes GPS (degrés), même longueur que `lon`. */
@@ -125,6 +126,7 @@ export function TrackMap({
   height = 340,
   theme,
 }: TrackMapProps) {
+  const { t } = useTranslation();
   // ── Projection + mise à l'échelle dans le repère interne (mémoïsé) ──
   const geom = useMemo(() => {
     const n = Math.min(lat.length, lon.length);
@@ -531,7 +533,7 @@ export function TrackMap({
           cursor: zoomable ? "grab" : hoverable ? "crosshair" : undefined,
         }}
         role="img"
-        aria-label="Carte du circuit"
+        aria-label={t("telemetry.trackMapAria")}
         onPointerDown={zoomable ? startPan : undefined}
         onPointerMove={zoomable || hoverable ? movePan : undefined}
         onPointerUp={zoomable ? endPan : undefined}

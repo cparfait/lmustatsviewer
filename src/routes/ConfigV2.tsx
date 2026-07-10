@@ -93,6 +93,7 @@ import {
   speechSupported,
 } from "@/lib/voice";
 import { VoiceMessagesModal } from "@/components/VoiceMessagesModal";
+import { VoiceIntroModal } from "@/components/VoiceIntroModal";
 import { SpotterCommandsModal } from "@/components/SpotterCommandsModal";
 import { INTENTS } from "@/lib/spotterCommands";
 import { Tip, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -247,6 +248,9 @@ export function ConfigV2() {
   const [emptyPlayer, setEmptyPlayer] = useState<number | null>(null);
 
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  // Modale d'intro aux annonces vocales (explication + téléchargement de la
+  // voix de la langue) — ouverte à l'activation du toggle si la voix manque.
+  const [voiceIntroOpen, setVoiceIntroOpen] = useState(false);
   const [spotterCmdModalOpen, setSpotterCmdModalOpen] = useState(false);
   const [aiHelpOpen, setAiHelpOpen] = useState(false);
   const [spotterOpen, setSpotterOpen] = useState(false);
@@ -1014,12 +1018,34 @@ export function ConfigV2() {
                     useAppStore.getState().setVoiceAnnouncements(v);
                     if (!v && spotterEnabled)
                       useAppStore.getState().setSpotterEnabled(false);
+                    // À l'activation, si la voix neuronale de la langue manque :
+                    // modale d'explication + proposition de téléchargement.
+                    if (v && isTauri() && voiceEngine === "piper" && piperOk === false)
+                      setVoiceIntroOpen(true);
                   }}
                 />
+                {/* Bandeau bien visible (rien à déplier) tant que la voix
+                    neuronale de la langue n'est pas téléchargée. */}
+                {voiceAnnouncements && voiceEngine === "piper" && (
+                  <VoiceDownloads
+                    kind="tts"
+                    variant="banner"
+                    onInstalled={() => setAssetsVersion((v) => v + 1)}
+                  />
+                )}
                 {/* Coach par virage — modes avancés (mêmes réglages que Config V1,
-                    gated sur les annonces vocales). */}
+                    gated sur les annonces vocales). Intertitre pour distinguer ce
+                    coach déterministe du Coach IA (onglet dédié, LLM). */}
                 {voiceAnnouncements && (
                   <>
+                    <div className="mt-3 border-t border-border/50 pt-3">
+                      <div className="text-sm font-semibold">
+                        {t("config.coachSectionTitle")}
+                      </div>
+                      <p className="mt-0.5 mb-1 text-xs text-muted-foreground/80">
+                        {t("config.coachSectionDesc")}
+                      </p>
+                    </div>
                     <ToggleRow
                       icon={<Target className="h-4 w-4" />}
                       label={t("config.coachDrill")}
@@ -1410,6 +1436,15 @@ export function ConfigV2() {
                   onChange={(v) => useAppStore.getState().setSpotterEnabled(v)}
                   disabled={!voiceAnnouncements}
                 />
+                {/* Bandeau bien visible tant que le modèle de reconnaissance
+                    vocale (push-to-talk) n'est pas téléchargé. */}
+                {spotterEnabled && voiceAnnouncements && (
+                  <VoiceDownloads
+                    kind="stt"
+                    variant="banner"
+                    onInstalled={() => setAssetsVersion((v) => v + 1)}
+                  />
+                )}
                 {spotterEnabled && voiceAnnouncements && (
                   <div className="ml-2 border-l border-primary/10 pl-3">
                     <button
@@ -2077,6 +2112,12 @@ export function ConfigV2() {
 
       {voiceModalOpen && (
         <VoiceMessagesModal onClose={() => setVoiceModalOpen(false)} />
+      )}
+      {voiceIntroOpen && (
+        <VoiceIntroModal
+          onClose={() => setVoiceIntroOpen(false)}
+          onInstalled={() => setAssetsVersion((v) => v + 1)}
+        />
       )}
       {spotterCmdModalOpen && (
         <SpotterCommandsModal onClose={() => setSpotterCmdModalOpen(false)} />

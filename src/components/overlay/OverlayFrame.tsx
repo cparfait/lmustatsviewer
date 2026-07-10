@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { emit } from "@tauri-apps/api/event";
 import { Minus, Plus, Settings2 } from "lucide-react";
 import { useOverlaysStore, type OverlaySettings } from "@/stores/overlays";
@@ -28,6 +29,7 @@ export function OverlayFrame({
   globalOpacity,
   children,
 }: Props) {
+  const { t } = useTranslation();
   const def = OVERLAY_BY_ID[id];
   const accent = settings.accent ?? def.accent;
   const updateSettings = useOverlaysStore((s) => s.updateSettings);
@@ -114,7 +116,7 @@ export function OverlayFrame({
             className="grid h-5 w-5 place-items-center rounded hover:bg-white/10"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => setScale(-0.1)}
-            aria-label="Réduire"
+            aria-label={t("overlays.scaleDown")}
           >
             <Minus className="h-3 w-3" />
           </button>
@@ -126,7 +128,7 @@ export function OverlayFrame({
             className="grid h-5 w-5 place-items-center rounded hover:bg-white/10"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => setScale(0.1)}
-            aria-label="Agrandir"
+            aria-label={t("overlays.scaleUp")}
           >
             <Plus className="h-3 w-3" />
           </button>
@@ -135,7 +137,7 @@ export function OverlayFrame({
             className="ml-1 grid h-5 w-5 place-items-center rounded hover:bg-white/10"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => emit("overlay-open-config", id)}
-            aria-label="Configurer"
+            aria-label={t("overlays.configure")}
           >
             <Settings2 className="h-3 w-3" />
           </button>

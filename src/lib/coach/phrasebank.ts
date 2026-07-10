@@ -63,16 +63,6 @@ export function isDiagCode(kind: string): kind is DiagCode {
   return DIAG_CODE_SET.has(kind);
 }
 
-/** Situation correspondant à un (code, sign), ou `undefined` si non couverte. */
-export function situationFor(code: DiagCode, sign: number): DiagSituation | undefined {
-  return (
-    DIAG_SITUATIONS.find((s) => s.code === code && s.sign === sign) ??
-    // Repli : certains codes n'ont qu'un sens canonique (le moteur peut émettre
-    // sign 0/±1 selon la mesure) → on retombe sur la situation du même code.
-    DIAG_SITUATIONS.find((s) => s.code === code)
-  );
-}
-
 // ── Entrées de banque + indexation ────────────────────────────────────────────
 
 /**
@@ -109,11 +99,6 @@ export function buildPhraseBank(entries: PhraseEntry[]): PhraseBank {
     byKey.set(keyOf(e.code, e.sign, e.n ?? null), { ...e, n: e.n ?? null, texts });
   }
   return { byKey, cursor: new Map() };
-}
-
-/** La banque est-elle vide (aucune variante utilisable) ? */
-export function isPhraseBankEmpty(bank: PhraseBank | null): boolean {
-  return !bank || bank.byKey.size === 0;
 }
 
 // ── Remplissage de slots ──────────────────────────────────────────────────────

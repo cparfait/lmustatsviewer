@@ -42,6 +42,7 @@ import {
   formatTime,
   formatSectorSeconds,
   formatDateTime,
+  formatDateShort,
 } from "@/lib/utils";
 import { records as recordsApi } from "@/lib/api";
 import type { RecordOverviewRow, RecordProgression } from "@/lib/api";
@@ -56,12 +57,6 @@ import {
   type PaceBenchmark,
 } from "@/lib/ohne_speed";
 import { TierBadge } from "@/components/TierBadge";
-
-function fmtDateShort(ts: number): string {
-  const d = new Date(ts * 1000);
-  const p = (n: number) => n.toString().padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
-}
 
 interface Combo {
   track: string;
@@ -82,13 +77,14 @@ export function Records() {
   const [error, setError] = useState<string | null>(null);
 
   // Filtre de version global (partagé avec Sessions / Dashboard).
-  const { selectedVersion, setSelectedVersion, gameVersions } = useAppStore(
-    (s) => ({
+  const { selectedVersion, setSelectedVersion, versionExact, setVersionExact, gameVersions } =
+    useAppStore((s) => ({
       selectedVersion: s.selectedVersion,
       setSelectedVersion: s.setSelectedVersion,
+      versionExact: s.versionExact,
+      setVersionExact: s.setVersionExact,
       gameVersions: s.gameVersions,
-    })
-  );
+    }));
 
   // Sélection initiale provenant d'un deep link (Dashboard / Sessions) → on
   // garde l'info pour que le bouton « retour » revienne à la page d'origine
@@ -126,15 +122,15 @@ export function Records() {
   // Référentiel communautaire ohne_speed (chargé une fois, best-effort).
   const [benchmarks, setBenchmarks] = useState<PaceBenchmark[] | null>(null);
 
-  // Rechargement de l'overview quand selectedVersion change.
+  // Rechargement de l'overview quand le filtre de version change.
   useEffect(() => {
     setOverview(null);
     setError(null);
     recordsApi
-      .getOverview(selectedVersion)
+      .getOverview(selectedVersion, selectedVersion ? versionExact : false)
       .then(setOverview)
       .catch((e) => setError(String(e)));
-  }, [selectedVersion]);
+  }, [selectedVersion, versionExact]);
 
   useEffect(() => {
     fetchBenchmarks()
@@ -170,6 +166,8 @@ export function Records() {
       onSelect={handleSelect}
       selectedVersion={selectedVersion}
       setSelectedVersion={setSelectedVersion}
+      versionExact={versionExact}
+      setVersionExact={setVersionExact}
       gameVersions={gameVersions}
     />
   );
@@ -183,6 +181,8 @@ function Overview({
   onSelect,
   selectedVersion,
   setSelectedVersion,
+  versionExact,
+  setVersionExact,
   gameVersions,
 }: {
   rows: RecordOverviewRow[];
@@ -190,6 +190,8 @@ function Overview({
   onSelect: (c: Combo) => void;
   selectedVersion: string | null;
   setSelectedVersion: (v: string | null) => void;
+  versionExact: boolean;
+  setVersionExact: (v: boolean) => void;
   gameVersions: string[];
 }) {
   const { t } = useTranslation();
@@ -265,10 +267,21 @@ function Overview({
               <option value="">{t("header.allVersions")}</option>
               {gameVersions.map((v) => (
                 <option key={v} value={v}>
-                  ≥ {v}
+                  {versionExact ? "=" : "≥"} {v}
                 </option>
               ))}
             </select>
+          )}
+          {gameVersions.length > 0 && selectedVersion && (
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none whitespace-nowrap">
+              <input
+                type="checkbox"
+                className="accent-primary h-3.5 w-3.5"
+                checked={versionExact}
+                onChange={(e) => setVersionExact(e.target.checked)}
+              />
+              {t("sessions.versionExact")}
+            </label>
           )}
         </CardContent>
       </Card>
@@ -313,7 +326,7 @@ function Overview({
                       {t("records.hOptimal")}
                     </TableHead>
                     <TableHead className="text-right bg-sky-500/10">
-                      {t("records.hVmax")}
+                      {t("records.hVmax")} (km/h)
                     </TableHead>
                     <TableHead className="border-l border-border/55">
                       {t("records.hLevel")}
@@ -413,7 +426,7 @@ function Overview({
                         {r.improvements}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
-                        {fmtDateShort(r.record_date)}
+                        {formatDateShort(r.record_date)}
                       </TableCell>
                       <TableCell className="font-mono text-muted-foreground">
                         {r.game_version}
@@ -476,7 +489,7 @@ function Progression({
     () =>
       (data?.points ?? []).map((p, i) => ({
         i,
-        date: fmtDateShort(p.timestamp),
+        date: formatDateShort(p.timestamp),
         best: Number(p.best_lap.toFixed(3)),
         pb: Number(p.pb_at_point.toFixed(3)),
         s1: p.s1,
@@ -572,7 +585,7 @@ function Progression({
           value={formatTime(stats.optimal)}
         />
         <StatCard
-          label={t("records.sVmax")}
+          label={`${t("records.sVmax")} (km/h)`}
           value={stats.vmax != null ? stats.vmax.toFixed(2) : "—"}
         />
         <StatCard

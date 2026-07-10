@@ -1296,7 +1296,7 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
           </button>
           <button
             onClick={toggle}
-            aria-label="Toggle theme"
+            aria-label={t("header.toggleTheme")}
             className="flex items-center justify-center p-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent/60"
           >
             {theme === "dark" ? (

@@ -1101,10 +1101,12 @@ export const queries = {
 export const records = {
   /** Vue d'ensemble : 1 ligne par combo circuit/voiture.
    *  `minVersion` : si fourni, seules les sessions avec `game_version >= minVersion` entrent dans le calcul.
+   *  `versionExact` : filtre `=` au lieu de `>=` (case « cette version uniquement »).
    */
-  getOverview: (minVersion?: string | null) =>
+  getOverview: (minVersion?: string | null, versionExact?: boolean) =>
     invoke<RecordOverviewRow[]>("get_records_overview", {
       minVersion: minVersion ?? null,
+      versionExact: versionExact ?? false,
     }),
   /** Progression détaillée d'un combo (historique des sessions). */
   getProgression: (filters: ProgressionFilters) =>

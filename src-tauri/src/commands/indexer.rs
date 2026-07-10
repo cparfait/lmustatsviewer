@@ -242,7 +242,7 @@ pub fn sync_results(
         if prev != player_name {
             conn.execute_batch(
                 "DELETE FROM stream_events; DELETE FROM laps; DELETE FROM results;
-                 DELETE FROM sessions; DELETE FROM xml_index;",
+                 DELETE FROM sessions; DELETE FROM xml_index; DELETE FROM purged_files;",
             )
             .map_err(|e| AppError::Database(format!("reset on player change: {e}")))?;
         }

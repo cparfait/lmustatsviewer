@@ -80,6 +80,8 @@ export function Dashboard() {
     loading,
     selectedVersion,
     setSelectedVersion,
+    versionExact,
+    setVersionExact,
     gameVersions,
     showOutdated,
     setShowOutdated,
@@ -98,6 +100,21 @@ export function Dashboard() {
   const [lapChartSessionId, setLapChartSessionId] = useState<number | null>(null);
   const openLapChart = useCallback((id: number) => setLapChartSessionId(id), []);
   const closeLapChart = useCallback(() => setLapChartSessionId(null), []);
+
+  // Cellules cliquables-filtres (comportement V1, aligné sur la page Sessions) :
+  // cliquer une cellule Type/Session/Classe/Voiture applique ce filtre au tableau.
+  const onCellFilter = useCallback(
+    (field: "class" | "car" | "session" | "setting", value: string) => {
+      if (!value) return;
+      if (field === "class") {
+        setCarClass(value);
+        setCar("");
+      } else if (field === "car") setCar(value);
+      else if (field === "session") setSessionType(value);
+      else if (field === "setting") setSetting(value);
+    },
+    []
+  );
 
   const tracks = filterOptions?.tracks ?? [];
   const settings = filterOptions?.settings ?? [];
@@ -137,8 +154,13 @@ export function Dashboard() {
       if (car && l.car !== car) return false;
       if (sessionType && l.session_type !== sessionType) return false;
       if (setting && l.setting !== setting) return false;
-      if (selectedVersion && !showOutdated) {
-        if (compareVersions(l.game_version, selectedVersion) < 0) return false;
+      if (selectedVersion) {
+        if (versionExact) {
+          // « Cette version uniquement » : égalité stricte (ignore le toggle obsolètes).
+          if (compareVersions(l.game_version, selectedVersion) !== 0) return false;
+        } else if (!showOutdated) {
+          if (compareVersions(l.game_version, selectedVersion) < 0) return false;
+        }
       }
       return true;
     });
@@ -151,6 +173,7 @@ export function Dashboard() {
     sessionType,
     setting,
     selectedVersion,
+    versionExact,
     showOutdated,
   ]);
 
@@ -420,10 +443,21 @@ export function Dashboard() {
                 <option value="">{t("header.allVersions")}</option>
                 {gameVersions.map((v) => (
                   <option key={v} value={v}>
-                    ≥ {v}
+                    {versionExact ? "=" : "≥"} {v}
                   </option>
                 ))}
               </FilterField>
+            )}
+            {gameVersions.length > 0 && selectedVersion && (
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  className="accent-primary h-3.5 w-3.5"
+                  checked={versionExact}
+                  onChange={(e) => setVersionExact(e.target.checked)}
+                />
+                {t("sessions.versionExact")}
+              </label>
             )}
             {hasFilters && (
               <Button
@@ -502,6 +536,7 @@ export function Dashboard() {
               navigate={navigate}
               t={t}
               openLapChart={openLapChart}
+              onCellFilter={onCellFilter}
             />
           );
         })}
@@ -580,6 +615,7 @@ function DashboardGroup({
   navigate,
   t,
   openLapChart,
+  onCellFilter,
 }: {
   title: string;
   flag: string | null;
@@ -589,6 +625,10 @@ function DashboardGroup({
   navigate: (to: string) => void;
   t: (k: string) => string;
   openLapChart: (id: number) => void;
+  onCellFilter: (
+    field: "class" | "car" | "session" | "setting",
+    value: string
+  ) => void;
 }) {
   return (
     <Card className="overflow-hidden">
@@ -671,7 +711,7 @@ function DashboardGroup({
                   {t("dashboard.optimal")}
                 </TableHead>
                 <TableHead className="font-medium text-right">
-                  {t("dashboard.maxSpeed")}
+                  {t("dashboard.maxSpeed")} (km/h)
                 </TableHead>
                 <TableHead className="font-medium text-center border-l border-border/55">
                   {t("sessions.colFinish")}
@@ -680,16 +720,16 @@ function DashboardGroup({
                   {t("sessions.colProg")}
                 </TableHead>
                 <TableHead className="font-medium border-l border-border/55">
-                  {t("dashboard.ver")}
+                  {t("sessions.date")}
                 </TableHead>
                 <TableHead className="font-medium">
-                  {t("sessions.date")}
+                  {t("dashboard.ver")}
                 </TableHead>
               </TableRow>
           </TableHeader>
           <TableBody>
               {rows.map((l, i) => (
-                <DashboardRow key={i} l={l} idx={i} navigate={navigate} t={t} openLapChart={openLapChart} />
+                <DashboardRow key={i} l={l} idx={i} navigate={navigate} t={t} openLapChart={openLapChart} onCellFilter={onCellFilter} />
               ))}
           </TableBody>
         </Table>
@@ -721,7 +761,7 @@ function sectorCell(value: number | null, abs: number | null) {
         isBest && "text-yellow-500 font-semibold"
       )}
     >
-      {value != null ? `${formatSectorSeconds(value)}s` : "—"}
+      {value != null ? formatSectorSeconds(value) : "—"}
     </TableCell>
   );
 }
@@ -732,12 +772,17 @@ function DashboardRow({
   navigate,
   t,
   openLapChart,
+  onCellFilter,
 }: {
   l: BestLapRow;
   idx: number;
   navigate: (to: string) => void;
   t: (k: string) => string;
   openLapChart: (id: number) => void;
+  onCellFilter: (
+    field: "class" | "car" | "session" | "setting",
+    value: string
+  ) => void;
 }) {
   const isRace = l.session_type === "Race";
   return (
@@ -779,29 +824,46 @@ function DashboardRow({
           </button>
         </Tip>
       </TableCell>
-      {/* Type */}
-      <TableCell className={cn("px-2 py-1 whitespace-nowrap", GROUP_SEP)}>
+      {/* Type (cliquable-filtre) */}
+      <TableCell
+        className={cn("px-2 py-1 whitespace-nowrap cursor-pointer hover:text-primary", GROUP_SEP)}
+        onClick={() => onCellFilter("setting", l.setting)}
+      >
         {settingLabel(l.setting, t)}
       </TableCell>
-      {/* Session */}
-      <TableCell className="px-2 py-1">
+      {/* Session (cliquable-filtre) */}
+      <TableCell
+        className="px-2 py-1 cursor-pointer"
+        onClick={() => onCellFilter("session", l.session_type)}
+      >
         <SessionBadge type={l.session_type} />
       </TableCell>
-      {/* Classe */}
-      <TableCell className="px-2 py-1">
+      {/* Classe (cliquable-filtre) */}
+      <TableCell
+        className="px-2 py-1 cursor-pointer"
+        onClick={() => onCellFilter("class", l.car_class)}
+      >
         <ClassBadge carClass={l.car_class} size="sm" />
       </TableCell>
-      {/* Logo + voiture */}
-      <TableCell className="px-1 py-1 w-7">
+      {/* Logo + voiture (cliquable-filtre) */}
+      <TableCell
+        className="px-1 py-1 w-7 cursor-pointer"
+        onClick={() => onCellFilter("car", l.car)}
+      >
         <CarLogo
           carName={l.car}
           className="h-3.5 w-auto object-contain opacity-80"
         />
       </TableCell>
-      <TableCell className="px-2 py-1 font-medium whitespace-nowrap">{l.car}</TableCell>
-      {/* Livrée */}
+      <TableCell
+        className="px-2 py-1 font-medium whitespace-nowrap cursor-pointer hover:text-primary"
+        onClick={() => onCellFilter("car", l.car)}
+      >
+        {l.car}
+      </TableCell>
+      {/* Livrée (masquée si identique au nom de voiture, comme Sessions) */}
       <TableCell className="px-2 py-1 text-muted-foreground whitespace-nowrap max-w-[150px] truncate">
-        {l.livery || "—"}
+        {l.livery && l.livery !== l.car ? l.livery : "—"}
       </TableCell>
       {/* Best lap — clic → graphe de tours */}
       <TableCell
@@ -838,7 +900,7 @@ function DashboardRow({
       {/* Position arrivée */}
       <TableCell className={cn("px-2 py-1 text-center font-mono", GROUP_SEP)}>
         {!isRace ? (
-          <span className="text-muted-foreground">N/A</span>
+          <span className="text-muted-foreground">—</span>
         ) : l.finish_status === "Driver Swap" ? (
           <span className="text-blue-400 italic text-mini">{t("sessions.statusDriverSwap")}</span>
         ) : l.finish_status && l.finish_status !== "Finished Normally" ? (
@@ -852,7 +914,7 @@ function DashboardRow({
       {/* Progression */}
       <TableCell className="px-2 py-1 text-center font-mono">
         {!isRace || l.progression == null ? (
-          <span className="text-muted-foreground">N/A</span>
+          <span className="text-muted-foreground">—</span>
         ) : l.progression > 0 ? (
           <span className="text-success inline-flex items-center gap-0.5">
             <TrendingUp className="h-3 w-3" />+{l.progression}
@@ -868,13 +930,13 @@ function DashboardRow({
           </span>
         )}
       </TableCell>
-      {/* Version */}
-      <TableCell className={cn("px-2 py-1 text-muted-foreground whitespace-nowrap font-mono text-micro", GROUP_SEP)}>
-        {l.game_version || "\u2014"}
-      </TableCell>
       {/* Date */}
-      <TableCell className="px-2 py-1 text-muted-foreground whitespace-nowrap">
+      <TableCell className={cn("px-2 py-1 text-muted-foreground whitespace-nowrap", GROUP_SEP)}>
         {formatDateTime(l.timestamp)}
+      </TableCell>
+      {/* Version */}
+      <TableCell className="px-2 py-1 text-muted-foreground whitespace-nowrap font-mono text-micro">
+        {l.game_version || "\u2014"}
       </TableCell>
     </TableRow>
   );

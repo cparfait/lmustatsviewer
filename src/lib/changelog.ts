@@ -65,7 +65,7 @@ export const APP_VERSION: string = __APP_VERSION__;
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.0.0",
-    date: "2026-06",
+    date: "2026-08-09",
     dev: false,
     localized: true,
     sections: [
@@ -181,6 +181,33 @@ export const CHANGELOG: ChangelogEntry[] = [
             de: "Menü-Module: Schalte Seiten, die du nicht nutzt, ein oder aus, um die App schlank zu halten.",
           },
           {
+            text: {
+              en: "Corner-by-corner coaching: the coach measures every corner against your reference lap and calls out what to change — braking too late or too early, apex speed, getting back on power, trail braking, lockups and wheelspin. A drill mode lets you work one corner until it sticks, and it tells you how your stint and tyre risk are developing.",
+              fr: "Coaching virage par virage : le coach mesure chaque virage face à ton tour de référence et t'annonce quoi corriger — freinage trop tard ou trop tôt, vitesse au point de corde, remise des gaz, trail braking, blocages et patinage. Un mode exercice te fait travailler un virage jusqu'à ce qu'il rentre, et il te dit comment évoluent ton relais et le risque pneus.",
+              es: "Coaching curva por curva: el coach mide cada curva frente a tu vuelta de referencia y te indica qué corregir — frenada demasiado tarde o temprano, velocidad en el ápice, vuelta al acelerador, trail braking, bloqueos y patinado. Un modo ejercicio te hace trabajar una curva hasta dominarla, y te informa de cómo evolucionan tu relevo y el riesgo de neumáticos.",
+              de: "Coaching Kurve für Kurve: Der Coach misst jede Kurve gegen deine Referenzrunde und sagt dir, was zu ändern ist — zu spät oder zu früh gebremst, Scheitelpunkt-Geschwindigkeit, Gasannahme, Trail Braking, blockierende Räder und Durchdrehen. Ein Übungsmodus lässt dich eine Kurve trainieren, bis sie sitzt, und er meldet, wie sich dein Stint und das Reifenrisiko entwickeln.",
+            },
+            featured: true,
+          },
+          {
+            en: "Guided tour and built-in help on first launch, so you know where to start.",
+            fr: "Visite guidée et aide intégrée au premier lancement, pour savoir par où commencer.",
+            es: "Visita guiada y ayuda integrada en el primer arranque, para saber por dónde empezar.",
+            de: "Geführte Tour und integrierte Hilfe beim ersten Start, damit du weißt, wo du anfängst.",
+          },
+          {
+            en: "Voices and speech recognition are downloaded on demand: you only get the languages you actually use, so the install stays light.",
+            fr: "Voix et reconnaissance vocale téléchargées à la demande : tu ne récupères que les langues dont tu te sers, l'installation reste légère.",
+            es: "Voces y reconocimiento de voz descargados a demanda: solo obtienes los idiomas que usas, así la instalación se mantiene ligera.",
+            de: "Stimmen und Spracherkennung werden bei Bedarf heruntergeladen: Du bekommst nur die Sprachen, die du wirklich nutzt — die Installation bleibt schlank.",
+          },
+          {
+            en: "Car numbers shown in every driver table.",
+            fr: "Numéro de voiture affiché dans tous les tableaux pilotes.",
+            es: "Número de coche mostrado en todas las tablas de pilotos.",
+            de: "Startnummern in allen Fahrertabellen sichtbar.",
+          },
+          {
             en: "Available in 4 languages: French, English, Spanish and German.",
             fr: "Disponible en 4 langues : français, anglais, espagnol et allemand.",
             es: "Disponible en 4 idiomas: francés, inglés, español y alemán.",
@@ -214,6 +241,53 @@ export const CHANGELOG: ChangelogEntry[] = [
             fr: "Thèmes clair et sombre aux couleurs du Mans.",
             es: "Temas claro y oscuro con los colores de Le Mans.",
             de: "Helles und dunkles Theme in den Farben von Le Mans.",
+          },
+          {
+            en: "You can now type any AI model name yourself, with suggestions — useful for a model that has just come out.",
+            fr: "Tu peux désormais saisir toi-même n'importe quel nom de modèle d'IA, avec suggestions — pratique pour un modèle tout juste sorti.",
+            es: "Ahora puedes escribir tú mismo cualquier nombre de modelo de IA, con sugerencias — útil para un modelo recién salido.",
+            de: "Du kannst jetzt jeden KI-Modellnamen selbst eingeben, mit Vorschlägen — praktisch für ein gerade erschienenes Modell.",
+          },
+        ],
+      },
+      {
+        kind: "fixed",
+        items: [
+          {
+            en: "The AI model name you type in yourself is no longer replaced on its own when the settings page opens.",
+            fr: "Le nom du modèle d'IA que tu saisis toi-même n'est plus remplacé tout seul à l'ouverture de la configuration.",
+            es: "El nombre del modelo de IA que escribes tú mismo ya no se reemplaza solo al abrir la configuración.",
+            de: "Der von dir selbst eingegebene KI-Modellname wird beim Öffnen der Einstellungen nicht mehr von allein ersetzt.",
+          },
+          {
+            en: "The voice coach no longer answers with an error when its setup is incomplete: it tells you what's missing.",
+            fr: "Le coach vocal ne répond plus par une erreur quand sa configuration est incomplète : il te dit ce qui manque.",
+            es: "El coach de voz ya no responde con un error cuando su configuración está incompleta: te dice qué falta.",
+            de: "Der Sprach-Coach antwortet nicht mehr mit einem Fehler, wenn seine Einrichtung unvollständig ist: Er sagt dir, was fehlt.",
+          },
+          {
+            en: "Dates now respect the timezone you selected.",
+            fr: "Les dates respectent le fuseau horaire que tu as choisi.",
+            es: "Las fechas respetan la zona horaria que has elegido.",
+            de: "Datumsangaben berücksichtigen jetzt die von dir gewählte Zeitzone.",
+          },
+          {
+            en: "Two tracks recorded at the same time no longer mix their sessions.",
+            fr: "Deux circuits enregistrés à la même heure ne mélangent plus leurs sessions.",
+            es: "Dos circuitos registrados a la misma hora ya no mezclan sus sesiones.",
+            de: "Zwei zur gleichen Zeit aufgezeichnete Strecken vermischen ihre Sessions nicht mehr.",
+          },
+          {
+            en: "The Lamborghini Huracán steering wheel image never showed up.",
+            fr: "L'image du volant de la Lamborghini Huracán ne s'affichait jamais.",
+            es: "La imagen del volante del Lamborghini Huracán nunca se mostraba.",
+            de: "Das Lenkrad-Bild des Lamborghini Huracán wurde nie angezeigt.",
+          },
+          {
+            en: "Some labels displayed the wrong text.",
+            fr: "Certains libellés affichaient le mauvais texte.",
+            es: "Algunas etiquetas mostraban el texto incorrecto.",
+            de: "Einige Beschriftungen zeigten den falschen Text an.",
           },
         ],
       },

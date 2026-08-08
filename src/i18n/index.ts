@@ -24,7 +24,11 @@ export const i18nReady = i18n
       de: { translation: de },
       es: { translation: es },
     },
-    fallbackLng: "fr",
+    // Anglais par défaut : la langue du système est détectée en premier (un
+    // Windows français ouvre l'app en français), mais toute langue hors des
+    // quatre supportées retombe sur l'anglais — pas sur le français, qui
+    // n'aurait aucun sens pour le public international.
+    fallbackLng: "en",
     interpolation: {
       escapeValue: false,
     },

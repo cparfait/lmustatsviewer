@@ -148,6 +148,15 @@ export function formatDateShort(epochSeconds: number): string {
   return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
 }
 
+/**
+ * Préfixe texte du numéro de voiture pour les contextes sans JSX (`<option>`
+ * d'un `<select>`). Renvoie `"#12 "` (espace final) ou `""` si absent.
+ * Pendant JSX : voir `CarNumber`.
+ */
+export function carNumberPrefix(n: number | null | undefined): string {
+  return n && n > 0 ? `#${n} ` : "";
+}
+
 export const chartTooltipStyle = {
   contentStyle: {
     backgroundColor: "var(--color-card)",

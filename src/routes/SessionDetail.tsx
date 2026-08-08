@@ -17,6 +17,7 @@ import { TableTitle } from "@/components/TableTitle";
 import { ClassBadge } from "@/components/ClassBadge";
 import { Tip } from "@/components/ui/tooltip";
 import { CarLogo } from "@/components/CarLogo";
+import { CarNumber } from "@/components/CarNumber";
 import { TrackFlag } from "@/components/TrackFlag";
 import {
   cn,
@@ -25,6 +26,7 @@ import {
   formatGap,
   formatSectorSeconds,
   formatDateTime,
+  carNumberPrefix,
 } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -237,6 +239,15 @@ function SessionView({ data }: { data: SessionDetailData }) {
     () => new Set(results.map((r) => r.driver_name)),
     [results]
   );
+  // Nom du pilote → numéro de voiture (XML `CarNumber`), pour les tableaux qui
+  // ne disposent que du nom (events de flux : track limits).
+  const numberByDriver = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of results) {
+      if (r.car_number > 0) map.set(r.driver_name, r.car_number);
+    }
+    return map;
+  }, [results]);
   const { incidents, penalties } = useMemo(
     () => buildSummaries(stream, driverNames),
     [stream, driverNames]
@@ -879,7 +890,11 @@ function SessionView({ data }: { data: SessionDetailData }) {
         </TabsContent>
 
         <TabsContent value="tracklimits">
-          <TrackLimitsTab events={trackLimitEvents} playerName={playerName} />
+          <TrackLimitsTab
+            events={trackLimitEvents}
+            playerName={playerName}
+            numberByDriver={numberByDriver}
+          />
         </TabsContent>
 
         {aiCoachEnabled && (
@@ -1241,7 +1256,10 @@ function ClassificationTab({
                           r.is_player && "text-sky-400"
                         )}
                       >
-                        {r.driver_name}
+                        <span className="inline-flex items-center gap-1.5">
+                          <CarNumber n={r.car_number} />
+                          {r.driver_name}
+                        </span>
                       </TableCell>
                       <TableCell className="px-1 w-7">
                         <CarLogo
@@ -1379,6 +1397,7 @@ function LapsTab({
           <option value="">{t("sessionDetail.goToDriver")}</option>
           {driversWithLaps.map((r) => (
             <option key={r.id} value={r.id}>
+              {carNumberPrefix(r.car_number)}
               {r.driver_name}
             </option>
           ))}
@@ -1453,6 +1472,7 @@ function LapsTab({
               title={
                 <span className="inline-flex items-center gap-2">
                   <ClassBadge carClass={r.car_class} solid />
+                  <CarNumber n={r.car_number} />
                   {r.driver_name}
                   <span className="inline-flex items-center gap-1.5 text-muted-foreground font-normal">
                     <span>—</span>
@@ -1737,7 +1757,10 @@ function BestLapsTab({ results }: { results: ResultRow[] }) {
                   <TableCell
                     className={cn("font-medium", r.is_player && "text-sky-400")}
                   >
-                    {r.driver_name}
+                    <span className="inline-flex items-center gap-1.5">
+                      <CarNumber n={r.car_number} />
+                      {r.driver_name}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <ClassBadge carClass={r.car_class} size="sm" />
@@ -1841,7 +1864,10 @@ function StrategyTab({
                       r.is_player && "text-sky-400"
                     )}
                   >
-                    {r.driver_name}
+                    <span className="inline-flex items-center gap-1.5">
+                      <CarNumber n={r.car_number} />
+                      {r.driver_name}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <ClassBadge carClass={r.car_class} size="sm" />
@@ -2108,9 +2134,12 @@ function parseTrackLimitEvent(ev: SessionDetailData["stream"][number]): TrackLim
 function TrackLimitsTab({
   events,
   playerName,
+  numberByDriver,
 }: {
   events: SessionDetailData["stream"];
   playerName: string;
+  /** Nom du pilote → numéro de voiture (le flux ne fournit que le nom). */
+  numberByDriver: Map<string, number>;
 }) {
   const { t } = useTranslation();
 
@@ -2201,7 +2230,16 @@ function TrackLimitsTab({
                           isPlayer && "text-sky-400"
                         )}
                       >
-                        {r.driver || "—"}
+                        {r.driver ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <CarNumber
+                              n={numberByDriver.get(r.driver.trim()) ?? null}
+                            />
+                            {r.driver}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                     </>
                   )}
@@ -2494,6 +2532,7 @@ function ComparisonTab({
                       value={r.driver_name}
                       disabled={takenElsewhere}
                     >
+                      {carNumberPrefix(r.car_number)}
                       {r.driver_name}
                       {takenElsewhere
                         ? ` ${t("sessionDetail.alreadyChosen")}`
@@ -2623,7 +2662,10 @@ function ComparisonTab({
                         className="text-center font-bold"
                         style={{ color: colorOf(r.driver_name) }}
                       >
-                        {r.driver_name}
+                        <span className="inline-flex items-center gap-1.5">
+                          <CarNumber n={r.car_number} />
+                          {r.driver_name}
+                        </span>
                       </TableHead>
                     ))}
                   </TableRow>

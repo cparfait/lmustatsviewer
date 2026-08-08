@@ -842,6 +842,17 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-08-08 — Numéro de voiture dans les tableaux pilotes
+
+L'info **existe déjà** dans la chaîne : balise XML `CarNumber` → `xml_parser.rs` → colonne `results.car_number` → `ResultRow.car_number` exposé au front. Elle n'était affichée que pour le joueur (bandeau + bloc « Infos pilote »). Aucune modif backend nécessaire.
+
+- ✅ Nouveau composant `src/components/CarNumber.tsx` — pastille compacte `#12` (mono, tabulaire), rendu `null` si numéro absent (`0` : sessions solo/IA sans numéro attribué).
+- ✅ Helper texte `carNumberPrefix()` dans `lib/utils.ts` pour les `<option>` de `<select>` (pas de JSX possible).
+- ✅ Branché dans `SessionDetail.tsx` : **Classement**, **Tours course** (titre de carte + sélecteur « aller au pilote »), **Meilleurs tours**, **Stratégie**, **Comparaison** (sélecteurs + en-têtes du tableau), **Track limits** (via une map `nom → numéro`, le flux ne fournissant que le nom).
+- ✅ Placement **inline devant le nom** plutôt qu'en colonne dédiée : le tableau Classement pilote ses bordures/fonds via des sélecteurs `nth-child(3/7/11/12)`, qu'une colonne supplémentaire décalerait. Zéro clé i18n ajoutée (parité inchangée).
+- ❌ **Onglet Live non couvert** : les standings viennent de la mémoire partagée (`VehicleScoring`), qui n'expose ni `CarNumber` ni équivalent — seulement `mDriverName`/`mVehicleName`.
+- 📋 **Prochaine étape** : vérifier le rendu sur une session multi-classes réelle (lisibilité de la pastille dans la colonne Pilote du Classement, qui est déjà dense).
+
 ### 2026-07-07 — Nettoyage final pré-V1.0 (bugs mineurs + cohérence + code mort)
 
 Traitement du reliquat MINEUR de l'audit. **Tout vert** : `cargo check` OK, `npm run build` OK, ESLint 0 sur tout le diff, `npm test` 121/121, parité i18n **1736 clés ×4**.

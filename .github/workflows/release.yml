@@ -17,7 +17,12 @@ on:
 
 jobs:
   release:
-    runs-on: windows-latest
+    # Épinglé : `windows-latest` pointe désormais sur une image dont le
+    # toolchain MSVC (14.51) ne compile plus les sources C++ de DuckDB
+    # (`duckdb` est en feature `bundled` → tout libduckdb est recompilé ici).
+    # `windows-2022` embarque le MSVC 14.4x, celui sur lequel le projet est
+    # développé et validé. À réévaluer quand DuckDB suivra le nouveau MSVC.
+    runs-on: windows-2022
     permissions:
       contents: write
 
@@ -75,6 +80,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          # Filet de sécurité si l'image épinglée finit par embarquer un MSVC
+          # récent : la crate `cc` ajoute ces drapeaux aux compilations C++.
+          # Sans eux, les en-têtes fmt de DuckDB échouent sur « inline variables
+          # require at least /std:c++17 » et sur l'absence de /EHsc.
+          CXXFLAGS: "/EHsc /std:c++17"
         with:
           # STT inclus d'office (libvosk liée au build, DLL bundlées via tauri.conf.json).
           # Les voix Piper et modèles Vosk ne sont PAS bundlés : téléchargés à la

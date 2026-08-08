@@ -58,7 +58,6 @@ import {
   type PostRaceMode,
 } from "@/lib/ai/prompts/postrace";
 import { announce, cancelSpeech, speak } from "@/lib/voice";
-import { estimateTokens, estimateCost, formatCost } from "@/lib/ai/cost";
 
 /** Nombre de tours d'historique envoyés (en plus du 1er message qui porte le contexte). */
 const HISTORY_TAIL = 8;
@@ -274,8 +273,6 @@ export function CoachPanel({
   const [copied, setCopied] = useState(false);
   const [question, setQuestion] = useState("");
   const [autoRead, setAutoRead] = useState(false); // B2 : lecture phrase-par-phrase en stream
-  const [cost, setCost] = useState(0); // A1 : coût cumulé estimé (USD)
-  const [costKnown, setCostKnown] = useState(true);
   const [sttOk, setSttOk] = useState(false); // B1 : reconnaissance vocale dispo
   const [recording, setRecording] = useState(false);
   const [notes, setNotes] = useState<CoachNote[]>([]); // objectifs épinglés du combo
@@ -310,8 +307,6 @@ export function CoachPanel({
     setError(null);
     setOpen(false);
     setShowContext(false);
-    setCost(0);
-    setCostKnown(true);
   }, [resetKey]);
 
   // Objectifs épinglés du combo — rechargés au changement de cible.
@@ -444,12 +439,6 @@ export function CoachPanel({
       });
       if (!cancelRef.current) {
         setThread([...nextThread, { role: "assistant", content: full || acc }]);
-        // A1 : coût estimé (entrée = contexte+historique ≈, sortie = réponse).
-        const inTok = estimateTokens(sent.map((m) => m.content).join("\n"), i18n.language) + 350;
-        const outTok = estimateTokens(full || acc, i18n.language);
-        const c = estimateCost(aiProvider, aiModel, inTok, outTok);
-        if (c == null) setCostKnown(false);
-        else setCost((v) => v + c);
       }
     } catch (e) {
       setError(friendlyError(e, t));
@@ -705,11 +694,6 @@ export function CoachPanel({
                 <Brain className="h-4 w-4 text-primary" />
               </div>
               <div className="font-semibold text-sm">{t("coach.title")}</div>
-              {costKnown && cost > 0 && (
-                <span className="text-[11px] tabular-nums text-muted-foreground" title={t("coach.costTip")}>
-                  ~{formatCost(cost)}
-                </span>
-              )}
               <div className="ml-auto flex items-center gap-1.5">
                 {busy && (
                   <Button variant="secondary" size="sm" className="h-7 gap-1.5" onClick={stopGeneration}>

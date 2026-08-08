@@ -33,8 +33,6 @@ interface OpenAICompatConfig {
   fallbackModels: ModelInfo[];
   /** Lien vers la doc des modèles du fournisseur. */
   docsUrl: string;
-  /** Saisie manuelle par défaut (fournisseurs à très nombreux modèles). */
-  preferManualModel?: boolean;
   /** Filtre optionnel des id de modèles (en plus de l'exclusion non-chat). */
   modelFilter?: (id: string) => boolean;
 }
@@ -91,7 +89,6 @@ export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
 
     fallbackModels: cfg.fallbackModels,
     docsUrl: cfg.docsUrl,
-    preferManualModel: cfg.preferManualModel,
   } satisfies AIProvider;
 }
 
@@ -136,8 +133,8 @@ export const mistralProvider = makeOpenAICompatProvider({
 });
 
 // OpenRouter : passerelle vers des centaines de modèles (dont des gratuits,
-// suffixés « :free »). API compatible OpenAI. La liste est énorme → saisie
-// manuelle par défaut, avec suggestions issues de l'endpoint /models.
+// suffixés « :free »). API compatible OpenAI. Les ids sont préfixés du vendeur
+// (`anthropic/claude-…`, `deepseek/…`) — à recopier depuis openrouter.ai/models.
 export const openrouterProvider = makeOpenAICompatProvider({
   id: "openrouter",
   name: "OpenRouter",
@@ -154,5 +151,4 @@ export const openrouterProvider = makeOpenAICompatProvider({
     },
   ],
   docsUrl: "https://openrouter.ai/models",
-  preferManualModel: true,
 });

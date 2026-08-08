@@ -25,6 +25,35 @@ import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
 import { toast, toastSuccess } from "@/stores/dialogs";
 
+/**
+ * Fournisseur / modèle / clé réellement utilisés par le coach **vocal**.
+ *
+ * Le vocal peut tourner sur un fournisseur DISTINCT de celui de l'analyse
+ * (`aiVoiceProvider` non vide) : il faut alors sa propre clé et son propre
+ * modèle, sans repli sur ceux de l'analyse — un modèle d'un fournisseur A n'est
+ * pas valide chez B. Sinon on hérite du fournisseur d'analyse, avec le modèle
+ * vocal (plus rapide) s'il est défini et le modèle d'analyse à défaut.
+ *
+ * Source unique : la garde de disponibilité (`ready`) et l'appel réel doivent
+ * juger sur les **mêmes** identifiants, sinon le push-to-talk s'active alors que
+ * l'appel partira avec un modèle vide.
+ */
+function resolveVoiceTarget(st: {
+  aiProvider: string;
+  aiModel: string;
+  aiApiKey: string;
+  aiVoiceProvider: string;
+  aiVoiceModel: string;
+  aiVoiceApiKey: string;
+}) {
+  const separate = st.aiVoiceProvider !== "";
+  return {
+    provider: getProvider(separate ? st.aiVoiceProvider : st.aiProvider),
+    model: separate ? st.aiVoiceModel : st.aiVoiceModel || st.aiModel,
+    apiKey: separate ? st.aiVoiceApiKey : st.aiApiKey,
+  };
+}
+
 /** Retire un markdown léger pour la lecture vocale. */
 function stripMd(s: string): string {
   return s
@@ -76,16 +105,31 @@ function recentDiagnosticsBlock(): string {
 export function useCoachVoice() {
   const { t, i18n } = useTranslation();
   const aiCoachEnabled = useAppStore((s) => s.aiCoachEnabled);
+  const keyCoach = useAppStore((s) => s.spotterKeyCoach);
+  const pttMode = useAppStore((s) => s.spotterPttMode);
+  // Abonnements explicites : `ready` doit être recalculé dès qu'un des six
+  // réglages change (fournisseur/modèle/clé, côté analyse comme côté vocal).
   const aiProvider = useAppStore((s) => s.aiProvider);
   const aiModel = useAppStore((s) => s.aiModel);
   const aiApiKey = useAppStore((s) => s.aiApiKey);
-  const keyCoach = useAppStore((s) => s.spotterKeyCoach);
-  const pttMode = useAppStore((s) => s.spotterPttMode);
+  const aiVoiceProvider = useAppStore((s) => s.aiVoiceProvider);
+  const aiVoiceModel = useAppStore((s) => s.aiVoiceModel);
+  const aiVoiceApiKey = useAppStore((s) => s.aiVoiceApiKey);
 
-  const provider = getProvider(aiProvider);
-  const needsKey = provider?.needsKey ?? true;
+  const target = resolveVoiceTarget({
+    aiProvider,
+    aiModel,
+    aiApiKey,
+    aiVoiceProvider,
+    aiVoiceModel,
+    aiVoiceApiKey,
+  });
+  const needsKey = target.provider?.needsKey ?? true;
   const ready =
-    aiCoachEnabled && !!provider && !!aiModel && (!needsKey || !!aiApiKey);
+    aiCoachEnabled &&
+    !!target.provider &&
+    !!target.model &&
+    (!needsKey || !!target.apiKey);
 
   const tRef = useRef(t);
   const langRef = useRef(i18n.language);
@@ -137,17 +181,19 @@ export function useCoachVoice() {
         // contexte → le LLM peut expliquer un callout avec ses chiffres exacts.
         const recent = recentDiagnosticsBlock();
         const ctx = recent ? `${baseCtx}\n\n${recent}` : baseCtx;
+        // Relu à chaud (pas de capture périmée) via la MÊME résolution que la
+        // garde `ready` ci-dessus. Un réglage modifié entre-temps peut rendre la
+        // cible incomplète : on prévient au lieu d'envoyer un modèle vide.
         const st = useAppStore.getState();
-        // Coach vocal : fournisseur DISTINCT si configuré, sinon celui de
-        // l'analyse. Avec un fournisseur distinct → sa propre clé + son modèle ;
-        // sinon modèle vocal (rapide) si défini, à défaut le modèle d'analyse.
-        const separateVoice = st.aiVoiceProvider !== "";
-        const p = getProvider(separateVoice ? st.aiVoiceProvider : st.aiProvider);
-        if (!p) return;
+        const { provider: p, model, apiKey } = resolveVoiceTarget(st);
+        if (!p || !model || (p.needsKey && !apiKey)) {
+          announce(tt("coach.voiceNotConfigured"), lang);
+          return;
+        }
         const answer = await askCoachVoice({
           provider: p,
-          model: separateVoice ? st.aiVoiceModel : st.aiVoiceModel || st.aiModel,
-          apiKey: separateVoice ? st.aiVoiceApiKey : st.aiApiKey,
+          model,
+          apiKey,
           lang,
           question,
           contextText: ctx,

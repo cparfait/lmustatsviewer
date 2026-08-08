@@ -209,8 +209,8 @@ export default {
     stopGen: "Stop",
     speak: "Speak (dictation)",
     voiceUnclear: "I didn't catch that.",
+    voiceNotConfigured: "Voice coach incomplete: pick a model in the settings.",
     autoRead: "Auto read-aloud (as it streams)",
-    costTip: "Estimated cumulative session cost (approximate)",
     disclaimer: "AI-generated analysis from session data — verify before acting.",
     sources:
       "Reference sources: ApexPoints braking markers · Unleashed Drivers video lap guides (YouTube).",

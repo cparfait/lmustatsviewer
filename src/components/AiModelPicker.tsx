@@ -2,13 +2,15 @@
  * Sélecteur de modèle IA partagé (page Config + Config V2).
  *
  * Deux modes, commutables :
- *  - LISTE : menu déroulant listant TOUS les modèles sondés via l'endpoint
- *    `/models` du fournisseur (nécessite une clé valide pour la liste complète ;
- *    sinon repli statique). Un `<select>` affiche tout d'un coup — contrairement
- *    à un `<datalist>` qui filtre selon la saisie et n'en montrait qu'un.
- *  - SAISIE : champ libre (avec suggestions) pour taper n'importe quel id —
- *    indispensable pour les fournisseurs à des centaines de modèles (OpenRouter)
- *    ou un modèle tout juste sorti, pas encore listé.
+ *  - SAISIE (défaut) : champ libre, avec suggestions issues de `/models`. C'est
+ *    le mode par défaut pour TOUS les fournisseurs : les endpoints `/models`
+ *    sont incomplets ou absents selon les cas (modèle tout juste sorti,
+ *    passerelle à des centaines d'entrées, repli statique hors ligne, modèle
+ *    Ollama local nommé librement). Un menu fermé empêcherait alors de saisir
+ *    un id parfaitement valide.
+ *  - LISTE : menu déroulant des modèles sondés, pour choisir sans rien taper.
+ *    Un `<select>` affiche tout d'un coup — contrairement à un `<datalist>`
+ *    qui filtre selon la saisie et n'en montrait qu'un.
  */
 
 import { useEffect, useState } from "react";
@@ -38,11 +40,13 @@ export function AiModelPicker({
   listId?: string;
 }) {
   const { t } = useTranslation();
-  const [manual, setManual] = useState(provider?.preferManualModel ?? false);
-  // Réinitialise le mode au changement de fournisseur (OpenRouter → saisie).
-  // `provider` a une référence stable (élément du registre statique PROVIDERS).
+  // Saisie libre par défaut ; le passage en liste est explicite et ne survit
+  // pas à un changement de fournisseur (les ids d'un fournisseur n'ont aucun
+  // sens chez un autre). `provider` a une référence stable — élément du
+  // registre statique PROVIDERS.
+  const [manual, setManual] = useState(true);
   useEffect(() => {
-    setManual(provider?.preferManualModel ?? false);
+    setManual(true);
   }, [provider]);
 
   const inList = models.some((m) => m.id === value);

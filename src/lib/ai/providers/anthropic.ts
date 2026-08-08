@@ -97,9 +97,10 @@ export const anthropicProvider: AIProvider = {
   },
 
   // Repli best-effort (la liste réelle vient de l'API quand la clé est valide).
-  // Modèles actuels (2026-07) ; l'ancien repli listait des modèles retirés.
+  // Génération courante (2026-08) : Opus 5 remplace Opus 4.8 au même tarif.
+  // Ordre = du plus capable au plus rapide/économique.
   fallbackModels: [
-    { id: "claude-opus-4-8", label: "Claude Opus 4.8" },
+    { id: "claude-opus-5", label: "Claude Opus 5" },
     { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
     { id: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
   ],

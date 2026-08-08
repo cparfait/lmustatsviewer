@@ -59,10 +59,4 @@ export interface AIProvider {
    * maintenir, l'UI renvoie l'utilisateur à la source à jour (il saisit l'id).
    */
   docsUrl: string;
-  /**
-   * Certains fournisseurs (OpenRouter…) exposent des centaines de modèles :
-   * on privilégie alors la saisie manuelle (avec suggestions) plutôt qu'un
-   * menu déroulant géant. `true` = champ de saisie par défaut.
-   */
-  preferManualModel?: boolean;
 }

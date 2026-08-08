@@ -209,8 +209,8 @@ export default {
     stopGen: "Stopp",
     speak: "Sprechen (Diktat)",
     voiceUnclear: "Ich habe das nicht verstanden.",
+    voiceNotConfigured: "Sprach-Coach unvollständig: Wähle ein Modell in den Einstellungen.",
     autoRead: "Automatisch vorlesen (während des Streamings)",
-    costTip: "Geschätzte kumulierte Sitzungskosten (ungefähr)",
     disclaimer: "KI-generierte Analyse aus Session-Daten — bitte überprüfen.",
     sources:
       "Referenzquellen: ApexPoints Bremspunkte · Unleashed Drivers Video-Lap-Guides (YouTube).",

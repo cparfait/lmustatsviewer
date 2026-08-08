@@ -209,8 +209,8 @@ export default {
     stopGen: "Stop",
     speak: "Parler (dictée)",
     voiceUnclear: "Je n'ai pas compris la question.",
+    voiceNotConfigured: "Coach vocal incomplet : choisis un modèle dans la configuration.",
     autoRead: "Lecture auto (au fil de la réponse)",
-    costTip: "Coût estimé cumulé de la session (approximatif)",
     disclaimer:
       "Analyse générée par IA à partir des données de session — à vérifier.",
     sources:

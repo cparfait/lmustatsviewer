@@ -842,6 +842,18 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-08-08 — Audit pré-publication : sélection de modèle IA, coach vocal, indicateur de coût
+
+Tour de l'application avant publication. **Tout vert** : `npm test` 121/121, `cargo check` OK, `npm run build` OK, ESLint 0 erreur sur le diff, parité i18n **1728 ×4** (inchangée : 1 clé retirée, 1 ajoutée).
+
+- ❌ **Point bloquant non résolu — `version.json` = 1.0.0 alors que le dernier tag publié est `v1.0.7`.** `git show v1.0.7:version.json` renvoie `1.0.0` : les tags `v1.0.1` → `v1.0.7` (tous ancêtres de HEAD) ont été construits avec la version 1.0.0. Le workflow ne passe le tag qu'en `tagName`/`releaseName`, jamais dans la version — celle-ci vient uniquement de `version.json` via `build.rs` → `tauri.conf.json` → `latest.json`. Conséquence : `check()` compare 1.0.0 à 1.0.0, **aucune mise à jour automatique n'a été proposée depuis la 1.0.0**. `release.ps1` fait pourtant le bump + commit correctement (l. 127-155) : il n'a pas été utilisé pour ces tags. **Décision du mainteneur : rester en 1.0.0 pour cette release** (distribution par téléchargement manuel).
+- ✅ **Modèle IA saisi à la main : plus d'écrasement.** `refreshAiModels` (ConfigV2) remplaçait le modèle stocké par `models[0].id` dès qu'il n'apparaissait pas dans la liste sondée — donc **à chaque ouverture de la page Config** pour tout id saisi manuellement. Désormais l'amorçage n'a lieu que si aucun modèle n'est choisi ; une valeur existante n'est jamais remplacée.
+- ✅ **Champ libre par défaut pour tous les fournisseurs** (`AiModelPicker`) : les endpoints `/models` sont incomplets ou absents selon les cas (modèle tout juste sorti, repli statique hors ligne, tag Ollama local). Le mode LISTE reste accessible d'un clic. Le drapeau `preferManualModel` (types + openai-compat + OpenRouter) devient sans objet et est supprimé.
+- ✅ **Coach vocal : garde de disponibilité corrigée.** `ready` jugeait sur `aiProvider`/`aiModel`/`aiApiKey` (identifiants de l'**analyse**) alors que l'appel pouvait partir sur `aiVoiceProvider`/`aiVoiceModel`/`aiVoiceApiKey`. Avec un fournisseur vocal distinct, `VoiceCoachConfig` pose volontairement `aiVoiceModel = ""` — le PTT restait actif et l'appel partait avec `model: ""`. Nouvelle fonction `resolveVoiceTarget()` : source unique partagée par la garde et le site d'appel, + annonce vocale `coach.voiceNotConfigured` (×4 langues) si la cible est incomplète.
+- ✅ **Indicateur de coût supprimé** (`src/lib/ai/cost.ts` supprimé, clé `coach.costTip` retirée ×4). La table de tarifs était maintenue à la main et se périmait en silence ; les regex ancrées (`^gpt-4o-mini`, `^deepseek-chat`) ne matchaient pas les ids préfixés d'OpenRouter alors que les non ancrées (`/sonnet/i`, `/flash/i`) matchaient — coût affiché pour certains modèles et pas d'autres, tarif non nul possible sur un modèle `:free`. **Décision : ne plus afficher ni coût ni tokens.**
+- ✅ **Repli Anthropic hors ligne** : `claude-opus-4-8` → `claude-opus-5` (génération courante, même tarif).
+- 📋 **Prochaine étape** : décider du numéro de version réel avant le prochain tag — toute valeur ≤ 1.0.7 laissera les installations existantes sans notification de mise à jour.
+
 ### 2026-08-08 — Numéro de voiture dans les tableaux pilotes
 
 L'info **existe déjà** dans la chaîne : balise XML `CarNumber` → `xml_parser.rs` → colonne `results.car_number` → `ResultRow.car_number` exposé au front. Elle n'était affichée que pour le joueur (bandeau + bloc « Infos pilote »). Aucune modif backend nécessaire.

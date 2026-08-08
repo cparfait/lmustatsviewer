@@ -269,8 +269,12 @@ export function ConfigV2() {
       const key = useAppStore.getState().aiApiKey;
       const models = await fetchModels(provider, key);
       setAiModels(models);
-      const cur = useAppStore.getState().aiModel;
-      if (models.length > 0 && !models.some((m) => m.id === cur)) {
+      // Amorçage SEULEMENT si aucun modèle n'est encore choisi. On ne remplace
+      // jamais une valeur existante : l'endpoint `/models` est incomplet chez
+      // plusieurs fournisseurs (modèle tout juste sorti, id saisi à la main,
+      // repli statique hors ligne) — écraser reviendrait à effacer en silence
+      // le choix du pilote à chaque ouverture de la page.
+      if (models.length > 0 && !useAppStore.getState().aiModel) {
         await useAppStore.getState().setAIModel(models[0].id);
       }
     } finally {

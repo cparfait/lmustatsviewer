@@ -1,13 +1,73 @@
 ; ─────────────────────────────────────────────────────────────────────────────
 ; hooks.nsi — LMU Stats Viewer custom NSIS hooks
 ;
-; Après l'installation de l'application, propose d'installer le plugin
-; rF2 Shared Memory Map (requis pour la page Live Timing).
+; PREINSTALL  : propose de désinstaller l'ancienne V1 (0.9.x), livrée avec
+;               InnoSetup — NSIS ne la voit pas et les deux cohabiteraient.
+; POSTINSTALL : propose d'installer le plugin rF2 Shared Memory Map (requis
+;               pour la page Live Timing).
 ;
 ; Le DLL rFactor2SharedMemoryMapPlugin64.dll est bundlé en tant que ressource
 ; Tauri et se trouve dans $INSTDIR lors de l'exécution du hook.
 ; Il est supprimé de $INSTDIR à la fin du hook (inutile pour l'appli elle-même).
 ; ─────────────────────────────────────────────────────────────────────────────
+
+; AppId InnoSetup de la V1 (setup.iss, inchangé sur toute la série 0.9.x).
+; InnoSetup suffixe la clé de désinstallation par « _is1 ».
+!define LSV_V1_UNINST_KEY \
+  "Software\Microsoft\Windows\CurrentVersion\Uninstall\{A3F8C2D1-5E7B-4A90-B3F6-8D2E1C4F9A03}_is1"
+
+!macro NSIS_HOOK_PREINSTALL
+  Push $R0
+
+  ; Uniquement en installation interactive : lors d'une mise à jour auto
+  ; (updater Tauri, /UPDATE /P /R) une MessageBox bloquerait le processus.
+  ${If} $UpdateMode <> 1
+    ${If} $PassiveMode <> 1
+      ${IfNot} ${Silent}
+
+        ; ── Recherche de l'ancienne installation ───────────────────────────
+        ; La V1 s'installait en admin (HKLM) mais l'utilisateur pouvait
+        ; basculer en installation par utilisateur (HKCU) : on teste les
+        ; trois vues du registre.
+        SetRegView 64
+        ReadRegStr $R0 HKLM "${LSV_V1_UNINST_KEY}" "UninstallString"
+        ${If} $R0 == ""
+          SetRegView 32
+          ReadRegStr $R0 HKLM "${LSV_V1_UNINST_KEY}" "UninstallString"
+        ${EndIf}
+        ${If} $R0 == ""
+          ReadRegStr $R0 HKCU "${LSV_V1_UNINST_KEY}" "UninstallString"
+        ${EndIf}
+        SetRegView default
+
+        ${If} $R0 != ""
+          MessageBox MB_YESNO|MB_ICONQUESTION \
+            "Ancienne version detectee$\n\
+            $\n\
+            Une version 0.9.x de LMU Stats Viewer est installee.$\n\
+            La nouvelle version la remplace entierement : la garder$\n\
+            n'apporte rien et laisse deux entrees dans la liste des$\n\
+            programmes.$\n\
+            $\n\
+            La desinstaller maintenant ?$\n\
+            $\n\
+            (Vos donnees et resultats de courses ne sont pas touches.$\n\
+            Une confirmation Windows peut apparaitre.)" \
+            IDNO lsv_keep_v1
+
+          ; UninstallString est deja entre guillemets ; on ajoute les
+          ; drapeaux silencieux d'InnoSetup.
+          ExecWait '$R0 /VERYSILENT /SUPPRESSMSGBOXES /NORESTART'
+
+          lsv_keep_v1:
+        ${EndIf}
+
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+
+  Pop $R0
+!macroend
 
 !macro NSIS_HOOK_POSTINSTALL
   Push $R0

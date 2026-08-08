@@ -1,3 +1,7 @@
 {
-  "version": "1.0.0"
+  "_comment": "Double schéma, NE PAS SIMPLIFIER. `version` = source de vérité du build Tauri V3 (lu par src-tauri/build.rs, qui propage vers package.json, Cargo.toml et tauri.conf.json). `latest_version`/`release_url`/`download_url` = lus par l'update-checker de l'ancienne V1 PHP (htdocs/js/update-checker.js via VERSION_CHECK_URL, défini en dur sur raw.githubusercontent.com/.../main/version.json). Supprimer ces trois champs fait silencieusement afficher « Application à jour » à toutes les installations V1, sans aucune erreur. À conserver tant que des installations V1 existent.",
+  "version": "1.0.0",
+  "latest_version": "1.0.0",
+  "release_url": "https://github.com/cparfait/lmustatsviewer/releases/latest",
+  "download_url": "https://github.com/cparfait/lmustatsviewer/releases/latest"
 }

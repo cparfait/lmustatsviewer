@@ -64,19 +64,41 @@ poste ou de nouveau dépôt.
 
 **Une seule source de vérité : `version.json` à la racine.**
 
+`version.json` porte **deux** numéros, et les deux doivent être bumpés :
+
 ```json
-{ "version": "1.0.0" }
+{
+  "version": "1.0.1",
+  "latest_version": "1.0.1"
+}
 ```
+
+- `version` → build Tauri V3 (lu par `build.rs`).
+- `latest_version` → vérificateur de mise à jour de l'ancienne V1 PHP, qui lit ce
+  fichier sur `raw.githubusercontent.com/.../main/version.json`. L'oublier fait
+  silencieusement afficher « Application à jour » aux installations V1.
 
 Le script `src-tauri/build.rs` s'exécute avant chaque compilation et, à partir de
 `version.json` :
 
 1. injecte la variable d'environnement `APP_VERSION` (lue par `get_app_version()` côté Rust) ;
-2. **synchronise automatiquement** `package.json`, `src-tauri/Cargo.toml` et
-   `src-tauri/tauri.conf.json`.
+2. **synchronise** `package.json`, `src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`.
 
-> **Ne modifie donc QUE `version.json`.** Les trois autres fichiers se mettent à jour tout
-> seuls au prochain `tauri build` / `tauri dev`. Format recommandé : **SemVer** (`MAJEUR.MINEUR.CORRECTIF`).
+> ⚠️ **Un bump ne prend effet qu'au build SUIVANT — et les fichiers dérivés doivent être commités.**
+> Cargo lit `Cargo.toml` **avant** d'exécuter `build.rs` : le build qui suit un bump propage
+> la nouvelle version dans les trois fichiers, mais compile encore l'**ancienne**.
+> Sur un checkout propre — c'est-à-dire en CI — un `Cargo.toml` resté à l'ancienne version
+> produit donc un installeur à l'ancien numéro sous un tag neuf, **sans aucune erreur**.
+>
+> Procédure sûre après avoir édité `version.json` :
+> ```bash
+> cd src-tauri && cargo check   # propage + met Cargo.lock à jour
+> ```
+> puis commiter `version.json`, `package.json`, `src-tauri/tauri.conf.json`,
+> `src-tauri/Cargo.toml` **et** `src-tauri/Cargo.lock` avant de taguer.
+> `release.ps1` fait déjà tout ça (l. 127-155) — c'est la voie recommandée.
+
+Format recommandé : **SemVer** (`MAJEUR.MINEUR.CORRECTIF`).
 
 ---
 

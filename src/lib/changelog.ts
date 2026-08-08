@@ -64,6 +64,25 @@ export const APP_VERSION: string = __APP_VERSION__;
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.1",
+    date: "2026-08-09",
+    dev: false,
+    localized: true,
+    sections: [
+      {
+        kind: "improved",
+        items: [
+          {
+            en: "The installer now offers to remove an older 0.9.x version if it finds one. The 0.9.x series used a different installer, so it was left behind and both versions showed up side by side in the programs list.",
+            fr: "L'installeur propose désormais de supprimer une ancienne version 0.9.x s'il en trouve une. La série 0.9.x utilisait un installeur différent : elle restait en place et les deux versions apparaissaient côte à côte dans la liste des programmes.",
+            es: "El instalador ahora ofrece eliminar una versión 0.9.x anterior si encuentra una. La serie 0.9.x usaba un instalador diferente: quedaba instalada y ambas versiones aparecían juntas en la lista de programas.",
+            de: "Das Installationsprogramm bietet jetzt an, eine ältere 0.9.x-Version zu entfernen, wenn es eine findet. Die 0.9.x-Reihe nutzte ein anderes Installationsprogramm: Sie blieb bestehen, und beide Versionen erschienen nebeneinander in der Programmliste.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "1.0.0",
     date: "2026-08-09",
     dev: false,

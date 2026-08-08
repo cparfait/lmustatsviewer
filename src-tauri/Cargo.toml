@@ -1,6 +1,6 @@
 [package]
 name = "lmustatsviewer"
-version = "1.0.0"
+version = "1.0.1"
 description = "Le Mans Ultimate Stats Viewer — v3"
 authors = ["cparfait"]
 edition = "2021"

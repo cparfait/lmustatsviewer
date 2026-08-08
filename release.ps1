@@ -4,13 +4,13 @@
 #   .\release.ps1                        -> invite version, build, instructions GitHub
 #   .\release.ps1 -Version 3.1.0         -> force une version precise (pas d'invite)
 #   .\release.ps1 -SkipBuild             -> repackage sans recompiler
-#   .\release.ps1 -Branch main           -> pousse sur main au lieu de V2 (test)
+#   .\release.ps1 -Branch v1-legacy      -> pousse sur une autre branche (test)
 #
 # Prerequis : Node.js, Rust/Cargo, _lmu_updater.key dans le dossier racine.
 
 param(
     [string]$Version   = "",
-    [string]$Branch    = "V2",
+    [string]$Branch    = "main",
     [switch]$SkipBuild = $false
 )
 

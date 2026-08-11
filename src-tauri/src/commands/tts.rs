@@ -16,6 +16,16 @@ const PIPER_EXE: &str = "piper.exe";
 #[cfg(not(target_os = "windows"))]
 const PIPER_EXE: &str = "piper";
 
+/// `CREATE_NO_WINDOW` : Piper est une application **console**. Sans ce drapeau,
+/// Windows ouvre une fenêtre noire à chaque synthèse — invisible sur le bureau,
+/// mais désastreuse en jeu : elle prend le focus et fait saccader LMU en plein
+/// écran. `BELOW_NORMAL_PRIORITY_CLASS` garde en plus le CPU pour le simulateur
+/// (la synthèse prend ~200 ms, quelques ms de retard n'ont aucune importance).
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+#[cfg(target_os = "windows")]
+const BELOW_NORMAL_PRIORITY_CLASS: u32 = 0x0000_4000;
+
 /// Voix Piper installée (exposée au frontend pour le sélecteur).
 #[derive(serde::Serialize)]
 pub struct PiperVoice {
@@ -208,6 +218,13 @@ pub fn tts_synthesize(
             cmd.arg("--speaker").arg(clamped.to_string());
         }
     }
+    // Pas de fenêtre console + priorité basse (cf. constantes plus haut).
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS);
+    }
+
     let mut child = cmd
         .current_dir(&work_dir) // pour trouver espeak-ng-data + onnxruntime.dll
         .stdin(Stdio::piped())

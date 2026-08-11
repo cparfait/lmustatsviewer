@@ -64,6 +64,36 @@ export const APP_VERSION: string = __APP_VERSION__;
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.2",
+    date: "2026-08-12",
+    dev: false,
+    localized: true,
+    sections: [
+      {
+        kind: "fixed",
+        items: [
+          {
+            en: "The AI Coach no longer flashes a black window over the game every time it speaks. The speech engine is a console program, and Windows was opening a window for it on each phrase: it stole the focus and made the game stutter in fullscreen. Speech synthesis also runs at a lower CPU priority now, so it stays out of the sim's way.",
+            fr: "Le coach IA ne fait plus apparaître de fenêtre noire par-dessus le jeu à chaque phrase. Le moteur vocal est un programme console et Windows lui ouvrait une fenêtre à chaque annonce : elle volait le focus et faisait saccader le jeu en plein écran. La synthèse tourne aussi à une priorité CPU plus basse, pour ne plus gêner le simulateur.",
+            es: "El Coach IA ya no muestra una ventana negra sobre el juego cada vez que habla. El motor de voz es un programa de consola y Windows le abría una ventana en cada frase: robaba el foco y provocaba tirones en pantalla completa. La síntesis se ejecuta además con menor prioridad de CPU, para no molestar al simulador.",
+            de: "Der KI-Coach lässt bei jeder Ansage kein schwarzes Fenster mehr über dem Spiel aufblitzen. Die Sprachausgabe ist ein Konsolenprogramm, für das Windows bei jedem Satz ein Fenster öffnete: Es zog den Fokus ab und ließ das Spiel im Vollbild stocken. Die Sprachsynthese läuft zudem mit niedrigerer CPU-Priorität und kommt dem Simulator nicht mehr in die Quere.",
+          },
+        ],
+      },
+      {
+        kind: "improved",
+        items: [
+          {
+            en: "Announcements can now be turned up to 200% and start at 100%. The volume was capped at 100% with a 30% default, which was far too quiet next to the game. An output limiter keeps the voice clean when boosted above 100% (built-in neural voice only — system voices cannot be amplified). If you had already set the volume yourself, your setting is kept.",
+            fr: "Les annonces peuvent désormais monter à 200 % et démarrent à 100 %. Le volume était plafonné à 100 % avec un défaut à 30 %, bien trop faible face au jeu. Un limiteur de sortie garde la voix propre au-delà de 100 % (voix neuronale intégrée uniquement — les voix système ne peuvent pas être amplifiées). Si vous aviez déjà réglé le volume vous-même, votre réglage est conservé.",
+            es: "Los anuncios pueden subir ahora hasta el 200 % y empiezan al 100 %. El volumen estaba limitado al 100 % con un valor por defecto del 30 %, demasiado bajo frente al juego. Un limitador de salida mantiene la voz limpia por encima del 100 % (solo la voz neuronal integrada: las voces del sistema no pueden amplificarse). Si ya habías ajustado el volumen, se conserva tu ajuste.",
+            de: "Ansagen lassen sich jetzt bis 200 % aufdrehen und starten bei 100 %. Die Lautstärke war auf 100 % begrenzt, mit 30 % als Standard — neben dem Spiel viel zu leise. Ein Ausgangslimiter hält die Stimme oberhalb von 100 % sauber (nur die integrierte neuronale Stimme — Systemstimmen lassen sich nicht verstärken). Wenn du die Lautstärke bereits selbst eingestellt hattest, bleibt deine Einstellung erhalten.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "1.0.1",
     date: "2026-08-09",
     dev: false,

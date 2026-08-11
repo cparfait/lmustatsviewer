@@ -22,6 +22,7 @@ import {
   audioContext,
   audioOutput,
   setMasterVolume,
+  MAX_VOICE_VOLUME,
 } from "@/lib/radioFx";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@/lib/api";
@@ -110,8 +111,11 @@ let preferredPiperByLang: Record<string, string> = {};
 /** Locuteur choisi par langue (modèles multi-locuteur, ex. MLS) — 0 par défaut. */
 let preferredSpeakerByLang: Record<string, number> = {};
 let speechRate = 1.05;
-/** Volume des annonces (0–1) — pour baisser le son et l'équilibrer avec le jeu. */
-let speechVolume = 0.3;
+/**
+ * Volume des annonces (0 – `MAX_VOICE_VOLUME`) — pour équilibrer avec le jeu.
+ * Défaut à 100 % : le jeu couvrait les annonces avec l'ancien défaut de 30 %.
+ */
+let speechVolume = 1;
 /** Moteur de synthèse : Piper neuronal embarqué (défaut) ou voix système. */
 let engine: VoiceEngine = "piper";
 /** Langues où Piper a échoué/est absent → on n'y retente pas (repli direct). */
@@ -131,7 +135,7 @@ export function configureVoice(opts: {
   if (opts.speakerByLang !== undefined) preferredSpeakerByLang = opts.speakerByLang;
   if (opts.rate !== undefined && opts.rate > 0) speechRate = opts.rate;
   if (opts.volume !== undefined) {
-    speechVolume = Math.max(0, Math.min(1, opts.volume));
+    speechVolume = Math.max(0, Math.min(MAX_VOICE_VOLUME, opts.volume));
     setMasterVolume(speechVolume); // voix Piper + bips
   }
   if (opts.engine !== undefined) engine = opts.engine;
@@ -219,7 +223,9 @@ function buildUtterance(text: string, lang: string): SpeechSynthesisUtterance {
   // On ne baisse le pitch que pour les voix robotiques (les neuronales sonnent
   // mieux au pitch nominal — un décalage les rend artificielles).
   u.pitch = voice && isNaturalVoice(voice) ? 1 : 0.92;
-  u.volume = speechVolume;
+  // Web Speech ne passe pas par le graphe Web Audio : pas d'amplification
+  // possible au-delà de 100 % (le boost n'existe que sur le moteur Piper).
+  u.volume = Math.min(1, speechVolume);
   return u;
 }
 

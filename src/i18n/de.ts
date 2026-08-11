@@ -1266,7 +1266,8 @@ export default {
     voiceNoneFound: "Keine Stimme für diese Sprache installiert. Windows 11: Einstellungen → Barrierefreiheit → Sprachausgabe → Natürliche Stimmen hinzufügen.",
     voiceRate: "Sprechgeschwindigkeit",
     voiceVolume: "Ansagelautstärke",
-    voiceVolumeDesc: "Senke die Ansagelautstärke, um sie an das Spiel anzupassen.",
+    voiceVolumeDesc:
+      "Passe die Ansagelautstärke an das Spiel an (bis zu 200 %).",
     voiceRadio: "Funk-/Box-Effekt",
     voiceRadioDesc: "Öffnungston, Rauschen und „Roger Beep“ für das Team-Funk-Gefühl.",
     voiceEngine: "Synthese-Engine",

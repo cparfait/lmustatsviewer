@@ -20,7 +20,15 @@ let staticGain: GainNode | null = null;
 let enabled = true;
 /** Gain maître : volume des annonces (voix Piper + bips) pour équilibrer avec le jeu. */
 let masterGain: GainNode | null = null;
-let masterVolume = 0.3;
+let masterVolume = 1;
+
+/**
+ * Volume maximal réglable : **200 %**. Le jeu tourne souvent bien plus fort que
+ * les annonces (retour utilisateur 1.0.1) et la chaîne radio, passe-bande par
+ * nature, retire déjà de l'énergie : un plafond à 100 % ne permettait pas de
+ * remonter la voix au niveau du jeu. Le limiteur de sortie rend le gain > 1 sûr.
+ */
+export const MAX_VOICE_VOLUME = 2;
 
 export function setRadioEnabled(v: boolean) {
   enabled = v;
@@ -41,14 +49,23 @@ function master(c: AudioContext): GainNode {
   if (!masterGain) {
     masterGain = c.createGain();
     masterGain.gain.value = masterVolume;
-    masterGain.connect(c.destination);
+    // Limiteur de sortie : au-delà de 100 %, il rattrape proprement les crêtes
+    // (attaque rapide, ratio élevé) au lieu de laisser la carte son écrêter.
+    const limiter = c.createDynamicsCompressor();
+    limiter.threshold.value = -3;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.25;
+    masterGain.connect(limiter);
+    limiter.connect(c.destination);
   }
   return masterGain;
 }
 
-/** Règle le volume des annonces (0–1). */
+/** Règle le volume des annonces (0 – `MAX_VOICE_VOLUME`). */
 export function setMasterVolume(v: number) {
-  masterVolume = Math.max(0, Math.min(1, v));
+  masterVolume = Math.max(0, Math.min(MAX_VOICE_VOLUME, v));
   if (masterGain) masterGain.gain.value = masterVolume;
 }
 

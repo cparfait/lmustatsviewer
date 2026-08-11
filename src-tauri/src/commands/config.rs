@@ -218,7 +218,10 @@ fn collect_steam_library_dirs() -> Vec<PathBuf> {
 
 #[cfg(target_os = "windows")]
 fn read_steam_install_path_from_registry() -> Option<PathBuf> {
+    use std::os::windows::process::CommandExt;
     use std::process::Command;
+    /// Évite la fenêtre console noire de `reg.exe` (vol de focus en jeu).
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     let queries = [
         (r"HKLM\SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"),
         (r"HKCU\SOFTWARE\Valve\Steam", "SteamPath"),
@@ -226,6 +229,7 @@ fn read_steam_install_path_from_registry() -> Option<PathBuf> {
     for (key, value) in queries {
         if let Ok(output) = Command::new("reg")
             .args(["query", key, "/v", value])
+            .creation_flags(CREATE_NO_WINDOW)
             .output()
         {
             let stdout = String::from_utf8_lossy(&output.stdout);

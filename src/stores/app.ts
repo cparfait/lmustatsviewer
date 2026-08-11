@@ -13,7 +13,7 @@ import { preloadStaticData } from "@/lib/staticData";
 import { configureVoice } from "@/lib/voice";
 import { initVoiceOverrides } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
-import { setRadioEnabled } from "@/lib/radioFx";
+import { setRadioEnabled, MAX_VOICE_VOLUME } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
 import type {
   BestLapRow,
@@ -221,7 +221,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   piperVoiceByLang: {},
   piperSpeakerByLang: {},
   voiceRate: 1.05,
-  voiceVolume: 0.3,
+  voiceVolume: 1,
   voiceRadio: true,
   voiceEngine: "piper",
   spotterEnabled: false,
@@ -311,8 +311,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const voiceRate = Number(cfg.voice_rate) > 0 ? Number(cfg.voice_rate) : 1.05;
     const voiceVolume =
       cfg.voice_volume != null && Number(cfg.voice_volume) >= 0
-        ? Math.min(1, Number(cfg.voice_volume))
-        : 0.3;
+        ? Math.min(MAX_VOICE_VOLUME, Number(cfg.voice_volume))
+        : 1;
     const voiceRadio = cfg.voice_radio !== "false";
     const voiceEngine = cfg.voice_engine === "system" ? "system" : "piper";
     // Clé API IA : lue déchiffrée via le backend (migration douce de l'ancien clair).

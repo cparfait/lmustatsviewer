@@ -842,6 +842,19 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-08-12 — Retour utilisateur 1.0.1 : fenêtre noire + saccades en jeu, annonces trop faibles
+
+Deux retours d'un utilisateur en course, tous deux reproduits par lecture du code (rien à voir avec le coach lui-même — c'est la couche TTS).
+
+- ✅ **Fenêtre console noire à chaque phrase du coach → saccades.** `tts_synthesize` lance `piper.exe`, une application **console**, par `std::process::Command` sans drapeau de création. Windows lui ouvre donc une fenêtre à chaque synthèse : elle passe au premier plan, vole le focus au jeu en plein écran et provoque le à-coup. Correctif : `creation_flags(CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS)` — plus de fenêtre, et la synthèse (~200 ms) ne dispute plus le CPU au simulateur. Même correctif sur `reg query` (`config.rs`, détection Steam au démarrage), seul autre processus externe du projet.
+- ✅ **Annonces trop faibles face au jeu.** Le volume était plafonné à 100 % avec un **défaut à 30 %** (≈ −10 dB), auquel s'ajoutent la chaîne radio (passe-bande 380–2700 Hz, sortie 0,85) qui retire de l'énergie. Défaut porté à **100 %** et plafond à **200 %** (`MAX_VOICE_VOLUME`, radioFx). Pour rendre le gain > 1 sûr, le gain maître passe désormais par un **limiteur** (`DynamicsCompressor`, seuil −3 dB, ratio 20, attaque 3 ms) avant `destination` : les crêtes sont rattrapées au lieu d'écrêter sur la carte son.
+  - Le boost > 100 % ne vaut que pour le moteur **Piper** (graphe Web Audio) ; le moteur « système » (Web Speech) reste borné à 1, l'API n'exposant pas d'amplification. `u.volume` est clampé en conséquence.
+  - Pas de migration de la valeur stockée : `voice_volume` n'est écrit qu'au déplacement du curseur, donc les installations qui n'y ont jamais touché récupèrent le nouveau défaut ; un 30 % choisi explicitement est respecté.
+- ✅ **Changelog utilisateur** : entrée **1.0.2** ajoutée dans `src/lib/changelog.ts`, `localized: true` ×4 langues. La version y est écrite en dur (`"1.0.2"`) et non via `APP_VERSION` comme le suggère `MAINTENANCE.md` — c'est d'ailleurs ce que font déjà toutes les entrées existantes ; la convention documentée n'est pas appliquée dans le code.
+- ✅ **Règle ajoutée à `CLAUDE.md`** : loguer toute modification visible par l'utilisateur dans `changelog.ts` **dans la foulée**, sans attendre la publication. `SUIVI.md` est le journal technique, il ne remplace pas le changelog utilisateur.
+- ✅ **Release 1.0.2 lancée.** `version.json` bumpé sur **les deux** numéros (`version` **et** `latest_version` — `release.ps1` ne touche pas au second, cf. `a5c4746`), propagation par double `cargo check` (le premier compile encore l'ancienne version, cf. avertissement `RELEASE.md` A.1), puis commit des 5 fichiers dérivés + tag `v1.0.2` poussés. Voie CI plutôt que `release.ps1` : le script est interactif (`Read-Host`) et fait un build local de 5-10 min, sans intérêt ici puisque la CI construit et signe.
+- 📋 **Prochaine étape** : à la fin du workflow *Release* (~5-10 min), vérifier la release **brouillon** (présence de l'`.exe` **et** de `latest.json`) puis **Publish release** — c'est l'acte qui rend la mise à jour visible. Attendre ensuite la confirmation de l'utilisateur qui a signalé les saccades : les deux correctifs ne sont vérifiables qu'en jeu, en plein écran.
+
 ### 2026-08-08 — Audit pré-publication : sélection de modèle IA, coach vocal, indicateur de coût
 
 Tour de l'application avant publication. **Tout vert** : `npm test` 121/121, `cargo check` OK, `npm run build` OK, ESLint 0 erreur sur le diff, parité i18n **1728 ×4** (inchangée : 1 clé retirée, 1 ajoutée).

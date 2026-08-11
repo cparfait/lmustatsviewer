@@ -92,6 +92,7 @@ import {
   previewVoice,
   speechSupported,
 } from "@/lib/voice";
+import { MAX_VOICE_VOLUME } from "@/lib/radioFx";
 import { VoiceMessagesModal } from "@/components/VoiceMessagesModal";
 import { VoiceIntroModal } from "@/components/VoiceIntroModal";
 import { SpotterCommandsModal } from "@/components/SpotterCommandsModal";
@@ -1357,7 +1358,7 @@ export function ConfigV2() {
                             <input
                               type="range"
                               min={0}
-                              max={1}
+                              max={MAX_VOICE_VOLUME}
                               step={0.05}
                               value={voiceVolume}
                               onChange={(e) =>

@@ -1262,7 +1262,8 @@ export default {
     voiceNoneFound: "No voice installed for this language. Windows 11: Settings → Accessibility → Narrator → Add natural voices.",
     voiceRate: "Speech rate",
     voiceVolume: "Announcement volume",
-    voiceVolumeDesc: "Lower the announcement volume to balance it with the game.",
+    voiceVolumeDesc:
+      "Adjust the announcement volume to balance it with the game (up to 200%).",
     voiceRadio: "Radio / pit effect",
     voiceRadioDesc: "Open beep, static and \"roger beep\" for the team-radio feel.",
     voiceEngine: "Synthesis engine",

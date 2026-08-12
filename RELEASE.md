@@ -122,8 +122,16 @@ git push origin main
 git push origin v1.1.0
 ```
 
-Le push du tag **déclenche** le workflow. À la fin (~5–10 min), une **release GitHub en
-brouillon** est créée avec l'installeur signé + `latest.json`.
+Le push du tag **déclenche** le workflow. À la fin, une **release GitHub en brouillon**
+est créée avec l'installeur signé + `latest.json`.
+
+> ⏱️ **Compter ~25 min, pas 10.** Mesuré sur la v1.0.2 : **24 min**, dont l'essentiel
+> dans l'étape « Build, sign & release ». Un bump de version modifie `Cargo.toml`, ce qui
+> invalide une partie du cache Cargo ; or `duckdb` est en feature **`bundled`** et
+> recompile alors tout son C++ sur le runner. Une release enchaîne donc quasi
+> systématiquement le cas « cache froid » — c'est normal, pas un blocage. Ne pas
+> s'inquiéter tant que les étapes en amont (checkout, `npm ci`, fetch Piper/Vosk) sont
+> vertes et que « Build, sign & release » est toujours `in_progress`.
 
 **Publier :** GitHub → *Releases* → ouvrir le brouillon `v1.1.0` → rédiger les notes de
 version → **Publish release**.

@@ -849,6 +849,12 @@ export const ai = {
   setVoiceKey: (value: string) => invoke<void>("ai_set_voice_key", { value }),
   /** Lit la clé API vocale déchiffrée ("" si absente). */
   getVoiceKey: () => invoke<string>("ai_get_voice_key"),
+  /** Clé API chiffrée d'un fournisseur custom (vide = efface). */
+  setProviderKey: (providerId: string, value: string) =>
+    invoke<void>("ai_set_provider_key", { providerId, value }),
+  /** Lit la clé API déchiffrée d'un fournisseur custom ("" si absente). */
+  getProviderKey: (providerId: string) =>
+    invoke<string>("ai_get_provider_key", { providerId }),
   /** Épingle un objectif de coaching pour un combo (5 max conservés). */
   addNote: (args: {
     track: string;

@@ -32,11 +32,14 @@ export const ollamaProvider: AIProvider = {
   modelsUrl: () => `${BASE}/api/tags`,
   buildHeaders: () => [["Content-Type", "application/json"]],
 
+  // Marge « thinking » comme chez Google/OpenAI-compat : vérifié en local,
+  // gemma4:12b dépense un budget court en champ `thinking` et renvoie un
+  // `content` vide (done_reason: length). Plafond, pas cible.
   buildBody: (messages, model, maxTokens, stream = false) => ({
     model,
     messages, // Ollama accepte le rôle "system" tel quel.
     stream,
-    options: { num_predict: maxTokens },
+    options: { num_predict: maxTokens + 1024 },
   }),
 
   parseResponse: (raw) => {

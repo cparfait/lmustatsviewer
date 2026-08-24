@@ -25,6 +25,9 @@ interface OAModelsResponse {
 /** Exclut les modèles non conversationnels (embeddings, audio, image…). */
 const NON_CHAT = /embedding|whisper|tts|dall|moderation|audio|realtime|image|vision-?embed|rerank/i;
 
+/** Marge pour les tokens de raisonnement (cf. commentaire de `buildBody`). */
+const THINKING_HEADROOM = 1024;
+
 interface OpenAICompatConfig {
   id: string;
   name: string;
@@ -35,6 +38,15 @@ interface OpenAICompatConfig {
   docsUrl: string;
   /** Filtre optionnel des id de modèles (en plus de l'exclusion non-chat). */
   modelFilter?: (id: string) => boolean;
+  /**
+   * Nom du champ de plafond de sortie. OpenAI a déprécié `max_tokens` : les
+   * modèles de raisonnement (o-séries, GPT-5.x) le REJETTENT en 400
+   * `unsupported_parameter` — alors que `max_completion_tokens` est accepté par
+   * tous les modèles OpenAI actuels. Les autres fournisseurs compatibles
+   * (DeepSeek, Mistral, OpenRouter, passerelles locales) ne connaissent pas
+   * forcément le nouveau nom → `max_tokens` reste le défaut.
+   */
+  maxTokensField?: "max_tokens" | "max_completion_tokens";
 }
 
 export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
@@ -51,10 +63,16 @@ export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
       ["Authorization", `Bearer ${apiKey}`],
     ],
 
+    // Même marge que chez Google : les modèles de raisonnement (o-séries,
+    // GPT-5.x, deepseek-reasoner, gemma "thinking" local…) décomptent leurs
+    // tokens de réflexion du plafond de sortie. Vérifié en local : gemma4:12b
+    // via Ollama dépense tout un budget de 16 tokens en `reasoning` et renvoie
+    // un `content` VIDE (finish_reason: length). Plafond, pas cible : la
+    // longueur de la réponse reste dictée par le prompt.
     buildBody: (messages, model, maxTokens, stream = false) => ({
       model,
       messages, // rôles system/user/assistant acceptés tels quels
-      max_tokens: maxTokens,
+      [cfg.maxTokensField ?? "max_tokens"]: maxTokens + THINKING_HEADROOM,
       stream,
     }),
 
@@ -101,11 +119,12 @@ export const openaiProvider = makeOpenAICompatProvider({
   // vient de l'API ; ceci n'est que le repli hors-ligne).
   modelFilter: (id) => /^(gpt-|o\d|chatgpt)/i.test(id),
   fallbackModels: [
-    { id: "gpt-4.1-mini", label: "gpt-4.1-mini" },
-    { id: "gpt-4.1", label: "gpt-4.1" },
-    { id: "o4-mini", label: "o4-mini" },
+    { id: "gpt-5-mini", label: "gpt-5-mini" },
+    { id: "gpt-5.2", label: "gpt-5.2" },
+    { id: "gpt-5.5", label: "gpt-5.5" },
   ],
   docsUrl: "https://platform.openai.com/docs/models",
+  maxTokensField: "max_completion_tokens",
 });
 
 export const deepseekProvider = makeOpenAICompatProvider({

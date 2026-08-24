@@ -27,6 +27,8 @@ export interface BrakingTrack {
   id: string;
   name: string;
   location: string;
+  /** Source de la donnée. Absent = ApexPoints (entrées historiques générées). */
+  source?: string;
   corners: BrakingCorner[];
 }
 
@@ -2622,6 +2624,148 @@ export const BRAKING_GUIDE: BrakingTrack[] = [
             "tip": "Brake at 100m. Focus on carrying the best exit speed you can onto the long straight.",
             "tipFr": "Freinez à 100m. Concentrez-vous sur la meilleure vitesse de sortie possible sur la longue ligne droite."
           }
+        }
+      }
+    ]
+  },
+  // ── US Track Pass (ajouts MANUELS, 2026-08) ────────────────────────────────
+  // ApexPoints ne couvre pas (encore) ces circuits. Référence APPROXIMATIVE
+  // compilée depuis les notes de circuit publiques (IMSA/Studio-397/Autometrics,
+  // guides vidéo HYMO Academy & GO Setups) : vitesses/rapports indicatifs (≈),
+  // la TECHNIQUE de virage est la partie fiable. À remplacer par la donnée
+  // ApexPoints dès qu'elle existe.
+  {
+    "id": "daytona",
+    "name": "Daytona International Speedway (Road Course)",
+    "location": "Daytona Beach, USA",
+    "source": "community track notes (approximate — pending ApexPoints coverage)",
+    "corners": [
+      {
+        "number": "T1",
+        "name": "Turn 1 (off the tri-oval)",
+        "type": "hairpin-left",
+        "braking": {
+          "hypercar": { "marker": "≈150m after leaving the banking", "speed": "≈320→130 km/h", "gear": "3rd", "pressure": "Heavy initial, long trail", "tip": "Main overtaking spot. Brake in a straight line as the banking flattens; the car is light coming off the oval — avoid locking the left front. Trail brake to a late apex.", "tipFr": "Principal point de dépassement. Freine en ligne droite quand le banking s'aplanit ; la voiture est allégée en sortie d'ovale — attention au blocage avant-gauche. Freinage dégressif vers un apex tardif." },
+          "lmp2": { "marker": "≈140m", "speed": "≈300→125 km/h", "gear": "3rd", "pressure": "Heavy initial, trail", "tip": "Same approach as Hypercar, slightly later marker thanks to the lighter car.", "tipFr": "Même approche qu'en Hypercar, repère un peu plus tardif grâce à la voiture plus légère." },
+          "gt3": { "marker": "≈160m", "speed": "≈280→120 km/h", "gear": "3rd", "pressure": "Heavy initial, trail", "tip": "Brake earlier than the prototypes; prioritise a clean exit toward the infield.", "tipFr": "Freine plus tôt que les protos ; privilégie une sortie propre vers l'infield." }
+        }
+      },
+      {
+        "number": "T3",
+        "name": "International Horseshoe",
+        "type": "hairpin-right",
+        "braking": {
+          "hypercar": { "marker": "≈100m", "speed": "≈250→95 km/h", "gear": "2nd", "pressure": "Late, heavy, trail to late apex", "tip": "Deceptively late braking works: trail brake to a late apex for a strong launch. Clear passing opportunity.", "tipFr": "Le freinage tardif paie : dégressif vers un apex tardif pour une bonne relance. Vraie opportunité de dépassement." },
+          "lmp2": { "marker": "≈95m", "speed": "≈240→90 km/h", "gear": "2nd", "pressure": "Late, heavy, trail", "tip": "Rotate the car on the brakes, late apex, patience on throttle.", "tipFr": "Fais pivoter la voiture au freinage, apex tardif, patience à l'accélération." },
+          "gt3": { "marker": "≈110m", "speed": "≈230→85 km/h", "gear": "2nd", "pressure": "Heavy, trail", "tip": "Down to 1st-2nd; long-radius hairpin — late apex and clean exit matter more than entry speed.", "tipFr": "Descends en 1re-2e ; épingle à grand rayon — l'apex tardif et la sortie comptent plus que la vitesse d'entrée." }
+        }
+      },
+      {
+        "number": "T4",
+        "name": "The Kink",
+        "type": "kink-left",
+        "braking": {
+          "hypercar": { "marker": "no braking", "speed": "lift only", "gear": "hold", "pressure": "None (brief lift)", "tip": "Faster than it looks. A lift is enough in high-power cars; more lap time is gained braking well for the West Horseshoe than carrying extra speed here.", "tipFr": "Plus rapide qu'il n'y paraît. Un lever de pied suffit en voiture puissante ; on gagne plus à bien freiner pour le West Horseshoe qu'à forcer ici." },
+          "lmp2": { "marker": "no braking", "speed": "flat or lift", "gear": "hold", "pressure": "None", "tip": "Nearly flat; mind worn tyres — off-line it bites.", "tipFr": "Quasi à fond ; attention aux pneus usés — hors trajectoire, ça mord." },
+          "gt3": { "marker": "no braking", "speed": "flat", "gear": "hold", "pressure": "None", "tip": "Flat in GT3 on line; stay disciplined on placement.", "tipFr": "À fond en GT3 sur la trajectoire ; discipline sur le placement." }
+        }
+      },
+      {
+        "number": "T5",
+        "name": "West Horseshoe",
+        "type": "hairpin-right",
+        "braking": {
+          "hypercar": { "marker": "≈120m (bumpy entry)", "speed": "≈270→90 km/h", "gear": "2nd", "pressure": "Heavy, 3 downshifts, trail", "tip": "Bumpy on entry — brake slightly earlier and release over the bumps. Late apex like the International Horseshoe.", "tipFr": "Entrée bosselée — freine un peu plus tôt et relâche sur les bosses. Apex tardif comme à l'International Horseshoe." },
+          "lmp2": { "marker": "≈110m", "speed": "≈255→85 km/h", "gear": "2nd", "pressure": "Heavy, trail", "tip": "Stable car required over the bumps; don't chase entry speed.", "tipFr": "Voiture stable sur les bosses ; ne cherche pas la vitesse d'entrée." },
+          "gt3": { "marker": "≈130m", "speed": "≈240→80 km/h", "gear": "2nd", "pressure": "Heavy, trail", "tip": "Three downshifts; late apex, clean drive toward the banking section.", "tipFr": "Trois rapports ; apex tardif, relance propre vers le banking." }
+        }
+      },
+      {
+        "number": "Chicane",
+        "name": "Le Mans Chicane (Bus Stop)",
+        "type": "chicane",
+        "braking": {
+          "hypercar": { "marker": "≈150m on the backstretch", "speed": "≈330→110 km/h", "gear": "3rd", "pressure": "Very heavy, straight-line", "tip": "Brake fully in a straight line from top speed before the left flick. Use the kerbs lightly; the exit launches you onto the banking — a mistake costs the whole lap.", "tipFr": "Freine entièrement en ligne droite depuis la vitesse maxi avant le premier gauche. Vibreurs avec modération ; la sortie lance sur le banking — une erreur coûte tout le tour." },
+          "lmp2": { "marker": "≈140m", "speed": "≈310→105 km/h", "gear": "3rd", "pressure": "Very heavy", "tip": "Straight-line braking, quick left-right-left-right; exit speed onto the banking is everything.", "tipFr": "Freinage en ligne, enchaînement gauche-droite rapide ; la vitesse de sortie sur le banking fait tout." },
+          "gt3": { "marker": "≈160m", "speed": "≈280→95 km/h", "gear": "2nd", "pressure": "Very heavy", "tip": "Taken in 2nd in GT3. Sacrifice entry, get on power early for the long run to the line.", "tipFr": "En 2e en GT3. Sacrifie l'entrée, remets les gaz tôt pour la longue portion jusqu'à la ligne." }
+        }
+      }
+    ]
+  },
+  {
+    "id": "laguna-seca",
+    "name": "WeatherTech Raceway Laguna Seca",
+    "location": "Monterey, USA",
+    "source": "community track notes (approximate — pending ApexPoints coverage)",
+    "corners": [
+      {
+        "number": "T2",
+        "name": "Andretti Hairpin",
+        "type": "hairpin-left",
+        "braking": {
+          "hypercar": { "marker": "≈120m (end of main straight, downhill)", "speed": "≈275→85 km/h", "gear": "2nd", "pressure": "Heavy initial, long trail", "tip": "Main braking zone, slightly downhill. Double apex: brake straight, trail to the first apex, let the car run to the second.", "tipFr": "Principale zone de freinage, légèrement en descente. Double apex : freine droit, dégressif vers le premier apex, laisse filer vers le second." },
+          "lmp2": { "marker": "≈110m", "speed": "≈260→80 km/h", "gear": "2nd", "pressure": "Heavy, trail", "tip": "Same double-apex approach; the car rotates well on the brakes.", "tipFr": "Même approche double apex ; la voiture pivote bien au freinage." },
+          "gt3": { "marker": "≈130m", "speed": "≈235→80 km/h", "gear": "2nd", "pressure": "Heavy, trail", "tip": "Brake earlier, prioritise the second apex for the exit up the hill.", "tipFr": "Freine plus tôt, privilégie le second apex pour la sortie en montée." }
+        }
+      },
+      {
+        "number": "T3",
+        "name": "Turn 3",
+        "type": "medium-right",
+        "braking": {
+          "hypercar": { "marker": "≈80m", "speed": "≈240→130 km/h", "gear": "4th", "pressure": "Medium", "tip": "Short brake, early throttle — the exit feeds a decent straight.", "tipFr": "Freinage court, gaz tôt — la sortie donne sur une belle ligne droite." },
+          "lmp2": { "marker": "≈75m", "speed": "≈230→125 km/h", "gear": "4th", "pressure": "Medium", "tip": "Carry speed in; smooth hands mid-corner.", "tipFr": "Garde de la vitesse en entrée ; mains douces à mi-virage." },
+          "gt3": { "marker": "≈90m", "speed": "≈215→115 km/h", "gear": "3rd", "pressure": "Medium", "tip": "Don't over-slow; it's faster than it looks.", "tipFr": "Ne ralentis pas trop : c'est plus rapide qu'il n'y paraît." }
+        }
+      },
+      {
+        "number": "T5",
+        "name": "Turn 5",
+        "type": "medium-left",
+        "braking": {
+          "hypercar": { "marker": "≈70m (uphill)", "speed": "≈250→125 km/h", "gear": "4th", "pressure": "Medium, uphill helps", "tip": "The climb helps braking — brake later than instinct says, apex late for the uphill drive.", "tipFr": "La montée aide au freinage — freine plus tard que l'instinct, apex tardif pour la relance en montée." },
+          "lmp2": { "marker": "≈65m", "speed": "≈240→120 km/h", "gear": "4th", "pressure": "Medium", "tip": "Uphill entry; use the compression for grip.", "tipFr": "Entrée en montée ; utilise la compression pour le grip." },
+          "gt3": { "marker": "≈80m", "speed": "≈220→110 km/h", "gear": "3rd", "pressure": "Medium", "tip": "Smooth entry, strong exit up toward T6.", "tipFr": "Entrée fluide, sortie forte vers le T6." }
+        }
+      },
+      {
+        "number": "T6",
+        "name": "Turn 6",
+        "type": "fast-left",
+        "braking": {
+          "hypercar": { "marker": "≈40m (crest)", "speed": "≈250→160 km/h", "gear": "4th", "pressure": "Light-medium", "tip": "Commit through the uphill left — a confident line here sets up the whole run to the Corkscrew.", "tipFr": "Engage-toi dans ce gauche en montée — une trajectoire assumée ici conditionne toute la montée vers le Corkscrew." },
+          "lmp2": { "marker": "≈35m", "speed": "≈240→155 km/h", "gear": "4th", "pressure": "Light", "tip": "Barely a brush of brakes; balance over the crest.", "tipFr": "À peine un effleurement de frein ; équilibre au sommet." },
+          "gt3": { "marker": "≈50m", "speed": "≈215→140 km/h", "gear": "4th", "pressure": "Light-medium", "tip": "Keep momentum; a small lift plus light braking is enough.", "tipFr": "Garde l'élan ; un petit lever de pied et un freinage léger suffisent." }
+        }
+      },
+      {
+        "number": "T8-T8A",
+        "name": "The Corkscrew",
+        "type": "chicane-downhill",
+        "braking": {
+          "hypercar": { "marker": "≈60m, BEFORE the blind crest", "speed": "≈250→80 km/h", "gear": "2nd", "pressure": "Hard, done before turn-in", "tip": "All braking straight and before the crest — the track drops away blind. Aim at the tree line for the left apex, then let the car fall right for 8A.", "tipFr": "Tout le freinage en ligne et avant la crête — la piste plonge en aveugle. Vise la ligne d'arbres pour l'apex gauche, puis laisse tomber la voiture à droite pour le 8A." },
+          "lmp2": { "marker": "≈55m", "speed": "≈240→75 km/h", "gear": "2nd", "pressure": "Hard, before crest", "tip": "Two to three downshifts before the crest; no brakes in the drop.", "tipFr": "Deux à trois rapports avant la crête ; pas de frein dans la descente." },
+          "gt3": { "marker": "≈65m", "speed": "≈220→70 km/h", "gear": "2nd", "pressure": "Hard, before crest", "tip": "Brake early enough to turn in calmly — the drop punishes any leftover brake pressure.", "tipFr": "Freine assez tôt pour tourner sereinement — la descente punit tout frein résiduel." }
+        }
+      },
+      {
+        "number": "T9",
+        "name": "Rainey Curve",
+        "type": "fast-left-downhill",
+        "braking": {
+          "hypercar": { "marker": "lift or ≈30m", "speed": "≈210→150 km/h", "gear": "4th", "pressure": "Light", "tip": "Downhill fast left — mostly a lift; keep the car loaded and flowing.", "tipFr": "Gauche rapide en descente — surtout un lever de pied ; garde la voiture chargée et fluide." },
+          "lmp2": { "marker": "lift", "speed": "≈205→145 km/h", "gear": "4th", "pressure": "Light", "tip": "Momentum corner; smooth inputs downhill.", "tipFr": "Virage d'élan ; commandes douces en descente." },
+          "gt3": { "marker": "≈40m", "speed": "≈190→130 km/h", "gear": "3rd", "pressure": "Light", "tip": "Light brake to settle the nose, then commit.", "tipFr": "Freinage léger pour poser l'avant, puis engage-toi." }
+        }
+      },
+      {
+        "number": "T11",
+        "name": "Turn 11 (final hairpin)",
+        "type": "hairpin-left",
+        "braking": {
+          "hypercar": { "marker": "≈90m", "speed": "≈240→75 km/h", "gear": "2nd", "pressure": "Heavy, trail", "tip": "Last corner onto the main straight: late apex, sacrifice entry for the earliest possible full throttle.", "tipFr": "Dernier virage avant la ligne droite : apex tardif, sacrifie l'entrée pour remettre plein gaz le plus tôt possible." },
+          "lmp2": { "marker": "≈85m", "speed": "≈230→70 km/h", "gear": "2nd", "pressure": "Heavy, trail", "tip": "Rotate on the brakes, straighten the exit.", "tipFr": "Pivote au freinage, redresse la sortie." },
+          "gt3": { "marker": "≈100m", "speed": "≈210→65 km/h", "gear": "2nd", "pressure": "Heavy", "tip": "The straight is long: exit speed beats entry heroics.", "tipFr": "La ligne droite est longue : la vitesse de sortie vaut mieux que l'héroïsme en entrée." }
         }
       }
     ]

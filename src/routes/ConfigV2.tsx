@@ -50,6 +50,7 @@ import {
   FileText,
   Database,
   Zap,
+  Sparkles,
   Check,
   ChevronDown,
   BarChart2,
@@ -58,9 +59,6 @@ import {
   Globe,
   Brain,
   Cpu,
-  Key,
-  Eye,
-  EyeOff,
   Monitor,
   LayoutGrid,
   Heart,
@@ -75,7 +73,7 @@ import {
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
 import { useTheme } from "@/stores/theme";
-import { system, config as configApi, indexer } from "@/lib/api";
+import { system, config as configApi, indexer, queries } from "@/lib/api";
 import { isTauri } from "@/lib/api";
 import { toast, toastSuccess, toastError } from "@/stores/dialogs";
 import {
@@ -84,13 +82,14 @@ import {
 } from "@/lib/coachPhrasebank";
 import { importGhost, coachComboInfo } from "@/lib/coach";
 import { invoke } from "@tauri-apps/api/core";
-import { cn } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
 import { checkForUpdate } from "@/lib/updater";
 import {
   listVoicesForLang,
   isNaturalVoice,
   previewVoice,
   speechSupported,
+  announce,
 } from "@/lib/voice";
 import { MAX_VOICE_VOLUME } from "@/lib/radioFx";
 import { VoiceMessagesModal } from "@/components/VoiceMessagesModal";
@@ -98,14 +97,20 @@ import { VoiceIntroModal } from "@/components/VoiceIntroModal";
 import { SpotterCommandsModal } from "@/components/SpotterCommandsModal";
 import { INTENTS } from "@/lib/spotterCommands";
 import { Tip, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { PROVIDERS, getProvider } from "@/lib/ai/providers";
+import { getProvider } from "@/lib/ai/providers";
 import { fetchModels } from "@/lib/ai/models";
-import { testConnection } from "@/lib/ai/coach";
+import { testConnection, chat, friendlyError } from "@/lib/ai/coach";
 import { systemPrompt } from "@/lib/ai/prompts/system";
 import type { ModelInfo } from "@/lib/ai/types";
 import { AiModelPicker } from "@/components/AiModelPicker";
+import { AiProvidersPanel } from "@/components/AiProvidersPanel";
 import { VoiceCoachConfig } from "@/components/VoiceCoachConfig";
 import { AiCoachHelpModal } from "@/components/AiCoachHelpModal";
+
+/** Clé effective d'un fournisseur : propre au custom, sinon créneau global. */
+function aiEffectiveKey(id: string): string {
+  return useAppStore.getState().aiProviderKeys[id] ?? "";
+}
 
 const LANGUAGES = [
   { code: "fr", label: "Français", flag: "/flags/fr.png" },
@@ -125,6 +130,16 @@ const CREDIT_SOURCES: { name: string; roleKey: string; url?: string }[] = [
     name: "Unleashed Drivers",
     roleKey: "creditVideos",
     url: "https://www.youtube.com/playlist?list=PLk_3Ekb3fRQgMjnknAxq5ZGiT3sUOyFA7",
+  },
+  {
+    name: "HYMO Academy",
+    roleKey: "creditVideos",
+    url: "https://www.youtube.com/@HYMOAcademy",
+  },
+  {
+    name: "GO Setups",
+    roleKey: "creditVideos",
+    url: "https://www.youtube.com/@gosetups",
   },
   {
     name: "OhneSpeed",
@@ -204,7 +219,9 @@ export function ConfigV2() {
   const spotterPttMode = useAppStore((s) => s.spotterPttMode);
   const aiCoachEnabled = useAppStore((s) => s.aiCoachEnabled);
   const aiProvider = useAppStore((s) => s.aiProvider);
-  const aiApiKey = useAppStore((s) => s.aiApiKey);
+  const aiProviderList = useAppStore((s) => s.aiProviderList);
+  const aiCustomProviders = useAppStore((s) => s.aiCustomProviders);
+  const aiActiveKey = useAppStore((s) => s.aiProviderKeys[s.aiProvider] ?? "");
   const aiModel = useAppStore((s) => s.aiModel);
   const aiSystemPromptByLang = useAppStore((s) => s.aiSystemPromptByLang);
   const spotterKeyCoach = useAppStore((s) => s.spotterKeyCoach);
@@ -257,18 +274,18 @@ export function ConfigV2() {
   const [spotterOpen, setSpotterOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
 
-  const [showKey, setShowKey] = useState(false);
   const [aiModels, setAiModels] = useState<ModelInfo[]>([]);
   const [aiModelsLoading, setAiModelsLoading] = useState(false);
-  const aiNeedsKey = getProvider(aiProvider)?.needsKey ?? true;
+  const aiProviderDef = getProvider(aiProvider);
+  /** Clé exigée pour appeler (grise le bouton Tester si absente). */
+  const aiNeedsKey = aiProviderDef?.needsKey ?? true;
 
   const refreshAiModels = useCallback(async () => {
     const provider = getProvider(aiProvider);
     if (!provider) return;
     setAiModelsLoading(true);
     try {
-      const key = useAppStore.getState().aiApiKey;
-      const models = await fetchModels(provider, key);
+      const models = await fetchModels(provider, aiEffectiveKey(aiProvider));
       setAiModels(models);
       // Amorçage SEULEMENT si aucun modèle n'est encore choisi. On ne remplace
       // jamais une valeur existante : l'endpoint `/models` est incomplet chez
@@ -276,7 +293,11 @@ export function ConfigV2() {
       // repli statique hors ligne) — écraser reviendrait à effacer en silence
       // le choix du pilote à chaque ouverture de la page.
       if (models.length > 0 && !useAppStore.getState().aiModel) {
-        await useAppStore.getState().setAIModel(models[0].id);
+        // On saute les modèles en cours de retrait : Google liste encore les
+        // Gemini 2.5 pour les clés anciennes alors qu'ils sont condamnés —
+        // amorcer dessus déclencherait l'alerte « modèle retiré » d'entrée.
+        const seed = models.find((m) => !provider.isRetiredModel?.(m.id)) ?? models[0];
+        await useAppStore.getState().setAIModel(seed.id);
       }
     } finally {
       setAiModelsLoading(false);
@@ -311,7 +332,7 @@ export function ConfigV2() {
   useEffect(() => setPromptDraft(aiPromptCur), [aiPromptCur]);
   useEffect(() => {
     setAiTestResult(null);
-  }, [aiProvider, aiModel, aiApiKey]);
+  }, [aiProvider, aiModel, aiActiveKey]);
 
   const handleTestAi = async () => {
     const provider = getProvider(aiProvider);
@@ -319,15 +340,90 @@ export function ConfigV2() {
     setAiTesting(true);
     setAiTestResult(null);
     try {
-      const res = await testConnection(
-        provider,
-        aiModel,
-        useAppStore.getState().aiApiKey,
-        t,
-      );
+      const res = await testConnection(provider, aiModel, aiEffectiveKey(aiProvider), t);
       setAiTestResult(res);
     } finally {
       setAiTesting(false);
+    }
+  };
+
+  // « Tester l'IA » : au-delà du ping de connexion, un vrai tour de chauffe —
+  // le modèle reçoit les stats RÉELLES du pilote (dernière course, voiture
+  // fétiche, circuit favori) et doit en faire un mot d'ingénieur radio. Prouve
+  // toute la chaîne (clé, modèle, contexte, langue) avec un résultat parlant.
+  const [aiFunTesting, setAiFunTesting] = useState(false);
+  const [aiFunResult, setAiFunResult] = useState<{ text?: string; error?: string } | null>(
+    null,
+  );
+  useEffect(() => {
+    setAiFunResult(null);
+  }, [aiProvider, aiModel, aiActiveKey]);
+
+  const handleTestAiFun = async () => {
+    const provider = getProvider(aiProvider);
+    if (!provider) return;
+    setAiFunTesting(true);
+    setAiFunResult(null);
+    try {
+      const st = useAppStore.getState();
+      const stats =
+        st.dashboardStats ?? (await queries.getDashboardStats().catch(() => null));
+      const page = await queries
+        .getSessionsList({ session_type: "Race" }, "Date", "desc", 1, 1)
+        .catch(() => null);
+      const last = page?.rows[0];
+      const facts: string[] = [];
+      if (st.playerName) facts.push(`Driver name: ${st.playerName}`);
+      if (last) {
+        facts.push(
+          `Last race: ${last.track} (${last.car}, ${last.car_class}) — finished P${last.class_position}` +
+            (last.best_lap ? `, best lap ${formatTime(last.best_lap)}` : "") +
+            ` — ${new Date(last.timestamp * 1000).toLocaleDateString()}`,
+        );
+      }
+      if (stats?.favorite_car) facts.push(`Most used car: ${stats.favorite_car}`);
+      if (stats?.favorite_track) facts.push(`Favourite track: ${stats.favorite_track}`);
+      if (stats) {
+        facts.push(
+          `Career: ${stats.total_sessions} sessions, ${Math.round(stats.total_driving_hours)} h driven, ${stats.wins} wins, ${stats.podiums} podiums`,
+        );
+      }
+      if (facts.length === 0) {
+        setAiFunResult({ error: t("config.aiTestFunNoData") });
+        return;
+      }
+      const text = await chat(
+        provider,
+        aiModel,
+        aiEffectiveKey(aiProvider),
+        [
+          {
+            role: "system",
+            content:
+              "You are the driver's race engineer in the sim-racing app LMU Stats Viewer. Friendly radio tone, no markdown.",
+          },
+          {
+            role: "user",
+            content:
+              `Driver data:\n${facts.join("\n")}\n\n` +
+              `In ${i18n.language.startsWith("fr") ? "French" : i18n.language.startsWith("es") ? "Spanish" : i18n.language.startsWith("de") ? "German" : "English"}, greet the driver by name and give a short, warm 2-3 sentence radio message using these facts (last race, favourite car and track). No lists, no headings.`,
+          },
+        ],
+        300,
+      );
+      const clean = text.trim().replace(/[*_`#>]/g, "");
+      if (clean) {
+        setAiFunResult({ text: clean });
+        // Lecture par la voix du coach (même chaîne radio que les annonces en
+        // course) : le test valide aussi le TTS, pas seulement le texte.
+        announce(clean, i18n.language);
+      } else {
+        setAiFunResult({ error: t("coach.errNetwork") });
+      }
+    } catch (e) {
+      setAiFunResult({ error: friendlyError(e, t) });
+    } finally {
+      setAiFunTesting(false);
     }
   };
 
@@ -1673,7 +1769,11 @@ export function ConfigV2() {
                 {aiCoachEnabled && (
                   <>
                     <Separator />
-                    <SettingRow icon={<Globe className="h-4 w-4" />} label={t("config.aiProvider")} tip={t("config.aiProviderTip")}>
+                    {/* Cartes des fournisseurs configurés (clé par carte), façon harness. */}
+                    <AiProvidersPanel />
+
+                    <Separator />
+                    <SettingRow icon={<Globe className="h-4 w-4" />} label={t("config.aiProviderActive")} tip={t("config.aiProviderTip")}>
                       <select
                         value={aiProvider}
                         onChange={(e) =>
@@ -1681,48 +1781,27 @@ export function ConfigV2() {
                         }
                         className="h-8 max-w-[200px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
                       >
-                        {PROVIDERS.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
+                        {/* Seuls les fournisseurs CONFIGURÉS sont sélectionnables. La
+                            valeur active hors liste (état hérité) reste affichée. */}
+                        {aiProvider &&
+                          !aiProviderList.includes(aiProvider) &&
+                          !aiCustomProviders.some((d) => d.id === aiProvider) && (
+                            <option value={aiProvider}>
+                              {getProvider(aiProvider)?.name ?? aiProvider}
+                            </option>
+                          )}
+                        {aiProviderList.map((id) => (
+                          <option key={id} value={id}>
+                            {getProvider(id)?.name ?? id}
+                          </option>
+                        ))}
+                        {aiCustomProviders.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name || d.baseUrl}
                           </option>
                         ))}
                       </select>
                     </SettingRow>
-
-                    {aiNeedsKey && (
-                      <>
-                        <Separator />
-                        <SettingRow icon={<Key className="h-4 w-4" />} label={t("config.aiApiKey")} tip={t("config.aiApiKeyTip")}>
-                          <div className="relative flex items-center">
-                            <Input
-                              type={showKey ? "text" : "password"}
-                              value={aiApiKey}
-                              onChange={(e) =>
-                                void useAppStore
-                                  .getState()
-                                  .setAIApiKey(e.target.value)
-                              }
-                              placeholder="••••••••"
-                              className="h-8 w-[220px] pr-8 text-sm"
-                            />
-                            <button
-                              type="button"
-                              onMouseDown={() => setShowKey(true)}
-                              onMouseUp={() => setShowKey(false)}
-                              onMouseLeave={() => setShowKey(false)}
-                              aria-label={t("config.aiRevealKey")}
-                              className="absolute right-2 text-muted-foreground hover:text-foreground rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                              {showKey ? (
-                                <EyeOff className="h-3.5 w-3.5" />
-                              ) : (
-                                <Eye className="h-3.5 w-3.5" />
-                              )}
-                            </button>
-                          </div>
-                        </SettingRow>
-                      </>
-                    )}
 
                     <Separator />
                     <SettingRow icon={<Cpu className="h-4 w-4" />} label={t("config.aiModel")} tip={t("config.aiModelTip")}>
@@ -1855,7 +1934,7 @@ export function ConfigV2() {
                         size="sm"
                         className="h-8 gap-1.5"
                         onClick={() => void handleTestAi()}
-                        disabled={aiTesting || !aiModel || (aiNeedsKey && !aiApiKey)}
+                        disabled={aiTesting || !aiModel || (aiNeedsKey && !aiActiveKey)}
                       >
                         {aiTesting ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1864,7 +1943,33 @@ export function ConfigV2() {
                         )}
                         {t("config.aiTestConnection")}
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5"
+                        onClick={() => void handleTestAiFun()}
+                        disabled={aiFunTesting || !aiModel || (aiNeedsKey && !aiActiveKey)}
+                      >
+                        {aiFunTesting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        {t("config.aiTestFun")}
+                      </Button>
                     </div>
+                    {aiFunResult && (
+                      <div
+                        className={cn(
+                          "mb-2 rounded-md border px-3 py-2 text-sm leading-snug",
+                          aiFunResult.text
+                            ? "border-primary/30 bg-primary/5"
+                            : "border-destructive/40 text-destructive",
+                        )}
+                      >
+                        {aiFunResult.text ?? aiFunResult.error}
+                      </div>
+                    )}
                     <Separator />
                     <p className="text-xs text-muted-foreground/70 py-2">
                       {t("config.aiKeyNote")}

@@ -1,9 +1,12 @@
 /**
  * Références vidéo (lap guides) par circuit × classe — Le Mans Ultimate.
  *
- * Source : playlist YouTube « Le Mans Ultimate Lap Guides ». On ne stocke QUE le
+ * Source : playlist YouTube « Le Mans Ultimate Lap Guides » (Unleashed Drivers),
+ * complétée à la main pour les circuits du US Track Pass (chaînes HYMO Academy /
+ * GO Setups — Unleashed Drivers ne les a pas couverts). On ne stocke QUE le
  * pointeur (titre + URL) vers la vidéo, pas son contenu : le Coach IA peut ainsi
- * renvoyer le pilote vers le guide visuel du combo. Fichier GÉNÉRÉ.
+ * renvoyer le pilote vers le guide visuel du combo. Fichier GÉNÉRÉ (sauf bloc
+ * « US Track Pass » en fin de tableau).
  */
 
 export interface VideoGuide {
@@ -12,6 +15,8 @@ export interface VideoGuide {
   layout: string | null;
   title: string;
   url: string;
+  /** Chaîne YouTube. Absent = « Unleashed Drivers » (entrées historiques). */
+  channel?: string;
 }
 
 export const VIDEO_GUIDES: VideoGuide[] = [
@@ -266,5 +271,38 @@ export const VIDEO_GUIDES: VideoGuide[] = [
     "layout": null,
     "title": "Lusail Lap Guide",
     "url": "https://youtu.be/WpjL4TjBwPI"
+  },
+  // ── US Track Pass (ajouts manuels, vérifiés via oEmbed le 2026-08-24) ──
+  {
+    "trackId": "daytona",
+    "classId": "hypercar",
+    "layout": null,
+    "title": "Daytona Hypercar Track Guide | Le Mans Ultimate",
+    "url": "https://youtu.be/F0_z9kVVdRA",
+    "channel": "GO Setups"
+  },
+  {
+    "trackId": "daytona",
+    "classId": "gt3",
+    "layout": null,
+    "title": "Le Mans Ultimate Daytona LMGT3 Guide",
+    "url": "https://youtu.be/tolCwj9K8-4",
+    "channel": "HYMO Academy"
+  },
+  {
+    "trackId": "laguna-seca",
+    "classId": "hypercar",
+    "layout": null,
+    "title": "Le Mans Ultimate Laguna Seca Hypercar Guide",
+    "url": "https://youtu.be/fUf1azg72mc",
+    "channel": "HYMO Academy"
+  },
+  {
+    "trackId": "laguna-seca",
+    "classId": "gt3",
+    "layout": null,
+    "title": "Le Mans Ultimate Laguna Seca LMGT3 Guide",
+    "url": "https://youtu.be/RSpKLzntZfI",
+    "channel": "HYMO Academy"
   }
 ];

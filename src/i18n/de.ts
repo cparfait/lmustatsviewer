@@ -213,12 +213,14 @@ export default {
     autoRead: "Automatisch vorlesen (während des Streamings)",
     disclaimer: "KI-generierte Analyse aus Session-Daten — bitte überprüfen.",
     sources:
-      "Referenzquellen: ApexPoints Bremspunkte · Unleashed Drivers Video-Lap-Guides (YouTube).",
+      "Referenzquellen: ApexPoints Bremspunkte · Unleashed Drivers, HYMO Academy, GO Setups Video-Lap-Guides (YouTube).",
     videoGuide: "Video-Guide",
     errNoModel: "Kein Modell ausgewählt.",
     errNoKey: "API-Schlüssel fehlt.",
     errKey: "API-Schlüssel ungültig oder nicht autorisiert.",
     errQuota: "Kontingent beim Anbieter aufgebraucht.",
+    errModel:
+      "Unbekanntes oder eingestelltes Modell. Gib eine aktuelle Modell-ID unter Konfiguration → KI-Coach → Modell ein (Link „Modellliste ansehen“).",
     errRate: "Anfragelimit erreicht — versuche es gleich noch einmal.",
     errServer: "Serverfehler beim Anbieter (HTTP {{code}}).",
     errNetwork: "Anbieter nicht erreichbar (Netzwerk / lokaler Dienst gestoppt?).",
@@ -1081,6 +1083,7 @@ export default {
     aiVoiceKeyDesc:
       "Taste halten, Frage laut stellen, der Coach antwortet im Headset (benötigt Spracherkennung).",
     aiProvider: "Anbieter",
+    aiProviderActive: "Aktiver Anbieter",
     aiApiKey: "API-Schlüssel",
     aiModel: "Modell",
     aiVoiceModel: "Sprachmodell",
@@ -1090,10 +1093,35 @@ export default {
     aiVoiceApiKey: "Sprach-API-Schlüssel",
     aiRevealKey: "Schlüssel anzeigen",
     aiNoModels: "Keine Modelle",
-    aiModelPlaceholder: "Modell-ID wählen oder eingeben",
+    aiProvidersTitle: "Anbieter",
+    aiProvidersDesc:
+      "Füge deine Anbieter mit ihren API-Schlüsseln hinzu: Sie werden für Analyse und Sprach-Coach auswählbar. Die Leuchte zeigt, ob der Anbieter antwortet.",
+    aiProvidersEmpty: "Kein Anbieter konfiguriert — füge einen hinzu, um den Coach zu aktivieren.",
+    aiProviderAdd: "Anbieter hinzufügen",
+    aiProviderEdit: "Anbieter bearbeiten",
+    aiProviderDelete: "Anbieter löschen",
+    aiProviderProbeOk: "Der Anbieter antwortet.",
+    aiProviderProbeFail: "Nicht erreichbar: Schlüssel (und ggf. URL) prüfen.",
+    aiProviderProbing: "Prüfe…",
+    aiProviderKeyHelp: "API-Schlüssel besorgen",
+    aiCustomAdd: "Eigenen Anbieter hinzufügen",
+    aiCustomName: "Name",
+    aiCustomUrl: "Basis-URL",
+    aiCustomUrlTip:
+      "Die Basis-URL ist die Wurzel der OpenAI-kompatiblen API (endet meist auf /v1). Der API-Schlüssel ist je nach Dienst optional.",
+    aiCustomKeyOptional: "optional",
+    aiCustomSave: "Speichern",
+    aiModelPlaceholder: "z. B. {{id}}",
+    aiModelPlaceholderPlain: "Modell-ID",
     aiModelsDocs: "Modellliste ansehen",
+    aiModelChoose: "Modell wählen…",
     aiModelManual: "Manuell eingeben…",
     aiModelFromList: "Aus der Liste wählen",
+    aiModelHint: "Freies Feld — Beispiel: {{id}}",
+    aiModelHintPlain: "Freies Feld: Gib die Modell-ID ein.",
+    aiModelRetired:
+      "Dieses Modell wurde vom Anbieter eingestellt: Der Coach liefert einen Fehler.",
+    aiModelUseExample: "{{id}} verwenden",
     aiHelpTitle: "KI-Coach einrichten",
     aiHelpIntro:
       "Der KI-Coach analysiert deine Runden über ein externes Sprachmodell. Du brauchst ein Konto bei einem Anbieter und einen API-Schlüssel.",
@@ -1115,7 +1143,7 @@ export default {
     timezoneTip:
       "Zeitzone für die Anzeige von Datum und Uhrzeit der Sitzungen.",
     aiProviderTip:
-      "KI-Dienst des Coaches (OpenAI, Anthropic, Google, OpenRouter, DeepSeek, Mistral oder Ollama lokal).",
+      "Anbieter, den der Coach für die Analyse nutzt — aus den oben konfigurierten.",
     aiApiKeyTip:
       "Zugangsschlüssel des Anbieters, verschlüsselt auf deinem PC gespeichert.",
     aiModelTip:
@@ -1129,6 +1157,9 @@ export default {
       "Zeigt den Referenzen-Tab und die Community-Pace-Stufen (OhneSpeed).",
     aiRefreshModels: "Modelle aktualisieren",
     aiTestConnection: "Testen",
+    aiTestFun: "KI testen",
+    aiTestFunNoData:
+      "Noch keine Renndaten in der Datenbank: fahre eine Session im Spiel und versuche es erneut.",
     aiTestOk: "Verbindung OK",
     aiKeyNote:
       "Schlüssel lokal gespeichert. Nicht auf einem geteilten Rechner verwenden.",

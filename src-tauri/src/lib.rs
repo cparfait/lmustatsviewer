@@ -176,6 +176,8 @@ pub fn run() {
             commands::ai::ai_get_key,
             commands::ai::ai_set_voice_key,
             commands::ai::ai_get_voice_key,
+            commands::ai::ai_set_provider_key,
+            commands::ai::ai_get_provider_key,
             commands::coach::coach_ref_save,
             commands::coach::coach_ref_load,
             commands::coach::coach_ref_mark_stale,

@@ -15,6 +15,11 @@ import { initVoiceOverrides } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled, MAX_VOICE_VOLUME } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
+import {
+  setCustomProviders,
+  newCustomProviderId,
+  type CustomProviderDef,
+} from "@/lib/ai/providers/custom";
 import type {
   BestLapRow,
   DashboardStats,
@@ -105,18 +110,29 @@ interface AppState {
   // AI Coach
   /** Coach IA activé : si false, le coach disparaît de toutes les pages. */
   aiCoachEnabled: boolean;
-  /** Fournisseur d'IA : id d'un provider de `lib/ai/providers` (openai, anthropic, google, deepseek, mistral, ollama). */
+  /** Fournisseur d'IA ACTIF (analyse) : id d'un provider configuré. */
   aiProvider: string;
-  /** Clé API du fournisseur (vide pour Ollama). Persistée chiffrée côté backend (`ai_set_key`). */
-  aiApiKey: string;
+  /**
+   * Fournisseurs intégrés CONFIGURÉS par l'utilisateur (ids de `PROVIDERS`,
+   * façon deepseek-harness : on « ajoute » un fournisseur avec sa clé, il
+   * apparaît en carte et devient sélectionnable). Les customs sont à part
+   * (`aiCustomProviders`).
+   */
+  aiProviderList: string[];
   /** id du modèle sélectionné (analyse / panneau). */
   aiModel: string;
   /** id du modèle dédié au coach VOCAL (rapide). Vide = même que `aiModel`. */
   aiVoiceModel: string;
+  /** Fournisseurs personnalisés (OpenAI-compatibles) définis par l'utilisateur. */
+  aiCustomProviders: CustomProviderDef[];
+  /**
+   * Clé API PAR fournisseur (intégré comme custom), chiffrée côté backend
+   * (`ai_set_provider_key`). Remplace les anciens créneaux globaux
+   * analyse/vocal, migrés au premier chargement.
+   */
+  aiProviderKeys: Record<string, string>;
   /** Fournisseur DISTINCT pour le coach vocal. Vide = même que `aiProvider`. */
   aiVoiceProvider: string;
-  /** Clé API du fournisseur vocal (si distinct). Persistée chiffrée (`ai_set_voice_key`). */
-  aiVoiceApiKey: string;
   /** Prompt système personnalisé par langue (code 2 lettres → texte ; absent = défaut). */
   aiSystemPromptByLang: Record<string, string>;
 
@@ -190,11 +206,20 @@ interface AppState {
   setOverlayToggleKey: (accel: string) => Promise<void>;
   setAICoachEnabled: (v: boolean) => Promise<void>;
   setAIProvider: (v: string) => Promise<void>;
-  setAIApiKey: (v: string) => Promise<void>;
+  /** Ajoute un fournisseur INTÉGRÉ à la liste configurée (avec sa clé). */
+  addProvider: (id: string, apiKey: string) => Promise<void>;
+  /** Retire un fournisseur intégré de la liste (efface sa clé). */
+  removeProvider: (id: string) => Promise<void>;
+  /** Interne : bascule actif/vocal après suppression d'un fournisseur. */
+  onProviderRemoved: (id: string) => Promise<void>;
+  addCustomProvider: (name: string, baseUrl: string, apiKey: string) => Promise<string>;
+  updateCustomProvider: (id: string, name: string, baseUrl: string) => Promise<void>;
+  removeCustomProvider: (id: string) => Promise<void>;
+  /** Clé API d'un fournisseur (intégré ou custom), chiffrée côté backend. */
+  setProviderKey: (id: string, key: string) => Promise<void>;
   setAIModel: (v: string) => Promise<void>;
   setAIVoiceModel: (v: string) => Promise<void>;
   setAIVoiceProvider: (v: string) => Promise<void>;
-  setAIVoiceApiKey: (v: string) => Promise<void>;
   setAISystemPrompt: (lang: string, v: string) => Promise<void>;
 }
 
@@ -237,11 +262,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   overlayToggleKey: "",
   aiCoachEnabled: true,
   aiProvider: "google",
-  aiApiKey: "",
+  aiCustomProviders: [],
+  aiProviderList: [],
+  aiProviderKeys: {},
   aiModel: "",
   aiVoiceModel: "",
   aiVoiceProvider: "",
-  aiVoiceApiKey: "",
   aiSystemPromptByLang: {},
   dashboardStats: null,
   bestLaps: [],
@@ -315,9 +341,53 @@ export const useAppStore = create<AppState>((set, get) => ({
         : 1;
     const voiceRadio = cfg.voice_radio !== "false";
     const voiceEngine = cfg.voice_engine === "system" ? "system" : "piper";
-    // Clé API IA : lue déchiffrée via le backend (migration douce de l'ancien clair).
-    const aiApiKey = await ai.getKey().catch(() => "");
-    const aiVoiceApiKey = await ai.getVoiceKey().catch(() => "");
+    // Fournisseurs custom : définitions (JSON non secret) + clé chiffrée chacun.
+    const aiCustomProviders: CustomProviderDef[] = (() => {
+      try {
+        const parsed = JSON.parse(cfg.ai_custom_providers || "[]");
+        return Array.isArray(parsed)
+          ? parsed.filter(
+              (d): d is CustomProviderDef =>
+                d && typeof d.id === "string" && typeof d.baseUrl === "string",
+            )
+          : [];
+      } catch {
+        return [];
+      }
+    })();
+    setCustomProviders(aiCustomProviders); // injecte dans le registre (hors store)
+    // Liste des fournisseurs intégrés configurés (cartes façon harness).
+    let aiProviderList: string[] = (() => {
+      try {
+        const parsed = JSON.parse(cfg.ai_provider_list || "[]");
+        return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+      } catch {
+        return [];
+      }
+    })();
+    // Migration depuis les créneaux globaux (≤ 1.0.2) : la clé « analyse »
+    // devient celle du fournisseur actif, la clé « vocal » celle du fournisseur
+    // vocal. La liste démarre avec ces fournisseurs → rien ne casse à la mise à
+    // jour. Les anciens créneaux ne sont plus lus ensuite (mais pas effacés :
+    // un retour arrière de version doit retrouver ses clés).
+    if (!cfg.ai_provider_list) {
+      const active = cfg.ai_provider || "google";
+      aiProviderList = [active];
+      const legacyKey = await ai.getKey().catch(() => "");
+      if (legacyKey) await ai.setProviderKey(active, legacyKey).catch(() => {});
+      const voiceP = cfg.ai_voice_provider ?? "";
+      if (voiceP && voiceP !== active) {
+        if (!aiProviderList.includes(voiceP)) aiProviderList.push(voiceP);
+        const legacyVoiceKey = await ai.getVoiceKey().catch(() => "");
+        if (legacyVoiceKey) await ai.setProviderKey(voiceP, legacyVoiceKey).catch(() => {});
+      }
+      await config.set("ai_provider_list", JSON.stringify(aiProviderList)).catch(() => {});
+    }
+    // Clé par fournisseur (intégrés configurés + customs), déchiffrées côté Rust.
+    const aiProviderKeys: Record<string, string> = {};
+    for (const id of [...aiProviderList, ...aiCustomProviders.map((d) => d.id)]) {
+      aiProviderKeys[id] = await ai.getProviderKey(id).catch(() => "");
+    }
     configureVoice({
       voiceByLang: voiceUriByLang,
       piperByLang: piperVoiceByLang,
@@ -378,11 +448,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         : 1,
       aiCoachEnabled: cfg.ai_coach_enabled !== "false",
       aiProvider: cfg.ai_provider || "google",
-      aiApiKey,
+      aiProviderList,
+      aiCustomProviders,
+      aiProviderKeys,
       aiModel: cfg.ai_model ?? "",
       aiVoiceModel: cfg.ai_voice_model ?? "",
       aiVoiceProvider: cfg.ai_voice_provider ?? "",
-      aiVoiceApiKey,
       aiSystemPromptByLang,
       selectedVersion: cfg.default_since_version ?? null,
     });
@@ -702,13 +773,91 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setAIProvider: async (v) => {
+    const changed = v !== get().aiProvider;
     await config.set("ai_provider", v);
     set({ aiProvider: v });
+    // Un id de modèle n'a de sens que chez SON fournisseur : en changer remet
+    // le modèle à zéro (le sondage `/models` ré-amorce ensuite). Sans ça, le
+    // modèle de l'ancien fournisseur restait affiché — et échouait au 1er appel.
+    if (changed && get().aiModel) {
+      await config.set("ai_model", "");
+      set({ aiModel: "" });
+    }
   },
 
-  setAIApiKey: async (v) => {
-    await ai.setKey(v); // stockée chiffrée côté backend
-    set({ aiApiKey: v });
+  addProvider: async (id, apiKey) => {
+    const list = get().aiProviderList.includes(id)
+      ? get().aiProviderList
+      : [...get().aiProviderList, id];
+    await config.set("ai_provider_list", JSON.stringify(list));
+    if (apiKey) await ai.setProviderKey(id, apiKey);
+    set({
+      aiProviderList: list,
+      aiProviderKeys: { ...get().aiProviderKeys, [id]: apiKey },
+    });
+  },
+
+  removeProvider: async (id) => {
+    const list = get().aiProviderList.filter((x) => x !== id);
+    await config.set("ai_provider_list", JSON.stringify(list));
+    await ai.setProviderKey(id, "").catch(() => {}); // efface la clé chiffrée
+    const keys = { ...get().aiProviderKeys };
+    delete keys[id];
+    set({ aiProviderList: list, aiProviderKeys: keys });
+    await get().onProviderRemoved(id);
+  },
+
+  addCustomProvider: async (name, baseUrl, apiKey) => {
+    const def: CustomProviderDef = { id: newCustomProviderId(), name, baseUrl };
+    const defs = [...get().aiCustomProviders, def];
+    await config.set("ai_custom_providers", JSON.stringify(defs));
+    if (apiKey) await ai.setProviderKey(def.id, apiKey);
+    setCustomProviders(defs);
+    set({
+      aiCustomProviders: defs,
+      aiProviderKeys: { ...get().aiProviderKeys, [def.id]: apiKey },
+    });
+    return def.id;
+  },
+
+  updateCustomProvider: async (id, name, baseUrl) => {
+    const defs = get().aiCustomProviders.map((d) =>
+      d.id === id ? { ...d, name, baseUrl } : d,
+    );
+    await config.set("ai_custom_providers", JSON.stringify(defs));
+    setCustomProviders(defs);
+    set({ aiCustomProviders: defs });
+  },
+
+  removeCustomProvider: async (id) => {
+    const defs = get().aiCustomProviders.filter((d) => d.id !== id);
+    await config.set("ai_custom_providers", JSON.stringify(defs));
+    await ai.setProviderKey(id, "").catch(() => {}); // efface la clé chiffrée
+    setCustomProviders(defs);
+    const keys = { ...get().aiProviderKeys };
+    delete keys[id];
+    set({ aiCustomProviders: defs, aiProviderKeys: keys });
+    await get().onProviderRemoved(id);
+  },
+
+  /** Après suppression d'un fournisseur : bascule l'actif/vocal s'il l'utilisait. */
+  onProviderRemoved: async (id: string) => {
+    if (get().aiProvider === id) {
+      const first = get().aiProviderList[0] ?? get().aiCustomProviders[0]?.id ?? "";
+      await config.set("ai_provider", first);
+      await config.set("ai_model", "");
+      set({ aiProvider: first, aiModel: "" });
+    }
+    if (get().aiVoiceProvider === id) {
+      await config.set("ai_voice_provider", "");
+      await config.set("ai_voice_model", "");
+      set({ aiVoiceProvider: "", aiVoiceModel: "" });
+    }
+  },
+
+  setProviderKey: async (id, key) => {
+    await ai.setProviderKey(id, key); // chiffrée côté backend
+    set({ aiProviderKeys: { ...get().aiProviderKeys, [id]: key } });
   },
 
   setAIModel: async (v) => {
@@ -724,11 +873,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAIVoiceProvider: async (v) => {
     await config.set("ai_voice_provider", v);
     set({ aiVoiceProvider: v });
-  },
-
-  setAIVoiceApiKey: async (v) => {
-    await ai.setVoiceKey(v); // stockée chiffrée côté backend
-    set({ aiVoiceApiKey: v });
   },
 
   setAISystemPrompt: async (lang, v) => {

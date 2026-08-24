@@ -11,13 +11,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Cpu, Globe, Key, Eye, EyeOff } from "lucide-react";
+import { Cpu, Globe } from "lucide-react";
 import { useAppStore } from "@/stores/app";
-import { PROVIDERS, getProvider } from "@/lib/ai/providers";
+import { getProvider } from "@/lib/ai/providers";
 import { fetchModels } from "@/lib/ai/models";
 import type { ModelInfo } from "@/lib/ai/types";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
 import { Tip } from "@/components/ui/tooltip";
 import { AiModelPicker } from "@/components/AiModelPicker";
 
@@ -31,24 +30,22 @@ export function VoiceCoachConfig({
 }) {
   const { t } = useTranslation();
   const aiProvider = useAppStore((s) => s.aiProvider);
-  const aiApiKey = useAppStore((s) => s.aiApiKey);
   const aiModel = useAppStore((s) => s.aiModel);
   const aiVoiceProvider = useAppStore((s) => s.aiVoiceProvider);
-  const aiVoiceApiKey = useAppStore((s) => s.aiVoiceApiKey);
   const aiVoiceModel = useAppStore((s) => s.aiVoiceModel);
   const setAIVoiceProvider = useAppStore((s) => s.setAIVoiceProvider);
-  const setAIVoiceApiKey = useAppStore((s) => s.setAIVoiceApiKey);
   const setAIVoiceModel = useAppStore((s) => s.setAIVoiceModel);
+  const aiProviderList = useAppStore((s) => s.aiProviderList);
+  const aiCustomProviders = useAppStore((s) => s.aiCustomProviders);
 
   // « = analyse » quand ni fournisseur ni modèle vocal spécifiques.
   const same = aiVoiceProvider === "" && aiVoiceModel === "";
-  const inheritProvider = aiVoiceProvider === ""; // même fournisseur → même clé
   const voiceProviderId = aiVoiceProvider || aiProvider;
   const voiceProvider = getProvider(voiceProviderId);
-  const voiceNeedsKey = voiceProvider?.needsKey ?? true;
-  const voiceKey = inheritProvider ? aiApiKey : aiVoiceApiKey;
+  // La clé est PAR fournisseur (cartes de la section Fournisseurs) : plus de
+  // clé vocale dédiée à saisir ici.
+  const voiceKey = useAppStore((s) => s.aiProviderKeys[voiceProviderId] ?? "");
 
-  const [showKey, setShowKey] = useState(false);
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -125,50 +122,20 @@ export function VoiceCoachConfig({
               onChange={(e) => onProviderChange(e.target.value)}
               className={SELECT_CLS}
             >
-              {PROVIDERS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
+              {/* Seuls les fournisseurs CONFIGURÉS (cartes) sont proposés — leur
+                  clé est déjà saisie sur leur carte, rien à re-saisir ici. */}
+              {aiProviderList.map((id) => (
+                <option key={id} value={id}>
+                  {getProvider(id)?.name ?? id}
+                </option>
+              ))}
+              {aiCustomProviders.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name || d.baseUrl}
                 </option>
               ))}
             </select>
           </div>
-
-          {/* Clé API — seulement si fournisseur DISTINCT qui en requiert une */}
-          {!inheritProvider && voiceNeedsKey && (
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-1.5 text-sm">
-                <Tip content={t("config.aiVoiceApiKeyTip")} side="right">
-                  <span className="cursor-help text-muted-foreground">
-                    <Key className="h-3.5 w-3.5" />
-                  </span>
-                </Tip>
-                {t("config.aiVoiceApiKey")}
-              </span>
-              <div className="relative flex items-center">
-                <Input
-                  type={showKey ? "text" : "password"}
-                  value={aiVoiceApiKey}
-                  onChange={(e) => void setAIVoiceApiKey(e.target.value)}
-                  placeholder="••••••••"
-                  className="h-8 w-[210px] pr-8 text-sm"
-                />
-                <button
-                  type="button"
-                  onMouseDown={() => setShowKey(true)}
-                  onMouseUp={() => setShowKey(false)}
-                  onMouseLeave={() => setShowKey(false)}
-                  aria-label={t("config.aiRevealKey")}
-                  className="absolute right-2 text-muted-foreground hover:text-foreground rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {showKey ? (
-                    <EyeOff className="h-3.5 w-3.5" />
-                  ) : (
-                    <Eye className="h-3.5 w-3.5" />
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Modèle vocal (sondé chez le fournisseur vocal) */}
           <div className="flex items-center justify-between gap-3">

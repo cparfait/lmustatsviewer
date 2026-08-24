@@ -41,16 +41,17 @@ import { toast, toastSuccess } from "@/stores/dialogs";
 function resolveVoiceTarget(st: {
   aiProvider: string;
   aiModel: string;
-  aiApiKey: string;
   aiVoiceProvider: string;
   aiVoiceModel: string;
-  aiVoiceApiKey: string;
+  aiProviderKeys: Record<string, string>;
 }) {
   const separate = st.aiVoiceProvider !== "";
+  const providerId = separate ? st.aiVoiceProvider : st.aiProvider;
   return {
-    provider: getProvider(separate ? st.aiVoiceProvider : st.aiProvider),
+    provider: getProvider(providerId),
     model: separate ? st.aiVoiceModel : st.aiVoiceModel || st.aiModel,
-    apiKey: separate ? st.aiVoiceApiKey : st.aiApiKey,
+    // La clé est propre au fournisseur (plus de créneau analyse/vocal).
+    apiKey: st.aiProviderKeys[providerId] ?? "",
   };
 }
 
@@ -107,22 +108,20 @@ export function useCoachVoice() {
   const aiCoachEnabled = useAppStore((s) => s.aiCoachEnabled);
   const keyCoach = useAppStore((s) => s.spotterKeyCoach);
   const pttMode = useAppStore((s) => s.spotterPttMode);
-  // Abonnements explicites : `ready` doit être recalculé dès qu'un des six
-  // réglages change (fournisseur/modèle/clé, côté analyse comme côté vocal).
+  // Abonnements explicites : `ready` doit être recalculé dès qu'un de ces
+  // réglages change (fournisseur/modèle/clés, côté analyse comme côté vocal).
   const aiProvider = useAppStore((s) => s.aiProvider);
   const aiModel = useAppStore((s) => s.aiModel);
-  const aiApiKey = useAppStore((s) => s.aiApiKey);
   const aiVoiceProvider = useAppStore((s) => s.aiVoiceProvider);
   const aiVoiceModel = useAppStore((s) => s.aiVoiceModel);
-  const aiVoiceApiKey = useAppStore((s) => s.aiVoiceApiKey);
+  const aiProviderKeys = useAppStore((s) => s.aiProviderKeys);
 
   const target = resolveVoiceTarget({
     aiProvider,
     aiModel,
-    aiApiKey,
     aiVoiceProvider,
     aiVoiceModel,
-    aiVoiceApiKey,
+    aiProviderKeys,
   });
   const needsKey = target.provider?.needsKey ?? true;
   const ready =

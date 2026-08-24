@@ -4,6 +4,7 @@ import type { AIProvider } from "../types";
 import { googleProvider } from "./google";
 import { ollamaProvider } from "./ollama";
 import { anthropicProvider } from "./anthropic";
+import { getCustomProviders } from "./custom";
 import {
   openaiProvider,
   deepseekProvider,
@@ -11,6 +12,7 @@ import {
   openrouterProvider,
 } from "./openai-compat";
 
+/** Fournisseurs intégrés. Les customs (définis par l'utilisateur) s'y ajoutent. */
 export const PROVIDERS: AIProvider[] = [
   openaiProvider,
   anthropicProvider,
@@ -21,6 +23,11 @@ export const PROVIDERS: AIProvider[] = [
   ollamaProvider,
 ];
 
+/** Intégrés + customs, pour les menus de sélection. */
+export function allProviders(): AIProvider[] {
+  return [...PROVIDERS, ...getCustomProviders()];
+}
+
 export function getProvider(id: string): AIProvider | undefined {
-  return PROVIDERS.find((p) => p.id === id);
+  return allProviders().find((p) => p.id === id);
 }

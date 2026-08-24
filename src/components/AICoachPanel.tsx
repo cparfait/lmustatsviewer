@@ -69,14 +69,24 @@ type Turn = { role: "user" | "assistant"; content: string; display?: string };
 /** Retire le markdown pour la synthèse vocale (gras, titres, listes, code).
  *  Un bloc ``` non refermé (stream en cours) est aussi retiré : le JSON
  *  d'objectifs ne doit jamais être lu à voix haute. */
+/** Termine un titre par un point s'il n'a pas déjà une ponctuation forte —
+ *  c'est ce qui fait marquer une pause au TTS entre le titre et le paragraphe
+ *  (sans ça, « Point fort principal » et la phrase suivante s'enchaînent). */
+function punctuateTitle(t: string): string {
+  const clean = t.trim().replace(/:$/, "");
+  return /[.!?]$/.test(clean) ? clean : `${clean}.`;
+}
+
 function stripMarkdown(s: string): string {
   return s
     .replace(/```[\s\S]*?```/g, "")
     .replace(/```[\s\S]*$/, "")
     .replace(/`([^`]+)`/g, "$1")
+    // Titres : `### Titre` et lignes en gras seules (`**Titre**`) → « Titre. »
+    .replace(/^#{1,6}\s*(.+?)\s*$/gm, (_, t: string) => punctuateTitle(t))
+    .replace(/^\s*\*\*([^*\n]+)\*\*\s*:?\s*$/gm, (_, t: string) => punctuateTitle(t))
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/^#{1,6}\s*/gm, "")
     .replace(/^\s*[-*]\s+/gm, "")
     .replace(/^\s*\d+\.\s+/gm, "")
     .replace(/\n{3,}/g, "\n\n")
@@ -255,11 +265,13 @@ export function CoachPanel({
   const { t, i18n } = useTranslation();
   const aiProvider = useAppStore((s) => s.aiProvider);
   const aiModel = useAppStore((s) => s.aiModel);
-  const aiApiKey = useAppStore((s) => s.aiApiKey);
+  const aiProviderKeys = useAppStore((s) => s.aiProviderKeys);
   const aiSystemPromptByLang = useAppStore((s) => s.aiSystemPromptByLang);
   const aiSystemPrompt = aiSystemPromptByLang[i18n.language.slice(0, 2).toLowerCase()] ?? "";
 
   const provider = getProvider(aiProvider);
+  // La clé est propre au fournisseur (intégré comme custom).
+  const aiApiKey = aiProviderKeys[aiProvider] ?? "";
   const needsKey = provider?.needsKey ?? true;
   const ready = !!provider && !!aiModel && (!needsKey || !!aiApiKey);
 

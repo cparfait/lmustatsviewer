@@ -32,6 +32,11 @@ export interface AIProvider {
   name: string;
   /** Faux pour Ollama (local, aucune clé requise). */
   needsKey: boolean;
+  /**
+   * Fournisseur personnalisé (défini par l'utilisateur). Sa clé API est propre
+   * au fournisseur (`aiCustomKeys[id]`) au lieu du créneau global `aiApiKey`.
+   */
+  custom?: boolean;
 
   /** URL complète de l'appel chat (Google y intègre le modèle + la clé). */
   chatUrl(model: string, apiKey: string): string;
@@ -59,4 +64,13 @@ export interface AIProvider {
    * maintenir, l'UI renvoie l'utilisateur à la source à jour (il saisit l'id).
    */
   docsUrl: string;
+  /**
+   * Vrai si l'id correspond à une génération retirée par le fournisseur. Sert
+   * à alerter dans la page Config : un modèle choisi il y a des mois reste
+   * enregistré et n'échoue qu'au premier appel, sans indice sur la cause.
+   * Optionnel : à n'implémenter que pour les fournisseurs qui retirent
+   * franchement leurs anciens modèles (Google). Un motif incomplet ne fait
+   * jamais de faux positif — au pire, pas d'avertissement.
+   */
+  isRetiredModel?(id: string): boolean;
 }

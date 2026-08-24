@@ -214,12 +214,14 @@ export default {
     disclaimer:
       "Análisis generado por IA a partir de los datos de la sesión — verifícalo.",
     sources:
-      "Fuentes de referencia: marcas de frenada ApexPoints · vídeos de Unleashed Drivers (YouTube).",
+      "Fuentes de referencia: marcas de frenada ApexPoints · vídeos de Unleashed Drivers, HYMO Academy, GO Setups (YouTube).",
     videoGuide: "Guía en vídeo",
     errNoModel: "Ningún modelo seleccionado.",
     errNoKey: "Falta la clave API.",
     errKey: "Clave API inválida o no autorizada.",
     errQuota: "Cuota agotada en el proveedor.",
+    errModel:
+      "Modelo desconocido o retirado por el proveedor. Escribe un identificador actualizado en Configuración → Coach IA → Modelo (enlace «Ver la lista de modelos»).",
     errRate: "Límite de llamadas alcanzado — inténtalo de nuevo en un momento.",
     errServer: "Error del servidor del proveedor (HTTP {{code}}).",
     errNetwork: "Proveedor inaccesible (¿red caída / servicio local detenido?).",
@@ -1081,6 +1083,7 @@ export default {
     aiVoiceKeyDesc:
       "Mantén la tecla, haz tu pregunta en voz alta, el entrenador responde por el casco (requiere reconocimiento de voz).",
     aiProvider: "Proveedor",
+    aiProviderActive: "Proveedor activo",
     aiApiKey: "Clave API",
     aiModel: "Modelo",
     aiVoiceModel: "Modelo de voz",
@@ -1090,10 +1093,35 @@ export default {
     aiVoiceApiKey: "Clave API de voz",
     aiRevealKey: "Mostrar la clave",
     aiNoModels: "Sin modelos",
-    aiModelPlaceholder: "Elige o escribe un ID de modelo",
+    aiProvidersTitle: "Proveedores",
+    aiProvidersDesc:
+      "Añade tus proveedores con su clave API: pasan a ser seleccionables para el análisis y el coach de voz. El indicador muestra si el proveedor responde.",
+    aiProvidersEmpty: "Ningún proveedor configurado — añade uno para activar el coach.",
+    aiProviderAdd: "Añadir un proveedor",
+    aiProviderEdit: "Editar el proveedor",
+    aiProviderDelete: "Eliminar el proveedor",
+    aiProviderProbeOk: "El proveedor responde.",
+    aiProviderProbeFail: "Inaccesible: comprueba la clave (y la URL si procede).",
+    aiProviderProbing: "Comprobando…",
+    aiProviderKeyHelp: "Obtener una clave API",
+    aiCustomAdd: "Añadir un proveedor personalizado",
+    aiCustomName: "Nombre",
+    aiCustomUrl: "URL base",
+    aiCustomUrlTip:
+      "La URL base es la raíz de la API compatible con OpenAI (suele terminar en /v1). La clave API es opcional según el servicio.",
+    aiCustomKeyOptional: "opcional",
+    aiCustomSave: "Guardar",
+    aiModelPlaceholder: "ej.: {{id}}",
+    aiModelPlaceholderPlain: "Identificador del modelo",
     aiModelsDocs: "Ver la lista de modelos",
+    aiModelChoose: "Elegir un modelo…",
     aiModelManual: "Escribir manualmente…",
     aiModelFromList: "Elegir de la lista",
+    aiModelHint: "Campo libre — ejemplo: {{id}}",
+    aiModelHintPlain: "Campo libre: escribe el identificador del modelo.",
+    aiModelRetired:
+      "El proveedor ha retirado este modelo: el coach devolverá un error.",
+    aiModelUseExample: "Usar {{id}}",
     aiHelpTitle: "Configurar el Coach IA",
     aiHelpIntro:
       "El Coach IA analiza tus vueltas mediante un modelo de lenguaje externo. Necesitas una cuenta con un proveedor y una clave API.",
@@ -1115,7 +1143,7 @@ export default {
     timezoneTip:
       "Zona horaria para mostrar las fechas y horas de las sesiones.",
     aiProviderTip:
-      "Servicio de IA del coach (OpenAI, Anthropic, Google, OpenRouter, DeepSeek, Mistral u Ollama en local).",
+      "Proveedor que usa el coach para el análisis, entre los configurados arriba.",
     aiApiKeyTip: "Clave de acceso al proveedor, guardada cifrada en tu PC.",
     aiModelTip:
       "Modelo usado para el análisis. Pulsa Actualizar para cargar la lista del proveedor.",
@@ -1128,6 +1156,9 @@ export default {
       "Muestra la pestaña Referencias y los baremos de ritmo comunitarios (OhneSpeed).",
     aiRefreshModels: "Actualizar modelos",
     aiTestConnection: "Probar",
+    aiTestFun: "Probar la IA",
+    aiTestFunNoData:
+      "Aún no hay datos de carrera en la base: corre una sesión en el juego y vuelve a intentarlo.",
     aiTestOk: "Conexión OK",
     aiKeyNote:
       "Clave almacenada localmente. No la uses en un equipo compartido.",

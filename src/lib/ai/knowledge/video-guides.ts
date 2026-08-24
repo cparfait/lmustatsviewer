@@ -28,6 +28,11 @@ const TRACK_KEYWORDS: Record<string, string[]> = {
   "road-atlanta": ["road atlanta", "atlanta"],
   cota: ["cota", "americas", "austin"],
   lusail: ["lusail", "qatar"],
+  // US Track Pass (packs 2/3 pré-câblés : Watkins Glen / Indianapolis pressentis).
+  daytona: ["daytona"],
+  "laguna-seca": ["laguna", "seca"],
+  "watkins-glen": ["watkins", "glen"],
+  indianapolis: ["indianapolis", "indy"],
 };
 
 /** Classe DB → classe vidéo (gte/gt3/hypercar/lmp2). Ordre = priorité. */
@@ -96,7 +101,7 @@ export function buildVideoGuideText(args: {
 
   const lines: string[] = [
     "## Video lap guide reference",
-    `Source: "${pick.title}" by Unleashed Drivers (YouTube) — ${pick.url}`,
+    `Source: "${pick.title}" by ${pick.channel ?? "Unleashed Drivers"} (YouTube) — ${pick.url}`,
   ];
 
   // Transcription (sous-titres auto) du combo : conseils de pilotage virage par

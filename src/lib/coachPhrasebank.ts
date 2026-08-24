@@ -32,13 +32,19 @@ const norm = (lang: string) => (lang || "fr").slice(0, 2).toLowerCase();
 let appliedKey = "";
 let busyKey = "";
 
+/** Clé du fournisseur d'analyse (une clé par fournisseur). */
+function analysisKey(): string {
+  const st = useAppStore.getState();
+  return st.aiProviderKeys[st.aiProvider] ?? "";
+}
+
 /** Le Coach IA est-il configuré pour générer (fournisseur + modèle + clé) ? */
 function aiReady(): boolean {
   const st = useAppStore.getState();
   if (!st.aiCoachEnabled) return false;
   const p = getProvider(st.aiProvider);
   if (!p || !st.aiModel) return false;
-  return !p.needsKey || !!st.aiApiKey;
+  return !p.needsKey || !!analysisKey();
 }
 
 /**
@@ -80,7 +86,7 @@ export async function applyOrGeneratePhrasebank(
     const entries = await generatePhrasebank({
       provider,
       model: st.aiModel,
-      apiKey: st.aiApiKey,
+      apiKey: analysisKey(),
       lang: lg,
       corners: info.macro,
     });

@@ -151,6 +151,54 @@ pub fn ai_get_voice_key(db: State<'_, DbState>) -> Result<String, AppError> {
     Ok(String::new())
 }
 
+/// Valide un id de fournisseur custom avant d'en dériver une clé de config
+/// (`ai_key_enc_<id>`) : alphanumérique + tirets/underscores, borné.
+fn provider_config_key(provider_id: &str) -> Result<String, AppError> {
+    let ok = !provider_id.is_empty()
+        && provider_id.len() <= 64
+        && provider_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    if !ok {
+        return Err(AppError::Internal(format!(
+            "id de fournisseur invalide: {provider_id}"
+        )));
+    }
+    Ok(format!("ai_key_enc_{provider_id}"))
+}
+
+/// Stocke la clé API chiffrée d'un fournisseur custom (vide = efface).
+#[tauri::command]
+pub fn ai_set_provider_key(
+    provider_id: String,
+    value: String,
+    db: State<'_, DbState>,
+) -> Result<(), AppError> {
+    let cfg_key = provider_config_key(&provider_id)?;
+    let stored = if value.is_empty() {
+        String::new()
+    } else {
+        encrypt_key(&value)?
+    };
+    db::config_set(&db, &cfg_key, &stored)?;
+    Ok(())
+}
+
+/// Lit la clé API déchiffrée d'un fournisseur custom ("" si absente).
+#[tauri::command]
+pub fn ai_get_provider_key(
+    provider_id: String,
+    db: State<'_, DbState>,
+) -> Result<String, AppError> {
+    let cfg_key = provider_config_key(&provider_id)?;
+    if let Some(enc) = db::config_get(&db, &cfg_key)? {
+        if !enc.is_empty() {
+            return Ok(decrypt_key(&enc).unwrap_or_default());
+        }
+    }
+    Ok(String::new())
+}
+
 fn build_client() -> Result<reqwest::Client, AppError> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(60))

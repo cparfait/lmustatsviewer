@@ -422,6 +422,61 @@ async function pump() {
  * cours de priorité inférieure. Les doublons (même texte déjà en file ou en
  * cours) sont ignorés pour éviter le bégaiement.
  */
+/** Mots de liaison pour la normalisation TTS, par langue. */
+const TTS_WORDS: Record<
+  string,
+  { decimal: string; seconds: string; kmh: string; plus: string; minus: string; degrees: string }
+> = {
+  fr: { decimal: "virgule", seconds: "secondes", kmh: "kilomètres heure", plus: "plus", minus: "moins", degrees: "degrés" },
+  en: { decimal: "point", seconds: "seconds", kmh: "kilometers per hour", plus: "plus", minus: "minus", degrees: "degrees" },
+  es: { decimal: "coma", seconds: "segundos", kmh: "kilómetros por hora", plus: "más", minus: "menos", degrees: "grados" },
+  de: { decimal: "Komma", seconds: "Sekunden", kmh: "Kilometer pro Stunde", plus: "plus", minus: "minus", degrees: "Grad" },
+};
+
+/**
+ * Normalise le jargon course pour la synthèse — Piper lit les formes écrites
+ * telles quelles : « P13 » devient un mot déformé, « 1:42.123 » est lu avec
+ * « deux-points », « km/h » avec « slash », « 0.5 » à l'anglaise en FR/ES/DE.
+ * On réécrit en toutes lettres, par langue. S'applique à TOUT ce qui est dit
+ * (spotter, coach, test IA) — les textes affichés ne sont pas touchés.
+ */
+function normalizeForTts(text: string, lang: string): string {
+  const w = TTS_WORDS[norm(lang)] ?? TTS_WORDS.en;
+  let s = text;
+  // « P13 » / « T4 » collés → « P 13 » (épelé lettre puis nombre).
+  s = s.replace(/\b([PT])(\d{1,2})\b/g, "$1 $2");
+  // Catégories : épelées (« LMGT3 » → « L M G T 3 »). Liste fermée, pas de
+  // motif générique lettres+chiffre qui abîmerait un nom propre.
+  s = s.replace(/\b(LMGT3|LMP[123]|LMDh|GTE|GT3)\b/g, (m) =>
+    m.toUpperCase().split("").join(" "),
+  );
+  // Temps au tour « 1:42.881 » → convention radio : « une 42 881 » (pas de
+  // « minute » ni de « virgule » ; « une » au féminin en FR). Minute à 1
+  // chiffre : un tour dure moins de 10 min — évite de réécrire une heure
+  // « 14:30 ».
+  // Virgules entre les blocs : sans elles, « 2 26 707 » est lu « vingt-six
+  // mille sept cent sept » (séparateur de milliers).
+  const minWord = (m: string) => (norm(lang) === "fr" && m === "1" ? "une" : m);
+  s = s.replace(
+    /\b(\d):(\d{2})\.(\d{1,3})\b/g,
+    (_, m, sec, ms) => `${minWord(m)}, ${sec}, ${ms}`,
+  );
+  s = s.replace(/\b(\d):(\d{2})\b/g, (_, m, sec) => `${minWord(m)}, ${sec}`);
+  // Écarts signés « +0.5 » / « -0.3 » (signe collé au chiffre uniquement).
+  s = s.replace(/(^|\s)\+(?=\d)/g, `$1${w.plus} `);
+  s = s.replace(/(^|\s)-(?=\d)/g, `$1${w.minus} `);
+  // Suffixe secondes « 0.5s » / « 34s » → « 0.5 secondes » (le point est
+  // traité juste après).
+  s = s.replace(/\b(\d+(?:[.,]\d+)?)\s?s\b/g, `$1 ${w.seconds}`);
+  // Unités.
+  s = s.replace(/\bkm\/h\b/gi, w.kmh);
+  s = s.replace(/°\s?C\b/g, ` ${w.degrees}`);
+  // Décimales restantes : « 0.5 » lu à l'anglaise hors EN → mot local. Le
+  // lookahead couvre les suites « 1.0.3 » (chaque point est traité).
+  if (norm(lang) !== "en") s = s.replace(/(\d)\.(?=\d)/g, `$1 ${w.decimal} `);
+  return s.replace(/\s{2,}/g, " ").trim();
+}
+
 export function speak(
   text: string,
   lang: string,
@@ -429,6 +484,7 @@ export function speak(
   ttlMs?: number,
 ) {
   if (!text || (!speechSupported() && !isTauri())) return;
+  text = normalizeForTts(text, lang);
   lastSpokenText = text;
   lastSpokenLang = lang;
   if (current?.text === text) return;
@@ -462,6 +518,7 @@ export function announce(text: string, lang: string, onEnd?: () => void) {
     onEnd?.();
     return;
   }
+  text = normalizeForTts(text, lang);
   lastSpokenText = text;
   lastSpokenLang = lang;
   cancelSpeech();

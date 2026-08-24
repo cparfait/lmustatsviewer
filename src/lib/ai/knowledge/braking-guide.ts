@@ -26,6 +26,13 @@ const TRACK_KEYWORDS: Record<string, string[]> = {
   interlagos: ["interlagos", "paulo"],
   "road-atlanta": ["road atlanta", "atlanta"],
   cota: ["cota", "americas", "austin"],
+  // US Track Pass — le guide ApexPoints ne couvre pas (encore) ces circuits :
+  // le matching est prêt, la section freinage restera vide tant que la donnée
+  // n'existe pas (on ne fabrique pas de chiffres attribués à ApexPoints).
+  daytona: ["daytona"],
+  "laguna-seca": ["laguna", "seca"],
+  "watkins-glen": ["watkins", "glen"],
+  indianapolis: ["indianapolis", "indy"],
 };
 
 /** Classe DB → classe du guide (hypercar / lmp2 / gt3). Ordre = priorité. */
@@ -79,7 +86,7 @@ export function buildBrakingGuideText(args: {
 
   const lines: string[] = [];
   lines.push(
-    `## Ideal braking reference — ${gt.name} (${cls?.label ?? clsId}) [source: ApexPoints]`,
+    `## Ideal braking reference — ${gt.name} (${cls?.label ?? clsId}) [source: ${gt.source ?? "ApexPoints"}]`,
   );
   lines.push(
     "Per-corner reference braking markers (community guide). Compare with the driver's data; this is a generic macro reference, not absolute truth (depends on car/setup/conditions).",

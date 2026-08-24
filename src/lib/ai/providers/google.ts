@@ -49,6 +49,12 @@ export const googleProvider: AIProvider = {
   buildHeaders: () => [["Content-Type", "application/json"]],
 
   buildBody: (messages, _model, maxTokens) => {
+    // Chez Gemini, les tokens de raisonnement sont décomptés de
+    // `maxOutputTokens`. Avec nos petits budgets (160 pour le vocal, 400 pour
+    // l'analyse rapide), un modèle « thinking » (toute la génération 3) peut
+    // tout consommer et renvoyer une réponse VIDE. On ajoute donc une marge :
+    // c'est un plafond, pas une cible — la longueur reste dictée par le prompt.
+    const THINKING_HEADROOM = 1024;
     const systemText = messages
       .filter((m) => m.role === "system")
       .map((m) => m.content)
@@ -62,7 +68,7 @@ export const googleProvider: AIProvider = {
     return {
       ...(systemText ? { systemInstruction: { parts: [{ text: systemText }] } } : {}),
       contents,
-      generationConfig: { maxOutputTokens: maxTokens },
+      generationConfig: { maxOutputTokens: maxTokens + THINKING_HEADROOM },
     };
   },
 
@@ -100,10 +106,18 @@ export const googleProvider: AIProvider = {
       .filter((m) => m.id.length > 0);
   },
 
-  // Repli best-effort si la clé n'est pas encore saisie. À garder à jour.
+  // Repli best-effort si la clé n'est pas encore saisie. À garder à jour :
+  // Google retire vite les générations précédentes (les `gemini-2.5-*` renvoient
+  // un 404 « no longer available to new users » pour les clés créées après
+  // juillet 2026). La liste réelle vient de `/models` dès que la clé est saisie.
   fallbackModels: [
-    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+    { id: "gemini-3.7-flash", label: "Gemini 3.7 Flash" },
+    { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
+    { id: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash Lite" },
   ],
   docsUrl: "https://ai.google.dev/gemini-api/docs/models",
+
+  // Générations 1.x et 2.x : arrêtées ou en cours de retrait (les 2.5 renvoient
+  // déjà 404 pour les clés récentes, arrêt annoncé au 16/10/2026).
+  isRetiredModel: (id) => /^(models\/)?gemini-[012](\D|$)/i.test(id.trim()),
 };

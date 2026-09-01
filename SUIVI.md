@@ -842,6 +842,16 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-01 — Retour utilisateur : page Records → « Minified React error #185 »
+
+Un utilisateur signale un crash (écran blanc + `Minified React error #185`) en cliquant l'icône **Records** d'une ligne de session (à côté de Détails) → `/records?track=…&course=…&class=…&car=…`.
+
+- ✅ **Cause : sélecteur zustand renvoyant un objet littéral.** `routes/Records.tsx` lisait le filtre de version global via `useAppStore((s) => ({ selectedVersion, setSelectedVersion, versionExact, setVersionExact, gameVersions }))`. Depuis **zustand v5** (5.0.13 ici), le hook s'appuie directement sur `useSyncExternalStore` **sans comparateur d'égalité par défaut** : un objet littéral crée une nouvelle référence à chaque rendu, React croit le store modifié et re-rend en boucle → `#185 Maximum update depth exceeded`. En dev le symptôme est masqué par l'avertissement « The result of getSnapshot should be cached » ; en build minifié c'est l'écran blanc.
+- ✅ **Correctif** : sélecteurs atomiques (`useAppStore((s) => s.selectedVersion)`, etc.), l'idiome déjà utilisé partout ailleurs dans le projet. `Records.tsx` était **le seul** fichier avec le sélecteur-objet (vérifié par grep) — pas d'autre page exposée.
+- ✅ Le crash touchait **toute** la page Records, quel que soit le chemin d'accès (icône Sessions ou Dashboard), depuis le passage à zustand v5.
+- ✅ `tsc` propre. Changelog utilisateur : entrée **1.0.4** (`dev: true`, 4 langues).
+- 📋 **Prochaine étape** : ajouter une règle ESLint (ou une note MAINTENANCE.md) interdisant les sélecteurs zustand renvoyant un objet/tableau littéral, pour que la régression ne puisse pas revenir ailleurs.
+
 ### 2026-08-22 — Retour utilisateur : Gemini 2.5 en erreur, « ajouter Gemini 3.6 »
 
 Un utilisateur signale que le coach ne marche plus avec Gemini 2.5 et demande d'« ajouter » Gemini 3.6. Diagnostic : **rien à ajouter**, le champ Modèle est déjà libre depuis la 1.0.0 (`AiModelPicker`, mode SAISIE par défaut + lien `docsUrl` vers la liste officielle du fournisseur) — l'app ne bride aucun identifiant. Le vrai problème est en aval.

@@ -77,14 +77,15 @@ export function Records() {
   const [error, setError] = useState<string | null>(null);
 
   // Filtre de version global (partagé avec Sessions / Dashboard).
-  const { selectedVersion, setSelectedVersion, versionExact, setVersionExact, gameVersions } =
-    useAppStore((s) => ({
-      selectedVersion: s.selectedVersion,
-      setSelectedVersion: s.setSelectedVersion,
-      versionExact: s.versionExact,
-      setVersionExact: s.setVersionExact,
-      gameVersions: s.gameVersions,
-    }));
+  // Sélecteurs atomiques obligatoires : avec zustand v5, un sélecteur qui
+  // renvoie un objet littéral produit une nouvelle référence à chaque rendu,
+  // ce que `useSyncExternalStore` interprète comme un changement de store →
+  // boucle de rendu infinie (erreur React #185).
+  const selectedVersion = useAppStore((s) => s.selectedVersion);
+  const setSelectedVersion = useAppStore((s) => s.setSelectedVersion);
+  const versionExact = useAppStore((s) => s.versionExact);
+  const setVersionExact = useAppStore((s) => s.setVersionExact);
+  const gameVersions = useAppStore((s) => s.gameVersions);
 
   // Sélection initiale provenant d'un deep link (Dashboard / Sessions) → on
   // garde l'info pour que le bouton « retour » revienne à la page d'origine

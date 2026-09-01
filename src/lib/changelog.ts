@@ -64,6 +64,25 @@ export const APP_VERSION: string = __APP_VERSION__;
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.4",
+    date: "2026-09-01",
+    dev: false,
+    localized: true,
+    sections: [
+      {
+        kind: "fixed",
+        items: [
+          {
+            en: "The Records page opens again. Clicking the Records icon in a session row (next to Details) crashed the app with a blank screen and a “Minified React error #185” message. The page was stuck in an endless refresh loop caused by the way it read the global game-version filter. Thanks to the user who reported it.",
+            fr: "La page Records s'ouvre de nouveau. Cliquer sur l'icône Records d'une ligne de session (à côté de Détails) plantait l'application sur un écran blanc avec un message « Minified React error #185 ». La page bouclait indéfiniment à cause de la façon dont elle lisait le filtre global de version du jeu. Merci à l'utilisateur qui l'a signalé.",
+            es: "La página Records vuelve a abrirse. Al pulsar el icono Records en una fila de sesión (junto a Detalles), la aplicación se bloqueaba con una pantalla en blanco y el mensaje «Minified React error #185». La página entraba en un bucle de refresco infinito por la forma en que leía el filtro global de versión del juego. Gracias al usuario que lo reportó.",
+            de: "Die Records-Seite öffnet wieder. Ein Klick auf das Records-Symbol in einer Sitzungszeile (neben Details) ließ die App mit weißem Bildschirm und der Meldung „Minified React error #185“ abstürzen. Die Seite steckte in einer Endlos-Render-Schleife, verursacht durch die Art, wie sie den globalen Spielversions-Filter auslas. Danke an den Nutzer für die Meldung.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "1.0.3",
     date: "2026-08-24",
     dev: false,

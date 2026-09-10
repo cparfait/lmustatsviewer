@@ -1,0 +1,48 @@
+name: CI
+
+# Contrôles rapides sur chaque push / pull request de `main`.
+#
+# Volontairement SANS Rust : `cargo` recompile DuckDB depuis les sources
+# (feature `bundled`), soit ~25 min — beaucoup trop pour un retour à chaque
+# commit. La compilation Rust reste validée par le job `release`, qui exécute
+# aussi ces mêmes contrôles avant de construire l'installeur.
+#
+# Ubuntu suffit : lint, typage et tests du coach sont indépendants de la
+# plateforme (le coach est du TypeScript pur, cf. COACH-LIVE-SPEC.md §14).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Un push qui en remplace un autre annule le contrôle devenu obsolète.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Coach tests
+        run: npm test

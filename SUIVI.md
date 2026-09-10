@@ -842,6 +842,305 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-05 — Lot 4 (étape 1/3) : outillage d'enregistrement de corpus
+
+Le harnais §14 disposait déjà de `FrameRecorder` (sérialisation JSONL) et de
+`replayEngine`, mais **`FrameRecorder` n'était branché nulle part** : aucun
+bouton, aucune écriture disque, donc aucune donnée réelle jamais capturée. Les
+154 tests tournent tous sur `synth.ts` (3 virages à 550 m, freinage en créneau,
+volant constant, aucune chicane) : ils valident le code, pas les **seuils**.
+
+Étape 1 livrée — l'outillage :
+- `commands/coach.rs` : `coach_save_corpus(name, content)` écrit dans
+  `app_data_dir/corpus/<nom>-<horodatage>.jsonl` et renvoie le chemin. Le nom
+  vient de l'UI : caractères non alphanumériques remplacés, extension imposée →
+  aucune saisie ne peut écrire hors du dossier. Enregistré dans `lib.rs`.
+- `api.ts` : `coachRef.saveCorpus`.
+- `src/lib/coach/recorder.ts` (nouveau) : s'abonne au flux **brut** `live-data`,
+  normalise via `frameFromLive` (donc exactement ce que voit le moteur) et
+  accumule des lignes JSON déjà sérialisées. Arrondi à 4 décimales via le
+  `replacer` de `JSON.stringify` (≈ 2× plus petit, sans perte utile). Plafond
+  `MAX_FRAMES = 150 000` (~2 h à 20 Hz). Volontairement **hors du service
+  coach** : enregistrer ne change rien au comportement du coach.
+- `ConfigV2.tsx` : bloc « Enregistrer une session (diagnostic) » dans la section
+  Coach, sous l'import de ghost. Compteur de trames sondé à 1 Hz. i18n ×4.
+
+**Décision : l'outil reste dans le build de production**, pas derrière un flag
+dev. Motif : il permet de demander à un utilisateur qui signale un comportement
+anormal du coach d'enregistrer quelques tours et d'envoyer le fichier — une
+trace exacte et rejouable, sur un combo circuit×voiture que le développeur ne
+possède pas forcément. L'infobulle précise que le fichier contient les noms des
+pilotes présents en session et qu'il faut l'anonymiser avant partage.
+
+⏳ **Étape 2 (utilisateur)** : rouler et produire le corpus. Protocole demandé —
+essais libres seul en piste à Spa (1ᵉʳ virage proche de la ligne → éprouve le
+bouclage de la fenêtre calme du lot 1), avec 2-3 blocages de roue et 2-3
+patinages volontaires (→ valide `slip_ratio` du lot 2, seule vraie inconnue
+restante), puis une dizaine de tours sur les mêmes pneus sans repasser aux
+stands (→ dérive de vitesse de passage), puis un passage essais → qualif sans
+quitter la session (→ `maybeResetSession` du lot 1). Le **niveau du pilote est
+sans importance** : un débutant exerce en plus le palier de seuils « beginner »,
+jamais couvert, et produit les blocages/patinages qu'un pilote rapide ne fait pas.
+
+⏳ **Étape 3** : charger le corpus dans le lanceur de tests et écrire les
+assertions (nombre de virages détectés, stabilité des `corner_uid` entre tours,
+taux d'ouverture de la fenêtre calme, éligibilité d'au moins un tour de réf,
+`slip_ratio` non nul). Décider alors du stockage : quelques tours représentatifs
+committés, ou corpus gardé local avec ces tests exécutés hors CI.
+
+### 2026-09-05 — Lot 3 : fiabilité du transport IA
+
+Les 5 constats MAJEURS « transport LLM » sont corrigés. Tout vert : lint 0
+warning, `tsc -b` OK, `cargo check` OK, 154 tests, `npm run build` OK.
+
+1. **UTF-8 coupé entre paquets** (`ai.rs`). `buf.push_str(&String::from_utf8_lossy(
+   &bytes))` décodait **chaque chunk TCP isolément** : une séquence multi-octets
+   (é, à, °, →, ·) à cheval sur deux paquets devenait deux `U+FFFD` au milieu
+   d'une réponse française — et le TTS lisait le caractère de remplacement. Le
+   tampon est désormais un `Vec<u8>` découpé sur `b'\n'` : on ne décode qu'une
+   **ligne complète**, dont les bornes tombent forcément sur un caractère entier.
+2. **Timeout global de 60 s** (`ai.rs`). `.timeout(60s)` couvre requête **et**
+   lecture du corps : sur un flux, cela impose « toute la réponse en 60 s ». Une
+   analyse complète (3 000 tokens + marge) sur un modèle de raisonnement était
+   coupée en plein milieu. Nouveau `build_stream_client()` : `connect_timeout(15s)`
+   + `read_timeout(90s)` (délai d'**inactivité**, réarmé à chaque paquet), aucun
+   timeout total. `build_client()` garde ses 60 s pour le non-streaming.
+3. **Réponse partielle jetée** (`coach.ts`, `AICoachPanel.tsx`). `converseStream`
+   propageait l'erreur, et le `catch` du panneau faisait `setThread(nextThread)`
+   → 80 % d'analyse lue à l'écran, déjà facturée, effacée. Désormais : si du
+   texte est arrivé, on le **conserve** et on signale la troncature via le
+   nouveau callback `onTruncated(reason)` → `coach.warnTruncated` (4 langues).
+4. **Erreurs et fins anticipées avalées** (`types.ts` + 4 providers).
+   `parseStreamChunk` renvoyait `string | null` : tout le reste était jeté en
+   silence. Nouveau type `StreamChunk = {kind:"text"|"error"|"stop"}`.
+   - Anthropic : événement `error` (529 overloaded en corps HTTP 200) et
+     `message_delta.stop_reason === "max_tokens"`.
+   - Google : `promptFeedback.blockReason` et `finishReason !== "STOP"`.
+   - OpenAI-compat : objet `{error}` dans un corps 200 (OpenRouter, DeepSeek) et
+     `finish_reason !== "stop"`.
+   - Ollama : champ `error` et `done_reason !== "stop"`.
+5. **Anthropic : budget de sortie et tour vide** (`anthropic.ts`,
+   `AICoachPanel.tsx`). `max_tokens: maxTokens` brut alors que Google /
+   OpenAI-compat / Ollama ajoutent tous `+1024` : avec 160 tokens (vocal) ou 400
+   (analyse rapide), la réflexion adaptative consommait tout et la réponse
+   revenait **vide**. Ajout de `THINKING_HEADROOM = 1024`. Enchaînement corrigé
+   côté panneau : une réponse vide n'est plus empilée dans le fil (un tour
+   assistant vide fait échouer l'API en 400, donc **toutes** les questions
+   suivantes) et `buildBody` filtre en plus les tours vides par sécurité.
+6. **Clé Gemini dans l'URL** (`google.ts`, `ai.rs`). La clé partait en
+   `?key=…` ; `reqwest` joint l'URL complète à ses erreurs, et `ai.rs` formatait
+   `{e}` tel quel → clé affichée à l'écran et dans toute capture de bug. Elle
+   passe désormais par l'en-tête `x-goog-api-key`, et tous les messages d'erreur
+   réseau passent par `net_err()` qui applique `e.without_url()`. Bonus :
+   `truncate_body()` (500 caractères) évite qu'une page HTML de 502 remonte
+   entière dans la bulle d'erreur.
+
+📋 Prochaine étape : lot 4 — enregistrer un corpus JSONL réel (Le Mans, Spa) via
+`testkit/record.ts` et le rejouer en CI, seul moyen de calibrer les seuils du
+coach (aujourd'hui tous validés sur données de synthèse). Ensuite, refonte du
+contexte post-course (σ par secteur, relais, dégradation, incidents pré-calculés
+au lieu de 40 tours bruts) et pré-digestion des transcriptions vidéo.
+
+### 2026-09-05 — Lot 2 du coach : justesse des conseils
+
+Les 6 constats MAJEURS « le coach dit des choses fausses » sont corrigés.
+Tout vert : lint 0 warning, `tsc -b` OK, `cargo check` OK, **154 tests** (contre
+128), `npm run build` OK.
+
+1. **Patinage / blocage mesurés au lieu d'être devinés** (`live.rs`, `api.ts`,
+   `frame.ts`, `engine.ts`). Les proxys reposaient sur `gLong` : « plein gaz +
+   faible accélération » = patinage, ce qui est l'état normal d'une Hypercar en
+   virage rapide et à chaque upshift ; « frein fort + faible décélération » =
+   blocage, si restrictif qu'il ne détectait presque rien. Nouveau champ
+   `LiveWheel.slip_ratio` calculé côté Rust : `(long_patch_vel − long_ground_vel)
+   / long_ground_vel`, borné ±1, 0 sous 1 m/s. Diviser par la vitesse sol
+   **signée** rend le résultat indépendant de la convention de signe rF2 : `> 0`
+   = patinage, `< 0` = blocage. `CoachFrame` porte `slipMin`/`slipMax` (extrêmes
+   des 4 roues — le max positif capte la roue motrice sans savoir quel essieu
+   l'est, ce qui varie avec l'hybride). Nouveaux seuils : blocage `slip ≤ −0,20`
+   avec frein ≥ 20 % et v > 40 km/h ; patinage `slip ≥ +0,15` avec gaz ≥ 60 % et
+   v > 30 km/h. Canal absent → 0 → **silence** (mieux qu'un faux positif).
+2. **Lift & coast** (`stint.ts`, `service.ts`). Le déclencheur comparait le
+   carburant au besoin **jusqu'à la fin de session** (`strat.fuelToAdd > 0.05`) :
+   vrai dès le tour 1 de toute course à ravitaillement obligatoire → conseil en
+   boucle pendant des heures. Nouvelle fonction pure `liftCoastShortfall(
+   sessionLapsLeft, fuelLapsRemaining)` : `null` si le carburant suffit **ou** si
+   le manque dépasse `LIFT_MAX_SHORTFALL_LAPS = 2` (hors de portée → il faut
+   s'arrêter, pas lever le pied). `fuelAdvice` prend `shortfallLaps` à la place
+   de `fuelShort`.
+3. **Dérive `vmin`** (`stint.ts`). Médiane de 2 échantillons, seuil 2 km/h au
+   niveau du bruit, trafic non filtré, base = les 2 premiers passages sur pneus
+   froids (donc dérive négative → jamais d'alerte sur un vrai relais).
+   Désormais : `WARMUP_PASSES = 2` ignorés, base = médiane des passages 3-5,
+   fenêtre récente = 3, `MIN_SAMPLES = 8`, seuil 3 km/h ou 2,5 %, et rejet des
+   passages avec `ctx.gapAheadEntry < 1,5 s`.
+4. **Attribution des coupures de piste** (`risk.ts`, `service.ts`). `lastCorner`
+   est posé au `corner-passed`, émis à `dist ≥ endDist` ; or la coupure survient
+   sur le vibreur de sortie, **avant** la clôture → imputée au virage précédent.
+   `recordTrackLimit` accepte un 3ᵉ argument `driving` (prioritaire), alimenté
+   par `drivingCorner(dist)` qui renvoie `windows[nextWin]` si `dist` est dans sa
+   fenêtre.
+5. **Réf périmée bloquant toute nouvelle capture** (`service.ts`). Le garde-fou
+   testait `ref.kind !== "stale"`, mais **rien n'appelle jamais `markStale`** :
+   test mort. Après une mise à jour du jeu qui ralentit la voiture, plus aucun
+   tour ne battait la réf → coach figé en mode « que d'habitude » à vie.
+   `maybeCaptureRef` s'appuie maintenant sur `currentRefMode(frame) === "fresh"`,
+   le verdict de fraîcheur réel (build, température, gomme). La frame est
+   calculée avant le test.
+6. **Historique de progression jeté** (`service.ts`). `flushSession` faisait
+   `hist = createSessionHistory()` **avant** de tester `stats.length`, or
+   `summarizeSession` exige 3 passages par virage. Avec des sorties de 2 tours
+   entrecoupées de retours au garage, aucun virage n'atteignait le seuil et tout
+   était jeté à chaque entrée aux stands → `corner_history` vide à vie, donc pas
+   de progression, pas d'objectifs, pas de rappel, pas de cibles Drill. La remise
+   à zéro n'a plus lieu que si le résumé a produit quelque chose.
+
+Tests : `cm()` de `pure.suite.ts` fournit un `ctx` « piste libre » par défaut
+(sinon les nouveaux filtres de trafic ne prouveraient rien). Nouvelles sections
+`stint.liftCoastShortfall` et `risk.trackLimits.attribution` ; `stint.
+recordStintCorner` couvre la chauffe, la dérive réelle et le trafic ;
+`stint.fuel/outlap` migré sur `shortfallLaps`. `synth.ts` : `slipMin`/`slipMax` à 0.
+
+📋 Prochaine étape : lot 3 — fiabilité du transport IA (accumulation en octets
+pour l'UTF-8, délai d'inactivité par chunk au lieu du timeout global de 60 s qui
+jette la réponse partielle, erreurs et `stop_reason` de flux relayés, marge
+`max_tokens` Anthropic, clé Gemini en en-tête + `without_url()` sur les erreurs).
+
+### 2026-09-05 — Chaîne de publication + lot 1 du coach (moment de parole)
+
+Suite des correctifs critiques. Deux chantiers.
+
+**A. Chaîne de publication (garde-fous CI)**
+- Nouveau `.github/workflows/ci.yml` : lint + `tsc -b` + `npm test` sur chaque
+  push/PR de `main`. Sur `ubuntu-latest` et **sans Rust** : `cargo` recompile
+  DuckDB (`bundled`), ~25 min, inacceptable à chaque commit. Le coach est du TS
+  pur (§14), donc indépendant de la plateforme. `concurrency` avec
+  `cancel-in-progress` pour ne pas empiler les runs.
+- `release.yml` : les **mêmes** contrôles sont ajoutés en steps **avant**
+  `tauri-action`, juste après `npm ci`. Un tag poussé avec un test cassé
+  produisait jusqu'ici un installeur signé et une release ; l'unique protection
+  était la checklist manuelle de `RELEASE.md`. Placés en steps (et non en job
+  séparé) pour réutiliser le `npm ci` et échouer avant les ~25 min de Rust.
+  Ajout de `concurrency: release` (`cancel-in-progress: false`) : deux tags
+  rapprochés ne se disputent plus le cache Cargo.
+- `Profile.tsx` : import `Trophy` inutilisé retiré → **lint 0 warning**, le
+  signal CI est propre.
+- ⏳ **Reste à faire** (nécessite le réseau, non fait ici) : épingler les actions
+  par SHA (`tauri-action@v0` est une majeure instable, et le job manipule
+  `TAURI_SIGNING_PRIVATE_KEY`), figer un SHA-256 pour les binaires Piper/Vosk,
+  `npm audit fix` (react-router en plage vulnérable).
+
+**B. Lot 1 du coach — parler au bon moment (§1.1)**
+- `voice.ts` : extraction de `isCalmWindow(frame, windows, nextWin, trackLengthM)`,
+  exportée, et **bouclage de fin de tour**. Après la dernière fenêtre, `nextBrake`
+  valait `Infinity` : la ligne droite des stands était « calme à l'infini » et un
+  conseil lancé avant la ligne se terminait dans le freinage du virage 1 (La
+  Source à Spa, T1 à Sebring/Bahreïn/Imola). On vise désormais
+  `windows[0].brakeDist + longueurTour`. Longueur déduite de la réf dense
+  (`n_points × step_m`) via `trackLengthFromRef()` ; 0 (inconnue) conserve
+  l'ancien comportement, et le mode Découverte (aucune fenêtre) reste sans
+  contrainte. `stepCoachVoice` prend un 5ᵉ paramètre optionnel.
+- `service.ts` : **file d'attente des canaux secondaires** (`sideQueue`,
+  `queueSide`/`drainSide`). Stint (dérive, lift & coast, out-lap), risque
+  (limites de piste, cible de classe), verdict de Drill et rappel inter-sessions
+  parlaient **immédiatement**, donc en pleine sortie de virage ou à l'instant de
+  la coupure — en contradiction directe avec §1.1 et avec le retour #150
+  (« silence en freinage »). Ils passent par la même fenêtre calme, un seul
+  message par trame, jamais sur la trame où un diagnostic est prononcé.
+  Péremption à 20 s (plus permissive que les 8 s d'un diagnostic ancré sur un
+  passage), file plafonnée à 3. Vidée aux 4 resets (combo, session, start, stop).
+  `maybeEmitRecall` prend désormais `elapsed`.
+- Tests : nouvelle section `voice.calmWindow` dans `coach.suite.ts` (7
+  assertions) — premier test de `voice.ts`, qui n'était pas couvert du tout.
+  **128 tests** (contre 121).
+
+Tout vert : lint 0 warning, `tsc -b` OK, `cargo check` OK, 128/128 tests,
+`npm run build` OK.
+
+📋 Prochaine étape : lot 2 du coach (justesse des conseils) — lift & coast borné
+au relais courant et non à la fin de session, dérive `vmin` (ignorer les 2
+premiers tours, exclure `gapAheadEntry < 1,5 s`, fenêtre ≥ 3 passages), coupures
+attribuées à `windows[nextWin]` plutôt qu'au virage précédent, proxies
+patinage/blocage remplacés par un vrai glissement de roue
+(`lat_patch_vel`/`long_patch_vel`/`rotation` sont déjà exposés).
+
+### 2026-09-05 — Correction des 6 points CRITIQUES de l'audit
+
+Suite de l'entrée d'audit ci-dessous. Les 6 constats CRITIQUES sont corrigés.
+Tout vert : `tsc -b` OK, `cargo check` OK, eslint 0 erreur (1 warning préexistant
+`Trophy` dans Profile.tsx), 121/121 tests coach, `npm run build` OK.
+
+1. **Purge « joueur » destructrice** (`indexer.rs`) — garde-fou : si `results` ne
+   contient aucune ligne `is_player = 1`, la purge est **refusée** avec un message
+   nommant le `player_name` configuré (le problème est le nom, pas les fichiers).
+   La suppression physique passe **après** `tx.commit()` et utilise le `file_path`
+   stocké (plus de reconstruction depuis `results_dir`, qui pouvait viser un
+   homonyme d'un autre dossier). Compteur de fichiers réellement supprimés loggué.
+2. **Panique → abort sur télémétrie vide** (`telemetry.rs:655`) — garde
+   `!ld.data[0].is_empty()` : un canal `Lap Dist` déclaré mais vide retombe sur
+   `Vec::new()` au lieu de `clamp(0, -1)`.
+3. **Coach muet seul en piste** (`frame.ts`) — `gapOrFree()` : tout écart `≤ 0`
+   (piste libre **ou** `LMU_Data` illisible) vaut désormais `NO_CAR_GAP_S = 999`.
+   Débloque l'éligibilité réf (§3.2, `> 2 s`) et l'inhibiteur trafic (`< 1,5 s`).
+4. **Coach éteint au changement de session** (`engine.ts` + `service.ts`) —
+   nouvel export `resetCoachSession(state, frame)` (réaligne `lapNum`, vide le
+   tour courant, remet `validLaps` à 0 ; conserve réf/fenêtres/apex). Le moteur
+   traite un `lapNum` **décroissant** comme un reset (au lieu de figer le
+   compteur), et le service détecte le changement via `maybeResetSession()`
+   (`sessionNum` différent **ou** recul de `lapNum`) : flush de session + reset
+   de `voice`/`shortRef`/`predict`/`drillPredict`/`stint`/`risk`/`hist`/
+   `recentDiags`/`sessionBestSaved`/`recallDone`. `diag` (σ) et le niveau pilote
+   sont conservés (propriétés du combo). Nouveau `lastSessionNum`.
+5. **Thread live jamais arrêté** (`live.rs`, `lib.rs`, `useOverlayData.ts`,
+   `Live.tsx`) — `LIVE_CONSUMERS` passe d'un `AtomicUsize` à une **map par
+   fenêtre** ; `release_window(label)` appelé sur `WindowEvent::Destroyed` purge
+   d'un coup les souscriptions d'une fenêtre morte (l'overlay est détruit sans
+   cleanup React). Ajout de `LIVE_GEN` : un thread de génération périmée s'arrête
+   seul et n'écrase plus le drapeau d'un thread plus récent (course stop→start).
+   Côté front, `stopPolling()` est appelé au démontage, gardé par un booléen
+   `polling` pour ne jamais décrémenter un compteur non incrémenté ; le listener
+   `live-data` de Live.tsx est désabonné même si le démontage précède la
+   résolution de `listen()`.
+6. **Corruption de setups `.svm`** (`setups.rs`, `Setups.tsx`, `SetupDetail.tsx`) —
+   `write_svm_atomic()` (fichier temporaire + `sync_all` + copie `.bak` +
+   `rename`) pour `update_setup`/`set_setup_notes` (avec `.bak`) et `export_setup` (sans `.bak`) ;
+   `write_svm_new()` (`create_new`) pour `create_setup`/`duplicate_setup` → plus
+   d'écrasement silencieux. `load_svm_from_disk()` : les écritures repartent du
+   **fichier réel** et non du `content_json` (instantané du dernier scan) — une
+   note n'efface plus les réglages faits en jeu. `sanitize_component()` sur
+   `circuit`/`name`/`new_name` (refus de `/ \ : * ? " < > |`, `..`, noms réservés
+   Windows, point/espace final) + vérification canonique que le dossier reste
+   sous `Settings`. `export_setup` refuse un chemin relatif ; les deux boutons
+   Exporter passent par `save()` de `plugin-dialog` (`dialog:default` couvre déjà
+   `allow-save`).
+
+Changelog utilisateur : entrée **1.0.5** (`dev: true`, `localized: true`, 4 langues)
+dans `src/lib/changelog.ts`, 7 items `fixed` dont 2 `featured` (purge, setups).
+
+📋 Prochaine étape : lot MAJEUR du coach (fenêtre calme incluant le T1 du tour
+suivant, canaux stint/drill/risk/rappel passant par la fenêtre calme, lift & coast
+borné au relais, proxies patinage/blocage sur vrai glissement de roue), puis le
+transport LLM (UTF-8 par octets, délai d'inactivité au lieu du timeout global de
+60 s, erreurs de flux relayées, marge Anthropic).
+
+### 2026-09-05 — Audit complet de l'application (lecture seule, aucun code modifié)
+
+Audit en 5 axes (IA/LLM, coach live, backend Rust, frontend React, build/CI + setups) + lecture directe du moteur de coaching. État de départ : lint 0 erreur (1 warning), `tsc -b` OK, `cargo check` OK, 121 tests verts.
+
+**CRITIQUE (à corriger avant toute release)** :
+- `indexer.rs` `purge_empty_sessions("player")` : si aucun XML ne matche `player_name` (pseudo changé, espace), la purge sélectionne **tous** les fichiers et les supprime du disque avant le commit → perte totale de l'historique. Garde-fou « 0 session joueur → refus » + suppression après commit.
+- `telemetry.rs:655` : `clamp(0, n-1)` avec `n = 0` (table `Lap Dist` vide) → panique → abort de l'app (`panic = "abort"`).
+- Coach : `gap_ahead = 0` (seul en piste / `LMU_Data` illisible) est lu comme « 0 s d'écart » → tour jamais éligible réf → coach muet en Découverte à vie (`frame.ts`/`engine.ts`). Traiter `≤ 0` comme infini.
+- Coach : redémarrage/changement de session (`total_laps` repart à 0) non géré → plus de `lap-completed`, cooldowns négatifs, coach éteint (`engine.ts:562-571`, `service.ts`).
+- Overlay : `useOverlayData` ne fait jamais `stopPolling()` → thread live 20 Hz + `app.emit` vers toutes les fenêtres jusqu'à fermeture de l'app (candidat n°1 aux saccades 1.0.1).
+- Setups : écriture `.svm` non atomique, depuis le `content_json` en base (périmé si le jeu a réécrit le fichier), traversal sur `circuit`/`name`, export vers le cwd.
+
+**MAJEUR (coach)** : fenêtre calme ignore le T1 du tour suivant ; stint/drill/risk/rappel parlent hors fenêtre calme ; escalade Course répétée tous les 2 tours ; « lift & coast » faux positif dès le T1 en course à arrêts ; dérive vmin fragile (2 échantillons, trafic non exclu) ; coupures attribuées au virage précédent ; `markStale` jamais appelé ; ghost `.ld` multi-tours ; proxy patinage (gaz ≥ 85 % et gLong < 0,12 g) déclenche en virage rapide/upshift ; fenêtres `brakeDist−150 m` chevauchent le virage précédent (chicanes) ; `flushSession` jette les passages < 3 par virage ; double abonnement start/stop.
+**MAJEUR (LLM)** : UTF-8 coupé entre chunks (`ai.rs:289`) ; timeout global 60 s tue l'analyse complète et le partiel est jeté ; erreurs in-stream ignorées ; Anthropic sans marge thinking + tour vide persisté ; clé Gemini dans l'URL → messages d'erreur ; contexte post-course = 40 tours bruts (pas de σ/secteur, relais, incidents) ; transcriptions ASR 2-4 k tokens injectées à chaque question ; aucun suivi de coût/usage ; pas d'annulation backend.
+**MAJEUR (autres)** : commandes Tauri synchrones (Piper, Vosk, DuckDB, indexation) sur le thread principal ; offsets `LMU_Data` sans garde-fou de version ; CSP nulle + proxy IA vers URL libre ; Live 20 Hz sans memo ; overlay highFps setState par rAF ; deep-links Sessions perdent `car`/`course` ; `mapTrackName` layoutMap mort ; relation de classe rival jamais calculée ; delta live sur `lap_dist` (5 Hz) ; CI sans lint/tests ; binaires Piper/Vosk sans hash ; react-router vulnérable.
+
+📋 Prochaine étape : traiter les 6 CRITIQUES (≈ 1 jour), puis le lot coach (session/fenêtre calme/proxies/L&C), puis transport LLM (UTF-8, timeout, erreurs). Enregistrer un corpus JSONL réel (Le Mans, Spa) pour calibrer les seuils et tester `voice.ts`.
+
 ### 2026-09-01 — Retour utilisateur : page Records → « Minified React error #185 »
 
 Un utilisateur signale un crash (écran blanc + `Minified React error #185`) en cliquant l'icône **Records** d'une ligne de session (à côté de Détails) → `/records?track=…&course=…&class=…&car=…`.

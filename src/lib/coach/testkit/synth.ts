@@ -193,6 +193,10 @@ export function synthSession(nLaps: number, opts: Partial<SynthOpts> = {}): Coac
         absMap: 1,
         antiStall: false,
         impact: 0,
+        // Pilotage propre par défaut : aucune roue ne glisse. Les scénarios de
+        // blocage / patinage posent ces valeurs explicitement.
+        slipMin: 0,
+        slipMax: 0,
       });
       const step = (v / 3.6) * dt;
       dist += step > 0 ? step : 0.5;

@@ -51,18 +51,47 @@ export interface StintAdvisory {
   unit: "km/h" | "";
 }
 
-/** Passages minimaux avant de juger une dérive (assez d'échantillons). */
-const MIN_SAMPLES = 4;
-/** Fenêtre « début de relais » (médiane) — pneus chauds mais neufs. */
-const BASELINE_N = 2;
+/**
+ * Passages de **chauffe** ignorés en début de relais. Les deux premiers tours se
+ * font sur des pneus qui ne sont pas encore dans leur fenêtre : la vitesse de
+ * passage y est basse pour une raison qui n'a rien à voir avec la fatigue.
+ * Les prendre comme base rendait la dérive négative, donc invisible, sur un vrai
+ * relais — et la rendait détectable à tort dès qu'un tour de chauffe était rapide.
+ */
+const WARMUP_PASSES = 2;
+/** Fenêtre « début de relais » (médiane) — pneus enfin en température. */
+const BASELINE_N = 3;
 /** Fenêtre « récente » (médiane) — état courant des pneus. */
-const RECENT_N = 2;
+const RECENT_N = 3;
+/**
+ * Passages minimaux avant de juger une dérive. Chauffe + base + récent : on ne
+ * conclut jamais sur deux mesures, qui étaient au niveau du bruit tour à tour.
+ */
+const MIN_SAMPLES = WARMUP_PASSES + BASELINE_N + RECENT_N;
 /** Baisse minimale de `vmin` (km/h) pour parler de fatigue. */
-const MIN_DROP_KMH = 2;
-/** …ou 2 % de la vitesse de passage de base (seuil relatif §7). */
-const DROP_PCT = 0.02;
+const MIN_DROP_KMH = 3;
+/** …ou 2,5 % de la vitesse de passage de base (seuil relatif §7). */
+const DROP_PCT = 0.025;
+/**
+ * Écart minimal à la voiture devant (s) pour retenir un passage. Deux passages
+ * derrière une voiture plus lente suffisaient à simuler une chute de vitesse de
+ * passage, et le coach annonçait des pneus fatigués à cause du trafic.
+ */
+const CLEAN_GAP_S = 1.5;
 /** Cooldown (tours) entre deux rappels lift & coast. */
 const LIFT_COOLDOWN_LAPS = 3;
+/**
+ * Écart (en tours) qu'un lift & coast peut raisonnablement combler.
+ *
+ * Le déclencheur comparait le carburant embarqué au besoin **jusqu'à la fin de
+ * la session**. Dans toute course à ravitaillement obligatoire, ce besoin est
+ * hors de portée dès le premier tour : le conseil tombait donc en boucle pendant
+ * des heures, alors que le plan prévoit simplement de refaire le plein.
+ * Économiser du carburant n'a de sens que si le manque est **à portée** : à deux
+ * tours près on peut le combler en levant le pied, à trente tours il faut
+ * s'arrêter et le conseil n'a aucun sens.
+ */
+const LIFT_MAX_SHORTFALL_LAPS = 2;
 
 export function createStintState(): StintState {
   return { corners: new Map(), lastLiftLap: -1, outLapPending: false };
@@ -97,6 +126,8 @@ export function recordStintCorner(
   m: CornerMeasurement,
 ): StintAdvisory | null {
   if (m.tainted || m.vmin <= 0) return null;
+  // Trafic : un passage ralenti derrière une autre voiture ne dit rien des pneus.
+  if (m.ctx.gapAheadEntry < CLEAN_GAP_S) return null;
   let acc = st.corners.get(m.corner_uid);
   if (!acc) {
     acc = { n: m.n, vmins: [], alerted: false };
@@ -106,7 +137,8 @@ export function recordStintCorner(
   acc.vmins.push(m.vmin);
   if (acc.alerted || acc.vmins.length < MIN_SAMPLES) return null;
 
-  const base = median(acc.vmins.slice(0, BASELINE_N));
+  // Base = passages qui suivent la chauffe ; récent = fin de fenêtre observée.
+  const base = median(acc.vmins.slice(WARMUP_PASSES, WARMUP_PASSES + BASELINE_N));
   const recent = median(acc.vmins.slice(-RECENT_N));
   const drop = base - recent;
   if (drop >= Math.max(MIN_DROP_KMH, DROP_PCT * base)) {
@@ -125,15 +157,35 @@ export function recordStintCorner(
 }
 
 /**
- * Conseil **lift & coast** (§12) quand le carburant est juste (`fuelShort`) et
- * qu'on est à haute charge (`onThrottle`, fin de ligne droite = fenêtre calme).
- * Rythmé par un cooldown en tours pour ne pas répéter à chaque ligne droite.
+ * Manque de carburant **rattrapable** en levant le pied, exprimé en tours.
+ *
+ * `null` si l'information manque, si le carburant embarqué suffit, ou si le
+ * manque est trop grand pour être comblé autrement que par un arrêt. C'est ce
+ * dernier cas qui produisait le faux positif permanent en course d'endurance.
+ */
+export function liftCoastShortfall(
+  sessionLapsLeft: number | null,
+  fuelLapsRemaining: number,
+): number | null {
+  if (sessionLapsLeft == null || sessionLapsLeft <= 0) return null;
+  if (!(fuelLapsRemaining > 0)) return null;
+  const shortfall = sessionLapsLeft - fuelLapsRemaining;
+  if (shortfall <= 0) return null; // de quoi finir : rien à économiser
+  if (shortfall > LIFT_MAX_SHORTFALL_LAPS) return null; // hors de portée : il faut s'arrêter
+  return shortfall;
+}
+
+/**
+ * Conseil **lift & coast** (§12) quand le carburant manque **de peu** pour finir
+ * (`shortfallLaps`, cf. `liftCoastShortfall`) et qu'on est à haute charge
+ * (`onThrottle`, fin de ligne droite = fenêtre calme). Rythmé par un cooldown en
+ * tours pour ne pas répéter à chaque ligne droite.
  */
 export function fuelAdvice(
   st: StintState,
-  o: { fuelShort: boolean; lapNum: number; onThrottle: boolean },
+  o: { shortfallLaps: number | null; lapNum: number; onThrottle: boolean },
 ): StintAdvisory | null {
-  if (!o.fuelShort || !o.onThrottle) return null;
+  if (o.shortfallLaps == null || !o.onThrottle) return null;
   if (st.lastLiftLap >= 0 && o.lapNum - st.lastLiftLap < LIFT_COOLDOWN_LAPS) {
     return null;
   }

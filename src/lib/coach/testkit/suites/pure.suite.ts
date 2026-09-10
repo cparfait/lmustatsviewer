@@ -12,6 +12,7 @@ import {
   resetStint,
   recordStintCorner,
   fuelAdvice,
+  liftCoastShortfall,
   takeOutLapAdvice,
 } from "../../stint";
 import {
@@ -30,7 +31,16 @@ import {
 import type { CornerMeasurement } from "../../engine";
 import type { LdChannel, TelemetryChannelData, TelemetryMeta } from "@/lib/api";
 
-const cm = (o: Partial<CornerMeasurement>) => o as unknown as CornerMeasurement;
+/**
+ * Mesure de virage synthétique. Le `ctx` reçoit des valeurs « piste libre » par
+ * défaut : sans elles, les modules qui filtrent le trafic verraient un écart
+ * indéfini et le test ne prouverait rien.
+ */
+const cm = (o: Partial<CornerMeasurement>) =>
+  ({
+    ...o,
+    ctx: { gapAheadEntry: 999, gapBehindMin: 999, ...(o.ctx ?? {}) },
+  }) as unknown as CornerMeasurement;
 
 export function run(): void {
   // ── P5.1 heatmap des pertes ──
@@ -66,22 +76,55 @@ export function run(): void {
   // ── P5.3 coaching de stint ──
   section("stint.recordStintCorner");
   {
+    const pass = (st: ReturnType<typeof createStintState>, vmin: number, gap = 999) =>
+      recordStintCorner(
+        st,
+        cm({ corner_uid: "b", n: 7, vmin, tainted: false, ctx: { gapAheadEntry: gap } as never }),
+      );
+
     let st = createStintState();
     ok(recordStintCorner(st, cm({ corner_uid: "a", n: 3, vmin: 100, tainted: true })) === null, "tainted → null");
+
+    // Relais type : 2 tours de chauffe (pneus froids, donc lents), puis 3 passages
+    // de référence à 120, puis 3 passages dégradés à 110.
     st = createStintState();
-    for (const v of [120, 120, 110]) ok(recordStintCorner(st, cm({ corner_uid: "b", n: 7, vmin: v, tainted: false })) === null, "pre-alert null");
-    const adv = recordStintCorner(st, cm({ corner_uid: "b", n: 7, vmin: 110, tainted: false }));
-    ok(adv != null && adv.kind === "stint-drift" && adv.corner === 7, "4th pass → drift T7");
-    approx(adv!.magnitude, 10, 1e-6, "drift 10 km/h");
-    ok(recordStintCorner(st, cm({ corner_uid: "b", n: 7, vmin: 108, tainted: false })) === null, "one alert per corner");
+    const seq = [115, 118, 120, 120, 120, 110, 110];
+    for (const v of seq) ok(pass(st, v) === null, `pré-alerte null (${v})`);
+    const adv = pass(st, 110);
+    ok(adv != null && adv.kind === "stint-drift" && adv.corner === 7, "8ᵉ passage → dérive T7");
+    approx(adv!.magnitude, 10, 1e-6, "dérive 10 km/h");
+    ok(pass(st, 108) === null, "une seule alerte par virage");
+
+    // Les tours de chauffe ne servent PAS de base : sinon la « dérive » mesurée
+    // serait l'échauffement des pneus, pas leur fatigue.
+    st = createStintState();
+    for (const v of [100, 105, 120, 120, 120, 119, 119, 119]) pass(st, v);
+    ok(st.corners.get("b")!.alerted === false, "montée en température → pas de dérive");
+
+    // Trafic : un passage ralenti derrière une voiture n'est pas comptabilisé.
+    st = createStintState();
+    for (let i = 0; i < 8; i++) ok(pass(st, 80, 0.5) === null, "trafic → passage ignoré");
+    eq(st.corners.has("b"), false, "aucun échantillon retenu sous trafic");
+  }
+  section("stint.liftCoastShortfall");
+  {
+    eq(liftCoastShortfall(null, 10), null, "tours restants inconnus → null");
+    eq(liftCoastShortfall(12, 0), null, "autonomie inconnue → null");
+    eq(liftCoastShortfall(10, 12), null, "carburant suffisant → null");
+    // Le cas corrigé : course d'endurance à ravitaillement, manque énorme dès le
+    // 1ᵉʳ tour. Lever le pied n'y changera rien, il faut s'arrêter.
+    eq(liftCoastShortfall(120, 14), null, "manque hors de portée → null");
+    eq(liftCoastShortfall(12, 10), 2, "manque de 2 tours → rattrapable");
+    eq(liftCoastShortfall(12, 11.5), 0.5, "manque d'un demi-tour → rattrapable");
   }
   section("stint.fuel/outlap");
   {
     const st = createStintState();
-    ok(fuelAdvice(st, { fuelShort: false, lapNum: 5, onThrottle: true }) === null, "not short → null");
-    ok(fuelAdvice(st, { fuelShort: true, lapNum: 5, onThrottle: true })?.kind === "lift-coast", "short → lift-coast");
-    ok(fuelAdvice(st, { fuelShort: true, lapNum: 6, onThrottle: true }) === null, "cooldown blocks");
-    ok(fuelAdvice(st, { fuelShort: true, lapNum: 8, onThrottle: true })?.kind === "lift-coast", "after cooldown");
+    ok(fuelAdvice(st, { shortfallLaps: null, lapNum: 5, onThrottle: true }) === null, "pas de manque → null");
+    ok(fuelAdvice(st, { shortfallLaps: 2, lapNum: 5, onThrottle: false }) === null, "hors haute charge → null");
+    ok(fuelAdvice(st, { shortfallLaps: 2, lapNum: 5, onThrottle: true })?.kind === "lift-coast", "manque → lift-coast");
+    ok(fuelAdvice(st, { shortfallLaps: 2, lapNum: 6, onThrottle: true }) === null, "cooldown blocks");
+    ok(fuelAdvice(st, { shortfallLaps: 2, lapNum: 8, onThrottle: true })?.kind === "lift-coast", "after cooldown");
     resetStint(st, { outLap: true });
     ok(takeOutLapAdvice(st)?.kind === "out-lap", "out-lap once");
     ok(takeOutLapAdvice(st) === null, "out-lap consumed");
@@ -99,6 +142,21 @@ export function run(): void {
     ok(r != null && r.kind === "risk-limits" && r.corner === 7, "hit3 → risk-limits T7");
     ok(recordTrackLimit(st, 10) === null, "one alert per corner");
     ok(recordTrackLimit(st, 0) === null, "counter reset ignored");
+  }
+  section("risk.trackLimits.attribution");
+  {
+    // Le cas corrigé : la coupure a lieu sur le vibreur de sortie, AVANT que la
+    // fenêtre du virage ne se ferme. `lastCorner` pointe alors le virage
+    // précédent ; le virage réellement négocié doit primer.
+    const st = createRiskState();
+    ok(recordTrackLimit(st, 0) === null, "amorce du compteur");
+    noteCorner(st, cm({ corner_uid: "t8", n: 8, tainted: false })); // dernier clôturé
+    const driving = { uid: "t9", n: 9 }; // virage réellement en cours
+    ok(recordTrackLimit(st, 1, driving) === null, "hit1 sur T9");
+    ok(recordTrackLimit(st, 2, driving) === null, "hit2 sur T9");
+    const r = recordTrackLimit(st, 3, driving);
+    ok(r != null && r.corner === 9, "coupures attribuées à T9, pas à T8");
+    eq(st.corners.has("t8"), false, "T8 n'a rien accumulé");
   }
   section("risk.classTarget");
   {

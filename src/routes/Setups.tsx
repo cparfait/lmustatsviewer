@@ -740,7 +740,18 @@ function QuickView({
               onClick={async () => {
                 if (!summary) return;
                 try {
-                  await setupsApi.export(setupId, summary.setup.name);
+                  // On passait ici le simple NOM du setup comme chemin : le
+                  // fichier atterrissait dans le dossier courant du processus
+                  // (souvent `C:\Program Files\...`), donc introuvable pour
+                  // l'utilisateur — ou refusé faute de droits. On demande
+                  // maintenant la destination via la boîte de dialogue système.
+                  const { save } = await import("@tauri-apps/plugin-dialog");
+                  const dest = await save({
+                    defaultPath: summary.setup.name,
+                    filters: [{ name: "Setup LMU", extensions: ["svm"] }],
+                  });
+                  if (!dest) return; // export annulé par l'utilisateur
+                  await setupsApi.export(setupId, dest);
                   toastSuccess(t("setups.exported"));
                 } catch (err) {
                   toastError(String(err));

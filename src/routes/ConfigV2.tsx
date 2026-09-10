@@ -33,6 +33,7 @@ import { MENU_MODULE_KEYS } from "@/components/layout/Header";
 import {
   FolderOpen,
   RefreshCw,
+  Square,
   Trash2,
   Search,
   Save,
@@ -68,6 +69,7 @@ import {
   Fuel,
   ShieldAlert,
   MessagesSquare,
+  Disc,
   Upload,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
@@ -81,6 +83,12 @@ import {
   clearPhrasebankForCurrentCombo,
 } from "@/lib/coachPhrasebank";
 import { importGhost, coachComboInfo } from "@/lib/coach";
+import {
+  startCorpusRecording,
+  stopCorpusRecording,
+  recordedFrames,
+  isRecording,
+} from "@/lib/coach/recorder";
 import { invoke } from "@tauri-apps/api/core";
 import { cn, formatTime } from "@/lib/utils";
 import { checkForUpdate } from "@/lib/updater";
@@ -200,6 +208,18 @@ export function ConfigV2() {
   const fuelReserveLaps = useAppStore((s) => s.fuelReserveLaps);
   const [pbBusy, setPbBusy] = useState(false);
   const [ghostBusy, setGhostBusy] = useState(false);
+  // Enregistrement de corpus (§14.1) : `recBusy` reflète l'état du module,
+  // qui survit au démontage de la page — on peut lancer la capture puis aller
+  // rouler, l'enregistrement continue.
+  const [recBusy, setRecBusy] = useState(isRecording);
+  const [recFrames, setRecFrames] = useState(0);
+  // Compteur de trames pendant la capture. Le module accumule hors de React ;
+  // une sonde à 1 Hz suffit largement pour un retour visuel.
+  useEffect(() => {
+    if (!recBusy) return;
+    const id = setInterval(() => setRecFrames(recordedFrames()), 1000);
+    return () => clearInterval(id);
+  }, [recBusy]);
   const voiceUriByLang = useAppStore((s) => s.voiceUriByLang);
   const voiceLangCode = (i18n.language || "fr").slice(0, 2).toLowerCase();
   const voiceUri = voiceUriByLang[voiceLangCode] ?? "";
@@ -1291,6 +1311,63 @@ export function ConfigV2() {
                           <Upload className="h-3.5 w-3.5" />
                         )}
                         {t("config.ghostImport")}
+                      </Button>
+                    </div>
+                    {/* Enregistrement d'un corpus réel (§14.1) — outil de
+                        diagnostic : rejouable ensuite dans le moteur pur pour
+                        valider les seuils du coach sur de vraies données. */}
+                    <div className="flex items-center justify-between gap-3 py-2">
+                      <div className="flex min-w-0 items-start gap-2">
+                        <Tip content={t("config.coachRecordTip")} side="right">
+                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
+                            <Disc className="h-4 w-4" />
+                          </span>
+                        </Tip>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium leading-tight">
+                            {t("config.coachRecord")}
+                          </div>
+                          <div className="mt-0.5 text-xs text-muted-foreground/80">
+                            {recBusy
+                              ? t("config.coachRecordRunning", { n: recFrames })
+                              : t("config.coachRecordDesc")}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={recBusy ? "destructive" : "outline"}
+                        onClick={async () => {
+                          if (recBusy) {
+                            const combo = coachComboInfo();
+                            const label =
+                              `${combo.track || "session"}-${combo.carModel || ""}`.trim();
+                            try {
+                              const path = await stopCorpusRecording(label);
+                              setRecBusy(false);
+                              setRecFrames(0);
+                              if (path) toastSuccess(t("config.coachRecordSaved", { path }));
+                              else toast(t("config.coachRecordEmpty"));
+                            } catch (e) {
+                              setRecBusy(false);
+                              setRecFrames(0);
+                              toastError(String(e));
+                            }
+                            return;
+                          }
+                          await startCorpusRecording();
+                          setRecBusy(true);
+                        }}
+                      >
+                        {recBusy ? (
+                          <Square className="h-3.5 w-3.5" />
+                        ) : (
+                          <Disc className="h-3.5 w-3.5" />
+                        )}
+                        {recBusy
+                          ? t("config.coachRecordStop")
+                          : t("config.coachRecordStart")}
                       </Button>
                     </div>
                   </>

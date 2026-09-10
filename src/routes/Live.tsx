@@ -812,12 +812,27 @@ export function Live() {
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
     let cancelled = false;
+    // `polling` : le compteur de consommateurs côté Rust n'est relâché que si on
+    // l'a réellement incrémenté. Sans ce garde, un démontage pendant l'attente
+    // de `startPolling` faisait partir le `stopPolling` AVANT l'enregistrement
+    // → consommateur fantôme et thread de polling qui ne s'arrête plus jamais.
+    let polling = false;
     (async () => {
       try {
-        unlisten = await liveApi.onData((d) => {
+        const fn = await liveApi.onData((d) => {
           if (!cancelled) setData(d);
         });
+        // Démonté pendant l'abonnement → on se désabonne immédiatement, sinon le
+        // listener `live-data` fuite à chaque aller-retour sur la page.
+        if (cancelled) fn();
+        else unlisten = fn;
+
         await liveApi.startPolling();
+        polling = true;
+        if (cancelled) {
+          polling = false;
+          liveApi.stopPolling().catch(() => {});
+        }
       } catch {
         /* hors Tauri */
       } finally {
@@ -827,7 +842,7 @@ export function Live() {
     return () => {
       cancelled = true;
       if (unlisten) unlisten();
-      liveApi.stopPolling().catch(() => {});
+      if (polling) liveApi.stopPolling().catch(() => {});
     };
   }, []);
 

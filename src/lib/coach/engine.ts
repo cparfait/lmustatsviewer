@@ -41,14 +41,32 @@ const GAP_MIN_S = 2.0;
 const BRAKE_RELEASE_PCT = 8;
 /** Vitesse (km/h) sous laquelle on suspecte un tête-à-queue. */
 const SPIN_KMH = 30;
-/** Proxy blocage : frein ≥ ce seuil (%) avec décélération anormalement faible. */
-const LOCKUP_BRAKE_PCT = 70;
-/** Proxy blocage : |gLong| (g) sous lequel le freinage fort ne « mord » plus. */
-const LOCKUP_DECEL_G = 0.6;
-/** Proxy patinage : plein gaz ≥ ce seuil (%) avec accélération quasi nulle. */
-const WHEELSPIN_THROTTLE_PCT = 85;
-/** Proxy patinage : gLong (g) sous lequel le plein gaz ne pousse pas. */
-const WHEELSPIN_ACCEL_G = 0.12;
+// ── Blocage / patinage : mesurés sur le **glissement réel** des roues ─────────
+//
+// Ces deux verdicts reposaient sur des proxys d'accélération longitudinale :
+// « frein fort + faible décélération » et « plein gaz + faible accélération ».
+// Le second se déclenchait dans toute situation où l'on est à fond sans
+// accélérer beaucoup, c'est-à-dire en virage rapide et à chaque passage de
+// rapport — du patinage annoncé en permanence à un pilote qui n'en fait pas.
+// Le premier, à l'inverse, exigeait une décélération si faible qu'il ne
+// détectait presque rien (une roue bloquée décélère encore fort).
+//
+// On utilise désormais `slip_ratio`, calculé côté Rust depuis les vitesses de
+// patch et de sol de chaque roue. Si le canal est indisponible il vaut 0, donc
+// le coach se tait — un silence vaut mieux qu'un diagnostic faux.
+
+/** Appui frein minimal (%) pour envisager un blocage (on bloque aussi léger, à froid). */
+const LOCKUP_BRAKE_PCT = 20;
+/** Glissement (fraction) sous lequel la roue est considérée bloquée. */
+const LOCKUP_SLIP = -0.2;
+/** Vitesse minimale (km/h) — sous ce seuil, le glissement est du bruit de stand. */
+const LOCKUP_MIN_KMH = 40;
+/** Gaz minimal (%) pour envisager du patinage. */
+const WHEELSPIN_THROTTLE_PCT = 60;
+/** Glissement (fraction) au-delà duquel la roue motrice patine. */
+const WHEELSPIN_SLIP = 0.15;
+/** Vitesse minimale (km/h) — évite les faux positifs à l'arrêt / au départ. */
+const WHEELSPIN_MIN_KMH = 30;
 
 /** Tampon de contexte parallèle au tampon 8 canaux (inhibiteurs §6, non persisté). */
 interface CtxBuffer {
@@ -62,6 +80,10 @@ interface CtxBuffer {
   yellow: number[]; // 0/1
   tcMap: number[];
   absMap: number[];
+  /** Glissement le plus négatif des 4 roues (blocage). */
+  slipMin: number[];
+  /** Glissement le plus positif des 4 roues (patinage). */
+  slipMax: number[];
 }
 
 function emptyCtx(): CtxBuffer {
@@ -76,6 +98,8 @@ function emptyCtx(): CtxBuffer {
     yellow: [],
     tcMap: [],
     absMap: [],
+    slipMin: [],
+    slipMax: [],
   };
 }
 
@@ -141,9 +165,9 @@ export interface CornerMeasurement {
   fullThrottleDist: number;
   /** Distance de relâché du frein (dernier appui avant l'apex), m — trail-braking. */
   brakeReleaseDist: number;
-  /** Proxy de blocage au freinage (frein fort + décélération faible), sans slip exporté. */
+  /** Blocage au freinage : une roue glisse nettement moins vite que le sol. */
   lockupProxy: boolean;
-  /** Proxy de patinage en sortie (plein gaz + accélération faible). */
+  /** Patinage en sortie : une roue motrice tourne nettement plus vite que le sol. */
   wheelspinProxy: boolean;
   /** Δt sur la fenêtre vs réf (s, + = plus lent) ; `null` sans réf temps. */
   dtVsRef: number | null;
@@ -261,6 +285,25 @@ export function setCoachRef(state: CoachEngineState, ref: CoachRef | null): void
   state.nextWin = firstWindowAtOrAfter(state.windows, state.lastDist);
 }
 
+/**
+ * Réinitialise le suivi de **session** sans toucher au combo : tour courant
+ * abandonné, compteur de tours réaligné, calibration remise à zéro. La réf
+ * dense, les fenêtres et les apex connus (propriétés du combo) sont conservés.
+ *
+ * À appeler quand le jeu repart d'une nouvelle session sur le même combo :
+ * essais → qualif → course, ou redémarrage de session. Le compteur `total_laps`
+ * du jeu repart alors à 0 : sans ce reset, le moteur (qui ne clôture un tour que
+ * sur `lapNum` **croissant**) n'émettait plus jamais de `lap-completed` — donc
+ * plus de capture de référence, plus de calibration, et tous les compteurs
+ * exprimés en tours devenaient négatifs (le coach se taisait pour de bon).
+ */
+export function resetCoachSession(state: CoachEngineState, frame: CoachFrame): void {
+  state.lapNum = frame.lapNum;
+  state.lastDist = 0;
+  state.validLaps = 0;
+  resetLap(state, frame.inPits);
+}
+
 /** Indice de la première fenêtre dont la sortie est ≥ `d`. */
 function firstWindowAtOrAfter(windows: CoachWindow[], d: number): number {
   let i = 0;
@@ -362,16 +405,16 @@ function measureWindow(
     apexIdx,
     (k) =>
       buf.brake[k] >= LOCKUP_BRAKE_PCT &&
-      Math.abs(buf.gLong[k]) < LOCKUP_DECEL_G &&
-      buf.speed[k] > 60,
+      (state.ctx.slipMin[k] ?? 0) <= LOCKUP_SLIP &&
+      buf.speed[k] > LOCKUP_MIN_KMH,
   );
   const wheelspinProxy = sustained(
     apexIdx,
     i1,
     (k) =>
       buf.throttle[k] >= WHEELSPIN_THROTTLE_PCT &&
-      buf.gLong[k] < WHEELSPIN_ACCEL_G &&
-      buf.speed[k] > 40,
+      (state.ctx.slipMax[k] ?? 0) >= WHEELSPIN_SLIP &&
+      buf.speed[k] > WHEELSPIN_MIN_KMH,
   );
 
   // ── Cibles de réf projetées dans la fenêtre ──
@@ -565,6 +608,14 @@ export function stepCoach(
     finalizeLap(state, state.lapNum, frame.lastLapTime, events);
     state.lapNum = frame.lapNum;
     resetLap(state, frame.inPits);
+  } else if (frame.lapNum < state.lapNum) {
+    // Le compteur de tours du jeu a RECULÉ : nouvelle session sur le même combo
+    // (essais → qualif → course) ou redémarrage. Le tour courant est caduc et ne
+    // doit pas être clôturé ; on réaligne le moteur sur le nouveau compteur.
+    // Sans cette branche, `lapNum` restait figé au maximum atteint et plus aucun
+    // tour n'était jamais clôturé pour le reste de la partie.
+    resetCoachSession(state, frame);
+    events.push({ type: "lap-reset" });
   } else if (state.lastDist > 0 && d + 5 < state.lastDist) {
     // Recul de distance franc (pit/téléport/reset session) → tour avorté.
     resetLap(state, frame.inPits);
@@ -604,6 +655,8 @@ export function stepCoach(
     c.yellow.push(frame.yellow ? 1 : 0);
     c.tcMap.push(frame.tcMap);
     c.absMap.push(frame.absMap);
+    c.slipMin.push(frame.slipMin);
+    c.slipMax.push(frame.slipMax);
   }
 
   // ── Clôture des fenêtres franchies (sortie ≤ distance courante) ──

@@ -466,6 +466,16 @@ pub struct LiveWheel {
     /// vitesse sol donne le glissement long. (blocage/patinage réels — les
     /// champs `tc_*`/`abs` d'Extended ne sont que des réglages de map).
     pub long_patch_vel: f32,
+    /// **Glissement longitudinal** (fraction, borné ±1) : `(patch − sol) / sol`.
+    ///
+    /// `> 0` = la roue tourne plus vite que le sol (**patinage**) ;
+    /// `< 0` = elle tourne moins vite (**blocage**) ; `~0` = roulement propre.
+    /// Diviser par la vitesse sol **signée** rend le résultat indépendant de la
+    /// convention de signe de rF2. `0` sous 1 m/s (à l'arrêt, le rapport n'a pas
+    /// de sens). C'est la mesure que le coach utilise pour ses verdicts
+    /// blocage/patinage, à la place des anciens proxys basés sur l'accélération
+    /// longitudinale, qui confondaient un virage rapide avec du patinage.
+    pub slip_ratio: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1072,6 +1082,16 @@ fn extract(state: &mut PollState) -> LiveData {
                 rotation: w.m_rotation as f32,
                 lat_patch_vel: w.m_lateral_patch_vel as f32,
                 long_patch_vel: w.m_longitudinal_patch_vel as f32,
+                slip_ratio: {
+                    let ground = w.m_longitudinal_ground_vel;
+                    let patch = w.m_longitudinal_patch_vel;
+                    // Sous 1 m/s le rapport explose et n'a aucun sens physique.
+                    if ground.abs() > 1.0 {
+                        (((patch - ground) / ground) as f32).clamp(-1.0, 1.0)
+                    } else {
+                        0.0
+                    }
+                },
             }
         });
 
@@ -1470,13 +1490,46 @@ fn extract(state: &mut PollState) -> LiveData {
 // ═══════════════════════════════════════════════════════════════════════════
 
 static LIVE_POLLING: AtomicBool = AtomicBool::new(false);
-// Nombre de fenêtres qui consomment le flux `live-data` (page Live + fenêtre
-// overlay). Le thread de polling est un singleton partagé par toutes les
-// fenêtres : il ne doit s'arrêter que lorsque PLUS AUCUNE fenêtre ne l'utilise.
-// Auparavant `stop_live_polling` coupait le thread pour tout le monde dès que la
-// page Live était démontée → l'overlay in-game se figeait le reste de la course.
-static LIVE_CONSUMERS: AtomicUsize = AtomicUsize::new(0);
+// Consommateurs du flux `live-data`, comptés **par fenêtre** (`main` pour la page
+// Live, `overlay` pour la fenêtre transparente). Le thread de polling est un
+// singleton partagé : il ne doit s'arrêter que lorsque PLUS AUCUNE fenêtre ne
+// l'utilise (sinon l'overlay in-game se figeait dès qu'on quittait la page Live).
+//
+// Pourquoi une map par fenêtre et non un simple compteur : la fenêtre overlay est
+// **détruite** sans que le nettoyage React ait lieu, donc son `stop_live_polling`
+// n'arrivait jamais — le thread continuait d'émettre à 20 Hz vers toutes les
+// fenêtres pour le reste de la session (CPU + sérialisation inutiles pendant la
+// course), et chaque réouverture ajoutait un consommateur fantôme de plus.
+// `release_window(label)`, appelé sur `WindowEvent::Destroyed`, purge d'un coup
+// toutes les souscriptions de la fenêtre morte, quoi qu'ait fait le frontend.
+static LIVE_CONSUMERS: Mutex<Option<HashMap<String, usize>>> = Mutex::new(None);
 static POLL_STATE: Mutex<Option<PollState>> = Mutex::new(None);
+
+/// Génération du thread de polling. Incrémentée à chaque démarrage : un thread
+/// d'une génération périmée s'arrête de lui-même. Évite la course
+/// `stop` → `start` rapide, où l'ancien thread (encore dans son `sleep`)
+/// écrasait le drapeau du nouveau, laissant l'app sans aucun thread actif.
+static LIVE_GEN: AtomicUsize = AtomicUsize::new(0);
+
+/// Nombre total de consommateurs, toutes fenêtres confondues.
+fn live_consumers_total(map: &HashMap<String, usize>) -> usize {
+    map.values().sum()
+}
+
+/// Retire **toutes** les souscriptions d'une fenêtre et arrête le thread s'il
+/// ne reste plus personne. Appelé à la destruction d'une fenêtre (`lib.rs`).
+pub fn release_window(label: &str) {
+    let Ok(mut guard) = LIVE_CONSUMERS.lock() else {
+        return;
+    };
+    let map = guard.get_or_insert_with(HashMap::new);
+    if map.remove(label).is_none() {
+        return;
+    }
+    if live_consumers_total(map) == 0 {
+        LIVE_POLLING.store(false, Ordering::SeqCst);
+    }
+}
 
 #[tauri::command]
 pub fn get_live_data() -> Result<LiveData, AppError> {
@@ -1495,13 +1548,20 @@ pub fn is_sim_running() -> Result<bool, AppError> {
 }
 
 #[tauri::command]
-pub fn start_live_polling(app: AppHandle) -> Result<(), AppError> {
-    // Un consommateur de plus (Live ou overlay). Le thread ne démarre que s'il
+pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), AppError> {
+    // Un consommateur de plus pour CETTE fenêtre. Le thread ne démarre que s'il
     // n'était pas déjà actif.
-    LIVE_CONSUMERS.fetch_add(1, Ordering::SeqCst);
+    {
+        let mut guard = LIVE_CONSUMERS
+            .lock()
+            .map_err(|e| AppError::Internal(format!("live consumers lock: {e}")))?;
+        let map = guard.get_or_insert_with(HashMap::new);
+        *map.entry(window.label().to_string()).or_insert(0) += 1;
+    }
     if LIVE_POLLING.swap(true, Ordering::SeqCst) {
         return Ok(());
     }
+    let generation = LIVE_GEN.fetch_add(1, Ordering::SeqCst) + 1;
     // Dossier de persistance des tracés de circuit.
     let tracks_dir = app
         .path()
@@ -1514,27 +1574,42 @@ pub fn start_live_polling(app: AppHandle) -> Result<(), AppError> {
     std::thread::spawn(move || {
         let mut state = PollState::new();
         state.tracks_dir = tracks_dir;
-        while LIVE_POLLING.load(Ordering::SeqCst) {
+        // Le thread s'arrête si on lui demande (`LIVE_POLLING`) **ou** si une
+        // génération plus récente a pris le relais (redémarrage rapide).
+        while LIVE_POLLING.load(Ordering::SeqCst)
+            && LIVE_GEN.load(Ordering::SeqCst) == generation
+        {
             let data = extract(&mut state);
             if app.emit("live-data", &data).is_err() {
+                // Plus personne à qui émettre : on ne coupe le drapeau que si
+                // aucune génération plus récente n'a démarré entre-temps.
+                if LIVE_GEN.load(Ordering::SeqCst) == generation {
+                    LIVE_POLLING.store(false, Ordering::SeqCst);
+                }
                 break;
             }
             let delay = if data.connected { 50 } else { 600 };
             std::thread::sleep(Duration::from_millis(delay));
         }
-        LIVE_POLLING.store(false, Ordering::SeqCst);
     });
     Ok(())
 }
 
 #[tauri::command]
-pub fn stop_live_polling() -> Result<(), AppError> {
-    // Un consommateur de moins. On n'arrête réellement le thread que quand le
-    // compteur retombe à 0 (plus aucune fenêtre n'écoute `live-data`).
-    let prev = LIVE_CONSUMERS
-        .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| Some(n.saturating_sub(1)))
-        .unwrap_or(0);
-    if prev <= 1 {
+pub fn stop_live_polling(window: tauri::Window) -> Result<(), AppError> {
+    // Un consommateur de moins pour cette fenêtre. On n'arrête réellement le
+    // thread que quand plus AUCUNE fenêtre n'écoute `live-data`.
+    let mut guard = LIVE_CONSUMERS
+        .lock()
+        .map_err(|e| AppError::Internal(format!("live consumers lock: {e}")))?;
+    let map = guard.get_or_insert_with(HashMap::new);
+    if let Some(n) = map.get_mut(window.label()) {
+        *n = n.saturating_sub(1);
+        if *n == 0 {
+            map.remove(window.label());
+        }
+    }
+    if live_consumers_total(map) == 0 {
         LIVE_POLLING.store(false, Ordering::SeqCst);
     }
     Ok(())

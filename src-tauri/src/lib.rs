@@ -188,6 +188,7 @@ pub fn run() {
             commands::coach::coach_phrasebank_load,
             commands::coach::coach_phrasebank_save,
             commands::coach::coach_phrasebank_clear,
+            commands::coach::coach_save_corpus,
             commands::motec::coach_parse_ld,
             commands::ai::coach_note_add,
             commands::ai::coach_notes_for_combo,
@@ -242,6 +243,14 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            // Fenêtre détruite → on libère ses souscriptions au flux `live-data`.
+            // Indispensable pour la fenêtre `overlay` : elle est détruite sans
+            // que le nettoyage React ait lieu, donc son `stop_live_polling`
+            // n'arrivait jamais et le thread de polling continuait d'émettre à
+            // 20 Hz vers toutes les fenêtres pour le reste de la session.
+            if let WindowEvent::Destroyed = event {
+                commands::live::release_window(window.label());
+            }
             // Fermeture de la fenêtre principale → réduction dans le tray
             // si la préférence `system_tray` est active (défaut : oui).
             if let WindowEvent::CloseRequested { api, .. } = event {

@@ -206,6 +206,44 @@ fn build_client() -> Result<reqwest::Client, AppError> {
         .map_err(|e| AppError::Internal(format!("client HTTP IA: {e}")))
 }
 
+/// Client dédié au **streaming**.
+///
+/// Un `timeout` global s'applique à la requête ET à la lecture du corps. Sur un
+/// flux, cela veut dire « la réponse complète doit tenir en 60 s » : une analyse
+/// détaillée sur un modèle de raisonnement était donc coupée en plein milieu,
+/// et l'utilisateur voyait une erreur réseau après avoir lu 80 % du texte.
+/// On borne ici ce qui doit l'être — l'établissement de la connexion et le
+/// **silence** entre deux paquets — sans jamais limiter la durée totale.
+fn build_stream_client() -> Result<reqwest::Client, AppError> {
+    reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(15))
+        // Délai d'inactivité : un flux vivant réarme ce compteur à chaque paquet.
+        .read_timeout(std::time::Duration::from_secs(90))
+        .build()
+        .map_err(|e| AppError::Internal(format!("client HTTP IA: {e}")))
+}
+
+/// Message d'erreur réseau **sans l'URL**.
+///
+/// `reqwest` inclut l'URL complète dans l'affichage de ses erreurs. Comme la clé
+/// d'API de Google voyage en paramètre d'URL, un simple `{e}` la recopiait dans
+/// un message affiché à l'écran — donc dans la moindre capture d'écran envoyée
+/// pour signaler un bug.
+fn net_err(context: &str, e: reqwest::Error) -> AppError {
+    AppError::Internal(format!("{context}: {}", e.without_url()))
+}
+
+/// Tronque un corps d'erreur : certains fournisseurs renvoient une page HTML
+/// entière sur un 502, illisible dans une bulle d'erreur.
+fn truncate_body(text: &str) -> String {
+    const MAX: usize = 500;
+    if text.chars().count() <= MAX {
+        return text.to_string();
+    }
+    let cut: String = text.chars().take(MAX).collect();
+    format!("{cut}…")
+}
+
 fn header_map(headers: Vec<(String, String)>) -> Result<reqwest::header::HeaderMap, AppError> {
     use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
     let mut map = HeaderMap::new();
@@ -226,12 +264,20 @@ async fn read_json(resp: reqwest::Response) -> Result<serde_json::Value, AppErro
     let text = resp
         .text()
         .await
-        .map_err(|e| AppError::Internal(format!("lecture réponse IA: {e}")))?;
+        .map_err(|e| net_err("lecture réponse IA", e))?;
     if !status.is_success() {
-        return Err(AppError::Internal(format!("HTTP {}: {text}", status.as_u16())));
+        return Err(AppError::Internal(format!(
+            "HTTP {}: {}",
+            status.as_u16(),
+            truncate_body(&text)
+        )));
     }
-    serde_json::from_str(&text)
-        .map_err(|e| AppError::Parse(format!("JSON réponse IA invalide: {e} — corps: {text}")))
+    serde_json::from_str(&text).map_err(|e| {
+        AppError::Parse(format!(
+            "JSON réponse IA invalide: {e} — corps: {}",
+            truncate_body(&text)
+        ))
+    })
 }
 
 /// Appel chat (POST JSON) vers un fournisseur d'IA. Non-streaming (Phase 1) ;
@@ -248,7 +294,7 @@ pub async fn ai_chat(
         .json(&body)
         .send()
         .await
-        .map_err(|e| AppError::Internal(format!("requête chat IA: {e}")))?;
+        .map_err(|e| net_err("requête chat IA", e))?;
     read_json(resp).await
 }
 
@@ -267,38 +313,56 @@ pub async fn ai_chat_stream(
     use futures_util::StreamExt;
     use tauri::Emitter;
 
-    let resp = build_client()?
+    let resp = build_stream_client()?
         .post(&url)
         .headers(header_map(headers)?)
         .json(&body)
         .send()
         .await
-        .map_err(|e| AppError::Internal(format!("requête stream IA: {e}")))?;
+        .map_err(|e| net_err("requête stream IA", e))?;
 
     let status = resp.status();
     if !status.is_success() {
         let text = resp.text().await.unwrap_or_default();
-        return Err(AppError::Internal(format!("HTTP {}: {text}", status.as_u16())));
+        return Err(AppError::Internal(format!(
+            "HTTP {}: {}",
+            status.as_u16(),
+            truncate_body(&text)
+        )));
     }
 
     let event = format!("ai-stream-{stream_id}");
     let mut stream = resp.bytes_stream();
-    let mut buf = String::new();
+    // Tampon d'**octets** et non de texte : un chunk réseau coupe régulièrement
+    // un caractère multi-octets en deux (é, à, °, →, · sont sur 2 ou 3 octets).
+    // Décoder chaque chunk isolément remplaçait alors le caractère par « � » au
+    // milieu d'une réponse française. On ne décode donc qu'une **ligne
+    // complète**, dont les frontières tombent forcément sur un caractère entier.
+    let mut buf: Vec<u8> = Vec::new();
     while let Some(chunk) = stream.next().await {
-        let bytes = chunk.map_err(|e| AppError::Internal(format!("lecture flux IA: {e}")))?;
-        buf.push_str(&String::from_utf8_lossy(&bytes));
+        let bytes = match chunk {
+            Ok(b) => b,
+            Err(e) => {
+                // Coupure en cours de flux : les lignes déjà émises restent
+                // valides côté frontend, qui conserve la réponse partielle.
+                return Err(net_err("lecture flux IA", e));
+            }
+        };
+        buf.extend_from_slice(&bytes);
         // Émet ligne par ligne (SSE et NDJSON sont tous deux délimités par '\n').
-        while let Some(pos) = buf.find('\n') {
-            let line: String = buf.drain(..=pos).collect();
-            let line = line.trim_end_matches(['\r', '\n']).to_string();
+        while let Some(pos) = buf.iter().position(|&b| b == b'\n') {
+            let line_bytes: Vec<u8> = buf.drain(..=pos).collect();
+            let line = String::from_utf8_lossy(&line_bytes);
+            let line = line.trim_end_matches(['\r', '\n']);
             if !line.is_empty() {
-                app.emit(&event, line)
+                app.emit(&event, line.to_string())
                     .map_err(|e| AppError::Internal(format!("emit flux IA: {e}")))?;
             }
         }
     }
     // Reste éventuel sans '\n' final.
-    let tail = buf.trim();
+    let tail = String::from_utf8_lossy(&buf);
+    let tail = tail.trim();
     if !tail.is_empty() {
         let _ = app.emit(&event, tail.to_string());
     }
@@ -415,6 +479,6 @@ pub async fn ai_list_models(
         .headers(header_map(headers)?)
         .send()
         .await
-        .map_err(|e| AppError::Internal(format!("requête list-models IA: {e}")))?;
+        .map_err(|e| net_err("requête list-models IA", e))?;
     read_json(resp).await
 }

@@ -13,6 +13,9 @@ const BASE = "http://localhost:11434";
 
 interface OllamaChatResponse {
   message?: { content?: string };
+  done?: boolean;
+  done_reason?: string;
+  error?: string;
 }
 interface OllamaTag {
   name?: string;
@@ -51,7 +54,14 @@ export const ollamaProvider: AIProvider = {
     // NDJSON : chaque ligne est un objet complet { message: { content }, done }.
     try {
       const c = JSON.parse(line) as OllamaChatResponse;
-      return c.message?.content ?? null;
+      if (c.error) return { kind: "error", message: c.error };
+      const text = c.message?.content;
+      if (text) return { kind: "text", text };
+      // `done_reason: "length"` = budget de sortie épuisé, réponse tronquée.
+      if (c.done && c.done_reason && c.done_reason !== "stop") {
+        return { kind: "stop", reason: c.done_reason };
+      }
+      return null;
     } catch {
       return null;
     }

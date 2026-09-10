@@ -225,6 +225,8 @@ export default {
     errRate: "Limite d'appels atteinte — réessaie dans un instant.",
     errServer: "Erreur serveur du fournisseur (HTTP {{code}}).",
     errNetwork: "Fournisseur injoignable (réseau / service local arrêté ?).",
+    warnTruncated:
+      "Réponse incomplète : le fournisseur l'a interrompue. Le texte ci-dessus s'arrête donc en cours de route.",
     pin: "Garder comme objectif",
     pinTip:
       "Enregistre cette réponse pour ce circuit + voiture : le coach vérifiera ta progression à la prochaine session.",
@@ -1276,6 +1278,14 @@ export default {
     ghostNoCombo: "Aucun combo actif : lance une session (page Live) d'abord.",
     ghostImportOk: "Ghost importé : {{corners}} virages, tour {{time}} s.",
     ghostImportErr: "Import du ghost échoué (fichier illisible ?).",
+    coachRecord: "Enregistrer une session (diagnostic)",
+    coachRecordDesc: "Capture ta session dans un fichier rejouable, utile pour signaler un comportement anormal du coach.",
+    coachRecordTip: "Outil de diagnostic. Enregistre chaque instant de pilotage (vitesse, freins, gaz, volant, glissement des roues, position sur le tour) dans un fichier texte que le développeur peut rejouer à l'identique pour reproduire un problème. Ne modifie rien au comportement du coach. Nécessite la page Live ouverte (ou un overlay actif). Le fichier contient le nom des pilotes présents en session — à anonymiser avant de le partager.",
+    coachRecordStart: "Enregistrer",
+    coachRecordStop: "Arrêter",
+    coachRecordRunning: "Enregistrement en cours — {{n}} instants capturés.",
+    coachRecordSaved: "Session enregistrée : {{path}}",
+    coachRecordEmpty: "Rien à enregistrer : aucune donnée reçue du jeu.",
     coachPhrasebank: "Phrases variées (via IA)",
     coachPhrasebankDesc: "Reformule les conseils du coach avec l'IA (voix moins robotique). Généré une fois par circuit ; les chiffres restent exacts.",
     coachPhrasebankTip: "Un seul appel à l'IA par combo circuit×voiture pré-génère des variantes de formulation ; en roulage, les chiffres (mètres, km/h) sont remplis par l'app, jamais par l'IA — donc aucune latence ni coût par virage, et ça marche hors-ligne ensuite. Nécessite un Coach IA configuré.",

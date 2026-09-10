@@ -9,6 +9,8 @@
 
 import { section, ok, eq } from "../assert";
 import { createDiagState, diagnoseCorner } from "../../diagnostics";
+import { isCalmWindow } from "../../voice";
+import type { CoachWindow } from "../../windows";
 import { synthMeasurement, synthSession, noiseSpeed, duplicateFrames, shiftByOne } from "../synth";
 import { replayEngine, refFromLapFrames } from "../replay";
 import { serializeFramesJsonl, parseFramesJsonl } from "../record";
@@ -111,5 +113,59 @@ export function run(): void {
     const b = replayEngine(parsed).laps.filter((l) => l.corners.length >= 2).length;
     eq(a, b, "rejeu identique après sérialisation JSONL");
     eq(parseFramesJsonl("").length, 0, "corpus vide → 0 frame");
+  }
+
+  // ── Fenêtre de délivrance (§1.1) : ne jamais parler dans un freinage ──
+  section("voice.calmWindow");
+  {
+    // Circuit fictif de 1000 m, deux virages : freinage à 300 m et à 700 m.
+    const win = (brakeDist: number, n: number): CoachWindow => ({
+      corner_uid: `c${brakeDist}`,
+      n,
+      startDist: brakeDist - 150,
+      endDist: brakeDist + 100,
+      brakeDist,
+      apexDist: brakeDist + 50,
+      exitDist: brakeDist + 100,
+      refVmin: 100,
+      refVentry: 250,
+      refVexit: 150,
+      refFullThrottleDist: brakeDist + 100,
+    });
+    const windows = [win(300, 1), win(700, 2)];
+    const LAP_M = 1000;
+    // 180 km/h = 50 m/s. Fenêtre requise : 2,2 + 1,5 = 3,7 s, soit 185 m.
+    const at = (dist: number, throttle = 100) => ({
+      throttle,
+      speed: 180,
+      dist,
+      elapsed: 0,
+    });
+
+    ok(!isCalmWindow(at(150), windows, 0, LAP_M), "50 m avant le freinage → pas calme");
+    ok(isCalmWindow(at(100), windows, 0, LAP_M), "200 m avant le freinage → calme");
+    ok(!isCalmWindow(at(100, 40), windows, 0, LAP_M), "gaz partiel → pas calme");
+
+    // Le cas corrigé : après la dernière fenêtre du tour, le prochain freinage
+    // est le **virage 1 du tour suivant**. Circuit avec un premier virage proche
+    // de la ligne (La Source à Spa, Turn 1 à Sebring) : freinage à 120 m.
+    // Sans bouclage, la ligne droite finale était « calme à l'infini » et un
+    // conseil démarré juste avant la ligne finissait dans ce freinage.
+    const tight = [win(120, 1), win(600, 2)];
+    ok(
+      !isCalmWindow(at(950), tight, tight.length, LAP_M),
+      "fin de tour, virage 1 à 170 m → pas calme (bouclage)",
+    );
+    ok(
+      isCalmWindow(at(800), tight, tight.length, LAP_M),
+      "fin de tour, virage 1 à 320 m → calme",
+    );
+    // Sans longueur de tour connue, on retombe sur l'ancien comportement.
+    ok(
+      isCalmWindow(at(950), tight, tight.length, 0),
+      "longueur de tour inconnue → pas de contrainte",
+    );
+    // Mode Découverte : aucune fenêtre → aucune contrainte de freinage.
+    ok(isCalmWindow(at(950), [], 0, LAP_M), "sans fenêtre → calme si gaz au plancher");
   }
 }

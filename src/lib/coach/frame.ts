@@ -71,10 +71,42 @@ export interface CoachFrame {
   antiStall: boolean;
   /** Magnitude du dernier impact — au-delà d'un seuil, taint (§6). */
   impact: number;
+
+  /**
+   * Glissement longitudinal **le plus négatif** des 4 roues (fraction). Une roue
+   * qui tourne nettement moins vite que le sol **bloque**. `0` si indisponible.
+   */
+  slipMin: number;
+  /**
+   * Glissement longitudinal **le plus positif** des 4 roues (fraction). Une roue
+   * qui tourne nettement plus vite que le sol **patine**. `0` si indisponible.
+   */
+  slipMax: number;
 }
 
 /** Seuil de carcasse (°C) sous lequel les pneus sont jugés hors fenêtre (out-lap froid). */
 const TIRE_MIN_C = 60;
+
+/** Valeur d'écart signifiant « aucune voiture » (s) — piste libre. */
+export const NO_CAR_GAP_S = 999;
+
+/**
+ * Normalise un écart (`gap_ahead` / `gap_behind`) en secondes.
+ *
+ * ⚠️ Le backend renvoie **0** dans deux cas très différents : « personne devant /
+ * derrière » (piste libre, tête de course, dernier) et « `LMU_Data` illisible »
+ * (jeu non lancé avec l'interface, patch du jeu, `unwrap_or(0.0)` de `live.rs`).
+ * Lu tel quel, ce 0 signifiait « 0 seconde d'écart » pour le coach :
+ *  - l'éligibilité d'un tour de référence exige `gap > 2 s` (§3.2) → en essais
+ *    libres **seul en piste**, aucun tour n'était jamais retenu comme référence,
+ *    donc le coach restait muet à vie (mode Découverte, sans explication) ;
+ *  - l'inhibiteur « trafic » (`< 1,5 s`) mutait tous les virages.
+ * On traite donc tout écart `≤ 0` comme *piste libre*. Le seul coût est de ne
+ * plus muter un virage où l'on serait exactement roue contre roue à 0,000 s.
+ */
+function gapOrFree(raw: number | undefined | null): number {
+  return raw != null && raw > 0 ? raw : NO_CAR_GAP_S;
+}
 
 /**
  * Extrait une `CoachFrame` d'un instantané `LiveData`, ou `null` si la trame est
@@ -100,6 +132,12 @@ export function frameFromLive(data: LiveData | null): CoachFrame | null {
   const tiresReady =
     tel.wheels.length === 4 && tel.wheels.every((w) => w.temp >= TIRE_MIN_C);
   const wheelFlat = tel.wheels.some((w) => w.flat || w.detached);
+  // Glissement réel des roues (§5) : extrêmes sur les 4 roues. Le maximum
+  // positif capte la roue motrice qui patine (sans avoir à savoir quel essieu
+  // est moteur, ce qui varie avec l'hybride) ; le minimum capte le blocage.
+  const slips = tel.wheels.map((w) => w.slip_ratio ?? 0);
+  const slipMin = slips.length ? Math.min(...slips) : 0;
+  const slipMax = slips.length ? Math.max(...slips) : 0;
   const minWear = tel.wheels.length
     ? Math.min(...tel.wheels.map((w) => w.wear))
     : 100;
@@ -132,8 +170,8 @@ export function frameFromLive(data: LiveData | null): CoachFrame | null {
     connected: data.connected,
     paused: data.paused,
     inPits: me?.in_pits ?? false,
-    gapAhead: ext?.gap_ahead ?? 999,
-    gapBehind: ext?.gap_behind ?? 999,
+    gapAhead: gapOrFree(ext?.gap_ahead),
+    gapBehind: gapOrFree(ext?.gap_behind),
     yellow,
     tiresReady,
     trackLimits: ext?.track_limits ?? 0,
@@ -143,5 +181,7 @@ export function frameFromLive(data: LiveData | null): CoachFrame | null {
     absMap: ext?.abs ?? 0,
     antiStall: tel.anti_stall,
     impact: tel.last_impact_magnitude,
+    slipMin,
+    slipMax,
   };
 }

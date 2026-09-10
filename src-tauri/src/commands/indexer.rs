@@ -82,43 +82,63 @@ pub fn purge_empty_sessions(
     let mode = purge_type.as_deref().unwrap_or("global");
     let filter = purge_filter_sql(mode);
 
-    // Dossier des fichiers XML (pour la suppression physique, règle V1).
-    let results_dir = db::config_get(&db, "results_dir")?.unwrap_or_default();
-    let results_dir = PathBuf::from(&results_dir);
-
     let mut conn = get_conn(&db)?;
+
+    // ── GARDE-FOU (mode « player ») ────────────────────────────────────────
+    // Le filtre « player » sélectionne tout fichier SANS session du joueur. Or
+    // `is_player` exige une égalité STRICTE entre `player_name` et le `<Name>`
+    // du XML : pseudo changé en jeu, espace parasite ou config vidée → plus
+    // aucune ligne `is_player = 1` → le filtre retient 100 % des fichiers et la
+    // purge efface tout l'historique de résultats du jeu, définitivement.
+    // On refuse donc de purger tant qu'aucune session du joueur n'est indexée :
+    // dans ce cas le problème est le nom du joueur, pas les fichiers.
+    if mode == "player" {
+        let player_rows: i64 = conn
+            .query_row("SELECT COUNT(*) FROM results WHERE is_player = 1", [], |r| {
+                r.get(0)
+            })
+            .map_err(|e| AppError::Database(format!("purge guard: {e}")))?;
+        if player_rows == 0 {
+            let player_name = db::config_get(&db, "player_name")?.unwrap_or_default();
+            return Err(AppError::Unsupported(format!(
+                "Purge annulée : aucune session n'est reconnue comme la tienne \
+                 (nom de joueur « {} »). Vérifie le nom exact dans Config avant \
+                 de purger — sinon TOUS les fichiers de résultats seraient supprimés.",
+                if player_name.trim().is_empty() {
+                    "(non renseigné)"
+                } else {
+                    player_name.trim()
+                }
+            )));
+        }
+    }
+
     let tx = conn
         .transaction()
         .map_err(|e| AppError::Database(format!("purge tx: {e}")))?;
 
-    // 1. Récupérer la liste des (filename, mtime) à purger.
-    let list_sql = format!("SELECT filename, mtime FROM xml_index WHERE {filter}");
-    let to_purge: Vec<(String, i64)> = {
+    // 1. Récupérer la liste des (filename, file_path, mtime) à purger. On lit le
+    //    `file_path` **stocké à l'indexation** plutôt que de le reconstruire
+    //    depuis `results_dir` : si le dossier a changé en config depuis, on
+    //    effacerait un homonyme du nouveau dossier.
+    let list_sql = format!("SELECT filename, file_path, mtime FROM xml_index WHERE {filter}");
+    let to_purge: Vec<(String, String, i64)> = {
         let mut stmt = tx
             .prepare(&list_sql)
             .map_err(|e| AppError::Database(format!("purge list prepare: {e}")))?;
         let rows = stmt
-            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))
+            .query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, i64>(2)?,
+                ))
+            })
             .map_err(|e| AppError::Database(format!("purge list query: {e}")))?;
         rows.filter_map(|r| r.ok()).collect()
     };
 
-    // 2. Supprimer physiquement les fichiers XML (règle V1 `_scan_empty_sessions`
-    //    avec `unlink`). En cas d'échec (permissions, fichier verrouillé…), on
-    //    laisse l'entrée dans `purged_files` comme filet de sécurité pour éviter
-    //    la réindexation au prochain lancement.
-    let mut files_removed: u32 = 0;
-    for (filename, _) in &to_purge {
-        let path = results_dir.join(filename);
-        if path.is_file() {
-            if std::fs::remove_file(&path).is_ok() {
-                files_removed += 1;
-            }
-        }
-    }
-    let _ = files_removed; // (compteur exposé via log éventuel — non renvoyé)
-
-    // 3. Mémoriser dans `purged_files` (filet de sécurité).
+    // 2. Mémoriser dans `purged_files` (filet de sécurité).
     let now = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
@@ -133,13 +153,13 @@ pub fn purge_empty_sessions(
                     purged_at = excluded.purged_at",
             )
             .map_err(|e| AppError::Database(format!("purge remember prepare: {e}")))?;
-        for (filename, mtime) in &to_purge {
+        for (filename, _, mtime) in &to_purge {
             stmt.execute(params![filename, mtime, now])
                 .map_err(|e| AppError::Database(format!("purge remember: {e}")))?;
         }
     }
 
-    // 4. Supprimer de `xml_index` (cascade vers sessions/results/laps/stream).
+    // 3. Supprimer de `xml_index` (cascade vers sessions/results/laps/stream).
     let delete_sql = format!("DELETE FROM xml_index WHERE {filter}");
     let removed = tx
         .execute(&delete_sql, [])
@@ -147,6 +167,27 @@ pub fn purge_empty_sessions(
     recompute_event_ids(&tx)?;
     tx.commit()
         .map_err(|e| AppError::Database(format!("purge commit: {e}")))?;
+
+    // 4. Supprimer physiquement les fichiers XML (règle V1 `_scan_empty_sessions`
+    //    avec `unlink`) — APRÈS le commit : si la transaction échoue, les
+    //    fichiers du joueur sont toujours là. En cas d'échec de suppression
+    //    (permissions, fichier verrouillé), l'entrée reste dans `purged_files`
+    //    comme filet de sécurité contre la réindexation au prochain lancement.
+    let mut files_removed: u32 = 0;
+    for (_, file_path, _) in &to_purge {
+        let path = PathBuf::from(file_path);
+        if path.is_file() && std::fs::remove_file(&path).is_ok() {
+            files_removed += 1;
+        }
+    }
+    if files_removed != to_purge.len() as u32 {
+        eprintln!(
+            "[purge] {files_removed}/{} fichier(s) supprimé(s) du disque (les autres \
+             étaient absents ou verrouillés)",
+            to_purge.len()
+        );
+    }
+
     Ok(removed as u32)
 }
 

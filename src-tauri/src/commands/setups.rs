@@ -15,6 +15,160 @@ use tauri::State;
 use crate::db::{get_conn, DbState};
 use crate::error::AppError;
 
+// ─── Sûreté des écritures `.svm` ─────────────────────────────────────────────
+//
+// Un `.svm` est un fichier du JOUEUR, souvent le fruit de plusieurs heures de
+// mise au point, et il vit dans le dossier du jeu. Trois règles s'appliquent
+// donc à toute écriture :
+//   1. jamais d'écriture en place (un plantage laisserait un fichier tronqué) ;
+//   2. jamais de chemin construit à partir d'une saisie non validée ;
+//   3. jamais d'écrasement silencieux d'un fichier existant à la création.
+
+/// Caractères interdits dans un nom de fichier/dossier Windows.
+const FORBIDDEN_NAME_CHARS: [char; 9] = ['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
+
+/// Noms de périphériques réservés par Windows (un fichier ainsi nommé est
+/// ininscriptible et peut bloquer l'explorateur).
+const RESERVED_NAMES: [&str; 22] = [
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+    "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+];
+
+/// Valide un **composant** de chemin saisi dans l'interface (nom de setup, nom
+/// de circuit) avant de le joindre à un dossier.
+///
+/// Sans cette validation, `Path::join` acceptait `..\..\Bureau\x` (remontée hors
+/// du dossier Settings) et même un chemin absolu — auquel cas `join` **remplace**
+/// entièrement le chemin de base et le `.svm` était écrit n'importe où sur le
+/// disque. Renvoie le nom nettoyé (espaces de bord retirés).
+fn sanitize_component(raw: &str, what: &str) -> Result<String, AppError> {
+    let name = raw.trim();
+    if name.is_empty() {
+        return Err(AppError::Unsupported(format!("{what} : le nom est vide.")));
+    }
+    if name.len() > 120 {
+        return Err(AppError::Unsupported(format!(
+            "{what} : le nom est trop long (120 caractères maximum)."
+        )));
+    }
+    if name == "." || name == ".." || name.contains("..") {
+        return Err(AppError::Unsupported(format!(
+            "{what} : « {name} » n'est pas un nom valide."
+        )));
+    }
+    if name
+        .chars()
+        .any(|c| FORBIDDEN_NAME_CHARS.contains(&c) || c.is_control())
+    {
+        return Err(AppError::Unsupported(format!(
+            "{what} : caractères interdits. Évite / \\ : * ? \" < > |"
+        )));
+    }
+    // Windows refuse aussi les noms se terminant par un point ou une espace.
+    if name.ends_with('.') || name.ends_with(' ') {
+        return Err(AppError::Unsupported(format!(
+            "{what} : le nom ne peut pas se terminer par un point ou une espace."
+        )));
+    }
+    let stem = name.split('.').next().unwrap_or(name).to_ascii_uppercase();
+    if RESERVED_NAMES.contains(&stem.as_str()) {
+        return Err(AppError::Unsupported(format!(
+            "{what} : « {name} » est un nom réservé par Windows."
+        )));
+    }
+    Ok(name.to_string())
+}
+
+/// Écrit un fichier de façon **atomique**, en conservant une sauvegarde.
+///
+/// Séquence : écriture d'un fichier temporaire voisin → `sync_all` (les octets
+/// sont sur le disque, pas seulement dans le cache) → copie de l'original en
+/// `.bak` → `rename` (opération atomique sur NTFS : le fichier cible est soit
+/// l'ancien, soit le nouveau, jamais un mélange des deux).
+///
+/// Auparavant un simple `fs::write` écrasait le fichier en place : une coupure
+/// de courant, un plantage ou un antivirus au mauvais moment laissait un `.svm`
+/// tronqué que le jeu refusait de charger, sans aucune copie de secours.
+///
+/// `keep_backup` : vrai pour les setups du joueur (on garde un `.bak`), faux
+/// pour un export vers un dossier choisi par l'utilisateur (où un `.bak`
+/// surprise n'aurait rien à faire).
+fn write_svm_atomic(path: &Path, content: &str, keep_backup: bool) -> Result<(), AppError> {
+    use std::io::Write;
+
+    let file_name = path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| AppError::Unsupported("Chemin de setup invalide.".to_string()))?;
+    let tmp = path.with_file_name(format!(".{file_name}.tmp"));
+
+    {
+        let mut f = fs::File::create(&tmp)?;
+        f.write_all(content.as_bytes())?;
+        f.sync_all()?;
+    }
+
+    // Sauvegarde de l'original : dernier filet si l'écriture était une erreur.
+    if keep_backup && path.is_file() {
+        let bak = path.with_file_name(format!("{file_name}.bak"));
+        let _ = fs::copy(path, &bak);
+    }
+
+    if let Err(e) = fs::rename(&tmp, path) {
+        let _ = fs::remove_file(&tmp);
+        return Err(AppError::Io(e));
+    }
+    Ok(())
+}
+
+/// Crée un **nouveau** fichier `.svm` : échoue si le chemin existe déjà.
+///
+/// `create_new` est atomique au niveau du système : impossible d'écraser le
+/// setup d'un homonyme entre le test d'existence et l'écriture. Auparavant une
+/// duplication vers un nom déjà pris détruisait le setup existant sans un mot.
+fn write_svm_new(path: &Path, content: &str) -> Result<(), AppError> {
+    use std::io::Write;
+
+    match fs::OpenOptions::new().write(true).create_new(true).open(path) {
+        Ok(mut f) => {
+            f.write_all(content.as_bytes())?;
+            f.sync_all()?;
+            Ok(())
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            Err(AppError::Unsupported(format!(
+                "Un setup nommé « {} » existe déjà à cet endroit. Choisis un autre nom.",
+                path.file_name().and_then(|s| s.to_str()).unwrap_or("?")
+            )))
+        }
+        Err(e) => Err(AppError::Io(e)),
+    }
+}
+
+/// Relit le `.svm` **sur le disque** et le parse, avec repli sur l'instantané
+/// stocké en base si le fichier a disparu.
+///
+/// `content_json` est une photo prise au dernier scan du dossier. Si le joueur a
+/// modifié son setup **dans le jeu** depuis, repartir de cette photo pour
+/// réécrire le fichier effaçait silencieusement tous les réglages faits en jeu
+/// (il suffisait d'ajouter une note dans l'application pour les perdre). On
+/// repart donc toujours de l'état réel du fichier.
+fn load_svm_from_disk(svm_path: &str, fallback_json: Option<&str>) -> Result<SvmFile, AppError> {
+    let path = Path::new(svm_path);
+    if path.is_file() {
+        if let Ok(raw) = fs::read(path) {
+            let text = String::from_utf8_lossy(&raw);
+            if let Ok(svm) = parse_svm(&text) {
+                return Ok(svm);
+            }
+        }
+    }
+    let json = fallback_json.ok_or_else(|| {
+        AppError::NotFound(format!("Fichier de setup introuvable : {svm_path}"))
+    })?;
+    serde_json::from_str(json).map_err(|e| AppError::Parse(format!("deserialize svm: {e}")))
+}
+
 // ─── Types partagés ──────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -524,11 +678,10 @@ pub fn update_setup(payload: UpdateSetupPayload, db: State<'_, DbState>) -> Resu
         ));
     }
 
-    let content_json = entry.content_json.ok_or_else(|| {
-        AppError::NotFound(format!("Pas de contenu JSON pour le setup {}", payload.id))
-    })?;
-    let mut svm: SvmFile = serde_json::from_str(&content_json)
-        .map_err(|e| AppError::Parse(format!("deserialize svm: {e}")))?;
+    // On repart du fichier RÉEL, pas de l'instantané en base : si le joueur a
+    // retouché ce setup dans le jeu depuis le dernier scan, écrire l'instantané
+    // écraserait ses réglages sans prévenir.
+    let mut svm = load_svm_from_disk(&entry.svm_path, entry.content_json.as_deref())?;
 
     for updated_section in &payload.sections {
         if let Some(sec) = svm.sections.iter_mut().find(|s| s.name == updated_section.name) {
@@ -542,7 +695,7 @@ pub fn update_setup(payload: UpdateSetupPayload, db: State<'_, DbState>) -> Resu
 
     let new_content = write_svm(&svm);
 
-    fs::write(&entry.svm_path, &new_content).map_err(|e| AppError::Io(e))?;
+    write_svm_atomic(Path::new(&entry.svm_path), &new_content, true)?;
 
     let new_json = serde_json::to_string(&svm)
         .map_err(|e| AppError::Internal(format!("serialize svm: {e}")))?;
@@ -569,16 +722,15 @@ pub fn duplicate_setup(
 ) -> Result<SetupEntry, AppError> {
     let entry = get_setup(id, db.clone())?;
 
-    let content_json = entry.content_json.ok_or_else(|| {
-        AppError::NotFound(format!("Pas de contenu JSON pour le setup {}", id))
-    })?;
-    let svm: SvmFile = serde_json::from_str(&content_json)
-        .map_err(|e| AppError::Parse(format!("deserialize svm: {e}")))?;
+    // Duplication = photo fidèle du setup **tel qu'il est sur le disque**.
+    let svm = load_svm_from_disk(&entry.svm_path, entry.content_json.as_deref())?;
 
-    let new_file_name = if new_name.to_lowercase().ends_with(".svm") {
-        new_name
+    // Le nom vient d'une saisie libre : il ne doit pas pouvoir sortir du dossier.
+    let safe_name = sanitize_component(&new_name, "Nom du setup")?;
+    let new_file_name = if safe_name.to_lowercase().ends_with(".svm") {
+        safe_name
     } else {
-        format!("{}.svm", new_name)
+        format!("{}.svm", safe_name)
     };
 
     let svm_dir = Path::new(&entry.svm_path)
@@ -587,7 +739,13 @@ pub fn duplicate_setup(
     let new_svm_path = svm_dir.join(&new_file_name);
 
     let new_content = write_svm(&svm);
-    fs::write(&new_svm_path, &new_content).map_err(|e| AppError::Io(e))?;
+    // `create_new` : on refuse d'écraser un setup existant portant ce nom.
+    write_svm_new(&new_svm_path, &new_content)?;
+
+    // L'instantané en base doit refléter ce qu'on vient réellement d'écrire
+    // (donc le contenu relu du disque), pas l'ancienne photo de la base.
+    let content_json = serde_json::to_string(&svm)
+        .map_err(|e| AppError::Internal(format!("serialize svm: {e}")))?;
 
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
@@ -654,11 +812,11 @@ pub fn set_setup_notes(
 ) -> Result<(), AppError> {
     let entry = get_setup(id, db.clone())?;
 
-    let content_json = entry.content_json.ok_or_else(|| {
-        AppError::NotFound(format!("Pas de contenu JSON pour le setup {}", id))
-    })?;
-    let mut svm: SvmFile = serde_json::from_str(&content_json)
-        .map_err(|e| AppError::Parse(format!("deserialize svm: {e}")))?;
+    // Cette commande écrit délibérément AUSSI dans les `.svm` du jeu (une note
+    // est une annotation légitime). Raison de plus pour repartir du fichier réel :
+    // sinon une simple note réécrivait le setup avec les valeurs du dernier scan
+    // et effaçait les réglages faits en jeu entre-temps.
+    let mut svm = load_svm_from_disk(&entry.svm_path, entry.content_json.as_deref())?;
 
     // Notes vides → on retire le param Notes au lieu de stocker une chaîne
     // vide (cohérent avec l'absence de notes côté affichage).
@@ -675,7 +833,7 @@ pub fn set_setup_notes(
     }
 
     let new_content = write_svm(&svm);
-    fs::write(&entry.svm_path, &new_content).map_err(|e| AppError::Io(e))?;
+    write_svm_atomic(Path::new(&entry.svm_path), &new_content, true)?;
 
     let new_json = serde_json::to_string(&svm)
         .map_err(|e| AppError::Internal(format!("serialize svm: {e}")))?;
@@ -723,8 +881,27 @@ pub fn export_setup(id: i64, dest_path: String, db: State<'_, DbState>) -> Resul
     let svm: SvmFile = serde_json::from_str(&content_json)
         .map_err(|e| AppError::Parse(format!("deserialize svm: {e}")))?;
 
+    // `dest_path` doit être un chemin COMPLET choisi par l'utilisateur via la
+    // boîte de dialogue système. Un chemin relatif était écrit dans le dossier
+    // courant du processus (souvent `C:\Program Files\...`) : l'export semblait
+    // réussir mais le fichier restait introuvable, ou échouait faute de droits.
+    let dest = PathBuf::from(&dest_path);
+    if !dest.is_absolute() {
+        return Err(AppError::Unsupported(
+            "Chemin d'export invalide : choisis un dossier de destination.".to_string(),
+        ));
+    }
+    if let Some(parent) = dest.parent() {
+        if !parent.is_dir() {
+            return Err(AppError::NotFound(format!(
+                "Dossier de destination introuvable : {}",
+                parent.display()
+            )));
+        }
+    }
+
     let content = write_svm(&svm);
-    fs::write(&dest_path, content).map_err(|e| AppError::Io(e))?;
+    write_svm_atomic(&dest, &content, false)?;
 
     Ok(())
 }
@@ -831,19 +1008,36 @@ pub fn create_setup(
     linked_session_id: Option<i64>,
     db: State<'_, DbState>,
 ) -> Result<SetupEntry, AppError> {
-    let file_name = if name.to_lowercase().ends_with(".svm") {
-        name.clone()
+    // `circuit` et `name` sont saisis librement dans l'interface : sans
+    // validation, `Path::join` acceptait une remontée `..\..\` ou un chemin
+    // absolu (qui remplace entièrement le dossier de base) et le `.svm` partait
+    // n'importe où sur le disque.
+    let safe_circuit = sanitize_component(&circuit, "Circuit")?;
+    let safe_name = sanitize_component(&name, "Nom du setup")?;
+
+    let file_name = if safe_name.to_lowercase().ends_with(".svm") {
+        safe_name
     } else {
-        format!("{}.svm", name)
+        format!("{}.svm", safe_name)
     };
 
     let settings_dir = PathBuf::from(&lmu_path)
         .join("UserData")
         .join("player")
         .join("Settings");
-    let circuit_dir = settings_dir.join(&circuit);
+    let circuit_dir = settings_dir.join(&safe_circuit);
 
     fs::create_dir_all(&circuit_dir).map_err(|e| AppError::Io(e))?;
+
+    // Défense en profondeur : après création, on vérifie que le dossier obtenu
+    // est bien SOUS `Settings` (protège d'un lien symbolique ou d'une jonction).
+    if let (Ok(base), Ok(target)) = (settings_dir.canonicalize(), circuit_dir.canonicalize()) {
+        if !target.starts_with(&base) {
+            return Err(AppError::Unsupported(
+                "Chemin de circuit invalide : il sort du dossier Settings du jeu.".to_string(),
+            ));
+        }
+    }
 
     let svm_path = circuit_dir.join(&file_name);
 
@@ -889,7 +1083,8 @@ pub fn create_setup(
     }
 
     let content = write_svm(&svm);
-    fs::write(&svm_path, &content).map_err(|e| AppError::Io(e))?;
+    // `create_new` : créer un setup ne doit jamais écraser un fichier existant.
+    write_svm_new(&svm_path, &content)?;
 
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 

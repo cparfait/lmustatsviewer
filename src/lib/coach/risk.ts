@@ -74,27 +74,45 @@ export function noteCorner(st: RiskState, m: CornerMeasurement): void {
   st.lastCorner = { uid: m.corner_uid, n: m.n };
 }
 
+/** Identité d'un virage pour l'attribution d'une coupure. */
+export interface CornerRef {
+  uid: string;
+  n: number;
+}
+
 /**
  * Enregistre le compteur cumulé de coupures et signale un virage **risqué** (≥ 3
  * coupures accumulées, une fois par virage). Le premier appel ne fait qu'amorcer le
  * compteur (la valeur peut déjà être non nulle). Une baisse du compteur (reset au
  * stand / nouvelle session) est ignorée.
+ *
+ * `driving` : le virage **en cours de négociation** à cet instant, si on s'y
+ * trouve. Il prime sur le dernier virage clôturé. C'est la correction du bug
+ * d'attribution : une fenêtre de virage ne se ferme qu'à sa **sortie**, alors que
+ * la coupure a lieu sur le vibreur juste **avant** cette sortie. La coupure était
+ * donc mise au compte du virage précédent, et le coach reprochait au pilote un
+ * virage qu'il avait bien négocié.
  */
-export function recordTrackLimit(st: RiskState, current: number): RiskAdvisory | null {
+export function recordTrackLimit(
+  st: RiskState,
+  current: number,
+  driving?: CornerRef | null,
+): RiskAdvisory | null {
   if (st.lastTrackLimits < 0) {
     st.lastTrackLimits = current;
     return null;
   }
   const delta = current - st.lastTrackLimits;
   st.lastTrackLimits = current;
-  if (delta <= 0 || !st.lastCorner) return null;
+  const target = driving ?? st.lastCorner;
+  if (delta <= 0 || !target) return null;
 
-  let acc = st.corners.get(st.lastCorner.uid);
+  let acc = st.corners.get(target.uid);
   if (!acc) {
-    acc = { n: st.lastCorner.n, hits: 0, alerted: false };
-    st.corners.set(st.lastCorner.uid, acc);
+    acc = { n: target.n, hits: 0, alerted: false };
+    st.corners.set(target.uid, acc);
   }
-  acc.n = st.lastCorner.n;
+  acc.n = target.n;
   acc.hits += delta;
   if (!acc.alerted && acc.hits >= RISK_HITS) {
     acc.alerted = true;
@@ -103,7 +121,7 @@ export function recordTrackLimit(st: RiskState, current: number): RiskAdvisory |
       suffix: "vRiskLimits",
       vars: { n: acc.n, c: acc.hits },
       corner: acc.n,
-      corner_uid: st.lastCorner.uid,
+      corner_uid: target.uid,
       magnitude: 0,
       unit: "",
     };

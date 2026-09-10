@@ -12,7 +12,9 @@ interface OAChatResponse {
   choices?: { message?: { content?: string } }[];
 }
 interface OAStreamChunk {
-  choices?: { delta?: { content?: string } }[];
+  choices?: { delta?: { content?: string }; finish_reason?: string | null }[];
+  /** Certaines passerelles renvoient une erreur dans un corps HTTP 200. */
+  error?: { message?: string; type?: string };
 }
 interface OAModel {
   id?: string;
@@ -87,7 +89,19 @@ export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
       if (payload === "[DONE]") return null;
       try {
         const c = JSON.parse(payload) as OAStreamChunk;
-        return c.choices?.[0]?.delta?.content ?? null;
+        // Plusieurs passerelles (OpenRouter, DeepSeek…) renvoient un objet
+        // d'erreur DANS un corps HTTP 200 : sans ce test, le flux se terminait
+        // sur une réponse vide et sans aucune explication.
+        if (c.error) {
+          return { kind: "error", message: c.error.message ?? "erreur du fournisseur" };
+        }
+        const choice = c.choices?.[0];
+        const text = choice?.delta?.content;
+        if (text) return { kind: "text", text };
+        // Fin anticipée : plafond de sortie atteint, ou filtrage du fournisseur.
+        const finish = choice?.finish_reason;
+        if (finish && finish !== "stop") return { kind: "stop", reason: finish };
+        return null;
       } catch {
         return null;
       }

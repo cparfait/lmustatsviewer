@@ -64,6 +64,151 @@ export const APP_VERSION: string = __APP_VERSION__;
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.5",
+    date: "2026-09-05",
+    dev: true,
+    localized: true,
+    sections: [
+      {
+        kind: "fixed",
+        items: [
+          {
+            featured: true,
+            text: {
+              en: "Purging empty sessions can no longer wipe your whole history. If the player name in Config did not exactly match the name in the result files (renamed in-game, a stray space, settings reset), the “player” purge treated every file as empty and deleted them all from disk. The purge is now refused, with an explanation, whenever no session is recognised as yours, and files are only deleted once the database change has been safely committed.",
+              fr: "La purge des sessions vides ne peut plus effacer tout votre historique. Si le nom de joueur de la Config ne correspondait pas exactement au nom présent dans les fichiers de résultats (pseudo changé en jeu, espace en trop, configuration réinitialisée), la purge « joueur » considérait tous les fichiers comme vides et les supprimait du disque. La purge est désormais refusée, avec une explication, dès qu'aucune session n'est reconnue comme la vôtre, et les fichiers ne sont supprimés qu'une fois la base mise à jour sans erreur.",
+              es: "La purga de sesiones vacías ya no puede borrar todo tu historial. Si el nombre de jugador de la Configuración no coincidía exactamente con el de los archivos de resultados (alias cambiado en el juego, un espacio de más, configuración reiniciada), la purga «jugador» consideraba vacíos todos los archivos y los borraba del disco. Ahora la purga se rechaza, con una explicación, en cuanto ninguna sesión se reconoce como tuya, y los archivos solo se borran tras guardar los cambios en la base de datos.",
+              de: "Das Bereinigen leerer Sitzungen kann nicht mehr den gesamten Verlauf löschen. Stimmte der Spielername in der Konfiguration nicht exakt mit dem Namen in den Ergebnisdateien überein (im Spiel geändert, ein zusätzliches Leerzeichen, zurückgesetzte Einstellungen), hielt die „Spieler“-Bereinigung alle Dateien für leer und löschte sie von der Festplatte. Die Bereinigung wird jetzt mit einer Erklärung abgelehnt, sobald keine Sitzung als deine erkannt wird, und Dateien werden erst nach erfolgreichem Speichern in der Datenbank entfernt.",
+            },
+          },
+          {
+            featured: true,
+            text: {
+              en: "Your car setups are protected against corruption. Saving a setup or a note now writes to a temporary file first and keeps a .bak copy, so a crash or an antivirus can no longer leave a truncated .svm the game refuses to load. Edits also start from the file on disk instead of the last scan, so changes you made in-game are no longer silently overwritten. Creating or duplicating a setup never overwrites an existing one, and setup names can no longer write outside the game folder.",
+              fr: "Vos setups sont protégés contre la corruption. L'enregistrement d'un setup ou d'une note passe maintenant par un fichier temporaire et conserve une copie .bak : un plantage ou un antivirus ne peut plus laisser un .svm tronqué que le jeu refuse de charger. Les modifications repartent du fichier réel et non du dernier scan, si bien que les réglages faits dans le jeu ne sont plus écrasés en silence. Créer ou dupliquer un setup n'écrase jamais un fichier existant, et un nom de setup ne peut plus écrire hors du dossier du jeu.",
+              es: "Tus setups están protegidos contra la corrupción. Guardar un setup o una nota pasa ahora por un archivo temporal y conserva una copia .bak: un cierre inesperado o un antivirus ya no puede dejar un .svm truncado que el juego rechace. Las ediciones parten del archivo real y no del último escaneo, así que los ajustes hechos en el juego ya no se sobrescriben en silencio. Crear o duplicar un setup nunca sobrescribe uno existente, y un nombre de setup ya no puede escribir fuera de la carpeta del juego.",
+              de: "Deine Setups sind vor Beschädigung geschützt. Ein Setup oder eine Notiz zu speichern läuft jetzt über eine temporäre Datei und behält eine .bak-Kopie: Ein Absturz oder ein Virenscanner kann keine abgeschnittene .svm mehr hinterlassen, die das Spiel nicht lädt. Änderungen gehen von der echten Datei aus statt vom letzten Scan, sodass im Spiel gemachte Einstellungen nicht mehr stillschweigend überschrieben werden. Anlegen oder Duplizieren überschreibt nie ein vorhandenes Setup, und ein Setup-Name kann nicht mehr außerhalb des Spielordners schreiben.",
+            },
+          },
+          {
+            en: "Exporting a setup now asks where to save it. The file used to be written to the application's working folder under the setup name, where it was impossible to find — or failed outright for lack of permissions.",
+            fr: "L'export d'un setup demande maintenant où l'enregistrer. Le fichier était auparavant écrit dans le dossier de travail de l'application sous le nom du setup, où il était introuvable — quand il n'échouait pas faute de droits.",
+            es: "Exportar un setup ahora pregunta dónde guardarlo. Antes el archivo se escribía en la carpeta de trabajo de la aplicación con el nombre del setup, donde era imposible de encontrar, o fallaba por falta de permisos.",
+            de: "Der Setup-Export fragt jetzt nach dem Speicherort. Zuvor wurde die Datei unter dem Setup-Namen in den Arbeitsordner der Anwendung geschrieben, wo sie nicht auffindbar war — oder mangels Rechten scheiterte.",
+          },
+          {
+            featured: true,
+            text: {
+              en: "A long AI analysis is no longer cut off after one minute. The request had a sixty second budget covering the whole answer, so a detailed analysis on a reasoning model was interrupted mid-sentence and everything already received was thrown away, leaving only a network error. The time limit now applies to silence between packets, not to the total length, and any text already received is kept and flagged as incomplete.",
+              fr: "Une longue analyse IA n'est plus coupée au bout d'une minute. La requête disposait de soixante secondes pour l'ensemble de la réponse : une analyse détaillée sur un modèle de raisonnement était donc interrompue en pleine phrase, et tout ce qui était déjà reçu était jeté, ne laissant qu'une erreur réseau. Le délai porte désormais sur le silence entre deux paquets, pas sur la durée totale, et le texte déjà reçu est conservé et signalé comme incomplet.",
+              es: "Un análisis largo de la IA ya no se corta al cabo de un minuto. La petición disponía de sesenta segundos para toda la respuesta: un análisis detallado en un modelo de razonamiento se interrumpía a media frase y todo lo ya recibido se descartaba, dejando solo un error de red. Ahora el límite se aplica al silencio entre paquetes, no a la duración total, y el texto ya recibido se conserva y se marca como incompleto.",
+              de: "Eine lange KI-Analyse wird nicht mehr nach einer Minute abgeschnitten. Die Anfrage hatte sechzig Sekunden für die gesamte Antwort: Eine ausführliche Analyse auf einem Reasoning-Modell wurde mitten im Satz unterbrochen und alles bereits Empfangene verworfen, übrig blieb nur ein Netzwerkfehler. Die Frist gilt jetzt für die Stille zwischen zwei Paketen, nicht für die Gesamtdauer, und bereits empfangener Text bleibt erhalten und wird als unvollständig gekennzeichnet.",
+            },
+          },
+          {
+            en: "Accented characters no longer turn into garbage in AI answers. Network packets regularly split a character in two, and each packet was decoded on its own, so letters like é or à became a replacement symbol in the middle of a sentence. Text is now decoded one complete line at a time.",
+            fr: "Les caractères accentués ne se transforment plus en symboles parasites dans les réponses de l'IA. Les paquets réseau coupent régulièrement un caractère en deux, et chaque paquet était décodé isolément : un é ou un à devenait donc un symbole de remplacement au milieu d'une phrase. Le texte est maintenant décodé ligne complète par ligne complète.",
+            es: "Los caracteres acentuados ya no se convierten en símbolos extraños en las respuestas de la IA. Los paquetes de red cortan a menudo un carácter en dos, y cada paquete se decodificaba por separado: una é o una à se convertía en un símbolo de reemplazo en mitad de una frase. Ahora el texto se decodifica línea completa a línea completa.",
+            de: "Akzentzeichen werden in KI-Antworten nicht mehr zu Störzeichen. Netzwerkpakete zerteilen regelmäßig ein Zeichen, und jedes Paket wurde einzeln dekodiert: Ein é oder à wurde so mitten im Satz zu einem Ersatzzeichen. Text wird jetzt vollständige Zeile für vollständige Zeile dekodiert.",
+          },
+          {
+            en: "Errors reported by the AI provider mid-answer are now shown. An overload, a quota limit or a safety filter could arrive inside the stream while the request itself reported success. The answer simply came back empty or truncated with no explanation at all.",
+            fr: "Les erreurs signalées par le fournisseur d'IA en cours de réponse sont maintenant affichées. Une surcharge, une limite de quota ou un filtre de sécurité pouvaient arriver à l'intérieur du flux alors que la requête elle-même annonçait un succès. La réponse revenait alors vide ou tronquée, sans la moindre explication.",
+            es: "Los errores que el proveedor de IA notifica durante la respuesta ahora se muestran. Una sobrecarga, un límite de cuota o un filtro de seguridad podían llegar dentro del flujo mientras la petición se declaraba correcta. La respuesta volvía vacía o truncada, sin explicación alguna.",
+            de: "Fehler, die der KI-Anbieter mitten in der Antwort meldet, werden jetzt angezeigt. Überlastung, Kontingentgrenze oder ein Sicherheitsfilter konnten im Datenstrom auftreten, während die Anfrage selbst Erfolg meldete. Die Antwort kam dann leer oder abgeschnitten zurück, ganz ohne Erklärung.",
+          },
+          {
+            en: "Claude answers no longer come back empty on short questions. The reasoning tokens count against the output budget, and the voice coach budget was small enough for the model to spend all of it thinking. Worse, the resulting empty answer stayed in the conversation and made every following question fail.",
+            fr: "Les réponses de Claude ne reviennent plus vides sur les questions courtes. Les tokens de raisonnement sont décomptés du budget de sortie, et celui du coach vocal était assez petit pour que le modèle le dépense entièrement à réfléchir. Pire, la réponse vide obtenue restait dans la conversation et faisait échouer toutes les questions suivantes.",
+            es: "Las respuestas de Claude ya no vuelven vacías en preguntas cortas. Los tokens de razonamiento se descuentan del presupuesto de salida, y el del coach de voz era lo bastante pequeño como para que el modelo lo gastara entero pensando. Peor aún, la respuesta vacía se quedaba en la conversación y hacía fallar todas las preguntas siguientes.",
+            de: "Claude-Antworten kommen bei kurzen Fragen nicht mehr leer zurück. Die Reasoning-Tokens werden vom Ausgabebudget abgezogen, und das des Sprach-Coaches war klein genug, dass das Modell es komplett fürs Denken verbrauchte. Schlimmer noch: Die leere Antwort blieb im Gespräch und ließ jede weitere Frage scheitern.",
+          },
+          {
+            en: "Your Google API key can no longer leak into an error message. It travelled as part of the web address, and network errors include that address, so it appeared on screen and in any screenshot sent to report a bug. It is now sent as a private header, and addresses are stripped from error messages.",
+            fr: "Votre clé d'API Google ne peut plus fuiter dans un message d'erreur. Elle voyageait dans l'adresse web, et les erreurs réseau reprennent cette adresse : elle s'affichait donc à l'écran, et dans toute capture envoyée pour signaler un bug. Elle est désormais transmise dans un en-tête privé, et les adresses sont retirées des messages d'erreur.",
+            es: "Tu clave de API de Google ya no puede filtrarse en un mensaje de error. Viajaba dentro de la dirección web, y los errores de red incluyen esa dirección: aparecía en pantalla y en cualquier captura enviada para reportar un fallo. Ahora se envía en una cabecera privada y las direcciones se eliminan de los mensajes de error.",
+            de: "Dein Google-API-Schlüssel kann nicht mehr in eine Fehlermeldung gelangen. Er reiste in der Webadresse mit, und Netzwerkfehler enthalten diese Adresse: Er erschien auf dem Bildschirm und in jedem Screenshot, der zur Fehlermeldung verschickt wurde. Er wird jetzt in einem privaten Header übertragen, und Adressen werden aus Fehlermeldungen entfernt.",
+          },
+          {
+            featured: true,
+            text: {
+              en: "Wheelspin and lockup are now measured, not guessed. Both verdicts used to be inferred from longitudinal acceleration: “full throttle with little acceleration” means wheelspin, which is also the normal state of a Hypercar through a fast corner and on every upshift. The coach now reads the actual slip of each wheel, so it calls wheelspin when a driven wheel really spins, and a lockup when a wheel really stops turning.",
+              fr: "Le patinage et le blocage sont maintenant mesurés, plus devinés. Les deux verdicts étaient déduits de l'accélération longitudinale : « plein gaz avec peu d'accélération » signifiait patinage, ce qui est aussi l'état normal d'une Hypercar en virage rapide et à chaque passage de rapport. Le coach lit désormais le glissement réel de chaque roue. Il annonce donc un patinage quand une roue motrice patine vraiment, et un blocage quand une roue cesse vraiment de tourner.",
+              es: "El patinaje y el bloqueo ahora se miden, no se deducen. Ambos veredictos se inferían de la aceleración longitudinal: «a fondo con poca aceleración» significaba patinaje, que es también el estado normal de un Hypercar en curva rápida y en cada cambio de marcha. El coach lee ahora el deslizamiento real de cada rueda. Así avisa de patinaje cuando una rueda motriz patina de verdad, y de bloqueo cuando una rueda deja realmente de girar.",
+              de: "Durchdrehen und Blockieren werden jetzt gemessen statt geschätzt. Beide Urteile wurden aus der Längsbeschleunigung abgeleitet: „Vollgas bei wenig Beschleunigung“ hieß Durchdrehen, was auch der Normalzustand eines Hypercars in schnellen Kurven und bei jedem Hochschalten ist. Der Coach liest nun den tatsächlichen Schlupf jedes Rades. Er meldet Durchdrehen, wenn ein Antriebsrad wirklich durchdreht, und Blockieren, wenn ein Rad wirklich stehen bleibt.",
+            },
+          },
+          {
+            featured: true,
+            text: {
+              en: "“Lift and coast” no longer fires all race long. The advice compared your fuel against what is needed to reach the end of the session. In any race with a mandatory pit stop that is impossible from lap one, so the coach kept telling you to save fuel for hours while the plan was simply to refuel. It now only speaks when the shortfall is small enough to actually be recovered by lifting.",
+              fr: "Le conseil « lève et laisse rouler » ne tombe plus toute la course. Il comparait votre carburant à ce qu'il faut pour rejoindre la fin de la session. Dans toute course à ravitaillement obligatoire, c'est impossible dès le premier tour : le coach vous demandait donc d'économiser pendant des heures alors que le plan était simplement de refaire le plein. Il ne parle désormais que si le manque est assez faible pour être réellement comblé en levant le pied.",
+              es: "El consejo de «levantar y rodar» ya no salta durante toda la carrera. Comparaba tu combustible con el necesario para llegar al final de la sesión. En cualquier carrera con parada obligatoria eso es imposible desde la primera vuelta, así que el coach te pedía ahorrar durante horas cuando el plan era simplemente repostar. Ahora solo habla si la falta es lo bastante pequeña como para compensarse levantando el pie.",
+              de: "Der Hinweis „Lift and Coast“ kommt nicht mehr das ganze Rennen über. Er verglich deinen Kraftstoff mit dem Bedarf bis zum Sitzungsende. In jedem Rennen mit Pflichtstopp ist das ab der ersten Runde unmöglich, also forderte der Coach stundenlang zum Sparen auf, obwohl schlicht ein Tankstopp geplant war. Er meldet sich jetzt nur, wenn der Fehlbetrag klein genug ist, um durch Lupfen wirklich aufgeholt zu werden.",
+            },
+          },
+          {
+            en: "Tyre fade detection is far less trigger-happy. It judged fade from two passes only, with a threshold at the level of normal lap-to-lap noise, and it counted laps spent behind a slower car. It also used your two out-laps on cold tyres as the reference, which hid real degradation. It now ignores the warm-up laps, skips passes made in traffic, and needs a longer run of clean laps.",
+            fr: "La détection d'usure des pneus se déclenche beaucoup moins à tort. Elle jugeait sur deux passages seulement, avec un seuil au niveau du bruit normal d'un tour à l'autre, et comptait les tours passés derrière une voiture plus lente. Elle prenait aussi vos deux tours de sortie sur pneus froids comme référence, ce qui masquait les vraies dégradations. Elle ignore désormais les tours de chauffe, écarte les passages dans le trafic et exige une série de tours propres plus longue.",
+            es: "La detección de degradación de neumáticos salta mucho menos por error. Juzgaba con solo dos pasadas, con un umbral al nivel del ruido normal entre vueltas, y contaba las vueltas detrás de un coche más lento. También tomaba tus dos vueltas de salida con neumáticos fríos como referencia, lo que ocultaba las degradaciones reales. Ahora ignora las vueltas de calentamiento, descarta las pasadas en tráfico y exige una serie más larga de vueltas limpias.",
+            de: "Die Reifenabbau-Erkennung schlägt deutlich seltener fälschlich an. Sie urteilte über nur zwei Durchfahrten, mit einer Schwelle auf dem Niveau des normalen Rundenrauschens, und zählte Runden hinter einem langsameren Auto mit. Sie nahm zudem deine beiden Auslaufrunden auf kalten Reifen als Referenz, was echten Abbau verdeckte. Jetzt ignoriert sie die Aufwärmrunden, verwirft Durchfahrten im Verkehr und verlangt eine längere Serie sauberer Runden.",
+          },
+          {
+            en: "Track-limit warnings now name the right corner. A cut happens on the exit kerb, before the corner is considered finished, so the count was charged to the previous corner. You could be told off for a corner you had taken cleanly.",
+            fr: "Les avertissements de limites de piste désignent maintenant le bon virage. Une coupure a lieu sur le vibreur de sortie, avant que le virage ne soit considéré comme terminé, si bien que le compte était porté au virage précédent. Vous pouviez vous faire reprocher un virage que vous aviez parfaitement négocié.",
+            es: "Los avisos de límites de pista ahora nombran la curva correcta. Un pisado ocurre en el piano de salida, antes de que la curva se considere terminada, así que se cargaba a la curva anterior. Podían reprocharte una curva que habías tomado limpiamente.",
+            de: "Warnungen zu Streckenbegrenzungen nennen jetzt die richtige Kurve. Ein Verstoß passiert am Ausgangskerb, bevor die Kurve als beendet gilt, sodass er der vorherigen Kurve angelastet wurde. Man konnte für eine Kurve gerügt werden, die man sauber gefahren hatte.",
+          },
+          {
+            en: "A new reference lap can be recorded again after a game update. Once the game changed the car's performance, no lap could beat the old reference any more, and the coach stayed stuck giving relative advice for good. It now replaces a reference that no longer matches the current conditions.",
+            fr: "Un nouveau tour de référence peut de nouveau être enregistré après une mise à jour du jeu. Dès que le jeu changeait les performances de la voiture, plus aucun tour ne battait l'ancienne référence et le coach restait bloqué sur des conseils relatifs pour de bon. Il remplace désormais une référence qui ne correspond plus aux conditions du moment.",
+            es: "Se puede volver a registrar una vuelta de referencia tras una actualización del juego. En cuanto el juego cambiaba el rendimiento del coche, ninguna vuelta batía la referencia antigua y el coach se quedaba dando consejos relativos para siempre. Ahora sustituye una referencia que ya no corresponde a las condiciones actuales.",
+            de: "Nach einem Spiel-Update kann wieder eine neue Referenzrunde aufgezeichnet werden. Sobald das Spiel die Fahrzeugleistung änderte, schlug keine Runde mehr die alte Referenz, und der Coach blieb dauerhaft bei relativen Hinweisen. Er ersetzt jetzt eine Referenz, die nicht mehr zu den aktuellen Bedingungen passt.",
+          },
+          {
+            en: "Your corner-by-corner progress is no longer thrown away. Progress needs three passes through a corner to be summarised, but everything was discarded on each pit entry. With short runs interrupted by trips back to the garage, no corner ever reached three passes, so the history stayed permanently empty and Drill mode had no targets. Passes now accumulate across short runs.",
+            fr: "Votre progression virage par virage n'est plus jetée. Le résumé exige trois passages dans un virage, mais tout était effacé à chaque entrée aux stands. Avec des sorties courtes entrecoupées de retours au garage, aucun virage n'atteignait jamais trois passages : l'historique restait vide en permanence et le mode Drill n'avait aucune cible. Les passages s'accumulent désormais d'une sortie à l'autre.",
+            es: "Tu progresión curva a curva ya no se descarta. El resumen exige tres pasadas por una curva, pero todo se borraba en cada entrada a boxes. Con salidas cortas interrumpidas por vueltas al garaje, ninguna curva llegaba nunca a tres pasadas: el historial quedaba vacío permanentemente y el modo Drill no tenía objetivos. Ahora las pasadas se acumulan entre salidas.",
+            de: "Dein Fortschritt Kurve für Kurve wird nicht mehr verworfen. Die Auswertung braucht drei Durchfahrten pro Kurve, doch alles wurde bei jeder Boxeneinfahrt gelöscht. Bei kurzen Ausfahrten mit Rückkehr in die Garage erreichte keine Kurve je drei Durchfahrten: Der Verlauf blieb dauerhaft leer und der Drill-Modus hatte keine Ziele. Durchfahrten summieren sich jetzt über kurze Ausfahrten hinweg.",
+          },
+          {
+            featured: true,
+            text: {
+              en: "The voice coach no longer talks over your braking. A tip could start just before the finish line and end in the braking zone of turn 1, because the quiet window ignored the next lap. Stint, track-limits, drill and session-recall messages bypassed that window entirely and spoke the instant they were computed, often mid corner exit. All of them now wait for the same quiet window as the rest of the coaching.",
+              fr: "Le coach vocal ne parle plus par-dessus vos freinages. Un conseil pouvait démarrer juste avant la ligne d'arrivée et se terminer dans la zone de freinage du virage 1, parce que la fenêtre de silence ignorait le tour suivant. Les messages de relais, de limites de piste, de drill et de rappel de session contournaient carrément cette fenêtre et parlaient dès leur calcul, souvent en pleine sortie de virage. Ils attendent désormais tous la même fenêtre calme que le reste du coaching.",
+              es: "El coach de voz ya no habla encima de tus frenadas. Un consejo podía empezar justo antes de la línea de meta y acabar en la zona de frenada de la curva 1, porque la ventana de silencio ignoraba la vuelta siguiente. Los mensajes de stint, límites de pista, drill y recordatorio de sesión se saltaban esa ventana y hablaban nada más calcularse, a menudo en plena salida de curva. Ahora todos esperan la misma ventana tranquila que el resto del coaching.",
+              de: "Der Sprach-Coach redet nicht mehr in deine Bremsphasen hinein. Ein Hinweis konnte kurz vor der Ziellinie beginnen und in der Bremszone von Kurve 1 enden, weil das Ruhefenster die nächste Runde ignorierte. Meldungen zu Stint, Streckenbegrenzung, Drill und Sitzungserinnerung umgingen dieses Fenster ganz und sprachen sofort nach der Berechnung, oft mitten im Kurvenausgang. Sie warten jetzt alle auf dasselbe ruhige Fenster wie der Rest des Coachings.",
+            },
+          },
+          {
+            en: "The voice coach no longer goes silent when you are alone on track. With no car ahead, the gap was read as “zero seconds” instead of “clear track”, so no lap ever qualified as a reference and the coach stayed quiet for the whole session.",
+            fr: "Le coach vocal ne reste plus muet quand vous êtes seul en piste. Sans voiture devant, l'écart était lu comme « zéro seconde » au lieu de « piste libre » : aucun tour n'était retenu comme référence et le coach se taisait toute la session.",
+            es: "El coach de voz ya no se queda mudo cuando estás solo en pista. Sin coche delante, la diferencia se leía como «cero segundos» en lugar de «pista libre»: ninguna vuelta se tomaba como referencia y el coach callaba toda la sesión.",
+            de: "Der Sprach-Coach verstummt nicht mehr, wenn du allein auf der Strecke bist. Ohne Fahrzeug vor dir wurde der Abstand als „null Sekunden“ statt „freie Strecke“ gelesen: Keine Runde wurde als Referenz akzeptiert und der Coach schwieg die ganze Sitzung.",
+          },
+          {
+            en: "The voice coach keeps working after a session change. Going from practice to qualifying or to the race — or restarting a session — reset the game's lap counter, and the coach stopped registering laps for good: no reference lap, no calibration, no advice for the rest of the event.",
+            fr: "Le coach vocal continue de fonctionner après un changement de session. Passer des essais à la qualif ou à la course — ou redémarrer une session — remettait à zéro le compteur de tours du jeu, et le coach cessait définitivement d'enregistrer les tours : plus de tour de référence, plus de calibration, plus aucun conseil pour le reste de l'événement.",
+            es: "El coach de voz sigue funcionando tras un cambio de sesión. Pasar de entrenamientos a clasificación o a carrera — o reiniciar una sesión — ponía a cero el contador de vueltas del juego, y el coach dejaba de registrar vueltas para siempre: sin vuelta de referencia, sin calibración y sin consejos durante el resto del evento.",
+            de: "Der Sprach-Coach arbeitet nach einem Sitzungswechsel weiter. Der Wechsel vom Training zum Qualifying oder Rennen — oder ein Neustart der Sitzung — setzte den Rundenzähler des Spiels zurück, und der Coach erfasste endgültig keine Runden mehr: keine Referenzrunde, keine Kalibrierung, kein Hinweis für den Rest der Veranstaltung.",
+          },
+          {
+            en: "Stutters in-game after closing an overlay are gone. The live data thread kept running at full rate and broadcasting to every window for the rest of the session, because closing the overlay window never released it. Each reopen made it worse.",
+            fr: "Les saccades en jeu après la fermeture d'un overlay ont disparu. Le flux de données live continuait de tourner à pleine cadence et d'émettre vers toutes les fenêtres pour le reste de la session, car la fermeture de la fenêtre overlay ne le libérait jamais. Chaque réouverture aggravait le problème.",
+            es: "Los tirones en el juego tras cerrar un overlay han desaparecido. El flujo de datos en vivo seguía a pleno ritmo y emitiendo a todas las ventanas durante el resto de la sesión, porque cerrar la ventana del overlay nunca lo liberaba. Cada reapertura lo empeoraba.",
+            de: "Ruckler im Spiel nach dem Schließen eines Overlays sind behoben. Der Live-Datenstrom lief mit voller Rate weiter und sendete an alle Fenster für den Rest der Sitzung, weil das Schließen des Overlay-Fensters ihn nie freigab. Jedes erneute Öffnen verschlimmerte es.",
+          },
+          {
+            en: "The app no longer closes without warning when opening telemetry. A recorded file with an empty distance channel — a session stopped before the first sample, or a file still being written by the game — shut the application down instantly.",
+            fr: "L'application ne se ferme plus sans prévenir à l'ouverture de la télémétrie. Un fichier enregistré avec un canal de distance vide — session interrompue avant le premier échantillon, ou fichier encore en cours d'écriture par le jeu — provoquait une fermeture immédiate.",
+            es: "La aplicación ya no se cierra sin avisar al abrir la telemetría. Un archivo grabado con el canal de distancia vacío — sesión detenida antes de la primera muestra, o archivo aún en escritura por el juego — la cerraba al instante.",
+            de: "Die Anwendung schließt sich beim Öffnen der Telemetrie nicht mehr ohne Vorwarnung. Eine Aufzeichnung mit leerem Distanzkanal — vor der ersten Messung abgebrochene Sitzung oder eine vom Spiel noch geschriebene Datei — beendete sie sofort.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "1.0.4",
     date: "2026-09-01",
     dev: false,

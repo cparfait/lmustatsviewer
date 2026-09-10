@@ -14,6 +14,25 @@ export interface AIMessage {
   content: string;
 }
 
+/**
+ * Élément décodé d'une ligne de flux (SSE / NDJSON).
+ *
+ * Les parseurs ne renvoyaient qu'un texte ou `null`, si bien que **tout le reste
+ * était jeté en silence** : un événement d'erreur émis en cours de flux (un 529
+ * « overloaded » d'Anthropic, un objet `{"error":…}` renvoyé dans un corps HTTP
+ * 200 par certaines passerelles), ou une fin anticipée (`max_tokens` atteint,
+ * réponse bloquée par un filtre de sécurité). L'utilisateur voyait alors une
+ * réponse vide ou tronquée, sans la moindre explication — et en analyse
+ * complète, le bloc d'objectifs, placé en fin de réponse, disparaissait.
+ */
+export type StreamChunk =
+  /** Fragment de texte à concaténer. */
+  | { kind: "text"; text: string }
+  /** Erreur signalée **dans** le flux : la génération s'arrête là. */
+  | { kind: "error"; message: string }
+  /** Fin anticipée (`max_tokens`, filtre de sécurité…) : le texte est tronqué. */
+  | { kind: "stop"; reason: string };
+
 /** Un modèle proposé dans le sélecteur de la page Config. */
 export interface ModelInfo {
   id: string;
@@ -51,8 +70,11 @@ export interface AIProvider {
 
   /** Extrait le texte de la réponse chat (non-streaming). */
   parseResponse(raw: unknown): string;
-  /** Extrait le texte d'une ligne de flux (SSE/NDJSON). null si pas de texte. */
-  parseStreamChunk(line: string): string | null;
+  /**
+   * Décode une ligne de flux (SSE/NDJSON) : texte, erreur, ou fin anticipée.
+   * `null` pour les lignes sans intérêt (`event:`, `[DONE]`, keep-alive…).
+   */
+  parseStreamChunk(line: string): StreamChunk | null;
   /** Normalise la réponse de la liste des modèles. */
   parseModels(raw: unknown): ModelInfo[];
 

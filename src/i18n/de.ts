@@ -224,6 +224,8 @@ export default {
     errRate: "Anfragelimit erreicht — versuche es gleich noch einmal.",
     errServer: "Serverfehler beim Anbieter (HTTP {{code}}).",
     errNetwork: "Anbieter nicht erreichbar (Netzwerk / lokaler Dienst gestoppt?).",
+    warnTruncated:
+      "Unvollständige Antwort: Der Anbieter hat sie abgebrochen, der Text oben endet daher mittendrin.",
     pin: "Als Ziel anheften",
     pinTip:
       "Speichert diese Antwort für diese Strecke + dieses Fahrzeug: Der Coach prüft deinen Fortschritt in der nächsten Sitzung.",
@@ -1275,6 +1277,14 @@ export default {
     ghostNoCombo: "Kein aktives Combo: starte zuerst eine Session (Live-Seite).",
     ghostImportOk: "Ghost importiert: {{corners}} Kurven, Runde {{time}} s.",
     ghostImportErr: "Ghost-Import fehlgeschlagen (unlesbare Datei?).",
+    coachRecord: "Sitzung aufzeichnen (Diagnose)",
+    coachRecordDesc: "Zeichnet deine Sitzung in eine abspielbare Datei auf, nützlich zum Melden von seltsamem Coach-Verhalten.",
+    coachRecordTip: "Diagnosewerkzeug. Zeichnet jeden Fahrmoment (Geschwindigkeit, Bremse, Gas, Lenkung, Radschlupf, Position auf der Runde) in eine Textdatei auf, die der Entwickler exakt abspielen kann, um ein Problem nachzustellen. Ändert nichts am Verhalten des Coaches. Erfordert die geöffnete Live-Seite (oder ein aktives Overlay). Die Datei enthält die Namen der Fahrer in der Sitzung — vor dem Teilen anonymisieren.",
+    coachRecordStart: "Aufzeichnen",
+    coachRecordStop: "Stoppen",
+    coachRecordRunning: "Aufzeichnung läuft — {{n}} Momente erfasst.",
+    coachRecordSaved: "Sitzung gespeichert: {{path}}",
+    coachRecordEmpty: "Nichts zu speichern: keine Daten vom Spiel empfangen.",
     coachPhrasebank: "Variierte Ansagen (via KI)",
     coachPhrasebankDesc: "Formuliert die Coach-Tipps mit KI um (weniger roboterhafte Stimme). Einmal pro Strecke erzeugt; die Zahlen bleiben exakt.",
     coachPhrasebankTip: "Ein einziger KI-Aufruf pro Strecke×Auto-Kombination erzeugt Formulierungsvarianten vor; auf der Strecke werden die Zahlen (Meter, km/h) von der App eingesetzt, nie von der KI — also keine Latenz und keine Kosten pro Kurve, und es funktioniert danach offline. Erfordert einen konfigurierten KI-Coach.",

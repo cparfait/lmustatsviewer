@@ -15,6 +15,12 @@ on:
       - "v*"
   workflow_dispatch:
 
+# Deux tags poussés coup sur coup ne doivent pas se disputer le cache Cargo.
+# `cancel-in-progress: false` : une release déjà lancée va au bout.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     # Épinglé : `windows-latest` pointe désormais sur une image dont le
@@ -52,6 +58,21 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      # ── Garde-fous AVANT la construction ────────────────────────────────
+      # Placés ici (et non dans un job séparé) pour profiter du `npm ci` déjà
+      # fait et surtout pour échouer AVANT les ~25 min de compilation Rust.
+      # Sans eux, un tag poussé avec un test cassé produisait quand même un
+      # installeur signé et une release : la seule protection était une
+      # checklist manuelle (RELEASE.md).
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Coach tests
+        run: npm test
 
       # Assets vocaux (lourds, hors git) : voix neuronale Piper + modèles de
       # reconnaissance Vosk. Mis en cache par hash des scripts de fetch (les scripts

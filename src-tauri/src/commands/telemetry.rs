@@ -645,7 +645,12 @@ pub fn get_telemetry_channels(
     // Distance : on échantillonne le canal "Lap Dist" (continu) sur la grille.
     let dist: Vec<f32> = if tables.contains("Lap Dist") {
         match read_channel(&conn, "Lap Dist") {
-            Ok(ld) if !ld.is_event && !ld.data.is_empty() => {
+            // `!ld.data[0].is_empty()` est indispensable : un canal `Lap Dist`
+            // déclaré mais VIDE (session avortée avant le 1ᵉʳ échantillon, ou
+            // fichier en cours d'écriture par le jeu) donnait `n = 0`, donc
+            // `clamp(0, -1)` → panique → `panic = "abort"` → fermeture de
+            // l'application sans message. On retombe sur `Vec::new()`.
+            Ok(ld) if !ld.is_event && !ld.data.is_empty() && !ld.data[0].is_empty() => {
                 let col = &ld.data[0];
                 let n = col.len();
                 let f = if duration > 0.0 { n as f64 / duration } else { 0.0 };

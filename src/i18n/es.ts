@@ -225,6 +225,8 @@ export default {
     errRate: "Límite de llamadas alcanzado — inténtalo de nuevo en un momento.",
     errServer: "Error del servidor del proveedor (HTTP {{code}}).",
     errNetwork: "Proveedor inaccesible (¿red caída / servicio local detenido?).",
+    warnTruncated:
+      "Respuesta incompleta: el proveedor la interrumpió, así que el texto anterior se corta a medias.",
     pin: "Guardar como objetivo",
     pinTip:
       "Guarda esta respuesta para este circuito + coche: el entrenador comprobará tu progreso en la próxima sesión.",
@@ -1274,6 +1276,14 @@ export default {
     ghostNoCombo: "Ningún combo activo: inicia una sesión (página Live) primero.",
     ghostImportOk: "Ghost importado: {{corners}} curvas, vuelta {{time}} s.",
     ghostImportErr: "Fallo al importar el ghost (¿archivo ilegible?).",
+    coachRecord: "Grabar una sesión (diagnóstico)",
+    coachRecordDesc: "Captura tu sesión en un archivo reproducible, útil para informar de un comportamiento raro del coach.",
+    coachRecordTip: "Herramienta de diagnóstico. Graba cada instante de conducción (velocidad, frenos, acelerador, volante, deslizamiento de ruedas, posición en la vuelta) en un archivo de texto que el desarrollador puede reproducir tal cual para recrear un problema. No cambia el comportamiento del coach. Requiere la página Live abierta (o un overlay activo). El archivo contiene los nombres de los pilotos de la sesión: anonimízalo antes de compartirlo.",
+    coachRecordStart: "Grabar",
+    coachRecordStop: "Detener",
+    coachRecordRunning: "Grabando — {{n}} instantes capturados.",
+    coachRecordSaved: "Sesión guardada: {{path}}",
+    coachRecordEmpty: "Nada que guardar: no se han recibido datos del juego.",
     coachPhrasebank: "Frases variadas (vía IA)",
     coachPhrasebankDesc: "Reformula los consejos del coach con IA (voz menos robótica). Se genera una vez por circuito; las cifras siguen siendo exactas.",
     coachPhrasebankTip: "Una sola llamada a la IA por combo circuito×coche pregenera variantes de redacción; en pista, las cifras (metros, km/h) las rellena la app, nunca la IA — así no hay latencia ni coste por curva, y luego funciona sin conexión. Requiere un Coach IA configurado.",

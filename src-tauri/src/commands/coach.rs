@@ -545,3 +545,44 @@ pub fn coach_stats_upsert(
         .map_err(|e| AppError::Database(format!("coach_stats commit: {e}")))?;
     Ok(())
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Corpus d'enregistrement (COACH-LIVE-SPEC.md §14.1)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Écrit un corpus de trames JSONL dans `app_data_dir/corpus/` et renvoie le
+/// chemin complet du fichier créé.
+///
+/// Le harnais de test sait rejouer un tel fichier dans le moteur pur : c'est le
+/// seul moyen de valider les seuils du coach sur de **vraies** données, là où
+/// les suites actuelles ne s'appuient que sur des trames de synthèse.
+///
+/// Le nom vient de l'interface : on n'en garde que la partie sûre et on impose
+/// l'extension, pour qu'aucune saisie ne puisse écrire hors du dossier.
+#[tauri::command]
+pub fn coach_save_corpus(
+    name: String,
+    content: String,
+    app: tauri::AppHandle,
+) -> Result<String, AppError> {
+    use tauri::Manager;
+
+    let safe: String = name
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .collect();
+    let safe = safe.trim_matches('-').to_string();
+    let stem = if safe.is_empty() { "corpus".to_string() } else { safe };
+
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::Internal(format!("app_data_dir: {e}")))?
+        .join("corpus");
+    std::fs::create_dir_all(&dir)?;
+
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    let path = dir.join(format!("{stem}-{stamp}.jsonl"));
+    std::fs::write(&path, content.as_bytes())?;
+    Ok(path.to_string_lossy().to_string())
+}

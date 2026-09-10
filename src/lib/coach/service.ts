@@ -16,6 +16,7 @@ import { live, coachRef, type LiveData, type CoachRef } from "@/lib/api";
 import { frameFromLive } from "./frame";
 import {
   createCoachState,
+  resetCoachSession,
   setCoachRef,
   stepCoach,
   type CoachEngineState,
@@ -35,6 +36,7 @@ import {
 } from "./diagnostics";
 import {
   createCoachVoiceState,
+  isCalmWindow,
   observeCorner,
   stepCoachVoice,
   type CoachVoiceState,
@@ -70,6 +72,7 @@ import {
   resetStint,
   recordStintCorner,
   fuelAdvice,
+  liftCoastShortfall,
   takeOutLapAdvice,
   type StintState,
   type StintAdvisory,
@@ -227,6 +230,12 @@ let recallLine: ReportLine | null = null;
 let recallDone = false;
 /** État `inPits` de la trame précédente (détection du front d'entrée aux stands). */
 let lastInPits = false;
+/**
+ * Type de session rF2 de la trame précédente (`-1` = pas encore vu). Sert à
+ * détecter le passage essais → qualif → course pour réinitialiser l'état de
+ * session (cf. `maybeResetSession`).
+ */
+let lastSessionNum = -1;
 /** Passages minimaux accumulés pour déclencher un débrief au retour stand. */
 const MIN_REPORT_PASSES = 6;
 
@@ -248,6 +257,99 @@ export interface RecentDiag {
   sign: number;
   lapNum: number;
 }
+// ── Canaux vocaux secondaires : file d'attente de fenêtre calme (§1.1) ────────
+//
+// Le coaching de relais, le risque, le verdict de Drill et le rappel
+// inter-sessions parlaient **immédiatement**, au moment où le calcul aboutit —
+// c'est-à-dire en pleine sortie de virage pour les uns, à l'instant de la coupure
+// de piste pour l'autre. Le message tombait donc régulièrement dans la zone de
+// freinage suivante, exactement ce que §1.1 interdit (et ce que le retour
+// utilisateur #150, « silence en freinage », demandait de corriger).
+//
+// Ils passent désormais par cette file : le message attend la même fenêtre calme
+// que le coach par virage, et n'est prononcé que si aucun diagnostic n'est
+// délivré sur la même trame (jamais deux messages coup sur coup).
+
+/** Un message secondaire en attente de sa fenêtre de délivrance. */
+type SideMsg =
+  | { ch: "stint"; adv: StintAdvisory; at: number }
+  | { ch: "risk"; adv: RiskAdvisory; at: number }
+  | { ch: "drill"; msg: DrillVerdictMsg; at: number }
+  | { ch: "recall"; line: ReportLine; at: number };
+
+/** File des messages secondaires (ordre d'arrivée). */
+let sideQueue: SideMsg[] = [];
+
+/**
+ * Fraîcheur des messages secondaires (s). Plus permissive que les 8 s du coach
+ * par virage : un conseil de relais ou un rappel reste pertinent un peu plus
+ * longtemps qu'un diagnostic ancré sur un passage précis.
+ */
+const SIDE_FRESH_MAX_S = 20;
+
+/** Profondeur max de la file (au-delà, on jette le plus ancien). */
+const SIDE_QUEUE_MAX = 3;
+
+/** Met un message secondaire en attente de la fenêtre calme. */
+function queueSide(msg: SideMsg): void {
+  sideQueue.push(msg);
+  if (sideQueue.length > SIDE_QUEUE_MAX) sideQueue.shift();
+}
+
+/**
+ * Délivre au plus **un** message secondaire si la fenêtre est calme. Les messages
+ * périmés sont abandonnés en silence (mieux vaut se taire qu'arriver après la
+ * bataille). Renvoie `true` si un message a été prononcé.
+ */
+function drainSide(frame: CoachFrame, trackLengthM: number): boolean {
+  if (sideQueue.length === 0) return false;
+  // Purge des périmés.
+  sideQueue = sideQueue.filter((m) => frame.elapsed - m.at <= SIDE_FRESH_MAX_S);
+  if (sideQueue.length === 0) return false;
+  if (!isCalmWindow(frame, state.windows, state.nextWin, trackLengthM)) return false;
+
+  const msg = sideQueue.shift();
+  if (!msg) return false;
+  switch (msg.ch) {
+    case "stint":
+      for (const l of stintListeners) l(msg.adv);
+      break;
+    case "risk":
+      for (const l of riskListeners) l(msg.adv);
+      break;
+    case "drill":
+      for (const l of drillVerdictListeners) l(msg.msg);
+      break;
+    case "recall":
+      for (const l of recallListeners) l(msg.line);
+      break;
+  }
+  return true;
+}
+
+/**
+ * Virage **en cours de négociation** à la distance `dist`, ou `null` hors virage.
+ *
+ * `state.nextWin` désigne la prochaine fenêtre à clôturer : tant qu'on n'a pas
+ * franchi sa sortie, c'est le virage que le pilote est en train de prendre. Sert
+ * à attribuer une coupure de piste au bon virage — elle survient sur le vibreur
+ * de sortie, donc **avant** la clôture de la fenêtre, et était jusqu'ici mise au
+ * compte du virage précédent.
+ */
+function drivingCorner(dist: number): { uid: string; n: number } | null {
+  const w = state.windows[state.nextWin];
+  if (!w) return null;
+  return dist >= w.startDist && dist <= w.endDist
+    ? { uid: w.corner_uid, n: w.n }
+    : null;
+}
+
+/** Longueur du tour (m) déduite de la réf dense ; 0 si aucune réf chargée. */
+function trackLengthFromRef(): number {
+  const ref = state.ref;
+  return ref && ref.n_points > 1 && ref.step_m > 0 ? ref.n_points * ref.step_m : 0;
+}
+
 /** Anneau des derniers diagnostics émis (injectés au contexte du « pourquoi ? »). */
 let recentDiags: RecentDiag[] = [];
 /** Taille de l'anneau des diagnostics récents (§12). */
@@ -287,6 +389,7 @@ function dispatch(events: CoachEvent[], frame: CoachFrame): void {
       // hook (I/O) rechargera/régénérera la banque du nouveau combo si le mode est actif.
       phraseBank = null;
       recentDiags = [];
+      sideQueue = []; // conseils du combo précédent : caducs
       bestCleanLapMs = Infinity;
       if (!driverLevelPinned) driverLevel = "intermediate";
       // Apprentissage (§11) : session neuve + charge de l'historique du combo
@@ -316,22 +419,22 @@ function dispatch(events: CoachEvent[], frame: CoachFrame): void {
             classBest: classBestSectors(),
             lapNum: frame.lapNum,
           });
-          if (adv) for (const l of riskListeners) l(adv);
+          if (adv) queueSide({ ch: "risk", adv, at: frame.elapsed });
         }
       }
-      maybeEmitRecall();
+      maybeEmitRecall(frame.elapsed);
     } else if (ev.type === "corner-passed") {
       runDiagnostic(ev.measurement, frame);
       // Coaching de stint (§12, P5.3) : dérive de la vitesse de passage au fil du
       // relais (une alerte par virage et par stint). Canal indépendant du nominal.
       if (stintActive) {
         const adv = recordStintCorner(stint, ev.measurement);
-        if (adv) for (const l of stintListeners) l(adv);
+        if (adv) queueSide({ ch: "stint", adv, at: frame.elapsed });
       }
       // Risque (§12, P5.4) : mémorise le dernier virage franchi pour attribuer les
       // coupures de piste suivantes (elles surviennent en sortie de virage).
       if (riskActive) noteRiskCorner(risk, ev.measurement);
-      maybeEmitRecall();
+      maybeEmitRecall(frame.elapsed);
     }
     for (const l of listeners) l(ev, state);
   }
@@ -380,7 +483,7 @@ function runDiagnostic(measurement: CornerMeasurement, frame: CoachFrame): void 
     // silence ailleurs. Court-circuite la pédagogie nominale (focus/dégressif) —
     // le drill a sa propre cadence (feedback systématique + compteur).
     const verdict = recordDrillPass(drill, measurement, result);
-    if (verdict) for (const l of drillVerdictListeners) l(verdict);
+    if (verdict) queueSide({ ch: "drill", msg: verdict, at: frame.elapsed });
   } else {
     const policy = policyFor(modeFromSession(frame.sessionNum, state.ref !== null));
     observeCorner(
@@ -541,11 +644,10 @@ function refreshDrillPredict(): void {
 }
 
 /** Délivre le rappel inter-sessions une seule fois, au 1ᵉʳ virage/tour du combo. */
-function maybeEmitRecall(): void {
+function maybeEmitRecall(elapsed: number): void {
   if (recallDone || !recallLine) return;
   recallDone = true;
-  const line = recallLine;
-  for (const l of recallListeners) l(line);
+  queueSide({ ch: "recall", line: recallLine, at: elapsed });
 }
 
 /** Benchmark ohne_speed du combo courant (best-effort) — cap chiffré du rapport. */
@@ -582,8 +684,14 @@ function computeCapTime(): string | null {
  */
 function flushSession(track: string, carModel: string, speak: boolean): void {
   const stats = summarizeSession(hist);
-  hist = createSessionHistory();
+  // L'historique n'est vidé QUE s'il a produit quelque chose. `summarizeSession`
+  // exige 3 passages par virage : avec des sorties de deux tours entrecoupées de
+  // retours au garage, aucun virage n'atteignait ce seuil et les passages étaient
+  // jetés à chaque passage aux stands. L'historique du combo restait donc vide en
+  // permanence, ce qui privait le rappel, la progression et le mode Drill de
+  // toute matière. On continue désormais d'accumuler entre deux sorties courtes.
   if (stats.length === 0 || !track || !carModel) return;
+  hist = createSessionHistory();
   void coachRef.historyUpsert(track, carModel, toHistoryRows(stats)).catch(() => {
     /* écriture best-effort ; l'absence d'historique dégrade juste le rappel suivant */
   });
@@ -650,13 +758,20 @@ async function loadRefFor(track: string, carModel: string): Promise<void> {
 async function maybeCaptureRef(lap: CompletedLap): Promise<void> {
   if (!lap.eligibility.eligible || lap.lapTime <= 0) return;
   if (lap.lapTime >= sessionBestSaved) return;
-  // Ne remplace une réf existante que si on est plus rapide (ou si elle est périmée).
-  const ref = state.ref;
-  if (ref && ref.kind !== "stale" && lap.lapTime >= ref.lap_time) return;
+  // Ne remplace une réf existante que si on est plus rapide — ou si elle n'est
+  // plus exploitable comme cible absolue. `kind === "stale"` ne suffisait pas :
+  // rien n'appelle jamais `markStale`, donc ce test était mort. Après une mise à
+  // jour du jeu qui ralentit la voiture, plus aucun tour ne battait l'ancienne
+  // réf et le coach restait bloqué en mode « que d'habitude » à vie. On s'appuie
+  // désormais sur le verdict de fraîcheur réel (build, température, gomme).
   const data = lastData;
   if (!data) return;
   const frame = frameFromLive(data);
   if (!frame) return;
+
+  const ref = state.ref;
+  const refUsable = ref != null && currentRefMode(frame) === "fresh";
+  if (ref && refUsable && lap.lapTime >= ref.lap_time) return;
 
   const payload = buildRefPayload(lap, captureMetaFromLive(data, frame));
   if (!payload) return;
@@ -676,10 +791,54 @@ async function maybeCaptureRef(lap: CompletedLap): Promise<void> {
   }
 }
 
+/**
+ * Détecte une **nouvelle session** sur le combo courant et remet à zéro tout ce
+ * qui est propre à une session (§8).
+ *
+ * Deux signaux : le type de session rF2 change (`sessionNum` : essais → qualif →
+ * course) ou le compteur de tours du jeu recule (redémarrage de la même session).
+ *
+ * Sans ce reset, le coach s'éteignait purement et simplement : `total_laps`
+ * repartant à 0, le moteur n'émettait plus aucun `lap-completed` (il n'accepte
+ * qu'un compteur croissant), donc plus de capture de référence ni de calibration,
+ * et tous les compteurs exprimés en tours (lift & coast, cible de classe,
+ * anti-répétition, expiration du focus) devenaient négatifs.
+ *
+ * On conserve ce qui appartient au **combo** : réf dense, fenêtres, apex connus,
+ * anneaux σ du diagnostic, historique/objectifs, niveau pilote calibré.
+ */
+function maybeResetSession(frame: CoachFrame): void {
+  const first = lastSessionNum < 0;
+  const sessionChanged = !first && frame.sessionNum !== lastSessionNum;
+  // `state.lapNum >= 0` : le moteur est initialisé (sinon rien à réinitialiser).
+  const lapWentBackwards = state.lapNum >= 0 && frame.lapNum < state.lapNum;
+  lastSessionNum = frame.sessionNum;
+  if (first || (!sessionChanged && !lapWentBackwards)) return;
+
+  // Persiste la session qui s'achève (sans débrief vocal : on n'est plus dessus).
+  flushSession(comboTrack, comboCarModel, false);
+  resetCoachSession(state, frame);
+  voice = createCoachVoiceState(); // file de délivrance + focus/dégressif
+  shortRef = createShortRefState(); // « l'habitude » se rejuge dans les nouvelles conditions
+  predict = createPredictiveState();
+  drillPredict = createPredictiveState();
+  resetStint(stint);
+  resetRisk(risk);
+  hist = createSessionHistory();
+  recentDiags = [];
+  sideQueue = []; // conseils de la session précédente : caducs
+  lastInPits = frame.inPits;
+  sessionBestSaved = Infinity; // la meilleure réf de session se rejoue à neuf
+  recallDone = false; // le rappel inter-sessions se redonne une fois
+}
+
 function onLive(data: LiveData): void {
   lastData = data;
   const frame = frameFromLive(data);
   if (!frame) return;
+  // Nouvelle session sur le même combo (essais → qualif → course, ou
+  // redémarrage) : à traiter AVANT le pas moteur, qui va écraser `state.lapNum`.
+  maybeResetSession(frame);
   const { events } = stepCoach(state, frame);
   if (events.length) dispatch(events, frame);
 
@@ -700,29 +859,37 @@ function onLive(data: LiveData): void {
   // droite). Hors chemin critique — canal `coach` distinct du diagnostic par virage.
   if (stintActive && !frame.inPits) {
     const out = takeOutLapAdvice(stint);
-    if (out) for (const l of stintListeners) l(out);
-    const strat = lastData
-      ? computeStrategy(lastData.session, lastData.player, lastData.telemetry)
+    if (out) queueSide({ ch: "stint", adv: out, at: frame.elapsed });
+    const strat = computeStrategy(data.session, data.player, data.telemetry);
+    // Manque de carburant **rattrapable** en levant le pied (cf. `liftCoastShortfall`).
+    // On ne compare plus au besoin jusqu'à la fin de session : dans une course à
+    // ravitaillement obligatoire, ce besoin est hors de portée dès le 1ᵉʳ tour et
+    // le conseil tombait en boucle pendant toute la course.
+    const shortfallLaps = strat
+      ? liftCoastShortfall(strat.sessionLapsLeft, strat.fuelLapsRemaining)
       : null;
-    const fuelShort = !!strat && strat.fuelToAdd != null && strat.fuelToAdd > 0.05;
     const fuel = fuelAdvice(stint, {
-      fuelShort,
+      shortfallLaps,
       lapNum: frame.lapNum,
       onThrottle: frame.throttle > 90,
     });
-    if (fuel) for (const l of stintListeners) l(fuel);
+    if (fuel) queueSide({ ch: "stint", adv: fuel, at: frame.elapsed });
   }
 
   // Coaching du risque (§12, P5.4) : coupures de piste répétées sur un même virage
   // → « pas rentable ». Compteur cumulé lu à chaque trame, attribué au dernier virage.
   if (riskActive) {
-    const adv = recordTrackLimit(risk, frame.trackLimits);
-    if (adv) for (const l of riskListeners) l(adv);
+    const adv = recordTrackLimit(risk, frame.trackLimits, drivingCorner(frame.dist));
+    if (adv) queueSide({ ch: "risk", adv, at: frame.elapsed });
   }
   // Fenêtre de délivrance (§1) : évaluée **après** le pas moteur, `state.nextWin`
   // pointe alors le prochain virage à venir (borne de la fenêtre calme).
-  const msg = stepCoachVoice(voice, frame, state.windows, state.nextWin);
+  const trackLengthM = trackLengthFromRef();
+  const msg = stepCoachVoice(voice, frame, state.windows, state.nextWin, trackLengthM);
   if (msg) for (const l of speakListeners) l(msg, state);
+  // Canaux secondaires (relais, risque, drill, rappel) : même fenêtre calme, et
+  // jamais sur la trame où un diagnostic vient d'être prononcé (§1.1/§9).
+  else drainSide(frame, trackLengthM);
 
   // Callouts prédictifs Découverte (§8, P3.3) : uniquement sans réf joueur **et**
   // hors Drill. Jamais de prédictif permanent quand une réf existe (dépendance §8)
@@ -759,6 +926,7 @@ export async function startCoachService(): Promise<void> {
   recallLine = null;
   recallDone = false;
   lastInPits = false;
+  lastSessionNum = -1;
   sessionBestSaved = Infinity;
   lastData = null;
   macro = [];
@@ -771,6 +939,7 @@ export async function startCoachService(): Promise<void> {
   bestCleanLapMs = Infinity;
   phraseBank = null;
   recentDiags = [];
+  sideQueue = [];
   uidToMacroN = new Map();
   if (!driverLevelPinned) driverLevel = "intermediate";
   // Benchmarks ohne_speed (best-effort) pour l'auto-calibration §7 — sans bloquer.
@@ -810,6 +979,7 @@ export function stopCoachService(): void {
   recallLine = null;
   recallDone = false;
   lastInPits = false;
+  lastSessionNum = -1;
   loadingCombo = "";
   lastData = null;
   sessionBestSaved = Infinity;
@@ -823,6 +993,7 @@ export function stopCoachService(): void {
   bestCleanLapMs = Infinity;
   phraseBank = null;
   recentDiags = [];
+  sideQueue = [];
   uidToMacroN = new Map();
 }
 

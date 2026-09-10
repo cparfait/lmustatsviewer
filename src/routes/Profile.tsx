@@ -18,7 +18,6 @@ import {
   Clock,
   Activity,
   Repeat,
-  Trophy,
   Car,
   MapPin,
   Route,

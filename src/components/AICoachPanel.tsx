@@ -448,9 +448,23 @@ export function CoachPanel({
           setThread([...nextThread, { role: "assistant", content: acc }]);
           if (autoRead) speakNewSentences(acc); // B2 : lecture progressive
         },
+        // Réponse interrompue (budget de sortie, filtre, coupure réseau) : on
+        // garde le texte reçu mais on le dit, au lieu de présenter un texte
+        // tronqué comme s'il était complet.
+        onTruncated: (reason) => {
+          if (reason && !cancelRef.current) setError(t("coach.warnTruncated"));
+        },
       });
+      const answer = full || acc;
       if (!cancelRef.current) {
-        setThread([...nextThread, { role: "assistant", content: full || acc }]);
+        // Une réponse VIDE ne doit pas rester dans le fil : côté Anthropic, un
+        // tour assistant vide fait échouer en 400 toutes les questions suivantes.
+        if (answer.trim()) {
+          setThread([...nextThread, { role: "assistant", content: answer }]);
+        } else {
+          setThread(nextThread);
+          setError((prev) => prev ?? t("coach.errServer", { code: "vide" }));
+        }
       }
     } catch (e) {
       setError(friendlyError(e, t));

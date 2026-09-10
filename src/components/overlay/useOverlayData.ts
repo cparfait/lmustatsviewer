@@ -51,7 +51,20 @@ export function useOverlayData(highFps: boolean): LiveData | null {
     let raf = 0;
     let mounted = true;
 
-    liveApi.startPolling().catch(() => {});
+    // `startPolling` incrémente un compteur de consommateurs côté Rust : il DOIT
+    // être relâché au démontage, sinon le thread de polling continue d'émettre à
+    // 20 Hz vers toutes les fenêtres pour le reste de la session (saccades en
+    // jeu). On ne relâche que si le démarrage a effectivement abouti, pour ne
+    // pas décrémenter un compteur qu'on n'a jamais incrémenté.
+    let polling = false;
+    liveApi
+      .startPolling()
+      .then(() => {
+        polling = true;
+        // Démonté pendant l'appel → on relâche tout de suite.
+        if (!mounted) liveApi.stopPolling().catch(() => {});
+      })
+      .catch(() => {});
     liveApi
       .onData((d) => {
         latestRef.current = d;
@@ -112,6 +125,7 @@ export function useOverlayData(highFps: boolean): LiveData | null {
       mounted = false;
       cancelAnimationFrame(raf);
       if (unlisten) unlisten();
+      if (polling) liveApi.stopPolling().catch(() => {});
     };
   }, []);
 

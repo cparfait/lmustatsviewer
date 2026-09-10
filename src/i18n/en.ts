@@ -224,6 +224,8 @@ export default {
     errRate: "Rate limit reached — try again in a moment.",
     errServer: "Provider server error (HTTP {{code}}).",
     errNetwork: "Provider unreachable (network down / local service stopped?).",
+    warnTruncated:
+      "Incomplete answer: the provider cut it short, so the text above stops mid-way.",
     pin: "Pin as objective",
     pinTip:
       "Saves this answer for this track + car: the coach will check your progress next session.",
@@ -1270,6 +1272,14 @@ export default {
     ghostNoCombo: "No active combo: start a session (Live page) first.",
     ghostImportOk: "Ghost imported: {{corners}} corners, {{time}} s lap.",
     ghostImportErr: "Ghost import failed (unreadable file?).",
+    coachRecord: "Record a session (diagnostics)",
+    coachRecordDesc: "Captures your session into a replayable file, useful when reporting odd coach behaviour.",
+    coachRecordTip: "Diagnostic tool. Records every moment of driving (speed, brakes, throttle, steering, wheel slip, position on the lap) into a text file the developer can replay exactly to reproduce a problem. Does not change how the coach behaves. Requires the Live page open (or an active overlay). The file contains the names of drivers in the session — anonymise it before sharing.",
+    coachRecordStart: "Record",
+    coachRecordStop: "Stop",
+    coachRecordRunning: "Recording — {{n}} moments captured.",
+    coachRecordSaved: "Session saved: {{path}}",
+    coachRecordEmpty: "Nothing to save: no data received from the game.",
     coachPhrasebank: "Varied wording (via AI)",
     coachPhrasebankDesc: "Rephrases the coach's advice with AI (less robotic voice). Generated once per track; the numbers stay exact.",
     coachPhrasebankTip: "A single AI call per track×car combo pre-generates wording variants; on track, the numbers (metres, km/h) are filled by the app, never by the AI — so no latency or per-corner cost, and it works offline afterwards. Requires a configured AI Coach.",

@@ -554,6 +554,11 @@ export interface LiveWheel {
   lat_patch_vel: number;
   /** Vitesse longitudinale du patch (m/s) — écart vs vitesse sol = glissement. */
   long_patch_vel: number;
+  /**
+   * Glissement longitudinal (fraction, ±1) : `(patch − sol) / sol`.
+   * `> 0` = patinage, `< 0` = blocage, `~0` = roulement propre. `0` à l'arrêt.
+   */
+  slip_ratio: number;
 }
 
 export interface LiveTelemetry {
@@ -1001,6 +1006,14 @@ export const coachRef = {
     invoke<number>("coach_phrasebank_clear", { track, carModel }),
   /** Parse un fichier MoTeC `.ld` en canaux bruts (ghost secondaire, §2.2, P5.5). */
   parseLd: (path: string) => invoke<LdChannel[]>("coach_parse_ld", { path }),
+  /**
+   * Écrit un corpus de trames JSONL dans `app_data_dir/corpus/` (§14.1) et
+   * renvoie le chemin du fichier. Sert à rejouer une session **réelle** dans le
+   * moteur pur, seul moyen de valider les seuils du coach ailleurs que sur des
+   * trames de synthèse.
+   */
+  saveCorpus: (name: string, content: string) =>
+    invoke<string>("coach_save_corpus", { name, content }),
 };
 
 // ─── Commandes système ──────────────────────────────────────────────────────

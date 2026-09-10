@@ -462,6 +462,46 @@ export interface DeliveryFrame {
   elapsed: number;
 }
 
+/**
+ * La trame est-elle dans une **fenêtre calme** (§1.1) : sortie de virage finie
+ * (gaz au plancher) **et** prochain freinage assez loin pour qu'un message court
+ * se termine avant l'appui frein.
+ *
+ * `trackLengthM` : longueur du tour (m). Indispensable une fois la **dernière**
+ * fenêtre du tour franchie : le prochain freinage est alors le **premier virage
+ * du tour suivant**, de l'autre côté de la ligne. Sans lui, la fin de la ligne
+ * droite des stands était considérée « calme à l'infini » et un conseil pouvait
+ * démarrer juste avant la ligne pour se terminer dans le freinage du virage 1
+ * (La Source à Spa, Turn 1 à Sebring ou Bahreïn).
+ *
+ * Exporté pour que les canaux secondaires (relais, risque, drill, rappel) soient
+ * soumis à la **même** contrainte que le coach par virage : §1.1 vaut pour toute
+ * parole du coach, pas seulement pour les diagnostics.
+ */
+export function isCalmWindow(
+  frame: DeliveryFrame,
+  windows: CoachWindow[],
+  nextWin: number,
+  trackLengthM = 0,
+): boolean {
+  let distToBrake: number;
+  if (nextWin < windows.length) {
+    distToBrake = windows[nextWin].brakeDist - frame.dist;
+  } else if (windows.length > 0 && trackLengthM > 0) {
+    // Bouclage : premier virage du tour suivant.
+    distToBrake = windows[0].brakeDist + trackLengthM - frame.dist;
+  } else {
+    // Aucune fenêtre connue (mode Découverte) → pas de contrainte de freinage.
+    distToBrake = Infinity;
+  }
+
+  const speedMs = frame.speed / 3.6;
+  const timeToBrake =
+    distToBrake <= 0 ? 0 : speedMs > 1 ? distToBrake / speedMs : Infinity;
+
+  return frame.throttle >= THROTTLE_CALM_PCT && timeToBrake >= TTS_EST_S + LEAD_S;
+}
+
 /** Suffixe i18n + variables d'un renforcement positif §1.4. */
 function voiceKeyForPositive(
   tenths: number,
@@ -485,6 +525,7 @@ export function stepCoachVoice(
   frame: DeliveryFrame,
   windows: CoachWindow[],
   nextWin: number,
+  trackLengthM = 0,
 ): CoachVoiceMsg | null {
   const p = st.pending;
   if (!p) return null;
@@ -495,18 +536,7 @@ export function stepCoachVoice(
     return null;
   }
 
-  // Temps avant le prochain freinage (depuis la réf) — Infinity si plus de virage
-  // sur le tour (ligne droite finale → toujours calme).
-  const nextBrake =
-    nextWin < windows.length ? windows[nextWin].brakeDist : Infinity;
-  const distToBrake = nextBrake - frame.dist;
-  const speedMs = frame.speed / 3.6;
-  const timeToBrake =
-    distToBrake <= 0 ? 0 : speedMs > 1 ? distToBrake / speedMs : Infinity;
-
-  const calm =
-    frame.throttle >= THROTTLE_CALM_PCT && timeToBrake >= TTS_EST_S + LEAD_S;
-  if (!calm) return null;
+  if (!isCalmWindow(frame, windows, nextWin, trackLengthM)) return null;
 
   // Fenêtre ouverte → on délivre.
   st.pending = null;

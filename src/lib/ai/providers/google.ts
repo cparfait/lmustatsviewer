@@ -21,7 +21,8 @@ interface GeminiContent {
   parts?: GeminiPart[];
 }
 interface GeminiResponse {
-  candidates?: { content?: GeminiContent }[];
+  candidates?: { content?: GeminiContent; finishReason?: string }[];
+  promptFeedback?: { blockReason?: string };
 }
 interface GeminiModel {
   name?: string;
@@ -38,15 +39,22 @@ export const googleProvider: AIProvider = {
   name: "Google (Gemini)",
   needsKey: true,
 
-  chatUrl: (model, apiKey) =>
-    `${BASE}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+  // La clé passe par l'en-tête `x-goog-api-key` et NON par l'URL. En paramètre
+  // d'URL, elle se retrouvait recopiée dans les messages d'erreur réseau
+  // (reqwest y joint l'URL complète) : la moindre capture d'écran envoyée pour
+  // signaler un bug exposait la clé.
+  chatUrl: (model) =>
+    `${BASE}/models/${encodeURIComponent(model)}:generateContent`,
 
-  streamChatUrl: (model, apiKey) =>
-    `${BASE}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`,
+  streamChatUrl: (model) =>
+    `${BASE}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
 
-  modelsUrl: (apiKey) => `${BASE}/models?key=${encodeURIComponent(apiKey)}`,
+  modelsUrl: () => `${BASE}/models`,
 
-  buildHeaders: () => [["Content-Type", "application/json"]],
+  buildHeaders: (apiKey) => [
+    ["Content-Type", "application/json"],
+    ...(apiKey ? ([["x-goog-api-key", apiKey]] as [string, string][]) : []),
+  ],
 
   buildBody: (messages, _model, maxTokens) => {
     // Chez Gemini, les tokens de raisonnement sont décomptés de
@@ -85,9 +93,17 @@ export const googleProvider: AIProvider = {
     if (!line.startsWith("data:")) return null;
     try {
       const r = JSON.parse(line.slice(5).trim()) as GeminiResponse;
-      const parts = r.candidates?.[0]?.content?.parts ?? [];
+      // Requête refusée d'emblée (filtre de sécurité sur l'invite).
+      const blocked = r.promptFeedback?.blockReason;
+      if (blocked) return { kind: "error", message: `invite bloquée (${blocked})` };
+      const cand = r.candidates?.[0];
+      const parts = cand?.content?.parts ?? [];
       const text = parts.map((p) => p.text ?? "").join("");
-      return text || null;
+      if (text) return { kind: "text", text };
+      // Fin anticipée : plafond de sortie atteint ou réponse filtrée.
+      const finish = cand?.finishReason;
+      if (finish && finish !== "STOP") return { kind: "stop", reason: finish };
+      return null;
     } catch {
       return null;
     }

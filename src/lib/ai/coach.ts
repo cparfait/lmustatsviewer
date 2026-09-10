@@ -132,8 +132,16 @@ export async function converseStream(args: {
   maxTokens: number;
   systemOverride?: string;
   onToken: (chunk: string) => void;
+  /**
+   * Appelé en fin de flux avec la raison d'une réponse **incomplète**
+   * (`max_tokens`, filtre du fournisseur, coupure réseau), ou `null` si la
+   * réponse est complète. Permet de le signaler à l'utilisateur au lieu de lui
+   * présenter un texte tronqué comme s'il était fini.
+   */
+  onTruncated?: (reason: string | null) => void;
 }): Promise<string> {
-  const { provider, model, apiKey, lang, history, maxTokens, systemOverride, onToken } = args;
+  const { provider, model, apiKey, lang, history, maxTokens, systemOverride, onToken, onTruncated } =
+    args;
   const messages: AIMessage[] = [
     { role: "system", content: resolveSystem(lang, systemOverride) },
     ...history,
@@ -147,17 +155,36 @@ export async function converseStream(args: {
       : String(Date.now() + Math.random());
 
   let full = "";
+  let streamError: string | null = null;
+  let truncated: string | null = null;
   const unlisten = await listen<string>(`ai-stream-${streamId}`, (e) => {
-    const text = provider.parseStreamChunk(e.payload);
-    if (text) {
-      full += text;
-      onToken(text);
+    const chunk = provider.parseStreamChunk(e.payload);
+    if (!chunk) return;
+    if (chunk.kind === "text") {
+      full += chunk.text;
+      onToken(chunk.text);
+    } else if (chunk.kind === "error") {
+      streamError = chunk.message;
+    } else {
+      truncated = chunk.reason;
     }
   });
   try {
     await invoke("ai_chat_stream", { streamId, url, headers, body });
+  } catch (e) {
+    // Coupure réseau ou délai d'inactivité en cours de flux. Si du texte est
+    // déjà arrivé, on le CONSERVE : le jeter effaçait sous les yeux de
+    // l'utilisateur une analyse lue à 80 %, et déjà facturée.
+    if (!full) throw e;
+    truncated = truncated ?? "network";
   } finally {
     unlisten();
   }
+  // Erreur annoncée dans le flux (surcharge, quota) : sans texte, c'est un échec
+  // franc ; avec du texte, la réponse est simplement incomplète.
+  if (streamError && !full) throw new Error(streamError);
+  if (streamError) truncated = truncated ?? streamError;
+
+  onTruncated?.(truncated);
   return full;
 }

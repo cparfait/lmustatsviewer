@@ -268,7 +268,16 @@ export function SetupDetail() {
   async function handleExport() {
     if (!entry) return;
     try {
-      await setupsApi.export(entry.id, entry.name);
+      // Destination choisie par l'utilisateur : sans cela le nom du setup était
+      // pris pour un chemin et le fichier finissait dans le dossier courant du
+      // processus (invisible pour l'utilisateur, voire refusé en écriture).
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const dest = await save({
+        defaultPath: entry.name,
+        filters: [{ name: "Setup LMU", extensions: ["svm"] }],
+      });
+      if (!dest) return; // export annulé
+      await setupsApi.export(entry.id, dest);
       toastSuccess(t("setupDetail.exported"));
     } catch (e) {
       toastError(`${t("setupDetail.errExport")} : ${e}`);

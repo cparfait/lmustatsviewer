@@ -337,7 +337,10 @@ export function Onboarding() {
                 onClick={handleBrowse}
               >
                 <FolderSearch className="h-5 w-5 text-primary shrink-0" />
-                <div className="text-left">
+                {/* `min-w-0` + `whitespace-normal` : sans ça le chemin choisi
+                    déborde de la carte (le bouton impose `whitespace-nowrap`
+                    et un enfant flex refuse de rétrécir sous son contenu). */}
+                <div className="text-left min-w-0 flex-1 whitespace-normal">
                   <div className="text-sm font-medium">
                     {t("onboarding.browse")}
                   </div>

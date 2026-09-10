@@ -1683,6 +1683,10 @@ export default {
     mustContain: "The folder must contain",
     startIndex: "Start indexing",
     resultsNotFound: "Results folder not found. Check the path.",
+    skip: "Continue without the game",
+    skipHint: "You can set it up later: the wizard comes back on the next launch.",
+    notConfigured: "No results folder configured — the app has no data to show.",
+    configureNow: "Set up",
   },
   tour: {
     skip: "Skip",

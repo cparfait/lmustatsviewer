@@ -42,6 +42,12 @@ interface AppState {
   configLoaded: boolean;
   /** true quand le dossier de résultats est configuré (= onboarding fait). */
   isConfigured: boolean;
+  /**
+   * L'utilisateur a choisi d'entrer dans l'app sans configurer (pas le jeu
+   * installé, découverte de l'outil…). **Volontairement non persisté** : au
+   * prochain lancement, si rien n'est renseigné, l'onboarding est reproposé.
+   */
+  onboardingSkipped: boolean;
 
   // Configuration
   playerName: string;
@@ -156,6 +162,10 @@ interface AppState {
 
   // Actions
   init: () => Promise<void>;
+  /** Entre dans l'app sans configuration (le temps de la session seulement). */
+  skipOnboarding: () => void;
+  /** Rouvre l'assistant de configuration depuis la bannière. */
+  resumeOnboarding: () => void;
   runSetup: (
     lmuPath: string,
     playerName: string,
@@ -226,6 +236,7 @@ interface AppState {
 export const useAppStore = create<AppState>((set, get) => ({
   configLoaded: false,
   isConfigured: false,
+  onboardingSkipped: false,
   playerName: "",
   lmuPath: "",
   resultsDir: "",
@@ -481,6 +492,10 @@ export const useAppStore = create<AppState>((set, get) => ({
    }
   },
 
+  skipOnboarding: () => set({ onboardingSkipped: true }),
+
+  resumeOnboarding: () => set({ onboardingSkipped: false }),
+
   runSetup: async (lmuPath, playerName, resultsDir, telemetryDir) => {
     set({ indexing: true, indexReport: null });
     try {
@@ -497,6 +512,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         indexReport: report,
         isConfigured: true,
+        onboardingSkipped: false,
         playerName,
         lmuPath,
         resultsDir: cfg.results_dir ?? "",

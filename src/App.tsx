@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { SetupReminderBanner } from "@/components/SetupReminderBanner";
 import { Dashboard } from "@/routes/Dashboard";
 import { Sessions } from "@/routes/Sessions";
 import { SessionDetail } from "@/routes/SessionDetail";
@@ -39,7 +40,7 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const isLive = location.pathname.startsWith("/live");
-  const { configLoaded, isConfigured, init } = useAppStore();
+  const { configLoaded, isConfigured, onboardingSkipped, init } = useAppStore();
 
   useEffect(() => {
     init();
@@ -101,7 +102,11 @@ export default function App() {
     );
   }
 
-  const needsOnboarding = !isConfigured && !isLive;
+  // L'onboarding peut être passé (`onboardingSkipped`) pour entrer dans l'app
+  // sans le jeu. Le choix n'est **pas** persisté : au prochain lancement,
+  // l'assistant revient tant que rien n'est renseigné.
+  const needsOnboarding = !isConfigured && !onboardingSkipped && !isLive;
+  const showSetupReminder = !isConfigured && onboardingSkipped && !isLive;
 
   return (
     <TooltipProvider>
@@ -109,6 +114,7 @@ export default function App() {
       <DialogHost />
       {!isLive && !needsOnboarding && <Header />}
       {!isLive && !needsOnboarding && <UpdateBanner />}
+      {showSetupReminder && <SetupReminderBanner />}
       <main
         className={
           isLive

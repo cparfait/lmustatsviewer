@@ -842,6 +842,31 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-10 — Onboarding contournable (entrer sans le jeu)
+
+L'écran de bienvenue était un **mur** : `App.tsx` rendait `<Onboarding />` à la
+place de toutes les routes tant que `isConfigured` était faux, sans issue. Sur
+une machine sans Le Mans Ultimate (démo, poste de dev, curieux qui découvre
+l'outil), l'application était donc inaccessible.
+
+- `stores/app.ts` : `onboardingSkipped` + `skipOnboarding()` / `resumeOnboarding()`.
+  État **volontairement non persisté** (pas de `config.set`) : c'est ce qui
+  garantit le retour de l'assistant au prochain lancement tant que
+  `results_dir` est vide. `runSetup` le remet à `false`.
+- `Onboarding.tsx` : bouton « Continuer sans le jeu » sous la carte, visible aux
+  étapes `idle` / `error` / `manual` (pas pendant une détection ou une
+  indexation en cours).
+- `SetupReminderBanner.tsx` (nouveau) : bannière affichée quand
+  `!isConfigured && onboardingSkipped`, bouton « Configurer » → `resumeOnboarding()`
+  (retour à l'assistant, pas à la page Config : c'est le même parcours).
+- i18n ×4 (`onboarding.skip/skipHint/notConfigured/configureNow`) + changelog 1.0.5.
+
+L'app en mode « passé » lit un store vide (`bestLaps: []`, `dashboardStats: null`)
+— les pages affichent leurs états vides existants, aucune requête ne part.
+
+📋 **Prochaine étape** : vérifier à l'usage qu'aucune page ne suppose
+`playerName` non vide (Profil, Records) dans ce mode.
+
 ### 2026-09-05 — Lot 4 (étape 1/3) : outillage d'enregistrement de corpus
 
 Le harnais §14 disposait déjà de `FrameRecorder` (sérialisation JSONL) et de

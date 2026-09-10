@@ -1688,6 +1688,10 @@ export default {
     mustContain: "Der Ordner muss enthalten",
     startIndex: "Indizierung starten",
     resultsNotFound: "Ergebnisordner nicht gefunden. Prüfe den Pfad.",
+    skip: "Ohne das Spiel fortfahren",
+    skipHint: "Du kannst später einrichten: Der Assistent erscheint beim nächsten Start erneut.",
+    notConfigured: "Kein Ergebnisordner konfiguriert — die App zeigt keine Daten an.",
+    configureNow: "Einrichten",
   },
   tour: {
     skip: "Überspringen",

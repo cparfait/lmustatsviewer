@@ -16,6 +16,7 @@ import {
   CheckCircle,
   AlertTriangle,
   FolderSearch,
+  SkipForward,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { useTourStore } from "@/stores/tour";
@@ -34,6 +35,7 @@ type Step =
 export function Onboarding() {
   const { t } = useTranslation();
   const runSetup = useAppStore((s) => s.runSetup);
+  const skipOnboarding = useAppStore((s) => s.skipOnboarding);
   const [step, setStep] = useState<Step>("idle");
   const [detectResult, setDetectResult] = useState<DetectResult | null>(null);
   const [report, setReport] = useState<IndexReport | null>(null);
@@ -380,6 +382,26 @@ export function Onboarding() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Échappatoire : entrer dans l'app sans le jeu (découverte, PC sans LMU).
+            Non persisté → l'assistant est reproposé au prochain lancement tant
+            que rien n'est renseigné. */}
+        {(step === "idle" || step === "error" || step === "manual") && (
+          <div className="text-center space-y-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={skipOnboarding}
+            >
+              <SkipForward className="h-3.5 w-3.5 mr-2" />
+              {t("onboarding.skip")}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              {t("onboarding.skipHint")}
+            </p>
+          </div>
         )}
       </div>
     </div>

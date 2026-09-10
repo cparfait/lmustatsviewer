@@ -70,6 +70,19 @@ export const CHANGELOG: ChangelogEntry[] = [
     localized: true,
     sections: [
       {
+        kind: "added",
+        items: [
+          {
+            text: {
+              en: "The welcome screen can now be skipped. If Le Mans Ultimate is not installed on this computer — or you simply want to look around first — “Continue without the game” opens the app straight away. A banner reminds you that nothing is indexed and reopens the setup wizard in one click, and the wizard comes back on the next launch as long as no folder has been set.",
+              fr: "L'écran d'accueil peut maintenant être passé. Si Le Mans Ultimate n'est pas installé sur cet ordinateur — ou si vous voulez simplement jeter un œil à l'outil — « Continuer sans le jeu » ouvre l'application directement. Une bannière rappelle qu'aucune donnée n'est indexée et rouvre l'assistant en un clic, et l'assistant revient au prochain lancement tant qu'aucun dossier n'a été renseigné.",
+              es: "Ahora se puede omitir la pantalla de bienvenida. Si Le Mans Ultimate no está instalado en este ordenador — o simplemente quieres echar un vistazo — «Continuar sin el juego» abre la aplicación directamente. Un aviso recuerda que no hay datos indexados y reabre el asistente con un clic, y el asistente vuelve en el próximo inicio mientras no se haya indicado ninguna carpeta.",
+              de: "Der Willkommensbildschirm lässt sich jetzt überspringen. Ist Le Mans Ultimate auf diesem Rechner nicht installiert — oder willst du dich einfach erst umsehen — öffnet „Ohne das Spiel fortfahren“ die App direkt. Ein Hinweisbanner erinnert daran, dass nichts indiziert ist, und öffnet den Assistenten mit einem Klick erneut; der Assistent erscheint beim nächsten Start wieder, solange kein Ordner angegeben wurde.",
+            },
+          },
+        ],
+      },
+      {
         kind: "fixed",
         items: [
           {

@@ -1687,6 +1687,10 @@ export default {
     mustContain: "La carpeta debe contener",
     startIndex: "Iniciar indexación",
     resultsNotFound: "Carpeta de resultados no encontrada. Verifica la ruta.",
+    skip: "Continuar sin el juego",
+    skipHint: "Podrás configurarlo más tarde: el asistente volverá en el próximo inicio.",
+    notConfigured: "Ninguna carpeta de resultados configurada — la aplicación no muestra datos.",
+    configureNow: "Configurar",
   },
   tour: {
     skip: "Omitir",

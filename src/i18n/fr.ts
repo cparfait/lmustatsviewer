@@ -1689,6 +1689,10 @@ export default {
     mustContain: "Le dossier doit contenir",
     startIndex: "Lancer l'indexation",
     resultsNotFound: "Dossier Results introuvable. Vérifiez le chemin.",
+    skip: "Continuer sans le jeu",
+    skipHint: "Tu pourras configurer plus tard : l'assistant reviendra au prochain lancement.",
+    notConfigured: "Aucun dossier de résultats configuré — l'application n'affiche aucune donnée.",
+    configureNow: "Configurer",
   },
   tour: {
     skip: "Passer",

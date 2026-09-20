@@ -21,6 +21,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
+import { Select } from "@/components/ui/select";
 import { TableTitle } from "@/components/TableTitle";
 import { TrackFlag } from "@/components/TrackFlag";
 import { queries, type BestLapRow } from "@/lib/api";
@@ -200,61 +201,56 @@ export function References() {
       {/* Barre d'outils */}
       <Card>
         <CardContent className="flex flex-wrap items-center gap-3 p-3">
-          <select
+          <Select
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="h-9 min-w-[170px] rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">{t("references.allCircuits")}</option>
-            {circuitOptions.map((tr) => (
-              <option key={tr} value={tr}>
-                {tr}
-              </option>
-            ))}
-          </select>
-          <select
+            onValueChange={setFilter}
+            ariaLabel={t("references.allCircuits")}
+            className="min-w-[170px]"
+            options={[
+              { value: "", label: t("references.allCircuits") },
+              ...circuitOptions.map((tr) => ({ value: tr, label: tr })),
+            ]}
+          />
+          <Select
             value={classFilter}
-            onChange={(e) => {
-              setClassFilter(e.target.value);
+            onValueChange={(v) => {
+              setClassFilter(v);
               setCarFilter("");
               setVersionFilter("");
+              // Le circuit choisi peut ne pas exister dans la nouvelle classe :
+              // on le relâche plutôt que de laisser un filtre invisible actif.
+              if (v && filter && !benchmarks?.some((b) => b.carClass === v && b.track === filter)) {
+                setFilter("");
+              }
             }}
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">{t("references.allClasses")}</option>
-            {CLASS_DISPLAY.map(({ cls, label }) => (
-              <option key={cls} value={cls}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <select
+            ariaLabel={t("references.allClasses")}
+            options={[
+              { value: "", label: t("references.allClasses") },
+              ...CLASS_DISPLAY.map(({ cls, label }) => ({ value: cls, label })),
+            ]}
+          />
+          <Select
             value={carFilter}
-            onChange={(e) => {
-              setCarFilter(e.target.value);
+            onValueChange={(v) => {
+              setCarFilter(v);
               setVersionFilter("");
             }}
-            className="h-9 max-w-[220px] rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">{t("references.allCars")}</option>
-            {carOptions.map((car) => (
-              <option key={car} value={car}>
-                {car}
-              </option>
-            ))}
-          </select>
-          <select
+            ariaLabel={t("references.allCars")}
+            className="max-w-[220px]"
+            options={[
+              { value: "", label: t("references.allCars") },
+              ...carOptions.map((car) => ({ value: car, label: car })),
+            ]}
+          />
+          <Select
             value={versionFilter}
-            onChange={(e) => setVersionFilter(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">{t("header.allVersions")}</option>
-            {versionOptions.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
+            onValueChange={setVersionFilter}
+            ariaLabel={t("header.allVersions")}
+            options={[
+              { value: "", label: t("header.allVersions") },
+              ...versionOptions.map((v) => ({ value: v, label: v })),
+            ]}
+          />
           {(filter || classFilter || carFilter || versionFilter) && (
             <button
               type="button"

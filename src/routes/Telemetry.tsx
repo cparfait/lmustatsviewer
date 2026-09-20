@@ -209,14 +209,16 @@ export function Telemetry() {
       <Card>
         <CardContent className="p-3">
           <div className="flex flex-wrap items-center gap-2">
-            <FilterField icon={Flag} label={t("sessions.fCircuit")} value={fTrack} onChange={setFTrack}>
-              <option value="">{t("sessions.allTracks")}</option>
-              {options.tracks.map((tr) => (
-                <option key={tr} value={tr}>
-                  {tr}
-                </option>
-              ))}
-            </FilterField>
+            <FilterField
+              icon={Flag}
+              label={t("sessions.fCircuit")}
+              value={fTrack}
+              onChange={setFTrack}
+              options={[
+                { value: "", label: t("sessions.allTracks") },
+                ...options.tracks.map((tr) => ({ value: tr, label: tr })),
+              ]}
+            />
             <FilterField
               icon={Tag}
               label={t("sessions.fClass")}
@@ -225,30 +227,35 @@ export function Telemetry() {
                 setFClass(v);
                 setFCar("");
               }}
-            >
-              <option value="">{t("sessions.allClasses")}</option>
-              {options.classes.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </FilterField>
-            <FilterField icon={Car} label={t("sessions.fCar")} value={fCar} onChange={setFCar} className="max-w-[260px]">
-              <option value="">{t("sessions.allCars")}</option>
-              {options.cars.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </FilterField>
-            <FilterField icon={Timer} label={t("sessions.fSession")} value={fSession} onChange={setFSession}>
-              <option value="">{t("sessions.allTypes")}</option>
-              {options.sessions.map((st) => (
-                <option key={st} value={st}>
-                  {sessionTypeLabel(st, t)}
-                </option>
-              ))}
-            </FilterField>
+              options={[
+                { value: "", label: t("sessions.allClasses") },
+                ...options.classes.map((c) => ({ value: c, label: c })),
+              ]}
+            />
+            <FilterField
+              icon={Car}
+              label={t("sessions.fCar")}
+              value={fCar}
+              onChange={setFCar}
+              className="max-w-[260px]"
+              options={[
+                { value: "", label: t("sessions.allCars") },
+                ...options.cars.map((c) => ({ value: c, label: c })),
+              ]}
+            />
+            <FilterField
+              icon={Timer}
+              label={t("sessions.fSession")}
+              value={fSession}
+              onChange={setFSession}
+              options={[
+                { value: "", label: t("sessions.allTypes") },
+                ...options.sessions.map((st) => ({
+                  value: st,
+                  label: sessionTypeLabel(st, t),
+                })),
+              ]}
+            />
             {hasFilters && (
               <Button variant="ghost" size="sm" className="h-9 gap-1 text-xs text-muted-foreground" onClick={clearFilters}>
                 <X className="h-3.5 w-3.5" />

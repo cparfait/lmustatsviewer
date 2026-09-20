@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RefreshCw, Loader2, ExternalLink, List, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
+import { Select } from "@/components/ui/select";
 import { Tip } from "@/components/ui/tooltip";
 import type { AIProvider, ModelInfo } from "@/lib/ai/types";
 
@@ -25,7 +27,6 @@ export function AiModelPicker({
   value,
   onChange,
   onRefresh,
-  listId = "ai-model-options",
 }: {
   provider: AIProvider | undefined;
   models: ModelInfo[];
@@ -33,7 +34,6 @@ export function AiModelPicker({
   value: string;
   onChange: (v: string) => void;
   onRefresh: () => void;
-  listId?: string;
 }) {
   const { t } = useTranslation();
   // Liste par défaut ; le passage en saisie est explicite et ne survit pas à un
@@ -68,51 +68,38 @@ export function AiModelPicker({
     <div className="flex flex-col items-end gap-1">
       <div className="flex items-center gap-2">
         {showInput ? (
-          <input
-            list={listId}
+          <Combobox
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={onChange}
+            options={models.map((m) => ({ value: m.id, label: m.label }))}
             placeholder={
               example
                 ? t("config.aiModelPlaceholder", { id: example })
                 : t("config.aiModelPlaceholderPlain")
             }
-            spellCheck={false}
-            autoComplete="off"
+            ariaLabel={t("config.aiModelChoose")}
             className={fieldCls}
           />
         ) : (
-          <select
+          <Select
             value={value}
-            onChange={(e) => {
-              if (e.target.value === MANUAL) setManual(true);
-              else onChange(e.target.value);
+            onValueChange={(v) => {
+              if (v === MANUAL) setManual(true);
+              else onChange(v);
             }}
-            className={`${fieldCls} cursor-pointer`}
-          >
-            {/* Placeholder tant que rien n'est choisi (après changement de fournisseur). */}
-            {!value && (
-              <option value="" disabled>
-                {t("config.aiModelChoose")}
-              </option>
-            )}
-            {/* Id saisi à la main absent du sondage : affiché, jamais écrasé. */}
-            {value && !inList && <option value={value}>{value}</option>}
-            {models.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-            <option value={MANUAL}>{t("config.aiModelManual")}</option>
-          </select>
+            ariaLabel={t("config.aiModelChoose")}
+            className={fieldCls}
+            // Rien de choisi (après changement de fournisseur) : le placeholder
+            // tient lieu d'invite, sans option vide sélectionnable.
+            placeholder={t("config.aiModelChoose")}
+            options={[
+              // Id saisi à la main absent du sondage : affiché, jamais écrasé.
+              ...(value && !inList ? [{ value, label: value }] : []),
+              ...models.map((m) => ({ value: m.id, label: m.label })),
+              { value: MANUAL, label: t("config.aiModelManual") },
+            ]}
+          />
         )}
-        <datalist id={listId}>
-          {models.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-        </datalist>
         <Tip content={t("config.aiRefreshModels")} side="top">
           <Button
             variant="outline"

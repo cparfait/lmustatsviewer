@@ -16,6 +16,7 @@ import { useAppStore } from "@/stores/app";
 import { getProvider } from "@/lib/ai/providers";
 import { fetchModels } from "@/lib/ai/models";
 import type { ModelInfo } from "@/lib/ai/types";
+import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tip } from "@/components/ui/tooltip";
 import { AiModelPicker } from "@/components/AiModelPicker";
@@ -23,11 +24,7 @@ import { AiModelPicker } from "@/components/AiModelPicker";
 const SELECT_CLS =
   "h-8 max-w-[210px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer";
 
-export function VoiceCoachConfig({
-  listId = "voice-model-options",
-}: {
-  listId?: string;
-}) {
+export function VoiceCoachConfig() {
   const { t } = useTranslation();
   const aiProvider = useAppStore((s) => s.aiProvider);
   const aiModel = useAppStore((s) => s.aiModel);
@@ -117,24 +114,24 @@ export function VoiceCoachConfig({
               </Tip>
               {t("config.aiVoiceProvider")}
             </span>
-            <select
+            <Select
               value={voiceProviderId}
-              onChange={(e) => onProviderChange(e.target.value)}
+              onValueChange={onProviderChange}
+              ariaLabel={t("config.aiVoiceProvider")}
               className={SELECT_CLS}
-            >
-              {/* Seuls les fournisseurs CONFIGURÉS (cartes) sont proposés — leur
-                  clé est déjà saisie sur leur carte, rien à re-saisir ici. */}
-              {aiProviderList.map((id) => (
-                <option key={id} value={id}>
-                  {getProvider(id)?.name ?? id}
-                </option>
-              ))}
-              {aiCustomProviders.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name || d.baseUrl}
-                </option>
-              ))}
-            </select>
+              // Seuls les fournisseurs CONFIGURÉS (cartes) sont proposés — leur
+              // clé est déjà saisie sur leur carte, rien à re-saisir ici.
+              options={[
+                ...aiProviderList.map((id) => ({
+                  value: id,
+                  label: getProvider(id)?.name ?? id,
+                })),
+                ...aiCustomProviders.map((d) => ({
+                  value: d.id,
+                  label: d.name || d.baseUrl,
+                })),
+              ]}
+            />
           </div>
 
           {/* Modèle vocal (sondé chez le fournisseur vocal) */}
@@ -154,7 +151,6 @@ export function VoiceCoachConfig({
               value={aiVoiceModel}
               onChange={(v) => void setAIVoiceModel(v)}
               onRefresh={() => void refresh()}
-              listId={listId}
             />
           </div>
         </div>

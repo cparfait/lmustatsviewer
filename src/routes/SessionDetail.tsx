@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { SessionBadge } from "@/components/SessionBadge";
 import {
   Table,
@@ -1387,21 +1388,21 @@ function LapsTab({
             {t("sessionDetail.myLaps")}
           </Button>
         )}
-        <select
+        <Select
           value=""
-          onChange={(e) => {
-            if (e.target.value) scrollToDriver(Number(e.target.value));
+          onValueChange={(v) => {
+            if (v) scrollToDriver(Number(v));
           }}
-          className="h-9 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-        >
-          <option value="">{t("sessionDetail.goToDriver")}</option>
-          {driversWithLaps.map((r) => (
-            <option key={r.id} value={r.id}>
-              {carNumberPrefix(r.car_number)}
-              {r.driver_name}
-            </option>
-          ))}
-        </select>
+          ariaLabel={t("sessionDetail.goToDriver")}
+          className="text-xs"
+          options={[
+            { value: "", label: t("sessionDetail.goToDriver") },
+            ...driversWithLaps.map((r) => ({
+              value: String(r.id),
+              label: `${carNumberPrefix(r.car_number)}${r.driver_name}`,
+            })),
+          ]}
+        />
         <div className="ml-auto">
           <Legend
             items={[
@@ -2516,31 +2517,26 @@ function ComparisonTab({
                 />
                 {t("sessionDetail.driverN", { n: i + 1 })}
               </label>
-              <select
+              <Select
                 value={value}
-                onChange={(e) => setSlot(i, e.target.value)}
-                className="h-9 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">{t("sessionDetail.none")}</option>
-                {sortedDrivers.map((r) => {
-                  const takenElsewhere =
-                    r.driver_name !== value &&
-                    slots.includes(r.driver_name);
-                  return (
-                    <option
-                      key={r.id}
-                      value={r.driver_name}
-                      disabled={takenElsewhere}
-                    >
-                      {carNumberPrefix(r.car_number)}
-                      {r.driver_name}
-                      {takenElsewhere
-                        ? ` ${t("sessionDetail.alreadyChosen")}`
-                        : ""}
-                    </option>
-                  );
-                })}
-              </select>
+                onValueChange={(v) => setSlot(i, v)}
+                ariaLabel={t("sessionDetail.driverN", { n: i + 1 })}
+                className="text-xs"
+                options={[
+                  { value: "", label: t("sessionDetail.none") },
+                  ...sortedDrivers.map((r) => {
+                    const takenElsewhere =
+                      r.driver_name !== value && slots.includes(r.driver_name);
+                    return {
+                      value: r.driver_name,
+                      label:
+                        `${carNumberPrefix(r.car_number)}${r.driver_name}` +
+                        (takenElsewhere ? ` ${t("sessionDetail.alreadyChosen")}` : ""),
+                      disabled: takenElsewhere,
+                    };
+                  }),
+                ]}
+              />
             </div>
           ))}
         </CardContent>

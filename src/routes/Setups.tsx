@@ -19,6 +19,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Tip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import {
   Table,
   TableHeader,
@@ -418,28 +419,25 @@ function CarView({
             className="h-4 w-4 text-muted-foreground shrink-0"
             aria-label={t("setups.car")}
           />
-          <select
+          <Select
             value={activeCar ?? ""}
-            onChange={(e) => setActiveCar(e.target.value)}
-            className="flex-1 min-w-[280px] rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">{t("setups.selectCar")}</option>
-            {Object.entries(carOptions).map(([cls, gs]) => (
-              <optgroup key={cls} label={cls}>
-                {gs.map((g) => {
+            onValueChange={setActiveCar}
+            ariaLabel={t("setups.car")}
+            className="min-w-[280px] flex-1 px-3"
+            options={[
+              { value: "", label: t("setups.selectCar") },
+              ...Object.entries(carOptions).map(([cls, gs]) => ({
+                label: cls,
+                options: gs.map((g) => {
                   const total = g.tracks.reduce(
                     (acc, tr) => acc + tr.setups.length,
                     0
                   );
-                  return (
-                    <option key={g.car} value={g.car}>
-                      {g.car} ({total})
-                    </option>
-                  );
-                })}
-              </optgroup>
-            ))}
-          </select>
+                  return { value: g.car, label: `${g.car} (${total})` };
+                }),
+              })),
+            ]}
+          />
           {activeCar && (
             <CarImage
               carName={activeCar}
@@ -1143,18 +1141,19 @@ function CircuitView({
             className="h-4 w-4 text-muted-foreground shrink-0"
             aria-label={t("setups.circuit")}
           />
-          <select
+          <Select
             value={activeCircuit ?? ""}
-            onChange={(e) => setActiveCircuit(e.target.value)}
-            className="flex-1 min-w-[280px] rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">{t("setups.selectCircuit")}</option>
-            {circuitsList.map((c) => (
-              <option key={c.name} value={c.name}>
-                {c.name} ({c.count})
-              </option>
-            ))}
-          </select>
+            onValueChange={setActiveCircuit}
+            ariaLabel={t("setups.circuit")}
+            className="min-w-[280px] flex-1 px-3"
+            options={[
+              { value: "", label: t("setups.selectCircuit") },
+              ...circuitsList.map((c) => ({
+                value: c.name,
+                label: `${c.name} (${c.count})`,
+              })),
+            ]}
+          />
         </CardContent>
       </Card>
 

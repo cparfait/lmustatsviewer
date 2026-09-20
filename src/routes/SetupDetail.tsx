@@ -2,6 +2,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router";
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/SourceBadge";
 import { CarImage } from "@/components/CarImage";
@@ -390,15 +391,17 @@ export function SetupDetail() {
           <label className="block text-micro font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1">
             {t("setupDetail.type")}
           </label>
-          <select
+          <Select
             value={entry.setup_type}
-            onChange={(e) => handleTypeChange(e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="Course">{t("setupDetail.typeRace")}</option>
-            <option value="Qualif">{t("setupDetail.typeQualif")}</option>
-            <option value="Autres">{t("setupDetail.typeOther")}</option>
-          </select>
+            onValueChange={handleTypeChange}
+            ariaLabel={t("setupDetail.type")}
+            className="w-full px-3"
+            options={[
+              { value: "Course", label: t("setupDetail.typeRace") },
+              { value: "Qualif", label: t("setupDetail.typeQualif") },
+              { value: "Autres", label: t("setupDetail.typeOther") },
+            ]}
+          />
         </div>
         <div>
           <label className="block text-micro font-bold tracking-[0.15em] uppercase text-muted-foreground mb-1">

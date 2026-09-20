@@ -65,8 +65,7 @@ export const APP_VERSION: string = __APP_VERSION__;
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.0.5",
-    date: "2026-09-05",
-    dev: true,
+    date: "2026-09-20",
     localized: true,
     sections: [
       {
@@ -85,6 +84,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            featured: true,
+            text: {
+              en: "Drop-down menus open again everywhere in the app. Every menu — the filters on References, Sessions, Dashboard, Records and Telemetry, the car and circuit pickers in Setups, the settings in Config — relied on Windows to draw its list. On some setups, typically several screens with different scalings, that list appeared off-screen or empty: a coloured frame lit up around the field and nothing could be selected. The application now draws all these menus itself, right under the field, with the app's own colours, a check mark on the current choice and keyboard navigation. The two remaining controls that depended on a system window went the same way: the model-name suggestions in the AI settings, and the overlay accent colour, which now opens an in-app picker with a hue bar, a hex field and preset swatches.",
+              fr: "Les menus déroulants s'ouvrent à nouveau partout dans l'application. Chacun d'eux — les filtres de Références, Sessions, Tableau de bord, Records et Télémétrie, les sélecteurs de voiture et de circuit des Setups, les réglages de la Config — laissait Windows afficher sa liste. Sur certaines configurations, typiquement plusieurs écrans avec des mises à l'échelle différentes, cette liste s'ouvrait hors de l'écran ou vide : un cadre coloré apparaissait autour du champ sans qu'on puisse rien sélectionner. L'application dessine désormais tous ces menus elle-même, juste sous le champ, à ses couleurs, avec une coche sur le choix courant et la navigation au clavier. Les deux derniers contrôles qui dépendaient d'une fenêtre système y passent aussi : les suggestions de nom de modèle dans les réglages IA, et la couleur d'accent des overlays, qui ouvre maintenant un sélecteur intégré avec barre de teinte, saisie hexadécimale et préréglages.",
+              es: "Los menús desplegables vuelven a abrirse en toda la aplicación. Todos ellos — los filtros de Referencias, Sesiones, Panel, Récords y Telemetría, los selectores de coche y circuito de los Setups, los ajustes de la Configuración — dejaban que Windows mostrara su lista. En algunas configuraciones, normalmente varias pantallas con escalados distintos, esa lista aparecía fuera de pantalla o vacía: solo se veía un marco de color alrededor del campo y no se podía seleccionar nada. Ahora la aplicación dibuja todos estos menús por sí misma, justo debajo del campo, con sus colores, una marca en la opción actual y navegación con el teclado. Los dos últimos controles que dependían de una ventana del sistema siguen el mismo camino: las sugerencias de nombre de modelo en los ajustes de IA y el color de acento de los overlays, que ahora abre un selector integrado con barra de tono, campo hexadecimal y colores predefinidos.",
+              de: "Aufklappmenüs lassen sich in der ganzen Anwendung wieder öffnen. Jedes von ihnen — die Filter in Referenzen, Sitzungen, Übersicht, Rekorde und Telemetrie, die Fahrzeug- und Streckenauswahl in den Setups, die Einstellungen in der Konfiguration — überließ die Liste Windows. Auf manchen Systemen, typischerweise mehrere Bildschirme mit unterschiedlicher Skalierung, erschien diese Liste außerhalb des Bildschirms oder leer: Um das Feld leuchtete nur ein farbiger Rahmen, auswählen ließ sich nichts. Die Anwendung zeichnet jetzt all diese Menüs selbst, direkt unter dem Feld, in ihren Farben, mit einem Haken bei der aktuellen Auswahl und Tastaturbedienung. Die beiden letzten Bedienelemente, die auf ein Systemfenster angewiesen waren, folgen ebenfalls: die Modellnamen-Vorschläge in den KI-Einstellungen und die Akzentfarbe der Overlays, die jetzt einen integrierten Farbwähler mit Farbtonleiste, Hex-Feld und Vorgaben öffnet.",
+            },
+          },
           {
             featured: true,
             text: {

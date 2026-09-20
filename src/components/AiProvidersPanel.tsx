@@ -19,6 +19,7 @@ import { PROVIDERS, getProvider } from "@/lib/ai/providers";
 import { ai } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Tip } from "@/components/ui/tooltip";
 
 type Probe = "probing" | "ok" | "fail";
@@ -175,17 +176,13 @@ function ProviderForm({
           {editId ? (
             <span className="text-sm font-medium">{getProvider(editId)?.name}</span>
           ) : (
-            <select
+            <Select
               value={builtinId}
-              onChange={(e) => setBuiltinId(e.target.value)}
-              className="h-8 w-[240px] cursor-pointer rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              {available.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              onValueChange={setBuiltinId}
+              ariaLabel={t("config.aiProvider")}
+              className="h-8 w-[240px] px-2.5"
+              options={available.map((p) => ({ value: p.id, label: p.name }))}
+            />
           )}
         </label>
       ) : (

@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ColorPicker } from "@/components/ui/color-picker";
+import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -292,18 +294,20 @@ export function Overlays() {
                   <p className="text-[11px] leading-snug text-muted-foreground">
                     {t("overlays.targetLevelHint")}
                   </p>
-                  <select
+                  <Select
                     value={overlayTargetTier}
-                    onChange={(e) =>
-                      useAppStore.getState().setOverlayTargetTier(e.target.value)
+                    onValueChange={(v) =>
+                      useAppStore.getState().setOverlayTargetTier(v)
                     }
-                    className="h-8 w-full cursor-pointer rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    <option value="alien">{t("config.targetAlien")}</option>
-                    <option value="competitive">{t("config.targetCompetitive")}</option>
-                    <option value="good">{t("config.targetGood")}</option>
-                    <option value="midpack">{t("config.targetMidpack")}</option>
-                  </select>
+                    ariaLabel={t("overlays.targetLevel")}
+                    className="h-8 w-full px-2.5"
+                    options={[
+                      { value: "alien", label: t("config.targetAlien") },
+                      { value: "competitive", label: t("config.targetCompetitive") },
+                      { value: "good", label: t("config.targetGood") },
+                      { value: "midpack", label: t("config.targetMidpack") },
+                    ]}
+                  />
                 </div>
               )}
             </TabsContent>
@@ -335,14 +339,10 @@ export function Overlays() {
               <div className="space-y-2">
                 <div className="text-sm font-medium">{t("overlays.color")}</div>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="color"
+                  <ColorPicker
                     value={s.accent ?? def.accent}
-                    onChange={(e) =>
-                      updateSettings(selected, { accent: e.target.value })
-                    }
-                    className="h-8 w-14 cursor-pointer rounded-md border border-border bg-background p-0.5"
-                    aria-label={t("overlays.color")}
+                    onChange={(hex) => updateSettings(selected, { accent: hex })}
+                    ariaLabel={t("overlays.color")}
                   />
                   <span className="font-mono text-xs text-muted-foreground">
                     {(s.accent ?? def.accent).toUpperCase()}
@@ -485,21 +485,18 @@ export function Overlays() {
             <Plus className="h-4 w-4" />
           </Button>
           {/* Sélection d'un profil → le charge (le bouton ci-contre le ré-enregistre). */}
-          <select
+          <Select
             value={cfg.activeProfile}
-            onChange={(e) => {
-              const name = e.target.value;
+            onValueChange={(name) => {
               if (name) loadProfile(name);
             }}
-            className="h-8 rounded-md border border-border bg-background px-2 text-sm"
-          >
-            <option value="">{t("overlays.profileNone")}</option>
-            {Object.keys(cfg.profiles).map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
+            ariaLabel={t("overlays.profileNone")}
+            className="h-8 border-border"
+            options={[
+              { value: "", label: t("overlays.profileNone") },
+              ...Object.keys(cfg.profiles).map((name) => ({ value: name, label: name })),
+            ]}
+          />
           {/* Ré-enregistre l'état courant dans le profil actif (désactivé si aucun).
               La création d'un nouveau profil passe désormais par le bouton « + ». */}
           <Button

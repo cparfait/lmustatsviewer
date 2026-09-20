@@ -350,28 +350,22 @@ export function Dashboard() {
                 setTrack(v);
                 setTrackCourse("");
               }}
-            >
-              <option value="">{t("sessions.allTracks")}</option>
-              {tracks.map((tr) => (
-                <option key={tr} value={tr}>
-                  {tr}
-                </option>
-              ))}
-            </FilterField>
+              options={[
+                { value: "", label: t("sessions.allTracks") },
+                ...tracks.map((tr) => ({ value: tr, label: tr })),
+              ]}
+            />
             {layouts.length > 0 && (
               <FilterField
                 icon={Route}
                 label={t("sessions.fLayout")}
                 value={trackCourse}
                 onChange={setTrackCourse}
-              >
-                <option value="">{t("sessions.allLayouts")}</option>
-                {layouts.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
-                ))}
-              </FilterField>
+                options={[
+                  { value: "", label: t("sessions.allLayouts") },
+                  ...layouts.map((l) => ({ value: l, label: l })),
+                ]}
+              />
             )}
             <FilterField
               icon={Tag}
@@ -381,14 +375,11 @@ export function Dashboard() {
                 setCarClass(v);
                 setCar("");
               }}
-            >
-              <option value="">{t("sessions.allClasses")}</option>
-              {classes.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </FilterField>
+              options={[
+                { value: "", label: t("sessions.allClasses") },
+                ...classes.map((c) => ({ value: c, label: c })),
+              ]}
+            />
             {cars.length > 0 && (
               <FilterField
                 icon={Car}
@@ -396,42 +387,36 @@ export function Dashboard() {
                 value={car}
                 onChange={setCar}
                 className="max-w-[260px]"
-              >
-                <option value="">{t("sessions.allCars")}</option>
-                {cars.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </FilterField>
+                options={[
+                  { value: "", label: t("sessions.allCars") },
+                  ...cars.map((c) => ({ value: c, label: c })),
+                ]}
+              />
             )}
             <FilterField
               icon={Timer}
               label={t("sessions.fSession")}
               value={sessionType}
               onChange={setSessionType}
-            >
-              <option value="">{t("sessions.allTypes")}</option>
-              {(filterOptions?.session_types ?? []).map((st) => (
-                <option key={st} value={st}>
-                  {sessionTypeLabel(st, t)}
-                </option>
-              ))}
-            </FilterField>
+              options={[
+                { value: "", label: t("sessions.allTypes") },
+                ...(filterOptions?.session_types ?? []).map((st) => ({
+                  value: st,
+                  label: sessionTypeLabel(st, t),
+                })),
+              ]}
+            />
             {settings.length > 1 && (
               <FilterField
                 icon={Globe}
                 label={t("sessions.fMode")}
                 value={setting}
                 onChange={setSetting}
-              >
-                <option value="">{t("sessions.allSettings")}</option>
-                {settings.map((s) => (
-                  <option key={s} value={s}>
-                    {settingLabel(s, t)}
-                  </option>
-                ))}
-              </FilterField>
+                options={[
+                  { value: "", label: t("sessions.allSettings") },
+                  ...settings.map((s) => ({ value: s, label: settingLabel(s, t) })),
+                ]}
+              />
             )}
             {gameVersions.length > 0 && (
               <FilterField
@@ -439,14 +424,14 @@ export function Dashboard() {
                 label={t("sessions.fVersion")}
                 value={selectedVersion ?? ""}
                 onChange={(v) => setSelectedVersion(v || null)}
-              >
-                <option value="">{t("header.allVersions")}</option>
-                {gameVersions.map((v) => (
-                  <option key={v} value={v}>
-                    {versionExact ? "=" : "≥"} {v}
-                  </option>
-                ))}
-              </FilterField>
+                options={[
+                  { value: "", label: t("header.allVersions") },
+                  ...gameVersions.map((v) => ({
+                    value: v,
+                    label: `${versionExact ? "=" : "≥"} ${v}`,
+                  })),
+                ]}
+              />
             )}
             {gameVersions.length > 0 && selectedVersion && (
               <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none whitespace-nowrap">

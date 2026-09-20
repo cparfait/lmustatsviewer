@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -247,31 +248,28 @@ function Overview({
               className="pl-8"
             />
           </div>
-          <select
+          <Select
             value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">{t("records.mvAllClasses")}</option>
-            {classes.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            onValueChange={setClassFilter}
+            ariaLabel={t("records.mvAllClasses")}
+            options={[
+              { value: "", label: t("records.mvAllClasses") },
+              ...classes.map((c) => ({ value: c, label: c })),
+            ]}
+          />
           {gameVersions.length > 0 && (
-            <select
+            <Select
               value={selectedVersion ?? ""}
-              onChange={(e) => setSelectedVersion(e.target.value || null)}
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">{t("header.allVersions")}</option>
-              {gameVersions.map((v) => (
-                <option key={v} value={v}>
-                  {versionExact ? "=" : "≥"} {v}
-                </option>
-              ))}
-            </select>
+              onValueChange={(v) => setSelectedVersion(v || null)}
+              ariaLabel={t("header.allVersions")}
+              options={[
+                { value: "", label: t("header.allVersions") },
+                ...gameVersions.map((v) => ({
+                  value: v,
+                  label: `${versionExact ? "=" : "≥"} ${v}`,
+                })),
+              ]}
+            />
           )}
           {gameVersions.length > 0 && selectedVersion && (
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none whitespace-nowrap">

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -971,28 +972,23 @@ export function ConfigV2() {
                                 <div className="text-xs font-medium">
                                   {t("config.overlayTarget")}
                                 </div>
-                                <select
+                                <Select
                                   value={overlayTargetTier}
-                                  onChange={(e) =>
-                                    useAppStore
-                                      .getState()
-                                      .setOverlayTargetTier(e.target.value)
+                                  onValueChange={(v) =>
+                                    useAppStore.getState().setOverlayTargetTier(v)
                                   }
-                                  className="h-8 max-w-[180px] rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-                                >
-                                  <option value="alien">
-                                    {t("config.targetAlien")}
-                                  </option>
-                                  <option value="competitive">
-                                    {t("config.targetCompetitive")}
-                                  </option>
-                                  <option value="good">
-                                    {t("config.targetGood")}
-                                  </option>
-                                  <option value="midpack">
-                                    {t("config.targetMidpack")}
-                                  </option>
-                                </select>
+                                  ariaLabel={t("config.overlayTarget")}
+                                  className="h-8 max-w-[180px]"
+                                  options={[
+                                    { value: "alien", label: t("config.targetAlien") },
+                                    {
+                                      value: "competitive",
+                                      label: t("config.targetCompetitive"),
+                                    },
+                                    { value: "good", label: t("config.targetGood") },
+                                    { value: "midpack", label: t("config.targetMidpack") },
+                                  ]}
+                                />
                               </div>
                               <p className="text-[11px] leading-snug text-muted-foreground">
                                 {t("config.overlayTargetDesc")}
@@ -1098,20 +1094,16 @@ export function ConfigV2() {
                     desc={t("config.timezoneDesc")}
                     tip={t("config.timezoneTip")}
                   >
-                    <select
+                    <Select
                       value={timezone}
-                      onChange={(e) =>
-                        useAppStore.getState().setTimezone(e.target.value)
-                      }
-                      className="h-8 max-w-[200px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-                    >
-                      <option value="">{t("config.timezoneSystem")}</option>
-                      {TIMEZONES.map((tz) => (
-                        <option key={tz} value={tz}>
-                          {tz}
-                        </option>
-                      ))}
-                    </select>
+                      onValueChange={(v) => useAppStore.getState().setTimezone(v)}
+                      ariaLabel={t("config.timezone")}
+                      className="h-8 max-w-[200px] px-2.5"
+                      options={[
+                        { value: "", label: t("config.timezoneSystem") },
+                        ...TIMEZONES.map((tz) => ({ value: tz, label: tz })),
+                      ]}
+                    />
                   </SettingRow>
                   <Separator />
                   <ToggleRow
@@ -1412,24 +1404,20 @@ export function ConfigV2() {
                               {t("config.voiceEngineDesc")}
                             </div>
                           </div>
-                          <select
+                          <Select
                             value={voiceEngine}
-                            onChange={(e) =>
+                            onValueChange={(v) =>
                               useAppStore
                                 .getState()
-                                .setVoiceEngine(
-                                  e.target.value === "system" ? "system" : "piper",
-                                )
+                                .setVoiceEngine(v === "system" ? "system" : "piper")
                             }
-                            className="h-8 rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer shrink-0"
-                          >
-                            <option value="piper">
-                              {t("config.voiceEnginePiper")}
-                            </option>
-                            <option value="system">
-                              {t("config.voiceEngineSystem")}
-                            </option>
-                          </select>
+                            ariaLabel={t("config.voiceEngine")}
+                            className="h-8 shrink-0 px-2.5"
+                            options={[
+                              { value: "piper", label: t("config.voiceEnginePiper") },
+                              { value: "system", label: t("config.voiceEngineSystem") },
+                            ]}
+                          />
                         </div>
                         <div className="flex items-center justify-between gap-3 pt-1">
                           <div className="min-w-0">
@@ -1442,38 +1430,39 @@ export function ConfigV2() {
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {voiceEngine === "piper" ? (
-                              <select
+                              <Select
                                 value={piperVoiceValue}
-                                onChange={(e) => onPiperVoiceChange(e.target.value)}
-                                className="h-8 max-w-[220px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-                              >
-                                <option value="">{t("config.voiceAuto")}</option>
-                                {piperOptions.map((o) => (
-                                  <option key={o.value} value={o.value}>
-                                    {o.label}
-                                  </option>
-                                ))}
-                              </select>
+                                onValueChange={onPiperVoiceChange}
+                                ariaLabel={t("config.voiceVoice")}
+                                className="h-8 max-w-[220px] px-2.5"
+                                options={[
+                                  { value: "", label: t("config.voiceAuto") },
+                                  ...piperOptions.map((o) => ({
+                                    value: o.value,
+                                    label: o.label,
+                                  })),
+                                ]}
+                              />
                             ) : (
-                              <select
+                              <Select
                                 value={voiceUri}
-                                onChange={(e) =>
-                                  useAppStore
-                                    .getState()
-                                    .setVoiceUri(i18n.language, e.target.value)
+                                onValueChange={(v) =>
+                                  useAppStore.getState().setVoiceUri(i18n.language, v)
                                 }
-                                className="h-8 max-w-[220px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-                              >
-                                <option value="">{t("config.voiceAuto")}</option>
-                                {voiceList.map((v) => (
-                                  <option key={v.voiceURI} value={v.voiceURI}>
-                                    {v.name}
-                                    {isNaturalVoice(v)
-                                      ? ` — ${t("config.voiceNaturalTag")}`
-                                      : ""}
-                                  </option>
-                                ))}
-                              </select>
+                                ariaLabel={t("config.voiceVoice")}
+                                className="h-8 max-w-[220px] px-2.5"
+                                options={[
+                                  { value: "", label: t("config.voiceAuto") },
+                                  ...voiceList.map((v) => ({
+                                    value: v.voiceURI,
+                                    label:
+                                      v.name +
+                                      (isNaturalVoice(v)
+                                        ? ` — ${t("config.voiceNaturalTag")}`
+                                        : ""),
+                                  })),
+                                ]}
+                              />
                             )}
                             <Button
                               variant="outline"
@@ -1851,33 +1840,34 @@ export function ConfigV2() {
 
                     <Separator />
                     <SettingRow icon={<Globe className="h-4 w-4" />} label={t("config.aiProviderActive")} tip={t("config.aiProviderTip")}>
-                      <select
+                      <Select
                         value={aiProvider}
-                        onChange={(e) =>
-                          void useAppStore.getState().setAIProvider(e.target.value)
-                        }
-                        className="h-8 max-w-[200px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
-                      >
-                        {/* Seuls les fournisseurs CONFIGURÉS sont sélectionnables. La
-                            valeur active hors liste (état hérité) reste affichée. */}
-                        {aiProvider &&
+                        onValueChange={(v) => void useAppStore.getState().setAIProvider(v)}
+                        ariaLabel={t("config.aiProviderActive")}
+                        className="h-8 max-w-[200px] px-2.5"
+                        // Seuls les fournisseurs CONFIGURÉS sont sélectionnables. La
+                        // valeur active hors liste (état hérité) reste affichée.
+                        options={[
+                          ...(aiProvider &&
                           !aiProviderList.includes(aiProvider) &&
-                          !aiCustomProviders.some((d) => d.id === aiProvider) && (
-                            <option value={aiProvider}>
-                              {getProvider(aiProvider)?.name ?? aiProvider}
-                            </option>
-                          )}
-                        {aiProviderList.map((id) => (
-                          <option key={id} value={id}>
-                            {getProvider(id)?.name ?? id}
-                          </option>
-                        ))}
-                        {aiCustomProviders.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name || d.baseUrl}
-                          </option>
-                        ))}
-                      </select>
+                          !aiCustomProviders.some((d) => d.id === aiProvider)
+                            ? [
+                                {
+                                  value: aiProvider,
+                                  label: getProvider(aiProvider)?.name ?? aiProvider,
+                                },
+                              ]
+                            : []),
+                          ...aiProviderList.map((id) => ({
+                            value: id,
+                            label: getProvider(id)?.name ?? id,
+                          })),
+                          ...aiCustomProviders.map((d) => ({
+                            value: d.id,
+                            label: d.name || d.baseUrl,
+                          })),
+                        ]}
+                      />
                     </SettingRow>
 
                     <Separator />
@@ -1889,11 +1879,10 @@ export function ConfigV2() {
                         value={aiModel}
                         onChange={(v) => void useAppStore.getState().setAIModel(v)}
                         onRefresh={() => void refreshAiModels()}
-                        listId="cfgv2-model-options"
                       />
                     </SettingRow>
 
-                    <VoiceCoachConfig listId="cfgv2-voice-model-options" />
+                    <VoiceCoachConfig />
 
                     <Separator />
                     <div className="py-2">

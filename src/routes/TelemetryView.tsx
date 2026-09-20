@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Loader2, ArrowLeft, Play, Pause, ChevronDown, ChevronUp, LocateFixed, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select } from "@/components/ui/select";
 import { TrackFlag } from "@/components/TrackFlag";
 import { CarLogo } from "@/components/CarLogo";
 import { ClassBadge } from "@/components/ClassBadge";
@@ -719,23 +720,24 @@ export function TelemetryView() {
             <label className="text-micro uppercase tracking-wide text-muted-foreground">
               {t("telemetry.selectLap")}
             </label>
-            <select
+            <Select
               value={lap === null ? "" : String(lap)}
-              onChange={(e) => {
-                const v = e.target.value === "" ? null : Number(e.target.value);
+              onValueChange={(raw) => {
+                const v = raw === "" ? null : Number(raw);
                 setLap(v);
                 // Comparaison seulement avec un tour principal précis.
                 if (v === null) setRefPath(null);
               }}
-              className="h-8 rounded-md border border-border bg-background px-2 text-sm"
-            >
-              <option value="">{t("telemetry.wholeSession")}</option>
-              {meta.laps.map((l) => (
-                <option key={l.lap} value={l.lap}>
-                  {t("telemetry.lapN", { n: l.lap })} — {formatGap(l.duration)}
-                </option>
-              ))}
-            </select>
+              ariaLabel={t("telemetry.selectLap")}
+              className="h-8 border-border"
+              options={[
+                { value: "", label: t("telemetry.wholeSession") },
+                ...meta.laps.map((l) => ({
+                  value: String(l.lap),
+                  label: `${t("telemetry.lapN", { n: l.lap })} — ${formatGap(l.duration)}`,
+                })),
+              ]}
+            />
             {lap !== null && (
               <>
                 <label className="text-micro uppercase tracking-wide text-muted-foreground">
@@ -745,31 +747,35 @@ export function TelemetryView() {
                   {t("telemetry.compareHelp")}
                 </p>
                 {/* Session de référence (même circuit — éventuellement la même) */}
-                <select
+                <Select
                   value={refPath ?? ""}
-                  onChange={(e) => setRefPath(e.target.value || null)}
-                  className="h-8 rounded-md border border-border bg-background px-2 text-sm"
-                >
-                  <option value="">{t("telemetry.compareNone")}</option>
-                  {/* Référence importée (hors dossier Telemetry) → option dédiée. */}
-                  {refPath && !files.some((f) => f.path === refPath) && (
-                    <option value={refPath}>
-                      📄 {refPath.split(/[\\/]/).pop()}
-                    </option>
-                  )}
-                  {files
-                    .filter((f) => f.track === meta.info.track)
-                    .map((f) => (
-                      <option key={f.path} value={f.path}>
-                        {f.path === path ? `★ ${t("telemetry.sameSession")}` : ""}
-                        {f.path === path ? " · " : ""}
-                        {sessionTypeLabel(f.session_type, t)} ·{" "}
-                        {f.car_model || f.car_name}
-                        {f.best_lap != null ? ` · ${formatTime(f.best_lap)}` : ""} ·{" "}
-                        {formatDateTime(f.mtime)}
-                      </option>
-                    ))}
-                </select>
+                  onValueChange={(v) => setRefPath(v || null)}
+                  ariaLabel={t("telemetry.compareWith")}
+                  className="h-8 border-border"
+                  options={[
+                    { value: "", label: t("telemetry.compareNone") },
+                    // Référence importée (hors dossier Telemetry) → option dédiée.
+                    ...(refPath && !files.some((f) => f.path === refPath)
+                      ? [
+                          {
+                            value: refPath,
+                            label: `📄 ${refPath.split(/[\\/]/).pop()}`,
+                          },
+                        ]
+                      : []),
+                    ...files
+                      .filter((f) => f.track === meta.info.track)
+                      .map((f) => ({
+                        value: f.path,
+                        label:
+                          (f.path === path ? `★ ${t("telemetry.sameSession")} · ` : "") +
+                          `${sessionTypeLabel(f.session_type, t)} · ` +
+                          `${f.car_model || f.car_name}` +
+                          (f.best_lap != null ? ` · ${formatTime(f.best_lap)}` : "") +
+                          ` · ${formatDateTime(f.mtime)}`,
+                      })),
+                  ]}
+                />
                 {/* Import d'un fichier de référence partagé (.duckdb, n'importe où) */}
                 <button
                   type="button"
@@ -781,21 +787,18 @@ export function TelemetryView() {
                 </button>
                 {/* Tour de référence dans le fichier choisi */}
                 {refPath && refMeta && (
-                  <select
+                  <Select
                     value={refLap === null ? "" : String(refLap)}
-                    onChange={(e) =>
-                      setRefLap(e.target.value === "" ? null : Number(e.target.value))
-                    }
-                    className="h-8 rounded-md border border-border bg-background px-2 text-sm"
-                  >
-                    {refMeta.laps
+                    onValueChange={(v) => setRefLap(v === "" ? null : Number(v))}
+                    ariaLabel={t("telemetry.compareWith")}
+                    className="h-8 border-border"
+                    options={refMeta.laps
                       .filter((l) => !(refPath === path && l.lap === lap))
-                      .map((l) => (
-                        <option key={l.lap} value={l.lap}>
-                          {t("telemetry.lapN", { n: l.lap })} — {formatGap(l.duration)}
-                        </option>
-                      ))}
-                  </select>
+                      .map((l) => ({
+                        value: String(l.lap),
+                        label: `${t("telemetry.lapN", { n: l.lap })} — ${formatGap(l.duration)}`,
+                      }))}
+                  />
                 )}
                 {refMismatch && (
                   <div className="flex items-start gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-600 dark:text-amber-400">

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import {
   setups as setupsApi,
   type SetupEntry,
@@ -154,24 +155,24 @@ export function NewSetupDialog({
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               {t("setups.car")}
             </label>
-            <select
+            <Select
               value={car}
-              onChange={(e) => setCar(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">{t("setups.selectCar")}</option>
-              {(["hyper", "lmp2", "lmp3", "gt3", "gte"] as LmuCarCategory[]).map(
-                (cat) => (
-                  <optgroup key={cat} label={LMU_CAR_CATEGORY_LABELS[cat]}>
-                    {LMU_CARS.filter((c) => c.category === cat).map((c) => (
-                      <option key={c.model} value={c.model}>
-                        {c.model}
-                      </option>
-                    ))}
-                  </optgroup>
-                )
-              )}
-            </select>
+              onValueChange={setCar}
+              ariaLabel={t("setups.car")}
+              className="w-full px-3"
+              options={[
+                { value: "", label: t("setups.selectCar") },
+                ...(["hyper", "lmp2", "lmp3", "gt3", "gte"] as LmuCarCategory[]).map(
+                  (cat) => ({
+                    label: LMU_CAR_CATEGORY_LABELS[cat],
+                    options: LMU_CARS.filter((c) => c.category === cat).map((c) => ({
+                      value: c.model,
+                      label: c.model,
+                    })),
+                  })
+                ),
+              ]}
+            />
             {car && (
               <CarImage
                 carName={car}
@@ -184,18 +185,16 @@ export function NewSetupDialog({
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               {t("setups.circuitFolder")}
             </label>
-            <select
+            <Select
               value={circuit}
-              onChange={(e) => setCircuit(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">{t("setups.selectCircuit")}</option>
-              {circuitOptions.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              onValueChange={setCircuit}
+              ariaLabel={t("setups.circuitFolder")}
+              className="w-full px-3"
+              options={[
+                { value: "", label: t("setups.selectCircuit") },
+                ...circuitOptions.map((c) => ({ value: c, label: c })),
+              ]}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -216,17 +215,19 @@ export function NewSetupDialog({
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 {t("setups.newType")}
               </label>
-              <select
+              <Select
                 value={type}
-                onChange={(e) =>
-                  setType(e.target.value as "Qualif" | "Course" | "Autres")
+                onValueChange={(v) =>
+                  setType(v as "Qualif" | "Course" | "Autres")
                 }
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="Qualif">{t("setups.typeQualif")}</option>
-                <option value="Course">{t("setups.typeRace")}</option>
-                <option value="Autres">{t("setups.typeOther")}</option>
-              </select>
+                ariaLabel={t("setups.newType")}
+                className="w-full px-3"
+                options={[
+                  { value: "Qualif", label: t("setups.typeQualif") },
+                  { value: "Course", label: t("setups.typeRace") },
+                  { value: "Autres", label: t("setups.typeOther") },
+                ]}
+              />
             </div>
           </div>
 

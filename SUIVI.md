@@ -842,6 +842,87 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-19 — Menus déroulants : abandon du `<select>` natif (retour utilisateur)
+
+**Signalement** : sur la page Références, les menus « Tous les circuits / Toutes
+les catégories / … » n'affichaient **aucune liste** : seul un cadre orange
+(`focus:ring-ring`, `--color-ring: #D93B00`) apparaissait autour du champ.
+
+- ✅ **Cause retenue** : la liste d'un `<select>` **natif** est une **fenêtre
+  système** dessinée hors du webview. Sous WebView2, elle peut s'ouvrir hors
+  écran (multi-écrans à DPI différents — cas courant en simracing) ou sans
+  texte lisible. Le champ, lui, prend bien le focus → le cadre orange. Le
+  symptôme est donc **environnemental** : non reproductible ici, mais le
+  correctif supprime la dépendance à cette fenêtre système.
+- ✅ **`components/ui/select.tsx` (nouveau)** : menu déroulant rendu **dans le
+  DOM** (Radix `@radix-ui/react-select`, déjà en dépendance mais jamais utilisé
+  jusqu'ici), API proche du natif (`value` / `onValueChange` + `options`).
+  La valeur vide `""` de nos filtres « Tous / Toutes » est interdite par Radix
+  → transposée sur une sentinelle interne `__all__`.
+- ✅ **Migration complète : plus aucun `<select>` natif dans `src/`** (26
+  occurrences, 14 fichiers). Le symptôme étant environnemental, il touchait
+  toutes les pages, pas seulement Références.
+  - `References` (4 filtres) — au changement de catégorie, le circuit choisi
+    est relâché s'il n'existe pas dans la nouvelle (sinon filtre invisible).
+  - `FilterField` : API passée de `children` (`<option>`) à `options` →
+    **18 appels** réécrits dans `Dashboard`, `Sessions`, `Telemetry`. Le
+    conteneur redevient un `<div>` (un `<label>` autour d'un déclencheur Radix
+    renvoie un second clic qui referme le menu aussitôt).
+  - `Records` (2), `ui/pagination` (1), `NewSetupDialog` (3, dont un
+    `<optgroup>`), `AiModelPicker` (1 — l'option vide désactivée devient le
+    `placeholder` du déclencheur), `AiProvidersPanel` (1),
+    `VoiceCoachConfig` (1), `ConfigV2` (6), `Overlays` (2), `SessionDetail`
+    (2, dont options désactivées), `SetupDetail` (1), `Setups` (2, dont un
+    `<optgroup>`), `TelemetryView` (3).
+- ✅ **`ui/select.tsx` étendu** : groupes (`<optgroup>`), options désactivées,
+  clés d'items indexées (deux pilotes homonymes possibles), panneau en `z-80`
+  (au-dessus des modales `z-50`, toasts `z-60`, confirm `z-70`).
+- ✅ **`index.css`** : les règles `select`/`option`/`optgroup` (couleurs des
+  popups natives) sont supprimées — sans cible, et de toute façon impuissantes
+  face à une popup système hors écran.
+- ✅ **Validé** : `tsc -b` ✅, `eslint` ✅, `vite build` ✅. Vérifié en vrai dans
+  le navigateur (dev server) sur Références (ouverture, sélection, filtrage,
+  clair **et** sombre, liste longue scrollable), les filtres Sessions et le
+  sélecteur de pagination. Changelog 1.0.5 (`fixed` en avant, 4 langues) ✅.
+- ✅ **Vérifié dans l'app Tauri** (`tauri dev`, données réelles, dossier de jeu
+  lu depuis la config existante) : Références (le filtre signalé), Setups
+  (groupes par classe + modale « Nouveau setup », dont le panneau passe bien
+  au-dessus), Config (fuseau horaire, modèle IA), `FilterField` (Télémétrie :
+  sélection → tableau filtré), vue Télémétrie (tour + comparaison).
+
+**Lot 2 — les deux dernières fenêtres système (même jour)**
+
+- ✅ **`ui/use-anchored-panel.ts`** (nouveau) : panneau flottant ancré, position
+  `fixed` calculée depuis le rectangle du déclencheur (jamais rogné par un
+  parent en `overflow`), fermeture sur clic extérieur / Échap, suivi au
+  défilement. Mutualisé par les deux composants ci-dessous.
+- ✅ **`ui/combobox.tsx`** (nouveau) → remplace `<input list>` + `<datalist>`
+  dans `AiModelPicker`. La liste de suggestions d'un `<datalist>` est dessinée
+  dans une fenêtre système, comme la popup d'un `<select>`. Filtrage par
+  sous-chaîne, navigation clavier, valeur libre conservée. Le prop `listId`
+  (devenu mort) est retiré de `AiModelPicker`, `VoiceCoachConfig` et des 2
+  appels dans `ConfigV2`.
+- ✅ **`ui/color-picker.tsx`** (nouveau) → remplace `<input type="color">` dans
+  `Overlays`. Carré saturation/luminosité, barre de teinte, saisie hexa,
+  12 préréglages. Contrat identique (`#rrggbb`).
+- ✅ **Trois bugs trouvés au test réel, corrigés** :
+  1. la saisie hexa se réécrivait sous les doigts (« #22D3EE » était capturé
+     dès « #22D » par la forme courte à 3 chiffres) → forme courte développée
+     seulement à la sortie du champ ;
+  2. les curseurs tressautaient sur nos propres émissions (aller-retour
+     HSV → hexa → HSV non exact) → garde `emitted` ;
+  3. **le panneau se refermait aussitôt ouvert** : fermer au défilement était
+     trop large — un champ qui prend le focus provoque lui-même un défilement
+     (mise à l'écran par le navigateur) → on suit le déclencheur au lieu de
+     fermer, et on ne ferme que s'il quitte l'écran.
+- ✅ **Vérifié dans l'app Tauri** : préréglages, carré S/V, barre de teinte et
+  saisie hexa du sélecteur de couleur ; ouverture, filtrage (« 3.6 » → 1 seul
+  modèle) et sélection à la souris du combobox. Réglages de l'utilisateur
+  remis à l'identique après test (couleur d'accent Delta, modèle IA).
+- 📋 **Prochaine étape** : publier la 1.0.5 ; demander au reporter sa config
+  écrans **et** si le bouton « parcourir » d'un dossier a déjà échoué — si oui,
+  le problème est plus large que les popups de `<select>` (`plugin-dialog`).
+
 ### 2026-09-10 — Onboarding contournable (entrer sans le jeu)
 
 L'écran de bienvenue était un **mur** : `App.tsx` rendait `<Onboarding />` à la

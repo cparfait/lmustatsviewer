@@ -131,22 +131,11 @@
       "tnum" 1,
       "zero" 1;
   }
-  /* Menus déroulants natifs (`<select>`) — force la couleur des items
-     ouverts (sinon Chromium / Webview2 retombe sur le rendu système →
-     fond blanc sur thème sombre). */
-  select {
-    background-color: var(--color-popover);
-    color: var(--color-popover-foreground);
-  }
-  option,
-  optgroup {
-    background-color: var(--color-popover);
-    color: var(--color-popover-foreground);
-  }
-  option:checked {
-    background-color: var(--color-accent);
-    color: var(--color-accent-foreground);
-  }
+  /* Plus aucun `<select>` natif dans l'app : les menus déroulants passent tous
+     par `components/ui/select.tsx` (rendu dans le DOM). Les règles qui
+     forçaient ici la couleur des `option` ouvertes n'avaient donc plus de
+     cible — et ne pouvaient de toute façon rien contre une popup système qui
+     s'affiche hors écran. */
 }
 
 

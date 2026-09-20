@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface PaginationProps {
@@ -73,15 +74,12 @@ export function Pagination({
       )}
 
       {onPageSizeChange && (
-        <select
-          value={pageSize}
-          onChange={(e) => { onPageSizeChange(Number(e.target.value)); onPageChange(1); }}
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-        >
-          {pageSizeOptions.map((s) => (
-            <option key={s} value={s}>{s} / page</option>
-          ))}
-        </select>
+        <Select
+          value={String(pageSize)}
+          onValueChange={(v) => { onPageSizeChange(Number(v)); onPageChange(1); }}
+          className="h-8 text-xs"
+          options={pageSizeOptions.map((s) => ({ value: String(s), label: `${s} / page` }))}
+        />
       )}
     </div>
   );

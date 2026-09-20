@@ -71,10 +71,11 @@ export default {
     profileDelete: "Delete profile",
     inactive: "Inactive",
     active: "Active",
+    onScreen: "Screen {{n}}",
     back: "Overlays",
     noData: "Waiting for data…",
     positionHint:
-      "Tip: enable Edit Mode to drag overlays directly over the game.",
+      "Tip: enable Edit Mode to drag overlays directly over the game. X and Y start from the top-left corner of your main screen — on a screen placed to its left, values are negative.",
     opacity: "Opacity",
     scale: "Scale",
     color: "Accent color",

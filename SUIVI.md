@@ -842,6 +842,65 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-20 — Overlays multi-écrans (demande utilisateur)
+
+**Demande** : pouvoir déposer un overlay sur un second écran — « je n'ai que la
+possibilité sur l'écran principal ». Cas courant en simracing.
+
+- ✅ **Cause** : une seule fenêtre overlay, dimensionnée sur `primary_monitor()`.
+  Les widgets étant positionnés en px **à l'intérieur** de cette fenêtre, ils ne
+  pouvaient pas en sortir. Ce n'était pas un bug mais une limite de conception.
+- ✅ **`overlay.rs`** : `virtual_desktop_bounds()` — la fenêtre couvre l'englobant
+  de **tous** les moniteurs. Nouvelle commande `get_overlay_origin` renvoyant, en
+  px CSS, l'origine + la taille de l'écran principal et le rectangle de chaque
+  écran.
+- ✅ **Compatibilité des dispositions** : les positions restent enregistrées
+  **relatives à l'écran principal** (aucune migration) ; le front décale le
+  calque de widgets de l'origine. Un widget posé sur un écran à gauche prend donc
+  un x négatif — d'où la levée du `Math.max(0, …)` au drag, et la mention ajoutée
+  au libellé `overlays.positionHint` (4 langues).
+- ✅ **Deux défauts trouvés au test réel, corrigés** :
+  1. l'encart « Mode Édition » était centré sur la **fenêtre**, donc au milieu du
+     bureau virtuel → recentré sur l'écran principal (`w`/`h` renvoyés par la
+     commande, repli sur le centre de la fenêtre) ;
+  2. le voile d'édition ne se peignait pas au-delà du premier écran : un seul
+     calque plein cadre de **10240 px** dépasse la limite de texture du
+     compositeur (~8192) → un voile **par écran**, chacun de taille raisonnable.
+- ✅ **Vérifié dans l'app** sur un bureau à 3 écrans (5120 + 2560 + 2560 = 10240) :
+  fenêtre à (0,0) en 10240×1440 (mesurée au Win32), widgets déplaçables sur
+  chaque écran, voile présent sur chacun, encart centré sur le principal.
+- ⚠️ **Piste écartée** : borner la fenêtre via `GetSystemMetrics(SM_*VIRTUALSCREEN)`,
+  sur l'hypothèse d'un moniteur fantôme. Windows renvoie la même valeur (10240) —
+  le 3ᵉ écran est bien actif, simplement éteint. Code retiré.
+- ✅ **Écran indiqué sur la carte** : `get_overlay_screens` (indépendante de la
+  fenêtre overlay, donc disponible overlay fermé) renvoie chaque écran en px CSS
+  **relatifs à l'écran principal** — même repère que les positions enregistrées,
+  donc comparable directement. La carte affiche « Actif · Écran 3 ».
+  - Le numéro vient du **nom système** `\\.\DISPLAYn`, jamais d'un index calculé :
+    les numéros Windows ne sont ni contigus ni ordonnés par position (relevé sur
+    le poste : écrans 1, 3 et 4 connectés, le 2 absent). Un index maison
+    afficherait un numéro que l'utilisateur ne reconnaîtrait pas.
+  - Rien n'est affiché en mono-écran (aucune information à apporter), ni quand le
+    nom n'a pas livré de numéro — mieux vaut rien qu'un numéro faux.
+  - **Nom commercial écarté** : récupérable (WMI/EDID → « DELL G3223D ») mais
+    coûteux à rattacher au bon `DISPLAYn`, et inutile ici où les trois écrans
+    portent le même nom.
+- ✅ **Changement de disposition en cours de route** — c'est le vrai piège, et il
+  est sérieux : en mode Édition la fenêtre capture la souris sur tous les écrans,
+  donc un bouton « Terminer » tombé hors champ laissait l'utilisateur **coincé**.
+  Trois filets :
+  1. `refresh_overlay_bounds` + surveillance de la liste des écrans côté fenêtre
+     overlay (comparaison toutes les 4 s — rien dans Tauri ne notifie un
+     changement d'écrans) → la fenêtre est recalée sur le nouveau bureau virtuel ;
+  2. **sauvetage** des widgets hors de tout écran actif → retour à leur position
+     par défaut sur l'écran principal. Ne touche que l'invisible ;
+  3. **Échap** quitte le mode Édition quoi qu'il arrive.
+- ✅ **Vérifié dans l'app** : étiquette « Actif · Écran 1 », sauvetage effectif
+  (widget Delta perdu après réarrangement des écrans, revenu sur le principal),
+  Échap confirmé par l'utilisateur.
+- 📋 **Prochaine étape** : la surveillance est un sondage à 4 s faute d'event
+  Tauri ; passer sur `WM_DISPLAYCHANGE` si le besoin de réactivité se fait sentir.
+
 ### 2026-09-19 — Menus déroulants : abandon du `<select>` natif (retour utilisateur)
 
 **Signalement** : sur la page Références, les menus « Tous les circuits / Toutes

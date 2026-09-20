@@ -64,9 +64,12 @@ export function OverlayFrame({
   const onPointerMove = (e: React.PointerEvent) => {
     const d = dragRef.current;
     if (!d) return;
+    // Pas de bornage à 0 : la fenêtre couvre tous les écrans et les coordonnées
+    // sont relatives à l'écran principal — un widget posé sur un écran à gauche
+    // (ou au-dessus) a donc légitimement un x/y négatif.
     setPos({
-      x: Math.max(0, d.originX + (e.clientX - d.startX)),
-      y: Math.max(0, d.originY + (e.clientY - d.startY)),
+      x: d.originX + (e.clientX - d.startX),
+      y: d.originY + (e.clientY - d.startY),
     });
   };
 

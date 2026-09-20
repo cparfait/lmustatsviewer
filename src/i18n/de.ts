@@ -71,10 +71,11 @@ export default {
     profileDelete: "Profil löschen",
     inactive: "Inaktiv",
     active: "Aktiv",
+    onScreen: "Bildschirm {{n}}",
     back: "Overlays",
     noData: "Warte auf Daten…",
     positionHint:
-      "Tipp: Aktiviere den Bearbeitungsmodus, um Overlays direkt über dem Spiel zu verschieben.",
+      "Tipp: Aktiviere den Bearbeitungsmodus, um Overlays direkt über dem Spiel zu verschieben. X und Y beginnen an der oberen linken Ecke des Hauptbildschirms — auf einem Bildschirm links davon sind die Werte negativ.",
     opacity: "Deckkraft",
     scale: "Skalierung",
     color: "Akzentfarbe",

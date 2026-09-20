@@ -71,10 +71,11 @@ export default {
     profileDelete: "Eliminar perfil",
     inactive: "Inactivo",
     active: "Activo",
+    onScreen: "Pantalla {{n}}",
     back: "Overlays",
     noData: "Esperando datos…",
     positionHint:
-      "Consejo: activa el Modo Edición para arrastrar los overlays sobre el juego.",
+      "Consejo: activa el Modo Edición para arrastrar los overlays sobre el juego. X e Y parten de la esquina superior izquierda de la pantalla principal; en una pantalla situada a su izquierda, los valores son negativos.",
     opacity: "Opacidad",
     scale: "Escala",
     color: "Color de acento",

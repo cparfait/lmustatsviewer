@@ -30,7 +30,7 @@ import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { overlay as overlayApi } from "@/lib/api";
+import { overlay as overlayApi, type OverlayScreen } from "@/lib/api";
 import { toastError } from "@/stores/dialogs";
 import { useAppStore } from "@/stores/app";
 import { OVERLAY_DEFS, OVERLAY_BY_ID, type OverlayId } from "@/lib/overlays";
@@ -166,6 +166,42 @@ export function Overlays() {
 
   const activeCount = Object.values(cfg.overlays).filter((o) => o.enabled).length;
 
+  // Écrans actifs, pour indiquer sur lequel se trouve chaque overlay. Relu quand
+  // le nombre d'overlays actifs change : c'est là que la fenêtre s'ouvre ou se
+  // ferme, et la liste peut aussi avoir bougé entre-temps (écran rebranché).
+  const [screens, setScreens] = useState<OverlayScreen[]>([]);
+  useEffect(() => {
+    overlayApi.getScreens().then(setScreens).catch(() => setScreens([]));
+  }, [activeCount]);
+
+  /**
+   * Numéro Windows de l'écran qui contient le coin haut-gauche d'un overlay.
+   * `null` si on n'a pas la liste, si le point ne tombe sur aucun écran connu,
+   * ou si le nom système n'a pas livré de numéro : on préfère ne rien afficher
+   * qu'un numéro faux.
+   */
+  const screenNumberOf = (x: number, y: number): number | null =>
+    screens.find(
+      (sc) => x >= sc.x && x < sc.x + sc.w && y >= sc.y && y < sc.y + sc.h,
+    )?.number ?? null;
+
+  /**
+   * « Actif » seul, ou « Actif · Écran 3 » quand l'écran est identifiable.
+   *
+   * Rien n'est affiché en mono-écran : le numéro n'apprendrait rien et alourdit
+   * la carte. Les configurations varient d'un joueur à l'autre — le nombre
+   * d'écrans comme leur numérotation sont donc toujours lus au système, jamais
+   * supposés.
+   */
+  const activeLabel = (s: { enabled: boolean; x: number; y: number }): string => {
+    if (!s.enabled) return t("overlays.inactive");
+    if (screens.length < 2) return t("overlays.active");
+    const n = screenNumberOf(s.x, s.y);
+    return n == null
+      ? t("overlays.active")
+      : `${t("overlays.active")} · ${t("overlays.onScreen", { n })}`;
+  };
+
   const handleToggle = async (id: OverlayId) => {
     const willEnable = !cfg.overlays[id].enabled;
     toggleOverlay(id, willEnable);
@@ -252,7 +288,7 @@ export function Overlays() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {s.enabled ? t("overlays.active") : t("overlays.inactive")}
+                {activeLabel(s)}
               </span>
               <Switch
                 checked={s.enabled}
@@ -562,7 +598,7 @@ export function Overlays() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {s.enabled ? t("overlays.active") : t("overlays.inactive")}
+                  {activeLabel(s)}
                 </span>
                 <Switch
                   checked={s.enabled}

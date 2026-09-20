@@ -1219,6 +1219,15 @@ export const live = {
 
 // ─── Overlays in-game (`overlay`) ───────────────────────────────────────────
 
+/** Un écran actif (`overlay::OverlayScreen`). `number` = numéro Windows. */
+export interface OverlayScreen {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  number: number | null;
+}
+
 export const overlay = {
   /** Ouvre (ou ré-affiche) la fenêtre overlay transparente always-on-top. */
   open: () => invoke<void>("open_overlay_window"),
@@ -1234,6 +1243,27 @@ export const overlay = {
   isOpen: () => invoke<boolean>("is_overlay_open"),
   /** État courant du mode Édition (rattrapage au montage du webview overlay). */
   getEditMode: () => invoke<boolean>("get_overlay_edit_mode"),
+  /**
+   * Rectangle de l'écran principal dans la fenêtre overlay (px CSS). La fenêtre
+   * couvre tous les écrans ; les positions des widgets restant relatives à
+   * l'écran principal, le calque de widgets est décalé de `x`/`y`. `w`/`h`
+   * servent à centrer sur cet écran (et non sur le bureau virtuel).
+   */
+  getOrigin: () =>
+    invoke<{
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      screens: OverlayScreen[];
+    }>("get_overlay_origin"),
+  /**
+   * Écrans actifs, en px CSS **relatifs à l'écran principal** — même repère que
+   * les positions enregistrées des widgets. Disponible même overlay fermé.
+   */
+  getScreens: () => invoke<OverlayScreen[]>("get_overlay_screens"),
+  /** Recale la fenêtre overlay sur le bureau virtuel courant (écrans déplacés). */
+  refreshBounds: () => invoke<void>("refresh_overlay_bounds"),
 };
 
 // ─── Modèles vocaux téléchargeables (`assets`) ──────────────────────────────

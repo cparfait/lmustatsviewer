@@ -205,6 +205,9 @@ pub fn run() {
             commands::overlay::set_overlay_clickthrough,
             commands::overlay::is_overlay_open,
             commands::overlay::get_overlay_edit_mode,
+            commands::overlay::get_overlay_origin,
+            commands::overlay::get_overlay_screens,
+            commands::overlay::refresh_overlay_bounds,
             // Synthèse vocale neuronale (Piper)
             commands::tts::tts_synthesize,
             commands::tts::tts_available,

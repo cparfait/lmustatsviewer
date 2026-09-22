@@ -842,6 +842,34 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-22 — Release v1.0.6
+
+Bump complet suivant `RELEASE.md` §A.1/§A.2 (voie GitHub Actions, pas
+`release.ps1`, pour éviter le double build local + CI).
+
+- `version.json` : **les deux** numéros bumpés — `version` (build Tauri) et
+  `latest_version` (lu par l'update-checker de l'ancienne V1 PHP sur
+  `raw.githubusercontent.com`). Oublier le second fait silencieusement afficher
+  « Application à jour » aux installations V1.
+- Propagation par `cargo check` vers `package.json`, `tauri.conf.json` et
+  `Cargo.toml`. ⚠️ Piège §A.1 rencontré en direct : **le premier `cargo check`
+  ne suffit pas**. Cargo lit `Cargo.lock` avant que `build.rs` ne réécrive
+  `Cargo.toml`, donc le lock est resté à 1.0.5 alors que les trois autres
+  fichiers étaient déjà à 1.0.6. Un second `cargo check` aligne le lock. Sans
+  lui, la CI, qui part d'un checkout propre, aurait produit un installeur
+  numéroté 1.0.5 sous le tag `v1.0.6`, **sans la moindre erreur**.
+- Changelog : entrée 1.0.6 passée en `dev: false`, date au 2026-09-22.
+- Contrôles avant tag : `tsc -b` OK, lint 0 avertissement, 154 tests,
+  `npm run build` OK, `cargo check` OK.
+
+Contenu de la 1.0.6 : overlays multi-écrans (10e8ef4), US Track Pack 2 avec
+tracés embarqués, rafraîchissement auto de /sessions et /records.
+
+📋 Prochaine étape : surveiller le workflow (~25 min, cache Cargo froid à cause
+du bump de `Cargo.toml` qui force la recompilation de DuckDB), puis ouvrir le
+**brouillon** de release sur GitHub, rédiger les notes et publier. Tant qu'il
+reste en brouillon, aucun client ne reçoit la mise à jour.
+
 ### 2026-09-22 — US Track Pack 2 + rafraîchissement auto des listes
 
 Deux sujets, tous deux dans la 1.0.6 (`dev: true`).

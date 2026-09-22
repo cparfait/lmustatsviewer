@@ -157,6 +157,14 @@ interface AppState {
   // Indexation
   indexing: boolean;
   indexReport: IndexReport | null;
+  /**
+   * Compteur incremente a chaque fois que l'index change (session ajoutee,
+   * modifiee ou retiree). Les pages qui lisent la base l'incluent dans les
+   * dependances de leur chargement : sans ca, une session couru pendant que
+   * l'app tourne etait bien indexee au retour du focus, mais les listes
+   * continuaient d'afficher l'etat precedent jusqu'a un changement de filtre.
+   */
+  dataVersion: number;
 
   loading: boolean;
 
@@ -289,6 +297,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   versionExact: false,
   indexing: false,
   indexReport: null,
+  dataVersion: 0,
   loading: false,
 
   init: async () => {
@@ -511,6 +520,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const cfg = await config.getAll();
       set({
         indexReport: report,
+        dataVersion: get().dataVersion + 1,
         isConfigured: true,
         onboardingSkipped: false,
         playerName,
@@ -529,7 +539,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ indexing: true });
     try {
       const report = await indexer.syncIndex();
-      set({ indexReport: report });
+      set({ indexReport: report, dataVersion: get().dataVersion + 1 });
       await get().loadDashboard();
     } finally {
       set({ indexing: false });
@@ -547,7 +557,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const report = await indexer.syncIndex();
       // Ne rafraîchir le dashboard que si quelque chose a changé (évite un reload inutile).
       if (report.added + report.updated + report.removed > 0) {
-        set({ indexReport: report });
+        set({ indexReport: report, dataVersion: get().dataVersion + 1 });
         // Les records ont pu changer → invalide le cache du digest coach.
         resetRecordsDigestCache();
         await get().loadDashboard();
@@ -561,7 +571,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ indexing: true });
     try {
       const report = await indexer.reindexAll();
-      set({ indexReport: report });
+      set({ indexReport: report, dataVersion: get().dataVersion + 1 });
       resetRecordsDigestCache();
       await get().loadDashboard();
     } finally {

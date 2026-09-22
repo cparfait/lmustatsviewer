@@ -73,12 +73,33 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "added",
         items: [
           {
+            text: {
+              en: "The two US Track Pack 2 circuits are supported: Grand Prix of Long Beach and Michelin Raceway Road Atlanta. Flags, setup folders and track maps are all in place — and the map is bundled with the app, so you see the circuit outline from your very first session instead of having to drive a full lap for it to appear.",
+              fr: "Les deux circuits du US Track Pack 2 sont pris en charge : Grand Prix of Long Beach et Michelin Raceway Road Atlanta. Drapeaux, dossiers de setups et carte du circuit sont en place — et le tracé est livré avec l'application, donc tu vois la carte dès ta première session au lieu de devoir boucler un tour complet pour qu'elle apparaîsse.",
+              es: "Los dos circuitos del US Track Pack 2 son compatibles: Grand Prix of Long Beach y Michelin Raceway Road Atlanta. Banderas, carpetas de setups y mapa del circuito ya están listos, y el trazado viene incluido en la aplicación: verás el mapa desde tu primera sesión en lugar de tener que completar una vuelta para que aparezca.",
+              de: "Die beiden Strecken des US Track Pack 2 werden unterstützt: Grand Prix of Long Beach und Michelin Raceway Road Atlanta. Flaggen, Setup-Ordner und Streckenkarte sind vorhanden — und der Streckenverlauf ist in der App mitgeliefert, du siehst die Karte also schon in deiner ersten Sitzung, statt erst eine ganze Runde fahren zu müssen.",
+            },
+          },
+          {
             featured: true,
             text: {
               en: "Overlays can now be placed on any of your screens. Until now they were locked to the main one: the overlay layer covered that screen and nothing else, so a widget simply could not be dragged onto a second monitor. The layer now spans your whole desktop — switch on Edit Mode and drag a widget wherever you want it, including a side screen. Existing layouts are untouched, and the Edit Mode panel stays centred on your main screen. Each active overlay also shows which screen it sits on — the number Windows gives it, the one “Identify” displays in your display settings. Change your screen setup and nothing is lost: the overlay layer follows the new arrangement, and any widget left outside every active screen comes back to your main one. Escape always leaves Edit Mode.",
               fr: "Les overlays peuvent désormais être placés sur n'importe lequel de tes écrans. Jusqu'ici ils étaient prisonniers de l'écran principal : le calque des overlays ne couvrait que celui-ci, un widget ne pouvait donc pas être glissé sur un second moniteur. Le calque couvre maintenant tout ton bureau — active le Mode Édition et glisse un widget où tu veux, y compris sur un écran latéral. Les dispositions existantes ne bougent pas, et l'encart du Mode Édition reste centré sur ton écran principal. Chaque overlay actif indique aussi sur quel écran il se trouve — le numéro donné par Windows, celui qu'affiche « Identifier » dans tes paramètres d'affichage. Si tu changes de configuration d'écrans, rien n'est perdu : le calque suit la nouvelle disposition, et un widget resté en dehors de tout écran actif revient sur l'écran principal. Échap quitte toujours le Mode Édition.",
               es: "Ahora los overlays pueden colocarse en cualquiera de tus pantallas. Hasta ahora quedaban encerrados en la principal: la capa de overlays solo cubría esa pantalla, así que un widget no podía arrastrarse a un segundo monitor. La capa abarca ahora todo el escritorio: activa el Modo Edición y arrastra un widget donde quieras, incluida una pantalla lateral. Las disposiciones existentes no cambian, y el panel del Modo Edición sigue centrado en la pantalla principal. Cada overlay activo indica además en qué pantalla está — el número que le da Windows, el que muestra «Identificar» en la configuración de pantalla. Si cambias de configuración no se pierde nada: la capa sigue la nueva disposición y cualquier widget que quede fuera de toda pantalla activa vuelve a la principal. Escape siempre sale del Modo Edición.",
               de: "Overlays lassen sich jetzt auf jedem deiner Bildschirme platzieren. Bisher waren sie auf den Hauptbildschirm beschränkt: Die Overlay-Ebene deckte nur diesen ab, ein Widget ließ sich also nicht auf einen zweiten Monitor ziehen. Die Ebene erstreckt sich nun über den gesamten Desktop — aktiviere den Bearbeitungsmodus und zieh ein Widget dorthin, wo du es haben willst, auch auf einen seitlichen Bildschirm. Bestehende Anordnungen bleiben unverändert, und der Hinweis des Bearbeitungsmodus bleibt auf dem Hauptbildschirm zentriert. Jedes aktive Overlay zeigt zudem, auf welchem Bildschirm es liegt — die Nummer von Windows, also die, die „Identifizieren“ in den Anzeigeeinstellungen einblendet. Änderst du deine Bildschirme, geht nichts verloren: Die Ebene folgt der neuen Anordnung, und ein Widget außerhalb aller aktiven Bildschirme kehrt auf den Hauptbildschirm zurück. Escape verlässt den Bearbeitungsmodus immer.",
+            },
+          },
+        ],
+      },
+      {
+        kind: "fixed",
+        items: [
+          {
+            text: {
+              en: "The Sessions and Records pages refresh on their own again. A session driven while the app was open was correctly imported when you came back to it — the dashboard updated — but those two pages kept showing the previous list until you changed a filter or left and came back, which looked like the session had been missed.",
+              fr: "Les pages Sessions et Records se rafraîchissent à nouveau d'elles-mêmes. Une session couru pendant que l'application était ouverte était bien importée au retour sur l'app — le tableau de bord se mettait à jour — mais ces deux pages continuaient d'afficher la liste précédente jusqu'à ce qu'on change un filtre ou qu'on quitte la page, ce qui donnait l'impression que la session avait été oubliée.",
+              es: "Las páginas Sesiones y Récords vuelven a actualizarse solas. Una sesión corrida con la aplicación abierta sí se importaba al volver a ella — el panel se actualizaba — pero esas dos páginas seguían mostrando la lista anterior hasta que cambiabas un filtro o salías de la página, lo que parecía que la sesión se había perdido.",
+              de: "Die Seiten Sitzungen und Rekorde aktualisieren sich wieder von selbst. Eine Sitzung, die bei geöffneter App gefahren wurde, wurde bei der Rückkehr korrekt importiert — die Übersicht aktualisierte sich — aber diese beiden Seiten zeigten weiter die vorherige Liste, bis man einen Filter änderte oder die Seite verließ, was so aussah, als wäre die Sitzung übersehen worden.",
             },
           },
         ],

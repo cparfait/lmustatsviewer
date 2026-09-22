@@ -141,6 +141,10 @@ export function Sessions() {
     gameVersions,
     showOhneSpeed,
   } = useAppStore();
+  // Recharge la liste ET les compteurs quand l'index bouge : une session couru
+  // pendant que l'app tourne etait indexee au retour du focus, mais la page
+  // gardait l'affichage precedent jusqu'a un changement de filtre.
+  const dataVersion = useAppStore((s) => s.dataVersion);
 
   // Benchmarks ohne_speed (chargés une fois, best-effort).
   const [benchmarks, setBenchmarks] = useState<PaceBenchmark[] | null>(null);
@@ -206,7 +210,7 @@ export function Sessions() {
 
   useEffect(() => {
     queries.getSessionsOverview().then(setOverview).catch(() => {});
-  }, []);
+  }, [dataVersion]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -252,7 +256,9 @@ export function Sessions() {
 
   useEffect(() => {
     load();
-  }, [load]);
+    // `dataVersion` ne sert pas au corps de `load` : il est là pour relancer le
+    // chargement quand l'index bouge, sans changer l'identité de la fonction.
+  }, [load, dataVersion]);
 
   useEffect(() => setTrackCourse(""), [track]);
   useEffect(() => setCar(""), [carClass]);

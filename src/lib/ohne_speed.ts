@@ -114,6 +114,11 @@ const TRACK_MAP: Record<string, string> = {
   "Silverstone Grand Prix Circuit": "Silverstone (GP)",
   "Silverstone": "Silverstone (GP)",
   "Paul Ricard": "Paul Ricard",
+  // US Track Pack 2 (22/09/2026). Noms de gauche = `TrackVenue` exact des XML.
+  // À droite, le nom attendu côté feuille communautaire : tant qu'elle ne couvre
+  // pas ces circuits, aucun benchmark ne sort — exactement comme sans entrée.
+  "Grand Prix of Long Beach": "Long Beach",
+  "Michelin Raceway Road Atlanta": "Road Atlanta",
 };
 
 export function mapTrackName(trackFromDb: string, layoutFromDb?: string): string | null {

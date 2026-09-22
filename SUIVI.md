@@ -842,6 +842,47 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-22 — US Track Pack 2 + rafraîchissement auto des listes
+
+Deux sujets, tous deux dans la 1.0.6 (`dev: true`).
+
+**1. Support des deux circuits du US Track Pack 2**
+- `public/data/circuits.json` : `Longbeach` et `Road Atlanta` ajoutés à
+  `circuits` (drapeaux + dossiers de setups en découlent ; le drapeau Long Beach
+  était déjà venu en f3d5b9d).
+- `src/lib/ohne_speed.ts` : entrées `TRACK_MAP` `Grand Prix of Long Beach` →
+  `Long Beach` et `Michelin Raceway Road Atlanta` → `Road Atlanta`. Les clés de
+  gauche sont le `TrackVenue` exact des XML. Tant que la feuille communautaire
+  ne couvre pas ces circuits, aucun benchmark ne sort — même comportement que
+  sans entrée, donc sans risque.
+- **Tracés embarqués** (`src-tauri/src/data/tracks/*.json`, nouveau dossier) :
+  `live.rs` expose `BUNDLED_TRACKS` via `include_str!` et `load_track` fusionne
+  désormais deux sources — le tracé livré comme base, recouvert bucket par
+  bucket par celui accumulé par l'utilisateur. Motif : le tracé s'apprend en
+  roulant, donc la carte restait vide tant qu'un tour complet n'avait pas été
+  bouclé. ⚠️ Ces JSON sont compilés dans le binaire : les oublier au commit
+  casse la compilation.
+
+**2. Sessions et Records ne se rafraîchissaient pas seuls**
+Une session couru pendant que l'app tourne est bien indexée au retour du focus
+(le Dashboard se mettait à jour), mais `/sessions` et `/records` gardaient
+l'affichage précédent jusqu'à un changement de filtre — l'utilisateur croyait la
+session oubliée. Nouveau compteur `dataVersion` dans `stores/app.ts`, incrémenté
+par `runSetup`, `syncIndex`, la sync au retour de focus (seulement si
+`added+updated+removed > 0`) et `reindexAll`. Les deux pages l'ajoutent aux
+dépendances de leur chargement.
+
+Correctif d'intégration au commit : dans `Sessions.tsx`, `dataVersion` était
+déclaré en dépendance du `useCallback load`, qui ne l'utilise pas → avertissement
+`react-hooks/exhaustive-deps`. Déplacé sur le `useEffect` qui appelle `load`,
+comportement identique et lint de nouveau à 0 avertissement.
+
+Tout vert : `tsc -b` OK, lint 0 avertissement, `cargo check` OK, 154 tests.
+
+📋 Prochaine étape : le corpus d'enregistrement du lot 4 reste à produire (cf.
+entrée du 2026-09-05, étape 2/3) — rouler à Spa avec blocages et patinages
+volontaires, puis enchaîner un relais et un passage essais → qualif.
+
 ### 2026-09-20 — Overlays multi-écrans (demande utilisateur)
 
 **Demande** : pouvoir déposer un overlay sur un second écran — « je n'ai que la

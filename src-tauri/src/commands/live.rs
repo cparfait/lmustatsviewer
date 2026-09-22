@@ -821,18 +821,45 @@ fn track_slug(name: &str) -> String {
     s.split('_').filter(|p| !p.is_empty()).collect::<Vec<_>>().join("_")
 }
 
-/// Charge le tracé persistant d'un circuit (sessions précédentes).
-fn load_track(dir: &Path, slug: &str) -> HashMap<i64, ([f64; 2], u32)> {
-    let mut map = HashMap::new();
-    let path = dir.join(format!("{slug}.json"));
-    if let Ok(txt) = fs::read_to_string(&path) {
-        if let Ok(v) = serde_json::from_str::<HashMap<String, [f64; 2]>>(&txt) {
-            for (k, p) in v {
-                if let Ok(b) = k.parse::<i64>() {
-                    map.insert(b, (p, 2u32)); // marqué « complet »
-                }
+/// Tracés livrés avec l'application.
+///
+/// Le tracé d'un circuit s'apprend en roulant : avant ce jeu de données, un
+/// utilisateur n'avait aucune carte tant qu'il n'avait pas bouclé un tour
+/// complet. Ceux-ci sont capturés de la meme facon, puis embarqués tels quels.
+/// Le fichier de l'utilisateur reste prioritaire, bucket par bucket : ces
+/// tracés ne servent qu'à combler ce qu'il n'a pas encore parcouru.
+const BUNDLED_TRACKS: &[(&str, &str)] = &[
+    (
+        "grand_prix_of_long_beach",
+        include_str!("../data/tracks/grand_prix_of_long_beach.json"),
+    ),
+    (
+        "michelin_raceway_road_atlanta",
+        include_str!("../data/tracks/michelin_raceway_road_atlanta.json"),
+    ),
+];
+
+/// Ajoute les points d'un tracé JSON dans la carte de buckets (écrase les
+/// buckets déjà présents — l'appelant contrôle donc la priorité par son ordre).
+fn merge_track_json(map: &mut HashMap<i64, ([f64; 2], u32)>, txt: &str) {
+    if let Ok(v) = serde_json::from_str::<HashMap<String, [f64; 2]>>(txt) {
+        for (k, p) in v {
+            if let Ok(b) = k.parse::<i64>() {
+                map.insert(b, (p, 2u32)); // marqué « complet »
             }
         }
+    }
+}
+
+/// Charge le tracé d'un circuit : celui livré avec l'app comme base, recouvert
+/// par celui accumulé par l'utilisateur lors de ses sessions précédentes.
+fn load_track(dir: &Path, slug: &str) -> HashMap<i64, ([f64; 2], u32)> {
+    let mut map = HashMap::new();
+    if let Some((_, txt)) = BUNDLED_TRACKS.iter().find(|(s, _)| *s == slug) {
+        merge_track_json(&mut map, txt);
+    }
+    if let Ok(txt) = fs::read_to_string(dir.join(format!("{slug}.json"))) {
+        merge_track_json(&mut map, &txt);
     }
     map
 }

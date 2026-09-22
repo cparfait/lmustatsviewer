@@ -85,6 +85,8 @@ export function Records() {
   const selectedVersion = useAppStore((s) => s.selectedVersion);
   const setSelectedVersion = useAppStore((s) => s.setSelectedVersion);
   const versionExact = useAppStore((s) => s.versionExact);
+  // Recharge aussi quand l'index bouge (session couru pendant que l'app tourne).
+  const dataVersion = useAppStore((s) => s.dataVersion);
   const setVersionExact = useAppStore((s) => s.setVersionExact);
   const gameVersions = useAppStore((s) => s.gameVersions);
 
@@ -124,7 +126,8 @@ export function Records() {
   // Référentiel communautaire ohne_speed (chargé une fois, best-effort).
   const [benchmarks, setBenchmarks] = useState<PaceBenchmark[] | null>(null);
 
-  // Rechargement de l'overview quand le filtre de version change.
+  // Rechargement de l'overview quand le filtre de version change — ou quand de
+  // nouvelles sessions ont ete indexees.
   useEffect(() => {
     setOverview(null);
     setError(null);
@@ -132,7 +135,7 @@ export function Records() {
       .getOverview(selectedVersion, selectedVersion ? versionExact : false)
       .then(setOverview)
       .catch((e) => setError(String(e)));
-  }, [selectedVersion, versionExact]);
+  }, [selectedVersion, versionExact, dataVersion]);
 
   useEffect(() => {
     fetchBenchmarks()

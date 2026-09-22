@@ -2,6 +2,8 @@
   "_comment": "Source unique pour les circuits LMU. Pour ajouter un circuit : ajouter le nom dans 'circuits' (nom exact LMU), un mot-clé dans 'flags' (→ code pays ISO pour le drapeau), et optionnellement un alias dans 'aliases'.",
 
   "circuits": [
+    "Longbeach",
+    "Road Atlanta",
     "Sebring",
     "Portimão",
     "Spa-Francorchamps",

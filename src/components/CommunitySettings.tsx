@@ -286,18 +286,38 @@ export function CommunitySettings() {
         </Button>
       </Row>
 
-      <Row title={t("community.deleteTitle")} desc={t("community.deleteDesc")}>
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
-          disabled={busy || !status || steam.waiting}
-          onClick={deleteData}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          {t("community.deleteBtn")}
-        </Button>
-      </Row>
+      {status?.registered || status?.vault_tag ? (
+        <Row title={t("community.deleteTitle")} desc={t("community.deleteDesc")}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
+            disabled={busy || steam.waiting}
+            onClick={deleteData}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {t("community.deleteBtn")}
+          </Button>
+        </Row>
+      ) : (
+        // Rien de partagé depuis ce PC : effacer ne concerne qu'un partage fait ailleurs.
+        <Row title={t("community.deleteTitle")} desc={t("community.deleteRemoteDesc")}>
+          {steam.waiting ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {t("community.steamWaiting")}
+              <Button size="sm" variant="ghost" onClick={steam.cancel}>
+                {t("community.steamCancel")}
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground" disabled={busy || !status} onClick={deleteData}>
+              <Trash2 className="h-3.5 w-3.5" />
+              {t("community.deleteRemoteBtn")}
+            </Button>
+          )}
+        </Row>
+      )}
 
       {activateOpen && status && (
         <ActivateDialog

@@ -2047,6 +2047,8 @@ export default {
     deleteConfirmText: "All your shared laps and your name will be permanently removed from the leaderboards. Your local data is not affected.",
     deleteDone: "Your data has been deleted from the server.",
     deleteFailed: "Deletion not possible right now (server unreachable). Nothing was deleted locally: please try again later.",
+    deleteRemoteDesc: "No data shared from this PC. If you shared your laps from another PC, you can delete them here by signing in with Steam.",
+    deleteRemoteBtn: "Delete with Steam",
     activateSteam: "Sign in with Steam and share",
     steamRequired: "Steam sign-in required: Steam confirms it is you, on its own page (no password goes through the app). One Steam account = one lap profile, which you can always delete, even from another PC. We only keep a fingerprint of your Steam ID.",
     errSteam: "Steam sign-in required to send your laps: link your Steam account below.",

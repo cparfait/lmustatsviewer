@@ -2053,6 +2053,8 @@ export default {
     deleteConfirmText: "Tous vos tours partagés et votre nom seront effacés des classements, définitivement. Vos données locales ne sont pas touchées.",
     deleteDone: "Vos données ont été effacées du serveur.",
     deleteFailed: "Suppression impossible pour l'instant (serveur injoignable). Rien n'a été effacé localement : réessayez plus tard.",
+    deleteRemoteDesc: "Aucune donnée partagée depuis ce PC. Si vous avez partagé vos tours depuis un autre PC, vous pouvez les effacer ici en vous connectant avec Steam.",
+    deleteRemoteBtn: "Effacer avec Steam",
     activateSteam: "Se connecter avec Steam et partager",
     steamRequired: "Connexion Steam requise : Steam confirme que c'est bien vous, sur sa propre page (aucun mot de passe ne passe par l'application). Un compte Steam = un seul profil de tours, que vous pouvez toujours effacer, même depuis un autre PC. Nous ne gardons qu'une empreinte de votre identifiant Steam.",
     errSteam: "Connexion Steam requise pour envoyer vos tours : liez votre compte Steam ci-dessous.",

@@ -2052,6 +2052,8 @@ export default {
     deleteConfirmText: "Alle geteilten Runden und dein Name werden endgültig aus den Ranglisten entfernt. Deine lokalen Daten bleiben unberührt.",
     deleteDone: "Deine Daten wurden vom Server gelöscht.",
     deleteFailed: "Löschen derzeit nicht möglich (Server nicht erreichbar). Lokal wurde nichts gelöscht: Bitte später erneut versuchen.",
+    deleteRemoteDesc: "Von diesem PC wurden keine Daten geteilt. Wenn du deine Runden von einem anderen PC aus geteilt hast, kannst du sie hier nach einer Anmeldung mit Steam löschen.",
+    deleteRemoteBtn: "Mit Steam löschen",
     activateSteam: "Mit Steam anmelden und teilen",
     steamRequired: "Steam-Anmeldung erforderlich: Steam bestätigt auf seiner eigenen Seite, dass du es bist (kein Passwort läuft über die App). Ein Steam-Konto = ein einziges Rundenprofil, das du jederzeit löschen kannst, auch von einem anderen PC aus. Wir speichern nur einen Fingerabdruck deiner Steam-ID.",
     errSteam: "Steam-Anmeldung erforderlich, um deine Runden zu senden: Verknüpfe unten dein Steam-Konto.",

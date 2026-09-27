@@ -2051,6 +2051,8 @@ export default {
     deleteConfirmText: "Todas tus vueltas compartidas y tu nombre se eliminarán de las clasificaciones de forma definitiva. Tus datos locales no se tocan.",
     deleteDone: "Tus datos se han borrado del servidor.",
     deleteFailed: "No se puede borrar por ahora (servidor inaccesible). No se ha borrado nada en local: inténtalo más tarde.",
+    deleteRemoteDesc: "Ningún dato compartido desde este PC. Si compartiste tus vueltas desde otro PC, puedes borrarlas aquí iniciando sesión con Steam.",
+    deleteRemoteBtn: "Borrar con Steam",
     activateSteam: "Iniciar sesión con Steam y compartir",
     steamRequired: "Inicio de sesión de Steam obligatorio: Steam confirma que eres tú, en su propia página (ninguna contraseña pasa por la aplicación). Una cuenta de Steam = un único perfil de vueltas, que siempre puedes borrar, incluso desde otro PC. Solo guardamos una huella de tu ID de Steam.",
     errSteam: "Se necesita iniciar sesión con Steam para enviar tus vueltas: vincula tu cuenta de Steam más abajo.",

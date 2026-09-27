@@ -1,7 +1,7 @@
 // Accueil du site communautaire : chiffres, puis tous les classements d'un coup d'œil.
 // Vue « Par circuit » (circuits × classes, chaque temps ouvre son classement) ou
 // vue « Liste » (une ligne par classement, avec voiture et version).
-/* global carImg, driversWord, t, esc, api, fmtTime, fmtNum, flagImg, classBadge, chrome, dataReady, filterBar, bindFilterBar, getMe */
+/* global carImg, driversWord, t, esc, api, fmtTime, fmtNum, flagImg, classBadge, classKey, chrome, dataReady, filterBar, bindFilterBar, getMe */
 "use strict";
 
 const RANKED_MIN = 20;
@@ -11,6 +11,7 @@ const classRank = (c) => {
   const i = CLASS_ORDER.findIndex((re) => re.test(c));
   return i < 0 ? CLASS_ORDER.length : i;
 };
+const PERSON_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 const byClass = (a, b) => classRank(a) - classRank(b) || a.localeCompare(b);
 const comboUrl = (c) =>
   `/combo.html?${new URLSearchParams(Object.entries({ track: c.track, course: c.track_course, class: c.car_class, ...hq }).filter(([, v]) => v))}`;
@@ -167,8 +168,10 @@ syncSegs();
       })
       .filter((g) => g.cs.length)
       .sort(sort === "az" ? (a, b) => a.course.localeCompare(b.course) : (a, b) => b.total - a.total);
+    // Barre de fréquentation : relative au classement le plus roulé de la même classe.
+    const colMax = new Map(cols.map((cl) => [cl, Math.max(1, ...rows.filter((c) => c.car_class === cl).map((c) => c.drivers))]));
     return `<table class="lb mx">
-      <thead><tr><th>${esc(t("col.track"))}</th>${cols.map((cl) => `<th class="mx-h">${classBadge(cl)}</th>`).join("")}</tr></thead>
+      <thead><tr><th>${esc(t("col.track"))}</th>${cols.map((cl) => `<th class="mx-h cc-${classKey(cl)}">${classBadge(cl)}</th>`).join("")}</tr></thead>
       <tbody>${list
         .map((g) => {
           // Le nom du circuit ouvre son classement le plus fréquenté.
@@ -179,8 +182,9 @@ syncSegs();
             .map((cl) => {
               const c = g.cs.find((x) => x.car_class === cl);
               if (!c) return `<td class="mx-empty"><span aria-hidden="true">—</span></td>`;
-              return `<td class="mx-cell"><a class="mx-link${c.drivers < RANKED_MIN ? " is-prov" : ""}" href="${esc(comboUrl(c))}" title="${esc(`${c.best_car} · v${c.version}${provTitle(c)}`)}">
-                <span class="mx-cls">${classBadge(cl)}</span><b class="mono">${fmtTime(c.best)}</b><small>${fmtNum(c.drivers)} ${esc(driversWord(c.drivers))}</small></a></td>`;
+              const w = Math.max(6, Math.round((c.drivers / colMax.get(cl)) * 100));
+              return `<td class="mx-cell"><a class="mx-link cc-${classKey(cl)}${c.drivers < RANKED_MIN ? " is-prov" : ""}" href="${esc(comboUrl(c))}" title="${esc(`${c.best_car} · v${c.version} · ${fmtNum(c.drivers)} ${driversWord(c.drivers)}${provTitle(c)}`)}">
+                <span class="mx-cls">${classBadge(cl)}</span><b class="mono">${fmtTime(c.best)}</b><small>${PERSON_SVG}${fmtNum(c.drivers)}</small><i style="width:${w}%"></i></a></td>`;
             })
             .join("")}
         </tr>`;

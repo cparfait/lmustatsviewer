@@ -881,6 +881,11 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ **Outil** : `community/scripts/serve-site.mjs` (aperçu du site sans reconstruire l'image,
   `/api` relayé en lecture seule vers `API=`) + entrée `community-site` dans `.claude/launch.json`.
 - ℹ️ Pas d'entrée dans `src/lib/changelog.ts` : changement du site seul, l'app n'est pas touchée.
+- ✅ **Retour mainteneur « lignes un peu hautes, manque de peps »** : tuiles à la couleur de la
+  classe (fond teinté, liseré gauche, **barre de fréquentation** relative au classement le plus
+  roulé de la même classe, pointillés = provisoire), temps + pilotes sur **une ligne**, en-têtes de
+  colonne soulignés à la couleur de la classe. Lignes ~70 px → 48 px (bureau) ; mobile : deux
+  tuiles par ligne (badge + temps), ligne de circuit ~233 px → ~95 px. Assets `?v=28`.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

@@ -555,34 +555,52 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 .seg button:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
 
 /* Tableau circuits × classes : chaque temps ouvre son classement. */
-.mx th.mx-h { text-align: center; }
-.mx td { padding: 6px 8px; }
-.mx td.mx-track { padding: 8px 16px; min-width: 240px; }
-.mx-track b { font-size: .95rem; }
-.mx-track .flag-img { flex: none; }
+.mx th.mx-h { text-align: center; border-bottom: 3px solid var(--cc) !important; }
+.mx th.mx-h .cls { font-size: .74rem; padding: 3px 10px; }
+.mx td { padding: 4px 6px; }
+.mx td.mx-track { padding: 4px 16px; min-width: 240px; }
+.mx-track .combo-cell span { line-height: 1.25; }
+.mx-track b { font-size: .93rem; }
+.mx-track small { font-size: .72rem; }
+.mx-track .flag-img { flex: none; width: 24px; height: 16px; }
 .mx-cell, .mx-empty { text-align: center; }
-.mx-empty span { color: color-mix(in srgb, var(--muted) 50%, transparent); }
-.mx-link { display: grid; justify-items: center; gap: 1px; min-width: 116px; padding: 6px 10px; border-radius: 10px; border: 1px solid transparent; color: var(--text); text-decoration: none; transition: border-color .15s var(--ease), background .15s var(--ease); }
-.mx-link b { font-size: .98rem; font-weight: 700; color: var(--purple-best); }
-.mx-link small { font-size: .74rem; color: var(--muted); }
-.mx-link:hover { border-color: color-mix(in srgb, var(--amber) 60%, var(--border)); background: color-mix(in srgb, var(--amber) 8%, var(--surface)); }
-.mx-link:hover b { color: var(--amber-ink); }
+.mx-empty span { color: color-mix(in srgb, var(--muted) 45%, transparent); }
+/* Couleur de chaque classe (tuiles, en-têtes). */
+.cc-hyper { --cc: var(--c-hyper); } .cc-lmp2 { --cc: var(--c-lmp2); } .cc-lmp3 { --cc: var(--c-lmp3); }
+.cc-gt3 { --cc: var(--c-gt3); } .cc-gte { --cc: var(--c-gte); }
+[data-theme="light"] .cc-hyper { --cc: #e5484d; } [data-theme="light"] .cc-lmp2 { --cc: #2f7bf0; }
+[data-theme="light"] .cc-lmp3 { --cc: #9b5de5; } [data-theme="light"] .cc-gt3 { --cc: #1faa55; }
+[data-theme="light"] .cc-gte { --cc: #f07b1d; }
+/* Tuile : temps + pilotes sur une ligne, liseré et barre de fréquentation à la couleur de la classe. */
+.mx-link { position: relative; overflow: hidden; display: inline-flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  width: 100%; max-width: 190px; min-width: 128px; padding: 6px 10px 8px 12px; border-radius: 8px;
+  border-left: 3px solid var(--cc); background: color-mix(in srgb, var(--cc) 9%, var(--surface));
+  color: var(--text); text-decoration: none;
+  transition: background .15s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease); }
+.mx-link b { font-size: .98rem; font-weight: 800; letter-spacing: -.01em; }
+.mx-link small { display: inline-flex; align-items: center; gap: 3px; font-size: .74rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mx-link i { position: absolute; left: 0; bottom: 0; height: 3px; border-radius: 0 3px 3px 0; background: var(--cc); opacity: .75; }
+.mx-link:hover { background: color-mix(in srgb, var(--cc) 20%, var(--surface)); transform: translateY(-1px); box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--cc) 70%, transparent); }
+.mx-link.is-prov { border-left-style: dashed; background: color-mix(in srgb, var(--cc) 4%, var(--surface)); }
 .mx-link.is-prov b { color: var(--muted); font-weight: 600; }
+.mx-link.is-prov i { opacity: .35; }
 .mx-cls { display: none; }
 .lb tr.row-link.is-prov .best-t { color: var(--muted); }
 /* Mobile : une carte par circuit, ses classements en tuiles. */
 @media (max-width: 760px) {
   .mx, .mx tbody, .mx tr, .mx td { display: block; }
   .mx thead { display: none; }
-  .mx tr { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .mx tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
   .mx tbody tr:nth-child(even) td { background: none; }
-  .mx td { padding: 0; border: 0; }
-  .mx td.mx-track { padding: 0 0 8px; min-width: 0; }
+  .mx td, .has-tbar .mx td:first-child, .has-tbar .mx td:last-child { padding: 0; border: 0; }
+  .mx td.mx-track { grid-column: 1 / -1; padding: 0 0 4px; min-width: 0; }
   .mx td.mx-empty { display: none; }
-  .mx td.mx-cell { display: inline-block; }
-  .mx-link { min-width: 96px; padding: 5px 8px; border-color: var(--border); background: var(--bg-2); }
-  .mx td.mx-cell { margin: 0 4px 4px 0; }
-  .mx-cls { display: block; margin-bottom: 2px; }
+  /* Deux tuiles par ligne : badge + temps ; la fréquentation reste lisible par la barre. */
+  .mx-link { align-items: center; justify-content: flex-start; gap: 8px; max-width: none; min-width: 0; padding: 5px 8px 7px 8px; }
+  .mx-link small { display: none; }
+  .mx-cls { display: block; line-height: 1; }
+  .mx-cls .cls { font-size: .64rem; padding: 2px 6px; }
+  .mx-link b { font-size: .92rem; }
   .board .tbar { flex-direction: column; align-items: flex-start; }
   .board .tbar-right { flex-wrap: wrap; }
 }

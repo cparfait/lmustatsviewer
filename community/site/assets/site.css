@@ -568,7 +568,6 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 [data-theme="dark"] .cg-head { background: color-mix(in srgb, var(--amber) 25%, var(--surface)); color: #fde047; }
 .cg-head:hover { background: color-mix(in srgb, var(--amber) 40%, var(--surface)); }
 .cg-chev { flex: none; transition: transform .15s var(--ease); }
-.cg-head[aria-expanded="false"] .cg-chev { transform: rotate(-90deg); }
 .cg-head .flag-img { width: 21px; height: 14px; border-radius: 2px; }
 .cg-name { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cg-n { flex: none; padding: 0 7px; border-radius: 999px; font-size: .68rem; font-weight: 800; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--amber) 22%, transparent); }
@@ -688,3 +687,11 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
   .lb-dense .pos { width: 34px; }
   .lb-card .lb-actions .search { min-width: 0; flex: 1 1 160px; }
 }
+
+/* En-tête de carte circuit : chevron (replier) + nom (lien vers le classement toutes classes). */
+.cg-toggle { display: grid; place-items: center; padding: 2px; margin: -2px 0; border: 0; background: none; color: inherit; cursor: pointer; border-radius: 6px; }
+.cg-toggle[aria-expanded="false"] .cg-chev { transform: rotate(-90deg); }
+.cg-link { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: inherit; text-decoration: none; }
+.cg-link:hover .cg-name { text-decoration: underline; text-underline-offset: 3px; }
+.cls-all { color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent); }
+.lb-dense .car .cls { flex: none; }

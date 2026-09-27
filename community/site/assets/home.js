@@ -16,6 +16,13 @@ const PERSON_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" 
 const SECTORS = ["s1", "s2", "s3"];
 const CHEVRON_SVG = '<svg class="cg-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const byClass = (a, b) => classRank(a) - classRank(b) || a.localeCompare(b);
+// Classement toutes classes d'un circuit : son tracé le plus roulé, sans classe.
+const trackUrl = (g) => {
+  const byCourse = new Map();
+  for (const c of g.list) byCourse.set(c.track_course, (byCourse.get(c.track_course) ?? 0) + c.drivers);
+  const course = [...byCourse.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  return `/combo.html?${new URLSearchParams(Object.entries({ track: g.track, course, ...hq }).filter(([, v]) => v))}`;
+};
 const comboUrl = (c) =>
   `/combo.html?${new URLSearchParams(Object.entries({ track: c.track, course: c.track_course, class: c.car_class, ...hq }).filter(([, v]) => v))}`;
 
@@ -176,7 +183,7 @@ syncSegs();
       .map((g) => {
         const open = !collapsed.has(g.track);
         return `<section class="cgroup">
-        <button type="button" class="cg-head" data-track="${esc(g.track)}" aria-expanded="${open}">${CHEVRON_SVG}${flagImg(g.track)}<span class="cg-name">${esc(g.track)}</span><span class="cg-n">${g.list.length}</span><span class="cg-drivers">${fmtNum(g.total)} ${esc(driversWord(g.total))}</span></button>
+        <div class="cg-head" data-track="${esc(g.track)}"><button type="button" class="cg-toggle" aria-expanded="${open}" aria-label="${esc(g.track)}">${CHEVRON_SVG}</button><a class="cg-link" href="${esc(trackUrl(g))}" title="${esc(t("home.allClasses"))}">${flagImg(g.track)}<span class="cg-name">${esc(g.track)}</span></a><span class="cg-n">${g.list.length}</span><span class="cg-drivers">${fmtNum(g.total)} ${esc(driversWord(g.total))}</span></div>
         ${open ? `<div class="lb-scroll"><table class="lb cg-table">${head}<tbody>${g.list
           .map((c) => {
             const url = esc(comboUrl(c));
@@ -224,8 +231,9 @@ syncSegs();
   search.addEventListener("input", render);
   // Toute la ligne est cliquable (le lien de la ligne reste le lien accessible) ; en-tête = replier.
   $("board").addEventListener("click", (e) => {
+    // En-tête de carte : le nom ouvre le classement du circuit, le reste replie la carte.
     const head = e.target.closest(".cg-head");
-    if (head) {
+    if (head && !e.target.closest("a")) {
       const k = head.dataset.track;
       if (collapsed.has(k)) collapsed.delete(k);
       else collapsed.add(k);

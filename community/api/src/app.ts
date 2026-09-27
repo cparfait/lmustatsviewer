@@ -91,7 +91,8 @@ function clientIp(c: Context): string {
 const comboQuery = z.object({
   track: z.string().min(1).max(120),
   course: z.string().min(1).max(120),
-  class: z.string().min(1).max(32),
+  // Absent ou « all » = toutes les classes (classement général du circuit).
+  class: z.string().min(1).max(32).optional(),
   // Une version (« 1.42 »), une liste (« 1.42,1.41 ») ou « all ».
   version: z
     .string()
@@ -111,7 +112,7 @@ function parseCombo(c: Context): { key: ComboKey; f: Filters } | null {
     key: {
       track: q.data.track,
       course: q.data.course,
-      carClass: q.data.class,
+      carClass: q.data.class && q.data.class !== "all" ? q.data.class : undefined,
       version: q.data.version === "all" || q.data.version === "latest" ? q.data.version : q.data.version?.split(","),
     },
     f: {

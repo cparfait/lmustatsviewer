@@ -41,15 +41,16 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
     return;
   }
   unskel();
-  document.title = `${q.course} · ${q.class} — LMU Stats Viewer`;
+  document.title = `${q.course} · ${q.class || t("f.allClasses")} — LMU Stats Viewer`;
   $("crumbTrack").textContent = q.course;
-  $("crumbClass").textContent = q.class;
+  $("crumbClass").textContent = q.class || t("f.allClasses");
   $("title").textContent = q.course;
   // Bandeau : drapeau + circuit, classe ; sous le titre, le circuit quand le tracé diffère.
   $("eyebrow").innerHTML = `${flagImg(q.track)}<span class="cg-name">${esc(q.track)}</span>`;
-  $("headClass").innerHTML = classBadge(q.class);
+  // Sans classe : classement général du circuit (une ligne par pilote et par classe).
+  $("headClass").innerHTML = q.class ? classBadge(q.class) : `<span class="cls cls-all">${esc(t("f.allClasses"))}</span>`;
   $("subtitle").textContent = q.track !== q.course ? q.track : "";
-  document.getElementById("combo").dataset.cls = classKey(q.class);
+  if (q.class) document.getElementById("combo").dataset.cls = classKey(q.class);
   $("brakeMap").innerHTML = trackSvg(q.course, 6);
 
   // Barre de filtres (comme dans l'app). La liste des voitures vient du combo SANS filtre voiture.
@@ -64,7 +65,12 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
   $("filters").innerHTML = filterBar([
     { key: "track", label: t("f.circuit"), value: q.track, options: tracks.map((x) => [x, x]) },
     { key: "course", label: t("f.layout"), value: q.course, options: courses.map((x) => [x, x]) },
-    { key: "class", label: t("f.class"), value: q.class, options: classes.map((c) => [c.car_class, `${c.car_class} · ${c.drivers}`]) },
+    {
+      key: "class",
+      label: t("f.class"),
+      value: q.class,
+      options: [["", `${t("f.allF")} · ${fmtNum(classes.reduce((n, c) => n + c.drivers, 0))}`], ...classes.map((c) => [c.car_class, `${c.car_class} · ${c.drivers}`])],
+    },
     { key: "car", label: t("f.car"), value: q.car, options: [["", t("f.allF")], ...carOptions.map((x) => [x, x])] },
     { key: "session", label: t("f.session"), value: q.session, options: [["", t("f.allF")], ["race", t("f.race")], ["qualify", t("f.qualify")], ["practice", t("f.practice")]] },
     { key: "mode", label: t("f.mode"), value: q.mode, options: [["", t("f.all")], ["online", t("f.online")], ["offline", t("f.offline")]] },
@@ -90,11 +96,11 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
     if (key === "track") {
       // Nouveau circuit : son tracé et sa classe les plus roulés ; voiture et version remises à zéro.
       const best = combos.filter((c) => c.track === value).sort((a, b) => b.drivers - a.drivers)[0];
-      Object.assign(over, { course: best?.track_course ?? value, class: best?.car_class ?? q.class, car: "", version: "" });
+      Object.assign(over, { course: best?.track_course ?? value, class: q.class ? (best?.car_class ?? q.class) : "", car: "", version: "" });
     }
     if (key === "course") {
       const best = combos.filter((c) => c.track === q.track && c.track_course === value).sort((a, b) => b.drivers - a.drivers)[0];
-      Object.assign(over, { class: best?.car_class ?? q.class, car: "", version: "" });
+      Object.assign(over, { class: q.class ? (best?.car_class ?? q.class) : "", car: "", version: "" });
     }
     if (key === "class") Object.assign(over, { car: "", version: "" });
     location.href = pageUrl(over);
@@ -199,7 +205,7 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
       <tr class="${me && r.driver.tag === me ? "is-me" : ""}" data-rank="${r.rank}">
         <td class="pos c">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : r.rank}</td>
         <td class="drv">${driverName(r.driver)}</td>
-        <td><div class="car"><span class="logo-slot">${carImg(r.car_model)}</span><span>${esc(r.car_model)}</span></div></td>
+        <td><div class="car">${q.class ? "" : classBadge(r.car_class)}<span class="logo-slot">${carImg(r.car_model)}</span><span>${esc(r.car_model)}</span></div></td>
         <td class="t perf sep r">${fmtTime(r.time)}</td>
         <td class="gap perf r">${r.rank === 1 ? "—" : "+" + (r.time - detail.best.time).toFixed(3)}</td>
         ${["s1", "s2", "s3"].map((k, i) => `<td class="sec perf r ${r[k] != null && r[k] === bestS[i] ? "pb" : ""}">${r[k] != null ? r[k].toFixed(3) : "—"}</td>`).join("")}

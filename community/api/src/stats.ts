@@ -9,7 +9,8 @@ import type { Db } from "./db.js";
 export interface ComboKey {
   track: string;
   course: string;
-  carClass: string;
+  /** Absent = toutes les classes : une ligne par pilote ET par classe, classées au temps. */
+  carClass?: string;
   /**
    * Versions « majeure.mineure » retenues : une ou plusieurs (["1.42", "1.41"]) ou
    * "all" (toutes). Absent = la plus récente du combo.
@@ -43,6 +44,13 @@ const HIST_MAX_BINS = 60;
  * Conditions d'éligibilité + filtres. Les valeurs libres (voiture) passent par des
  * paramètres ajoutés à `params` ; les autres sont des énumérations validées en amont.
  */
+/** Condition de classe (vide = toutes les classes). */
+function classCond(key: ComboKey, params: unknown[]): string {
+  if (!key.carClass) return "";
+  params.push(key.carClass);
+  return `and s.car_class = $${params.length}`;
+}
+
 function eligibility(f: Filters, params: unknown[]): string {
   const parts = [
     "s.status = 'ok'",
@@ -75,6 +83,7 @@ const r3 = (v: number | null) => (v == null ? null : Math.round(v * 1000) / 1000
 
 interface BestRow {
   install_id: string;
+  car_class: string;
   best_time: number;
   car_model: string;
   s1: number | null;
@@ -90,12 +99,13 @@ interface BestRow {
 
 /** Versions disponibles d'un combo, la plus récente d'abord. */
 export async function comboVersions(db: Db, key: ComboKey, f: Filters) {
-  const params: unknown[] = [key.track, key.course, key.carClass];
+  const params: unknown[] = [key.track, key.course];
+  const cls = classCond(key, params);
   const el = eligibility(f, params);
   return db.query<{ version: string; drivers: number }>(
     `select s.game_minor as version, count(distinct s.install_id)::int as drivers
      from sessions s join installs i on i.id = s.install_id
-     where s.track = $1 and s.track_course = $2 and s.car_class = $3 and ${el}
+     where s.track = $1 and s.track_course = $2 ${cls} and ${el}
      group by 1 order by 1 desc`,
     params,
   );
@@ -110,9 +120,15 @@ async function resolveVersions(db: Db, key: ComboKey, f: Filters): Promise<strin
   return v.map((x) => x.version);
 }
 
-/** Meilleur tour éligible de chaque pilote sur le combo, du plus rapide au plus lent. */
+/**
+ * Meilleur tour éligible de chaque pilote sur le combo, du plus rapide au plus lent.
+ * Toutes classes (`carClass` absent) : le meilleur tour de chaque pilote DANS chaque classe.
+ */
 async function bestPerDriver(db: Db, key: ComboKey, versions: string[], f: Filters): Promise<BestRow[]> {
-  const params: unknown[] = [key.track, key.course, key.carClass, versions];
+  const params: unknown[] = [key.track, key.course];
+  const cls = classCond(key, params);
+  params.push(versions);
+  const vi = params.length;
   let exclude = "";
   if (f.excludeInstall) {
     params.push(f.excludeInstall);
@@ -121,14 +137,14 @@ async function bestPerDriver(db: Db, key: ComboKey, versions: string[], f: Filte
   const el = eligibility(f, params);
   return db.query<BestRow>(
     `select * from (
-       select distinct on (s.install_id)
-         s.install_id, s.best_time, s.car_model, s.s1, s.s2, s.s3, s.game_version,
+       select distinct on (s.install_id, s.car_class)
+         s.install_id, s.car_class, s.best_time, s.car_model, s.s1, s.s2, s.s3, s.game_version,
          s.played_on::text as played_on, s.received_at,
          i.tag, i.anonymous, i.display_name, i.homonym
        from sessions s join installs i on i.id = s.install_id
-       where s.track = $1 and s.track_course = $2 and s.car_class = $3 and s.game_minor = any($4::text[])
+       where s.track = $1 and s.track_course = $2 ${cls} and s.game_minor = any($${vi}::text[])
          and ${el} ${exclude}
-       order by s.install_id, s.best_time, s.received_at
+       order by s.install_id, s.car_class, s.best_time, s.received_at
      ) b
      order by best_time, received_at`,
     params,
@@ -166,12 +182,15 @@ export async function comboDetail(db: Db, key: ComboKey, f: Filters) {
   const byCar = new Map<string, number[]>();
   for (const r of rows) byCar.set(r.car_model, [...(byCar.get(r.car_model) ?? []), r.best_time]);
 
-  const lapParams: unknown[] = [key.track, key.course, key.carClass, selected];
+  const lapParams: unknown[] = [key.track, key.course];
+  const lapCls = classCond(key, lapParams);
+  lapParams.push(selected);
+  const lapVi = lapParams.length;
   const lapEl = eligibility(f, lapParams);
   const [{ laps }] = await db.query<{ laps: number }>(
     `select coalesce(sum(s.valid_laps), 0)::int as laps
      from sessions s join installs i on i.id = s.install_id
-     where s.track = $1 and s.track_course = $2 and s.car_class = $3 and s.game_minor = any($4::text[])
+     where s.track = $1 and s.track_course = $2 ${lapCls} and s.game_minor = any($${lapVi}::text[])
        and ${lapEl}`,
     lapParams,
   );
@@ -179,7 +198,7 @@ export async function comboDetail(db: Db, key: ComboKey, f: Filters) {
   return {
     track: key.track,
     course: key.course,
-    car_class: key.carClass,
+    car_class: key.carClass ?? null,
     /** Versions retenues, séparées par des virgules (« 1.42 » ou « 1.41,1.42 »). */
     version: selected.join(","),
     selected,
@@ -230,6 +249,7 @@ export async function leaderboard(
     return {
       rank,
       driver: driverOf(r),
+      car_class: r.car_class,
       car_model: r.car_model,
       time: r.best_time,
       s1: r.s1,

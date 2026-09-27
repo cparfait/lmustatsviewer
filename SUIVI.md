@@ -918,6 +918,22 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   (tour record) et `best_s1..best_s3` (meilleur secteur parmi les meilleurs tours des pilotes) ;
   test ajouté (somme des secteurs = temps, meilleurs ≤ record), 28/28. Mobile : secteurs masqués.
   ⚠️ Nécessite la mise à jour du serveur (sans elle, les colonnes affichent « — »). Assets `?v=33`.
+- ✅ **Classement toutes classes d'un circuit** (demande mainteneur : « un clic sur le nom du circuit ouvre
+  le classement avec toutes les classes ») : serveur — `class` devient facultatif sur `combos/detail`,
+  `leaderboard`, `position` (absent ou `all`) ; une ligne par pilote ET par classe (son meilleur tour
+  dans chaque classe), classées au temps, `car_class` renvoyé sur chaque ligne ; test ajouté (29/29).
+  Les bornes anti-abus (réception) restent par classe. Site — accueil : le nom du circuit est un lien
+  vers ce classement (tracé le plus roulé), le chevron et le reste de l'en-tête replient la carte ;
+  page du classement : option « Toutes · n » dans le filtre Classe, badge « Toutes les classes »,
+  badge de classe sur chaque ligne. Changer de circuit ou de tracé garde « Toutes ». Assets `?v=34`.
+- ✅ **Vitrine (`C:	mp\__DEV__\lmusv-site`, hors dépôt) mise à jour** avec les nouveautés 1.0.3 → 1.0.7 :
+  section « Classements communautaires » (3 cartes + lien lmu.cparfait.ovh, entrée de menu), ingénieur
+  de course (au lieu de « spotter vocal »), overlays multi-écrans, fournisseurs IA (OpenRouter,
+  compatibles OpenAI ; puce « 7 »), réponses factuelles sans IA, « 0 donnée envoyée **sans votre
+  accord** », Fonctionnement / FAQ confidentialité réécrits (dont : pour afficher sa place, l'app envoie
+  un temps et un combo sans identifiant), 2 questions de FAQ (classements, essai sans le jeu). ×4
+  langues (209 clés chacune). Sauvegarde avant modification : `lmusv-site.bak-20260927`.
+  ⏳ **À publier seulement avec la sortie de la 1.0.7** (classements et ingénieur y sont décrits).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

@@ -197,6 +197,30 @@ describe("noms : nom LMU du jeu, homonymes, anonymat", () => {
   });
 });
 
+describe("classement toutes classes d'un circuit", () => {
+  let ctx: Ctx;
+  before(async () => { ctx = await setup(); });
+  after(() => ctx.close());
+
+  test("sans classe : une ligne par pilote ET par classe, classées au temps", async () => {
+    const a = await register(ctx.app);
+    const b = await register(ctx.app);
+    await send(ctx.app, a.token, [session({}, { time: 80 }), session({ car_class: "Hyper", car_model: "Porsche 963" }, { time: 70 })]);
+    await send(ctx.app, b.token, [session({}, { time: 79 })]);
+    const base = RA.replace("&class=GT3", "");
+    for (const q of [base, `${base}&class=all`]) {
+      const lb = await (await ctx.app.request(`/api/v1/combos/leaderboard?${q}`)).json();
+      assert.equal(lb.drivers, 3);
+      assert.deepEqual(lb.rows.map((r: { car_class: string; time: number }) => [r.car_class, r.time]), [["Hyper", 70], ["GT3", 79], ["GT3", 80]]);
+    }
+    const gt3 = await (await ctx.app.request(`/api/v1/combos/leaderboard?${RA}`)).json();
+    assert.equal(gt3.drivers, 2);
+    const detail = await (await ctx.app.request(`/api/v1/combos/detail?${base}`)).json();
+    assert.equal(detail.car_class, null);
+    assert.equal(detail.drivers, 3);
+  });
+});
+
 describe("agrégats publics", () => {
   let ctx: Ctx;
   before(async () => {

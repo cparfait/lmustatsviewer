@@ -6,7 +6,8 @@
  *   écran — exigence RGPD art. 25-2, spec §9).
  * - Le nom affiché est le nom de pilote écrit par le jeu : non modifiable ici.
  * - Transparence : aperçu exact d'un envoi ; suppression réelle des données du serveur.
- * - « Rester anonyme » est coché par défaut à l'activation (rassurant, l'inverse d'un piège).
+ * - « Rester anonyme » est décoché par défaut (décision mainteneur 2026-09-27) : le nom LMU
+ *   qui sera affiché est écrit en clair sur l'écran d'activation, avec la case juste à côté.
  * - `CommunityInvite` : la même fenêtre, proposée au lancement puis une seule fois après
  *   un record personnel. Rien n'est partagé tant que le joueur n'a pas cliqué « Activer
  *   le partage » (consentement explicite) : le bouton est seulement mis en avant.
@@ -332,7 +333,7 @@ function Teaser({ combo }: { combo: MyCombo | null }) {
 
 /**
  * Fenêtre d'activation du partage : bénéfice (invitation), ce qui part / ne part jamais,
- * nom LMU non modifiable avec « Rester anonyme » (coché par défaut), historique en option.
+ * nom LMU non modifiable avec « Rester anonyme » (décoché par défaut), historique en option.
  * N'active rien tant que le joueur n'a pas cliqué « Activer le partage ».
  */
 function ActivateDialog({
@@ -352,7 +353,7 @@ function ActivateDialog({
   const { t } = useTranslation();
   const playerName = useAppStore((s) => s.playerName);
   const invite = variant !== "settings";
-  const [anon, setAnon] = useState(status.registered ? status.anonymous : true);
+  const [anon, setAnon] = useState(status.registered ? status.anonymous : false);
   const [history, setHistory] = useState(invite);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);

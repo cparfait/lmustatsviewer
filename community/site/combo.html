@@ -6,12 +6,12 @@
 <title>Classement — LMU Stats Viewer</title>
 <meta name="description" content="Classement communautaire Le Mans Ultimate : répartition des temps, meilleurs tours, écarts par voiture.">
 <meta name="theme-color" content="#D93B00">
-<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=31">
-<link rel="icon" href="/favicon.ico?v=31">
-<link rel="apple-touch-icon" href="/assets/icon-128.png?v=31">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=32">
+<link rel="icon" href="/favicon.ico?v=32">
+<link rel="apple-touch-icon" href="/assets/icon-128.png?v=32">
 <meta property="og:title" content="Classement communautaire — LMU Stats Viewer">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="/assets/site.css?v=31">
+<link rel="stylesheet" href="/assets/site.css?v=32">
 </head>
 <body>
 <header class="site-header"></header>
@@ -22,13 +22,11 @@
 
   <div id="filters"></div>
 
-  <div class="combo-hero">
-    <div class="combo-map" id="map"></div>
-    <div class="combo-title">
-      <p class="eyebrow" style="margin:0" id="eyebrow"></p>
-      <h1 id="title" class="skeleton">&nbsp;</h1>
-      <div class="meta" id="meta"></div>
-    </div>
+  <!-- En-tête au format des cartes circuit (accueil / page Classements de l'app). -->
+  <section class="cgroup combo-head">
+    <div class="cg-head cg-static"><span class="cg-flag" id="eyebrow"></span><span id="headClass"></span><span class="cg-drivers" id="meta"></span></div>
+    <div class="combo-hero">
+      <div class="combo-title"><h1 id="title" class="skeleton">&nbsp;</h1><p class="muted" id="subtitle"></p></div>
       <div class="kpis">
         <div class="kpi"><span data-i18n="kpi.drivers"></span><b class="mono skeleton" id="k-n">—</b></div>
         <div class="kpi best"><span data-i18n="kpi.best"></span><b class="mono skeleton" id="k-best">—</b></div>
@@ -36,10 +34,11 @@
         <div class="kpi"><span data-i18n="kpi.median"></span><b class="mono skeleton" id="k-med">—</b></div>
         <div class="kpi"><span data-i18n="kpi.laps"></span><b class="mono skeleton" id="k-laps">—</b></div>
       </div>
-  </div>
+    </div>
+  </section>
 
-  <div class="panel lb-panel has-tbar" style="margin-top:14px">
-    <div class="tbar"><h3 data-i18n="lb.title"></h3><span class="tbar-n" id="lbCount"></span></div>
+  <div class="tbar board-bar lb-bar"><h3 data-i18n="lb.title"></h3><span class="tbar-n" id="lbCount"></span></div>
+  <div class="cgroup lb-card">
     <div class="lb-tools">
       <p class="sub" data-i18n="lb.sub"></p>
       <div class="lb-actions">
@@ -50,8 +49,8 @@
     </div>
     <div class="lb-me" id="meCard"></div>
     <div class="lb-scroll">
-    <table class="lb">
-      <thead><tr><th>#</th><th data-i18n="col.driver"></th><th data-i18n="col.car"></th><th data-i18n="col.time"></th><th data-i18n="col.gap"></th><th>S1</th><th>S2</th><th>S3</th><th data-i18n="col.version"></th><th data-i18n="col.date"></th></tr></thead>
+    <table class="lb lb-dense">
+      <thead><tr><th class="c">#</th><th data-i18n="col.driver"></th><th data-i18n="col.car"></th><th class="perf sep r" data-i18n="col.time"></th><th class="perf r" data-i18n="col.gap"></th><th class="perf r">S1</th><th class="perf r">S2</th><th class="perf r">S3</th><th class="sep c" data-i18n="col.version"></th><th class="r" data-i18n="col.date"></th></tr></thead>
       <tbody id="lbBody"><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr></tbody>
     </table>
     </div>
@@ -59,48 +58,58 @@
   </div>
 
   <div class="grid-2">
-    <div class="panel panel-pad histo">
-      <h3 data-i18n="hist.title"></h3>
-      <p class="sub" data-i18n="hist.sub"></p>
-      <svg id="histo" role="img" aria-label="histogram"></svg>
-    </div>
-    <div class="panel panel-pad calc">
-      <h3 data-i18n="calc.title"></h3>
-      <p class="sub" data-i18n="calc.sub"></p>
-      <input id="myTime" inputmode="decimal" placeholder="1:21.480" aria-label="time">
-      <div class="res" id="calcRes" style="opacity:.35">
-        <div class="big" id="c-top">—</div>
-        <div class="row"><span class="muted" data-i18n="calc.rank"></span><b class="mono" id="c-rank">—</b></div>
-        <div class="row"><span class="muted" data-i18n="calc.gapBest"></span><b class="mono" id="c-gap">—</b></div>
-        <div class="row"><span class="muted" data-i18n="calc.gapMedian"></span><b class="mono" id="c-med">—</b></div>
+    <section class="cgroup pcard histo">
+      <h3 class="pcard-h" data-i18n="hist.title"></h3>
+      <div class="pcard-b">
+        <p class="sub" data-i18n="hist.sub"></p>
+        <svg id="histo" role="img" aria-label="histogram"></svg>
       </div>
-    </div>
+    </section>
+    <section class="cgroup pcard calc">
+      <h3 class="pcard-h" data-i18n="calc.title"></h3>
+      <div class="pcard-b">
+        <p class="sub" data-i18n="calc.sub"></p>
+        <input id="myTime" inputmode="decimal" placeholder="1:21.480" aria-label="time">
+        <div class="res" id="calcRes" style="opacity:.35">
+          <div class="big" id="c-top">—</div>
+          <div class="row"><span class="muted" data-i18n="calc.rank"></span><b class="mono" id="c-rank">—</b></div>
+          <div class="row"><span class="muted" data-i18n="calc.gapBest"></span><b class="mono" id="c-gap">—</b></div>
+          <div class="row"><span class="muted" data-i18n="calc.gapMedian"></span><b class="mono" id="c-med">—</b></div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="grid-2">
-    <div class="panel panel-pad">
-      <h3 data-i18n="byCar.title"></h3>
-      <p class="sub" data-i18n="byCar.sub"></p>
-      <div class="cars" id="cars"></div>
-    </div>
+    <section class="cgroup pcard">
+      <h3 class="pcard-h" data-i18n="byCar.title"></h3>
+      <div class="pcard-b">
+        <p class="sub" data-i18n="byCar.sub"></p>
+        <div class="cars" id="cars"></div>
+      </div>
+    </section>
     <div style="display:grid;gap:18px;align-content:start">
-      <div class="panel panel-pad soon">
-        <h3 data-i18n="brakes.title"></h3>
-        <div id="brakeMap" style="height:200px;display:grid;place-items:center"></div>
+      <section class="cgroup pcard soon">
+        <h3 class="pcard-h" data-i18n="brakes.title"></h3>
+        <div class="pcard-b">
+          <div id="brakeMap" style="height:200px;display:grid;place-items:center"></div>
+        </div>
         <div class="veil"><div><b data-i18n="brakes.soon"></b><span class="muted" data-i18n="brakes.text"></span></div></div>
-      </div>
-      <div class="panel panel-pad">
-        <h3 data-i18n="share.title"></h3>
-        <button class="btn btn-primary btn-sm" id="copyLink" style="margin-top:10px" data-i18n="share.copy"></button>
-      </div>
+      </section>
+      <section class="cgroup pcard">
+        <h3 class="pcard-h" data-i18n="share.title"></h3>
+        <div class="pcard-b">
+          <button class="btn btn-primary btn-sm" id="copyLink" data-i18n="share.copy"></button>
+        </div>
+      </section>
     </div>
   </div>
 </main>
 
 <footer class="site-footer"></footer>
 
-<script src="/assets/tracks.js?v=31"></script>
-<script src="/assets/site.js?v=31"></script>
-<script src="/assets/combo.js?v=31"></script>
+<script src="/assets/tracks.js?v=32"></script>
+<script src="/assets/site.js?v=32"></script>
+<script src="/assets/combo.js?v=32"></script>
 </body>
 </html>

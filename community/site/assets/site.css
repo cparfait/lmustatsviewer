@@ -624,3 +624,64 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 .how .panel p { margin: 8px 0 14px; }
 @media (max-width: 1100px) { .how { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .how { grid-template-columns: 1fr; } }
+
+/* ══ Page d'un classement : même famille que l'accueil et la page Classements de l'app ══ */
+.cg-static { cursor: default; }
+.cg-static:hover { background: color-mix(in srgb, var(--amber) 30%, var(--surface)); }
+[data-theme="dark"] .cg-static:hover { background: color-mix(in srgb, var(--amber) 25%, var(--surface)); }
+.cg-flag { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.cg-drivers span + span::before { content: "·"; margin: 0 8px; opacity: .6; }
+.combo-head { margin-top: 12px; }
+.combo-head .combo-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; margin: 0; padding: 12px 16px; border: 0; border-radius: 0; background: none; }
+.combo-head .combo-title h1 { margin: 0; font-size: clamp(1.3rem, 2vw, 1.75rem); }
+.combo-head .combo-title p { margin: 2px 0 0; font-size: .85rem; }
+.combo-head .combo-title p:empty { display: none; }
+.combo-head .kpi { background: color-mix(in srgb, #0ea5e9 6%, var(--surface)); }
+.combo-head .kpi.best b { color: #059669; }
+[data-theme="dark"] .combo-head .kpi.best b { color: #10b981; }
+@media (max-width: 1100px) { .combo-head .combo-hero { grid-template-columns: 1fr; } }
+.lb-bar { margin-top: 14px; }
+.lb-card { margin-top: 10px; }
+.lb-card .lb-tools { padding: 10px 14px; }
+/* Tableau dense : lignes ~34 px, bloc perf teinté, séparateurs de groupe. */
+.lb-dense { font-size: .84rem; }
+.lb-dense th { padding: 6px 10px; font-size: .64rem; }
+.lb-dense td { padding: 5px 10px; }
+.lb-dense .r { text-align: right; } .lb-dense .c { text-align: center; }
+.lb-dense .sep { border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent); }
+.lb-dense th.perf { background: color-mix(in srgb, #0ea5e9 10%, var(--th-bg)); }
+.lb-dense td.perf { background: color-mix(in srgb, #0ea5e9 6%, transparent) !important; }
+.lb-dense .pos { width: 48px; }
+.lb-dense .medal { width: 22px; height: 22px; border-radius: 6px; font-size: .74rem; }
+.lb-dense .t { color: #059669; font-weight: 800; }
+[data-theme="dark"] .lb-dense .t { color: #10b981; }
+.lb-dense .car { gap: 8px; }
+.lb-dense .logo-slot { flex: none; width: 18px; height: 18px; display: grid; place-items: center; }
+.lb-dense .car img.brand-img { width: 18px !important; height: 18px !important; opacity: .85; }
+.lb-dense .ver { font-size: .7rem; padding: 1px 6px; }
+.lb-dense tr.is-me td.perf { background: color-mix(in srgb, var(--amber) 16%, transparent) !important; }
+/* Panneaux du bas : bandeau de titre teinté, comme les cartes circuit. */
+.grid-2 { gap: 14px; margin-top: 14px; }
+.pcard { position: relative; }
+.pcard-h { position: relative; z-index: 2; }
+.pcard.soon .pcard-b { overflow: hidden; }
+.pcard.soon #brakeMap svg { max-height: 100%; }
+.pcard-h { margin: 0; padding: 7px 14px; background: color-mix(in srgb, var(--amber) 30%, var(--surface)); color: #a16207; font-size: .76rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+[data-theme="dark"] .pcard-h { background: color-mix(in srgb, var(--amber) 25%, var(--surface)); color: #fde047; }
+.pcard-b { padding: 14px 16px 16px; }
+.pcard-b > .sub { margin: 0 0 12px; font-size: .84rem; color: var(--muted); }
+.pcard.soon .veil { top: 33px; }
+@media (max-width: 760px) {
+  .combo-head .combo-hero { padding: 10px 12px; gap: 10px; }
+  .combo-head .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .combo-head .kpi { min-width: 0; padding: 5px 8px; }
+  .combo-head .kpi span { font-size: .62rem; }
+  .combo-head .kpi b { font-size: .9rem; }
+  .combo-head .cg-drivers { display: none; }
+  .lb-bar { flex-direction: row; align-items: center; }
+  /* Rang, pilote, logo, temps à l'écran ; secteurs, version et date en faisant défiler. */
+  .lb-dense .car > span:not(.logo-slot) { display: none; }
+  .lb-dense td, .lb-dense th { padding: 5px 6px; }
+  .lb-dense .pos { width: 34px; }
+  .lb-card .lb-actions .search { min-width: 0; flex: 1 1 160px; }
+}

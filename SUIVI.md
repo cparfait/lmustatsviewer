@@ -901,6 +901,17 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   lmustatsviewer.cparfait.ovh ; grille 4 → 2 → 1 colonnes. Textes ×4. Assets `?v=30`.
 - ✅ **« Offrir un café » retiré de l'en-tête** (demande mainteneur) ; il reste dans le pied de page.
   Clé `coffeeTitle` devenue inutile retirée. Assets `?v=31`.
+- ✅ **Page d'un classement (`combo.html`) au même format** (demande mainteneur) : en-tête = carte à
+  bandeau teinté (drapeau, CIRCUIT en capitales, badge de classe, versions · pilotes), titre + tuiles
+  de chiffres teintées (meilleur tour en vert) ; **miniature du tracé retirée** de l'en-tête ; bandeau
+  « Classement » en dégradé ; tableau dense (~33 px au lieu de ~49), **bloc perf teinté bleu**
+  (temps en vert, écart, S1-S3 — meilleurs secteurs toujours en violet), séparateurs de groupe,
+  médailles plus petites, logo de marque 18 px à place fixe ; panneaux du bas (répartition, votre
+  temps, par voiture, freinages, partage) en cartes à bandeau de titre teinté. Mobile : chiffres sur
+  3 colonnes, voiture réduite au logo → rang, pilote et temps visibles sans défiler (secteurs,
+  version, date en faisant défiler). Le panneau « Zones de freinage — Bientôt » garde son tracé
+  (la fonction en a besoin). `mapFallback` et la clé `noOutline`, devenus inutiles, retirés.
+  Assets `?v=32`.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

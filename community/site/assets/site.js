@@ -36,7 +36,7 @@ const I18N = {
     "brakes.title": "Zones de freinage de la communauté", "brakes.soon": "Bientôt", "brakes.text": "Calculées à partir des tours partagés — jamais saisies à la main.",
     "share.title": "Partager cette page", "share.copy": "Copier le lien", "share.copied": "Lien copié",
     "dry": "Sec", "wet": "Pluie", "aidsClean": "Sans aide au freinage", "aidsAll": "Toutes aides",
-    "versions.all": "Toutes", "find.ph": "Trouver un pilote dans ce classement…", "find.none": "Aucun pilote de ce nom sur ce combo.", "find.matches": "Résultats : {n}", "search.ph": "Rechercher un pilote…", "search.none": "Aucun pilote trouvé", "search.combos": "{n} combos", "profile.kicker": "Fiche pilote", "profile.sub": "Son meilleur tour et son rang sur chaque combo (toutes versions)", "profile.none": "Pilote introuvable (il est peut-être anonyme).", "provisional.short": "provisoire ({n}/20)", "col.track": "Circuit", "col.class": "Classe", "col.rank": "Position", "col.top": "Top", "noOutline": "Tracé bientôt disponible",
+    "versions.all": "Toutes", "find.ph": "Trouver un pilote dans ce classement…", "find.none": "Aucun pilote de ce nom sur ce combo.", "find.matches": "Résultats : {n}", "search.ph": "Rechercher un pilote…", "search.none": "Aucun pilote trouvé", "search.combos": "{n} combos", "profile.kicker": "Fiche pilote", "profile.sub": "Son meilleur tour et son rang sur chaque combo (toutes versions)", "profile.none": "Pilote introuvable (il est peut-être anonyme).", "provisional.short": "provisoire ({n}/20)", "col.track": "Circuit", "col.class": "Classe", "col.rank": "Position", "col.top": "Top",
     "f.circuit": "Circuit", "f.layout": "Tracé", "f.class": "Classe", "f.car": "Voiture", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aides", "f.all": "Tous", "f.allF": "Toutes", "f.race": "Course", "f.qualify": "Qualif", "f.practice": "Essais", "f.online": "En ligne", "f.offline": "Hors ligne", "f.latest": "Dernière", "f.several": "Plusieurs",
     "anon": "Pilote {tag}", "notFound": "Ce combo n'a encore aucun tour partagé.", "back": "Retour aux circuits", "latest": "actuelle",
   },
@@ -72,7 +72,7 @@ const I18N = {
     "brakes.title": "Community braking zones", "brakes.soon": "Coming soon", "brakes.text": "Computed from shared laps — never typed in by hand.",
     "share.title": "Share this page", "share.copy": "Copy link", "share.copied": "Link copied",
     "dry": "Dry", "wet": "Wet", "aidsClean": "No braking aid", "aidsAll": "All aids",
-    "versions.all": "All", "find.ph": "Find a driver in this leaderboard…", "find.none": "No driver by that name on this combo.", "find.matches": "Results: {n}", "search.ph": "Search a driver…", "search.none": "No driver found", "search.combos": "{n} combos", "profile.kicker": "Driver profile", "profile.sub": "Their best lap and position on each combo (all versions)", "profile.none": "Driver not found (they may be anonymous).", "provisional.short": "provisional ({n}/20)", "col.track": "Track", "col.class": "Class", "col.rank": "Position", "col.top": "Top", "noOutline": "Track outline coming soon",
+    "versions.all": "All", "find.ph": "Find a driver in this leaderboard…", "find.none": "No driver by that name on this combo.", "find.matches": "Results: {n}", "search.ph": "Search a driver…", "search.none": "No driver found", "search.combos": "{n} combos", "profile.kicker": "Driver profile", "profile.sub": "Their best lap and position on each combo (all versions)", "profile.none": "Driver not found (they may be anonymous).", "provisional.short": "provisional ({n}/20)", "col.track": "Track", "col.class": "Class", "col.rank": "Position", "col.top": "Top",
     "f.circuit": "Track", "f.layout": "Layout", "f.class": "Class", "f.car": "Car", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aids", "f.all": "All", "f.allF": "All", "f.race": "Race", "f.qualify": "Qualifying", "f.practice": "Practice", "f.online": "Online", "f.offline": "Offline", "f.latest": "Latest", "f.several": "Several",
     "anon": "Driver {tag}", "notFound": "No lap has been shared on this combo yet.", "back": "Back to tracks", "latest": "current",
   },
@@ -108,7 +108,7 @@ const I18N = {
     "brakes.title": "Zonas de frenada de la comunidad", "brakes.soon": "Próximamente", "brakes.text": "Calculadas a partir de las vueltas compartidas, nunca introducidas a mano.",
     "share.title": "Compartir esta página", "share.copy": "Copiar el enlace", "share.copied": "Enlace copiado",
     "dry": "Seco", "wet": "Lluvia", "aidsClean": "Sin ayuda de frenada", "aidsAll": "Todas las ayudas",
-    "versions.all": "Todas", "find.ph": "Buscar un piloto en esta clasificación…", "find.none": "Ningún piloto con ese nombre en este combo.", "find.matches": "Resultados: {n}", "search.ph": "Buscar un piloto…", "search.none": "Ningún piloto encontrado", "search.combos": "{n} combos", "profile.kicker": "Ficha del piloto", "profile.sub": "Su mejor vuelta y su posición en cada combo (todas las versiones)", "profile.none": "Piloto no encontrado (quizá sea anónimo).", "provisional.short": "provisional ({n}/20)", "col.track": "Circuito", "col.class": "Clase", "col.rank": "Posición", "col.top": "Top", "noOutline": "Trazado disponible pronto",
+    "versions.all": "Todas", "find.ph": "Buscar un piloto en esta clasificación…", "find.none": "Ningún piloto con ese nombre en este combo.", "find.matches": "Resultados: {n}", "search.ph": "Buscar un piloto…", "search.none": "Ningún piloto encontrado", "search.combos": "{n} combos", "profile.kicker": "Ficha del piloto", "profile.sub": "Su mejor vuelta y su posición en cada combo (todas las versiones)", "profile.none": "Piloto no encontrado (quizá sea anónimo).", "provisional.short": "provisional ({n}/20)", "col.track": "Circuito", "col.class": "Clase", "col.rank": "Posición", "col.top": "Top",
     "f.circuit": "Circuito", "f.layout": "Trazado", "f.class": "Clase", "f.car": "Coche", "f.session": "Sesión", "f.mode": "Modo", "f.version": "Versión", "f.conditions": "Condiciones", "f.aids": "Ayudas", "f.all": "Todos", "f.allF": "Todas", "f.race": "Carrera", "f.qualify": "Clasificación", "f.practice": "Libres", "f.online": "En línea", "f.offline": "Sin conexión", "f.latest": "Última", "f.several": "Varias",
     "anon": "Piloto {tag}", "notFound": "Nadie ha compartido todavía una vuelta en este combo.", "back": "Volver a los circuitos", "latest": "actual",
   },
@@ -144,7 +144,7 @@ const I18N = {
     "brakes.title": "Bremszonen der Community", "brakes.soon": "Demnächst", "brakes.text": "Aus geteilten Runden berechnet — nie von Hand eingetragen.",
     "share.title": "Diese Seite teilen", "share.copy": "Link kopieren", "share.copied": "Link kopiert",
     "dry": "Trocken", "wet": "Regen", "aidsClean": "Ohne Bremshilfe", "aidsAll": "Alle Hilfen",
-    "versions.all": "Alle", "find.ph": "Fahrer in dieser Rangliste finden…", "find.none": "Kein Fahrer mit diesem Namen auf dieser Kombo.", "find.matches": "Treffer: {n}", "search.ph": "Fahrer suchen…", "search.none": "Kein Fahrer gefunden", "search.combos": "{n} Kombos", "profile.kicker": "Fahrerprofil", "profile.sub": "Seine beste Runde und Position auf jeder Kombo (alle Versionen)", "profile.none": "Fahrer nicht gefunden (vielleicht anonym).", "provisional.short": "vorläufig ({n}/20)", "col.track": "Strecke", "col.class": "Klasse", "col.rank": "Position", "col.top": "Top", "noOutline": "Streckenverlauf folgt bald",
+    "versions.all": "Alle", "find.ph": "Fahrer in dieser Rangliste finden…", "find.none": "Kein Fahrer mit diesem Namen auf dieser Kombo.", "find.matches": "Treffer: {n}", "search.ph": "Fahrer suchen…", "search.none": "Kein Fahrer gefunden", "search.combos": "{n} Kombos", "profile.kicker": "Fahrerprofil", "profile.sub": "Seine beste Runde und Position auf jeder Kombo (alle Versionen)", "profile.none": "Fahrer nicht gefunden (vielleicht anonym).", "provisional.short": "vorläufig ({n}/20)", "col.track": "Strecke", "col.class": "Klasse", "col.rank": "Position", "col.top": "Top",
     "f.circuit": "Strecke", "f.layout": "Variante", "f.class": "Klasse", "f.car": "Auto", "f.session": "Session", "f.mode": "Modus", "f.version": "Version", "f.conditions": "Bedingungen", "f.aids": "Hilfen", "f.all": "Alle", "f.allF": "Alle", "f.race": "Rennen", "f.qualify": "Qualifying", "f.practice": "Training", "f.online": "Online", "f.offline": "Offline", "f.latest": "Neueste", "f.several": "Mehrere",
     "anon": "Fahrer {tag}", "notFound": "Auf dieser Kombo wurde noch keine Runde geteilt.", "back": "Zurück zu den Strecken", "latest": "aktuell",
   },
@@ -237,12 +237,6 @@ function trackSvg(course, pad = 6) {
   if (!d) return "";
   const first = d.match(/M([\d.]+) ([\d.]+)/);
   return `<svg viewBox="${-pad} ${-pad} ${200 + 2 * pad} ${200 + 2 * pad}" aria-hidden="true"><path class="track-glow" d="${d}"/><path class="track-line" d="${d}"/>${first ? `<circle class="track-sf" cx="${first[1]}" cy="${first[2]}" r="5"/>` : ""}</svg>`;
-}
-
-/** Visuel de remplacement quand le tracé n'est pas encore connu : grand drapeau. */
-function mapFallback(track) {
-  const u = flagUrl(track);
-  return `<div class="map-fallback">${u ? `<img src="${u}" alt="">` : ""}<span>${esc(t("noOutline"))}</span></div>`;
 }
 
 const driverName = (d) => (d.name ? esc(d.name) + (d.homonym ? ` <span class="muted">· ${esc(d.tag)}</span>` : "") : `<span class="anon">${esc(t("anon", { tag: d.tag }))}</span>`);

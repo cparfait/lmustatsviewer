@@ -1,5 +1,5 @@
 // Page combo circuit × classe : répartition, position d'un temps, classement, par voiture.
-/* global driversWord, classKey, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, fmtDate, flagImg, carImg, trackSvg, mapFallback, chrome, dataReady, driverName, filterBar, bindFilterBar */
+/* global driversWord, classKey, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, fmtDate, flagImg, carImg, classBadge, trackSvg, chrome, dataReady, driverName, filterBar, bindFilterBar */
 "use strict";
 
 const RANKED_MIN = 20;
@@ -45,8 +45,10 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
   $("crumbTrack").textContent = q.course;
   $("crumbClass").textContent = q.class;
   $("title").textContent = q.course;
-  $("eyebrow").innerHTML = `${flagImg(q.track)} <span>${esc(q.track !== q.course ? q.track : "Le Mans Ultimate")}</span>`;
-  $("map").innerHTML = trackSvg(q.course, 10) || mapFallback(q.track);
+  // Bandeau : drapeau + circuit, classe ; sous le titre, le circuit quand le tracé diffère.
+  $("eyebrow").innerHTML = `${flagImg(q.track)}<span class="cg-name">${esc(q.track)}</span>`;
+  $("headClass").innerHTML = classBadge(q.class);
+  $("subtitle").textContent = q.track !== q.course ? q.track : "";
   document.getElementById("combo").dataset.cls = classKey(q.class);
   $("brakeMap").innerHTML = trackSvg(q.course, 6);
 
@@ -195,14 +197,14 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
     $("lbBody").innerHTML = rows
       .map((r) => `
       <tr class="${me && r.driver.tag === me ? "is-me" : ""}" data-rank="${r.rank}">
-        <td class="pos">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : r.rank}</td>
+        <td class="pos c">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : r.rank}</td>
         <td class="drv">${driverName(r.driver)}</td>
-        <td><div class="car">${carImg(r.car_model)}<span>${esc(r.car_model)}</span></div></td>
-        <td class="t">${fmtTime(r.time)}</td>
-        <td class="gap">${r.rank === 1 ? "—" : "+" + (r.time - detail.best.time).toFixed(3)}</td>
-        ${["s1", "s2", "s3"].map((k, i) => `<td class="sec ${r[k] != null && r[k] === bestS[i] ? "pb" : ""}">${r[k] != null ? r[k].toFixed(3) : "—"}</td>`).join("")}
-        <td><span class="ver">${esc(r.game_version)}</span></td>
-        <td class="muted">${esc(fmtDate(r.played_on))}</td>
+        <td><div class="car"><span class="logo-slot">${carImg(r.car_model)}</span><span>${esc(r.car_model)}</span></div></td>
+        <td class="t perf sep r">${fmtTime(r.time)}</td>
+        <td class="gap perf r">${r.rank === 1 ? "—" : "+" + (r.time - detail.best.time).toFixed(3)}</td>
+        ${["s1", "s2", "s3"].map((k, i) => `<td class="sec perf r ${r[k] != null && r[k] === bestS[i] ? "pb" : ""}">${r[k] != null ? r[k].toFixed(3) : "—"}</td>`).join("")}
+        <td class="sep c"><span class="ver">${esc(r.game_version)}</span></td>
+        <td class="muted r">${esc(fmtDate(r.played_on))}</td>
       </tr>`)
       .join("");
     $("more").hidden = offset >= lb.matches;

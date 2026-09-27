@@ -354,7 +354,8 @@ function ActivateDialog({
   const playerName = useAppStore((s) => s.playerName);
   const invite = variant !== "settings";
   const [anon, setAnon] = useState(status.registered ? status.anonymous : false);
-  const [history, setHistory] = useState(invite);
+  // Sessions passées cochées par défaut, depuis l'invitation comme depuis la Configuration.
+  const [history, setHistory] = useState(true);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const activateRef = useRef<HTMLButtonElement>(null);

@@ -991,6 +991,15 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   ✅ Tag `v1.0.7` recréé sur `e19b018` (annonce au lancement + nom du joueur), workflow Release relancé.
   ⏳ Mainteneur : supprimer l'ANCIEN brouillon v1.0.7 (installeur sans les correctifs), vérifier le
   nouveau (`.exe` + `latest.json`), publier ; puis vitrine et annonces.
+- ✅ **« Envoyer aussi mes sessions passées » coché par défaut partout** (demande mainteneur) : c'était
+  déjà le cas dans l'invitation, pas depuis Configuration → Communauté → Activer. Rien ne part sans
+  clic sur « Activer le partage ». ⚠️ Pas dans le tag `v1.0.7` déjà compilé → prochaine version.
+- 🐛 **Doublon d'installation après désinstallation** (mainteneur) : la désinstallation de la 1.0.6 a
+  effacé les données de l'app (jeton compris) → réactivation = nouvelle installation `#58ac`, l'ancienne
+  `#d3c7` orpheline (290 sessions, 2 « Cris Tof »). Réglé à la main côté serveur (DELETE `#d3c7`,
+  `homonym = false` sur `#58ac`). 📋 Proposé pour 1.0.8 : jeton aussi dans le Gestionnaire
+  d'identifications Windows, code de récupération, question « déjà partagé ? » quand le nom est pris,
+  repère affiché dans l'app, `admin delete-tag`, nom rendu à l'homonyme suivant à la suppression.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

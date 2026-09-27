@@ -2139,7 +2139,7 @@ export default {
     recordYou: "Vous",
     details: "Détail",
     hide: "Replier",
-    top: "Top {{pct}} %", bottom: "Derniers {{pct}} %", first: "Meilleur temps", sRace: "Course", sQualify: "Qualif", sPractice: "Essais", filterAll: "Tous", noMatch: "Aucun combo ne correspond à ces filtres.", clickFilter: "Cliquer pour filtrer",
+    top: "Top {{pct}} %", bottom: "Derniers {{pct}} %", first: "Meilleur temps", last: "Dernier", nth: "{{n}}ᵉ", sRace: "Course", sQualify: "Qualif", sPractice: "Essais", filterAll: "Tous", noMatch: "Aucun combo ne correspond à ces filtres.", clickFilter: "Cliquer pour filtrer",
     pending: "Pas encore assez de pilotes pour classer : {{n}} / {{min}}",
     provisionalTip: "Classement provisoire : {{n}} / {{min}} pilotes",
     noData: "Personne n'a encore partagé ce combo",

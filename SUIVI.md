@@ -1068,6 +1068,10 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   marque « provisoire » = effectif en orange + infobulle (le badge débordait sur la jauge) ; fiche pilote
   du site : positions affichées sous 20 pilotes. Vérifié sur la fiche réelle (8 records → « Meilleur
   temps »). Site `?v=40`.
+- ✅ **Colonne « Top » en clair sous 20 pilotes** (retour mainteneur : « je ne comprends pas le
+  pourcentage », « Derniers 25 % » pour 4ᵉ/4) : 1er → « Meilleur temps », dernier → « Dernier »,
+  sinon « 2ᵉ / 2nd / 2.º / 2. » (vert dans la moitié haute) ; pourcentages à partir de 20 pilotes.
+  `standing()` app + site (fiche pilote, page du classement). Vérifié sur la fiche réelle. `?v=41`.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

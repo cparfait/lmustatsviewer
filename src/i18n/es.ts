@@ -2137,7 +2137,7 @@ export default {
     recordYou: "Tú",
     details: "Detalle",
     hide: "Plegar",
-    top: "Top {{pct}} %", bottom: "Últimos {{pct}} %", first: "Mejor tiempo", sRace: "Carrera", sQualify: "Clasificación", sPractice: "Libres", filterAll: "Todos", noMatch: "Ningún combo coincide con estos filtros.", clickFilter: "Clic para filtrar",
+    top: "Top {{pct}} %", bottom: "Últimos {{pct}} %", first: "Mejor tiempo", last: "Último", nth: "{{n}}.º", sRace: "Carrera", sQualify: "Clasificación", sPractice: "Libres", filterAll: "Todos", noMatch: "Ningún combo coincide con estos filtros.", clickFilter: "Clic para filtrar",
     pending: "Aún no hay suficientes pilotos para clasificar: {{n}} / {{min}}",
     provisionalTip: "Clasificación provisional: {{n}} / {{min}} pilotos",
     noData: "Nadie ha compartido todavía este combo",

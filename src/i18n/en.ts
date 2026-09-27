@@ -2133,7 +2133,7 @@ export default {
     recordYou: "You",
     details: "Details",
     hide: "Collapse",
-    top: "Top {{pct}}%", bottom: "Bottom {{pct}}%", first: "Fastest time", sRace: "Race", sQualify: "Qualifying", sPractice: "Practice", filterAll: "All", noMatch: "No combo matches these filters.", clickFilter: "Click to filter",
+    top: "Top {{pct}}%", bottom: "Bottom {{pct}}%", first: "Fastest time", last: "Last", nth: "{{n}}{{sfx}}", sRace: "Race", sQualify: "Qualifying", sPractice: "Practice", filterAll: "All", noMatch: "No combo matches these filters.", clickFilter: "Click to filter",
     pending: "Not enough drivers to rank yet: {{n}} / {{min}}",
     provisionalTip: "Provisional leaderboard: {{n}} / {{min}} drivers",
     noData: "Nobody has shared this combo yet",

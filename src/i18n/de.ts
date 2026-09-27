@@ -2138,7 +2138,7 @@ export default {
     recordYou: "Du",
     details: "Details",
     hide: "Einklappen",
-    top: "Top {{pct}} %", bottom: "Letzte {{pct}} %", first: "Bestzeit", sRace: "Rennen", sQualify: "Qualifying", sPractice: "Training", filterAll: "Alle", noMatch: "Keine Kombination passt zu diesen Filtern.", clickFilter: "Klicken zum Filtern",
+    top: "Top {{pct}} %", bottom: "Letzte {{pct}} %", first: "Bestzeit", last: "Letzter", nth: "{{n}}.", sRace: "Rennen", sQualify: "Qualifying", sPractice: "Training", filterAll: "Alle", noMatch: "Keine Kombination passt zu diesen Filtern.", clickFilter: "Klicken zum Filtern",
     pending: "Noch nicht genug Fahrer für eine Wertung: {{n}} / {{min}}",
     provisionalTip: "Vorläufige Rangliste: {{n}} / {{min}} Fahrer",
     noData: "Noch niemand hat diese Kombo geteilt",

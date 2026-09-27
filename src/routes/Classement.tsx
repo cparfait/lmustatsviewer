@@ -71,8 +71,20 @@ const gameMinor = (v: string) => {
  * Libellé de position lisible : « Top X % » dans la moitié haute, « Derniers X % » dans
  * la moitié basse (171ᵉ / 208 = « Derniers 19 % », pas un « Top 83 % » trompeur).
  */
+/** Suffixe ordinal anglais (1st, 2nd, 3rd, 4th, 11th…) ; les autres langues l'ont dans le texte. */
+const enSuffix = (n: number) =>
+  n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th");
+
 function standing(t: (k: string, o?: Record<string, unknown>) => string, topPct: number, rank?: number, n?: number) {
   if (rank === 1) return { label: t("leaderboard.first"), tone: "text-emerald-500" };
+  // Moins de 20 pilotes : un pourcentage n'a pas de sens (« Derniers 25 % » = dernier sur 4).
+  if (rank != null && n != null && n < RANKED_MIN) {
+    if (rank === n) return { label: t("leaderboard.last"), tone: "text-orange-500" };
+    return {
+      label: t("leaderboard.nth", { n: rank, sfx: enSuffix(rank) }),
+      tone: rank <= n / 2 ? "text-emerald-500" : "text-orange-500",
+    };
+  }
   if (topPct <= 50) return { label: t("leaderboard.top", { pct: topPct }), tone: "text-emerald-500" };
   const bottom = rank && n ? Math.max(1, Math.ceil(((n - rank + 1) / n) * 100)) : Math.max(1, 101 - topPct);
   return { label: t("leaderboard.bottom", { pct: bottom }), tone: "text-orange-500" };

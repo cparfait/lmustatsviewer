@@ -988,6 +988,9 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   l'assistant seulement en cas de vrai doute (aucun `isPlayer`). Vérifié sur les 219 résultats réels du
   mainteneur (« Cris Tof ») ; 6 tests Rust. Changelog 1.0.7 (fixed ×4).
   ⚠️ Le tag `v1.0.7` en cours de compilation ne contient PAS ce correctif → brouillon à ne pas publier.
+  ✅ Tag `v1.0.7` recréé sur `e19b018` (annonce au lancement + nom du joueur), workflow Release relancé.
+  ⏳ Mainteneur : supprimer l'ANCIEN brouillon v1.0.7 (installeur sans les correctifs), vérifier le
+  nouveau (`.exe` + `latest.json`), publier ; puis vitrine et annonces.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

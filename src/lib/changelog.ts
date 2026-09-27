@@ -182,6 +182,14 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "The first-launch assistant could pick the wrong driver name — sometimes an AI driver's, apparently at random. It took the most frequent name in your latest results, yet in offline races the same AI drivers appear in every session, tied with you. It now uses the driver the game marks as the player in its results, then the name in your LMU profile. If it still cannot tell, it shows a list to pick from. The name can still be changed in Settings.",
+              fr: "L'assistant de premier lancement pouvait retenir un mauvais nom de pilote — parfois celui d'une IA, apparemment au hasard. Il prenait le nom le plus fréquent de vos derniers résultats, or en course hors ligne les mêmes IA figurent dans chaque session, à égalité avec vous. Il se fie désormais au pilote que le jeu marque comme joueur dans ses résultats, puis au nom de votre profil LMU ; s'il ne peut toujours pas trancher, il affiche une liste où choisir. Le nom reste modifiable dans la Configuration.",
+              es: "El asistente del primer inicio podía elegir un nombre de piloto equivocado — a veces el de una IA, aparentemente al azar. Tomaba el nombre más frecuente de tus últimos resultados, pero en carreras sin conexión las mismas IA aparecen en cada sesión, empatadas contigo. Ahora usa el piloto que el juego marca como jugador en sus resultados y, después, el nombre de tu perfil de LMU; si aun así no puede decidir, muestra una lista para elegir. El nombre sigue siendo modificable en la Configuración.",
+              de: "Der Assistent beim ersten Start konnte einen falschen Fahrernamen übernehmen — manchmal den einer KI, scheinbar zufällig. Er nahm den häufigsten Namen deiner letzten Ergebnisse, doch in Offline-Rennen stehen dieselben KI-Fahrer in jeder Sitzung, gleichauf mit dir. Jetzt nutzt er den Fahrer, den das Spiel in seinen Ergebnissen als Spieler markiert, danach den Namen aus deinem LMU-Profil; kann er immer noch nicht entscheiden, zeigt er eine Liste zur Auswahl. Der Name bleibt in den Einstellungen änderbar.",
+            },
+          },
+          {
+            text: {
               en: "The 2024/25 Peugeot 9X8 had no car picture anywhere in the app: the game writes its name as “Peugeot 9x8 (2024/25)”, which was not recognised. It now shows the 9X8 Evo picture.",
               fr: "La Peugeot 9X8 2024/25 n'avait aucune image dans l'app : le jeu écrit son nom « Peugeot 9x8 (2024/25) », qui n'était pas reconnu. Elle affiche désormais l'image de la 9X8 Evo.",
               es: "El Peugeot 9X8 2024/25 no tenía imagen en ninguna parte de la app: el juego escribe su nombre como «Peugeot 9x8 (2024/25)», que no se reconocía. Ahora muestra la imagen del 9X8 Evo.",

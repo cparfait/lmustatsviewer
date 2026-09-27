@@ -40,6 +40,8 @@ export interface DetectResult {
   results_dir: string;
   telemetry_dir: string;
   player_name: string;
+  /** Noms plausibles, le plus probable d'abord (liste de choix de l'assistant). */
+  player_candidates: string[];
   xml_count: number;
 }
 

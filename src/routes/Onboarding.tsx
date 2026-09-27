@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import {
   Flag,
   FolderOpen,
@@ -38,6 +39,8 @@ export function Onboarding() {
   const skipOnboarding = useAppStore((s) => s.skipOnboarding);
   const [step, setStep] = useState<Step>("idle");
   const [detectResult, setDetectResult] = useState<DetectResult | null>(null);
+  // Nom retenu : le plus probable par défaut, modifiable dans la liste.
+  const [playerChoice, setPlayerChoice] = useState("");
   const [report, setReport] = useState<IndexReport | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [manualPath, setManualPath] = useState("");
@@ -47,6 +50,7 @@ export function Onboarding() {
     try {
       const result = await config.detectLmu();
       setDetectResult(result);
+      setPlayerChoice(result.player_name);
       setStep("detected");
     } catch {
       setErrorMsg(t("onboarding.notDetected"));
@@ -68,7 +72,7 @@ export function Onboarding() {
 
   const handleConfirmSetup = () => {
     if (!detectResult) return;
-    doSetup(detectResult.lmu_path, detectResult.player_name);
+    doSetup(detectResult.lmu_path, playerChoice || detectResult.player_name);
   };
 
   const handleBrowse = async () => {
@@ -194,9 +198,19 @@ export function Onboarding() {
                   <span className="text-muted-foreground">
                     {t("onboarding.detectedDriver")}
                   </span>
-                  <span className="font-medium">
-                    {detectResult.player_name || "—"}
-                  </span>
+                  {(detectResult.player_candidates?.length ?? 0) > 1 ? (
+                    <Select
+                      value={playerChoice}
+                      onValueChange={setPlayerChoice}
+                      ariaLabel={t("onboarding.detectedDriver")}
+                      className="h-8 max-w-[60%]"
+                      options={detectResult.player_candidates.map((n) => ({ value: n, label: n }))}
+                    />
+                  ) : (
+                    <span className="font-medium">
+                      {detectResult.player_name || "—"}
+                    </span>
+                  )}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">

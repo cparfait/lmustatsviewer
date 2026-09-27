@@ -978,6 +978,16 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ **Release v1.0.7 republiée** (demande mainteneur) avec le correctif de l'annonce au lancement :
   `latest_version` → 1.0.7, `cargo check` ×2 (lock à 1.0.7), `tsc`, lint, 265 tests, build OK ;
   nouveau tag `v1.0.7`. ⏳ Brouillon à vérifier (`.exe` + `latest.json`) puis publier ; vitrine à envoyer.
+- 🐛→✅ **Détection du nom du joueur à l'installation « aléatoire »** (retour mainteneur, 1.0.6 et 1.0.7 :
+  code inchangé depuis la V1). `suggest_player_name` prenait le nom le plus fréquent des 10 derniers
+  résultats ; en hors ligne les mêmes IA sont dans chaque session, à égalité avec le joueur, et
+  l'égalité était tranchée par l'ordre d'un `HashMap` (hasard). Nouvelle règle (`config.rs`,
+  `rank_player_names`, 20 fichiers) : ① pilote marqué `isPlayer` (présent par fichier) ② nom du profil
+  du jeu `UserData/player/Settings.JSON` « Player Name » ③ présence dans le plus de fichiers ; égalités
+  : profil puis ordre alphabétique. `DetectResult.player_candidates` → **liste de choix** dans
+  l'assistant seulement en cas de vrai doute (aucun `isPlayer`). Vérifié sur les 219 résultats réels du
+  mainteneur (« Cris Tof ») ; 6 tests Rust. Changelog 1.0.7 (fixed ×4).
+  ⚠️ Le tag `v1.0.7` en cours de compilation ne contient PAS ce correctif → brouillon à ne pas publier.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

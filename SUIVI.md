@@ -1047,6 +1047,11 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   - Tests : serveur 33/33 ; Rust 17 ; e2e (pile locale `REQUIRE_STEAM=0`) OK ; app `tsc`, lint, 265.
     Vitrine : carte « C'est vous qui décidez » et FAQ ×4 mentionnent Steam. Changelog 1.0.7 réécrit ×4.
   - ⚠️ Le tag `v1.0.7` actuel (f697bcc) ne contient PAS cette obligation → à supprimer et retaguer.
+- ✅ **v1.0.7 retaguée (définitive)** après validation du mainteneur (« tout fonctionne » : serveur à jour,
+  connexion Steam obligatoire testée dans l'app). `update-from-github.sh` corrigé (tag recréé : `fetch
+  --force`, `trap ERR`). « Supprimer » affiché seulement s'il y a des données partagées depuis ce PC,
+  sinon « Effacer avec Steam ». Contrôles : `tsc`, lint, 265, build, `cargo check`, serveur 33/33.
+  ⏳ Brouillon à publier ; vitrine (`scp`) ; page Confidentialité (empreinte Steam) ; annonces.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

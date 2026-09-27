@@ -962,6 +962,21 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   meilleur tour toutes classes confondues (classe et voiture de ce tour affichées). Accueil : total de
   la carte circuit = **pilotes distincts** (`track_drivers` renvoyé par `GET /combos`), celui de la
   classe si elle est filtrée ; filtre Classe « Toutes » sans total. Test mis à jour (29/29). `?v=37`.
+- ❌→⏳ **Release v1.0.7 retirée par le mainteneur** (release + tag supprimés sur GitHub) : au lancement
+  de l'app installée, l'ingénieur annonçait « Tour de formation, 100 litres à bord… » hors de toute
+  course. Cause : depuis la 1.0.7 l'ingénieur écoute dès l'ouverture (annonces sur toutes les pages) ;
+  LMU FIGE le buffer Scoring en quittant une session et la détection de pause met ~2 s (40 trames)
+  à reconnaître ces données figées → pendant ce temps elles passent pour une course en cours.
+  ✅ Correctif (`useRaceEngineer.ts`) : aucune annonce tant que l'horloge de session (`session_time`)
+  n'a pas avancé depuis le (re)démarrage (`clockRunning`, remis à faux à chaque `sessionReset`) ;
+  le briefing de formation exige aussi l'horloge en marche. `tsc`, lint, 265 tests OK.
+  ✅ `version.json` : `latest_version` remis à 1.0.6 (l'update-checker V1 annonçait une 1.0.7
+  inexistante), `version` reste 1.0.7 ; tag local `v1.0.7` supprimé.
+  📋 **Avant de republier** : lancer l'app avec LMU ouvert dans les menus après une course → silence ;
+  puis une vraie course → le briefing de formation doit passer. Republier en 1.0.7 : changelog daté du
+  jour, `latest_version` → 1.0.7, `cargo check` ×2, tag.
+- ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
+  version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

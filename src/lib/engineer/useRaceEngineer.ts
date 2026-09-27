@@ -153,6 +153,11 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const lastAnnouncedPb = useRef(0);
   const lapsSinceLapCallout = useRef(99);
   const formationSaid = useRef(false);
+  // Horloge de session vue en marche depuis le (re)démarrage : LMU FIGE le buffer
+  // Scoring en quittant une session ; au lancement de l'app (annonces sur toutes les
+  // pages), ces données figées ressemblent à une course en cours pendant ~2 s, le
+  // temps que la détection de pause les reconnaisse. Rien n'est annoncé avant.
+  const clockRunning = useRef(false);
   const postureSaid = useRef(false);
   const forecastSaid = useRef({ first: false, soon: false });
   const forecastTrack = useRef("");
@@ -200,7 +205,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     // ── Candidats de la trame (arbitrés en fin d'effet) ──────────────────────
     const cands: Candidate[] = [];
     const say = (key: string, text: string, prio: VoicePriority, opts: Partial<Candidate> = {}) => {
-      if (text) cands.push({ key, text, prio, ...opts });
+      if (text && clockRunning.current) cands.push({ key, text, prio, ...opts });
     };
 
     // ── (Re)démarrage de session + warm-up ───────────────────────────────────
@@ -248,6 +253,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       postureSaid.current = false;
       forecastSaid.current = { first: false, soon: false };
     }
+    if (sessionReset) clockRunning.current = false;
+    else if (sc.session_time > prevSessionTime.current + 1e-3) clockRunning.current = true;
     prevSessionTime.current = sc.session_time;
     // Télémétrie stabilisée ? (seuils suspendus pendant le warm-up)
     const warmedUp = now - warmupStart.current > WARMUP_MS;
@@ -747,7 +754,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       }
 
       // ── Tour de formation : briefing ─────────────────────────────────────
-      if (isRace && sc.game_phase === 3 && !formationSaid.current && tel && tel.fuel > 0) {
+      if (isRace && sc.game_phase === 3 && clockRunning.current && !formationSaid.current && tel && tel.fuel > 0) {
         formationSaid.current = true;
         say("formation", t("live.vFormation", { fuel: Math.round(tel.fuel) }), "normal", { score: 50 });
       }

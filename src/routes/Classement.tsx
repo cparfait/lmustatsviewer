@@ -405,7 +405,18 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
       if ((fClass && c.car_class !== fClass) || (fCar && c.car_model !== fCar)) continue;
       m.set(c.track, [...(m.get(c.track) ?? []), r]);
     }
-    return [...m.entries()];
+    // Dans chaque circuit, regroupement par TRACÉ : le principal (même nom que le circuit)
+    // d'abord, puis les plus fournis ; l'ordre d'origine est gardé à l'intérieur d'un tracé.
+    return [...m.entries()].map(([track, list]) => {
+      const count = new Map<string, number>();
+      for (const r of list) count.set(r.combo.track_course, (count.get(r.combo.track_course) ?? 0) + 1);
+      const rank = (c: string) => (c === track ? -1e9 : -(count.get(c) ?? 0));
+      const sorted = list
+        .map((r, i) => ({ r, i }))
+        .sort((a, b) => rank(a.r.combo.track_course) - rank(b.r.combo.track_course) || a.r.combo.track_course.localeCompare(b.r.combo.track_course) || a.i - b.i)
+        .map((x) => x.r);
+      return [track, sorted] as [string, Row[]];
+    });
   }, [rows, fTrack, fCourse, fClass, fCar]);
 
   // Tous les combos où le joueur a une place (provisoires compris, comme le tableau) ;
@@ -671,6 +682,10 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                   <TableBody>
                     {list.map((r, i) => {
                       const key = `${r.combo.track}|${r.combo.track_course}|${r.combo.car_class}`;
+                      // Sous-titre de tracé : plusieurs tracés dans ce circuit, ou un seul au nom différent.
+                      const courses = new Set(list.map((x) => x.combo.track_course));
+                      const withCourses = courses.size > 1 || list[0].combo.track_course !== track;
+                      const newCourse = withCourses && (i === 0 || list[i - 1].combo.track_course !== r.combo.track_course);
                       const isRanked = !!r.pos && r.pos.drivers >= RANKED_MIN;
                       const isOpen = open === key;
                       // Position affichée dès le 1er pilote (comme sur le site) ; sous 20 pilotes,
@@ -678,6 +693,22 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                       const st = r.pos ? standing(t, r.pos.top_pct, r.pos.rank, r.pos.drivers) : null;
                       return (
                         <Fragment key={key}>
+                          {newCourse && (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={showOhne ? 10 : 9}
+                                className="border-t border-primary/25 bg-primary/[0.07] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-yellow-700 dark:text-yellow-300"
+                              >
+                                <span
+                                  className="cursor-pointer hover:underline"
+                                  title={t("leaderboard.clickFilter")}
+                                  onClick={cellFilter(setFCourse, fCourse, r.combo.track_course)}
+                                >
+                                  ↳ {r.combo.track_course}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          )}
                           <TableRow className={cn(i % 2 === 1 && "bg-muted/30", isOpen && "bg-amber-400/10")}>
                             <TableCell
                               className="cursor-pointer px-2 py-1.5"
@@ -697,7 +728,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                                   >
                                     {r.combo.car_model}
                                   </span>
-                                  {r.combo.track_course !== r.combo.track && (
+                                  {!withCourses && r.combo.track_course !== r.combo.track && (
                                     <span
                                       className="block cursor-pointer text-micro font-normal text-muted-foreground hover:text-primary"
                                       title={t("leaderboard.clickFilter")}

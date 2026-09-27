@@ -1072,6 +1072,15 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   pourcentage », « Derniers 25 % » pour 4ᵉ/4) : 1er → « Meilleur temps », dernier → « Dernier »,
   sinon « 2ᵉ / 2nd / 2.º / 2. » (vert dans la moitié haute) ; pourcentages à partir de 20 pilotes.
   `standing()` app + site (fiche pilote, page du classement). Vérifié sur la fiche réelle. `?v=41`.
+- ✅ **Sous-sections par tracé** (retour mainteneur : « illisible sinon ») : dans chaque carte circuit,
+  un sous-titre par tracé (principal d'abord, puis les plus fournis) dès qu'il y en a plusieurs ou que
+  l'unique tracé porte un autre nom ; le tracé n'est plus répété sous la voiture. Site : accueil + fiche
+  pilote (`groupByCourse`/`courseHeader` dans `site.js`, `?v=42`) ; app : page Classements (clic sur le
+  sous-titre = filtre Tracé). Vérifié sur les données réelles (Bahreïn : International / Outer / Paddock).
+- ✅ **Release v1.0.8** (numéro choisi par le mainteneur) : changelog réduit à UNE ligne « présentation
+  de la page Classements corrigée » ×4 ; `version.json` (`version` + `latest_version`) → 1.0.8, `cargo
+  check` ×2 (lock), `tsc`, lint, 265 tests, build. Tag `v1.0.8`. ⏳ Brouillon à publier ; site à mettre à
+  jour (`update-from-github.sh`) pour les sous-sections.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

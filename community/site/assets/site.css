@@ -735,3 +735,10 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 /* Classement provisoire (moins de 20 pilotes) : effectif en orange. */
 .prov-n { color: #d97706; font-weight: 700; }
 [data-theme="dark"] .prov-n { color: #fbbf24; }
+
+/* Sous-section par tracé dans une carte circuit (Bahreïn : Grand Prix, Outer, Paddock…). */
+.cg-table tr.cg-sub td { padding: 5px 16px 4px; background: color-mix(in srgb, var(--amber) 7%, var(--surface)) !important;
+  border-top: 1px solid color-mix(in srgb, var(--amber) 25%, var(--border)); font-size: .68rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--amber-ink); }
+.cg-table tr.cg-sub:first-child td { border-top: 0; }
+.cg-table tr.cg-sub td span::before { content: "↳ "; opacity: .6; }

@@ -65,32 +65,19 @@ export const APP_VERSION: string = __APP_VERSION__;
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.0.8",
-    date: "",
-    dev: true,
+    date: "2026-09-27",
+    dev: false,
     localized: true,
     sections: [
-      {
-        kind: "improved",
-        items: [
-          {
-            text: {
-              en: "Leaderboards page: your position, top %, gap to the fastest and the new “Record holder” column (who set the best time, “You” when it's yours) now show from the very first driver, like on the website — instead of “Not enough drivers yet”. With fewer than 20 drivers, the “Top” column reads plainly — “Fastest time”, “2nd”, “Last” — instead of a percentage (“Bottom 25%” simply meant last of 4). Below 20 drivers the number of drivers shows in orange (provisional leaderboard, details on hover).",
-              fr: "Page Classements : votre position, le top %, l'écart au plus rapide et la nouvelle colonne « Pilote du record » (qui détient le meilleur temps, « Vous » si c'est le vôtre) s'affichent dès le premier pilote, comme sur le site — au lieu de « Pas encore assez de pilotes ». Sous 20 pilotes, la colonne « Top » s'écrit en clair — « Meilleur temps », « 2ᵉ », « Dernier » — au lieu d'un pourcentage (« Derniers 25 % » voulait simplement dire dernier sur 4). Sous 20 pilotes, le nombre de pilotes s'affiche en orange (classement provisoire, détail au survol).",
-              es: "Página Clasificaciones: tu puesto, el top %, la diferencia con el más rápido y la nueva columna «Piloto del récord» (quién tiene el mejor tiempo, «Tú» si es el tuyo) se muestran desde el primer piloto, como en el sitio web — en lugar de «Aún no hay suficientes pilotos». Con menos de 20 pilotos, la columna «Top» se muestra en claro — «Mejor tiempo», «2.º», «Último» — en lugar de un porcentaje («Últimos 25 %» significaba simplemente último de 4). Por debajo de 20 pilotos, el número de pilotos aparece en naranja (clasificación provisional, detalle al pasar el ratón).",
-              de: "Seite Ranglisten: Deine Platzierung, Top-%, der Abstand zum Schnellsten und die neue Spalte „Rekordhalter“ (wer die Bestzeit hält, „Du“, wenn es deine ist) erscheinen ab dem ersten Fahrer, wie auf der Website — statt „Noch nicht genug Fahrer“. Unter 20 Fahrern steht in der Spalte „Top“ Klartext — „Bestzeit“, „2.“, „Letzter“ — statt eines Prozentwerts („Untere 25 %“ hieß einfach Letzter von 4). Unter 20 Fahrern erscheint die Fahrerzahl in Orange (vorläufige Rangliste, Details beim Überfahren).",
-            },
-          },
-        ],
-      },
       {
         kind: "fixed",
         items: [
           {
             text: {
-              en: "Leaderboards page: the “Where you stand” gauge put a first place in the red (1st of 1 = end of the bar); it now runs from 1st (green, left) to last (red, right). “Ranked combos”, “Best standing” and “Average position” stayed empty while no leaderboard had 20 drivers; they now count all your leaderboards (the final ones, 20+ drivers, are shown apart), and the best standing is your real best place (a record counts as “Best time”).",
-              fr: "Page Classements : la jauge « Où vous êtes » plaçait un premier dans le rouge (1er sur 1 = bout de la barre) ; elle va désormais du 1er (vert, à gauche) au dernier (rouge, à droite). « Combos classés », « Meilleur classement » et « Position moyenne » restaient vides tant qu'aucun classement n'avait 20 pilotes ; ils comptent maintenant tous vos classements (les définitifs, à 20 pilotes ou plus, sont indiqués à part), et le meilleur classement est votre meilleure place réelle (un record compte comme « Meilleur temps »).",
-              es: "Página Clasificaciones: el indicador «Dónde estás» ponía un primer puesto en rojo (1.º de 1 = final de la barra); ahora va del 1.º (verde, a la izquierda) al último (rojo, a la derecha). «Combinaciones clasificadas», «Mejor clasificación» y «Posición media» quedaban vacías mientras ninguna clasificación tuviera 20 pilotos; ahora cuentan todas tus clasificaciones (las definitivas, con 20+ pilotos, se indican aparte), y la mejor clasificación es tu mejor puesto real (un récord cuenta como «Mejor tiempo»).",
-              de: "Seite Ranglisten: Die Anzeige „Wo du stehst“ setzte einen ersten Platz ins Rote (1. von 1 = Ende des Balkens); sie reicht jetzt vom 1. (grün, links) bis zum Letzten (rot, rechts). „Gewertete Kombos“, „Beste Platzierung“ und „Durchschnittliche Position“ blieben leer, solange keine Rangliste 20 Fahrer hatte; sie zählen jetzt alle deine Ranglisten (die endgültigen mit 20+ Fahrern werden getrennt angezeigt), und die beste Platzierung ist dein tatsächlich bester Platz (ein Rekord zählt als „Bestzeit“).",
+              en: "Leaderboards page presentation fixed: your position, gap to the fastest and the record holder now show on every leaderboard, even with few drivers; the “Where you stand” gauge runs from 1st (green) to last (red); below 20 drivers your place reads plainly (“2nd”, “Last”) instead of a percentage; the summary figures count all your leaderboards; tracks with several layouts (Bahrain, Le Mans, Fuji…) get one sub-section per layout.",
+              fr: "Présentation de la page Classements corrigée : votre position, l'écart au plus rapide et le pilote du record s'affichent sur tous les classements, même avec peu de pilotes ; la jauge « Où vous êtes » va du 1er (vert) au dernier (rouge) ; sous 20 pilotes, votre place s'écrit en clair (« 2ᵉ », « Dernier ») au lieu d'un pourcentage ; les chiffres du haut comptent tous vos classements ; les circuits à plusieurs tracés (Bahreïn, Le Mans, Fuji…) ont une sous-section par tracé.",
+              es: "Presentación de la página Clasificaciones corregida: tu puesto, la diferencia con el más rápido y el piloto del récord se muestran en todas las clasificaciones, incluso con pocos pilotos; el indicador «Dónde estás» va del 1.º (verde) al último (rojo); por debajo de 20 pilotos tu puesto se muestra en claro («2.º», «Último») en lugar de un porcentaje; las cifras de arriba cuentan todas tus clasificaciones; los circuitos con varios trazados (Baréin, Le Mans, Fuji…) tienen una subsección por trazado.",
+              de: "Darstellung der Seite Ranglisten korrigiert: Deine Platzierung, der Abstand zum Schnellsten und der Rekordhalter erscheinen in jeder Rangliste, auch mit wenigen Fahrern; die Anzeige „Wo du stehst“ reicht vom 1. (grün) bis zum Letzten (rot); unter 20 Fahrern steht dein Platz im Klartext („2.“, „Letzter“) statt eines Prozentwerts; die Kennzahlen oben zählen alle deine Ranglisten; Strecken mit mehreren Varianten (Bahrain, Le Mans, Fuji…) haben einen Unterabschnitt pro Variante.",
             },
           },
         ],

@@ -423,4 +423,23 @@ function watchMaintenance() {
 }
 
 /** « 1 pilote » / « 12 pilotes » (libellé seul, sans le nombre). */
+/**
+ * Lignes d'une carte circuit regroupées par TRACÉ (Bahreïn : Grand Prix, Outer, Paddock…) :
+ * tracé principal (même nom que le circuit) d'abord, puis les plus roulés. `withHeaders` :
+ * un sous-titre par tracé s'il y en a plusieurs, ou si l'unique tracé porte un autre nom.
+ */
+function groupByCourse(list, track, weight = (c) => c.drivers ?? 0) {
+  const m = new Map();
+  for (const c of list) {
+    if (!m.has(c.track_course)) m.set(c.track_course, []);
+    m.get(c.track_course).push(c);
+  }
+  const groups = [...m.entries()]
+    .map(([course, rows]) => ({ course, rows, w: rows.reduce((s, c) => s + weight(c), 0) }))
+    .sort((a, b) => (b.course === track) - (a.course === track) || b.w - a.w || a.course.localeCompare(b.course));
+  const withHeaders = groups.length > 1 || (groups[0] && groups[0].course !== track);
+  return { groups, withHeaders };
+}
+const courseHeader = (course, cols) => `<tr class="cg-sub"><td colspan="${cols}"><span>${esc(course)}</span></td></tr>`;
+
 const driversWord = (n) => t(n === 1 ? "driver1" : "drivers");

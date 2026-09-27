@@ -82,8 +82,9 @@ chrome();
     .map(
       (g) => `<section class="cgroup">
       <div class="cg-head cg-static">${flagImg(g.track)}<span class="cg-name">${esc(g.track)}</span><span class="cg-n">${g.list.length}</span></div>
-      <div class="lb-scroll"><table class="lb cg-table pf-table">${head}<tbody>${g.list
-        .map((c) => {
+      <div class="lb-scroll"><table class="lb cg-table pf-table">${head}<tbody>${(() => {
+        const { groups: courses, withHeaders } = groupByCourse(g.list, g.track, () => 1);
+        const renderRow = (c) => {
           const url = `/combo.html?${new URLSearchParams({ track: c.track, course: c.track_course, class: c.car_class })}`;
           const isRanked = c.drivers >= RANKED_MIN;
           // Position dès le 1er pilote ; sous 20 pilotes, l'effectif est en orange (provisoire).
@@ -94,13 +95,16 @@ chrome();
                <td class="perf r mono gap">${c.rank === 1 ? "—" : "+" + c.gap_best.toFixed(3)}</td>`;
           return `<tr class="row-link" data-href="${esc(url)}">
           <td>${classBadge(c.car_class)}</td>
-          <td><div class="car"><span class="logo-slot">${carImg(c.car_model)}</span><span class="car-txt"><span>${esc(c.car_model)}</span>${c.track_course !== c.track ? `<small class="muted">${esc(c.track_course)}</small>` : ""}</span></div></td>
+          <td><div class="car"><span class="logo-slot">${carImg(c.car_model)}</span><span class="car-txt"><span>${esc(c.car_model)}</span></span></div></td>
           <td class="perf sep r best-t mono">${fmtTime(c.time)}</td>
           ${pos}
           <td class="sep r"><a class="go-link" href="${esc(url)}">${esc(t("home.open"))}</a></td>
         </tr>`;
-        })
-        .join("")}</tbody></table></div>
+        };
+        return courses
+          .map((cg) => (withHeaders ? courseHeader(cg.course, 8) : "") + cg.rows.map((c) => renderRow(c, withHeaders)).join(""))
+          .join("");
+      })()}</tbody></table></div>
     </section>`,
     )
     .join("");

@@ -180,15 +180,7 @@ syncSegs();
     // Fréquentation : relative au classement le plus roulé de la même classe.
     const classMax = new Map();
     for (const c of rows) classMax.set(c.car_class, Math.max(classMax.get(c.car_class) ?? 1, c.drivers));
-    const head = `<colgroup><col class="c-class"><col class="c-pilot"><col><col class="c-time"><col class="c-sec"><col class="c-sec"><col class="c-sec"><col class="c-drv"><col class="c-pop"><col class="c-ver"><col class="c-go"></colgroup>
-      <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.recordDriver"))}</th><th>${esc(t("col.recordCar"))}</th><th class="perf sep r">${esc(t("kpi.best"))}</th><th class="perf r">S1</th><th class="perf r">S2</th><th class="perf r">S3</th><th class="perf c">${esc(t("stat.drivers"))}</th><th class="perf">${esc(t("col.pop"))}</th><th class="sep c">${esc(t("col.version"))}</th><th></th></tr></thead>`;
-    return groups
-      .map((g) => {
-        const open = !collapsed.has(g.track);
-        return `<section class="cgroup">
-        <div class="cg-head" data-track="${esc(g.track)}"><button type="button" class="cg-toggle" aria-expanded="${open}" aria-label="${esc(g.track)}">${CHEVRON_SVG}</button><a class="cg-link" href="${esc(trackUrl(g))}" title="${esc(t("home.allClasses"))}">${flagImg(g.track)}<span class="cg-name">${esc(g.track)}</span></a><span class="cg-n">${g.list.length}</span><span class="cg-drivers">${fmtNum(g.total)} ${esc(driversWord(g.total))}</span></div>
-        ${open ? `<div class="lb-scroll"><table class="lb cg-table">${head}<tbody>${g.list
-          .map((c) => {
+    const renderRow = (c, sub) => {
             const url = esc(comboUrl(c));
             const prov = c.drivers < RANKED_MIN;
             const pop = prov
@@ -197,7 +189,7 @@ syncSegs();
             return `<tr class="row-link${prov ? " is-prov" : ""}" data-href="${url}">
             <td>${classBadge(c.car_class)}</td>
             <td class="pilot">${c.best_driver ? driverName(c.best_driver) : "—"}</td>
-            <td><div class="car"><span class="logo-slot">${carImg(c.best_car)}</span><span class="car-txt"><span>${esc(c.best_car)}</span>${c.track_course !== c.track ? `<small class="muted">${esc(c.track_course)}</small>` : ""}</span></div></td>
+            <td><div class="car"><span class="logo-slot">${carImg(c.best_car)}</span><span class="car-txt"><span>${esc(c.best_car)}</span>${!sub && c.track_course !== c.track ? `<small class="muted">${esc(c.track_course)}</small>` : ""}</span></div></td>
             <td class="perf sep r best-t mono">${fmtTime(c.best)}</td>
             ${SECTORS.map((k) => `<td class="perf r mono sec${c[k] != null && c[k] === c[`best_${k}`] ? " pb" : ""}">${c[k] != null ? c[k].toFixed(3) : "—"}</td>`).join("")}
             <td class="perf c mono" title="${esc(`${fmtNum(c.drivers)} ${driversWord(c.drivers)}`)}"><span class="drv-n">${PERSON_SVG}<b>${fmtNum(c.drivers)}</b></span></td>
@@ -205,8 +197,20 @@ syncSegs();
             <td class="sep c"><span class="ver">v${esc(c.version)}</span></td>
             <td class="r"><a class="go-link" href="${url}">${esc(t("home.open"))}</a></td>
           </tr>`;
-          })
-          .join("")}</tbody></table></div>` : ""}
+    };
+    const head = `<colgroup><col class="c-class"><col class="c-pilot"><col><col class="c-time"><col class="c-sec"><col class="c-sec"><col class="c-sec"><col class="c-drv"><col class="c-pop"><col class="c-ver"><col class="c-go"></colgroup>
+      <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.recordDriver"))}</th><th>${esc(t("col.recordCar"))}</th><th class="perf sep r">${esc(t("kpi.best"))}</th><th class="perf r">S1</th><th class="perf r">S2</th><th class="perf r">S3</th><th class="perf c">${esc(t("stat.drivers"))}</th><th class="perf">${esc(t("col.pop"))}</th><th class="sep c">${esc(t("col.version"))}</th><th></th></tr></thead>`;
+    return groups
+      .map((g) => {
+        const open = !collapsed.has(g.track);
+        return `<section class="cgroup">
+        <div class="cg-head" data-track="${esc(g.track)}"><button type="button" class="cg-toggle" aria-expanded="${open}" aria-label="${esc(g.track)}">${CHEVRON_SVG}</button><a class="cg-link" href="${esc(trackUrl(g))}" title="${esc(t("home.allClasses"))}">${flagImg(g.track)}<span class="cg-name">${esc(g.track)}</span></a><span class="cg-n">${g.list.length}</span><span class="cg-drivers">${fmtNum(g.total)} ${esc(driversWord(g.total))}</span></div>
+        ${open ? `<div class="lb-scroll"><table class="lb cg-table">${head}<tbody>${(() => {
+          const { groups: courses, withHeaders } = groupByCourse(g.list, g.track);
+          return courses
+            .map((cg) => (withHeaders ? courseHeader(cg.course, 11) : "") + cg.rows.map((c) => renderRow(c, withHeaders)).join(""))
+            .join("");
+        })()}</tbody></table></div>` : ""}
       </section>`;
       })
       .join("");

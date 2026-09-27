@@ -975,6 +975,9 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   📋 **Avant de republier** : lancer l'app avec LMU ouvert dans les menus après une course → silence ;
   puis une vraie course → le briefing de formation doit passer. Republier en 1.0.7 : changelog daté du
   jour, `latest_version` → 1.0.7, `cargo check` ×2, tag.
+- ✅ **Release v1.0.7 republiée** (demande mainteneur) avec le correctif de l'annonce au lancement :
+  `latest_version` → 1.0.7, `cargo check` ×2 (lock à 1.0.7), `tsc`, lint, 265 tests, build OK ;
+  nouveau tag `v1.0.7`. ⏳ Brouillon à vérifier (`.exe` + `latest.json`) puis publier ; vitrine à envoyer.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

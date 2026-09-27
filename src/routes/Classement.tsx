@@ -92,6 +92,9 @@ function Tile({ label, value, sub, icon: Icon, accent }: { label: string; value:
 }
 
 /** Jauge verte → rouge : position du joueur (trait blanc) et médiane (trait sombre). */
+/** Place sur la jauge : 1er = 0 % (vert, à gauche), dernier = 100 % (rouge, à droite). Seul = 1er. */
+const gaugePct = (rank: number, drivers: number) => (drivers <= 1 ? 0 : ((rank - 1) / (drivers - 1)) * 100);
+
 function Gauge({ pct }: { pct: number }) {
   return (
     <div className="relative h-2 w-36 rounded-full bg-gradient-to-r from-emerald-500 via-yellow-400 to-red-500 opacity-90">
@@ -393,10 +396,22 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
     return [...m.entries()];
   }, [rows, fTrack, fCourse, fClass, fCar]);
 
-  const ranked = (rows ?? []).filter((r) => r.pos && r.pos.drivers >= RANKED_MIN);
+  // Tous les combos où le joueur a une place (provisoires compris, comme le tableau) ;
+  // « définitifs » = 20 pilotes ou plus.
+  const placed = (rows ?? []).filter((r) => r.pos);
+  const ranked = placed.filter((r) => r.pos!.drivers >= RANKED_MIN);
   const myTag = status?.registered ? status.tag : null;
-  const best = ranked.reduce<Row | null>((a, r) => (!a || r.pos!.top_pct < a.pos!.top_pct ? r : a), null);
-  const avg = ranked.length ? Math.round(ranked.reduce((s, r) => s + r.pos!.top_pct, 0) / ranked.length) : null;
+  // Place réelle, de 0 (1er) à 1 (dernier) : le « top % » ne compare pas (1er sur 1 = top 100 %).
+  const place = (r: Row) => gaugePct(r.pos!.rank, r.pos!.drivers) / 100;
+  // Meilleur classement : meilleure place, puis le plus disputé (un record à 10 pilotes > à 1).
+  const best = placed.reduce<Row | null>(
+    (a, r) => (!a || place(r) < place(a) || (place(r) === place(a) && r.pos!.drivers > a.pos!.drivers) ? r : a),
+    null,
+  );
+  // Position moyenne, exprimée comme un « top % » (1er partout = top 1 %).
+  const avg = placed.length
+    ? Math.max(1, Math.round((placed.reduce((s, r) => s + place(r), 0) / placed.length) * 100))
+    : null;
 
   return (
     <div className="space-y-4">
@@ -433,11 +448,16 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Tile label={t("leaderboard.tileCombos")} value={String(ranked.length)} sub={t("leaderboard.tileCombosSub", { count: rows?.length ?? 0 })} icon={Target} />
+        <Tile
+          label={t("leaderboard.tileCombos")}
+          value={String(placed.length)}
+          sub={t("leaderboard.tileCombosSub", { count: rows?.length ?? 0, ranked: ranked.length })}
+          icon={Target}
+        />
         <Tile
           label={t("leaderboard.tileBest")}
           value={best ? standing(t, best.pos!.top_pct, best.pos!.rank, best.pos!.drivers).label : "—"}
-          sub={best ? `${best.combo.track} · ${best.combo.car_class}` : undefined}
+          sub={best ? `${best.combo.track} · ${best.combo.car_class} · ${best.pos!.rank}/${best.pos!.drivers}` : undefined}
           icon={Star}
           accent={best ? standing(t, best.pos!.top_pct, best.pos!.rank, best.pos!.drivers).tone : undefined}
         />
@@ -704,7 +724,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                                   </span>
                                 </TableCell>
                                 <TableCell className={cn("px-2 py-1.5 whitespace-nowrap font-bold", st!.tone, PERF_CELL)}>{st!.label}</TableCell>
-                                <TableCell className={cn("px-2 py-1.5", PERF_CELL)}><Gauge pct={(r.pos!.rank / r.pos!.drivers) * 100} /></TableCell>
+                                <TableCell className={cn("px-2 py-1.5", PERF_CELL)}><Gauge pct={gaugePct(r.pos!.rank, r.pos!.drivers)} /></TableCell>
                                 <TableCell className={cn("px-2 py-1.5 text-right font-mono text-muted-foreground", PERF_CELL)}>
                                   {r.pos!.rank === 1 ? "—" : `+${r.pos!.gap_best.toFixed(3)}`}
                                 </TableCell>

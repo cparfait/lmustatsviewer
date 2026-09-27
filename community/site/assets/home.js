@@ -66,20 +66,21 @@ syncSegs();
   // Chiffres de l'en-tête.
   const ranked = combos.filter((c) => c.drivers >= RANKED_MIN).length;
   const cells = [
-    [fmtNum(stats.drivers), stats.drivers_7d ? t("stat.week", { n: fmtNum(stats.drivers_7d) }) : ""],
-    [fmtNum(stats.sessions), stats.sessions_7d ? t("stat.week", { n: fmtNum(stats.sessions_7d) }) : ""],
-    [fmtNum(stats.layouts), null],
-    [fmtNum(ranked), null],
+    [fmtNum(stats.drivers), stats.drivers_7d ? t("stat.week", { n: fmtNum(stats.drivers_7d) }) : "", true],
+    [fmtNum(stats.sessions), stats.sessions_7d ? t("stat.week", { n: fmtNum(stats.sessions_7d) }) : "", true],
+    [fmtNum(stats.layouts), null, false],
+    // Tous les classements ; « définitifs » à part (20 pilotes ou plus).
+    [fmtNum(combos.length), t("stat.rankedSub", { n: fmtNum(ranked) }), false],
   ];
   document.querySelectorAll("#stats li").forEach((li, i) => {
-    const [v, sub] = cells[i];
+    const [v, sub, up] = cells[i];
     const b = li.querySelector("b");
     b.classList.remove("skeleton");
     b.textContent = v;
     if (sub !== null) {
       const em = li.querySelector("em");
       em.textContent = sub;
-      em.className = sub ? "up" : "";
+      em.className = up && sub ? "up" : "";
     }
   });
 

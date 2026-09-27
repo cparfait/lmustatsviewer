@@ -82,6 +82,19 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
         ],
       },
+      {
+        kind: "fixed",
+        items: [
+          {
+            text: {
+              en: "Leaderboards page: the “Where you stand” gauge put a first place in the red (1st of 1 = end of the bar); it now runs from 1st (green, left) to last (red, right). “Ranked combos”, “Best standing” and “Average position” stayed empty while no leaderboard had 20 drivers; they now count all your leaderboards (the final ones, 20+ drivers, are shown apart), and the best standing is your real best place (a record counts as “Best time”).",
+              fr: "Page Classements : la jauge « Où vous êtes » plaçait un premier dans le rouge (1er sur 1 = bout de la barre) ; elle va désormais du 1er (vert, à gauche) au dernier (rouge, à droite). « Combos classés », « Meilleur classement » et « Position moyenne » restaient vides tant qu'aucun classement n'avait 20 pilotes ; ils comptent maintenant tous vos classements (les définitifs, à 20 pilotes ou plus, sont indiqués à part), et le meilleur classement est votre meilleure place réelle (un record compte comme « Meilleur temps »).",
+              es: "Página Clasificaciones: el indicador «Dónde estás» ponía un primer puesto en rojo (1.º de 1 = final de la barra); ahora va del 1.º (verde, a la izquierda) al último (rojo, a la derecha). «Combinaciones clasificadas», «Mejor clasificación» y «Posición media» quedaban vacías mientras ninguna clasificación tuviera 20 pilotos; ahora cuentan todas tus clasificaciones (las definitivas, con 20+ pilotos, se indican aparte), y la mejor clasificación es tu mejor puesto real (un récord cuenta como «Mejor tiempo»).",
+              de: "Seite Ranglisten: Die Anzeige „Wo du stehst“ setzte einen ersten Platz ins Rote (1. von 1 = Ende des Balkens); sie reicht jetzt vom 1. (grün, links) bis zum Letzten (rot, rechts). „Gewertete Kombos“, „Beste Platzierung“ und „Durchschnittliche Position“ blieben leer, solange keine Rangliste 20 Fahrer hatte; sie zählen jetzt alle deine Ranglisten (die endgültigen mit 20+ Fahrern werden getrennt angezeigt), und die beste Platzierung ist dein tatsächlich bester Platz (ein Rekord zählt als „Bestzeit“).",
+            },
+          },
+        ],
+      },
     ],
   },
   {

@@ -731,3 +731,7 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 .steam-ico { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; }
 .steam-ico.is-ok { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); box-shadow: 0 0 0 6px color-mix(in srgb, var(--green) 7%, transparent); }
 .steam-ico.is-err { background: color-mix(in srgb, #ef4444 12%, transparent); color: #dc2626; box-shadow: 0 0 0 6px color-mix(in srgb, #ef4444 6%, transparent); }
+
+/* Classement provisoire (moins de 20 pilotes) : effectif en orange. */
+.prov-n { color: #d97706; font-weight: 700; }
+[data-theme="dark"] .prov-n { color: #fbbf24; }

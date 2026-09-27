@@ -1060,6 +1060,14 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   nouvelle colonne « Pilote du record » (liste `combos` du serveur, mêmes filtres ; « Vous » si c'est
   le joueur, « Pilote #xxxx » si anonyme). « Supprimer » affiché seulement s'il y a des données
   partagées depuis ce PC (commit précédent). Changelog 1.0.8 `dev: true` ×4.
+- ✅ **1.0.8 (dev) — chiffres et jauge** (retours mainteneur sur les vraies données, 6 pilotes) :
+  jauge « Où vous êtes » = (rang−1)/(pilotes−1) (un 1er était dans le rouge : rang/pilotes, 1/1 = 100 %),
+  app ET fiche pilote du site ; tuiles « Combos classés / Meilleur classement / Position moyenne » et
+  chiffre « classés » de l'accueil calculés sur TOUS les classements (définitifs 20+ à part) ; meilleur
+  classement = meilleure place réelle puis le plus disputé (le « top % » donnait 1er/1 = top 100 %) ;
+  marque « provisoire » = effectif en orange + infobulle (le badge débordait sur la jauge) ; fiche pilote
+  du site : positions affichées sous 20 pilotes. Vérifié sur la fiche réelle (8 records → « Meilleur
+  temps »). Site `?v=40`.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

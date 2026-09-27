@@ -11,6 +11,11 @@ const classRank = (c) => {
   return i < 0 ? CLASS_ORDER.length : i;
 };
 const $ = (id) => document.getElementById(id);
+/**
+ * Place dans le classement, de 0 (1er) à 1 (dernier) ; seul = 1er. Le « top % » ne convient
+ * pas pour comparer : 1er sur 1 pilote = top 100 %.
+ */
+const place = (c) => (c.drivers <= 1 ? 0 : (c.rank - 1) / (c.drivers - 1));
 
 chrome();
 
@@ -45,8 +50,10 @@ chrome();
   });
 
   // Chiffres de l'en-tête.
+  // Tous ses classements (provisoires compris) ; « définitifs » = 20 pilotes ou plus.
   const ranked = p.combos.filter((c) => c.drivers >= RANKED_MIN);
-  const best = [...ranked].sort((a, b) => a.top_pct - b.top_pct || a.rank - b.rank)[0];
+  // Meilleure place, puis le classement le plus disputé.
+  const best = [...p.combos].sort((a, b) => place(a) - place(b) || b.drivers - a.drivers)[0];
   $("k-combos").textContent = fmtNum(p.combos.length);
   $("k-ranked").textContent = fmtNum(ranked.length);
   $("k-records").textContent = fmtNum(p.combos.filter((c) => c.rank === 1).length);
@@ -63,7 +70,7 @@ chrome();
     if (!byTrack.has(c.track)) byTrack.set(c.track, []);
     byTrack.get(c.track).push(c);
   }
-  const score = (c) => (c.drivers >= RANKED_MIN ? c.top_pct : 1000 - c.drivers);
+  const score = (c) => place(c) - c.drivers / 1e4;
   const groups = [...byTrack.entries()]
     .map(([track, list]) => ({ track, list: list.sort((a, b) => classRank(a.car_class) - classRank(b.car_class) || score(a) - score(b)) }))
     .sort((a, b) => Math.min(...a.list.map(score)) - Math.min(...b.list.map(score)));
@@ -79,14 +86,13 @@ chrome();
         .map((c) => {
           const url = `/combo.html?${new URLSearchParams({ track: c.track, course: c.track_course, class: c.car_class })}`;
           const isRanked = c.drivers >= RANKED_MIN;
-          const st = isRanked ? standing(c.top_pct, c.rank, c.drivers) : null;
-          const pos = isRanked
-            ? `<td class="perf c mono"><b>${c.rank}</b> <span class="muted">/ ${fmtNum(c.drivers)}</span></td>
+          // Position dès le 1er pilote ; sous 20 pilotes, l'effectif est en orange (provisoire).
+          const st = standing(c.top_pct, c.rank, c.drivers);
+          const pos = `<td class="perf c mono"${isRanked ? "" : ` title="${esc(t("home.pending", { n: c.drivers }))}"`}><b>${c.rank}</b> <span class="${isRanked ? "muted" : "prov-n"}">/ ${fmtNum(c.drivers)}</span></td>
                <td class="perf"><b class="${st.cls}">${esc(st.label)}</b></td>
-               <td class="perf"><span class="gauge"><i style="left:${Math.min(100, (c.rank / c.drivers) * 100)}%"></i></span></td>
-               <td class="perf r mono gap">${c.rank === 1 ? "—" : "+" + c.gap_best.toFixed(3)}</td>`
-            : `<td class="perf" colspan="4"><span class="pop"><i class="pop-bar"><i class="pend" style="width:${Math.round((c.drivers / RANKED_MIN) * 100)}%"></i></i><span class="muted">${esc(t("home.pending", { n: c.drivers }))}</span></span></td>`;
-          return `<tr class="row-link${isRanked ? "" : " is-prov"}" data-href="${esc(url)}">
+               <td class="perf"><span class="gauge"><i style="left:${c.drivers <= 1 ? 0 : Math.round(((c.rank - 1) / (c.drivers - 1)) * 100)}%"></i></span></td>
+               <td class="perf r mono gap">${c.rank === 1 ? "—" : "+" + c.gap_best.toFixed(3)}</td>`;
+          return `<tr class="row-link" data-href="${esc(url)}">
           <td>${classBadge(c.car_class)}</td>
           <td><div class="car"><span class="logo-slot">${carImg(c.car_model)}</span><span class="car-txt"><span>${esc(c.car_model)}</span>${c.track_course !== c.track ? `<small class="muted">${esc(c.track_course)}</small>` : ""}</span></div></td>
           <td class="perf sep r best-t mono">${fmtTime(c.time)}</td>

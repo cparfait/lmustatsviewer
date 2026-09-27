@@ -65,8 +65,8 @@ export const APP_VERSION: string = __APP_VERSION__;
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: "1.0.7",
-    date: "2026-09-25",
-    dev: true,
+    date: "2026-09-27",
+    dev: false,
     localized: true,
     sections: [
       {

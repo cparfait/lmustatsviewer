@@ -934,6 +934,11 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   un temps et un combo sans identifiant), 2 questions de FAQ (classements, essai sans le jeu). ×4
   langues (209 clés chacune). Sauvegarde avant modification : `lmusv-site.bak-20260927`.
   ⏳ **À publier seulement avec la sortie de la 1.0.7** (classements et ingénieur y sont décrits).
+- ⏳ **Avant la release 1.0.7** (bilan du 2026-09-27) : purge de la démo en production
+  (`purge-demo --yes`, ou remise à zéro complète par `TRUNCATE` après `pg_dump`) ; pousser les commits
+  puis `update-from-github.sh` ; course multiclasse de test de l'ingénieur ; test de l'invitation ;
+  changelog 1.0.7 `dev: false` + date ; **page Confidentialité rédigée par le mainteneur** (aucune
+  n'existe ; la clé `footer.privacy` du site est prête pour le lien).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

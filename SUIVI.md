@@ -1000,6 +1000,31 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   `homonym = false` sur `#58ac`). 📋 Proposé pour 1.0.8 : jeton aussi dans le Gestionnaire
   d'identifications Windows, code de récupération, question « déjà partagé ? » quand le nom est pris,
   repère affiché dans l'app, `admin delete-tag`, nom rendu à l'homonyme suivant à la suppression.
+- ✅ **Identité communautaire durable, sans compte** (décision mainteneur : « Tout, Steam compris »,
+  dans la 1.0.7 ; tag `v1.0.7` et brouillon supprimés en attendant) :
+  - **Coffre Windows** (`community_vault.rs`, `CredWriteW/CredReadW`, cible `LMUStatsViewer/community`,
+    `-test` en tests) : identité {serveur, install_id, repère, jeton} copiée à l'inscription ; à
+    l'activation, reprise si la base locale l'a perdue (réinstallation) → **même installation** ;
+    installation effacée côté serveur (401) → nouvelle ; « Supprimer mes données » passe par le coffre
+    si besoin puis le vide. Statut : `vault_tag`.
+  - **Se connecter avec Steam** (OpenID 2.0, sans clé d'API) : serveur `steam.ts` + migration 2
+    (`installs.steam_hash` = HMAC du SteamID64, `server_secrets`, `steam_logins` 10 min) ; routes
+    `steam/start|return|poll`, `DELETE steam/link`. Vérifications : `state` à usage unique,
+    `return_to` exact (`PUBLIC_URL`), `op_endpoint`, `claimed_id`, puis `check_authentication` auprès de
+    Steam ; `poll_id` secret distinct du `state`. `recover` = **nouveau jeton**, l'ancien est révoqué.
+    App : `community_steam_start|poll|unlink` (l'app n'ouvre que `https://steamcommunity.com/openid/login?`),
+    « Lier à Steam » (Configuration → Communauté), « Déjà partagé depuis un autre PC ? Retrouver mes tours
+    avec Steam » (fenêtre d'activation). Repère affiché (« à citer pour toute demande »).
+  - **Serveur** : suppression d'une installation → le nom revient au plus ancien homonyme ;
+    `admin delete-tag '#xxxx'`.
+  - Tests : serveur 32/32 (dont Steam simulé : lier, retrouver, jeton révoqué, inconnu, déjà lié,
+    assertion refusée, retour détourné, délier ; homonyme promu) ; Rust 17 (dont coffre réel) ;
+    e2e contre le serveur local sur une copie de la base : réinstallation → même repère, 0 nouvelle
+    session / 145 déjà reçues ; suppression par le jeton du coffre. Vrai Steam sondé
+    (`is_valid:false` pour une fausse assertion). App : `tsc`, lint, 265 tests. Changelog 1.0.7 ×4.
+  - 📋 **Ordre de sortie** : pousser → `update-from-github.sh` sur le VPS (migration 2 automatique) →
+    tester dans l'app (Lier à Steam, puis Retrouver depuis un profil vierge) → retaguer v1.0.7.
+    ⚠️ Page Confidentialité (mainteneur) : mentionner l'empreinte Steam.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

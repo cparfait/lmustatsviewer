@@ -40,7 +40,10 @@ const publicDir = process.env.APP_PUBLIC_DIR ?? resolve(process.cwd(), "../../pu
 // Dossier d'état (bandeau de maintenance), monté en lecture seule par le compose.
 const stateDir = process.env.STATE_DIR;
 
-const server = serve({ fetch: createApp(db, { siteDir, publicDir, stateDir }).fetch, port: PORT, hostname: "0.0.0.0" }, (info) =>
+// Adresse publique (retour de « Se connecter avec Steam »).
+const publicUrl = process.env.PUBLIC_URL;
+
+const server = serve({ fetch: createApp(db, { siteDir, publicDir, stateDir, publicUrl }).fetch, port: PORT, hostname: "0.0.0.0" }, (info) =>
   console.log(JSON.stringify({ t: new Date().toISOString(), listening: info.port })),
 );
 

@@ -200,7 +200,7 @@ fn rank_player_names(files: &[Vec<(String, bool)>], profile: Option<&str>) -> Ve
         v.into_iter().map(|(n, _)| n.to_string()).collect()
     };
     let mut out: Vec<String> = Vec::new();
-    let mut push = |n: String, out: &mut Vec<String>| {
+    let push = |n: String, out: &mut Vec<String>| {
         if !out.contains(&n) {
             out.push(n);
         }

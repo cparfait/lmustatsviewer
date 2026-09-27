@@ -32,6 +32,7 @@ import {
   type Install,
 } from "./ingest.js";
 import { RateLimiter, type Limit } from "./ratelimit.js";
+import { finishSteam, pollSteam, startSteam, steamReturnPage, verifyWithSteam, type SteamVerifier } from "./steam.js";
 import {
   comboDetail,
   comboList,
@@ -73,6 +74,10 @@ export interface AppOptions {
    * `maintenance.json`, le site affiche le bandeau « mise à jour en cours ».
    */
   stateDir?: string;
+  /** Adresse publique du site (retour de Steam). Défaut : https://lmu.cparfait.ovh. */
+  publicUrl?: string;
+  /** Vérification des connexions Steam (remplacée dans les tests). */
+  steamVerify?: SteamVerifier;
   /** Journal d'une ligne par requête (JSON). Par défaut : stdout. */
   log?: (line: Record<string, unknown>) => void;
 }
@@ -269,6 +274,44 @@ export function createApp(db: Db, opts: AppOptions = {}) {
 
   v1.delete("/me", auth, async (c) => {
     await deleteInstall(db, c.get("install").id);
+    return c.body(null, 204);
+  });
+
+  // ── Se connecter avec Steam (lier / retrouver son installation) ─────────────
+  const publicUrl = (opts.publicUrl ?? "https://lmu.cparfait.ovh").replace(/\/$/, "");
+  const steamVerify = opts.steamVerify ?? verifyWithSteam;
+
+  v1.post("/steam/start", bodyLimit({ maxSize: 1024 }), limit("register", clientIp), async (c) => {
+    c.header("Cache-Control", "no-store");
+    const body = z.object({ mode: z.enum(["link", "recover"]) }).strict().safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return c.json({ error: "bad_request" }, 400);
+    let installId: string | null = null;
+    if (body.data.mode === "link") {
+      // Lier : seul le détenteur du jeton peut rattacher son installation à Steam.
+      const m = /^Bearer ([A-Za-z0-9_-]{20,128})$/.exec(c.req.header("authorization") ?? "");
+      const install = m ? await findInstallByToken(db, m[1]) : null;
+      if (!install) return c.json({ error: "unauthorized" }, 401);
+      installId = install.id;
+    }
+    return c.json(await startSteam(db, body.data.mode, installId, publicUrl));
+  });
+
+  v1.get("/steam/return", async (c) => {
+    c.header("Cache-Control", "no-store");
+    const outcome = await finishSteam(db, c.req.query(), publicUrl, steamVerify);
+    return c.html(steamReturnPage(outcome), outcome === "ok" ? 200 : 400);
+  });
+
+  v1.get("/steam/poll", publicRead, async (c) => {
+    const id = z.string().min(20).max(64).safeParse(c.req.query("id"));
+    if (!id.success) return c.json({ error: "bad_request" }, 400);
+    const r = await pollSteam(db, id.data);
+    c.header("Cache-Control", "no-store");
+    return c.json(r);
+  });
+
+  v1.delete("/steam/link", auth, async (c) => {
+    await db.query("update installs set steam_hash = null where id = $1", [c.get("install").id]);
     return c.body(null, 204);
   });
 

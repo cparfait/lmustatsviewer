@@ -243,8 +243,27 @@ export async function exportInstall(db: Db, install: Install) {
   };
 }
 
-/** Effacement réel (pas un masquage) : cascade sur sessions et réservation de nom. */
+/**
+ * Effacement réel (pas un masquage) : cascade sur sessions et réservation de nom. Le
+ * nom libéré revient au plus ancien homonyme restant (il perd son repère affiché).
+ */
 export async function deleteInstall(db: Db, installId: string): Promise<void> {
-  await db.query("delete from installs where id = $1", [installId]);
+  const [gone] = await db.query<{ display_name: string | null }>(
+    "delete from installs where id = $1 returning display_name",
+    [installId],
+  );
+  if (gone?.display_name) await promoteHomonym(db, gone.display_name);
+}
+
+async function promoteHomonym(db: Db, name: string): Promise<void> {
+  const norm = normalizeName(name);
+  if ((await db.query("select 1 from name_claims where name_norm = $1", [norm])).length) return;
+  const homonyms = await db.query<{ id: string; display_name: string | null }>(
+    "select id, display_name from installs where homonym order by created_at",
+  );
+  const next = homonyms.find((h) => h.display_name != null && normalizeName(h.display_name) === norm);
+  if (!next) return;
+  await db.query("insert into name_claims (name_norm, install_id) values ($1, $2) on conflict do nothing", [norm, next.id]);
+  await db.query("update installs set homonym = false where id = $1", [next.id]);
 }
 

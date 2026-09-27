@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Eye, Loader2, Send, ShieldCheck, Trash2, X, Lock, AlertTriangle, Trophy } from "lucide-react";
+import { Check, Eye, Loader2, Send, ShieldCheck, Trash2, X, Lock, AlertTriangle, Trophy, Link2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -64,6 +64,7 @@ export function CommunitySettings() {
   const [busy, setBusy] = useState(false);
   const [activateOpen, setActivateOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const steam = useSteamLogin();
 
   const refresh = useCallback(() => {
     if (!isTauri()) return;
@@ -169,6 +170,28 @@ export function CommunitySettings() {
     }
   };
 
+  const linkSteam = async () => {
+    try {
+      const r = await steam.run("link");
+      if (r.status === "ok") toastSuccess(t("community.steamLinkDone"));
+      else if (r.status !== "cancelled") toastError(steamError(t, r.status));
+    } catch {
+      toastError(t("community.steamFailed"));
+    } finally {
+      refresh();
+    }
+  };
+  const unlinkSteam = async () => {
+    setBusy(true);
+    try {
+      setStatus(await community.steamUnlink());
+    } catch {
+      toastError(t("community.errNetwork"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const err = errorText(status?.last_error ?? null);
 
   return (
@@ -205,6 +228,9 @@ export function CommunitySettings() {
         {status && status.rejected > 0 && (
           <p className="mt-2 text-xs text-muted-foreground">{t("community.rejectedNote", { count: status.rejected })}</p>
         )}
+        {status?.registered && status.tag && (
+          <p className="mt-2 text-[11px] text-muted-foreground">{t("community.tagNote", { tag: status.tag })}</p>
+        )}
         {status?.registered && <p className="mt-2 text-[11px] text-muted-foreground">{t("community.disableNote")}</p>}
         {status?.enabled && (
           <div className="mt-3">
@@ -225,6 +251,35 @@ export function CommunitySettings() {
         )}
       </Row>
 
+      {status?.registered && (
+        <Row title={t("community.steamTitle")} desc={status.steam_linked ? t("community.steamLinkedDesc") : t("community.steamDesc")}>
+          {steam.waiting ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {t("community.steamWaiting")}
+              <Button size="sm" variant="ghost" onClick={steam.cancel}>
+                {t("community.steamCancel")}
+              </Button>
+            </div>
+          ) : status.steam_linked ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <Check className="h-3.5 w-3.5" />
+                {t("community.steamLinked")}
+              </span>
+              <Button size="sm" variant="outline" disabled={busy} onClick={unlinkSteam}>
+                {t("community.steamUnlink")}
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" className="gap-1.5" disabled={busy} onClick={linkSteam}>
+              <Link2 className="h-3.5 w-3.5" />
+              {t("community.steamLink")}
+            </Button>
+          )}
+        </Row>
+      )}
+
       <Row title={t("community.previewTitle")} desc={t("community.previewDesc")}>
         <Button size="sm" variant="outline" className="gap-1.5" onClick={openPreview}>
           <Eye className="h-3.5 w-3.5" />
@@ -237,7 +292,7 @@ export function CommunitySettings() {
           size="sm"
           variant="outline"
           className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
-          disabled={busy || !status?.registered}
+          disabled={busy || !(status?.registered || status?.vault_tag)}
           onClick={deleteData}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -331,6 +386,51 @@ function Teaser({ combo }: { combo: MyCombo | null }) {
   );
 }
 
+type SteamResult = { status: string; tag: string | null; anonymous: boolean | null };
+
+/**
+ * Connexion Steam : ouvre la page officielle de Steam dans le navigateur, puis interroge
+ * le serveur toutes les 2 s (10 min au plus) jusqu'au résultat.
+ */
+function useSteamLogin() {
+  const [waiting, setWaiting] = useState(false);
+  const stop = useRef(false);
+  useEffect(
+    () => () => {
+      stop.current = true;
+    },
+    [],
+  );
+  const run = async (mode: "link" | "recover"): Promise<SteamResult> => {
+    stop.current = false;
+    setWaiting(true);
+    try {
+      const { url, poll_id } = await community.steamStart(mode);
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl(url);
+      const until = Date.now() + 10 * 60_000;
+      while (!stop.current && Date.now() < until) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const r = await community.steamPoll(poll_id);
+        if (r.status !== "pending") return r;
+      }
+      return { status: stop.current ? "cancelled" : "expired", tag: null, anonymous: null };
+    } finally {
+      setWaiting(false);
+    }
+  };
+  return {
+    waiting,
+    run,
+    cancel: () => {
+      stop.current = true;
+    },
+  };
+}
+
+const steamError = (t: (k: string) => string, status: string) =>
+  status === "not_found" ? t("community.steamNotFound") : status === "taken" ? t("community.steamTaken") : t("community.steamFailed");
+
 /**
  * Fenêtre d'activation du partage : bénéfice (invitation), ce qui part / ne part jamais,
  * nom LMU non modifiable avec « Rester anonyme » (décoché par défaut), historique en option.
@@ -359,6 +459,20 @@ function ActivateDialog({
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const activateRef = useRef<HTMLButtonElement>(null);
+  // « Déjà partagé depuis un autre PC ? » : installation retrouvée par Steam (repère).
+  const steam = useSteamLogin();
+  const [recovered, setRecovered] = useState<string | null>(null);
+  const recoverSteam = async () => {
+    try {
+      const r = await steam.run("recover");
+      if (r.status === "ok") {
+        setRecovered(r.tag);
+        if (r.anonymous != null) setAnon(r.anonymous);
+      } else if (r.status !== "cancelled") toastError(steamError(t, r.status));
+    } catch {
+      toastError(t("community.steamFailed"));
+    }
+  };
 
   useEffect(() => {
     if (invite) activateRef.current?.focus();
@@ -441,6 +555,34 @@ function ActivateDialog({
             </label>
           </div>
         </div>
+
+        {!status.registered && (
+          <div className="mt-3 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
+            {recovered ? (
+              <p className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
+                <Check className="h-3.5 w-3.5" />
+                {t("community.steamRecovered", { tag: recovered })}
+              </p>
+            ) : status.vault_tag ? (
+              <p className="text-muted-foreground">{t("community.vaultFound", { tag: status.vault_tag })}</p>
+            ) : steam.waiting ? (
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {t("community.steamWaiting")}
+                <button type="button" className="underline" onClick={steam.cancel}>
+                  {t("community.steamCancel")}
+                </button>
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {t("community.steamRecoverAsk")}{" "}
+                <button type="button" className="font-semibold text-primary underline" onClick={recoverSteam}>
+                  {t("community.steamRecover")}
+                </button>
+              </span>
+            )}
+          </div>
+        )}
 
         {status.history_available > 0 && (
           <label className="mt-4 flex items-start gap-2 text-sm">

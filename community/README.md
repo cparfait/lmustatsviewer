@@ -214,6 +214,7 @@ docker compose exec api node dist/api/src/admin.js homonyms
 docker compose exec api node dist/api/src/admin.js hide-install <id>     # bannissement silencieux
 docker compose exec api node dist/api/src/admin.js hide-session <session_key>
 docker compose exec api node dist/api/src/admin.js delete-install <id>
+docker compose exec api node dist/api/src/admin.js delete-tag '#58ac'   # par le repère affiché dans l'app
 # Données de DÉMONSTRATION (tester le site peuplé), marquées app_version = 0.0.1-demo :
 docker compose exec api node dist/api/src/admin.js seed-demo          # ~870 pilotes, ~2 700 sessions
 docker compose exec api node dist/api/src/admin.js purge-demo         # compte, n'efface rien
@@ -259,6 +260,15 @@ docker compose exec api node dist/api/src/admin.js purge-demo --yes   # efface l
 | GET | `/api/v1/combos/detail?track=&course=&class=[&version=&aids=&conditions=]` | percentiles, histogramme, par voiture, versions |
 | GET | `/api/v1/combos/leaderboard?…&limit=&offset=` | classement (noms au choix de chaque pilote) |
 | GET | `/api/v1/combos/position?…&time=` | rang, top %, écarts d'un temps |
+| POST | `/api/v1/steam/start` | `{"mode":"link"}` (jeton requis) ou `{"mode":"recover"}` → `url` (page Steam), `poll_id` |
+| GET | `/api/v1/steam/return` | retour de Steam (navigateur) : assertion vérifiée auprès de Steam, page de résultat |
+| GET | `/api/v1/steam/poll?id=` | `pending` / `ok` (+ nouveau jeton si `recover`) / `not_found` / `taken` / `invalid` / `expired` |
+| DELETE | `/api/v1/steam/link` | délier Steam (jeton requis) |
+
+`class` est facultatif sur `detail`, `leaderboard` et `position` : absent (ou `all`) = classement du
+circuit toutes classes, une ligne par pilote. **Steam** : seul un HMAC du SteamID64 est conservé
+(`installs.steam_hash`, secret du serveur dans `server_secrets`) ; l'adresse de retour vient de
+`PUBLIC_URL` (défaut `https://lmu.cparfait.ovh`).
 
 ## Site public
 

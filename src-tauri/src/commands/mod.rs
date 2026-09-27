@@ -15,3 +15,4 @@ pub mod tts;
 pub mod assets;
 pub mod stt;
 pub mod community;
+pub mod community_vault;

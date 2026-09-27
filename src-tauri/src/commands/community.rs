@@ -7,6 +7,9 @@
 //!   renvoi idempotent par `session_key` en cas de coupure, reprise avec backoff.
 //! - Jeton d'installation chiffré localement (AES-GCM, même mécanisme que les clés IA) ;
 //!   les appels partent du Rust, le jeton ne transite jamais par la WebView.
+//! - Copie du jeton dans le Gestionnaire d'identifications Windows (`community_vault`) :
+//!   une réinstallation reprend la même installation au lieu d'en créer une nouvelle.
+//! - « Se connecter avec Steam » : lier l'installation, la retrouver sur un autre PC.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -16,6 +19,7 @@ use serde_json::{json, Value};
 use tauri::State;
 
 use crate::commands::ai::{decrypt_key, encrypt_key};
+use crate::commands::community_vault::{self as vault, VaultEntry};
 use crate::db::{self, DbState};
 use crate::error::AppError;
 
@@ -32,6 +36,10 @@ const K_LAST_SENT: &str = "community_last_sent_at";
 const K_LAST_ERROR: &str = "community_last_error";
 /// Anonymisation à confirmer côté serveur (désactivation hors connexion).
 const K_ANON_PENDING: &str = "community_anon_pending";
+/// Installation liée à un compte Steam (retrouvable sur un autre PC).
+const K_STEAM: &str = "community_steam";
+/// Page de connexion Steam : la seule adresse que l'app accepte d'ouvrir pour Steam.
+const STEAM_LOGIN: &str = "https://steamcommunity.com/openid/login?";
 
 /// Lot maximal accepté par le serveur.
 const BATCH: usize = 50;
@@ -402,6 +410,11 @@ pub struct CommunityStatus {
     pub last_sent_at: Option<i64>,
     pub last_error: Option<String>,
     pub server: String,
+    /// Installation liée à Steam.
+    pub steam_linked: bool,
+    /// Non inscrit ici, mais une installation de ce PC est dans le coffre Windows :
+    /// son repère (reprise à l'activation, ou suppression de ses données).
+    pub vault_tag: Option<String>,
 }
 
 fn status(db: &DbState) -> Result<CommunityStatus, AppError> {
@@ -425,9 +438,11 @@ fn status(db: &DbState) -> Result<CommunityStatus, AppError> {
         (Some(id), true) => pending_payloads(db, id, 0)?.1,
         _ => 0,
     };
+    let registered = install.is_some() && token(db)?.is_some();
+    let vault_tag = if registered { None } else { vault_for(db)?.map(|e| e.tag) };
     Ok(CommunityStatus {
         enabled,
-        registered: install.is_some() && token(db)?.is_some(),
+        registered,
         tag: cfg(db, K_TAG)?,
         anonymous: cfg_bool(db, K_ANON)?,
         history: cfg_bool(db, K_HISTORY)?,
@@ -438,7 +453,66 @@ fn status(db: &DbState) -> Result<CommunityStatus, AppError> {
         last_sent_at: cfg(db, K_LAST_SENT)?.and_then(|v| v.parse().ok()),
         last_error: cfg(db, K_LAST_ERROR)?,
         server: cfg(db, K_URL)?.unwrap_or_else(|| DEFAULT_URL.to_string()),
+        steam_linked: cfg_bool(db, K_STEAM)?,
+        vault_tag,
     })
+}
+
+// ── Identité : base locale + coffre Windows ──────────────────────────────────
+
+/// Entrée du coffre valable pour le serveur courant.
+fn vault_for(db: &DbState) -> Result<Option<VaultEntry>, AppError> {
+    let base = api_base(db)?;
+    Ok(vault::load().filter(|e| e.server == base))
+}
+
+/// Enregistre l'identité (base chiffrée + coffre Windows).
+fn store_identity(db: &DbState, install_id: &str, tag: &str, token: &str) -> Result<(), AppError> {
+    db::config_set(db, K_INSTALL, install_id)?;
+    db::config_set(db, K_TAG, tag)?;
+    db::config_set(db, K_TOKEN, &encrypt_key(token)?)?;
+    vault::save(&VaultEntry {
+        server: api_base(db)?,
+        install_id: install_id.to_string(),
+        tag: tag.to_string(),
+        token: token.to_string(),
+    });
+    Ok(())
+}
+
+/// Base locale sans jeton (réinstallation, données effacées) : reprend l'identité du
+/// coffre Windows. `true` si une identité a été reprise.
+fn restore_from_vault(db: &DbState) -> Result<bool, AppError> {
+    if token(db)?.is_some() {
+        return Ok(false);
+    }
+    let Some(e) = vault_for(db)? else { return Ok(false) };
+    db::config_set(db, K_INSTALL, &e.install_id)?;
+    db::config_set(db, K_TAG, &e.tag)?;
+    db::config_set(db, K_TOKEN, &encrypt_key(&e.token)?)?;
+    Ok(true)
+}
+
+/// Oublie l'identité (base + coffre).
+fn forget_identity(db: &DbState) -> Result<(), AppError> {
+    for k in [K_INSTALL, K_TAG, K_TOKEN, K_STEAM] {
+        db::config_set(db, k, "")?;
+    }
+    vault::clear();
+    Ok(())
+}
+
+async fn register_install(db: &DbState) -> Result<(), AppError> {
+    let base = api_base(db)?;
+    let resp = client(&base)?.post(format!("{base}/register")).send().await.map_err(net_err)?;
+    if resp.status().as_u16() != 201 {
+        return Err(AppError::Internal(format!("serveur : HTTP {}", resp.status().as_u16())));
+    }
+    let v: Value = resp.json().await.map_err(net_err)?;
+    let (Some(id), Some(tok), Some(tag)) = (v["install_id"].as_str(), v["token"].as_str(), v["tag"].as_str()) else {
+        return Err(AppError::Internal("serveur : réponse d'enregistrement invalide".into()));
+    };
+    store_identity(db, id, tag, tok)
 }
 
 #[tauri::command]
@@ -463,7 +537,15 @@ pub fn community_preview(db: State<'_, DbState>) -> Result<String, AppError> {
 // ── Activation, anonymat, suppression ────────────────────────────────────────
 
 async fn patch_anonymous(db: &DbState, anonymous: bool) -> Result<(), AppError> {
-    let Some(tok) = token(db)? else { return Ok(()) };
+    match patch_anonymous_code(db, anonymous).await? {
+        c if (200..300).contains(&c) => Ok(()),
+        c => Err(AppError::Internal(format!("serveur : HTTP {c}"))),
+    }
+}
+
+/// Code HTTP de `PATCH /me` (204 si pas de jeton : rien à faire).
+async fn patch_anonymous_code(db: &DbState, anonymous: bool) -> Result<u16, AppError> {
+    let Some(tok) = token(db)? else { return Ok(204) };
     let base = api_base(db)?;
     let resp = client(&base)?
         .patch(format!("{base}/me"))
@@ -472,10 +554,7 @@ async fn patch_anonymous(db: &DbState, anonymous: bool) -> Result<(), AppError> 
         .send()
         .await
         .map_err(net_err)?;
-    if !resp.status().is_success() {
-        return Err(AppError::Internal(format!("serveur : HTTP {}", resp.status().as_u16())));
-    }
-    Ok(())
+    Ok(resp.status().as_u16())
 }
 
 /// Active le partage (enregistre l'installation au premier usage). `history` : envoyer
@@ -490,21 +569,25 @@ pub async fn community_enable(
 }
 
 async fn enable_inner(db: &DbState, history: bool, anonymous: bool) -> Result<CommunityStatus, AppError> {
+    // Même PC après réinstallation : on reprend l'installation du coffre Windows.
+    restore_from_vault(db)?;
     if token(db)?.is_none() {
-        let base = api_base(db)?;
-        let resp = client(&base)?.post(format!("{base}/register")).send().await.map_err(net_err)?;
-        if resp.status().as_u16() != 201 {
-            return Err(AppError::Internal(format!("serveur : HTTP {}", resp.status().as_u16())));
+        register_install(db).await?;
+    } else if let (Some(id), Some(tag), Some(tok)) = (cfg(db, K_INSTALL)?, cfg(db, K_TAG)?, token(db)?) {
+        // Installation créée avant le coffre (ou coffre effacé) : on l'y range.
+        if vault_for(db)?.map(|e| e.install_id) != Some(id.clone()) {
+            store_identity(db, &id, &tag, &tok)?;
         }
-        let v: Value = resp.json().await.map_err(net_err)?;
-        let (Some(id), Some(tok), Some(tag)) = (v["install_id"].as_str(), v["token"].as_str(), v["tag"].as_str()) else {
-            return Err(AppError::Internal("serveur : réponse d'enregistrement invalide".into()));
-        };
-        db::config_set(db, K_INSTALL, id)?;
-        db::config_set(db, K_TAG, tag)?;
-        db::config_set(db, K_TOKEN, &encrypt_key(tok)?)?;
     }
     db::config_set(db, K_ANON, if anonymous { "1" } else { "0" })?;
+    if patch_anonymous_code(db, anonymous).await? == 401 {
+        // Installation effacée côté serveur entre-temps : on repart d'une nouvelle.
+        forget_identity(db)?;
+        db::get_conn(db)?
+            .execute("DELETE FROM community_outbox", [])
+            .map_err(|e| AppError::Database(e.to_string()))?;
+        register_install(db).await?;
+    }
     patch_anonymous(db, anonymous).await?;
     db::config_set(db, K_HISTORY, if history { "1" } else { "0" })?;
     db::config_set(db, K_ENABLED_AT, &now().to_string())?;
@@ -553,6 +636,8 @@ pub async fn community_delete(db: State<'_, DbState>) -> Result<CommunityStatus,
 }
 
 async fn delete_inner(db: &DbState) -> Result<CommunityStatus, AppError> {
+    // Base locale sans jeton : celui du coffre Windows permet encore d'effacer le serveur.
+    restore_from_vault(db)?;
     if let Some(tok) = token(db)? {
         let base = api_base(db)?;
         let resp = client(&base)?
@@ -567,13 +652,121 @@ async fn delete_inner(db: &DbState) -> Result<CommunityStatus, AppError> {
             return Err(AppError::Internal(format!("serveur : HTTP {code}")));
         }
     }
-    for k in [K_ENABLED, K_ENABLED_AT, K_HISTORY, K_INSTALL, K_TAG, K_TOKEN, K_ANON, K_LAST_SENT, K_LAST_ERROR, K_ANON_PENDING] {
+    for k in [K_ENABLED, K_ENABLED_AT, K_HISTORY, K_ANON, K_LAST_SENT, K_LAST_ERROR, K_ANON_PENDING] {
         db::config_set(db, k, "")?;
     }
+    forget_identity(db)?;
     db::get_conn(db)?
         .execute("DELETE FROM community_outbox", [])
         .map_err(|e| AppError::Database(e.to_string()))?;
     status(db)
+}
+
+// ── Se connecter avec Steam ──────────────────────────────────────────────────
+
+#[derive(Serialize)]
+pub struct SteamStart {
+    /// Page de connexion officielle de Steam, à ouvrir dans le navigateur.
+    pub url: String,
+    /// Identifiant secret à interroger (`community_steam_poll`).
+    pub poll_id: String,
+}
+
+/// Commence une connexion Steam. `link` : lier l'installation de ce PC (jeton requis) ;
+/// `recover` : retrouver une installation liée depuis un autre PC.
+#[tauri::command]
+pub async fn community_steam_start(mode: String, db: State<'_, DbState>) -> Result<SteamStart, AppError> {
+    if mode != "link" && mode != "recover" {
+        return Err(AppError::Internal("mode Steam inconnu".into()));
+    }
+    let base = api_base(&db)?;
+    let mut req = client(&base)?.post(format!("{base}/steam/start")).json(&json!({ "mode": mode }));
+    if mode == "link" {
+        let Some(tok) = token(&db)? else {
+            return Err(AppError::Internal("partage non activé".into()));
+        };
+        req = req.bearer_auth(tok);
+    }
+    let resp = req.send().await.map_err(net_err)?;
+    if !resp.status().is_success() {
+        return Err(AppError::Internal(format!("serveur : HTTP {}", resp.status().as_u16())));
+    }
+    let v: Value = resp.json().await.map_err(net_err)?;
+    let (Some(url), Some(poll_id)) = (v["url"].as_str(), v["poll_id"].as_str()) else {
+        return Err(AppError::Internal("serveur : réponse Steam invalide".into()));
+    };
+    // Jamais d'autre adresse que la page de connexion de Steam.
+    if !url.starts_with(STEAM_LOGIN) {
+        return Err(AppError::Internal("serveur : adresse Steam inattendue".into()));
+    }
+    Ok(SteamStart { url: url.to_string(), poll_id: poll_id.to_string() })
+}
+
+#[derive(Serialize, Default)]
+pub struct SteamPoll {
+    /// pending | ok | not_found | taken | invalid | expired
+    pub status: String,
+    /// Installation retrouvée (mode `recover`).
+    pub tag: Option<String>,
+    pub anonymous: Option<bool>,
+}
+
+/// Interroge le serveur. `recover` réussi : l'identité retrouvée remplace celle de ce
+/// PC (jeton neuf, l'ancien est révoqué) ; le partage reste à réactiver par le joueur.
+#[tauri::command]
+pub async fn community_steam_poll(poll_id: String, db: State<'_, DbState>) -> Result<SteamPoll, AppError> {
+    let base = api_base(&db)?;
+    let resp = client(&base)?
+        .get(format!("{base}/steam/poll"))
+        .query(&[("id", poll_id.as_str())])
+        .send()
+        .await
+        .map_err(net_err)?;
+    if !resp.status().is_success() {
+        return Err(AppError::Internal(format!("serveur : HTTP {}", resp.status().as_u16())));
+    }
+    let v: Value = resp.json().await.map_err(net_err)?;
+    let status = v["status"].as_str().unwrap_or("invalid").to_string();
+    if status != "ok" {
+        return Ok(SteamPoll { status, ..Default::default() });
+    }
+    if v["mode"].as_str() == Some("link") {
+        db::config_set(&db, K_STEAM, "1")?;
+        return Ok(SteamPoll { status, ..Default::default() });
+    }
+    let (Some(id), Some(tag), Some(tok)) = (v["install_id"].as_str(), v["tag"].as_str(), v["token"].as_str()) else {
+        return Err(AppError::Internal("serveur : réponse Steam invalide".into()));
+    };
+    let anonymous = v["anonymous"].as_bool().unwrap_or(false);
+    // Nouvelle identité : les accusés locaux concernaient une autre installation.
+    db::get_conn(&db)?
+        .execute("DELETE FROM community_outbox", [])
+        .map_err(|e| AppError::Database(e.to_string()))?;
+    store_identity(&db, id, tag, tok)?;
+    db::config_set(&db, K_STEAM, "1")?;
+    db::config_set(&db, K_ANON, if anonymous { "1" } else { "0" })?;
+    db::config_set(&db, K_LAST_ERROR, "")?;
+    Ok(SteamPoll { status, tag: Some(tag.to_string()), anonymous: Some(anonymous) })
+}
+
+/// Délie l'installation de Steam (elle ne sera plus retrouvable par Steam).
+#[tauri::command]
+pub async fn community_steam_unlink(db: State<'_, DbState>) -> Result<CommunityStatus, AppError> {
+    if let Some(tok) = token(&db)? {
+        let base = api_base(&db)?;
+        let resp = client(&base)?
+            .delete(format!("{base}/steam/link"))
+            .bearer_auth(tok)
+            .send()
+            .await
+            .map_err(net_err)?;
+        let code = resp.status().as_u16();
+        if code != 204 && code != 401 {
+            return Err(AppError::Internal(format!("serveur : HTTP {code}")));
+        }
+    }
+    db::config_set(&db, K_STEAM, "")?;
+    status(&db)
 }
 
 // ── Synchronisation ──────────────────────────────────────────────────────────
@@ -1090,9 +1283,34 @@ mod tests {
             assert!(me_row["driver"]["name"].is_null(), "nom retiré, temps conservé");
             println!("désactivé : temps conservé ({}), nom anonymisé", me_row["time"]);
 
+            // Réinstallation (dossier de l'app effacé) : le coffre Windows garde l'identité.
+            let wipe = |st: &DbState| {
+                for k in [K_INSTALL, K_TAG, K_TOKEN, K_ENABLED] {
+                    db::config_set(st, k, "").unwrap();
+                }
+                db::get_conn(st).unwrap().execute("DELETE FROM community_outbox", []).unwrap();
+            };
+            wipe(&st);
+            let s5 = status(&st).unwrap();
+            assert!(!s5.registered);
+            assert_eq!(s5.vault_tag, s1.tag, "installation retrouvée dans le coffre");
+            let s6 = enable_inner(&st, true, true).await.unwrap();
+            assert_eq!(s6.tag, s1.tag, "même installation reprise, pas de nouvelle");
+            let r3 = sync(&st).await.unwrap();
+            println!("après réinstallation : nouvelles={} déjà reçues={}", r3.sent, r3.duplicates);
+            assert_eq!(r3.sent, 0, "aucun doublon côté serveur");
+            assert!(r3.duplicates > 0);
+
+            // Nouvelle réinstallation puis « Supprimer mes données » : le jeton du coffre
+            // atteint encore le serveur.
+            wipe(&st);
             let s4 = delete_inner(&st).await.unwrap();
             assert!(!s4.registered && !s4.enabled && s4.sent == 0);
-            println!("supprimé : OK");
+            assert_eq!(s4.vault_tag, None, "coffre vidé");
+            let lb2 = public_inner(&st, "combos/leaderboard", &lq).await;
+            let still = lb2.ok().map(|v| v["rows"].as_array().unwrap().iter().any(|r| r["driver"]["tag"] == s1.tag.clone().unwrap().as_str()));
+            assert_ne!(still, Some(true), "données effacées du serveur");
+            println!("supprimé (jeton du coffre) : OK");
         });
     }
 

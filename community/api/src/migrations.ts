@@ -79,6 +79,29 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       create index sessions_received_idx on sessions (received_at);
     `,
   },
+  {
+    id: 2,
+    name: "steam",
+    sql: `
+      -- « Se connecter avec Steam » : HMAC du SteamID64 (jamais l'identifiant lui-même).
+      alter table installs add column steam_hash text unique;
+      -- Secrets propres au serveur, créés au premier usage.
+      create table server_secrets (
+        name text primary key,
+        value text not null
+      );
+      -- Connexions Steam en cours (10 min) : l'app interroge avec un identifiant secret
+      -- dont seul le hash est gardé ; \`state\` voyage dans l'URL de retour de Steam.
+      create table steam_logins (
+        poll_hash text primary key,
+        state text not null unique,
+        mode text not null check (mode in ('link', 'recover')),
+        install_id uuid references installs(id) on delete cascade,
+        status text not null default 'pending',
+        created_at timestamptz not null default now()
+      );
+    `,
+  },
 ];
 
 export async function migrate(db: Db): Promise<number[]> {

@@ -38,12 +38,23 @@ const PERF_CELL = "bg-sky-500/[0.06]";
 const GROUP_SEP = "border-l border-border/55";
 const SITE = "https://lmu.cparfait.ovh";
 
+/** Pilote du record d'un combo (format du classement : nom, ou anonyme avec son repère). */
+interface RecordHolder {
+  name: string | null;
+  tag: string;
+  homonym: boolean;
+}
+
 interface Row {
   combo: MyCombo;
   pos: CommunityPosition | null;
   /** Requête serveur du combo, filtres Session / Mode / Version compris. */
   q: Record<string, string>;
+  /** Détenteur du meilleur temps du combo (liste `combos` du serveur). */
+  leader?: RecordHolder | null;
 }
+
+const recordKey = (track: string, course: string, cls: string) => `${track}|${course}|${cls}`;
 
 const comboQuery = (c: MyCombo) => ({ track: c.track, course: c.track_course, class: c.car_class });
 /** Page du combo sur le site (mêmes filtres) ; `me` y épingle la ligne du joueur (repère public). */
@@ -325,6 +336,18 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
         return;
       }
       if (!cancelled) setStats(st);
+      // Pilote du record de chaque combo : une seule requête, mêmes filtres que les positions.
+      const leaders = new Map<string, RecordHolder>();
+      try {
+        const list = await community.get<{
+          combos: { track: string; track_course: string; car_class: string; best_driver?: RecordHolder }[];
+        }>("combos", extra);
+        for (const c of list?.combos ?? []) {
+          if (c.best_driver) leaders.set(recordKey(c.track, c.track_course, c.car_class), c.best_driver);
+        }
+      } catch {
+        /* colonne vide : les positions restent affichées */
+      }
       // Positions par petits paquets (pas de rafale sur le serveur).
       const out: Row[] = [];
       for (let i = 0; i < mine.length; i += 4) {
@@ -335,6 +358,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
               combo,
               q,
               pos: await community.get<CommunityPosition>("combos/position", { ...q, time: combo.best }).catch(() => null),
+              leader: leaders.get(recordKey(combo.track, combo.track_course, combo.car_class)) ?? null,
             };
           }),
         );
@@ -595,6 +619,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                     <col className="w-[130px]" />
                     <col className="w-[180px]" />
                     <col className="w-[110px]" />
+                    <col className="w-[170px]" />
                     <col className="w-[90px]" />
                   </colgroup>
                   <TableHeader>
@@ -607,7 +632,8 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                       <TableHead className={cn("font-medium text-left", PERF_HEAD)}>{t("leaderboard.colTop")}</TableHead>
                       <TableHead className={cn("font-medium text-left", PERF_HEAD)}>{t("leaderboard.colWhere")}</TableHead>
                       <TableHead className={cn("font-medium text-right", PERF_HEAD)}>{t("leaderboard.colGap")}</TableHead>
-                      <TableHead className={cn("font-medium", GROUP_SEP)} />
+                      <TableHead className={cn("font-medium text-left", GROUP_SEP)}>{t("leaderboard.colLeader")}</TableHead>
+                      <TableHead className="font-medium" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -615,7 +641,9 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                       const key = `${r.combo.track}|${r.combo.track_course}|${r.combo.car_class}`;
                       const isRanked = !!r.pos && r.pos.drivers >= RANKED_MIN;
                       const isOpen = open === key;
-                      const st = isRanked ? standing(t, r.pos!.top_pct, r.pos!.rank, r.pos!.drivers) : null;
+                      // Position affichée dès le 1er pilote (comme sur le site) ; sous 20 pilotes,
+                      // le classement est simplement signalé « provisoire ».
+                      const st = r.pos ? standing(t, r.pos.top_pct, r.pos.rank, r.pos.drivers) : null;
                       return (
                         <Fragment key={key}>
                           <TableRow className={cn(i % 2 === 1 && "bg-muted/30", isOpen && "bg-amber-400/10")}>
@@ -663,17 +691,28 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                                 />
                               </TableCell>
                             )}
-                            {isRanked ? (
+                            {r.pos ? (
                               <>
                                 <TableCell className={cn("px-2 py-1.5 text-center font-mono", PERF_CELL)}>
                                   <b>{r.pos!.rank}</b> <span className="text-muted-foreground">/ {r.pos!.drivers}</span>
                                 </TableCell>
-                                <TableCell className={cn("px-2 py-1.5 whitespace-nowrap font-bold", st!.tone, PERF_CELL)}>{st!.label}</TableCell>
+                                <TableCell className={cn("px-2 py-1.5 whitespace-nowrap font-bold", st!.tone, PERF_CELL)}>
+                                  {st!.label}
+                                  {!isRanked && (
+                                    <span
+                                      className="ml-1.5 rounded bg-amber-400/15 px-1 py-px text-micro font-semibold text-amber-600 dark:text-amber-400"
+                                      title={t("leaderboard.pending", { n: r.pos!.drivers, min: RANKED_MIN })}
+                                    >
+                                      {t("leaderboard.provisionalShort", { n: r.pos!.drivers, min: RANKED_MIN })}
+                                    </span>
+                                  )}
+                                </TableCell>
                                 <TableCell className={cn("px-2 py-1.5", PERF_CELL)}><Gauge pct={(r.pos!.rank / r.pos!.drivers) * 100} /></TableCell>
                                 <TableCell className={cn("px-2 py-1.5 text-right font-mono text-muted-foreground", PERF_CELL)}>
                                   {r.pos!.rank === 1 ? "—" : `+${r.pos!.gap_best.toFixed(3)}`}
                                 </TableCell>
-                                <TableCell className={cn("px-2 py-1.5 text-right", GROUP_SEP)}>
+                                <LeaderCell row={r} myTag={myTag} />
+                                <TableCell className="px-2 py-1.5 text-right">
                                   <button type="button" className="text-xs font-semibold text-primary" onClick={() => setOpen(isOpen ? null : key)}>
                                     {isOpen ? t("leaderboard.hide") : t("leaderboard.details")}
                                   </button>
@@ -682,26 +721,16 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                             ) : (
                               <>
                               <TableCell colSpan={4} className={cn("px-2 py-1.5 text-xs text-muted-foreground", PERF_CELL)}>
-                                {r.pos ? (
-                                  <span className="flex items-center gap-2">
-                                    <span className="inline-block h-1.5 w-28 overflow-hidden rounded-full bg-muted">
-                                      <span className="block h-full bg-amber-400" style={{ width: `${(r.pos.drivers / RANKED_MIN) * 100}%` }} />
-                                    </span>
-                                    {t("leaderboard.pending", { n: r.pos.drivers, min: RANKED_MIN })}
-                                  </span>
-                                ) : offline ? (
-                                  "—"
-                                ) : (
-                                  t("leaderboard.noData")
-                                )}
+                                {offline ? "—" : t("leaderboard.noData")}
                               </TableCell>
-                              <TableCell className={cn("px-2 py-1.5", GROUP_SEP)} />
+                              <LeaderCell row={r} myTag={myTag} />
+                              <TableCell className="px-2 py-1.5" />
                               </>
                             )}
                           </TableRow>
                           {isOpen && (
                             <TableRow>
-                              <TableCell colSpan={showOhne ? 9 : 8} className="p-0">
+                              <TableCell colSpan={showOhne ? 10 : 9} className="p-0">
                                 <ComboDetail row={r} myTag={myTag} />
                               </TableCell>
                             </TableRow>
@@ -717,5 +746,28 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
         );
       })}
     </div>
+  );
+}
+
+/** Pilote du record du combo : « Vous » si c'est le joueur, sinon son nom (ou son repère s'il est anonyme). */
+function LeaderCell({ row, myTag }: { row: Row; myTag: string | null }) {
+  const { t } = useTranslation();
+  const l = row.leader;
+  const mine = !!l && !!myTag && l.tag === myTag;
+  return (
+    <TableCell className={cn("px-2 py-1.5", GROUP_SEP)}>
+      {!l ? (
+        <span className="text-muted-foreground">—</span>
+      ) : mine ? (
+        <span className="font-semibold text-emerald-500">{t("leaderboard.recordYou")}</span>
+      ) : l.name ? (
+        <span className="block truncate font-medium" title={l.homonym ? `${l.name} · ${l.tag}` : l.name}>
+          {l.name}
+          {l.homonym && <span className="text-muted-foreground"> · {l.tag}</span>}
+        </span>
+      ) : (
+        <span className="italic text-muted-foreground">{t("community.anonTag", { tag: l.tag })}</span>
+      )}
+    </TableCell>
   );
 }

@@ -1052,6 +1052,14 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   --force`, `trap ERR`). « Supprimer » affiché seulement s'il y a des données partagées depuis ce PC,
   sinon « Effacer avec Steam ». Contrôles : `tsc`, lint, 265, build, `cargo check`, serveur 33/33.
   ⏳ Brouillon à publier ; vitrine (`scp`) ; page Confidentialité (empreinte Steam) ; annonces.
+- ✅ **v1.0.7 PUBLIÉE** (2026-09-27 13:25 UTC) ; vitrine en ligne à jour (vérifiée fichier par fichier) ;
+  6 vrais pilotes et 643 sessions sur lmu.cparfait.ovh dans l'heure.
+- ✅ **1.0.8 (dev) — page Classements de l'app** (retour mainteneur : « il manque le nom du pilote »,
+  « l'application ne prend pas les infos du site ») : position, top %, jauge et écart affichés dès le
+  1er pilote (badge « provisoire n/20 » sous 20 pilotes) au lieu de « Pas encore assez de pilotes » ;
+  nouvelle colonne « Pilote du record » (liste `combos` du serveur, mêmes filtres ; « Vous » si c'est
+  le joueur, « Pilote #xxxx » si anonyme). « Supprimer » affiché seulement s'il y a des données
+  partagées depuis ce PC (commit précédent). Changelog 1.0.8 `dev: true` ×4.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

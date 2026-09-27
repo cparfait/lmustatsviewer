@@ -64,6 +64,27 @@ export const APP_VERSION: string = __APP_VERSION__;
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.8",
+    date: "",
+    dev: true,
+    localized: true,
+    sections: [
+      {
+        kind: "improved",
+        items: [
+          {
+            text: {
+              en: "Leaderboards page: your position, top %, gap to the fastest and the new “Record holder” column (who set the best time, “You” when it's yours) now show from the very first driver, like on the website — instead of “Not enough drivers yet”. Below 20 drivers the leaderboard is simply marked “provisional n/20”.",
+              fr: "Page Classements : votre position, le top %, l'écart au plus rapide et la nouvelle colonne « Pilote du record » (qui détient le meilleur temps, « Vous » si c'est le vôtre) s'affichent dès le premier pilote, comme sur le site — au lieu de « Pas encore assez de pilotes ». Sous 20 pilotes, le classement est simplement marqué « provisoire n/20 ».",
+              es: "Página Clasificaciones: tu puesto, el top %, la diferencia con el más rápido y la nueva columna «Piloto del récord» (quién tiene el mejor tiempo, «Tú» si es el tuyo) se muestran desde el primer piloto, como en el sitio web — en lugar de «Aún no hay suficientes pilotos». Por debajo de 20 pilotos, la clasificación se marca simplemente «provisional n/20».",
+              de: "Seite Ranglisten: Deine Platzierung, Top-%, der Abstand zum Schnellsten und die neue Spalte „Rekordhalter“ (wer die Bestzeit hält, „Du“, wenn es deine ist) erscheinen ab dem ersten Fahrer, wie auf der Website — statt „Noch nicht genug Fahrer“. Unter 20 Fahrern ist die Rangliste einfach als „vorläufig n/20“ markiert.",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "1.0.7",
     date: "2026-09-27",
     dev: false,

@@ -12,7 +12,7 @@
     { "modelName": "Isotta Fraschini Tipo 6-C",           "category": "hyper", "keywords": ["isotta"] },
     { "modelName": "Lamborghini SC63",                    "category": "hyper", "keywords": ["lamborghini sc63"] },
     { "modelName": "Peugeot 9X8",                         "category": "hyper", "keywords": ["peugeot 9x8 (2023)", "peugeot 9x8 sans aileron"] },
-    { "modelName": "Peugeot 9X8 EVO",                     "category": "hyper", "keywords": ["peugeot 9x8 evo", "peugeot 9x8 (2024)", "peugeot 9x8 aileron"] },
+    { "modelName": "Peugeot 9X8 EVO",                     "category": "hyper", "keywords": ["peugeot 9x8 evo", "peugeot 9x8 (2024)", "peugeot 9x8 (2024/25)", "peugeot 9x8 aileron"] },
     { "modelName": "Porsche 963",                         "category": "hyper", "keywords": ["porsche 963"] },
     { "modelName": "Toyota GR010 Hybrid",                 "category": "hyper", "keywords": ["toyota gr010"] },
     { "modelName": "Toyota TR010",                        "category": "hyper", "keywords": ["toyota tr010"] },

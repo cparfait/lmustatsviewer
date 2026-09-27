@@ -2,11 +2,12 @@
  * Références vidéo (lap guides) par circuit × classe — Le Mans Ultimate.
  *
  * Source : playlist YouTube « Le Mans Ultimate Lap Guides » (Unleashed Drivers),
- * complétée à la main pour les circuits du US Track Pass (chaînes HYMO Academy /
- * GO Setups — Unleashed Drivers ne les a pas couverts). On ne stocke QUE le
- * pointeur (titre + URL) vers la vidéo, pas son contenu : le Coach IA peut ainsi
- * renvoyer le pilote vers le guide visuel du combo. Fichier GÉNÉRÉ (sauf bloc
- * « US Track Pass » en fin de tableau).
+ * complétée à la main pour les combos qu'elle ne couvre pas (chaînes HYMO
+ * Academy / GO Setups, bloc en fin de tableau). On ne stocke QUE le pointeur
+ * (titre + URL) vers la vidéo, pas son contenu : le Coach IA peut ainsi renvoyer
+ * le pilote vers le guide visuel du combo. Pour un même combo, la PREMIÈRE entrée
+ * sans layout l'emporte : les guides Unleashed (commentés, donc transcrits)
+ * passent avant les ajouts manuels. Fichier GÉNÉRÉ (sauf bloc manuel final).
  */
 
 export interface VideoGuide {
@@ -272,31 +273,51 @@ export const VIDEO_GUIDES: VideoGuide[] = [
     "title": "Lusail Lap Guide",
     "url": "https://youtu.be/WpjL4TjBwPI"
   },
-  // ── US Track Pass (ajouts manuels, vérifiés via oEmbed le 2026-08-24) ──
-  {
-    "trackId": "daytona",
-    "classId": "hypercar",
-    "layout": null,
-    "title": "Daytona Hypercar Track Guide | Le Mans Ultimate",
-    "url": "https://youtu.be/F0_z9kVVdRA",
-    "channel": "GO Setups"
-  },
   {
     "trackId": "daytona",
     "classId": "gt3",
     "layout": null,
-    "title": "Le Mans Ultimate Daytona LMGT3 Guide",
-    "url": "https://youtu.be/tolCwj9K8-4",
-    "channel": "HYMO Academy"
+    "title": "Daytona Lap Guide",
+    "url": "https://youtu.be/gHfhmOHFFAo"
+  },
+  {
+    "trackId": "daytona",
+    "classId": "hypercar",
+    "layout": null,
+    "title": "Daytona Lap Guide",
+    "url": "https://youtu.be/6HHynf4Pa7c"
+  },
+  {
+    "trackId": "daytona",
+    "classId": "lmp2",
+    "layout": null,
+    "title": "Daytona Lap Guide (LMP2 WEC)",
+    "url": "https://youtu.be/vWh_gMeF7Ag"
+  },
+  {
+    "trackId": "daytona",
+    "classId": "lmp2",
+    "layout": null,
+    "title": "Daytona Lap Guide (LMP2 ELMS)",
+    "url": "https://youtu.be/-doU5f5gh44"
   },
   {
     "trackId": "laguna-seca",
     "classId": "hypercar",
     "layout": null,
-    "title": "Le Mans Ultimate Laguna Seca Hypercar Guide",
-    "url": "https://youtu.be/fUf1azg72mc",
-    "channel": "HYMO Academy"
+    "title": "Laguna Seca Lap Guide",
+    "url": "https://youtu.be/AnX4r9Y6T3w"
   },
+  {
+    "trackId": "long-beach",
+    "classId": "gt3",
+    "layout": null,
+    "title": "Long Beach Lap Guide",
+    "url": "https://youtu.be/BZReoL0HE-A"
+  },
+  // ── Combos non couverts par Unleashed Drivers (ajouts manuels, vérifiés via
+  //    oEmbed le 2026-09-25). Hotlaps sans commentaire : pointeur seul, pas de
+  //    transcription. À remplacer dès qu'Unleashed Drivers publie le combo.
   {
     "trackId": "laguna-seca",
     "classId": "gt3",
@@ -304,5 +325,45 @@ export const VIDEO_GUIDES: VideoGuide[] = [
     "title": "Le Mans Ultimate Laguna Seca LMGT3 Guide",
     "url": "https://youtu.be/RSpKLzntZfI",
     "channel": "HYMO Academy"
+  },
+  {
+    "trackId": "laguna-seca",
+    "classId": "lmp2",
+    "layout": null,
+    "title": "Laguna Seca LMP2 Track Guide | Le Mans Ultimate",
+    "url": "https://youtu.be/XoutyCSLnsE",
+    "channel": "GO Setups"
+  },
+  {
+    "trackId": "long-beach",
+    "classId": "hypercar",
+    "layout": null,
+    "title": "Le Mans Ultimate Long Beach Hypercar Guide",
+    "url": "https://youtu.be/1ExmH4W56hs",
+    "channel": "HYMO Academy"
+  },
+  {
+    "trackId": "road-atlanta",
+    "classId": "gt3",
+    "layout": null,
+    "title": "Le Mans Ultimate Road Atlanta LMGT3 Guide",
+    "url": "https://youtu.be/fGBtGbMK9pA",
+    "channel": "HYMO Academy"
+  },
+  {
+    "trackId": "road-atlanta",
+    "classId": "hypercar",
+    "layout": null,
+    "title": "Le Mans Ultimate Road Atlanta Hypercar Guide",
+    "url": "https://youtu.be/M40Jqhm3DGQ",
+    "channel": "HYMO Academy"
+  },
+  {
+    "trackId": "road-atlanta",
+    "classId": "lmp2",
+    "layout": null,
+    "title": "Road Atlanta LMP2 Track Guide | Le Mans Ultimate",
+    "url": "https://youtu.be/Er6ldVPeJ20",
+    "channel": "GO Setups"
   }
 ];

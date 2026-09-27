@@ -7,6 +7,15 @@
  * l auteur d origine ; affichage interne, non redistribué tel quel.
  *
  * Fichier GÉNÉRÉ — ne pas éditer à la main.
+ *
+ * ⚠️ Règle (2026-09-25) : on n'intègre AUCUNE fiche dont le tracé ne correspond
+ * pas au circuit du jeu. Audit contre les tracés officiels : Le Mans, Monza, Spa
+ * et Imola sont justes (seuls les numéros de virage sont décalés) ; Sebring,
+ * COTA, Interlagos, Paul Ricard, Fuji, Portimão et Bahreïn décrivaient des
+ * virages faux (noms d'autres circuits, freinages à la place de virages à fond,
+ * épingles absentes) → RETIRÉES, y compris au regénérage. Road Atlanta est
+ * réécrite à la main (bloc dédié). Détail et sources : SUIVI.md, journal du
+ * 2026-09-25.
  */
 
 export interface BrakingRef {
@@ -830,392 +839,6 @@ export const BRAKING_GUIDE: BrakingTrack[] = [
     ]
   },
   {
-    "id": "portimao",
-    "name": "Autódromo do Algarve",
-    "location": "Portimão, Portugal",
-    "corners": [
-      {
-        "number": "T1",
-        "name": "Turn 1",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "100m board",
-            "speed": "290→110 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Downhill braking — the car gets light. Brake early and progressively. Trail brake to the apex.",
-            "tipFr": "Freinage en descente — la voiture s'allège. Freinez tôt et progressivement. Lestage vers l'apex."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "270→100 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Downhill entry makes braking tricky. Be smooth and progressive on the brake pedal.",
-            "tipFr": "L'entrée en descente rend le freinage délicat. Soyez fluide et progressif sur la pédale de frein."
-          },
-          "gt3": {
-            "marker": "125m board",
-            "speed": "240→85 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 125m. Downhill means less grip under braking. Be conservative.",
-            "tipFr": "Freinez à 125m. La descente signifie moins d'adhérence au freinage. Soyez conservateur."
-          }
-        }
-      },
-      {
-        "number": "T3",
-        "name": "Turn 3 (Sagres)",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "250→130 km/h",
-            "gear": "4th",
-            "pressure": "Heavy",
-            "tip": "Blind entry over a crest. Brake before the crest, commit through. Trust your reference points.",
-            "tipFr": "Entrée aveugle sur une crête. Freinez avant la crête, engagez-vous. Faites confiance à vos repères."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "235→120 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Brake before the crest. The elevation change makes this corner unique — learn the rhythm.",
-            "tipFr": "Freinez avant la crête. Le changement d'altitude rend ce virage unique — apprenez le rythme."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "210→100 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m before the crest. Build confidence lap by lap — visibility is limited.",
-            "tipFr": "Freinez à 100m avant la crête. Gagnez en confiance tour après tour — la visibilité est limitée."
-          }
-        }
-      },
-      {
-        "number": "T5",
-        "name": "Turn 5",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "280→140 km/h",
-            "gear": "4th",
-            "pressure": "Heavy",
-            "tip": "Uphill approach helps braking. Get the car stopped and rotate into the right-hander.",
-            "tipFr": "L'approche en montée aide au freinage. Arrêtez la voiture et faites pivoter vers la droite."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "260→130 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. Uphill helps — use it to your advantage for harder braking.",
-            "tipFr": "Freinez à 100m. La montée aide — profitez-en pour freiner plus fort."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "230→110 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. The uphill assists braking — be assertive with the brake pedal.",
-            "tipFr": "Freinez à 100m. La montée aide au freinage — soyez assertif avec la pédale de frein."
-          }
-        }
-      },
-      {
-        "number": "T8",
-        "name": "Turn 8 (Lagos)",
-        "type": "slow_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "240→70 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Tight hairpin. Heavy braking, deep trail brake to rotate the car around.",
-            "tipFr": "Épingle serrée. Freinage lourd, lestage profond pour faire pivoter la voiture."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "225→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Hairpin — big stop. Trail brake in deep and get a good exit.",
-            "tipFr": "Épingle — gros arrêt. Lestage profond et bonne sortie."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "200→55 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Slow the car right down for this tight hairpin.",
-            "tipFr": "Freinez à 100m. Ralentissez considérablement pour cette épingle serrée."
-          }
-        }
-      },
-      {
-        "number": "T11",
-        "name": "Turn 11",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "270→130 km/h",
-            "gear": "4th",
-            "pressure": "Heavy",
-            "tip": "Fast left with a blind crest. Brake before the hill, let the car flow over the top.",
-            "tipFr": "Gauche rapide avec crête aveugle. Freinez avant la colline, laissez la voiture passer la crête."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "250→120 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Brake before the elevation change. Smooth inputs over the crest.",
-            "tipFr": "Freinez avant le changement d'altitude. Gestes fluides sur la crête."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "220→100 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. The blind crest makes this scary — build up to speed gradually.",
-            "tipFr": "Freinez à 100m. La crête aveugle rend ça effrayant — montez en vitesse progressivement."
-          }
-        }
-      },
-      {
-        "number": "T13-T14",
-        "name": "Turn 13-14 (Galp)",
-        "type": "slow_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "100m board",
-            "speed": "285→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Downhill braking into a tight section. Brake early and hard. The track drops away.",
-            "tipFr": "Freinage en descente dans une section serrée. Freinez tôt et fort. La piste plonge."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "265→75 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Downhill makes this treacherous. Brake early and commit to a late apex.",
-            "tipFr": "La descente rend ça dangereux. Freinez tôt et engagez-vous vers un apex tardif."
-          },
-          "gt3": {
-            "marker": "125m board",
-            "speed": "235→60 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 125m. Downhill braking is the hardest thing here — be patient.",
-            "tipFr": "Freinez à 125m. Le freinage en descente est le plus difficile ici — soyez patient."
-          }
-        }
-      }
-    ]
-  },
-  {
-    "id": "bahrain",
-    "name": "Bahrain International Circuit",
-    "location": "Sakhir, Bahrain",
-    "corners": [
-      {
-        "number": "T1",
-        "name": "Turn 1",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "100m board",
-            "speed": "310→100 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Big braking zone at the end of the main straight. Brake at 100m, downhill slightly. Trail brake to the apex.",
-            "tipFr": "Grande zone de freinage en fin de ligne droite principale. Freinez à 100m, légèrement en descente. Lestage vers l'apex."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "290→90 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Sand can blow onto the track — be careful on the first laps.",
-            "tipFr": "Freinez à 100m. Le sable peut souffler sur la piste — soyez prudent les premiers tours."
-          },
-          "gt3": {
-            "marker": "125m board",
-            "speed": "255→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 125m. Big stop — focus on a clean turn-in after the heavy braking.",
-            "tipFr": "Freinez à 125m. Gros arrêt — concentrez-vous sur une entrée propre après le freinage lourd."
-          }
-        }
-      },
-      {
-        "number": "T2",
-        "name": "Turn 2",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "50m board",
-            "speed": "190→130 km/h",
-            "gear": "4th",
-            "pressure": "Heavy",
-            "tip": "Quick right continuing from T1 complex. Light brake and rotate, carry speed through.",
-            "tipFr": "Droite rapide dans la continuité de T1. Léger frein et rotation, portez la vitesse."
-          },
-          "lmp2": {
-            "marker": "50m board",
-            "speed": "175→120 km/h",
-            "gear": "4th",
-            "pressure": "Heavy",
-            "tip": "Brake at 50m. Flow through the T1-T2 complex smoothly.",
-            "tipFr": "Freinez à 50m. Enchaînez le complexe T1-T2 avec fluidité."
-          },
-          "gt3": {
-            "marker": "75m board",
-            "speed": "160→105 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Don't rush the exit — it leads to a slow T3.",
-            "tipFr": "Freinez à 75m. Ne précipitez pas la sortie — ça mène à un T3 lent."
-          }
-        }
-      },
-      {
-        "number": "T4",
-        "name": "Turn 4",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "260→110 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Right-hander at the end of a short straight. Quick brake and turn-in together.",
-            "tipFr": "Droite en fin de courte ligne droite. Freinage rapide et entrée simultanés."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "245→100 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Get the car rotated and carry speed through the following section.",
-            "tipFr": "Freinez à 75m. Faites pivoter la voiture et portez la vitesse dans la section suivante."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "220→85 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. Don't overcook the entry — the exit is more important.",
-            "tipFr": "Freinez à 100m. Ne surchargez pas l'entrée — la sortie est plus importante."
-          }
-        }
-      },
-      {
-        "number": "T8",
-        "name": "Turn 8",
-        "type": "slow_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "250→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Tight left-hander. Heavy braking and deep trail brake. Classic overtaking spot.",
-            "tipFr": "Gauche serré. Freinage lourd et lestage profond. Point de dépassement classique."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "235→60 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Big stop. Trail brake deep to rotate. This is where races are won and lost.",
-            "tipFr": "Gros arrêt. Lestage profond pour faire pivoter. C'est ici que les courses se gagnent et se perdent."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "210→50 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Tight corner — be prepared for traffic and overtakes.",
-            "tipFr": "Freinez à 100m. Virage serré — préparez-vous au trafic et aux dépassements."
-          }
-        }
-      },
-      {
-        "number": "T10",
-        "name": "Turn 10",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "290→120 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Fast right after a long straight section. Brake at 75m, quick direction change.",
-            "tipFr": "Droite rapide après une longue section. Freinez à 75m, changement de direction rapide."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "270→110 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. Fast corner — commit and carry the speed through.",
-            "tipFr": "Freinez à 100m. Virage rapide — engagez-vous et portez la vitesse."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "240→95 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. Get the car pointing right and accelerate hard down the straight.",
-            "tipFr": "Freinez à 100m. Pointez la voiture à droite et accélérez fort dans la ligne droite."
-          }
-        }
-      },
-      {
-        "number": "T14",
-        "name": "Turn 14",
-        "type": "slow_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "270→70 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Second-to-last corner. Big braking zone. Get the car stopped and focus on exit for the main straight.",
-            "tipFr": "Avant-dernier virage. Grande zone de freinage. Arrêtez la voiture et concentrez-vous sur la sortie vers la ligne droite principale."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "255→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Exit speed is crucial here — it determines your straight speed.",
-            "tipFr": "Freinez à 100m. La vitesse de sortie est cruciale ici — elle détermine votre vitesse en ligne droite."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "225→55 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. The most important exit on the circuit — prioritize a clean acceleration zone.",
-            "tipFr": "Freinez à 100m. La sortie la plus importante du circuit — priorisez une zone d'accélération propre."
-          }
-        }
-      }
-    ]
-  },
-  {
     "id": "imola",
     "name": "Autodromo Enzo e Dino Ferrari",
     "location": "Imola, Italy",
@@ -1439,1191 +1062,88 @@ export const BRAKING_GUIDE: BrakingTrack[] = [
       }
     ]
   },
-  {
-    "id": "fuji",
-    "name": "Fuji Speedway",
-    "location": "Oyama, Japan",
-    "corners": [
-      {
-        "number": "T1",
-        "name": "TGR Corner (T1)",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "100m board",
-            "speed": "320→90 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "End of the long main straight. Massive braking zone. Brake at 100m, go very deep.",
-            "tipFr": "Fin de la longue ligne droite principale. Énorme zone de freinage. Freinez à 100m, allez très profond."
-          },
-          "lmp2": {
-            "marker": "125m board",
-            "speed": "300→85 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 125m. Huge speed scrub. Stay calm and brake in a straight line.",
-            "tipFr": "Freinez à 125m. Énorme réduction de vitesse. Restez calme et freinez en ligne droite."
-          },
-          "gt3": {
-            "marker": "150m board",
-            "speed": "265→70 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 150m. Longest braking zone on the circuit. Be progressive and patient.",
-            "tipFr": "Freinez à 150m. Zone de freinage la plus longue du circuit. Soyez progressif et patient."
-          }
-        }
-      },
-      {
-        "number": "T3",
-        "name": "Coca-Cola Corner",
-        "type": "fast_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "Light brake",
-            "speed": "260→200 km/h",
-            "gear": "5th",
-            "pressure": "Light",
-            "tip": "Fast right-hander. Light brake to set the car. Trust the grip and commit.",
-            "tipFr": "Droite rapide. Léger frein pour stabiliser la voiture. Faites confiance à l'adhérence et engagez-vous."
-          },
-          "lmp2": {
-            "marker": "Light brake",
-            "speed": "245→185 km/h",
-            "gear": "4th-5th",
-            "pressure": "Light-moderate",
-            "tip": "A light brake to scrub speed. Smooth steering input through the long radius.",
-            "tipFr": "Un léger frein pour effacer la vitesse. Gestes de direction fluides sur le long rayon."
-          },
-          "gt3": {
-            "marker": "75m before",
-            "speed": "215→160 km/h",
-            "gear": "4th",
-            "pressure": "Moderate",
-            "tip": "You'll need a proper brake here. Get the entry speed right and maintain it through.",
-            "tipFr": "Il vous faudra un vrai freinage ici. Gérez la vitesse d'entrée et maintenez-la."
-          }
-        }
-      },
-      {
-        "number": "T5-T7",
-        "name": "100R",
-        "type": "fast_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "Flat / lift",
-            "speed": "270→240 km/h",
-            "gear": "6th",
-            "pressure": "Very light",
-            "tip": "Famous fast sweeper. Flat or near-flat. Build up to it — huge consequence if you get it wrong.",
-            "tipFr": "Fameux virage rapide. À plat ou presque. Montez en vitesse progressivement — grandes conséquences en cas d'erreur."
-          },
-          "lmp2": {
-            "marker": "Light brake",
-            "speed": "255→220 km/h",
-            "gear": "5th",
-            "pressure": "Light",
-            "tip": "Light brake or lift. The car moves around — stay smooth and trust the balance.",
-            "tipFr": "Léger frein ou levée de pied. La voiture bouge — restez fluide et faites confiance à l'équilibre."
-          },
-          "gt3": {
-            "marker": "Moderate brake",
-            "speed": "225→185 km/h",
-            "gear": "4th",
-            "pressure": "Moderate",
-            "tip": "You need to brake properly here. The GT3 doesn't have enough downforce to take it flat.",
-            "tipFr": "Vous devez freiner correctement ici. La GT3 n'a pas assez d'appui pour le prendre à plat."
-          }
-        }
-      },
-      {
-        "number": "T10",
-        "name": "Dunlop Corner",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "250→110 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Right-hander with elevation drop. Brake at 75m, the downhill helps. Get a good exit.",
-            "tipFr": "Droite avec dénivellation. Freinez à 75m, la descente aide. Bonne sortie."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "235→100 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Downhill helps slow the car. Focus on a clean exit.",
-            "tipFr": "Freinez à 75m. La descente aide à ralentir la voiture. Concentrez-vous sur une sortie propre."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "210→85 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. The downhill makes it easier to stop but harder to judge. Practice the reference.",
-            "tipFr": "Freinez à 100m. La descente facilite l'arrêt mais rend le jugement plus difficile. Travaillez vos repères."
-          }
-        }
-      },
-      {
-        "number": "T13",
-        "name": "13th Corner",
-        "type": "slow_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "50m board",
-            "speed": "200→70 km/h",
-            "gear": "2nd",
-            "pressure": "Heavy",
-            "tip": "Tight right. Short braking zone. Brake at 50m, rotate the car, and get on the power.",
-            "tipFr": "Droite serrée. Zone de freinage courte. Freinez à 50m, faites pivoter la voiture et reprenez les gaz."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "190→65 km/h",
-            "gear": "2nd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Quick stop into a tight corner. Power out hard for the run to the final corner.",
-            "tipFr": "Freinez à 75m. Arrêt rapide dans un virage serré. Accélérez fort vers le dernier virage."
-          },
-          "gt3": {
-            "marker": "75m board",
-            "speed": "170→55 km/h",
-            "gear": "2nd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Tight corner — slow it down and power out cleanly.",
-            "tipFr": "Freinez à 75m. Virage serré — ralentissez et reprenez les gaz proprement."
-          }
-        }
-      },
-      {
-        "number": "T16",
-        "name": "Panasonic / Final Corner",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "260→120 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Last corner before the main straight. Brake at 75m, late apex, and floor it. Exit speed is everything.",
-            "tipFr": "Dernier virage avant la ligne droite principale. Freinez à 75m, apex tardif et écrasez l'accélérateur. La vitesse de sortie est tout."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "245→110 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. Late apex and focus 100% on exit speed for the 1.5km straight.",
-            "tipFr": "Freinez à 100m. Apex tardif et concentrez-vous à 100% sur la vitesse de sortie pour la ligne droite de 1,5 km."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "220→95 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. The most important corner — exit speed defines your lap time.",
-            "tipFr": "Freinez à 100m. Le virage le plus important — la vitesse de sortie définit votre temps au tour."
-          }
-        }
-      }
-    ]
-  },
-  {
-    "id": "sebring",
-    "name": "Sebring International Raceway",
-    "location": "Sebring, USA",
-    "corners": [
-      {
-        "number": "T1",
-        "name": "Turn 1",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "100m board",
-            "speed": "290→100 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "First corner after the start line. Brake at 100m, trail in. The bumpy surface can unsettle braking.",
-            "tipFr": "Premier virage après la ligne de départ. Freinez à 100m, lestage. La surface bosselée peut perturber le freinage."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "270→90 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. The tarmac patches make braking unpredictable — be smooth.",
-            "tipFr": "Freinez à 100m. Les raccords de tarmac rendent le freinage imprévisible — soyez fluide."
-          },
-          "gt3": {
-            "marker": "125m board",
-            "speed": "240→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 125m. Bumps everywhere — be progressive and don't panic-brake.",
-            "tipFr": "Freinez à 125m. Bosses partout — soyez progressif et ne freinez pas par panique."
-          }
-        }
-      },
-      {
-        "number": "T3",
-        "name": "Turn 3 (Webster)",
-        "type": "fast_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "Light brake",
-            "speed": "260→200 km/h",
-            "gear": "5th",
-            "pressure": "Light",
-            "tip": "Fast right-hander. Light brake to set the car. The bumps here are legendary — stay calm.",
-            "tipFr": "Droite rapide. Léger frein pour stabiliser la voiture. Les bosses ici sont légendaires — restez calme."
-          },
-          "lmp2": {
-            "marker": "Light brake",
-            "speed": "245→185 km/h",
-            "gear": "4th-5th",
-            "pressure": "Light-moderate",
-            "tip": "A quick dab of brake to set entry. Smooth inputs — the car gets unsettled over the bumps.",
-            "tipFr": "Un rapide coup de frein pour régler l'entrée. Gestes fluides — la voiture est déstabilisée par les bosses."
-          },
-          "gt3": {
-            "marker": "75m before",
-            "speed": "215→160 km/h",
-            "gear": "4th",
-            "pressure": "Moderate",
-            "tip": "Brake properly here. The GT3 needs to be slowed and balanced before committing.",
-            "tipFr": "Freinez correctement ici. La GT3 doit être ralentie et équilibrée avant de s'engager."
-          }
-        }
-      },
-      {
-        "number": "T7",
-        "name": "Turn 7",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "270→120 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Right-hander with a bumpy entry. Brake at 75m and keep the car stable.",
-            "tipFr": "Droite avec entrée bosselée. Freinez à 75m et gardez la voiture stable."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "255→110 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. Get a clean line through — the bumps can send you wide.",
-            "tipFr": "Freinez à 100m. Prenez une trajectoire propre — les bosses peuvent vous éjecter."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "225→95 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 100m. The bumpy surface means you need to be very smooth here.",
-            "tipFr": "Freinez à 100m. La surface bosselée signifie que vous devez être très fluide ici."
-          }
-        }
-      },
-      {
-        "number": "T13-T15",
-        "name": "The Esses (T13-T15)",
-        "type": "fast_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "Lift / light brake",
-            "speed": "250→190 km/h",
-            "gear": "5th",
-            "pressure": "Very light",
-            "tip": "Fast, bumpy esses. Light lifts between each section. Trust the downforce and find a rhythm.",
-            "tipFr": "Esse rapide et bosselé. Légères levées de pied entre chaque section. Faites confiance à l'appui et trouvez un rythme."
-          },
-          "lmp2": {
-            "marker": "Light brake",
-            "speed": "235→175 km/h",
-            "gear": "4th-5th",
-            "pressure": "Light",
-            "tip": "Light braking at each direction change. Sebring's esses are brutal — don't fight the car.",
-            "tipFr": "Freinage léger à chaque changement de direction. Les esses de Sebring sont brutaux — ne combattez pas la voiture."
-          },
-          "gt3": {
-            "marker": "Brake at entry",
-            "speed": "205→155 km/h",
-            "gear": "4th",
-            "pressure": "Moderate",
-            "tip": "Need a proper brake at entry. The bumps are more punishing in GT3 — stay patient.",
-            "tipFr": "Besoin d'un vrai freinage à l'entrée. Les bosses sont plus punitives en GT3 — restez patient."
-          }
-        }
-      },
-      {
-        "number": "T17",
-        "name": "Hairpin (T17)",
-        "type": "slow_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "260→60 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Sebring's tightest corner. Heavy braking, trail in deep. Classic overtaking spot on the inside.",
-            "tipFr": "Le virage le plus serré de Sebring. Freinage lourd, lestage profond. Point de dépassement classique à l'intérieur."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "245→55 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. Big stop. Trail brake to rotate — be patient, late apex.",
-            "tipFr": "Freinez à 75m. Gros arrêt. Lestage pour faire pivoter — soyez patient, apex tardif."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "215→45 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Slowest corner on the track — prioritize exit speed.",
-            "tipFr": "Freinez à 100m. Virage le plus lent de la piste — priorisez la vitesse de sortie."
-          }
-        }
-      },
-      {
-        "number": "T16",
-        "name": "Turn 16 (Ford Chicane)",
-        "type": "chicane",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "280→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Last chicane before the start. Big stop at 75m, get both apexes and power out hard.",
-            "tipFr": "Dernière chicane avant le départ. Gros arrêt à 75m, visez les deux apex et accélérez fort."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "260→75 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Clean through the chicane — exits onto the pit straight.",
-            "tipFr": "Freinez à 100m. Propre dans la chicane — débouche sur la ligne droite des stands."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "230→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Tight chicane — be tidy and focus on a good exit.",
-            "tipFr": "Freinez à 100m. Chicane serrée — soyez propre et concentrez-vous sur une bonne sortie."
-          }
-        }
-      }
-    ]
-  },
-  {
-    "id": "paul-ricard",
-    "name": "Circuit Paul Ricard",
-    "location": "Le Castellet, France",
-    "corners": [
-      {
-        "number": "T1",
-        "name": "Sainte Beaume (T1)",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "100m board",
-            "speed": "300→110 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Big stop at the end of the Mistral straight. Brake at the 100m board, trail brake to the apex.",
-            "tipFr": "Gros arrêt en fin de ligne droite du Mistral. Freinez au panneau 100m, lestage vers l'apex."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "280→100 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Heavy and progressive. Don't lock up on the painted runoff strip.",
-            "tipFr": "Freinez à 100m. Lourd et progressif. Ne bloquez pas sur les bandes peintes."
-          },
-          "gt3": {
-            "marker": "150m board",
-            "speed": "250→85 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 150m. Long braking zone — stay on the tarmac and off the blue stripes.",
-            "tipFr": "Freinez à 150m. Longue zone de freinage — restez sur le tarmac et loin des bandes bleues."
-          }
-        }
-      },
-      {
-        "number": "T3",
-        "name": "Bendor (T3)",
-        "type": "fast_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "Light brake",
-            "speed": "270→210 km/h",
-            "gear": "5th",
-            "pressure": "Light",
-            "tip": "Quick chicane before Signes. Light brake, hit both apexes and commit through.",
-            "tipFr": "Chicane rapide avant Signes. Léger frein, visez les deux apex et engagez-vous."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "255→195 km/h",
-            "gear": "5th",
-            "pressure": "Light-moderate",
-            "tip": "Brake at 75m. Flow through the direction changes smoothly.",
-            "tipFr": "Freinez à 75m. Enchaînez les changements de direction avec fluidité."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "225→165 km/h",
-            "gear": "4th",
-            "pressure": "Moderate",
-            "tip": "Brake at 100m. More scrub needed in GT3. Be tidy through the chicane.",
-            "tipFr": "Freinez à 100m. Plus d'effacement nécessaire en GT3. Soyez propre dans la chicane."
-          }
-        }
-      },
-      {
-        "number": "T4",
-        "name": "Signes",
-        "type": "fast_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "Flat / slight lift",
-            "speed": "290→265 km/h",
-            "gear": "6th-7th",
-            "pressure": "None / very light",
-            "tip": "High-speed right-hander. Nearly flat in a Hypercar. Commit and trust the downforce.",
-            "tipFr": "Virage rapide à droite. Presque à plat en Hypercar. Engagez-vous et faites confiance à l'appui."
-          },
-          "lmp2": {
-            "marker": "Slight lift",
-            "speed": "270→245 km/h",
-            "gear": "6th",
-            "pressure": "Very light",
-            "tip": "A light lift is enough. The car has enough grip — trust it.",
-            "tipFr": "Une légère levée de pied suffit. La voiture a suffisamment d'adhérence — faites-lui confiance."
-          },
-          "gt3": {
-            "marker": "Light brake",
-            "speed": "240→210 km/h",
-            "gear": "5th",
-            "pressure": "Light",
-            "tip": "A proper but light brake to settle the car. Big consequences if you get it wrong.",
-            "tipFr": "Un freinage correct mais léger pour stabiliser la voiture. Grandes conséquences en cas d'erreur."
-          }
-        }
-      },
-      {
-        "number": "T6-T7",
-        "name": "Club (T6-T7)",
-        "type": "chicane",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "260→90 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Tight chicane. Brake at 75m, hit both apexes. Good exit is key for the back section.",
-            "tipFr": "Chicane serrée. Freinez à 75m, visez les deux apex. Bonne sortie clé pour la section arrière."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "240→85 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Be precise — the chicane rewards smooth technique.",
-            "tipFr": "Freinez à 100m. Soyez précis — la chicane récompense la technique fluide."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "215→70 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Tight chicane — don't rush the entry.",
-            "tipFr": "Freinez à 100m. Chicane serrée — ne précipitez pas l'entrée."
-          }
-        }
-      },
-      {
-        "number": "T10",
-        "name": "Beausset (T10)",
-        "type": "slow_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "240→70 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Tight left. Brake hard at 75m, late apex, and power out toward the final section.",
-            "tipFr": "Gauche serré. Freinez fort à 75m, apex tardif et accélérez vers la section finale."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "225→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. Classic hairpin technique.",
-            "tipFr": "Freinez à 75m. Technique classique d'épingle."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "200→55 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Slow it right down — patience is rewarded on exit.",
-            "tipFr": "Freinez à 100m. Ralentissez vraiment — la patience est récompensée en sortie."
-          }
-        }
-      },
-      {
-        "number": "T13-T14",
-        "name": "Pont de Fos (T13-T14)",
-        "type": "chicane",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "270→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Last chicane before the pit straight. Big stop, nail both apexes, and floor it.",
-            "tipFr": "Dernière chicane avant la ligne droite des stands. Gros arrêt, visez les deux apex et écrasez l'accélérateur."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "250→75 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Exit speed matters enormously here.",
-            "tipFr": "Freinez à 100m. La vitesse de sortie compte énormément ici."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "220→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Be neat through the chicane — messy exits cost lots of time.",
-            "tipFr": "Freinez à 100m. Soyez propre dans la chicane — les sorties brouillonnes coûtent beaucoup de temps."
-          }
-        }
-      }
-    ]
-  },
-  {
-    "id": "interlagos",
-    "name": "Autódromo José Carlos Pace",
-    "location": "São Paulo, Brazil",
-    "corners": [
-      {
-        "number": "T1-T2",
-        "name": "Curva 1 / Senna S",
-        "type": "chicane",
-        "braking": {
-          "hypercar": {
-            "marker": "100m board",
-            "speed": "290→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Downhill into the S. Brake at 100m — the gradient helps. Trail brake through the left-right.",
-            "tipFr": "Descente dans le S. Freinez à 100m — le dénivelé aide. Lestage dans le gauche-droite."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "270→75 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Downhill makes it tricky — be progressive and smooth.",
-            "tipFr": "Freinez à 100m. La descente rend ça délicat — soyez progressif et fluide."
-          },
-          "gt3": {
-            "marker": "125m board",
-            "speed": "240→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 125m. Downhill entry — brake early and keep the car stable.",
-            "tipFr": "Freinez à 125m. Entrée en descente — freinez tôt et gardez la voiture stable."
-          }
-        }
-      },
-      {
-        "number": "T4",
-        "name": "Curva do Sol (T4)",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "50m board",
-            "speed": "230→120 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Quick right-hander. Short brake at 50m, late apex, power out toward Descida do Lago.",
-            "tipFr": "Droite rapide. Court freinage à 50m, apex tardif, accélérez vers Descida do Lago."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "215→110 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Smooth and precise — it flows into a fast section.",
-            "tipFr": "Freinez à 75m. Fluide et précis — ça débouche sur une section rapide."
-          },
-          "gt3": {
-            "marker": "75m board",
-            "speed": "190→95 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Don't overdo entry speed — exit quality matters more.",
-            "tipFr": "Freinez à 75m. Ne surchargez pas la vitesse d'entrée — la qualité de sortie compte plus."
-          }
-        }
-      },
-      {
-        "number": "T6",
-        "name": "Descida do Lago (T6)",
-        "type": "slow_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "250→70 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Downhill right-hander. Heavy brake at 75m. Downhill makes the car light — be smooth.",
-            "tipFr": "Droite en descente. Freinage lourd à 75m. La descente allège la voiture — soyez fluide."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "235→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. The downhill entry is deceptive — keep the brake progressive.",
-            "tipFr": "Freinez à 75m. L'entrée en descente est trompeuse — gardez le freinage progressif."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "210→55 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Downhill makes this harder than it looks.",
-            "tipFr": "Freinez à 100m. La descente rend ça plus difficile qu'il n'y paraît."
-          }
-        }
-      },
-      {
-        "number": "T8-T9",
-        "name": "Pinheirinho (T8-T9)",
-        "type": "chicane",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "260→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Tricky chicane with camber changes. Brake at 75m, flow through. The bumps can unseat the car.",
-            "tipFr": "Chicane délicate avec changements de dévers. Freinez à 75m, enchaînez. Les bosses peuvent désarçonner la voiture."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "245→75 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Bumpy through here — be smooth on inputs.",
-            "tipFr": "Freinez à 100m. Bosselé ici — soyez fluide sur les gestes."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "215→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Take the chicane carefully — the bumps can bite.",
-            "tipFr": "Freinez à 100m. Prenez la chicane avec soin — les bosses peuvent mordre."
-          }
-        }
-      },
-      {
-        "number": "T11",
-        "name": "Mergulho (T11)",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "50m board",
-            "speed": "220→100 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Blind downhill entry. Brake before you can see the apex. Commit and let it flow.",
-            "tipFr": "Entrée aveugle en descente. Freinez avant de voir l'apex. Engagez-vous et laissez couler."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "205→90 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Blind corner — trust your reference points.",
-            "tipFr": "Freinez à 75m. Virage aveugle — faites confiance à vos repères."
-          },
-          "gt3": {
-            "marker": "75m board",
-            "speed": "185→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Build confidence here — it's blind and quick.",
-            "tipFr": "Freinez à 75m. Gagnez en confiance ici — c'est aveugle et rapide."
-          }
-        }
-      },
-      {
-        "number": "T12-T15",
-        "name": "Junção / Subida dos Boxes",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "270→90 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Long uphill section leading to the pit straight. Brake at 75m, nail the exit to maximize straight speed.",
-            "tipFr": "Longue section montante vers la ligne droite des stands. Freinez à 75m, soignez la sortie pour maximiser la vitesse en ligne droite."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "255→85 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. The uphill exit is key — get on the power cleanly.",
-            "tipFr": "Freinez à 75m. La sortie en montée est clé — reprenez les gaz proprement."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "225→75 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Uphill section — patience on exit for the main straight.",
-            "tipFr": "Freinez à 100m. Section montante — patience en sortie pour la ligne droite principale."
-          }
-        }
-      }
-    ]
-  },
+  // ── Road Atlanta (remplacé À LA MAIN, 2026-09-25) ────────────────────────────
+  // Les données ApexPoints, rédigées avant la sortie du circuit en jeu, ne
+  // correspondaient pas au tracé : « chicane » placée au T3 (ce sont les S, à
+  // fond), T10A donné « à fond » alors que c'est la chicane et le plus gros
+  // freinage, T5 et T12 inversés (freinage / à fond). Réécrit depuis les guides
+  // LMU commentés et les guides de pilotage du circuit réel ; repères de
+  // panneaux tels que cités, vitesses qualitatives. À re-comparer si
+  // ApexPoints corrige sa fiche.
   {
     "id": "road-atlanta",
-    "name": "Road Atlanta",
+    "name": "Michelin Raceway Road Atlanta",
     "location": "Braselton, USA",
+    "source": "in-game corner notes (approximate — the ApexPoints data for this circuit contradicted the in-game layout)",
     "corners": [
       {
         "number": "T1",
         "name": "Turn 1",
         "type": "medium_corner",
         "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "290→110 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Right-hander at the top of a hill. Brake at 75m, late apex to set up the downhill exit.",
-            "tipFr": "Droite au sommet d'une colline. Freinez à 75m, apex tardif pour préparer la sortie en descente."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "270→100 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. The crest at entry makes it tricky — be conservative at first.",
-            "tipFr": "Freinez à 100m. La crête à l'entrée rend ça délicat — soyez conservateur au début."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "240→85 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. The crest can unsettle the car — be smooth under braking.",
-            "tipFr": "Freinez à 100m. La crête peut déstabiliser la voiture — soyez fluide au freinage."
-          }
+          "hypercar": { "marker": "short brake (≈ later than GT3)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Moderate, short", "tip": "Slow in, fast out: the exit starts a steep climb to Turn 2. Enter as wide as possible, hit the apex and get on the throttle straight away. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Lent en entrée, rapide en sortie : la sortie attaque une forte montée vers le virage 2. Entre le plus large possible, prends l'apex et remets les gaz immédiatement. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "lmp2": { "marker": "short brake (≈ later than GT3)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Moderate, short", "tip": "Slow in, fast out: the exit starts a steep climb to Turn 2. Enter as wide as possible, hit the apex and get on the throttle straight away. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Lent en entrée, rapide en sortie : la sortie attaque une forte montée vers le virage 2. Entre le plus large possible, prends l'apex et remets les gaz immédiatement. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "gt3": { "marker": "short brake at the end of the front straight", "speed": "fast → medium", "gear": "mid gear", "pressure": "Moderate, short", "tip": "Slow in, fast out: the exit starts a steep climb to Turn 2. Enter as wide as possible, hit the apex and get on the throttle straight away.", "tipFr": "Lent en entrée, rapide en sortie : la sortie attaque une forte montée vers le virage 2. Entre le plus large possible, prends l'apex et remets les gaz immédiatement." }
         }
       },
       {
-        "number": "T3",
-        "name": "Turn 3 (Bus Stop)",
-        "type": "chicane",
+        "number": "T2",
+        "name": "Turn 2 (blind crest)",
+        "type": "fast_corner",
         "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "250→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Sharp chicane. Brake hard at 75m, nail both apexes. Tight and technical.",
-            "tipFr": "Chicane vive. Freinez fort à 75m, visez les deux apex. Serré et technique."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "235→75 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. Tight chicane — be precise.",
-            "tipFr": "Freinez à 75m. Chicane serrée — soyez précis."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "210→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Don't cut too aggressively — stay clean.",
-            "tipFr": "Freinez à 100m. Ne coupez pas trop agressivement — restez propre."
-          }
+          "hypercar": { "marker": "lift or light brake over the crest", "speed": "fast → medium-fast", "gear": "mid gear", "pressure": "Light or lift", "tip": "Blind crest: brake very smoothly as the car goes light. Only two wheels over the apex kerb (four = track limits), and no full throttle too early on the kerb or the rear steps out. The Esses (T3-T4) that follow are flat on the right line.", "tipFr": "Crête aveugle : freine très progressivement, la voiture s'allège. Seulement deux roues sur le vibreur d'apex (quatre = limites de piste), et pas de plein gaz trop tôt sur le vibreur sinon l'arrière décroche. Les S (T3-T4) qui suivent passent à fond sur la bonne trajectoire." },
+          "lmp2": { "marker": "lift or light brake over the crest", "speed": "fast → medium-fast", "gear": "mid gear", "pressure": "Light or lift", "tip": "Blind crest: brake very smoothly as the car goes light. Only two wheels over the apex kerb (four = track limits), and no full throttle too early on the kerb or the rear steps out. The Esses (T3-T4) that follow are flat on the right line.", "tipFr": "Crête aveugle : freine très progressivement, la voiture s'allège. Seulement deux roues sur le vibreur d'apex (quatre = limites de piste), et pas de plein gaz trop tôt sur le vibreur sinon l'arrière décroche. Les S (T3-T4) qui suivent passent à fond sur la bonne trajectoire." },
+          "gt3": { "marker": "light brake over the blind crest", "speed": "fast → medium-fast", "gear": "mid gear", "pressure": "Light, very smooth", "tip": "Blind crest: brake very smoothly as the car goes light. Only two wheels over the apex kerb (four = track limits), and no full throttle too early on the kerb or the rear steps out. The Esses (T3-T4) that follow are flat on the right line.", "tipFr": "Crête aveugle : freine très progressivement, la voiture s'allège. Seulement deux roues sur le vibreur d'apex (quatre = limites de piste), et pas de plein gaz trop tôt sur le vibreur sinon l'arrière décroche. Les S (T3-T4) qui suivent passent à fond sur la bonne trajectoire." }
         }
       },
       {
         "number": "T5",
-        "name": "Turn 5 (Esses)",
-        "type": "fast_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "Flat / lift",
-            "speed": "270→230 km/h",
-            "gear": "5th-6th",
-            "pressure": "Very light",
-            "tip": "Famous high-speed esses. Near-flat in a Hypercar. Trust the downforce and find a rhythm.",
-            "tipFr": "Célèbre esse à haute vitesse. Presque à plat en Hypercar. Faites confiance à l'appui et trouvez un rythme."
-          },
-          "lmp2": {
-            "marker": "Light brake",
-            "speed": "255→215 km/h",
-            "gear": "5th",
-            "pressure": "Light",
-            "tip": "Light brake at entry. The esses flow — don't fight the car.",
-            "tipFr": "Léger frein à l'entrée. Les esses s'enchaînent — ne combattez pas la voiture."
-          },
-          "gt3": {
-            "marker": "Brake at entry",
-            "speed": "225→185 km/h",
-            "gear": "4th",
-            "pressure": "Moderate",
-            "tip": "A proper brake at entry is needed. The GT3 can't take the esses flat.",
-            "tipFr": "Un vrai freinage à l'entrée est nécessaire. La GT3 ne peut pas prendre les esses à plat."
-          }
-        }
-      },
-      {
-        "number": "T7",
-        "name": "Turn 7",
-        "type": "slow_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "260→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Downhill into a tight hairpin. Brake at 75m — downhill means extra care with locking.",
-            "tipFr": "Descente dans une épingle serrée. Freinez à 75m — la descente exige une attention particulière pour ne pas bloquer."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "245→60 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. Downhill approach — stay straight on initial braking.",
-            "tipFr": "Freinez à 75m. Approche en descente — restez droit au freinage initial."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "215→50 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Big downhill stop — be very progressive.",
-            "tipFr": "Freinez à 100m. Gros arrêt en descente — soyez très progressif."
-          }
-        }
-      },
-      {
-        "number": "T10A",
-        "name": "Turn 10A",
-        "type": "fast_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "Flat",
-            "speed": "300+ km/h",
-            "gear": "7th",
-            "pressure": "None",
-            "tip": "Blind, flat-out kink under the bridge. Huge commitment required. One of the most challenging moments on the calendar.",
-            "tipFr": "Déviation aveugle à plein régime sous le pont. Engagement immense requis. L'un des moments les plus difficiles du calendrier."
-          },
-          "lmp2": {
-            "marker": "Flat / very slight lift",
-            "speed": "280+ km/h",
-            "gear": "6th-7th",
-            "pressure": "None / minimal",
-            "tip": "Should be flat. The car tracks well — trust it.",
-            "tipFr": "Devrait être à plat. La voiture tient bien la trajectoire — faites-lui confiance."
-          },
-          "gt3": {
-            "marker": "Slight lift",
-            "speed": "255→240 km/h",
-            "gear": "6th",
-            "pressure": "Very light",
-            "tip": "A slight lift may be needed. Build confidence gradually — big consequences here.",
-            "tipFr": "Une légère levée de pied peut être nécessaire. Gagnez en confiance progressivement — grandes conséquences ici."
-          }
-        }
-      },
-      {
-        "number": "T12",
-        "name": "Turn 12",
+        "name": "Turn 5",
         "type": "medium_corner",
         "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "280→100 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Last corner. Brake at 75m, late apex, and power onto the main straight.",
-            "tipFr": "Dernier virage. Freinez à 75m, apex tardif et accélérez sur la ligne droite principale."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "260→90 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Exit is critical for the long straight.",
-            "tipFr": "Freinez à 100m. La sortie est critique pour la longue ligne droite."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "230→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Focus on the exit — straight speed defines your lap time.",
-            "tipFr": "Freinez à 100m. Concentrez-vous sur la sortie — la vitesse en ligne droite définit votre temps au tour."
-          }
-        }
-      }
-    ]
-  },
-  {
-    "id": "cota",
-    "name": "Circuit of the Americas",
-    "location": "Austin, USA",
-    "corners": [
-      {
-        "number": "T1",
-        "name": "Turn 1",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "300→110 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Uphill braking into T1. The gradient helps stop the car. Brake at 75m, late apex at the top.",
-            "tipFr": "Freinage en montée vers T1. Le dénivelé aide à arrêter la voiture. Freinez à 75m, apex tardif au sommet."
-          },
-          "lmp2": {
-            "marker": "100m board",
-            "speed": "280→100 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Uphill helps — use it. Can't see the apex until late.",
-            "tipFr": "Freinez à 100m. La montée aide — profitez-en. Impossible de voir l'apex jusqu'à la fin."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "250→85 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. The hill is your friend — brake hard and climb to the apex.",
-            "tipFr": "Freinez à 100m. La colline est votre alliée — freinez fort et montez vers l'apex."
-          }
-        }
-      },
-      {
-        "number": "T2-T9",
-        "name": "Turn 2-9 (Maggots)",
-        "type": "fast_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "Light brakes / lifts",
-            "speed": "250→180 km/h",
-            "gear": "4th-5th",
-            "pressure": "Very light",
-            "tip": "Long sequence of fast esses flowing downhill. Light brakes at each apex. Find a rhythm — it's a flowing section.",
-            "tipFr": "Longue séquence d'esses rapides en descente. Légers freinages à chaque apex. Trouvez un rythme — c'est une section fluide."
-          },
-          "lmp2": {
-            "marker": "Light brakes",
-            "speed": "235→165 km/h",
-            "gear": "4th",
-            "pressure": "Light",
-            "tip": "Flow through the esses with light braking. Smooth and rhythmical.",
-            "tipFr": "Enchaînez les esses avec de légers freinages. Fluide et rythmé."
-          },
-          "gt3": {
-            "marker": "Brake at each apex",
-            "speed": "210→150 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Moderate",
-            "tip": "Need a brake at each major direction change. Don't rush — this section catches out many drivers.",
-            "tipFr": "Freinage nécessaire à chaque grand changement de direction. Ne forcez pas — cette section piège beaucoup de pilotes."
-          }
+          "hypercar": { "marker": "≈ entry kerb, slightly later than GT3", "speed": "fast → medium", "gear": "mid gear", "pressure": "Progressive — don't stamp (the car bottoms out)", "tip": "Big lap-time corner. Brake smoothly: stamping the pedal makes the car bottom out. A touch of inside kerb is fine without unsettling the car, then full throttle early using all of the exit kerb. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Virage où l'on gagne ou perd beaucoup. Freine en douceur : écraser la pédale fait talonner la voiture. Un peu de vibreur intérieur, sans déstabiliser, puis plein gaz tôt en utilisant tout le vibreur de sortie. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "lmp2": { "marker": "≈ entry kerb, slightly later than GT3", "speed": "fast → medium", "gear": "mid gear", "pressure": "Progressive — don't stamp (the car bottoms out)", "tip": "Big lap-time corner. Brake smoothly: stamping the pedal makes the car bottom out. A touch of inside kerb is fine without unsettling the car, then full throttle early using all of the exit kerb. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Virage où l'on gagne ou perd beaucoup. Freine en douceur : écraser la pédale fait talonner la voiture. Un peu de vibreur intérieur, sans déstabiliser, puis plein gaz tôt en utilisant tout le vibreur de sortie. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "gt3": { "marker": "as the car reaches the entry kerb (bottom of the Esses)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Progressive — don't stamp (the car bottoms out)", "tip": "Big lap-time corner. Brake smoothly: stamping the pedal makes the car bottom out. A touch of inside kerb is fine without unsettling the car, then full throttle early using all of the exit kerb.", "tipFr": "Virage où l'on gagne ou perd beaucoup. Freine en douceur : écraser la pédale fait talonner la voiture. Un peu de vibreur intérieur, sans déstabiliser, puis plein gaz tôt en utilisant tout le vibreur de sortie." }
         }
       },
       {
         "number": "T6",
         "name": "Turn 6",
-        "type": "slow_corner",
+        "type": "medium_corner",
         "braking": {
-          "hypercar": {
-            "marker": "50m board",
-            "speed": "220→70 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Tight left after a short straight. Quick brake at 50m, heavy trail brake to rotate.",
-            "tipFr": "Gauche serré après une courte ligne droite. Freinage rapide à 50m, lestage lourd pour faire pivoter."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "205→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. Tight hairpin — brake hard and turn in late.",
-            "tipFr": "Freinez à 75m. Épingle serrée — freinez fort et tournez tard."
-          },
-          "gt3": {
-            "marker": "75m board",
-            "speed": "185→55 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. Slow the car right down for this tight left.",
-            "tipFr": "Freinez à 75m. Ralentissez considérablement pour ce gauche serré."
-          }
+          "hypercar": { "marker": "≈ just after the 200 board (later than GT3)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Medium, trail", "tip": "Cambered corner: you can carry much more speed than it looks — turn in early and lean on the camber. Clip a little inside kerb, but don't run wide over the exit kerb: it unsettles the car for the Turn 7 hairpin.", "tipFr": "Virage relevé : on peut garder bien plus de vitesse qu'il n'y paraît — braque tôt et appuie-toi sur le devers. Un peu de vibreur intérieur, mais n'élargis pas sur le vibreur de sortie : il déstabilise la voiture pour l'épingle du 7." },
+          "lmp2": { "marker": "≈ just after the 200 board (later than GT3)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Medium, trail", "tip": "Cambered corner: you can carry much more speed than it looks — turn in early and lean on the camber. Clip a little inside kerb, but don't run wide over the exit kerb: it unsettles the car for the Turn 7 hairpin.", "tipFr": "Virage relevé : on peut garder bien plus de vitesse qu'il n'y paraît — braque tôt et appuie-toi sur le devers. Un peu de vibreur intérieur, mais n'élargis pas sur le vibreur de sortie : il déstabilise la voiture pour l'épingle du 7." },
+          "gt3": { "marker": "200 board / green board on the left", "speed": "fast → medium", "gear": "mid gear", "pressure": "Medium, trail", "tip": "Cambered corner: you can carry much more speed than it looks — turn in early and lean on the camber. Clip a little inside kerb, but don't run wide over the exit kerb: it unsettles the car for the Turn 7 hairpin.", "tipFr": "Virage relevé : on peut garder bien plus de vitesse qu'il n'y paraît — braque tôt et appuie-toi sur le devers. Un peu de vibreur intérieur, mais n'élargis pas sur le vibreur de sortie : il déstabilise la voiture pour l'épingle du 7." }
         }
       },
       {
-        "number": "T11",
-        "name": "Turn 11",
+        "number": "T7",
+        "name": "Turn 7 (hairpin)",
         "type": "slow_corner",
         "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "280→65 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Hairpin at the end of the back straight. Brake at 75m, deep trail brake. Classic overtaking spot.",
-            "tipFr": "Épingle en fin de ligne droite du fond. Freinez à 75m, lestage profond. Point de dépassement classique."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "260→60 km/h",
-            "gear": "2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. Big stop into a tight hairpin. Perfect your trail braking here.",
-            "tipFr": "Freinez à 75m. Gros arrêt dans une épingle serrée. Perfectionnez votre lestage ici."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "230→50 km/h",
-            "gear": "1st-2nd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Huge braking zone into the hairpin. Late apex for the exit.",
-            "tipFr": "Freinez à 100m. Énorme zone de freinage dans l'épingle. Apex tardif pour la sortie."
-          }
+          "hypercar": { "marker": "short, firm brake after Turn 6", "speed": "medium → slow", "gear": "low gear", "pressure": "Firm but controlled", "tip": "Exit onto the longest straight: sacrifice the entry. Don't stamp the brake — hitting the ABS makes you run wide. Nail the apex (the kerb hooks the car round), then full throttle. Its line depends on how you took Turn 6. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Sortie vers la plus longue ligne droite : sacrifie l'entrée. N'écrase pas le frein — déclencher l'ABS te fait élargir. Prends bien l'apex (le vibreur fait pivoter la voiture), puis plein gaz. Sa trajectoire dépend de ta sortie du 6. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "lmp2": { "marker": "short, firm brake after Turn 6", "speed": "medium → slow", "gear": "low gear", "pressure": "Firm but controlled", "tip": "Exit onto the longest straight: sacrifice the entry. Don't stamp the brake — hitting the ABS makes you run wide. Nail the apex (the kerb hooks the car round), then full throttle. Its line depends on how you took Turn 6. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Sortie vers la plus longue ligne droite : sacrifie l'entrée. N'écrase pas le frein — déclencher l'ABS te fait élargir. Prends bien l'apex (le vibreur fait pivoter la voiture), puis plein gaz. Sa trajectoire dépend de ta sortie du 6. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "gt3": { "marker": "short, firm brake after Turn 6", "speed": "medium → slow", "gear": "low gear", "pressure": "Firm but controlled — don't trigger the ABS", "tip": "Exit onto the longest straight: sacrifice the entry. Don't stamp the brake — hitting the ABS makes you run wide. Nail the apex (the kerb hooks the car round), then full throttle. Its line depends on how you took Turn 6.", "tipFr": "Sortie vers la plus longue ligne droite : sacrifie l'entrée. N'écrase pas le frein — déclencher l'ABS te fait élargir. Prends bien l'apex (le vibreur fait pivoter la voiture), puis plein gaz. Sa trajectoire dépend de ta sortie du 6." }
+        }
+      },
+      {
+        "number": "T10A",
+        "name": "Chicane (Turns 10A-10B)",
+        "type": "chicane",
+        "braking": {
+          "hypercar": { "marker": "≈ between the 200 and 100 boards (later than GT3)", "speed": "very fast → slow", "gear": "low gear", "pressure": "Very heavy, trail to the first apex", "tip": "Heaviest braking zone and main overtaking spot, downhill after the back straight. Brake hard in a straight line, trail into the first apex and cut the kerb. Compromise 10A to get on the power early through 10B, using all the kerb and track on exit. No ABS: modulate the pedal to avoid a lock-up. Downhill braking: easy to lock the fronts.", "tipFr": "Plus gros freinage du tour et principal point de dépassement, en descente après la ligne droite opposée. Freine fort en ligne droite, dégressif jusqu'au premier apex en coupant le vibreur. Sacrifie le 10A pour remettre les gaz tôt dans le 10B, en utilisant tout le vibreur et la piste en sortie. Pas d'ABS : dose la pédale pour ne pas bloquer. Freinage en descente : blocage des roues avant facile." },
+          "lmp2": { "marker": "≈ between the 200 and 100 boards (later than GT3)", "speed": "very fast → slow", "gear": "low gear", "pressure": "Very heavy, trail to the first apex", "tip": "Heaviest braking zone and main overtaking spot, downhill after the back straight. Brake hard in a straight line, trail into the first apex and cut the kerb. Compromise 10A to get on the power early through 10B, using all the kerb and track on exit. No ABS: modulate the pedal to avoid a lock-up. Downhill braking: easy to lock the fronts.", "tipFr": "Plus gros freinage du tour et principal point de dépassement, en descente après la ligne droite opposée. Freine fort en ligne droite, dégressif jusqu'au premier apex en coupant le vibreur. Sacrifie le 10A pour remettre les gaz tôt dans le 10B, en utilisant tout le vibreur et la piste en sortie. Pas d'ABS : dose la pédale pour ne pas bloquer. Freinage en descente : blocage des roues avant facile." },
+          "gt3": { "marker": "just after the 200 board on the right (strong-braking cars: up to just before the 100)", "speed": "very fast → slow", "gear": "low gear", "pressure": "Very heavy, trail to the first apex", "tip": "Heaviest braking zone and main overtaking spot, downhill after the back straight. Brake hard in a straight line, trail into the first apex and cut the kerb. Compromise 10A to get on the power early through 10B, using all the kerb and track on exit.", "tipFr": "Plus gros freinage du tour et principal point de dépassement, en descente après la ligne droite opposée. Freine fort en ligne droite, dégressif jusqu'au premier apex en coupant le vibreur. Sacrifie le 10A pour remettre les gaz tôt dans le 10B, en utilisant tout le vibreur et la piste en sortie." }
         }
       },
       {
         "number": "T12",
-        "name": "Turn 12",
-        "type": "medium_corner",
+        "name": "Turns 11-12 (bridge & final corner)",
+        "type": "fast_corner",
         "braking": {
-          "hypercar": {
-            "marker": "50m board",
-            "speed": "240→120 km/h",
-            "gear": "4th",
-            "pressure": "Heavy",
-            "tip": "Fast left after the hairpin. Quick brake and commit. Leads into the fast sector.",
-            "tipFr": "Gauche rapide après l'épingle. Freinage rapide et engagement. Mène dans le secteur rapide."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "225→110 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Get it right here to flow through the following section.",
-            "tipFr": "Freinez à 75m. Soyez juste ici pour fluidifier la section suivante."
-          },
-          "gt3": {
-            "marker": "75m board",
-            "speed": "200→95 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Carry as much speed as you can without running wide.",
-            "tipFr": "Freinez à 75m. Portez autant de vitesse que possible sans partir large."
-          }
-        }
-      },
-      {
-        "number": "T15",
-        "name": "Turn 15",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "50m board",
-            "speed": "275→130 km/h",
-            "gear": "4th",
-            "pressure": "Heavy",
-            "tip": "Right-hander at the end of a quick section. Brake at 50m, late apex.",
-            "tipFr": "Droite en fin de section rapide. Freinez à 50m, apex tardif."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "255→120 km/h",
-            "gear": "3rd-4th",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Get the car slowed and turned in together.",
-            "tipFr": "Freinez à 75m. Ralentissez la voiture et tournez simultanément."
-          },
-          "gt3": {
-            "marker": "75m board",
-            "speed": "230→100 km/h",
-            "gear": "3rd",
-            "pressure": "Heavy",
-            "tip": "Brake at 75m. Don't overdrive — the track gets narrow here.",
-            "tipFr": "Freinez à 75m. Ne sur-conduisez pas — la piste se rétrécit ici."
-          }
-        }
-      },
-      {
-        "number": "T19-T20",
-        "name": "Turn 19-20",
-        "type": "medium_corner",
-        "braking": {
-          "hypercar": {
-            "marker": "75m board",
-            "speed": "290→100 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Penultimate corners. Brake at 75m, flow through left-right. Exit speed onto the main straight is key.",
-            "tipFr": "Avant-derniers virages. Freinez à 75m, enchaînez gauche-droite. La vitesse de sortie sur la ligne droite principale est clé."
-          },
-          "lmp2": {
-            "marker": "75m board",
-            "speed": "270→90 km/h",
-            "gear": "3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 75m. Two quick corners before the straight — nail the exit.",
-            "tipFr": "Freinez à 75m. Deux virages rapides avant la ligne droite — soignez la sortie."
-          },
-          "gt3": {
-            "marker": "100m board",
-            "speed": "240→80 km/h",
-            "gear": "2nd-3rd",
-            "pressure": "Very heavy",
-            "tip": "Brake at 100m. Focus on carrying the best exit speed you can onto the long straight.",
-            "tipFr": "Freinez à 100m. Concentrez-vous sur la meilleure vitesse de sortie possible sur la longue ligne droite."
-          }
+          "hypercar": { "marker": "no braking", "speed": "flat", "gear": "hold", "pressure": "None", "tip": "After the bridge the track drops away and the car goes light over the blind crest: keep the steering straight and be ready for a snap. Let it run naturally wide, not too wide — the final corner is flat on the right line.", "tipFr": "Après le pont la piste plonge et la voiture s'allège sur la crête aveugle : garde le volant droit et sois prêt à rattraper. Laisse-la s'élargir naturellement, sans excès — le dernier virage passe à fond sur la bonne trajectoire." },
+          "lmp2": { "marker": "no braking", "speed": "flat", "gear": "hold", "pressure": "None", "tip": "After the bridge the track drops away and the car goes light over the blind crest: keep the steering straight and be ready for a snap. Let it run naturally wide, not too wide — the final corner is flat on the right line.", "tipFr": "Après le pont la piste plonge et la voiture s'allège sur la crête aveugle : garde le volant droit et sois prêt à rattraper. Laisse-la s'élargir naturellement, sans excès — le dernier virage passe à fond sur la bonne trajectoire." },
+          "gt3": { "marker": "no braking", "speed": "flat", "gear": "hold", "pressure": "None", "tip": "After the bridge the track drops away and the car goes light over the blind crest: keep the steering straight and be ready for a snap. Let it run naturally wide, not too wide — the final corner is flat on the right line.", "tipFr": "Après le pont la piste plonge et la voiture s'allège sur la crête aveugle : garde le volant droit et sois prêt à rattraper. Laisse-la s'élargir naturellement, sans excès — le dernier virage passe à fond sur la bonne trajectoire." }
         }
       }
     ]
@@ -2681,7 +1201,7 @@ export const BRAKING_GUIDE: BrakingTrack[] = [
         }
       },
       {
-        "number": "Chicane",
+        "number": "T8-T11",
         "name": "Le Mans Chicane (Bus Stop)",
         "type": "chicane",
         "braking": {
@@ -2766,6 +1286,107 @@ export const BRAKING_GUIDE: BrakingTrack[] = [
           "hypercar": { "marker": "≈90m", "speed": "≈240→75 km/h", "gear": "2nd", "pressure": "Heavy, trail", "tip": "Last corner onto the main straight: late apex, sacrifice entry for the earliest possible full throttle.", "tipFr": "Dernier virage avant la ligne droite : apex tardif, sacrifie l'entrée pour remettre plein gaz le plus tôt possible." },
           "lmp2": { "marker": "≈85m", "speed": "≈230→70 km/h", "gear": "2nd", "pressure": "Heavy, trail", "tip": "Rotate on the brakes, straighten the exit.", "tipFr": "Pivote au freinage, redresse la sortie." },
           "gt3": { "marker": "≈100m", "speed": "≈210→65 km/h", "gear": "2nd", "pressure": "Heavy", "tip": "The straight is long: exit speed beats entry heroics.", "tipFr": "La ligne droite est longue : la vitesse de sortie vaut mieux que l'héroïsme en entrée." }
+        }
+      }
+    ]
+  },
+  // Long Beach (US Track Pack 2, 22/09/2026) : pas couvert par ApexPoints. Même
+  // démarche : repères GT3 tirés du guide vidéo commenté (Unleashed Drivers),
+  // numérotation officielle IMSA/IndyCar ; protos = technique GT3, repère à ajuster.
+  {
+    "id": "long-beach",
+    "name": "Grand Prix of Long Beach",
+    "location": "Long Beach, USA",
+    "source": "in-game corner notes (approximate — pending ApexPoints coverage)",
+    "corners": [
+      {
+        "number": "T1",
+        "name": "Turn 1",
+        "type": "heavy_braking",
+        "braking": {
+          "hypercar": { "marker": "≈400 board (adjust from the GT3 reference)", "speed": "very fast → medium", "gear": "mid gear", "pressure": "Heavy, straight line", "tip": "Main overtaking spot at the end of Shoreline Drive. Keep the wheels inside the red line on the approach (track limits here are the red lines, not the white ones). Cut over the bottom of the inside kerb, not its raised part. Early throttle, use all the width up to the wall. GT3 can hammer the brakes here; a prototype locks up far more easily. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Principal point de dépassement, au bout de Shoreline Drive. Garde les roues en deçà de la ligne rouge à l'approche (ici les limites de piste sont les lignes rouges, pas les blanches). Coupe le bas du vibreur intérieur, pas sa partie surélevée. Gaz tôt, utilise toute la largeur jusqu'au mur. En GT3 on peut écraser le frein ; un proto bloque bien plus facilement. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "lmp2": { "marker": "≈400 board (adjust from the GT3 reference)", "speed": "very fast → medium", "gear": "mid gear", "pressure": "Heavy, straight line", "tip": "Main overtaking spot at the end of Shoreline Drive. Keep the wheels inside the red line on the approach (track limits here are the red lines, not the white ones). Cut over the bottom of the inside kerb, not its raised part. Early throttle, use all the width up to the wall. GT3 can hammer the brakes here; a prototype locks up far more easily. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Principal point de dépassement, au bout de Shoreline Drive. Garde les roues en deçà de la ligne rouge à l'approche (ici les limites de piste sont les lignes rouges, pas les blanches). Coupe le bas du vibreur intérieur, pas sa partie surélevée. Gaz tôt, utilise toute la largeur jusqu'au mur. En GT3 on peut écraser le frein ; un proto bloque bien plus facilement. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "gt3": { "marker": "400 board (at or just before)", "speed": "very fast → medium", "gear": "mid gear", "pressure": "Heavy, straight line", "tip": "Main overtaking spot at the end of Shoreline Drive. Keep the wheels inside the red line on the approach (track limits here are the red lines, not the white ones). Cut over the bottom of the inside kerb, not its raised part. Early throttle, use all the width up to the wall.", "tipFr": "Principal point de dépassement, au bout de Shoreline Drive. Garde les roues en deçà de la ligne rouge à l'approche (ici les limites de piste sont les lignes rouges, pas les blanches). Coupe le bas du vibreur intérieur, pas sa partie surélevée. Gaz tôt, utilise toute la largeur jusqu'au mur." }
+        }
+      },
+      {
+        "number": "T2-T3",
+        "name": "Fountain (Turns 2-3)",
+        "type": "slow_corner",
+        "braking": {
+          "hypercar": { "marker": "≈ same point (adjust from the GT3 reference)", "speed": "medium → slow", "gear": "low gear", "pressure": "Hard, straight line", "tip": "Fountain section. Stay close to the wall on entry, then tuck in really tight around the garden: apex midway round it without climbing the garden kerb. Early throttle, run the exit right up to the wall. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Section de la fontaine. Reste près du mur en entrée, puis serre au maximum autour du jardin : apex à mi-parcours, sans monter sur la bordure du jardin. Gaz tôt, sortie jusqu'au mur. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "lmp2": { "marker": "≈ same point (adjust from the GT3 reference)", "speed": "medium → slow", "gear": "low gear", "pressure": "Hard, straight line", "tip": "Fountain section. Stay close to the wall on entry, then tuck in really tight around the garden: apex midway round it without climbing the garden kerb. Early throttle, run the exit right up to the wall. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Section de la fontaine. Reste près du mur en entrée, puis serre au maximum autour du jardin : apex à mi-parcours, sans monter sur la bordure du jardin. Gaz tôt, sortie jusqu'au mur. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "gt3": { "marker": "halfway across the track after leaving the wall", "speed": "medium → slow", "gear": "low gear", "pressure": "Hard, straight line", "tip": "Fountain section. Stay close to the wall on entry, then tuck in really tight around the garden: apex midway round it without climbing the garden kerb. Early throttle, run the exit right up to the wall.", "tipFr": "Section de la fontaine. Reste près du mur en entrée, puis serre au maximum autour du jardin : apex à mi-parcours, sans monter sur la bordure du jardin. Gaz tôt, sortie jusqu'au mur." }
+        }
+      },
+      {
+        "number": "T4",
+        "name": "Turn 4",
+        "type": "medium_corner",
+        "braking": {
+          "hypercar": { "marker": "≈100 board (adjust from the GT3 reference)", "speed": "medium → medium-slow", "gear": "mid gear", "pressure": "Short — just scrub some speed", "tip": "Don't brake too hard for too long. Only touch the bottom of the raised inside kerb (mounting it throws you into the wall) and don't open the throttle too early. Stay on the outside on exit to set up Turn 5.", "tipFr": "Ne freine ni trop fort ni trop longtemps. Touche seulement le bas du vibreur intérieur surélevé (monter dessus t'envoie au mur) et ne remets pas les gaz trop tôt. Reste à l'extérieur en sortie pour préparer le virage 5." },
+          "lmp2": { "marker": "≈100 board (adjust from the GT3 reference)", "speed": "medium → medium-slow", "gear": "mid gear", "pressure": "Short — just scrub some speed", "tip": "Don't brake too hard for too long. Only touch the bottom of the raised inside kerb (mounting it throws you into the wall) and don't open the throttle too early. Stay on the outside on exit to set up Turn 5.", "tipFr": "Ne freine ni trop fort ni trop longtemps. Touche seulement le bas du vibreur intérieur surélevé (monter dessus t'envoie au mur) et ne remets pas les gaz trop tôt. Reste à l'extérieur en sortie pour préparer le virage 5." },
+          "gt3": { "marker": "just before the 100 board", "speed": "medium → medium-slow", "gear": "mid gear", "pressure": "Short — just scrub some speed", "tip": "Don't brake too hard for too long. Only touch the bottom of the raised inside kerb (mounting it throws you into the wall) and don't open the throttle too early. Stay on the outside on exit to set up Turn 5.", "tipFr": "Ne freine ni trop fort ni trop longtemps. Touche seulement le bas du vibreur intérieur surélevé (monter dessus t'envoie au mur) et ne remets pas les gaz trop tôt. Reste à l'extérieur en sortie pour préparer le virage 5." }
+        }
+      },
+      {
+        "number": "T5",
+        "name": "Turn 5 (uphill, crest)",
+        "type": "medium_corner",
+        "braking": {
+          "hypercar": { "marker": "≈ gap in the fence (adjust from the GT3 reference)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Hard initially", "tip": "The braking zone climbs to a crest at the apex and the car goes light as the road dips after it. Cut across most of the apex kerb, then be patient on the throttle over the dip. On exit, aim for where the wall steps back. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "La zone de freinage monte jusqu'à une crête à l'apex, et la voiture s'allège quand la route replonge. Coupe l'essentiel du vibreur d'apex, puis patience à l'accélération dans le creux. En sortie, vise l'endroit où le mur recule. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "lmp2": { "marker": "≈ gap in the fence (adjust from the GT3 reference)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Hard initially", "tip": "The braking zone climbs to a crest at the apex and the car goes light as the road dips after it. Cut across most of the apex kerb, then be patient on the throttle over the dip. On exit, aim for where the wall steps back. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "La zone de freinage monte jusqu'à une crête à l'apex, et la voiture s'allège quand la route replonge. Coupe l'essentiel du vibreur d'apex, puis patience à l'accélération dans le creux. En sortie, vise l'endroit où le mur recule. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "gt3": { "marker": "alongside the gap in the fence", "speed": "fast → medium", "gear": "mid gear", "pressure": "Hard initially", "tip": "The braking zone climbs to a crest at the apex and the car goes light as the road dips after it. Cut across most of the apex kerb, then be patient on the throttle over the dip. On exit, aim for where the wall steps back.", "tipFr": "La zone de freinage monte jusqu'à une crête à l'apex, et la voiture s'allège quand la route replonge. Coupe l'essentiel du vibreur d'apex, puis patience à l'accélération dans le creux. En sortie, vise l'endroit où le mur recule." }
+        }
+      },
+      {
+        "number": "T6",
+        "name": "Turn 6",
+        "type": "medium_corner",
+        "braking": {
+          "hypercar": { "marker": "≈300 board (adjust from the GT3 reference)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Heavy, trail", "tip": "Downhill, off-camber and the trickiest corner: the wall on entry kinks in then straightens — line up with where it straightens. Very easy to clip the inside wall: get close, touching only the flat kerb. Throttle at the apex, a little on-throttle rotation, run out to the outside wall. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "En descente, en dévers, et le plus piégeux : le mur d'entrée rentre puis se redresse — aligne-toi sur l'endroit où il se redresse. Très facile de toucher le mur intérieur : approche-toi en ne touchant que le vibreur plat. Gaz à l'apex, un peu de rotation à l'accélération, sortie jusqu'au mur extérieur. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "lmp2": { "marker": "≈300 board (adjust from the GT3 reference)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Heavy, trail", "tip": "Downhill, off-camber and the trickiest corner: the wall on entry kinks in then straightens — line up with where it straightens. Very easy to clip the inside wall: get close, touching only the flat kerb. Throttle at the apex, a little on-throttle rotation, run out to the outside wall. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "En descente, en dévers, et le plus piégeux : le mur d'entrée rentre puis se redresse — aligne-toi sur l'endroit où il se redresse. Très facile de toucher le mur intérieur : approche-toi en ne touchant que le vibreur plat. Gaz à l'apex, un peu de rotation à l'accélération, sortie jusqu'au mur extérieur. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "gt3": { "marker": "just after the 300 board", "speed": "fast → medium", "gear": "mid gear", "pressure": "Heavy, trail", "tip": "Downhill, off-camber and the trickiest corner: the wall on entry kinks in then straightens — line up with where it straightens. Very easy to clip the inside wall: get close, touching only the flat kerb. Throttle at the apex, a little on-throttle rotation, run out to the outside wall.", "tipFr": "En descente, en dévers, et le plus piégeux : le mur d'entrée rentre puis se redresse — aligne-toi sur l'endroit où il se redresse. Très facile de toucher le mur intérieur : approche-toi en ne touchant que le vibreur plat. Gaz à l'apex, un peu de rotation à l'accélération, sortie jusqu'au mur extérieur." }
+        }
+      },
+      {
+        "number": "T8",
+        "name": "Turn 8",
+        "type": "medium_corner",
+        "braking": {
+          "hypercar": { "marker": "≈300 board (adjust from the GT3 reference)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Heavy, trail", "tip": "Onto the back straight. The apex is hard to judge in a left-hand-drive car: get as close to the inside wall as you can on the flat kerb without touching it. Throttle at or just after the apex, run out to the exit wall.", "tipFr": "Vers la ligne droite opposée. L'apex est difficile à juger avec une conduite à gauche : approche-toi au maximum du mur intérieur sur le vibreur plat, sans le toucher. Gaz à l'apex ou juste après, sortie jusqu'au mur." },
+          "lmp2": { "marker": "≈300 board (adjust from the GT3 reference)", "speed": "fast → medium", "gear": "mid gear", "pressure": "Heavy, trail", "tip": "Onto the back straight. The apex is hard to judge in a left-hand-drive car: get as close to the inside wall as you can on the flat kerb without touching it. Throttle at or just after the apex, run out to the exit wall.", "tipFr": "Vers la ligne droite opposée. L'apex est difficile à juger avec une conduite à gauche : approche-toi au maximum du mur intérieur sur le vibreur plat, sans le toucher. Gaz à l'apex ou juste après, sortie jusqu'au mur." },
+          "gt3": { "marker": "just after the 300 board, right next to the wall", "speed": "fast → medium", "gear": "mid gear", "pressure": "Heavy, trail", "tip": "Onto the back straight. The apex is hard to judge in a left-hand-drive car: get as close to the inside wall as you can on the flat kerb without touching it. Throttle at or just after the apex, run out to the exit wall.", "tipFr": "Vers la ligne droite opposée. L'apex est difficile à juger avec une conduite à gauche : approche-toi au maximum du mur intérieur sur le vibreur plat, sans le toucher. Gaz à l'apex ou juste après, sortie jusqu'au mur." }
+        }
+      },
+      {
+        "number": "T9",
+        "name": "Turn 9",
+        "type": "medium_corner",
+        "braking": {
+          "hypercar": { "marker": "≈300 board (adjust from the GT3 reference)", "speed": "very fast → medium", "gear": "mid gear", "pressure": "Heavy, trail", "tip": "90° right-hander at the end of the back straight, the second overtaking spot. Cut all the inside kerb while keeping the wheels inside the red line. Understeers on worn tyres. Don't drift all the way to the far wall on exit — come back across for Turn 10. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Droite à 90° au bout de la ligne droite opposée, second point de dépassement. Coupe tout le vibreur intérieur en gardant les roues en deçà de la ligne rouge. Sous-vireur en pneus usés. Ne va pas jusqu'au mur opposé en sortie — reviens pour le virage 10. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "lmp2": { "marker": "≈300 board (adjust from the GT3 reference)", "speed": "very fast → medium", "gear": "mid gear", "pressure": "Heavy, trail", "tip": "90° right-hander at the end of the back straight, the second overtaking spot. Cut all the inside kerb while keeping the wheels inside the red line. Understeers on worn tyres. Don't drift all the way to the far wall on exit — come back across for Turn 10. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Droite à 90° au bout de la ligne droite opposée, second point de dépassement. Coupe tout le vibreur intérieur en gardant les roues en deçà de la ligne rouge. Sous-vireur en pneus usés. Ne va pas jusqu'au mur opposé en sortie — reviens pour le virage 10. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "gt3": { "marker": "just before the 300 board, from the left", "speed": "very fast → medium", "gear": "mid gear", "pressure": "Heavy, trail", "tip": "90° right-hander at the end of the back straight, the second overtaking spot. Cut all the inside kerb while keeping the wheels inside the red line. Understeers on worn tyres. Don't drift all the way to the far wall on exit — come back across for Turn 10.", "tipFr": "Droite à 90° au bout de la ligne droite opposée, second point de dépassement. Coupe tout le vibreur intérieur en gardant les roues en deçà de la ligne rouge. Sous-vireur en pneus usés. Ne va pas jusqu'au mur opposé en sortie — reviens pour le virage 10." }
+        }
+      },
+      {
+        "number": "T10",
+        "name": "Turn 10 (Indy Left)",
+        "type": "medium_corner",
+        "braking": {
+          "hypercar": { "marker": "≈ at the bridge (adjust from the GT3 reference)", "speed": "medium → medium-slow", "gear": "mid gear", "pressure": "Braking while turning in", "tip": "'Indy Left' (135°): start braking mid-track while already committing to the turn, be patient and let the car grip up, cut the inside kerb (wheels inside the red line). Patient on throttle — it feeds straight into the hairpin braking.", "tipFr": "« Indy Left » (135°) : commence à freiner au milieu de la piste en engageant déjà le virage, patiente le temps que la voiture accroche, coupe le vibreur intérieur (roues en deçà de la ligne rouge). Patience à l'accélération : on enchaîne directement sur le freinage de l'épingle." },
+          "lmp2": { "marker": "≈ at the bridge (adjust from the GT3 reference)", "speed": "medium → medium-slow", "gear": "mid gear", "pressure": "Braking while turning in", "tip": "'Indy Left' (135°): start braking mid-track while already committing to the turn, be patient and let the car grip up, cut the inside kerb (wheels inside the red line). Patient on throttle — it feeds straight into the hairpin braking.", "tipFr": "« Indy Left » (135°) : commence à freiner au milieu de la piste en engageant déjà le virage, patiente le temps que la voiture accroche, coupe le vibreur intérieur (roues en deçà de la ligne rouge). Patience à l'accélération : on enchaîne directement sur le freinage de l'épingle." },
+          "gt3": { "marker": "as you reach the bridge (top or side)", "speed": "medium → medium-slow", "gear": "mid gear", "pressure": "Braking while turning in", "tip": "'Indy Left' (135°): start braking mid-track while already committing to the turn, be patient and let the car grip up, cut the inside kerb (wheels inside the red line). Patient on throttle — it feeds straight into the hairpin braking.", "tipFr": "« Indy Left » (135°) : commence à freiner au milieu de la piste en engageant déjà le virage, patiente le temps que la voiture accroche, coupe le vibreur intérieur (roues en deçà de la ligne rouge). Patience à l'accélération : on enchaîne directement sur le freinage de l'épingle." }
+        }
+      },
+      {
+        "number": "T11",
+        "name": "Turn 11 (hairpin)",
+        "type": "hairpin",
+        "braking": {
+          "hypercar": { "marker": "≈ same point (adjust from the GT3 reference)", "speed": "medium → very slow", "gear": "lowest gear", "pressure": "Very heavy, straight line", "tip": "Slowest corner of the lap and it leads onto the longest straight — the exit is everything. Don't aim straight at the apex: open the entry, then full lock. Apex tight to the inside wall (just visible); any wider and you hit the exit wall. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Virage le plus lent du tour, qui mène à la plus longue ligne droite — tout se joue en sortie. Ne vise pas directement l'apex : ouvre l'entrée, puis braquage maximal. Apex serré contre le mur intérieur (tout juste visible) ; plus large et tu touches le mur de sortie. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "lmp2": { "marker": "≈ same point (adjust from the GT3 reference)", "speed": "medium → very slow", "gear": "lowest gear", "pressure": "Very heavy, straight line", "tip": "Slowest corner of the lap and it leads onto the longest straight — the exit is everything. Don't aim straight at the apex: open the entry, then full lock. Apex tight to the inside wall (just visible); any wider and you hit the exit wall. No ABS: modulate the pedal to avoid a lock-up.", "tipFr": "Virage le plus lent du tour, qui mène à la plus longue ligne droite — tout se joue en sortie. Ne vise pas directement l'apex : ouvre l'entrée, puis braquage maximal. Apex serré contre le mur intérieur (tout juste visible) ; plus large et tu touches le mur de sortie. Pas d'ABS : dose la pédale pour ne pas bloquer." },
+          "gt3": { "marker": "in a straight line, just after the wall juts out", "speed": "medium → very slow", "gear": "lowest gear", "pressure": "Very heavy, straight line", "tip": "Slowest corner of the lap and it leads onto the longest straight — the exit is everything. Don't aim straight at the apex: open the entry, then full lock. Apex tight to the inside wall (just visible); any wider and you hit the exit wall.", "tipFr": "Virage le plus lent du tour, qui mène à la plus longue ligne droite — tout se joue en sortie. Ne vise pas directement l'apex : ouvre l'entrée, puis braquage maximal. Apex serré contre le mur intérieur (tout juste visible) ; plus large et tu touches le mur de sortie." }
         }
       }
     ]

@@ -9,11 +9,11 @@
  *
  *  1. **Parse** les numéros de virage (`T2-T9`, `T10A`, `T20-T26`) — les plages
  *     deviennent des fenêtres composites (§4.2).
- *  2. **Corrige** les anomalies vérifiées dans les données via une table par
- *     circuit **embarquée** (§4.2, §15) : chevauchement à COTA (`T6` replié dans
- *     `T2-T9`), fichier non trié à Sebring (`T17` avant `T16`). La table sert
- *     aussi de **validation** : `validateCorrections()` échoue si elle diverge
- *     des données.
+ *  2. **Corrige** les anomalies de forme vérifiées dans les données via une
+ *     table par circuit **embarquée** (§4.2, §15) : ordre non trié, virage replié
+ *     dans une plage composite. La table sert aussi de **validation** :
+ *     `validateCorrections()` échoue si elle diverge des données. (Vide depuis
+ *     le retrait des fiches COTA/Sebring au tracé erroné, 2026-09-25.)
  *  3. **Enrichit** chaque virage : marqueur (m si parseable, mais **jamais** une
  *     coordonnée piste absolue — les panneaux n'en ont pas, §3.3/§3.4.3), plage
  *     de vitesse entrée→apex, rapport, trail détecté, tip FR/EN.
@@ -118,18 +118,10 @@ export interface CircuitCorrection {
  * garde la table synchrone.
  */
 export const CIRCUIT_CORRECTIONS: Record<string, CircuitCorrection> = {
-  cota: {
-    nested: { T6: "T2-T9" },
-    note:
-      "Chevauchement : `T6` est listé après la plage `T2-T9` (Esses) qui l'englobe. " +
-      "Replié en détail de la fenêtre composite, pas une fenêtre ordinale distincte.",
-  },
-  sebring: {
-    order: ["T1", "T3", "T7", "T13-T15", "T16", "T17"],
-    note:
-      "Fichier non trié : `T17` (Hairpin) listé avant `T16` (Ford Chicane). " +
-      "Ordre physique rétabli (T16 avant T17).",
-  },
+  // Vide depuis le 2026-09-25 : les deux seules entrées (COTA, Sebring)
+  // rattrapaient des fiches dont le tracé s'est révélé faux — fiches retirées du
+  // guide (règle : aucune donnée à tracé erroné). Le mécanisme reste pour une
+  // anomalie de forme (ordre, chevauchement) sur une fiche au tracé juste.
 };
 
 // ── Virage macro enrichi + résolution par combo ──────────────────────────────

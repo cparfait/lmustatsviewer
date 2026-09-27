@@ -21,16 +21,19 @@ const TRACK_KEYWORDS: Record<string, string[]> = {
   spa: ["spa", "francorchamps"],
   portimao: ["portimao", "algarve"],
   bahrain: ["bahrain", "sakhir"],
-  imola: ["imola"],
+  // Nom écrit par le jeu : « Autodromo Enzo e Dino Ferrari » (sans « Imola »).
+  imola: ["imola", "dino ferrari"],
   fuji: ["fuji"],
   sebring: ["sebring"],
-  interlagos: ["interlagos", "paulo"],
+  // Nom écrit par le jeu : « Autodromo Jose Carlos Pace » (sans « Interlagos »).
+  interlagos: ["interlagos", "paulo", "carlos pace"],
   "road-atlanta": ["road atlanta", "atlanta"],
   cota: ["cota", "americas", "austin"],
   lusail: ["lusail", "qatar"],
-  // US Track Pass (packs 2/3 pré-câblés : Watkins Glen / Indianapolis pressentis).
+  // US Track Pass (pack 3 pré-câblé : Watkins Glen / Indianapolis pressentis).
   daytona: ["daytona"],
   "laguna-seca": ["laguna", "seca"],
+  "long-beach": ["long beach", "longbeach"],
   "watkins-glen": ["watkins", "glen"],
   indianapolis: ["indianapolis", "indy"],
 };
@@ -64,6 +67,18 @@ function matchClassId(carClass: string): string | null {
 }
 
 /**
+ * Vidéo retenue parmi celles du combo : layout principal d'abord, puis la
+ * variante de spec LMP2 (ELMS / WEC) qui correspond à la classe DB — Daytona a
+ * un guide par spec. Sans variante ELMS, retombe sur la première entrée.
+ */
+function pickGuide(matches: VideoGuide[], carClass: string): VideoGuide {
+  const main = matches.filter((v) => !v.layout);
+  const pool = main.length > 0 ? main : matches;
+  const elms = /elms/i.test(carClass);
+  return pool.find((v) => /elms/i.test(v.title) === elms) ?? pool[0];
+}
+
+/**
  * Vidéo (titre + URL) correspondant au combo, pour affichage UI. Préfère le
  * layout principal. `null` si aucune vidéo ne couvre le combo.
  */
@@ -77,7 +92,7 @@ export function getVideoGuide(
   if (!tid || !cid) return null;
   const matches = VIDEO_GUIDES.filter((v) => v.trackId === tid && v.classId === cid);
   if (matches.length === 0) return null;
-  const pick = matches.find((v) => !v.layout) ?? matches[0];
+  const pick = pickGuide(matches, carClass);
   return { title: pick.title, url: pick.url };
 }
 
@@ -96,8 +111,7 @@ export function buildVideoGuideText(args: {
 
   const matches = VIDEO_GUIDES.filter((v) => v.trackId === tid && v.classId === cid);
   if (matches.length === 0) return "";
-  // Préfère le layout principal (sans variante) si présent.
-  const pick: VideoGuide = matches.find((v) => !v.layout) ?? matches[0];
+  const pick = pickGuide(matches, args.carClass);
 
   const lines: string[] = [
     "## Video lap guide reference",

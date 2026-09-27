@@ -114,6 +114,10 @@ const TRACK_MAP: Record<string, string> = {
   "Silverstone Grand Prix Circuit": "Silverstone (GP)",
   "Silverstone": "Silverstone (GP)",
   "Paul Ricard": "Paul Ricard",
+  // US Track Pack 1 (28/07/2026) — oubliés au pack 1 : sans entrée, aucun
+  // benchmark ne sortait alors que la feuille couvre ces deux circuits.
+  "Daytona International Speedway": "Daytona",
+  "WeatherTech Raceway Laguna Seca": "Laguna Seca",
   // US Track Pack 2 (22/09/2026). Noms de gauche = `TrackVenue` exact des XML.
   // À droite, le nom attendu côté feuille communautaire : tant qu'elle ne couvre
   // pas ces circuits, aucun benchmark ne sort — exactement comme sans entrée.

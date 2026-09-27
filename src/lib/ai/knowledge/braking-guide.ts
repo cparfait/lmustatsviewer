@@ -12,25 +12,33 @@
 
 import { BRAKING_GUIDE } from "./braking-guide-data";
 
-/** Mots-clés de reconnaissance circuit → id du guide (nom DB ou layout). */
+/**
+ * Mots-clés de reconnaissance circuit → id du guide (nom DB ou layout). Un id
+ * sans fiche dans `BRAKING_GUIDE` (ex. Sebring, retiré pour tracé erroné) donne
+ * une section vide : le mot-clé reste prêt pour une future source fiable.
+ */
 const TRACK_KEYWORDS: Record<string, string[]> = {
   "le-mans": ["le mans", "sarthe"],
   monza: ["monza"],
   spa: ["spa", "francorchamps"],
   portimao: ["portimao", "algarve"],
   bahrain: ["bahrain", "sakhir"],
-  imola: ["imola"],
+  // Nom écrit par le jeu : « Autodromo Enzo e Dino Ferrari » (sans « Imola »).
+  imola: ["imola", "dino ferrari"],
   fuji: ["fuji"],
   sebring: ["sebring"],
   "paul-ricard": ["paul ricard", "castellet", "ricard"],
-  interlagos: ["interlagos", "paulo"],
+  // Nom écrit par le jeu : « Autodromo Jose Carlos Pace » (sans « Interlagos »).
+  interlagos: ["interlagos", "paulo", "carlos pace"],
   "road-atlanta": ["road atlanta", "atlanta"],
   cota: ["cota", "americas", "austin"],
   // US Track Pass — le guide ApexPoints ne couvre pas (encore) ces circuits :
-  // le matching est prêt, la section freinage restera vide tant que la donnée
-  // n'existe pas (on ne fabrique pas de chiffres attribués à ApexPoints).
+  // Daytona, Laguna Seca et Long Beach ont une référence manuelle approximative
+  // (champ `source`) ; les autres restent vides tant que la donnée n'existe pas
+  // (on ne fabrique pas de chiffres attribués à ApexPoints).
   daytona: ["daytona"],
   "laguna-seca": ["laguna", "seca"],
+  "long-beach": ["long beach", "longbeach"],
   "watkins-glen": ["watkins", "glen"],
   indianapolis: ["indianapolis", "indy"],
 };

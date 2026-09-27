@@ -2141,7 +2141,7 @@ export default {
     hide: "Replier",
     top: "Top {{pct}} %", bottom: "Derniers {{pct}} %", first: "Meilleur temps", sRace: "Course", sQualify: "Qualif", sPractice: "Essais", filterAll: "Tous", noMatch: "Aucun combo ne correspond à ces filtres.", clickFilter: "Cliquer pour filtrer",
     pending: "Pas encore assez de pilotes pour classer : {{n}} / {{min}}",
-    provisionalShort: "provisoire {{n}}/{{min}}",
+    provisionalTip: "Classement provisoire : {{n}} / {{min}} pilotes",
     noData: "Personne n'a encore partagé ce combo",
     offline: "Serveur communautaire injoignable : classements indisponibles pour l'instant.",
     empty: "Aucun tour valide dans vos sessions pour l'instant.",

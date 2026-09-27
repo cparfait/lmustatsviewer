@@ -693,20 +693,17 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                             )}
                             {r.pos ? (
                               <>
-                                <TableCell className={cn("px-2 py-1.5 text-center font-mono", PERF_CELL)}>
-                                  <b>{r.pos!.rank}</b> <span className="text-muted-foreground">/ {r.pos!.drivers}</span>
+                                <TableCell
+                                  className={cn("px-2 py-1.5 text-center font-mono", PERF_CELL)}
+                                  title={isRanked ? undefined : t("leaderboard.provisionalTip", { n: r.pos!.drivers, min: RANKED_MIN })}
+                                >
+                                  <b>{r.pos!.rank}</b>{" "}
+                                  {/* Moins de 20 pilotes : effectif en orange (classement provisoire). */}
+                                  <span className={isRanked ? "text-muted-foreground" : "font-semibold text-amber-600 dark:text-amber-400"}>
+                                    / {r.pos!.drivers}
+                                  </span>
                                 </TableCell>
-                                <TableCell className={cn("px-2 py-1.5 whitespace-nowrap font-bold", st!.tone, PERF_CELL)}>
-                                  {st!.label}
-                                  {!isRanked && (
-                                    <span
-                                      className="ml-1.5 rounded bg-amber-400/15 px-1 py-px text-micro font-semibold text-amber-600 dark:text-amber-400"
-                                      title={t("leaderboard.pending", { n: r.pos!.drivers, min: RANKED_MIN })}
-                                    >
-                                      {t("leaderboard.provisionalShort", { n: r.pos!.drivers, min: RANKED_MIN })}
-                                    </span>
-                                  )}
-                                </TableCell>
+                                <TableCell className={cn("px-2 py-1.5 whitespace-nowrap font-bold", st!.tone, PERF_CELL)}>{st!.label}</TableCell>
                                 <TableCell className={cn("px-2 py-1.5", PERF_CELL)}><Gauge pct={(r.pos!.rank / r.pos!.drivers) * 100} /></TableCell>
                                 <TableCell className={cn("px-2 py-1.5 text-right font-mono text-muted-foreground", PERF_CELL)}>
                                   {r.pos!.rank === 1 ? "—" : `+${r.pos!.gap_best.toFixed(3)}`}

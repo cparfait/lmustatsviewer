@@ -2140,7 +2140,7 @@ export default {
     hide: "Einklappen",
     top: "Top {{pct}} %", bottom: "Letzte {{pct}} %", first: "Bestzeit", sRace: "Rennen", sQualify: "Qualifying", sPractice: "Training", filterAll: "Alle", noMatch: "Keine Kombination passt zu diesen Filtern.", clickFilter: "Klicken zum Filtern",
     pending: "Noch nicht genug Fahrer für eine Wertung: {{n}} / {{min}}",
-    provisionalShort: "vorläufig {{n}}/{{min}}",
+    provisionalTip: "Vorläufige Rangliste: {{n}} / {{min}} Fahrer",
     noData: "Noch niemand hat diese Kombo geteilt",
     offline: "Community-Server nicht erreichbar: Ranglisten derzeit nicht verfügbar.",
     empty: "Noch keine gültige Runde in deinen Sessions.",

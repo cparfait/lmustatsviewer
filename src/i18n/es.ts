@@ -2139,7 +2139,7 @@ export default {
     hide: "Plegar",
     top: "Top {{pct}} %", bottom: "Últimos {{pct}} %", first: "Mejor tiempo", sRace: "Carrera", sQualify: "Clasificación", sPractice: "Libres", filterAll: "Todos", noMatch: "Ningún combo coincide con estos filtros.", clickFilter: "Clic para filtrar",
     pending: "Aún no hay suficientes pilotos para clasificar: {{n}} / {{min}}",
-    provisionalShort: "provisional {{n}}/{{min}}",
+    provisionalTip: "Clasificación provisional: {{n}} / {{min}} pilotos",
     noData: "Nadie ha compartido todavía este combo",
     offline: "Servidor de la comunidad inaccesible: clasificaciones no disponibles por ahora.",
     empty: "Todavía no hay vueltas válidas en tus sesiones.",

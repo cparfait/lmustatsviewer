@@ -2135,7 +2135,7 @@ export default {
     hide: "Collapse",
     top: "Top {{pct}}%", bottom: "Bottom {{pct}}%", first: "Fastest time", sRace: "Race", sQualify: "Qualifying", sPractice: "Practice", filterAll: "All", noMatch: "No combo matches these filters.", clickFilter: "Click to filter",
     pending: "Not enough drivers to rank yet: {{n}} / {{min}}",
-    provisionalShort: "provisional {{n}}/{{min}}",
+    provisionalTip: "Provisional leaderboard: {{n}} / {{min}} drivers",
     noData: "Nobody has shared this combo yet",
     offline: "Community server unreachable: leaderboards unavailable for now.",
     empty: "No valid lap in your sessions yet.",

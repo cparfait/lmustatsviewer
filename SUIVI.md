@@ -952,6 +952,16 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   (même format que les lignes du classement, anonymat respecté ; départage temps puis premier reçu,
   comme le classement) ; accueil (vue par circuit et liste) : colonne avant « Voiture ». Mobile :
   classe, pilote, temps, pilotes. Test (pilote du record = 1re ligne du classement), 29/29. `?v=35`.
+- ✅ **Fiche pilote au format de l'app** (« Vos positions par combo ») : en-tête en carte (avatar, nom,
+  repère, « C'est moi », chiffres : combos roulés / classés, records, podiums, meilleur classement),
+  bandeau « Ses positions par combo », une carte par circuit (classe, voiture + tracé, temps, position,
+  top %, **jauge « Où il se situe »**, écart au 1er, lien « Classement ») ; provisoire = barre ambre
+  n / 20 ; ligne cliquable. Mobile : classe, voiture, temps, position. `tracks.js` n'y est plus chargé.
+- 🐛→✅ **« Toutes classes » comptait un pilote par classe** (retour mainteneur : seul, 3 chronos dans
+  3 classes → « 3 pilotes », rang 1/3, médiane faussée). Désormais **une ligne par pilote** : son
+  meilleur tour toutes classes confondues (classe et voiture de ce tour affichées). Accueil : total de
+  la carte circuit = **pilotes distincts** (`track_drivers` renvoyé par `GET /combos`), celui de la
+  classe si elle est filtrée ; filtre Classe « Toutes » sans total. Test mis à jour (29/29). `?v=37`.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

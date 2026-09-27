@@ -171,7 +171,9 @@ syncSegs();
       .map(([track, list]) => ({
         track,
         list: list.sort((a, b) => byClass(a.car_class, b.car_class) || b.drivers - a.drivers),
-        total: list.reduce((s, c) => s + c.drivers, 0),
+        // Pilotes distincts du circuit (un pilote de deux classes compte une fois) ; classe filtrée :
+        // ceux de cette classe.
+        total: !classFilter && list[0].track_drivers != null ? list[0].track_drivers : list.reduce((s, c) => s + c.drivers, 0),
       }))
       .sort(sort === "az" ? (a, b) => a.track.localeCompare(b.track) : (a, b) => b.total - a.total);
     // Fréquentation : relative au classement le plus roulé de la même classe.

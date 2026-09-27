@@ -202,7 +202,7 @@ describe("classement toutes classes d'un circuit", () => {
   before(async () => { ctx = await setup(); });
   after(() => ctx.close());
 
-  test("sans classe : une ligne par pilote ET par classe, classées au temps", async () => {
+  test("sans classe : une ligne par pilote (son meilleur tour, toutes classes)", async () => {
     const a = await register(ctx.app);
     const b = await register(ctx.app);
     await send(ctx.app, a.token, [session({}, { time: 80 }), session({ car_class: "Hyper", car_model: "Porsche 963" }, { time: 70 })]);
@@ -210,14 +210,17 @@ describe("classement toutes classes d'un circuit", () => {
     const base = RA.replace("&class=GT3", "");
     for (const q of [base, `${base}&class=all`]) {
       const lb = await (await ctx.app.request(`/api/v1/combos/leaderboard?${q}`)).json();
-      assert.equal(lb.drivers, 3);
-      assert.deepEqual(lb.rows.map((r: { car_class: string; time: number }) => [r.car_class, r.time]), [["Hyper", 70], ["GT3", 79], ["GT3", 80]]);
+      assert.equal(lb.drivers, 2);
+      assert.deepEqual(lb.rows.map((r: { car_class: string; time: number }) => [r.car_class, r.time]), [["Hyper", 70], ["GT3", 79]]);
     }
     const gt3 = await (await ctx.app.request(`/api/v1/combos/leaderboard?${RA}`)).json();
     assert.equal(gt3.drivers, 2);
     const detail = await (await ctx.app.request(`/api/v1/combos/detail?${base}`)).json();
     assert.equal(detail.car_class, null);
-    assert.equal(detail.drivers, 3);
+    assert.equal(detail.drivers, 2);
+    // Accueil : le circuit compte 2 pilotes distincts, même si « a » roule dans deux classes.
+    const list = await (await ctx.app.request("/api/v1/combos")).json();
+    for (const c of list.combos) assert.equal(c.track_drivers, 2);
   });
 });
 

@@ -69,7 +69,7 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
       key: "class",
       label: t("f.class"),
       value: q.class,
-      options: [["", `${t("f.allF")} · ${fmtNum(classes.reduce((n, c) => n + c.drivers, 0))}`], ...classes.map((c) => [c.car_class, `${c.car_class} · ${c.drivers}`])],
+      options: [["", t("f.allF")], ...classes.map((c) => [c.car_class, `${c.car_class} · ${c.drivers}`])],
     },
     { key: "car", label: t("f.car"), value: q.car, options: [["", t("f.allF")], ...carOptions.map((x) => [x, x])] },
     { key: "session", label: t("f.session"), value: q.session, options: [["", t("f.allF")], ["race", t("f.race")], ["qualify", t("f.qualify")], ["practice", t("f.practice")]] },

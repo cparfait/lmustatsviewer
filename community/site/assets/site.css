@@ -611,9 +611,10 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
   .cg-drivers { display: none; }
   /* Mobile : l'essentiel sans défilement horizontal (classe, voiture, temps, pilotes). */
   .cg-table { min-width: 0; }
-  .cg-table col:nth-child(3), .cg-table col.c-sec, .cg-table col.c-pop, .cg-table col.c-ver, .cg-table col.c-go,
-  .cg-table th:nth-child(3), .cg-table td:nth-child(3),
-  .cg-table th:nth-child(n+5):not(:nth-child(8)), .cg-table td:nth-child(n+5):not(:nth-child(8)) { display: none; }
+  /* Accueil seulement (la fiche pilote a ses propres colonnes). */
+  .cg-table:not(.pf-table) col:nth-child(3), .cg-table col.c-sec, .cg-table col.c-pop, .cg-table col.c-ver, .cg-table:not(.pf-table) col.c-go,
+  .cg-table:not(.pf-table) th:nth-child(3), .cg-table:not(.pf-table) td:nth-child(3),
+  .cg-table:not(.pf-table) th:nth-child(n+5):not(:nth-child(8)), .cg-table:not(.pf-table) td:nth-child(n+5):not(:nth-child(8)) { display: none; }
   .cg-table col.c-pilot { width: auto; }
   .cg-table col.c-class { width: 84px; } .cg-table col.c-time { width: 84px; } .cg-table col.c-drv { width: 58px; }
   .cg-table td, .cg-table th { padding: 5px 6px; }
@@ -701,3 +702,23 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 /* Pilote du record : une ligne, nom tronqué proprement. */
 .cg-table td.pilot, .lb td.pilot { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
 .cg-table td.pilot .anon, .lb td.pilot .anon { font-weight: 500; font-style: italic; color: var(--muted); }
+
+/* ══ Fiche pilote : même format que la page Classements de l'app ══ */
+.profile-id { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.profile-id .avatar { flex: none; width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: var(--glow); color: var(--amber-ink); font-size: 1.6rem; font-weight: 900; }
+.profile-me { margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .85rem; }
+.pf-table { min-width: 1000px; }
+.pf-table col.c-rank { width: 110px; } .pf-table col.c-top { width: 130px; } .pf-table col.c-where { width: 180px; }
+.pf-table col.c-gap { width: 110px; } .pf-table col.c-go { width: 120px; }
+/* Jauge « où il se situe » : du plus rapide (vert) au plus lent (rouge), repère = sa place. */
+.gauge { position: relative; display: block; width: 144px; height: 8px; border-radius: 99px; background: linear-gradient(90deg, #10b981, #facc15, #ef4444); opacity: .9; }
+.gauge i { position: absolute; top: -6px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.6); }
+@media (max-width: 760px) {
+  .profile-id .avatar { width: 44px; height: 44px; font-size: 1.2rem; }
+  .pf-table { min-width: 0; }
+  /* Mobile : classe, voiture, temps, position. */
+  .pf-table col.c-top, .pf-table col.c-where, .pf-table col.c-gap, .pf-table col.c-go,
+  .pf-table th:nth-child(n+5), .pf-table td:nth-child(n+5) { display: none; }
+  .pf-table tr.is-prov td[colspan] { display: table-cell; }
+  .pf-table col.c-class { width: 84px; } .pf-table col.c-time { width: 84px; } .pf-table col.c-rank { width: 70px; }
+}

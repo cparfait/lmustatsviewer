@@ -9,7 +9,7 @@ import type { Db } from "./db.js";
 export interface ComboKey {
   track: string;
   course: string;
-  /** Absent = toutes les classes : une ligne par pilote ET par classe, classées au temps. */
+  /** Absent = toutes les classes : une ligne par pilote (son meilleur tour, quelle que soit la classe). */
   carClass?: string;
   /**
    * Versions « majeure.mineure » retenues : une ou plusieurs (["1.42", "1.41"]) ou
@@ -122,7 +122,8 @@ async function resolveVersions(db: Db, key: ComboKey, f: Filters): Promise<strin
 
 /**
  * Meilleur tour éligible de chaque pilote sur le combo, du plus rapide au plus lent.
- * Toutes classes (`carClass` absent) : le meilleur tour de chaque pilote DANS chaque classe.
+ * Toutes classes (`carClass` absent) : son meilleur tour toutes classes confondues — un
+ * pilote reste UN pilote (compteurs, rang, médiane) ; la classe de ce tour est renvoyée.
  */
 async function bestPerDriver(db: Db, key: ComboKey, versions: string[], f: Filters): Promise<BestRow[]> {
   const params: unknown[] = [key.track, key.course];
@@ -137,14 +138,14 @@ async function bestPerDriver(db: Db, key: ComboKey, versions: string[], f: Filte
   const el = eligibility(f, params);
   return db.query<BestRow>(
     `select * from (
-       select distinct on (s.install_id, s.car_class)
+       select distinct on (s.install_id)
          s.install_id, s.car_class, s.best_time, s.car_model, s.s1, s.s2, s.s3, s.game_version,
          s.played_on::text as played_on, s.received_at,
          i.tag, i.anonymous, i.display_name, i.homonym
        from sessions s join installs i on i.id = s.install_id
        where s.track = $1 and s.track_course = $2 ${cls} and s.game_minor = any($${vi}::text[])
          and ${el} ${exclude}
-       order by s.install_id, s.car_class, s.best_time, s.received_at
+       order by s.install_id, s.best_time, s.received_at
      ) b
      order by best_time, received_at`,
     params,
@@ -314,6 +315,7 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
     rec_anonymous: boolean;
     rec_name: string | null;
     rec_homonym: boolean;
+    track_drivers: number;
     /** Secteurs du tour record (null si le jeu ne les a pas écrits). */
     s1: number | null;
     s2: number | null;
@@ -336,7 +338,10 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
        from e ${pick}
        order by e.track, e.track_course, e.car_class, e.install_id, e.best_time, e.received_at
      )
-     select track, track_course, car_class, max(game_minor) as version,
+     , td as (
+       select track, count(distinct install_id)::int as track_drivers from b group by 1
+     )
+     select b.track, track_course, car_class, max(game_minor) as version, min(td.track_drivers) as track_drivers,
             count(*)::int as drivers, min(best_time) as best,
             -- Tour record : même départage que le classement (temps, puis premier reçu).
             (array_agg(car_model order by best_time, received_at))[1] as best_car,
@@ -348,8 +353,8 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
             (array_agg(display_name order by best_time, received_at))[1] as rec_name,
             (array_agg(homonym order by best_time, received_at))[1] as rec_homonym,
             min(s1) as best_s1, min(s2) as best_s2, min(s3) as best_s3
-     from b group by 1, 2, 3
-     order by drivers desc, track, track_course, car_class`,
+     from b join td on td.track = b.track group by 1, 2, 3
+     order by drivers desc, b.track, track_course, car_class`,
     params,
   );
   // Pilote du record, au même format que les lignes du classement (anonymat respecté).

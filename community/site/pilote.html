@@ -5,33 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pilote — LMU Stats Viewer</title>
 <meta name="theme-color" content="#D93B00">
-<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=35">
-<link rel="icon" href="/favicon.ico?v=35">
-<link rel="apple-touch-icon" href="/assets/icon-128.png?v=35">
-<link rel="stylesheet" href="/assets/site.css?v=35">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=37">
+<link rel="icon" href="/favicon.ico?v=37">
+<link rel="apple-touch-icon" href="/assets/icon-128.png?v=37">
+<link rel="stylesheet" href="/assets/site.css?v=37">
 </head>
 <body>
 <header class="site-header"></header>
-<main class="wrap" style="padding-bottom:80px">
+<main id="pilote" class="wrap" style="padding-bottom:80px">
   <p class="crumbs"><a href="/" data-i18n="crumbs"></a> › <span data-i18n="profile.kicker"></span></p>
   <div id="notice"></div>
-  <div class="profile-head" id="head" hidden>
-    <div class="avatar" id="avatar"></div>
-    <div><p class="kicker" data-i18n="profile.kicker" style="margin:0"></p><h1 id="name" style="font-size:clamp(1.8rem,3.6vw,2.6rem)"></h1><p class="muted" data-i18n="profile.sub" style="margin:4px 0 0"></p></div>
-  </div>
-  <div class="panel has-tbar" id="tablePanel" hidden>
-    <div class="tbar"><h3 id="tbarName"></h3><span class="tbar-n" id="tbarCount"></span></div>
-    <div class="lb-scroll">
-    <table class="lb">
-      <thead><tr><th data-i18n="col.track"></th><th data-i18n="col.class"></th><th data-i18n="col.car"></th><th data-i18n="col.time"></th><th data-i18n="col.rank"></th><th data-i18n="col.top"></th><th data-i18n="col.gap"></th></tr></thead>
-      <tbody id="rows"></tbody>
-    </table>
+
+  <!-- En-tête au format des cartes circuit (accueil, page d'un classement, app). -->
+  <section class="cgroup combo-head" id="head" hidden>
+    <div class="cg-head cg-static"><span class="cg-name" data-i18n="profile.kicker"></span><span class="cg-drivers" id="headTag"></span></div>
+    <div class="combo-hero">
+      <div class="profile-id">
+        <div class="avatar" id="avatar"></div>
+        <div class="combo-title">
+          <h1 id="name"></h1>
+          <p class="muted" data-i18n="profile.sub"></p>
+          <div class="profile-me" id="meBox"></div>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><span data-i18n="profile.k.combos"></span><b class="mono" id="k-combos">—</b></div>
+        <div class="kpi"><span data-i18n="profile.k.ranked"></span><b class="mono" id="k-ranked">—</b></div>
+        <div class="kpi best"><span data-i18n="profile.k.records"></span><b class="mono" id="k-records">—</b></div>
+        <div class="kpi"><span data-i18n="profile.k.podiums"></span><b class="mono" id="k-podiums">—</b></div>
+        <div class="kpi"><span data-i18n="profile.k.best"></span><b id="k-best">—</b></div>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <div class="tbar board-bar lb-bar" id="bar" hidden><h3 data-i18n="profile.positions"></h3><span class="tbar-n" id="tbarCount"></span></div>
+  <div class="board-body" id="groups"></div>
 </main>
 <footer class="site-footer"></footer>
-<script src="/assets/tracks.js?v=35"></script>
-<script src="/assets/site.js?v=35"></script>
-<script src="/assets/pilote.js?v=35"></script>
+<script src="/assets/site.js?v=37"></script>
+<script src="/assets/pilote.js?v=37"></script>
 </body>
 </html>

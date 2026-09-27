@@ -14,7 +14,7 @@ export interface ComboKey {
    * Versions « majeure.mineure » retenues : une ou plusieurs (["1.42", "1.41"]) ou
    * "all" (toutes). Absent = la plus récente du combo.
    */
-  version?: string[] | "all";
+  version?: string[] | "all" | "latest";
 }
 
 export interface Filters {
@@ -105,8 +105,9 @@ export async function comboVersions(db: Db, key: ComboKey, f: Filters) {
 async function resolveVersions(db: Db, key: ComboKey, f: Filters): Promise<string[]> {
   if (Array.isArray(key.version) && key.version.length) return key.version;
   const v = await comboVersions(db, key, f);
-  if (key.version === "all") return v.map((x) => x.version);
-  return v[0] ? [v[0].version] : [];
+  // Par défaut : toutes les versions (comme le filtre « Toutes » de l'app et du site).
+  if (key.version === "latest") return v[0] ? [v[0].version] : [];
+  return v.map((x) => x.version);
 }
 
 /** Meilleur tour éligible de chaque pilote sur le combo, du plus rapide au plus lent. */
@@ -266,17 +267,18 @@ export async function position(db: Db, key: ComboKey, f: Filters, time: number) 
 
 /** Liste des combos (version la plus récente de chacun), les plus roulés d'abord. */
 /**
- * Liste des combos (accueil du site). `version` : absent = la plus récente de CHAQUE combo
- * (comme la page combo par défaut), "all" = toutes, liste = ces versions seulement.
+ * Liste des combos (accueil du site). `version` : absent ou "all" = toutes (défaut),
+ * "latest" = la plus récente de CHAQUE combo, liste = ces versions seulement.
  */
-export async function comboList(db: Db, f: Filters, version?: string[] | "all") {
+export async function comboList(db: Db, f: Filters, version?: string[] | "all" | "latest") {
   const params: unknown[] = [];
   const el = eligibility(f, params);
-  let pick = `join latest l
+  let pick = "";
+  if (version === "latest") {
+    pick = `join latest l
          on l.track = e.track and l.track_course = e.track_course
         and l.car_class = e.car_class and l.version = e.game_minor`;
-  if (version === "all") pick = "";
-  else if (Array.isArray(version) && version.length) {
+  } else if (Array.isArray(version) && version.length) {
     params.push(version);
     pick = `where e.game_minor = any($${params.length}::text[])`;
   }
@@ -375,26 +377,18 @@ export async function driverProfile(db: Db, tag: string) {
   const out = [];
   for (const c of combos) {
     const key: ComboKey = { track: c.track, course: c.track_course, carClass: c.car_class };
-    // Version la plus récente ; si le pilote n'y a pas roulé, toutes les versions
-    // (sinon son temps disparaîtrait de sa propre fiche).
-    let versions = await resolveVersions(db, key, DEFAULT_FILTERS);
+    // Toutes les versions (défaut du site et de l'app).
+    const versions = await resolveVersions(db, key, DEFAULT_FILTERS);
     if (!versions.length) continue;
-    let rows = await bestPerDriver(db, key, versions, DEFAULT_FILTERS);
-    let me = rows.find((r) => r.install_id === inst.id);
-    let allVersions = false;
-    if (!me) {
-      versions = await resolveVersions(db, { ...key, version: "all" }, DEFAULT_FILTERS);
-      rows = await bestPerDriver(db, key, versions, DEFAULT_FILTERS);
-      me = rows.find((r) => r.install_id === inst.id);
-      allVersions = true;
-    }
+    const rows = await bestPerDriver(db, key, versions, DEFAULT_FILTERS);
+    const me = rows.find((r) => r.install_id === inst.id);
     if (!me) continue;
     const rank = rows.filter((r) => r.best_time < me.best_time).length + 1;
     out.push({
       track: c.track,
       track_course: c.track_course,
       car_class: c.car_class,
-      version: allVersions ? "all" : versions[0],
+      version: "all",
       car_model: me.car_model,
       time: me.best_time,
       rank,

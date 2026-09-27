@@ -42,13 +42,13 @@ chrome();
   });
   document.getElementById("rows").innerHTML = p.combos
     .map((c) => {
-      const url = `/combo.html?${new URLSearchParams({ track: c.track, course: c.track_course, class: c.car_class, ...(c.version === "all" ? { version: "all" } : {}) })}`;
+      const url = `/combo.html?${new URLSearchParams({ track: c.track, course: c.track_course, class: c.car_class })}`;
       return `
       <tr>
         <td><a href="${esc(url)}" style="text-decoration:none">${flagImg(c.track)} <b>${esc(c.track_course)}</b></a></td>
         <td>${classBadge(c.car_class)}</td>
         <td><div class="car">${carImg(c.car_model)}<span>${esc(c.car_model)}</span></div></td>
-        <td class="t">${fmtTime(c.time)}${c.version === "all" ? `<br><span class="muted" style="font-size:.72rem;font-weight:500">${esc(t("versions.all"))}</span>` : ""}</td>
+        <td class="t">${fmtTime(c.time)}</td>
         <td class="mono"><b>${c.rank}</b> <span class="muted">/ ${fmtNum(c.drivers)}</span></td>
         <td style="white-space:nowrap">${c.drivers >= RANKED_MIN ? `<b class="${standing(c.top_pct, c.rank, c.drivers).cls}">${esc(standing(c.top_pct, c.rank, c.drivers).label)}</b>` : `<span class="muted">${esc(t("provisional.short", { n: c.drivers }))}</span>`}</td>
         <td class="gap">${c.rank === 1 ? "—" : "+" + c.gap_best.toFixed(3)}</td>

@@ -266,12 +266,16 @@ describe("agrégats publics", () => {
     assert.equal((await (await ctx.app.request(`/api/v1/combos/detail?${RA}&conditions=wet`)).json()).drivers, 1);
   });
 
-  test("version la plus récente par défaut, ancienne sur demande", async () => {
+  test("toutes les versions par défaut, la plus récente ou une ancienne sur demande", async () => {
     const t = (await register(ctx.app)).token;
     await send(ctx.app, t, [session({ game_version: "1.4000" }, { time: 79.1 })]);
     const d = await (await ctx.app.request(`/api/v1/combos/detail?${RA}`)).json();
-    assert.equal(d.version, "1.42");
+    assert.equal(d.version, "1.42,1.40");
+    assert.equal(d.drivers, 26);
     assert.deepEqual(d.versions.map((v: { version: string }) => v.version), ["1.42", "1.40"]);
+    const latest = await (await ctx.app.request(`/api/v1/combos/detail?${RA}&version=latest`)).json();
+    assert.equal(latest.version, "1.42");
+    assert.equal(latest.drivers, 25);
     const old = await (await ctx.app.request(`/api/v1/combos/detail?${RA}&version=1.40`)).json();
     assert.equal(old.drivers, 1);
   });
@@ -336,8 +340,9 @@ describe("versions multiples et recherche de pilotes", () => {
     await populate(ctx.app, 5, 78, 0.5);
     const old = await register(ctx.app);
     await send(ctx.app, old.token, [session({ driver_name: "Ancien Pilote", game_version: "1.4000" }, { time: 77 })]);
-    const latest = await (await ctx.app.request(`/api/v1/combos/detail?${RA}`)).json();
+    const latest = await (await ctx.app.request(`/api/v1/combos/detail?${RA}&version=latest`)).json();
     assert.equal(latest.drivers, 5);
+    assert.equal((await (await ctx.app.request(`/api/v1/combos/detail?${RA}`)).json()).drivers, 6);
     const both = await (await ctx.app.request(`/api/v1/combos/detail?${RA}&version=1.42,1.40`)).json();
     assert.equal(both.drivers, 6);
     assert.deepEqual(both.selected, ["1.42", "1.40"]);
@@ -346,12 +351,12 @@ describe("versions multiples et recherche de pilotes", () => {
     assert.equal((await ctx.app.request(`/api/v1/combos/detail?${RA}&version=1.42;drop`)).status, 400);
     const found = await (await ctx.app.request(`/api/v1/combos/leaderboard?${RA}&name=pilote%203`)).json();
     assert.equal(found.matches, 1);
-    assert.equal(found.rows[0].rank, 4);
+    assert.equal(found.rows[0].rank, 5); // toutes versions : l'ancien pilote (77 s) est devant
     // tag= : la ligne du pilote (« Ma position »), même hors de la page demandée.
     const tag = found.rows[0].driver.tag;
     const mine = await (await ctx.app.request(`/api/v1/combos/leaderboard?${RA}&limit=1&tag=${encodeURIComponent(tag)}`)).json();
     assert.equal(mine.rows.length, 1);
-    assert.equal(mine.me.rank, 4);
+    assert.equal(mine.me.rank, 5);
     assert.equal(mine.me.driver.tag, tag);
     const nobody = await (await ctx.app.request(`/api/v1/combos/leaderboard?${RA}&tag=%230000`)).json();
     assert.equal(nobody.me, null);

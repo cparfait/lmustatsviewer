@@ -95,7 +95,7 @@ const comboQuery = z.object({
   // Une version (« 1.42 »), une liste (« 1.42,1.41 ») ou « all ».
   version: z
     .string()
-    .regex(/^(all|\d{1,2}\.\d{2}(,\d{1,2}\.\d{2}){0,19})$/)
+    .regex(/^(all|latest|\d{1,2}\.\d{2}(,\d{1,2}\.\d{2}){0,19})$/)
     .optional(),
   aids: z.enum(["clean", "all"]).optional(),
   conditions: z.enum(["dry", "wet"]).optional(),
@@ -112,7 +112,7 @@ function parseCombo(c: Context): { key: ComboKey; f: Filters } | null {
       track: q.data.track,
       course: q.data.course,
       carClass: q.data.class,
-      version: q.data.version === "all" ? "all" : q.data.version?.split(","),
+      version: q.data.version === "all" || q.data.version === "latest" ? q.data.version : q.data.version?.split(","),
     },
     f: {
       aids: q.data.aids ?? DEFAULT_FILTERS.aids,
@@ -290,7 +290,7 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     const { aids, conditions, version, ...rest } = q.data;
     const f = { aids: aids ?? "clean", conditions: conditions ?? "dry", ...rest } as const;
     const [combos, versions] = await Promise.all([
-      comboList(db, f, version === "all" ? "all" : version?.split(",")),
+      comboList(db, f, version === "all" || version === "latest" ? version : version?.split(",")),
       listVersions(db, f),
     ]);
     return c.json({ combos, versions });

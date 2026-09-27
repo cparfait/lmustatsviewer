@@ -98,15 +98,17 @@ if (hq.session || hq.mode || hq.version) document.body.classList.add("is-filtere
       multi: {
         all: ["all", t("f.allF")],
         items: (versions ?? []).map((v) => [v.version, `v${v.version} · ${fmtNum(v.drivers)}`, `v${v.version}`]),
-        // Par défaut : la plus récente de chaque combo (libellé « Dernière »).
-        selected: hq.version === "all" ? "all" : hq.version ? hq.version.split(",") : [],
-        empty: t("f.latest"),
+        // Par défaut : toutes les versions.
+        selected: !hq.version || hq.version === "all" ? "all" : hq.version.split(","),
+        empty: t("f.allF"),
       },
     },
   ]) + `<input class="search" id="search" placeholder="${esc(t("search"))}">`;
   bindFilterBar(filters, (key, value) => {
     if (key === "session" || key === "mode" || key === "version") {
-      if (Array.isArray(value)) value = value.join(",");
+      // « Toutes » (ou rien de coché) = défaut : adresse sans paramètre de version.
+      if (value === "all" || (Array.isArray(value) && !value.length)) value = "";
+      else if (Array.isArray(value)) value = value.join(",");
       const next = new URLSearchParams(Object.entries({ ...hq, [key]: value }).filter(([, v]) => v));
       location.href = `/?${next}#tracks`;
       return;

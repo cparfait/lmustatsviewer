@@ -57,7 +57,8 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
   const base = q.car ? await api("combos/detail", { ...q, car: "" }).catch(() => null) : detail;
   const carOptions = (base?.by_car ?? []).map((c) => c.car_model).sort();
   const allVersions = (base?.versions ?? []).map((v) => v.version);
-  const vSelected = q.version === "all" ? "all" : detail?.selected ?? allVersions.slice(0, 1);
+  // Par défaut : toutes les versions.
+  const vSelected = !q.version || q.version === "all" ? "all" : detail?.selected ?? allVersions;
   $("filters").innerHTML = filterBar([
     { key: "track", label: t("f.circuit"), value: q.track, options: tracks.map((x) => [x, x]) },
     { key: "course", label: t("f.layout"), value: q.course, options: courses.map((x) => [x, x]) },
@@ -78,9 +79,10 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
     { key: "aids", label: t("f.aids"), value: q.aids, options: [["", t("aidsClean")], ["all", t("aidsAll")]] },
   ]);
   bindFilterBar($("filters"), (key, value) => {
-    if (key === "version" && Array.isArray(value)) {
-      // Aucune ou seulement la plus récente = « Dernière » (valeur par défaut, URL courte).
-      value = !value.length || (value.length === 1 && value[0] === allVersions[0]) ? "" : value.join(",");
+    if (key === "version") {
+      // Toutes (ou aucune) = défaut, adresse courte ; sinon la liste cochée.
+      const all = value === "all" || (Array.isArray(value) && (!value.length || value.length === allVersions.length));
+      value = all ? "" : Array.isArray(value) ? value.join(",") : value;
     }
     const over = { [key]: value };
     if (key === "track") {
@@ -103,7 +105,8 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
   }
   const version = q.version || "";
   const selected = detail.selected;
-  $("meta").innerHTML = `<span>${esc(selected.map((v) => "v" + v).join(" + "))}</span><span>${fmtNum(detail.drivers)} ${esc(t("drivers"))}</span>`;
+  const allSel = selected.length === (detail.versions?.length ?? 0);
+  $("meta").innerHTML = `<span>${esc(allSel && selected.length > 1 ? t("versions.all") : selected.map((v) => "v" + v).join(" + "))}</span><span>${fmtNum(detail.drivers)} ${esc(t("drivers"))}</span>`;
   if (!detail.ranked) {
     $("notice").innerHTML = `<p class="notice">${esc(t("provisional", { n: detail.drivers }))}</p>`;
   }

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classements — LMU Stats Viewer (maquette)</title>
+<link rel="stylesheet" href="https://lmustatsviewer.cparfait.ovh/assets/css/style.css">
+<link rel="stylesheet" href="mock.css?v=4">
+</head>
+<body>
+
+<div class="mock-bar">
+  <strong>MAQUETTE · données fictives</strong>
+  <a class="on" href="index.html">1 · Site : accueil</a>
+  <a href="combo.html">2 · Site : Road Atlanta · GT3</a>
+  <a href="app-optin.html">3 · App : activation</a>
+  <a href="app-classement.html">4 · App : page Classement</a>
+</div>
+
+<header class="site-header" id="top">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html">
+      <img src="https://lmustatsviewer.cparfait.ovh/assets/img/32x32.png" width="28" height="28" alt="">
+      <span>LMU&nbsp;Stats&nbsp;Viewer <span class="brand-sub">Communauté</span></span>
+    </a>
+    <nav class="nav" aria-label="Navigation principale">
+      <a class="on" href="index.html#tracks">Circuits</a>
+      <a href="#">Records</a>
+      <a href="#">Voitures</a>
+      <a href="#">Classes</a>
+      <a href="#">Rechercher un pilote</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" id="themeBtn" aria-label="Thème">
+        <svg class="i-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="i-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <a class="btn btn-ghost btn-sm" href="https://lmustatsviewer.cparfait.ovh/">L'app</a>
+      <a class="btn btn-primary btn-sm" href="app-optin.html">Partager mes tours</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="c-hero">
+    <div class="wrap">
+      <p class="eyebrow"><span class="dot"></span><span>Classements communautaires · temps enregistrés par le jeu</span></p>
+      <h1>Où vous situez-vous, circuit par circuit&nbsp;?</h1>
+      <p class="lead">Les meilleurs tours partagés par les pilotes LMU Stats Viewer, par classe, par voiture et par version du jeu. Des chronos lus dans les fichiers du jeu&nbsp;: rien n'est saisi à la main.</p>
+      <div class="cta-row" style="justify-content:center;margin-top:28px">
+        <a class="btn btn-primary btn-lg" href="#tracks">Explorer les circuits</a>
+        <a class="btn btn-ghost btn-lg" href="app-optin.html">Partager mes tours</a>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-k">Pilotes</span>
+          <b>1&#8239;284</b>
+          <em class="up">+37 cette semaine</em>
+        </div>
+        <div class="stat">
+          <span class="stat-k">Sessions partagées</span>
+          <b>18&#8239;452</b>
+          <em class="up">+1&#8239;206 cette semaine</em>
+        </div>
+        <div class="stat">
+          <span class="stat-k">Circuits et tracés</span>
+          <b>21</b>
+          <em>dont 2 nouveaux</em>
+        </div>
+        <div class="stat">
+          <span class="stat-k">Records battus</span>
+          <b>94</b>
+          <em>sur les 7 derniers jours</em>
+        </div>
+      </div>
+      <p class="stats-live"><span class="live-dot"></span>En direct · dernier tour partagé il y a 2&nbsp;min</p>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:36px">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="kicker">Cette semaine</p>
+        <h2>Là où ça roule</h2>
+      </div>
+      <div class="week">
+        <div class="panel panel-pad">
+          <h3>Combos les plus roulés</h3>
+          <p class="sub">Pilotes distincts sur les 7 derniers jours</p>
+          <div class="hot">
+            <a class="hot-item" href="combo.html">
+              <span data-track="roadAtlanta"></span>
+              <span><span class="t">Road Atlanta</span> <span class="tag-new">Nouveau</span><br><span class="cls cls-gt3">GT3</span> <span class="muted" style="font-size:.85rem">· meilleur <span class="mono">1:17.842</span></span></span>
+              <span class="n"><b class="mono">212</b><span class="muted" style="font-size:.78rem">pilotes</span></span>
+            </a>
+            <a class="hot-item" href="combo.html">
+              <span data-track="longBeach"></span>
+              <span><span class="t">Long Beach</span> <span class="tag-new">Nouveau</span><br><span class="cls cls-hyper">HYPERCAR</span> <span class="muted" style="font-size:.85rem">· meilleur <span class="mono">1:10.388</span></span></span>
+              <span class="n"><b class="mono">167</b><span class="muted" style="font-size:.78rem">pilotes</span></span>
+            </a>
+            <a class="hot-item" href="combo.html">
+              <span data-track="laguna"></span>
+              <span><span class="t">Laguna Seca</span><br><span class="cls cls-lmp2">LMP2 WEC</span> <span class="muted" style="font-size:.85rem">· meilleur <span class="mono">1:13.954</span></span></span>
+              <span class="n"><b class="mono">98</b><span class="muted" style="font-size:.78rem">pilotes</span></span>
+            </a>
+          </div>
+        </div>
+        <div class="panel panel-pad records">
+          <h3>Derniers records</h3>
+          <p class="sub">Meilleur temps battu sur un combo</p>
+          <ul>
+            <li><span class="time">1:17.842</span><span><b>M. Lindqvist</b> · Road Atlanta · <span class="cls cls-gt3">GT3</span><br><span class="muted" style="font-size:.82rem">Ferrari 296 LMGT3 · il y a 2 h · −0,118 s</span></span></li>
+            <li><span class="time">1:10.388</span><span><b>Pilote #7c21</b> · Long Beach · <span class="cls cls-hyper">HYPER</span><br><span class="muted" style="font-size:.82rem">Ferrari 499P · il y a 5 h · −0,204 s</span></span></li>
+            <li><span class="time">1:32.017</span><span><b>Kenji Morita</b> · Daytona · <span class="cls cls-hyper">HYPER</span><br><span class="muted" style="font-size:.82rem">Toyota GR010 · hier · −0,031 s</span></span></li>
+            <li><span class="time">1:48.905</span><span><b>Élise Garnier</b> · COTA · <span class="cls cls-lmp3">LMP3</span><br><span class="muted" style="font-size:.82rem">Ligier JS P325 · hier · −0,442 s</span></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="tracks" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="kicker">Circuits</p>
+        <h2>Choisissez un circuit</h2>
+      </div>
+      <div class="filters">
+        <span class="pill on">Toutes les classes</span>
+        <span class="pill"><span class="cls cls-hyper">HYPER</span></span>
+        <span class="pill"><span class="cls cls-lmp2">LMP2</span></span>
+        <span class="pill"><span class="cls cls-lmp3">LMP3</span></span>
+        <span class="pill"><span class="cls cls-gt3">GT3</span></span>
+        <span class="grow"></span>
+        <span class="pill">Version 1.42 ▾</span>
+        <input class="search" placeholder="Rechercher un circuit…">
+      </div>
+      <div class="tracks">
+        <a class="track-card" href="combo.html">
+          <div class="map" data-track="roadAtlanta" data-pad="8"></div>
+          <div class="head"><img class="flag-img" src="../../public/flags/us.png" alt=""><b>Road Atlanta</b><span class="tag-new" style="margin-left:auto">Nouveau</span></div>
+          <div class="bests">
+            <div><span class="cls cls-hyper">HYPER</span><span class="muted">Cadillac V-Series.R</span><span class="mono">1:08.604</span></div>
+            <div><span class="cls cls-lmp2">LMP2</span><span class="muted">Oreca 07</span><span class="mono">1:10.712</span></div>
+            <div><span class="cls cls-gt3">GT3</span><span class="muted">Ferrari 296</span><span class="mono">1:17.842</span></div>
+          </div>
+          <div class="foot"><span>4,088 km · 12 virages</span><span>431 pilotes</span></div>
+        </a>
+        <a class="track-card" href="combo.html">
+          <div class="map" data-track="longBeach" data-pad="8"></div>
+          <div class="head"><img class="flag-img" src="../../public/flags/us.png" alt=""><b>Long Beach</b><span class="tag-new" style="margin-left:auto">Nouveau</span></div>
+          <div class="bests">
+            <div><span class="cls cls-hyper">HYPER</span><span class="muted">Ferrari 499P</span><span class="mono">1:10.388</span></div>
+            <div><span class="cls cls-lmp2">LMP2</span><span class="muted">Oreca 07</span><span class="mono">1:11.305</span></div>
+            <div><span class="cls cls-gt3">GT3</span><span class="muted">Corvette Z06</span><span class="mono">1:18.120</span></div>
+          </div>
+          <div class="foot"><span>3,167 km · 11 virages</span><span>389 pilotes</span></div>
+        </a>
+        <a class="track-card" href="combo.html">
+          <div class="map" data-track="laguna" data-pad="8"></div>
+          <div class="head"><img class="flag-img" src="../../public/flags/us.png" alt=""><b>Laguna Seca</b></div>
+          <div class="bests">
+            <div><span class="cls cls-hyper">HYPER</span><span class="muted">Cadillac V-Series.R</span><span class="mono">1:12.301</span></div>
+            <div><span class="cls cls-lmp2">LMP2</span><span class="muted">Oreca 07</span><span class="mono">1:13.954</span></div>
+            <div><span class="cls cls-gt3">GT3</span><span class="muted">Ferrari 296</span><span class="mono">1:21.502</span></div>
+          </div>
+          <div class="foot"><span>3,602 km · 11 virages</span><span>276 pilotes</span></div>
+        </a>
+        <a class="track-card" href="combo.html">
+          <div class="map" data-track="daytona" data-pad="8"></div>
+          <div class="head"><img class="flag-img" src="../../public/flags/us.png" alt=""><b>Daytona</b></div>
+          <div class="bests">
+            <div><span class="cls cls-hyper">HYPER</span><span class="muted">Toyota GR010</span><span class="mono">1:32.017</span></div>
+            <div><span class="cls cls-lmp2">LMP2</span><span class="muted">Oreca 07</span><span class="mono">1:37.402</span></div>
+            <div><span class="cls cls-gt3">GT3</span><span class="muted">Lexus RC F</span><span class="mono">1:44.730</span></div>
+          </div>
+          <div class="foot"><span>5,729 km · 12 virages</span><span>312 pilotes</span></div>
+        </a>
+        <a class="track-card" href="combo.html">
+          <div class="map" data-track="cota" data-pad="8"></div>
+          <div class="head"><img class="flag-img" src="../../public/flags/us.png" alt=""><b>Circuit of the Americas</b></div>
+          <div class="bests">
+            <div><span class="cls cls-hyper">HYPER</span><span class="muted">Porsche 963</span><span class="mono">1:52.880</span></div>
+            <div><span class="cls cls-lmp3">LMP3</span><span class="muted">Ligier JS P325</span><span class="mono">1:48.905</span></div>
+            <div><span class="cls cls-gt3">GT3</span><span class="muted">BMW M4</span><span class="mono">2:05.114</span></div>
+          </div>
+          <div class="foot"><span>5,513 km · 20 virages</span><span>244 pilotes</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="kicker">Contribuer</p>
+        <h2>Trois étapes, et c'est vous qui décidez</h2>
+      </div>
+      <div class="how">
+        <div class="panel"><span class="n">1</span><h3>Activez le partage</h3><p class="muted">Dans l'app, Configuration → Communauté. Vous voyez exactement ce qui part avant de valider.</p></div>
+        <div class="panel"><span class="n">2</span><h3>Roulez</h3><p class="muted">Après chaque session, votre meilleur tour valide part tout seul. Jamais ceux des autres pilotes.</p></div>
+        <div class="panel"><span class="n">3</span><h3>Comparez</h3><p class="muted">Votre position sur chaque combo, dans l'app et ici, par classe, par voiture et par version.</p></div>
+      </div>
+      <div class="privacy-note">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        <span><b>Rien ne part sans votre accord.</b> Vous apparaissez sous votre nom de pilote ou restez anonyme, au choix, modifiable à tout moment. Un clic dans l'app efface toutes vos données du serveur.</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img src="https://lmustatsviewer.cparfait.ovh/assets/img/32x32.png" width="24" height="24" alt="">
+      <div><strong>LMU Stats Viewer</strong><span>Fait pour la communauté Le Mans Ultimate.</span></div>
+    </div>
+    <nav class="footer-links"><a href="#">Confidentialité</a><a href="#">GitHub</a><a href="#">Discord</a></nav>
+  </div>
+</footer>
+
+<script src="tracks.js?v=3"></script>
+<script src="mock.js?v=3"></script>
+</body>
+</html>

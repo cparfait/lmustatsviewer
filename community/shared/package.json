@@ -1,0 +1,10 @@
+{
+  "name": "lmu-community-shared",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Contrat d'envoi app ↔ serveur communautaire (schémas zod)",
+  "type": "module",
+  "dependencies": {
+    "zod": "^3.25.76"
+  }
+}

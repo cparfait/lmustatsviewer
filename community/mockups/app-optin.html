@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activation du partage — app (maquette)</title>
+<link rel="stylesheet" href="https://lmustatsviewer.cparfait.ovh/assets/css/style.css">
+<link rel="stylesheet" href="mock.css?v=4">
+</head>
+<body>
+
+<div class="mock-bar">
+  <strong>MAQUETTE · données fictives</strong>
+  <a href="index.html">1 · Site : accueil</a>
+  <a href="combo.html">2 · Site : Road Atlanta · GT3</a>
+  <a class="on" href="app-optin.html">3 · App : activation</a>
+  <a href="app-classement.html">4 · App : page Classement</a>
+</div>
+
+<div class="wrap">
+  <p class="muted" style="text-align:center;margin:28px 0 0;font-size:.9rem">Dans l'application (thème clair par défaut de l'app) · Configuration → Communauté</p>
+
+  <div class="appwin">
+    <div class="bar"><i></i><i></i><i></i><span style="margin-left:8px">LMU Stats Viewer — Configuration</span></div>
+    <div class="body">
+      <nav class="side">
+        <a href="#">Profil</a><a href="#">Affichage</a><a href="#">Voix</a><a href="#">Coach IA</a>
+        <a class="on" href="#">Communauté</a><a href="#">Maintenance</a><a href="#">Crédits</a>
+      </nav>
+      <div class="main">
+        <h2>Communauté</h2>
+
+        <div class="acard">
+          <div class="arow">
+            <div>
+              <h4>Partager mes meilleurs tours</h4>
+              <p>Votre meilleur tour valide de chaque session rejoint les classements communautaires. Désactivé par défaut.</p>
+            </div>
+            <div class="switch on" data-open title="Rouvrir l'écran d'activation"></div>
+          </div>
+          <div class="astat">
+            <div><b>12</b><span>sessions partagées</span></div>
+            <div><b>il y a 3 min</b><span>dernier envoi</span></div>
+            <div><b>Cris Tof</b><span>nom affiché</span></div>
+          </div>
+        </div>
+
+        <div class="acard">
+          <div class="arow">
+            <div><h4>Nom affiché : Cris Tof</h4><p>Votre nom de pilote LMU, repris du jeu : il n'est pas modifiable, pour que les pilotes se reconnaissent d'une course à l'autre. Vous pouvez en revanche rester anonyme.</p></div>
+            <span style="display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:600;white-space:nowrap">Rester anonyme <span class="switch" data-toggle></span></span>
+          </div>
+        </div>
+
+        <div class="acard">
+          <div class="arow">
+            <div><h4>Transparence</h4><p>Le contenu exact de chaque envoi, lisible, avant qu'il parte.</p></div>
+            <button class="abtn">Voir ce qui sera envoyé</button>
+          </div>
+        </div>
+
+        <div class="acard">
+          <div class="arow">
+            <div><h4>Vos données sur le serveur</h4><p>Effacement réel et immédiat de tous vos tours et de votre nom. Le partage est alors désactivé.</p></div>
+            <button class="abtn danger">Supprimer mes données du serveur</button>
+          </div>
+        </div>
+
+        <div class="acard">
+          <h4>Dans vos records</h4>
+          <p style="margin-bottom:6px">Votre position communautaire apparaît à côté du niveau ohne_speed — que vous partagiez vos tours ou non.</p>
+          <div class="rec-row"><b>Road Atlanta</b><span>Lamborghini Huracán LMGT3 Evo2</span><span class="mono" style="font-weight:700">1:21.480</span><span><span class="chip-tier">Bon</span> <span class="chip-comm">Communauté · top 51 % · 212 pilotes</span></span></div>
+          <div class="rec-row"><b>Spa-Francorchamps</b><span>Oreca 07</span><span class="mono" style="font-weight:700">2:02.918</span><span><span class="chip-tier">Bon</span> <span class="chip-comm">Communauté · top 31 % · 486 pilotes</span></span></div>
+          <div class="rec-row"><b>Long Beach</b><span>Lamborghini Huracán LMGT3 Evo2</span><span class="mono" style="font-weight:700">1:22.905</span><span><span class="chip-tier">Bon</span> <span class="muted" style="font-size:.78rem">Communauté : pas encore assez de pilotes (14/20)</span></span></div>
+        </div>
+      </div>
+
+      <!-- Écran d'activation : le nom affiché par défaut et l'anonymat sont sur le MÊME écran (RGPD art. 25-2) -->
+      <div class="modal-veil" id="veil">
+        <div class="modal" role="dialog" aria-labelledby="mt">
+          <div class="mh">
+            <h3 id="mt">Partager vos meilleurs tours&nbsp;?</h3>
+            <p>Vous rejoignez les classements de la communauté. Rien d'autre ne part, et vous pouvez tout effacer à tout moment.</p>
+          </div>
+          <div class="mb">
+            <div class="lists">
+              <div class="yes"><b>✓ Ce qui part</b><ul>
+                <li>Circuit, voiture, classe, version du jeu</li>
+                <li>Votre meilleur tour valide et ses secteurs</li>
+                <li>Votre rythme médian, vos aides de pilotage</li>
+                <li>Votre nom de pilote LMU (ou rien, si anonyme)</li>
+              </ul></div>
+              <div class="no"><b>✕ Ce qui ne part jamais</b><ul>
+                <li>Les tours des autres pilotes de la session</li>
+                <li>Vos réglages, votre télémétrie</li>
+                <li>Vos fichiers, votre adresse IP</li>
+                <li>Quoi que ce soit si ce partage est désactivé</li>
+              </ul></div>
+            </div>
+
+            <div class="namebox">
+              <span class="lbl">DANS LES CLASSEMENTS, VOUS APPARAÎTREZ SOUS LE NOM</span>
+              <div class="preview"><span class="lmuname" id="pubName">Cris Tof</span><span class="lock">🔒 Nom de pilote LMU, tel qu'écrit par le jeu</span></div>
+              <div class="arow">
+                <span class="as">Aperçu : <span id="asName"></span></span>
+                <span style="display:flex;align-items:center;gap:10px;font-size:.88rem;font-weight:600">Rester anonyme <span class="switch" id="anonSw"></span></span>
+              </div>
+            </div>
+
+            <label class="check"><input type="checkbox"> Envoyer aussi mes <b>&nbsp;219 sessions passées&nbsp;</b> (sinon, seulement les prochaines)</label>
+          </div>
+          <div class="mf">
+            <a href="#">Voir exactement ce qui sera envoyé</a>
+            <span style="display:flex;gap:10px">
+              <button class="abtn" data-close>Plus tard</button>
+              <button class="abtn primary" data-close>Activer le partage</button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="tracks.js?v=3"></script>
+<script src="mock.js?v=3"></script>
+</body>
+</html>

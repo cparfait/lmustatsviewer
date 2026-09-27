@@ -70,3 +70,10 @@ zz_V2/
 
 # Fichier de setup de test (artefact local, inutile dans le dépôt)
 src-tauri/DOM.svm
+
+# Service communautaire : sauvegardes locales
+community/backups/
+community/.deploy.env
+community/.releases/
+community/state/
+community/.source/

@@ -1,0 +1,11 @@
+{
+  "name": "lmu-community",
+  "private": true,
+  "description": "Service communautaire LMU Stats Viewer (lmu.cparfait.ovh) — espace de travail npm",
+  "workspaces": ["shared", "api"],
+  "scripts": {
+    "build": "npm run build -w api",
+    "typecheck": "npm run typecheck -w api",
+    "test": "npm test -w api"
+  }
+}

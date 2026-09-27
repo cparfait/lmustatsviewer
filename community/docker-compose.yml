@@ -1,0 +1,163 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  LMU Stats Viewer — classements communautaires (lmu.cparfait.ovh)
+#
+#  Trois services :
+#    db      PostgreSQL 16, seul service à conserver un volume de données
+#    backup  un dump par jour, quatorze jours de conservation
+#    api     API + site public (Node 22, port 3000)
+#
+#  ── Cloisonnement ───────────────────────────────────────────────────────────
+#
+#  Même doctrine que les autres piles du serveur : cette pile ne partage AUCUN
+#  réseau avec les autres applications. Sa façade, `web-lmustatsviewer`, n'est
+#  partagée qu'avec Nginx Proxy Manager ; la base vit sur un réseau interne sans
+#  accès à Internet. Un réseau `proxy` commun laisserait n'importe quel conteneur
+#  voisin joindre `api:3000` en clair, hors des règles du proxy.
+#
+#  Créer la façade une fois, puis y brancher NPM :
+#
+#      docker network create web-lmustatsviewer
+#      docker network connect web-lmustatsviewer npm-npm-1
+#
+#  (Le raccordement de NPM est durable seulement s'il figure aussi dans le
+#  compose de NPM — voir README.md, « Façade et NPM ».)
+#
+#  ── Mise en service ─────────────────────────────────────────────────────────
+#
+#      cp .env.example .env      puis renseigner le mot de passe
+#      docker compose up -d --build
+#
+#  Les migrations de la base s'appliquent toutes seules au démarrage.
+#  Nginx Proxy Manager : lmu.cparfait.ovh → Forward Hostname `lmustatsviewer-web`,
+#  port 3000, WebSocket inutile.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Préfixe des conteneurs et volumes (« lmu-community-db-1 », « lmu-community_db-data »).
+name: lmu-community
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lmu
+      POSTGRES_USER: lmu
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD à définir dans .env}
+      # Mot de passe chiffré exigé y compris sur le réseau interne (pris en compte
+      # à la création de la base seulement).
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --auth-host=scram-sha-256"
+    command:
+      - postgres
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - effective_cache_size=192MB
+      - -c
+      - max_connections=20
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # Aucun port publié : inspection ponctuelle par `docker compose exec db psql -U lmu`.
+    networks: [internal]
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lmu -d lmu"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging: *logging
+
+  # ── Sauvegarde ──────────────────────────────────────────────────────────────
+  # Un dump par jour, quatorze jours de conservation, dans ./backups.
+  # Ces fichiers vivent sur la machine qu'ils sauvegardent : tant qu'ils ne sont
+  # pas recopiés ailleurs, ils protègent d'une fausse manœuvre, pas d'une perte
+  # du serveur. Contenu : noms de pilotes LMU et temps au tour (aucune adresse,
+  # aucun jeton en clair). `scripts/backup.sh` reste disponible pour un dump à la
+  # demande ou chiffré (age).
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    entrypoint: >
+      sh -c "while true; do
+        pg_dump -h db -U lmu -d lmu -Fc -f /backups/lmu-$$(date +%Y%m%d-%H%M%S).dump &&
+        find /backups -name 'lmu-*.dump' -mtime +14 -delete;
+        sleep 86400;
+      done"
+    networks: [internal]
+    mem_limit: 128m
+    logging: *logging
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+      additional_contexts:
+        # Visuels et données de l'app pour le site : `public/` du dépôt par défaut,
+        # `./public` dans le dossier de déploiement du VPS (APP_PUBLIC_DIR dans .env).
+        app_public: ${APP_PUBLIC_DIR:-../public}
+    image: lmu-community-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://lmu:${POSTGRES_PASSWORD}@db:5432/lmu
+      PORT: "3000"
+      STATE_DIR: /app/state
+    # Bandeau « mise à jour en cours » : scripts/update.sh y pose maintenance.json.
+    volumes:
+      - ./state:/app/state:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    # Aucun port publié : NPM joint le conteneur par la façade.
+    networks:
+      internal:
+      facade:
+        # Le nom que Nginx Proxy Manager renseigne en « Forward Hostname ».
+        aliases: [lmustatsviewer-web]
+    mem_limit: 256m
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging: *logging
+
+networks:
+  # La base et sa sauvegarde. `internal: true` retire l'accès à Internet : une
+  # base qui ne peut pas sortir ne peut rien exfiltrer. L'API, branchée aussi sur
+  # la façade, garde sa sortie.
+  internal:
+    driver: bridge
+    internal: true
+  # Façade de cette application, partagée avec Nginx Proxy Manager seulement.
+  # Créer une fois : docker network create web-lmustatsviewer
+  facade:
+    external: true
+    name: ${FACADE_NETWORK:-web-lmustatsviewer}
+
+volumes:
+  db-data: {}

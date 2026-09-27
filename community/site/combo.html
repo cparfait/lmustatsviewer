@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classement — LMU Stats Viewer</title>
+<meta name="description" content="Classement communautaire Le Mans Ultimate : répartition des temps, meilleurs tours, écarts par voiture.">
+<meta name="theme-color" content="#D93B00">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=25">
+<link rel="icon" href="/favicon.ico?v=25">
+<link rel="apple-touch-icon" href="/assets/icon-128.png?v=25">
+<meta property="og:title" content="Classement communautaire — LMU Stats Viewer">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="/assets/site.css?v=25">
+</head>
+<body>
+<header class="site-header"></header>
+
+<main id="combo" class="wrap" style="padding-bottom:80px">
+  <p class="crumbs"><a href="/" data-i18n="crumbs"></a> › <span id="crumbTrack"></span> › <span id="crumbClass"></span></p>
+  <div id="notice"></div>
+
+  <div id="filters"></div>
+
+  <div class="combo-hero">
+    <div class="combo-map" id="map"></div>
+    <div class="combo-title">
+      <p class="eyebrow" style="margin:0" id="eyebrow"></p>
+      <h1 id="title" class="skeleton">&nbsp;</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+      <div class="kpis">
+        <div class="kpi"><span data-i18n="kpi.drivers"></span><b class="mono skeleton" id="k-n">—</b></div>
+        <div class="kpi best"><span data-i18n="kpi.best"></span><b class="mono skeleton" id="k-best">—</b></div>
+        <div class="kpi"><span data-i18n="kpi.p10"></span><b class="mono" id="k-p10">—</b></div>
+        <div class="kpi"><span data-i18n="kpi.median"></span><b class="mono skeleton" id="k-med">—</b></div>
+        <div class="kpi"><span data-i18n="kpi.laps"></span><b class="mono skeleton" id="k-laps">—</b></div>
+      </div>
+  </div>
+
+  <div class="panel lb-panel has-tbar" style="margin-top:14px">
+    <div class="tbar"><h3 data-i18n="lb.title"></h3><span class="tbar-n" id="lbCount"></span></div>
+    <div class="lb-tools">
+      <p class="sub" data-i18n="lb.sub"></p>
+      <div class="lb-actions">
+        <button class="btn btn-primary btn-sm me-btn" id="meBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg><span data-i18n="me.btn"></span></button>
+        <input class="search" id="find" data-i18n-ph="find.ph" autocomplete="off">
+        <span class="muted" id="findInfo" style="font-size:.8rem"></span>
+      </div>
+    </div>
+    <div class="lb-me" id="meCard"></div>
+    <div class="lb-scroll">
+    <table class="lb">
+      <thead><tr><th>#</th><th data-i18n="col.driver"></th><th data-i18n="col.car"></th><th data-i18n="col.time"></th><th data-i18n="col.gap"></th><th>S1</th><th>S2</th><th>S3</th><th data-i18n="col.version"></th><th data-i18n="col.date"></th></tr></thead>
+      <tbody id="lbBody"><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr><tr class="sk-row"><td colspan="10"><div class="skeleton sk-line"></div></td></tr></tbody>
+    </table>
+    </div>
+    <div class="lb-more"><button class="btn btn-ghost btn-sm" id="more" hidden data-i18n="lb.more"></button></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel panel-pad histo">
+      <h3 data-i18n="hist.title"></h3>
+      <p class="sub" data-i18n="hist.sub"></p>
+      <svg id="histo" role="img" aria-label="histogram"></svg>
+    </div>
+    <div class="panel panel-pad calc">
+      <h3 data-i18n="calc.title"></h3>
+      <p class="sub" data-i18n="calc.sub"></p>
+      <input id="myTime" inputmode="decimal" placeholder="1:21.480" aria-label="time">
+      <div class="res" id="calcRes" style="opacity:.35">
+        <div class="big" id="c-top">—</div>
+        <div class="row"><span class="muted" data-i18n="calc.rank"></span><b class="mono" id="c-rank">—</b></div>
+        <div class="row"><span class="muted" data-i18n="calc.gapBest"></span><b class="mono" id="c-gap">—</b></div>
+        <div class="row"><span class="muted" data-i18n="calc.gapMedian"></span><b class="mono" id="c-med">—</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel panel-pad">
+      <h3 data-i18n="byCar.title"></h3>
+      <p class="sub" data-i18n="byCar.sub"></p>
+      <div class="cars" id="cars"></div>
+    </div>
+    <div style="display:grid;gap:18px;align-content:start">
+      <div class="panel panel-pad soon">
+        <h3 data-i18n="brakes.title"></h3>
+        <div id="brakeMap" style="height:200px;display:grid;place-items:center"></div>
+        <div class="veil"><div><b data-i18n="brakes.soon"></b><span class="muted" data-i18n="brakes.text"></span></div></div>
+      </div>
+      <div class="panel panel-pad">
+        <h3 data-i18n="share.title"></h3>
+        <button class="btn btn-primary btn-sm" id="copyLink" style="margin-top:10px" data-i18n="share.copy"></button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer"></footer>
+
+<script src="/assets/tracks.js?v=25"></script>
+<script src="/assets/site.js?v=25"></script>
+<script src="/assets/combo.js?v=25"></script>
+</body>
+</html>

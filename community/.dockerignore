@@ -1,0 +1,8 @@
+**/node_modules
+**/dist
+mockups
+backups
+scripts
+**/test
+.env
+*.md

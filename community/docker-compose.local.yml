@@ -1,0 +1,8 @@
+# Surcharge pour tester en local uniquement (jamais sur le VPS) :
+#   docker network create npm_local_test      (et FACADE_NETWORK=npm_local_test dans .env)
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+# → API sur http://127.0.0.1:3080/api/v1/health
+services:
+  api:
+    ports:
+      - "127.0.0.1:3080:3000"

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classement — app (maquette)</title>
+<link rel="stylesheet" href="mock.css?v=6">
+<style>
+  /* Style de l'app (d'après les captures Records / Références en thème sombre). */
+  :root {
+    --a-bg: #0a0f1d; --a-card: #0f1729; --a-card2: #121c33; --a-border: #1f2b47; --a-text: #e6ebf5;
+    --a-muted: #8c98b3; --a-orange: #e0440e; --a-orange2: #ff5a1f; --a-row: #0d1426; --a-group: #2a1616;
+    --a-green: #22c55e; --a-yellow: #facc15; --a-purple: #a78bfa; --a-blue: #60a5fa; --a-red: #f87171;
+    --font: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--a-bg); color: var(--a-text); font: 14px/1.45 var(--font); }
+  .mock-bar { color: var(--a-text); }
+  .mock-bar a { background: var(--a-card); border-color: var(--a-border); color: var(--a-text); }
+  .mock-bar strong { color: #FFB400; }
+  a { color: inherit; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .ahead { position: sticky; top: 37px; z-index: 40; display: flex; align-items: center; gap: 22px; height: 56px; padding: 0 28px; border-bottom: 1px solid var(--a-border); background: rgba(10,15,29,.88); backdrop-filter: blur(8px); }
+  .alogo { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -.01em; }
+  .alogo i { width: 32px; height: 32px; border-radius: 8px; background: var(--a-orange); display: grid; place-items: center; font-style: normal; box-shadow: 0 4px 14px -4px var(--a-orange); }
+  .anav { display: flex; gap: 2px; }
+  .anav a { padding: 6px 12px; border-radius: 7px; color: var(--a-muted); text-decoration: none; font-weight: 500; position: relative; }
+  .anav a.on { background: #1b2540; color: var(--a-text); font-weight: 650; }
+  .anav .new { position: absolute; top: -4px; right: -6px; font-size: .58rem; font-weight: 800; padding: 1px 5px; border-radius: 5px; background: #FFB400; color: #0a0f1d; }
+  .aright { margin-left: auto; display: flex; gap: 16px; align-items: center; color: var(--a-muted); font-size: .88rem; }
+  .aright b { color: var(--a-text); }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--a-orange); display: inline-grid; place-items: center; color: var(--a-orange); font-weight: 700; font-size: .75rem; margin-right: 6px; }
+
+  .page { max-width: 1760px; margin: 0 auto; padding: 26px 28px 60px; display: grid; gap: 18px; }
+  .ptitle { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+  .ptitle h1 { margin: 0; font-size: 1.7rem; letter-spacing: -.02em; }
+  .ptitle h1 span { color: var(--a-orange2); }
+  .ptitle p { margin: 4px 0 0; color: var(--a-muted); }
+  .ptitle p a { color: var(--a-muted); }
+  .share-status { display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 10px; border: 1px solid #1f4d36; background: rgba(34,197,94,.08); font-size: .85rem; }
+  .share-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--a-green); box-shadow: 0 0 0 4px rgba(34,197,94,.18); }
+
+  .tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .tile { position: relative; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--a-border); background: var(--a-card); }
+  .tile span { display: block; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--a-muted); }
+  .tile b { display: block; margin-top: 4px; font-size: 1.05rem; }
+  .tile small { color: var(--a-muted); font-size: .75rem; }
+  .tile i { position: absolute; right: 14px; top: 14px; width: 30px; height: 30px; border-radius: 8px; background: rgba(224,68,14,.14); color: var(--a-orange2); display: grid; place-items: center; font-style: normal; font-size: .9rem; }
+
+  .fbar { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; border-radius: 10px; border: 1px solid var(--a-border); background: var(--a-card); align-items: center; }
+  .fsel { display: flex; align-items: center; border: 1px solid var(--a-border); border-radius: 7px; background: var(--a-bg); font-size: .85rem; }
+  .fsel span { padding: 8px 10px; color: var(--a-muted); font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-right: 1px solid var(--a-border); }
+  .fsel b { padding: 8px 12px; font-weight: 500; min-width: 110px; }
+  .fsel b::after { content: " ▾"; color: var(--a-muted); }
+  .ftog { margin-left: auto; display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--a-muted); }
+  .ftog .sw { width: 36px; height: 20px; border-radius: 99px; background: var(--a-orange); position: relative; }
+  .ftog .sw::after { content: ""; position: absolute; right: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+
+  .banner { display: flex; justify-content: space-between; align-items: center; padding: 11px 16px; border-radius: 10px; background: linear-gradient(90deg, #d23c0a, #e0501a); color: #fff; font-weight: 700; }
+  .banner .leg { display: flex; gap: 14px; font-size: .74rem; font-weight: 600; }
+  .banner .leg i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; }
+
+  .group { border: 1px solid var(--a-border); border-radius: 10px; overflow: hidden; background: var(--a-card); }
+  .ghead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: linear-gradient(90deg, #2c1515, #1a1420); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #ff6a2b; font-size: .86rem; }
+  .ghead img { width: 20px; height: 14px; border-radius: 2px; }
+  .ghead .cnt { font-size: .68rem; padding: 1px 7px; border-radius: 6px; background: rgba(255,106,43,.2); letter-spacing: 0; }
+  table.at { width: 100%; border-collapse: collapse; }
+  .at th { font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--a-muted); text-align: left; padding: 8px 12px; background: #140f1c; border-bottom: 1px solid var(--a-border); white-space: nowrap; }
+  .at td { padding: 10px 12px; border-bottom: 1px solid #172139; white-space: nowrap; }
+  .at tr:last-child td { border-bottom: 0; }
+  .at tr.sel td { background: rgba(255,180,0,.06); }
+  .badge { display: inline-flex; padding: 1px 8px; border-radius: 999px; font-size: .68rem; font-weight: 700; letter-spacing: .03em; border: 1px solid; }
+  .b-gt3 { color: #4ade80; border-color: rgba(74,222,128,.45); background: rgba(74,222,128,.1); }
+  .b-lmp2 { color: #60a5fa; border-color: rgba(96,165,250,.45); background: rgba(96,165,250,.1); }
+  .b-hyper { color: #f87171; border-color: rgba(248,113,113,.45); background: rgba(248,113,113,.1); }
+  .carcell { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .carcell img { width: 58px; height: 26px; object-fit: contain; }
+  .t-best { color: var(--a-green); font-family: var(--mono); font-weight: 700; text-decoration: underline dotted; text-underline-offset: 3px; }
+  .rank { font-family: var(--mono); }
+  .rank b { font-size: 1rem; }
+  .rank small { color: var(--a-muted); }
+  .topp { font-weight: 800; }
+  .gauge { position: relative; width: 190px; height: 8px; border-radius: 99px; background: linear-gradient(90deg, #22c55e, #a3e635 35%, #facc15 60%, #f97316 80%, #ef4444); opacity: .9; }
+  .gauge .me { position: absolute; top: -5px; width: 4px; height: 18px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 2px #0a0f1d; }
+  .gauge .med { position: absolute; top: -2px; width: 1px; height: 12px; background: #0a0f1d; }
+  .tier { display: inline-flex; padding: 2px 9px; border-radius: 999px; font-size: .72rem; font-weight: 700; }
+  .trend-up { color: var(--a-green); font-weight: 700; }
+  .trend-dn { color: var(--a-red); font-weight: 700; }
+  .gap { font-family: var(--mono); color: var(--a-muted); }
+  .open { color: #FFB400; text-decoration: none; font-weight: 600; font-size: .85rem; }
+  .pending td { color: var(--a-muted); }
+  .pbar { display: inline-block; width: 120px; height: 6px; border-radius: 99px; background: #1b2540; vertical-align: middle; margin-right: 8px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: #FFB400; }
+
+  .detail { display: grid; grid-template-columns: 300px 1.4fr 1fr; gap: 0; border-top: 1px solid var(--a-border); background: #0c1323; }
+  .detail > div { padding: 16px 18px; }
+  .detail > div + div { border-left: 1px solid var(--a-border); }
+  .detail h4 { margin: 0 0 2px; font-size: .95rem; }
+  .detail .sub { margin: 0 0 10px; color: var(--a-muted); font-size: .8rem; }
+  .dmap { height: 230px; display: grid; place-items: center; }
+  .dmap svg { width: 100%; height: 100%; }
+  .track-line { stroke: #e6ebf5; }
+  .track-glow { stroke: #FFB400; }
+  .track-sf { fill: #FFB400; }
+  #aHisto { width: 100%; height: 210px; display: block; }
+  #aHisto .bar { fill: rgba(74,222,128,.45); }
+  #aHisto .bar.lit { fill: #FFB400; }
+  #aHisto .axis { fill: var(--a-muted); font: 10px var(--mono); }
+  #aHisto .you { stroke: #FFB400; stroke-width: 2.5; }
+  #aHisto .you-l { fill: #FFB400; font: 800 11px var(--font); }
+  #aHisto .mark { stroke: var(--a-muted); stroke-dasharray: 3 4; }
+  #aHisto .mark-l { fill: var(--a-muted); font: 700 10px var(--font); }
+  .mini { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  .mini td { padding: 5px 6px; border-bottom: 1px solid #172139; white-space: nowrap; }
+  .mini tr.me td { background: rgba(255,180,0,.1); font-weight: 700; }
+  .mini tr.gapr td { color: var(--a-muted); text-align: center; border-bottom: 0; padding: 2px; }
+  .mini .tm { font-family: var(--mono); text-align: right; }
+  .dactions { display: flex; gap: 8px; margin-top: 12px; }
+  .abtn2 { padding: 7px 12px; border-radius: 8px; border: 1px solid var(--a-border); background: var(--a-card2); color: var(--a-text); font: 600 .8rem var(--font); text-decoration: none; }
+  .abtn2.pri { background: var(--a-orange); border-color: var(--a-orange); color: #fff; }
+  /* Ajustements de largeur (pas de débordement à 1280 px) */
+  .at th, .at td { padding: 9px 10px; }
+  .at td:nth-child(2) { white-space: normal; min-width: 190px; }
+  .gauge { width: 140px; }
+  .detail { grid-template-columns: 250px minmax(0, 1.35fr) minmax(0, 1fr); }
+  .detail > div { min-width: 0; }
+  .mini .tm { padding-right: 12px; }
+  .anav a.on { margin-right: 14px; }
+  .anav .new { top: -9px; right: -16px; }
+  @media (max-width: 1100px) { .tiles { grid-template-columns: repeat(2, 1fr); } .detail { grid-template-columns: 1fr; } .detail > div + div { border-left: 0; border-top: 1px solid var(--a-border); } .anav { display: none; } .group { overflow-x: auto; } }
+</style>
+</head>
+<body>
+
+<div class="mock-bar">
+  <strong>MAQUETTE · données fictives</strong>
+  <a href="index.html">1 · Site : accueil</a>
+  <a href="combo.html">2 · Site : Road Atlanta · GT3</a>
+  <a href="app-optin.html">3 · App : activation</a>
+  <a class="on" href="app-classement.html">4 · App : page Classement</a>
+</div>
+
+<header class="ahead">
+  <div class="alogo"><i>⚑</i>LMU Stats Viewer</div>
+  <nav class="anav">
+    <a href="#">Profil</a><a href="#">Records</a><a href="#">Sessions</a><a href="#">Références</a>
+    <a class="on" href="#">Classement<span class="new">NOUVEAU</span></a>
+    <a href="#">Setups</a><a href="#">Live</a><a href="#">Overlays</a><a href="#">Télémétrie</a><a href="#">Config</a>
+  </nav>
+  <div class="aright"><span>?</span><span>☀</span><span>🇫🇷 FR</span><span><span class="avatar">C</span><b>Cris Tof</b></span></div>
+</header>
+
+<main class="page">
+  <div class="ptitle">
+    <div>
+      <h1>Classement <span>communauté</span></h1>
+      <p>Vos positions parmi les pilotes LMU Stats Viewer, calculées toutes seules après chaque session · aussi sur <a href="index.html">lmu.cparfait.ovh ↗</a></p>
+    </div>
+    <div class="share-status"><span class="dot"></span><span><b>Partage activé</b> · 12 sessions partagées · sous le nom <b>Cris Tof</b></span></div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><span>Combos classés</span><b>9</b><small>sur 14 roulés</small><i>▦</i></div>
+    <div class="tile"><span>Meilleur classement</span><b>Top 4 %</b><small>Spa · LMP2 WEC</small><i>★</i></div>
+    <div class="tile"><span>Position moyenne</span><b>Top 38 %</b><small>tous combos</small><i>◎</i></div>
+    <div class="tile"><span>Progression 7 jours</span><b style="color:var(--a-green)">▲ 23 places</b><small>Road Atlanta · GT3</small><i>↗</i></div>
+    <div class="tile"><span>Pilotes dans la base</span><b>1&#8239;284</b><small>▲ 37 cette semaine</small><i>👥</i></div>
+  </div>
+
+  <div class="fbar">
+    <div class="fsel"><span>Circuit</span><b>Tous</b></div>
+    <div class="fsel"><span>Classe</span><b>Toutes</b></div>
+    <div class="fsel"><span>Voiture</span><b>Toutes</b></div>
+    <div class="fsel"><span>Version</span><b>1.42 (actuelle)</b></div>
+    <div class="fsel"><span>Conditions</span><b>Sec</b></div>
+    <div class="ftog">Seulement mes combos <span class="sw"></span></div>
+  </div>
+
+  <div class="banner">
+    <span>Vos positions par combo</span>
+    <span class="leg"><span><i style="background:#22c55e"></i>Votre meilleur tour</span><span><i style="background:#fff"></i>Vous</span><span><i style="background:#0a0f1d;border:1px solid #fff"></i>Médiane</span></span>
+  </div>
+
+  <!-- Road Atlanta : ligne dépliée avec le détail du combo -->
+  <div class="group">
+    <div class="ghead"><img src="../../public/flags/us.png" alt="">Michelin Raceway Road Atlanta <span class="cnt">2</span></div>
+    <table class="at">
+      <thead><tr><th>Classe</th><th>Voiture</th><th>Votre temps</th><th>Position</th><th>Top</th><th>Où vous êtes</th><th>Écart au 1er</th><th>Niveau</th><th>7 jours</th><th></th></tr></thead>
+      <tbody>
+        <tr class="sel">
+          <td><span class="badge b-gt3">GT3</span></td>
+          <td><div class="carcell"><img src="../../public/cars/lamborghini-huracan-lmgt3-evo-2.png" alt="">Lamborghini Huracán LMGT3 Evo2</div></td>
+          <td class="t-best">1:21.480</td>
+          <td class="rank"><b id="rkRA">—</b> <small>/ 212</small></td>
+          <td class="topp" id="tpRA">—</td>
+          <td><div class="gauge"><div class="med" style="left:50%"></div><div class="me" id="gRA"></div></div></td>
+          <td class="gap" id="gpRA">—</td>
+          <td><span class="tier" style="color:#00c896;background:rgba(0,200,150,.14)">Bon</span></td>
+          <td class="trend-up">▲ 23</td>
+          <td><a class="open" href="#">Replier ▴</a></td>
+        </tr>
+        <tr><td colspan="10" style="padding:0">
+          <div class="detail">
+            <div>
+              <h4>Road Atlanta · GT3</h4>
+              <p class="sub">212 pilotes · version 1.42 · sec</p>
+              <div class="dmap" data-track="roadAtlanta" data-pad="6"></div>
+            </div>
+            <div>
+              <h4>Répartition des meilleurs tours</h4>
+              <p class="sub">Votre place parmi les 212 pilotes du combo</p>
+              <svg id="aHisto"></svg>
+            </div>
+            <div>
+              <h4>Autour de vous</h4>
+              <p class="sub">Le podium, puis les pilotes juste devant et derrière</p>
+              <table class="mini" id="around"></table>
+              <div class="dactions">
+                <a class="abtn2 pri" href="combo.html">Voir le classement complet</a>
+                <a class="abtn2" href="#">Partager</a>
+              </div>
+            </div>
+          </div>
+        </td></tr>
+        <tr class="pending">
+          <td><span class="badge b-lmp2">LMP2 WEC</span></td>
+          <td><div class="carcell"><img src="../../public/cars/oreca-07-gibson.png" alt="">Oreca 07</div></td>
+          <td class="t-best">1:13.905</td>
+          <td colspan="6"><span class="pbar"><i style="width:70%"></i></span>Pas encore assez de pilotes pour classer : 14 / 20 · votre temps est déjà compté</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="group">
+    <div class="ghead"><img src="../../public/flags/be.png" alt="">Circuit de Spa-Francorchamps <span class="cnt">2</span></div>
+    <table class="at">
+      <thead><tr><th>Classe</th><th>Voiture</th><th>Votre temps</th><th>Position</th><th>Top</th><th>Où vous êtes</th><th>Écart au 1er</th><th>Niveau</th><th>7 jours</th><th></th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-lmp2">LMP2 WEC</span></td>
+          <td><div class="carcell"><img src="../../public/cars/oreca-07-gibson.png" alt="">Oreca 07</div></td>
+          <td class="t-best">2:02.918</td>
+          <td class="rank"><b>19</b> <small>/ 486</small></td>
+          <td class="topp" style="color:var(--a-green)">Top 4 %</td>
+          <td><div class="gauge"><div class="med" style="left:50%"></div><div class="me" style="left:4%"></div></div></td>
+          <td class="gap">+1.204</td>
+          <td><span class="tier" style="color:#f97316;background:rgba(249,115,22,.14)">Compétitif</span></td>
+          <td class="trend-up">▲ 2</td>
+          <td><a class="open" href="#">Détail ▾</a></td>
+        </tr>
+        <tr>
+          <td><span class="badge b-gt3">GT3</span></td>
+          <td><div class="carcell"><img src="../../public/cars/bmw-m4-lmgt3.png" alt="">BMW M4 LMGT3</div></td>
+          <td class="t-best">2:18.664</td>
+          <td class="rank"><b>341</b> <small>/ 702</small></td>
+          <td class="topp">Top 49 %</td>
+          <td><div class="gauge"><div class="med" style="left:50%"></div><div class="me" style="left:48.6%"></div></div></td>
+          <td class="gap">+3.981</td>
+          <td><span class="tier" style="color:#00c896;background:rgba(0,200,150,.14)">Bon</span></td>
+          <td class="trend-dn">▼ 11</td>
+          <td><a class="open" href="#">Détail ▾</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="group">
+    <div class="ghead"><img src="../../public/flags/it.png" alt="">Autodromo Nazionale Monza <span class="cnt">1</span></div>
+    <table class="at">
+      <thead><tr><th>Classe</th><th>Voiture</th><th>Votre temps</th><th>Position</th><th>Top</th><th>Où vous êtes</th><th>Écart au 1er</th><th>Niveau</th><th>7 jours</th><th></th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-hyper">HYPER</span></td>
+          <td><div class="carcell"><img src="../../public/cars/peugeot-9x8.png" alt="">Peugeot 9X8</div></td>
+          <td class="t-best">1:36.210</td>
+          <td class="rank"><b>77</b> <small>/ 391</small></td>
+          <td class="topp">Top 20 %</td>
+          <td><div class="gauge"><div class="med" style="left:50%"></div><div class="me" style="left:19.7%"></div></div></td>
+          <td class="gap">+2.448</td>
+          <td><span class="tier" style="color:#00c896;background:rgba(0,200,150,.14)">Bon</span></td>
+          <td class="muted" style="color:var(--a-muted)">=</td>
+          <td><a class="open" href="#">Détail ▾</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script src="tracks.js?v=6"></script>
+<script src="mock.js?v=6"></script>
+<script>
+  // Road Atlanta · GT3 : même distribution fictive que la page du site (graine 42).
+  (function () {
+    const r = rng(42), BEST = 77.842, N = 212, ME = 81.48;
+    const times = [BEST];
+    while (times.length < N) { const t = BEST + 0.12 + Math.exp(Math.log(3.6) + 0.42 * gauss(r)); if (t < 92) times.push(t); }
+    times.sort((a, b) => a - b);
+    const ahead = times.filter((x) => x < ME).length, rank = ahead + 1, top = Math.round(rank / N * 100);
+    document.getElementById("rkRA").textContent = rank;
+    document.getElementById("tpRA").textContent = `Top ${top} %`;
+    document.getElementById("gRA").style.left = `calc(${rank / N * 100}% - 2px)`;
+    document.getElementById("gpRA").textContent = "+" + (ME - BEST).toFixed(3);
+
+    // Histogramme + marqueur « VOUS »
+    const svg = document.getElementById("aHisto");
+    const W = 640, H = 210, L = 30, R = 10, T = 22, B = 26, lo = 77.5, hi = 90, bw = 0.5;
+    const bins = []; for (let x = lo; x < hi; x += bw) bins.push({ x, n: times.filter((t) => t >= x && t < x + bw).length });
+    const maxN = Math.max(...bins.map((b) => b.n));
+    const sx = (t) => L + (t - lo) / (hi - lo) * (W - L - R), sy = (n) => H - B - n / maxN * (H - B - T);
+    const q = (p) => times[Math.floor(p * (N - 1))];
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    let h = bins.map((b) => `<rect class="bar ${ME >= b.x && ME < b.x + bw ? "lit" : ""}" x="${sx(b.x) + 1.5}" y="${sy(b.n)}" width="${sx(b.x + bw) - sx(b.x) - 3}" height="${H - B - sy(b.n)}" rx="2"/>`).join("");
+    for (let t = 78; t <= 90; t += 2) h += `<text class="axis" x="${sx(t)}" y="${H - 8}" text-anchor="middle">${fmt(t).slice(0, 4)}</text>`;
+    [["p10", .1], ["médiane", .5], ["p90", .9]].forEach(([l, p]) => { const x = sx(q(p)); h += `<line class="mark" x1="${x}" x2="${x}" y1="${T - 4}" y2="${H - B}"/><text class="mark-l" x="${x + 3}" y="${T + 4}">${l}</text>`; });
+    const x = sx(ME); h += `<line class="you" x1="${x}" x2="${x}" y1="${T + 12}" y2="${H - B}"/><text class="you-l" x="${x}" y="${T + 8}" text-anchor="middle">VOUS</text>`;
+    svg.innerHTML = h;
+
+    // Autour de vous : podium + voisins
+    const names = ["M. Lindqvist", "Théo Marchal", "Pilote #a3f9"];
+    const around = [];
+    for (let i = 0; i < 3; i++) around.push([i + 1, names[i], times[i]]);
+    around.push(null);
+    const nb = ["Hugo Lefèvre", "Pilote #19be", null, "Mateo Sanz", "R. Okafor"];
+    for (let k = -2; k <= 2; k++) around.push([rank + k, k === 0 ? "Cris Tof" : nb[k + 2], k === 0 ? ME : times[rank - 1 + k]]);
+    document.getElementById("around").innerHTML = around.map((row) => row === null
+      ? `<tr class="gapr"><td colspan="3">⋯</td></tr>`
+      : `<tr class="${row[1] === "Cris Tof" ? "me" : ""}"><td class="mono">${row[0]}</td><td>${row[1]}${row[1] === "Cris Tof" ? " (vous)" : ""}</td><td class="tm">${fmt(row[2])}</td></tr>`).join("");
+  })();
+</script>
+</body>
+</html>

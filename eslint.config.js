@@ -5,8 +5,9 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  // Dossiers ignorés (build front, backend Rust, dépendances).
-  { ignores: ["dist", "src-tauri", "node_modules"] },
+  // Dossiers ignorés (build front, backend Rust, dépendances, service communautaire
+  // — projet Node à part, vérifié par son propre `npm run typecheck`).
+  { ignores: ["dist", "src-tauri", "node_modules", "community"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

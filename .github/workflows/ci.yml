@@ -46,3 +46,31 @@ jobs:
 
       - name: Coach tests
         run: npm test
+
+  # Service communautaire (community/ : API + site de lmu.cparfait.ovh). Tests sur un
+  # vrai Postgres embarqué (PGlite) : rien à provisionner. Le déploiement sur le VPS
+  # reste manuel (cf. community/README.md).
+  community:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: community
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: community/package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test

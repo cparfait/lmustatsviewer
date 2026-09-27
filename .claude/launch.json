@@ -9,6 +9,18 @@
         "dev"
       ],
       "port": 5173
+    },
+    {
+      "name": "mockups",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5180",
+        "--bind",
+        "127.0.0.1"
+      ],
+      "port": 5180
     }
   ]
 }

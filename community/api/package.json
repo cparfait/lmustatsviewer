@@ -1,0 +1,31 @@
+{
+  "name": "lmu-community-api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "API du service communautaire LMU Stats Viewer (lmu.cparfait.ovh)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/api/src/index.js",
+    "admin": "node dist/api/src/admin.js"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "hono": "^4.13.9",
+    "pg": "^8.23.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/node": "^22.20.4",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9"
+  }
+}

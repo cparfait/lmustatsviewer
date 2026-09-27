@@ -912,6 +912,12 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   version, date en faisant défiler). Le panneau « Zones de freinage — Bientôt » garde son tracé
   (la fonction en a besoin). `mapFallback` et la clé `noOutline`, devenus inutiles, retirés.
   Assets `?v=32`.
+- ✅ **Secteurs sur l'accueil** (demande mainteneur « il y a de la place ») : colonnes S1 / S2 / S3 du
+  **tour record** dans le bloc perf de chaque carte circuit, en violet quand c'est aussi le meilleur
+  secteur du classement (comme la page du classement). Serveur : `GET /combos` renvoie `s1..s3`
+  (tour record) et `best_s1..best_s3` (meilleur secteur parmi les meilleurs tours des pilotes) ;
+  test ajouté (somme des secteurs = temps, meilleurs ≤ record), 28/28. Mobile : secteurs masqués.
+  ⚠️ Nécessite la mise à jour du serveur (sans elle, les colonnes affichent « — »). Assets `?v=33`.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

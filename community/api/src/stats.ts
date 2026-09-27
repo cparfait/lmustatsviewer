@@ -290,9 +290,18 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
     drivers: number;
     best: number;
     best_car: string;
+    /** Secteurs du tour record (null si le jeu ne les a pas écrits). */
+    s1: number | null;
+    s2: number | null;
+    s3: number | null;
+    /** Meilleur secteur parmi les meilleurs tours des pilotes (violet sur le site). */
+    best_s1: number | null;
+    best_s2: number | null;
+    best_s3: number | null;
   }>(
     `with e as (
-       select s.track, s.track_course, s.car_class, s.game_minor, s.install_id, s.best_time, s.car_model
+       select s.track, s.track_course, s.car_class, s.game_minor, s.install_id, s.best_time, s.car_model,
+              s.s1, s.s2, s.s3
        from sessions s join installs i on i.id = s.install_id
        where ${el}
      ), latest as (
@@ -304,7 +313,11 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
      )
      select track, track_course, car_class, max(game_minor) as version,
             count(*)::int as drivers, min(best_time) as best,
-            (array_agg(car_model order by best_time))[1] as best_car
+            (array_agg(car_model order by best_time))[1] as best_car,
+            (array_agg(s1 order by best_time))[1] as s1,
+            (array_agg(s2 order by best_time))[1] as s2,
+            (array_agg(s3 order by best_time))[1] as s3,
+            min(s1) as best_s1, min(s2) as best_s2, min(s3) as best_s3
      from b group by 1, 2, 3
      order by drivers desc, track, track_course, car_class`,
     params,

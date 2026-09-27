@@ -12,6 +12,8 @@ const classRank = (c) => {
   return i < 0 ? CLASS_ORDER.length : i;
 };
 const PERSON_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+// Secteurs du tour record ; en violet quand c'est aussi le meilleur secteur du classement.
+const SECTORS = ["s1", "s2", "s3"];
 const CHEVRON_SVG = '<svg class="cg-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const byClass = (a, b) => classRank(a) - classRank(b) || a.localeCompare(b);
 const comboUrl = (c) =>
@@ -168,8 +170,8 @@ syncSegs();
     // Fréquentation : relative au classement le plus roulé de la même classe.
     const classMax = new Map();
     for (const c of rows) classMax.set(c.car_class, Math.max(classMax.get(c.car_class) ?? 1, c.drivers));
-    const head = `<colgroup><col class="c-class"><col><col class="c-time"><col class="c-drv"><col class="c-pop"><col class="c-ver"><col class="c-go"></colgroup>
-      <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.recordCar"))}</th><th class="perf sep r">${esc(t("kpi.best"))}</th><th class="perf c">${esc(t("stat.drivers"))}</th><th class="perf">${esc(t("col.pop"))}</th><th class="sep c">${esc(t("col.version"))}</th><th></th></tr></thead>`;
+    const head = `<colgroup><col class="c-class"><col><col class="c-time"><col class="c-sec"><col class="c-sec"><col class="c-sec"><col class="c-drv"><col class="c-pop"><col class="c-ver"><col class="c-go"></colgroup>
+      <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.recordCar"))}</th><th class="perf sep r">${esc(t("kpi.best"))}</th><th class="perf r">S1</th><th class="perf r">S2</th><th class="perf r">S3</th><th class="perf c">${esc(t("stat.drivers"))}</th><th class="perf">${esc(t("col.pop"))}</th><th class="sep c">${esc(t("col.version"))}</th><th></th></tr></thead>`;
     return groups
       .map((g) => {
         const open = !collapsed.has(g.track);
@@ -186,6 +188,7 @@ syncSegs();
             <td>${classBadge(c.car_class)}</td>
             <td><div class="car"><span class="logo-slot">${carImg(c.best_car)}</span><span class="car-txt"><span>${esc(c.best_car)}</span>${c.track_course !== c.track ? `<small class="muted">${esc(c.track_course)}</small>` : ""}</span></div></td>
             <td class="perf sep r best-t mono">${fmtTime(c.best)}</td>
+            ${SECTORS.map((k) => `<td class="perf r mono sec${c[k] != null && c[k] === c[`best_${k}`] ? " pb" : ""}">${c[k] != null ? c[k].toFixed(3) : "—"}</td>`).join("")}
             <td class="perf c mono" title="${esc(`${fmtNum(c.drivers)} ${driversWord(c.drivers)}`)}"><span class="drv-n">${PERSON_SVG}<b>${fmtNum(c.drivers)}</b></span></td>
             <td class="perf">${pop}</td>
             <td class="sep c"><span class="ver">v${esc(c.version)}</span></td>

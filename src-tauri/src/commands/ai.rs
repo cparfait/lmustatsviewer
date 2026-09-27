@@ -62,7 +62,7 @@ fn from_hex(s: &str) -> Option<Vec<u8>> {
         .collect()
 }
 
-fn encrypt_key(plain: &str) -> Result<String, AppError> {
+pub(crate) fn encrypt_key(plain: &str) -> Result<String, AppError> {
     use ring::aead::{Aad, LessSafeKey, Nonce, UnboundKey, AES_256_GCM, NONCE_LEN};
     use ring::rand::{SecureRandom, SystemRandom};
     let unbound = UnboundKey::new(&AES_256_GCM, &machine_key())
@@ -84,7 +84,7 @@ fn encrypt_key(plain: &str) -> Result<String, AppError> {
     Ok(to_hex(&out))
 }
 
-fn decrypt_key(hex: &str) -> Result<String, AppError> {
+pub(crate) fn decrypt_key(hex: &str) -> Result<String, AppError> {
     use ring::aead::{Aad, LessSafeKey, Nonce, UnboundKey, AES_256_GCM, NONCE_LEN};
     let bytes = from_hex(hex).ok_or_else(|| AppError::Internal("hex".into()))?;
     if bytes.len() <= NONCE_LEN {

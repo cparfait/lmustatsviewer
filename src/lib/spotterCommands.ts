@@ -28,6 +28,21 @@ export type Intent =
   | "weather"
   | "pit"
   | "rival"
+  | "ahead"
+  | "behind"
+  | "classLeader"
+  | "closing"
+  | "traffic"
+  | "forecast"
+  | "tyreTemp"
+  | "brakeBias"
+  | "battery"
+  | "sessionBest"
+  | "pitWindow"
+  | "stops"
+  | "ackBox"
+  | "stayOut"
+  | "watchCancel"
   | "repeat"
   | "mute";
 
@@ -44,6 +59,21 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     weather: ["météo", "pluie", "temps", "température"],
     pit: ["stand", "aux stands", "si je rentre", "arrêt", "si je m'arrête", "pit"],
     rival: ["rival", "bagarre", "bataille", "adversaire", "duel"],
+    ahead: ["qui est devant", "voiture devant", "pilote devant"],
+    behind: ["qui est derrière", "voiture derrière", "pilote derrière"],
+    classLeader: ["qui mène", "qui est premier", "leader de ma classe", "premier de ma classe"],
+    closing: ["je reviens", "est-ce que je reviens", "je rattrape", "il revient"],
+    traffic: ["trafic", "retardataires", "quand je rattrape le trafic"],
+    forecast: ["prévisions", "prévision météo", "va-t-il pleuvoir"],
+    tyreTemp: ["température des pneus", "température pneus"],
+    brakeBias: ["répartition", "répartition de freinage"],
+    battery: ["batterie", "énergie", "hybride"],
+    sessionBest: ["meilleur tour de la session", "meilleur temps de la session"],
+    pitWindow: ["quand m'arrêter", "quand je m'arrête", "fenêtre d'arrêt", "jusqu'à quand"],
+    stops: ["combien d'arrêts", "nombre d'arrêts"],
+    ackBox: ["compris", "reçu", "bien reçu", "je rentre"],
+    stayOut: ["je reste dehors", "on reste dehors"],
+    watchCancel: ["annule les alertes", "oublie les alertes"],
     repeat: ["répète", "répéter", "redis", "quoi"],
     mute: ["silence", "tais-toi", "mute", "coupe", "active le son"],
   },
@@ -58,6 +88,21 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     weather: ["weather", "rain", "temperature", "is it raining"],
     pit: ["pit", "pit stop", "if i pit", "box", "should i pit", "pit now"],
     rival: ["rival", "battle", "who am i racing", "fight", "duel"],
+    ahead: ["who is ahead", "car ahead", "who's in front"],
+    behind: ["who is behind", "car behind"],
+    classLeader: ["who is leading", "class leader", "who is first"],
+    closing: ["am i catching", "am i closing", "is he catching"],
+    traffic: ["traffic", "backmarkers", "slower cars"],
+    forecast: ["forecast", "weather forecast", "will it rain"],
+    tyreTemp: ["tyre temperature", "tire temperature", "tyre temps"],
+    brakeBias: ["brake bias", "brake balance"],
+    battery: ["battery", "energy", "hybrid"],
+    sessionBest: ["session best", "fastest lap", "best lap of the session"],
+    pitWindow: ["when do i pit", "pit window", "when should i pit"],
+    stops: ["how many stops", "number of stops"],
+    ackBox: ["copy", "copy that", "understood", "roger"],
+    stayOut: ["staying out", "i'm staying out", "stay out"],
+    watchCancel: ["cancel alerts", "clear alerts"],
     repeat: ["repeat", "say again", "what", "again"],
     mute: ["mute", "quiet", "shut up", "silence", "unmute"],
   },
@@ -72,6 +117,21 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     weather: ["clima", "lluvia", "tiempo", "temperatura"],
     pit: ["boxes", "entrar a boxes", "parada", "si entro", "pit"],
     rival: ["rival", "batalla", "pelea", "adversario", "duelo"],
+    ahead: ["quién va delante", "coche de delante"],
+    behind: ["quién va detrás", "coche de detrás"],
+    classLeader: ["quién lidera", "quién va primero", "líder de mi clase"],
+    closing: ["le estoy alcanzando", "me acerco", "se acerca"],
+    traffic: ["tráfico", "doblados", "coches lentos"],
+    forecast: ["pronóstico", "va a llover", "previsión"],
+    tyreTemp: ["temperatura de neumáticos", "temperatura neumáticos"],
+    brakeBias: ["reparto de frenada", "reparto de frenos"],
+    battery: ["batería", "energía", "híbrido"],
+    sessionBest: ["mejor vuelta de la sesión", "vuelta rápida"],
+    pitWindow: ["cuándo paro", "ventana de parada", "cuándo entro"],
+    stops: ["cuántas paradas", "número de paradas"],
+    ackBox: ["entendido", "recibido", "copiado"],
+    stayOut: ["me quedo fuera", "sigo en pista"],
+    watchCancel: ["cancela las alertas", "borra las alertas"],
     repeat: ["repite", "repetir", "otra vez", "qué"],
     mute: ["silencio", "cállate", "calla", "activa el sonido"],
   },
@@ -86,6 +146,21 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     weather: ["wetter", "regen", "temperatur"],
     pit: ["box", "boxenstopp", "wenn ich reinkomme", "boxen", "pit"],
     rival: ["rivale", "duell", "kampf", "gegner"],
+    ahead: ["wer ist vor mir", "auto vor mir"],
+    behind: ["wer ist hinter mir", "auto hinter mir"],
+    classLeader: ["wer führt", "wer ist erster", "klassenführer"],
+    closing: ["hole ich auf", "komme ich ran", "holt er auf"],
+    traffic: ["verkehr", "überrundete", "langsamere autos"],
+    forecast: ["vorhersage", "wettervorhersage", "wird es regnen"],
+    tyreTemp: ["reifentemperatur", "temperatur der reifen"],
+    brakeBias: ["bremsbalance", "bremsverteilung"],
+    battery: ["batterie", "energie", "hybrid"],
+    sessionBest: ["schnellste runde", "bestzeit der session"],
+    pitWindow: ["wann komme ich rein", "boxenfenster", "wann muss ich rein"],
+    stops: ["wie viele stopps", "anzahl der stopps"],
+    ackBox: ["verstanden", "roger", "kopiert"],
+    stayOut: ["ich bleibe draußen", "bleibe draußen"],
+    watchCancel: ["alarme löschen", "alarme abbrechen"],
     repeat: ["wiederhole", "noch mal", "was"],
     mute: ["stumm", "ruhe", "halt den mund", "ton an"],
   },
@@ -93,6 +168,21 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
 
 /** Ordre de test : intentions spécifiques d'abord (évite qu'un mot court masque). */
 const INTENT_ORDER: Intent[] = [
+  "watchCancel",
+  "stayOut",
+  "ackBox",
+  "sessionBest",
+  "pitWindow",
+  "stops",
+  "tyreTemp",
+  "forecast",
+  "classLeader",
+  "closing",
+  "traffic",
+  "battery",
+  "brakeBias",
+  "ahead",
+  "behind",
   "remaining",
   "weather",
   "pit",
@@ -119,6 +209,21 @@ export const INTENTS: Intent[] = [
   "weather",
   "pit",
   "rival",
+  "ahead",
+  "behind",
+  "classLeader",
+  "closing",
+  "traffic",
+  "pitWindow",
+  "stops",
+  "forecast",
+  "tyreTemp",
+  "brakeBias",
+  "battery",
+  "sessionBest",
+  "ackBox",
+  "stayOut",
+  "watchCancel",
   "repeat",
   "mute",
 ];

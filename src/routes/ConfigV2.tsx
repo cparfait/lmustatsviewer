@@ -72,6 +72,7 @@ import {
   MessagesSquare,
   Disc,
   Upload,
+  Users,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
@@ -99,8 +100,9 @@ import {
   previewVoice,
   speechSupported,
   announce,
+  compareRadioStyles,
 } from "@/lib/voice";
-import { MAX_VOICE_VOLUME } from "@/lib/radioFx";
+import { MAX_VOICE_VOLUME, pttBeep } from "@/lib/radioFx";
 import { VoiceMessagesModal } from "@/components/VoiceMessagesModal";
 import { VoiceIntroModal } from "@/components/VoiceIntroModal";
 import { SpotterCommandsModal } from "@/components/SpotterCommandsModal";
@@ -115,6 +117,7 @@ import { AiModelPicker } from "@/components/AiModelPicker";
 import { AiProvidersPanel } from "@/components/AiProvidersPanel";
 import { VoiceCoachConfig } from "@/components/VoiceCoachConfig";
 import { AiCoachHelpModal } from "@/components/AiCoachHelpModal";
+import { CommunitySettings } from "@/components/CommunitySettings";
 
 /** Clé effective d'un fournisseur : propre au custom, sinon créneau global. */
 function aiEffectiveKey(id: string): string {
@@ -170,6 +173,7 @@ type CatId =
   | "display"
   | "voice"
   | "coach"
+  | "community"
   | "maintenance"
   | "credits";
 
@@ -178,6 +182,7 @@ const SIDEBAR: { id: CatId; icon: typeof User; labelKey: string }[] = [
   { id: "display", icon: Settings2, labelKey: "config.preferences" },
   { id: "voice", icon: Volume2, labelKey: "config.audioVoice" },
   { id: "coach", icon: Brain, labelKey: "config.aiCoach" },
+  { id: "community", icon: Users, labelKey: "config.community" },
   { id: "maintenance", icon: Wrench, labelKey: "config.maintenance" },
   { id: "credits", icon: Heart, labelKey: "config.credits" },
 ];
@@ -186,7 +191,11 @@ export function ConfigV2() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
 
-  const [cat, setCat] = useState<CatId>("profile");
+  // Catégorie ouvrable par lien direct (`/config?cat=community`).
+  const [cat, setCat] = useState<CatId>(() => {
+    const wanted = new URLSearchParams(window.location.search).get("cat");
+    return SIDEBAR.find((c) => c.id === wanted)?.id ?? "profile";
+  });
 
   const playerName = useAppStore((s) => s.playerName);
   const lmuPath = useAppStore((s) => s.lmuPath);
@@ -246,6 +255,12 @@ export function ConfigV2() {
   const aiModel = useAppStore((s) => s.aiModel);
   const aiSystemPromptByLang = useAppStore((s) => s.aiSystemPromptByLang);
   const spotterKeyCoach = useAppStore((s) => s.spotterKeyCoach);
+  const radioMode = useAppStore((s) => s.radioMode);
+  const localAnswers = useAppStore((s) => s.localAnswers);
+  const announceEverywhere = useAppStore((s) => s.announceEverywhere);
+  const radioStyleSetting = useAppStore((s) => s.radioStyle);
+  const pttBeeps = useAppStore((s) => s.pttBeeps);
+  const [comparing, setComparing] = useState<"classic" | "pitwall" | null>(null);
   const indexing = useAppStore((s) => s.indexing);
   const indexReport = useAppStore((s) => s.indexReport);
 
@@ -1146,6 +1161,56 @@ export function ConfigV2() {
                     onInstalled={() => setAssetsVersion((v) => v + 1)}
                   />
                 )}
+                {/* Débit des annonces : ingénieur (arbitré) ou complet (historique).
+                    Mêmes annonces dans les deux modes — seul le filtrage change. */}
+                {voiceAnnouncements && (
+                  <div className="flex items-center justify-between py-2 gap-3">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <Tip content={t("config.radioModeTip")} side="right">
+                        <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+                          <Radio className="h-4 w-4" />
+                        </span>
+                      </Tip>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium leading-tight">
+                          {t("config.radioMode")}
+                        </div>
+                        <div className="text-xs text-muted-foreground/80 mt-0.5">
+                          {radioMode === "engineer"
+                            ? t("config.radioModeEngineerDesc")
+                            : t("config.radioModeFullDesc")}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex rounded-md border border-input overflow-hidden shrink-0">
+                      {(["engineer", "full"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => void useAppStore.getState().setRadioMode(m)}
+                          className={cn(
+                            "px-2.5 py-1 text-xs transition-colors",
+                            radioMode === m
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-transparent hover:bg-accent",
+                          )}
+                        >
+                          {t(m === "engineer" ? "config.radioModeEngineer" : "config.radioModeFull")}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {voiceAnnouncements && (
+                  <ToggleRow
+                    icon={<Monitor className="h-4 w-4" />}
+                    label={t("config.announceEverywhere")}
+                    desc={t("config.announceEverywhereDesc")}
+                    tip={t("config.announceEverywhereTip")}
+                    checked={announceEverywhere}
+                    onChange={(v) => void useAppStore.getState().setAnnounceEverywhere(v)}
+                  />
+                )}
                 {/* Coach par virage — modes avancés (mêmes réglages que Config V1,
                     gated sur les annonces vocales). Intertitre pour distinguer ce
                     coach déterministe du Coach IA (onglet dédié, LLM). */}
@@ -1549,6 +1614,80 @@ export function ConfigV2() {
                             onCheckedChange={(v) =>
                               useAppStore.getState().setVoiceRadio(v)
                             }
+                            className="shrink-0"
+                          />
+                        </div>
+                        {/* Profil de l'effet radio + comparaison à l'écoute (A puis B). */}
+                        {voiceRadio && (
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium leading-tight">
+                                {t("config.radioStyle")}
+                              </div>
+                              <div className="text-xs text-muted-foreground/80 mt-0.5">
+                                {voiceEngine === "piper"
+                                  ? t("config.radioStyleDesc")
+                                  : t("config.radioStylePiperOnly")}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="flex rounded-md border border-input overflow-hidden">
+                                {(["pitwall", "classic"] as const).map((s) => (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => void useAppStore.getState().setRadioStyleSetting(s)}
+                                    className={cn(
+                                      "px-2.5 py-1 text-xs transition-colors",
+                                      radioStyleSetting === s
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-transparent hover:bg-accent",
+                                    )}
+                                  >
+                                    {t(s === "classic" ? "config.radioStyleClassic" : "config.radioStylePitwall")}
+                                  </button>
+                                ))}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={comparing !== null || voiceEngine !== "piper"}
+                                onClick={() =>
+                                  compareRadioStyles(
+                                    t("config.radioCompareSample"),
+                                    i18n.language,
+                                    setComparing,
+                                  )
+                                }
+                              >
+                                {comparing === "classic"
+                                  ? t("config.radioComparingA")
+                                  : comparing === "pitwall"
+                                    ? t("config.radioComparingB")
+                                    : t("config.radioCompare")}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {/* Bips du push-to-talk (ouverture 1000 Hz / envoi 700 Hz). */}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium leading-tight">
+                              {t("config.pttBeeps")}
+                            </div>
+                            <div className="text-xs text-muted-foreground/80 mt-0.5">
+                              {t("config.pttBeepsDesc")}
+                            </div>
+                          </div>
+                          <Switch
+                            checked={pttBeeps}
+                            onCheckedChange={(v) => {
+                              void useAppStore.getState().setPttBeeps(v);
+                              if (v) {
+                                pttBeep("open");
+                                setTimeout(() => pttBeep("send"), 450);
+                              }
+                            }}
                             className="shrink-0"
                           />
                         </div>
@@ -1973,6 +2112,14 @@ export function ConfigV2() {
                       <p className="text-xs text-muted-foreground/70">
                         {t("config.aiVoiceKeyDesc")}
                       </p>
+                      <ToggleRow
+                        icon={<Zap className="h-4 w-4" />}
+                        label={t("config.localAnswers")}
+                        desc={t("config.localAnswersDesc")}
+                        tip={t("config.localAnswersTip")}
+                        checked={localAnswers}
+                        onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
+                      />
                     </div>
                     <Separator />
                     <div className="flex items-center justify-end gap-2 py-2">
@@ -2223,6 +2370,9 @@ export function ConfigV2() {
                 )}
               </div>
             )}
+
+            {/* ── Communauté (partage des meilleurs tours, opt-in) ── */}
+            {cat === "community" && <CommunitySettings />}
 
             {/* ── Crédits ── */}
             {cat === "credits" && (

@@ -120,6 +120,38 @@ export async function askCoachVoice(args: {
 }
 
 /**
+ * Aiguillage d'une question ambiguë : le modèle **choisit seulement** une
+ * intention dans la liste fermée (identifiant), il ne répond pas. La réponse
+ * reste calculée en code → aucun chiffre ne transite par le modèle, sortie de
+ * quelques tokens (rapide, quasi gratuit). `null` si le modèle ne tranche pas.
+ */
+export async function classifyIntent(args: {
+  provider: AIProvider;
+  model: string;
+  apiKey: string;
+  question: string;
+  /** Identifiant → description courte (anglais). */
+  intents: Record<string, string>;
+}): Promise<string | null> {
+  const { provider, model, apiKey, question, intents } = args;
+  const ids = Object.keys(intents);
+  if (!ids.length) return null;
+  const list = ids.map((id) => `- ${id}: ${intents[id]}`).join("\n");
+  const messages: AIMessage[] = [
+    {
+      role: "system",
+      content:
+        "You route a race driver's radio question to exactly ONE intent id from the list. " +
+        "Reply with the id only (no punctuation, no explanation), or the word none if nothing fits.",
+    },
+    { role: "user", content: `Intents:\n${list}\n\nQuestion: ${question.trim()}` },
+  ];
+  const raw = await chat(provider, model, apiKey, messages, 16);
+  const word = raw.trim().split(/\s+/)[0]?.replace(/[^A-Za-z]/g, "").toLowerCase() ?? "";
+  return ids.find((id) => id.toLowerCase() === word) ?? null;
+}
+
+/**
  * Conversation en **streaming** : relaie les tokens via `onToken` au fur et à
  * mesure (events Tauri émis par `ai_chat_stream`). Renvoie le texte complet.
  */

@@ -23,7 +23,7 @@ const RIVAL_MAX_GAP = 3;
 /** Temps au tour en forme parlée : « une minute 23.456 » / « 23.456 secondes »
  *  (millièmes inclus pour une annonce précise). « 1 » est remplacé par sa forme
  *  parlée localisée (`vMinOne`) — en français le TTS disait « un minute ». */
-function lapVoice(s: number, t: Tr): string {
+export function lapVoice(s: number, t: Tr): string {
   if (!s || s <= 0 || !isFinite(s)) return "";
   const m = Math.floor(s / 60);
   const sec = (s - m * 60).toFixed(3);

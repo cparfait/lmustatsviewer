@@ -247,8 +247,12 @@ function fadeStatic(c: AudioContext, when: number) {
   staticGain = null;
 }
 
-/** Début de transmission : clic + bip d'ouverture + souffle entrant. */
-export function radioStart() {
+/**
+ * Début de transmission : clic + bip d'ouverture + souffle entrant. `withStatic`
+ * à false (profil « Radio stand », souffle déjà dans le tampon de voix) : bips
+ * seuls, sans lit de souffle.
+ */
+export function radioStart(withStatic = true) {
   if (!enabled) return;
   const c = ac();
   if (!c) return;
@@ -257,7 +261,7 @@ export function radioStart() {
   beep(c, 1500, t0 + 0.02, 0.07, 0.1);
   // Lit de souffle discret sous la voix (le « côté casque ») — niveau bas pour ne
   // pas couvrir la parole ; démarre avec la voix (~130 ms après le bip).
-  startStatic(c, t0 + 0.13, 0.02);
+  if (withStatic) startStatic(c, t0 + 0.13, 0.02);
 }
 
 /** Fin de transmission : « roger beep » double + fondu du souffle. */
@@ -284,4 +288,147 @@ export function radioInterrupt() {
 /** Coupe immédiatement toute l'ambiance (désactivation / changement de session). */
 export function cancelRadio() {
   stopStaticNow();
+}
+
+// ── Profil « Radio stand » (défaut) ──────────────────────────────────────────
+// Habillage appliqué d'un bloc au tampon de voix Piper avant lecture (le cache
+// garde la voix nue) :
+//   1. passe-bande 250–4800 Hz (bords raides : 2 biquads par côté) ;
+//   2. crête normalisée → saturation tanh (drive 2,6) → rattrapage à 0,9 de crête ;
+//   3. souffle : bruit gaussien passé dans le même passe-bande, niveau 0,02 ;
+//   4. squelch : clic de 30 ms (bruit filtré, amplitude 0,06, rampe) + 30 ms de
+//      silence avant la voix, et l'inverse après.
+// Les bips radio (ouverture + « roger beep ») sont conservés ; seul le lit de
+// souffle continu du profil classique est retiré (le souffle est dans le tampon).
+// La voix système (Web Speech) ne passe pas par Web Audio → elle garde le profil
+// classique.
+
+export type RadioStyle = "classic" | "pitwall";
+let style: RadioStyle = "pitwall";
+
+export function setRadioStyle(s: RadioStyle) {
+  style = s;
+}
+
+/** Profil actif, et vrai si l'habillage « Radio stand » s'applique à la voix Piper. */
+export function radioStyle(): RadioStyle {
+  return style;
+}
+export function pitwallActive(): boolean {
+  return enabled && style === "pitwall";
+}
+
+const TM_LOW_HZ = 250;
+const TM_HIGH_HZ = 4800;
+const TM_DRIVE = 2.6;
+const TM_PEAK = 0.9;
+const TM_HISS = 0.02;
+const TM_CLICK_S = 0.03;
+const TM_CLICK_AMP = 0.06;
+const TM_GAP_S = 0.03;
+
+function gaussian(): number {
+  // Box-Muller
+  const u = 1 - Math.random();
+  const v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function peakOf(a: Float32Array): number {
+  let p = 0;
+  for (let i = 0; i < a.length; i++) {
+    const v = Math.abs(a[i]);
+    if (v > p) p = v;
+  }
+  return p;
+}
+
+/**
+ * Habille un tampon de voix au profil « Radio stand » (voir en-tête). Renvoie le
+ * tampon d'origine si le profil n'est pas actif ou si le rendu échoue.
+ */
+export async function styleVoiceBuffer(c: AudioContext, buf: AudioBuffer): Promise<AudioBuffer> {
+  if (!pitwallActive() || typeof OfflineAudioContext === "undefined") return buf;
+  try {
+    const sr = buf.sampleRate;
+    const n = buf.length;
+    // Canal 0 = voix (mono), canal 1 = bruit gaussien : même chaîne de filtres.
+    const offline = new OfflineAudioContext(2, n, sr);
+    const srcBuf = offline.createBuffer(2, n, sr);
+    const voice = srcBuf.getChannelData(0);
+    const ch0 = buf.getChannelData(0);
+    if (buf.numberOfChannels > 1) {
+      const ch1 = buf.getChannelData(1);
+      for (let i = 0; i < n; i++) voice[i] = (ch0[i] + ch1[i]) / 2;
+    } else voice.set(ch0);
+    const noiseCh = srcBuf.getChannelData(1);
+    for (let i = 0; i < n; i++) noiseCh[i] = gaussian();
+    const src = offline.createBufferSource();
+    src.buffer = srcBuf;
+    let node: AudioNode = src;
+    for (const [type, f] of [
+      ["highpass", TM_LOW_HZ],
+      ["highpass", TM_LOW_HZ],
+      ["lowpass", TM_HIGH_HZ],
+      ["lowpass", TM_HIGH_HZ],
+    ] as const) {
+      const bq = offline.createBiquadFilter();
+      bq.type = type;
+      bq.frequency.value = f;
+      bq.Q.value = Math.SQRT1_2;
+      node.connect(bq);
+      node = bq;
+    }
+    node.connect(offline.destination);
+    src.start();
+    const rendered = await offline.startRendering();
+    const v = rendered.getChannelData(0);
+    const hiss = rendered.getChannelData(1);
+
+    // Saturation douce : crête normalisée → tanh(drive) → rattrapage.
+    const p = peakOf(v) || 1;
+    for (let i = 0; i < n; i++) v[i] = Math.tanh((v[i] / p) * TM_DRIVE);
+    const p2 = peakOf(v) || 1;
+    const hp = peakOf(hiss) || 1;
+    for (let i = 0; i < n; i++) v[i] = (v[i] / p2) * TM_PEAK + (hiss[i] / hp) * TM_HISS;
+
+    // Squelch : clic + silence avant, silence + clic après.
+    const click = Math.round(TM_CLICK_S * sr);
+    const gap = Math.round(TM_GAP_S * sr);
+    const out = c.createBuffer(1, click + gap + n + gap + click, sr);
+    const o = out.getChannelData(0);
+    for (let i = 0; i < click; i++) {
+      const k = i / click;
+      o[i] = (hiss[i % n] / hp) * TM_CLICK_AMP * k;
+      o[click + gap + n + gap + i] = (hiss[(n - 1 - i + n) % n] / hp) * TM_CLICK_AMP * (1 - k);
+    }
+    o.set(v, click + gap);
+    for (let i = 0; i < o.length; i++) o[i] = Math.max(-1, Math.min(1, o[i]));
+    return out;
+  } catch {
+    return buf;
+  }
+}
+
+/**
+ * Bips du push-to-talk : sinus de 70 ms, fondus de 6 ms —
+ * 1000 Hz à l'ouverture du micro, 700 Hz à l'envoi.
+ */
+export function pttBeep(kind: "open" | "send") {
+  const c = ac();
+  if (!c) return;
+  const t0 = c.currentTime;
+  const dur = 0.07;
+  const osc = c.createOscillator();
+  const g = c.createGain();
+  osc.type = "sine";
+  osc.frequency.value = kind === "open" ? 1000 : 700;
+  osc.connect(g);
+  g.connect(master(c));
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(0.25, t0 + 0.006);
+  g.gain.setValueAtTime(0.25, t0 + dur - 0.006);
+  g.gain.linearRampToValueAtTime(0, t0 + dur);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.01);
 }

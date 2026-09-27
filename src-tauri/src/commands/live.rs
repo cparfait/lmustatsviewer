@@ -571,6 +571,10 @@ pub struct LiveStanding {
     pub pos_x: f64,
     pub pos_z: f64,
     pub finish_status: u8,
+    /// Distance parcourue sur le tour courant (m, `mLapDist`) — position sur la
+    /// piste, indépendante de l'ordre de course : sert au trafic (qui est
+    /// physiquement devant / derrière le joueur, retardataires compris).
+    pub lap_dist: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -582,6 +586,10 @@ pub struct LiveSession {
     pub end_et: f64,
     pub max_laps: i32,
     pub num_vehicles: i32,
+    /// Longueur du tour (m, `ScoringInfo.mLapDist`) — 0 si inconnue.
+    pub track_length: f64,
+    /// Phase de jeu (`mGamePhase` : 3 = tour de formation, 5 = vert…).
+    pub game_phase: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1348,6 +1356,7 @@ fn extract(state: &mut PollState) -> LiveData {
             pos_x: pos.x,
             pos_z: pos.z,
             finish_status: v.m_finish_status,
+            lap_dist: lap_dist as f32,
         });
     }
 
@@ -1488,6 +1497,8 @@ fn extract(state: &mut PollState) -> LiveData {
             end_et: scor_info.m_end_et,
             max_laps: scor_info.m_max_laps,
             num_vehicles: n as i32,
+            track_length: scor_info.m_lap_dist,
+            game_phase: scor_info.m_game_phase,
         }),
         standings,
         weather: Some(LiveWeather {
@@ -1556,6 +1567,78 @@ pub fn release_window(label: &str) {
     if live_consumers_total(map) == 0 {
         LIVE_POLLING.store(false, Ordering::SeqCst);
     }
+}
+
+/// Un fichier météo scénarisé `.wet` du dossier `Settings/<Circuit>/`.
+#[derive(Debug, Clone, Serialize)]
+pub struct WetFile {
+    /// Nom du dossier de circuit (ex. « Spa »).
+    pub folder: String,
+    pub file_name: String,
+    /// Date de modification (secondes epoch).
+    pub mtime: i64,
+    /// Contenu JSON brut (vide si illisible ou trop gros).
+    pub content: String,
+}
+
+/// Taille max d'un `.wet` lu (les vrais font ~2 Ko).
+const WET_MAX_BYTES: u64 = 256 * 1024;
+
+/// Liste les fichiers météo `.wet` de `UserData/player/Settings/*/` (prévision
+/// scénarisée : ~5 nœuds par séance, répartis sur la durée). Le choix du fichier
+/// de la session courante et l'interpolation se font côté frontend (module pur,
+/// testable) ; ici on ne fait que lire le disque. Dossier absent → liste vide.
+#[tauri::command]
+pub fn list_weather_files(lmu_path: String) -> Result<Vec<WetFile>, AppError> {
+    let settings = PathBuf::from(&lmu_path)
+        .join("UserData")
+        .join("player")
+        .join("Settings");
+    let mut out = Vec::new();
+    let Ok(dirs) = fs::read_dir(&settings) else {
+        return Ok(out);
+    };
+    for dir in dirs.flatten() {
+        if !dir.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+            continue;
+        }
+        let folder = dir.file_name().to_string_lossy().to_string();
+        let Ok(files) = fs::read_dir(dir.path()) else {
+            continue;
+        };
+        for f in files.flatten() {
+            let path = f.path();
+            let is_wet = path
+                .extension()
+                .map(|e| e.eq_ignore_ascii_case("wet"))
+                .unwrap_or(false);
+            if !is_wet {
+                continue;
+            }
+            let meta = match f.metadata() {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            let mtime = meta
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
+            let content = if meta.len() <= WET_MAX_BYTES {
+                fs::read_to_string(&path).unwrap_or_default()
+            } else {
+                String::new()
+            };
+            out.push(WetFile {
+                folder: folder.clone(),
+                file_name: f.file_name().to_string_lossy().to_string(),
+                mtime,
+                content,
+            });
+        }
+    }
+    Ok(out)
 }
 
 #[tauri::command]

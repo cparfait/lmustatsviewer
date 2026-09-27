@@ -19,6 +19,11 @@ import {
   cancelRadio,
   radioOn,
   radioVoiceChain,
+  styleVoiceBuffer,
+  pitwallActive,
+  setRadioStyle,
+  radioStyle,
+  type RadioStyle,
   audioContext,
   audioOutput,
   setMasterVolume,
@@ -279,7 +284,11 @@ function playBuffer(ctx: AudioContext, buffer: AudioBuffer, item: QueueItem) {
   const src = ctx.createBufferSource();
   src.buffer = buffer;
   const out = audioOutput() ?? ctx.destination; // gain maître (volume) → destination
-  const radio = radioOn() ? radioVoiceChain(ctx) : null;
+  // Profil « Radio stand » : l'habillage est déjà dans le tampon (filtre, souffle,
+  // clics de squelch) → pas de chaîne de filtre ni de lit de souffle ; les bips
+  // d'ouverture et de fin sont conservés.
+  const pw = pitwallActive();
+  const radio = radioOn() && !pw ? radioVoiceChain(ctx) : null;
   if (radio) {
     src.connect(radio.input);
     radio.output.connect(out);
@@ -307,7 +316,7 @@ function playBuffer(ctx: AudioContext, buffer: AudioBuffer, item: QueueItem) {
     pump();
   };
   current = pb;
-  radioStart();
+  radioStart(!pw);
   // Démarre après le bip d'ouverture (~130 ms) pour l'enchaînement « bip → voix ».
   src.start(ctx.currentTime + 0.13);
 }
@@ -388,14 +397,13 @@ async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
   if (!ctx) return false;
   const g = generation;
   // Callout pré-synthétisé (P3.3) → lecture immédiate, sans appel Piper.
-  const cached = synthCache.get(synthKey(code, item.text));
-  if (cached) {
-    if (g !== generation) return false;
-    playBuffer(ctx, cached, item);
-    return true;
-  }
-  const buffer = await synthBuffer(ctx, code, item.text);
-  if (!buffer || g !== generation) return false; // annulé / indisponible entre-temps
+  const raw = synthCache.get(synthKey(code, item.text)) ?? (await synthBuffer(ctx, code, item.text));
+  if (!raw) return false; // Piper indisponible → repli voix système
+  // Annulé entre-temps (`cancelSpeech`) : rien ne joue — pas même en repli.
+  if (g !== generation) return true;
+  // Profil « Radio stand » : habillage appliqué au tampon (le cache reste nu).
+  const buffer = await styleVoiceBuffer(ctx, raw);
+  if (g !== generation) return true;
   playBuffer(ctx, buffer, item);
   return true;
 }
@@ -546,4 +554,35 @@ export function repeatLast(): boolean {
 /** Joue immédiatement une phrase (bouton « Tester » de la config). */
 export function previewVoice(text: string, lang: string) {
   announce(text, lang);
+}
+
+let compareTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Comparaison à l'écoute des deux profils radio : la même phrase avec le profil
+ * classique, puis avec le profil « Radio stand ». Le profil choisi est restauré à
+ * la fin — ou au bout de 15 s si la lecture a été interrompue. `onStep` suit la
+ * lecture (profil en cours, `null` à la fin) pour l'affichage.
+ */
+export function compareRadioStyles(
+  text: string,
+  lang: string,
+  onStep?: (s: RadioStyle | null) => void,
+) {
+  const saved = radioStyle();
+  const restore = () => {
+    if (compareTimer) clearTimeout(compareTimer);
+    compareTimer = null;
+    setRadioStyle(saved);
+    onStep?.(null);
+  };
+  if (compareTimer) clearTimeout(compareTimer);
+  compareTimer = setTimeout(restore, 15000);
+  setRadioStyle("classic");
+  onStep?.("classic");
+  announce(text, lang, () => {
+    setRadioStyle("pitwall");
+    onStep?.("pitwall");
+    announce(text, lang, restore);
+  });
 }

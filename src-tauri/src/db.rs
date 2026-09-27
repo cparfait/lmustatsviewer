@@ -303,6 +303,20 @@ CREATE TABLE IF NOT EXISTS coach_phrasebank (
     PRIMARY KEY (track, car_model, lang)
 );
 
+-- File d'envoi du partage communautaire (COMMUNITY-SPEC.md §4 bis, §9). Indexée par
+-- la clé d'idempotence (sha256(install_id|fichier XML)) et NON par sessions.id : une
+-- réindexation complète ne perd rien et ne renvoie rien en double. Une session n'est
+-- `sent` que si l'accusé du serveur (`received`) la cite ; `rejected` = refus définitif
+-- (jamais renvoyée) ; `pending` = à retenter après `next_try_at`.
+CREATE TABLE IF NOT EXISTS community_outbox (
+    session_key  TEXT    PRIMARY KEY,
+    state        TEXT    NOT NULL,
+    reason       TEXT,
+    attempts     INTEGER NOT NULL DEFAULT 0,
+    next_try_at  INTEGER NOT NULL DEFAULT 0,
+    updated_at   INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE INDEX IF NOT EXISTS idx_xi_filename    ON xml_index(filename);
 CREATE INDEX IF NOT EXISTS idx_xi_event       ON xml_index(event_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_xml   ON sessions(xml_id);
@@ -369,6 +383,12 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
     Ok(DbState {
         conn: Mutex::new(conn),
     })
+}
+
+/// État de base autour d'une connexion donnée (tests uniquement).
+#[cfg(test)]
+pub fn state_from(conn: Connection) -> DbState {
+    DbState { conn: Mutex::new(conn) }
 }
 
 pub fn get_conn(db: &DbState) -> Result<MutexGuard<'_, Connection>, AppError> {

@@ -12,6 +12,7 @@
 
 import type { LiveData, LiveStanding } from "@/lib/api";
 import { classOrder } from "@/lib/utils";
+import { classRank } from "@/lib/engineer/text";
 
 export type RivalSide = "ahead" | "behind";
 export type ClassRel = "same" | "faster" | "slower" | "other";
@@ -54,8 +55,13 @@ export function nearestRival(
 /** Relation de classe entre toi et le rival (#149). */
 export function classRelation(myClass: string, rivalClass: string): ClassRel {
   if (myClass && myClass === rivalClass) return "same";
-  const a = classOrder(myClass);
-  const b = classOrder(rivalClass);
+  // Noms bruts du live (« Hypercar », « LMGT3 »…) d'abord, puis ceux des XML.
+  const rank = (c: string) => {
+    const r = classRank(c);
+    return r !== 99 ? r : classOrder(c);
+  };
+  const a = rank(myClass);
+  const b = rank(rivalClass);
   if (a === 99 || b === 99) return "other";
   return b < a ? "faster" : "slower"; // rang plus petit = catégorie plus rapide
 }

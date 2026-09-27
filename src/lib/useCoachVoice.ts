@@ -17,10 +17,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live } from "@/lib/api";
-import { announce } from "@/lib/voice";
+import { announce, cancelSpeech, repeatLast } from "@/lib/voice";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
+import { pttBeep } from "@/lib/radioFx";
 import { getProvider } from "@/lib/ai/providers";
-import { askCoachVoice, friendlyError } from "@/lib/ai/coach";
+import { askCoachVoice, classifyIntent, friendlyError } from "@/lib/ai/coach";
+import { buildStatus } from "@/lib/spotter";
+import { route, INTENT_HELP, type AnswerIntent } from "@/lib/engineer/router";
+import { answerIntent, registerWatch } from "@/lib/engineer/answers";
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
 import { toast, toastSuccess } from "@/stores/dialogs";
@@ -147,6 +151,7 @@ export function useCoachVoice() {
       capturing.current = true;
       try {
         await startCapture();
+        if (useAppStore.getState().pttBeeps) pttBeep("open");
       } catch {
         capturing.current = false;
       }
@@ -158,6 +163,7 @@ export function useCoachVoice() {
       const tt = tRef.current;
       const lang = langRef.current;
       const pcm = stopCapture();
+      if (useAppStore.getState().pttBeeps) pttBeep("send");
       if (pcm.length === 0) return;
       busy.current = true;
       try {
@@ -175,20 +181,76 @@ export function useCoachVoice() {
         toast(`🎤 ${q}`);
         void emit("coach-voice", { question: q, answer: null });
         const data = await live.getData();
-        const baseCtx = await buildLiveCoachContext(data, question);
-        // « Pourquoi ? » (§12) : joint les derniers diagnostics par virage au
-        // contexte → le LLM peut expliquer un callout avec ses chiffres exacts.
-        const recent = recentDiagnosticsBlock();
-        const ctx = recent ? `${baseCtx}\n\n${recent}` : baseCtx;
-        // Relu à chaud (pas de capture périmée) via la MÊME résolution que la
-        // garde `ready` ci-dessus. Un réglage modifié entre-temps peut rendre la
-        // cible incomplète : on prévient au lieu d'envoyer un modèle vide.
+
+        // ── Routage local d'abord (instantané, gratuit, chiffres exacts) ──
+        // Une question factuelle reconnue est répondue en code ; l'IA n'est
+        // appelée que pour une question ambiguë (elle choisit alors seulement
+        // l'intention) ou ouverte (analyse, conseil).
+        const st0 = useAppStore.getState();
+        const r = route(q, lang);
+        const opts = {
+          pitLossSec: st0.pitLossSeconds,
+          fuelReserveLaps: st0.fuelReserveLaps,
+          entities: r.entities,
+          norm: r.norm,
+        };
+        const sayLocal = (text: string) => {
+          if (disposed || !text) return;
+          announce(text, lang);
+          toastSuccess(text);
+          void emit("coach-voice", { question: q, answer: text });
+        };
+        if (r.intent === "watch") {
+          sayLocal(registerWatch(r.watch, r.entities, r.norm, data, tt));
+          return;
+        }
+        if (r.intent === "repeat") {
+          if (!repeatLast()) sayLocal(buildStatus(data, tt));
+          return;
+        }
+        if (r.intent === "mute") {
+          const next = !useAppStore.getState().voiceAnnouncements;
+          void useAppStore.getState().setVoiceAnnouncements(next);
+          if (next) announce(tt("live.spUnmuted"), lang);
+          else cancelSpeech();
+          return;
+        }
+        // Commandes (accusé, rester dehors, annuler les alertes) : toujours locales,
+        // l'IA ne sait pas les exécuter. Questions factuelles : locales si le
+        // réglage est actif (défaut), sinon l'IA répond comme avant.
+        const control = r.intent === "ackBox" || r.intent === "stayOut" || r.intent === "watchCancel";
+        if (r.intent && (control || st0.localAnswers)) {
+          sayLocal(answerIntent(r.intent, data, tt, opts));
+          return;
+        }
+
         const st = useAppStore.getState();
         const { provider: p, model, apiKey } = resolveVoiceTarget(st);
         if (!p || !model || (p.needsKey && !apiKey)) {
           announce(tt("coach.voiceNotConfigured"), lang);
           return;
         }
+        // Accusé immédiat : l'appel IA prend 1 à 3 s, le pilote sait qu'on a entendu.
+        announce(tt(`coach.voiceAck${1 + Math.floor(Math.random() * 3)}`), lang);
+
+        if (st0.localAnswers && r.ambiguous && r.candidates.length) {
+          const help: Record<string, string> = {};
+          for (const id of r.candidates) if (INTENT_HELP[id]) help[id] = INTENT_HELP[id]!;
+          const picked = await classifyIntent({ provider: p, model, apiKey, question: q, intents: help }).catch(
+            () => null,
+          );
+          if (picked) {
+            sayLocal(answerIntent(picked as AnswerIntent, data, tt, opts));
+            return;
+          }
+        }
+
+        const baseCtx = await buildLiveCoachContext(data, question);
+        // « Pourquoi ? » (§12) : joint les derniers diagnostics par virage au
+        // contexte → le LLM peut expliquer un callout avec ses chiffres exacts.
+        const recent = recentDiagnosticsBlock();
+        const ctx = recent ? `${baseCtx}\n\n${recent}` : baseCtx;
+        // Cible IA relue à chaud plus haut (même résolution que la garde `ready`).
         const answer = await askCoachVoice({
           provider: p,
           model,

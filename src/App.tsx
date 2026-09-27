@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Route, Routes, useLocation, useNavigate } from "react-router";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import { listen } from "@tauri-apps/api/event";
 import { Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
@@ -11,7 +11,7 @@ import { Dashboard } from "@/routes/Dashboard";
 import { Sessions } from "@/routes/Sessions";
 import { SessionDetail } from "@/routes/SessionDetail";
 import { Records } from "@/routes/Records";
-import { References } from "@/routes/References";
+import { Classement } from "@/routes/Classement";
 import { Setups } from "@/routes/Setups";
 import { SetupDetail } from "@/routes/SetupDetail";
 import { SetupCompare } from "@/routes/SetupCompare";
@@ -33,7 +33,10 @@ import { useSpotter } from "@/lib/useSpotter";
 import { usePitLoss } from "@/lib/usePitLoss";
 import { useCoachVoice } from "@/lib/useCoachVoice";
 import { useCornerCoach } from "@/lib/useCornerCoach";
+import { RaceEngineerHost } from "@/components/RaceEngineerHost";
+import { CommunityInvite } from "@/components/CommunitySettings";
 import { useOverlayShortcut } from "@/lib/useOverlayShortcut";
+import { useCommunitySync } from "@/lib/useCommunitySync";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function App() {
@@ -62,6 +65,8 @@ export default function App() {
   useCornerCoach();
   // Raccourci global Afficher/Masquer les overlays.
   useOverlayShortcut();
+  // Partage communautaire (opt-in) : envoi des sessions + reprise après coupure.
+  useCommunitySync();
 
   // Resynchronisation auto quand l'utilisateur revient sur l'app après avoir
   // couru dans LMU (sync delta silencieuse — seuls les nouveaux XML sont relus).
@@ -111,6 +116,8 @@ export default function App() {
   return (
     <TooltipProvider>
     <div className="min-h-screen flex flex-col">
+      {/* Ingénieur de course : annonces live actives sur toutes les pages. */}
+      <RaceEngineerHost />
       <DialogHost />
       {!isLive && !needsOnboarding && <Header />}
       {!isLive && !needsOnboarding && <UpdateBanner />}
@@ -132,7 +139,8 @@ export default function App() {
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/sessions/:id" element={<SessionDetail />} />
             <Route path="/records" element={<Records />} />
-            <Route path="/references" element={<References />} />
+            <Route path="/references" element={<Navigate to="/classement?tab=references" replace />} />
+            <Route path="/classement" element={<Classement />} />
             <Route path="/setups" element={<Setups />} />
             <Route path="/setups/:id" element={<SetupDetail />} />
             <Route path="/setups/compare" element={<SetupCompare />} />
@@ -152,6 +160,8 @@ export default function App() {
       {!isLive && !needsOnboarding && <ScrollToTop />}
       {/* Visite guidée — ouverte à la fin de l'onboarding ou depuis l'aide « ? ». */}
       {!isLive && <GuidedTour />}
+      {/* Invitation au partage communautaire : au lancement, puis une fois après un record. */}
+      <CommunityInvite blocked={isLive || needsOnboarding} />
     </div>
     </TooltipProvider>
   );

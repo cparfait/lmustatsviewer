@@ -20,9 +20,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live } from "@/lib/api";
 import { announce, repeatLast, cancelSpeech } from "@/lib/voice";
-import { buildStatus, buildAnswer } from "@/lib/spotter";
+import { buildStatus } from "@/lib/spotter";
+import { answerIntent } from "@/lib/engineer/answers";
+import { extractEntities, normalize } from "@/lib/engineer/router";
 import { buildGrammar, matchIntent } from "@/lib/spotterCommands";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
+import { pttBeep } from "@/lib/radioFx";
 
 export function useSpotter() {
   const { t, i18n } = useTranslation();
@@ -79,6 +82,7 @@ export function useSpotter() {
       capturing.current = true;
       try {
         await startCapture();
+        if (useAppStore.getState().pttBeeps) pttBeep("open");
       } catch {
         // Micro indisponible / refusé → on annule, le relâchement fera le repli.
         capturing.current = false;
@@ -91,6 +95,7 @@ export function useSpotter() {
       const tt = tRef.current;
       const lang = langRef.current;
       const pcm = stopCapture();
+      if (useAppStore.getState().pttBeeps) pttBeep("send");
       let data = null;
       try {
         data = await live.getData();
@@ -114,9 +119,17 @@ export function useSpotter() {
         } else if (intent === "mute") {
           onMute();
         } else if (intent) {
+          // Réponse calculée en code (intentions historiques + ingénieur : identité
+          // des voitures, fenêtre d'arrêt, trafic, prévision, accusés…).
           const st = useAppStore.getState();
+          const norm = normalize(text, lang);
           announce(
-            buildAnswer(intent, data, tt, st.pitLossSeconds, st.fuelReserveLaps),
+            answerIntent(intent, data, tt, {
+              pitLossSec: st.pitLossSeconds,
+              fuelReserveLaps: st.fuelReserveLaps,
+              entities: extractEntities(norm, lang),
+              norm,
+            }),
             lang,
           );
         } else {

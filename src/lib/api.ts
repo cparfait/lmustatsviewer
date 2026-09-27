@@ -651,6 +651,9 @@ export interface LiveStanding {
   pos_x: number;
   pos_z: number;
   finish_status: number;
+  /** Distance parcourue sur le tour courant (m) — position physique sur la piste
+   *  (trafic : qui est devant / derrière, retardataires compris). */
+  lap_dist: number;
 }
 
 export interface LiveSession {
@@ -661,6 +664,10 @@ export interface LiveSession {
   end_et: number;
   max_laps: number;
   num_vehicles: number;
+  /** Longueur du tour (m) — 0 si inconnue. */
+  track_length: number;
+  /** Phase de jeu rF2 (3 = tour de formation, 5 = vert, 6 = FCY…). */
+  game_phase: number;
 }
 
 export interface LiveWeather {
@@ -1215,7 +1222,20 @@ export const live = {
   /** S'abonne aux mises à jour `live-data` poussées par le backend. */
   onData: (cb: (data: LiveData) => void): Promise<UnlistenFn> =>
     listen<LiveData>("live-data", (e) => cb(e.payload)),
+  /** Fichiers météo scénarisés `.wet` du dossier Settings (prévision). */
+  weatherFiles: (lmuPath: string) =>
+    invoke<WetFile[]>("list_weather_files", { lmuPath }),
 };
+
+/** Un fichier `.wet` lu sur le disque (`live::WetFile`). */
+export interface WetFile {
+  folder: string;
+  file_name: string;
+  /** Date de modification (secondes epoch). */
+  mtime: number;
+  /** JSON brut (vide si illisible). */
+  content: string;
+}
 
 // ─── Overlays in-game (`overlay`) ───────────────────────────────────────────
 
@@ -1299,3 +1319,113 @@ export const assets = {
   onProgress: (cb: (p: AssetProgress) => void): Promise<UnlistenFn> =>
     listen<AssetProgress>("asset-progress", (e) => cb(e.payload)),
 };
+// ── Partage communautaire (COMMUNITY-SPEC.md, lot 2) ────────────────────────
+// Tous les échanges passent par le Rust (jeton chiffré, HTTPS, empreinte) : la
+// WebView ne voit jamais le jeton.
+
+export interface CommunityStatus {
+  enabled: boolean;
+  registered: boolean;
+  tag: string | null;
+  anonymous: boolean;
+  history: boolean;
+  /** Sessions confirmées par l'accusé du serveur. */
+  sent: number;
+  /** Sessions refusées définitivement par le serveur (jamais renvoyées). */
+  rejected: number;
+  /** Sessions en attente d'envoi ou de nouvelle tentative. */
+  pending: number;
+  /** Sessions déjà jouées envoyables (case « sessions passées »). */
+  history_available: number;
+  last_sent_at: number | null;
+  last_error: string | null;
+  server: string;
+}
+
+export interface CommunitySyncReport {
+  sent: number;
+  duplicates: number;
+  rejected: number;
+  pending: number;
+  error: string | null;
+}
+
+export const community = {
+  status: () => invoke<CommunityStatus>("community_status"),
+  /** JSON lisible de ce qui partirait pour la session la plus récente ("" si aucune). */
+  preview: () => invoke<string>("community_preview"),
+  enable: (history: boolean, anonymous: boolean) =>
+    invoke<CommunityStatus>("community_enable", { history, anonymous }),
+  disable: () => invoke<CommunityStatus>("community_disable"),
+  setAnonymous: (anonymous: boolean) =>
+    invoke<CommunityStatus>("community_set_anonymous", { anonymous }),
+  /** Efface toutes les données du joueur sur le serveur puis l'état local. */
+  deleteData: () => invoke<CommunityStatus>("community_delete"),
+  /** Envoie les sessions en attente (sans effet si le partage est désactivé). */
+  sync: () => invoke<CommunitySyncReport>("community_sync"),
+  /** Mes combos locaux (meilleur tour sur le sec par circuit × tracé × classe). */
+  myCombos: (filters?: MyCombosFilter) => invoke<MyCombo[]>("community_my_combos", { filters: filters ?? null }),
+  /** Lecture publique du service (agrégats). `null` si inconnu (404). */
+  get: <T>(route: CommunityRoute, query: Record<string, string | number> = {}) =>
+    invoke<T | null>("community_public", {
+      route,
+      query: Object.entries(query).map(([k, v]) => [k, String(v)]),
+    }),
+};
+
+export type CommunityRoute = "stats" | "combos" | "combos/detail" | "combos/leaderboard" | "combos/position";
+
+/** Filtres de la page Classements (session/mode : mêmes règles que le serveur). */
+export interface MyCombosFilter {
+  session?: "race" | "qualify" | "practice";
+  mode?: "online" | "offline";
+  version?: string | null;
+  version_exact?: boolean;
+}
+
+export interface MyCombo {
+  track: string;
+  track_course: string;
+  car_class: string;
+  car_model: string;
+  best: number;
+  last_played: number;
+}
+
+export interface CommunityPosition {
+  version: string;
+  drivers: number;
+  rank: number;
+  top_pct: number;
+  gap_best: number;
+  gap_median: number;
+}
+
+export interface CommunityDetail {
+  version: string;
+  drivers: number;
+  ranked: boolean;
+  best: { time: number; car_model: string };
+  percentiles: Record<string, number>;
+  histogram: { start: number; width: number; counts: number[]; overflow: number };
+  by_car: { car_model: string; drivers: number; best: number; median: number }[];
+}
+
+export interface CommunityLeaderboard {
+  version: string;
+  drivers: number;
+  rows: {
+    rank: number;
+    driver: { name: string | null; tag: string; homonym: boolean };
+    car_model: string;
+    time: number;
+  }[];
+}
+
+export interface CommunityStats {
+  drivers: number;
+  drivers_7d: number;
+  sessions: number;
+  sessions_7d: number;
+  layouts: number;
+}

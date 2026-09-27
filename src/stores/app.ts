@@ -13,7 +13,7 @@ import { preloadStaticData } from "@/lib/staticData";
 import { configureVoice } from "@/lib/voice";
 import { initVoiceOverrides } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
-import { setRadioEnabled, MAX_VOICE_VOLUME } from "@/lib/radioFx";
+import { setRadioEnabled, setRadioStyle, MAX_VOICE_VOLUME } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
 import {
   setCustomProviders,
@@ -112,6 +112,23 @@ interface AppState {
   pitLossByCombo: Record<string, number>;
   /** Réserve carburant (tours) ajoutée au « carburant pour finir » du spotter (T13 #157). */
   fuelReserveLaps: number;
+  /**
+   * Débit des annonces live : `engineer` = arbitrées (une radio à la fois,
+   * point de tour, anti-radotage) ; `full` = tout, à chaque fois (comportement
+   * historique). Les deux modes ont exactement les mêmes annonces.
+   */
+  radioMode: "full" | "engineer";
+  /** Push-to-talk du coach : questions factuelles répondues en local (sans IA). */
+  localAnswers: boolean;
+  /**
+   * Annonces live sur toutes les pages (même app réduite) ; `false` = seulement
+   * quand la page Live est affichée (comportement historique).
+   */
+  announceEverywhere: boolean;
+  /** Profil de l'effet radio : `pitwall` « Radio stand » (défaut) ou `classic` (historique). */
+  radioStyle: "classic" | "pitwall";
+  /** Bips du push-to-talk (1000 Hz ouverture / 700 Hz envoi). */
+  pttBeeps: boolean;
 
   // AI Coach
   /** Coach IA activé : si false, le coach disparaît de toutes les pages. */
@@ -221,6 +238,11 @@ interface AppState {
   /** Applique la perte mesurée d'un combo à `pitLossSeconds` si connue (T13 #152). */
   applyPitLossForCombo: (combo: string) => void;
   setFuelReserveLaps: (v: number) => Promise<void>;
+  setRadioMode: (m: "full" | "engineer") => Promise<void>;
+  setLocalAnswers: (v: boolean) => Promise<void>;
+  setAnnounceEverywhere: (v: boolean) => Promise<void>;
+  setRadioStyleSetting: (s: "classic" | "pitwall") => Promise<void>;
+  setPttBeeps: (v: boolean) => Promise<void>;
   setOverlayToggleKey: (accel: string) => Promise<void>;
   setAICoachEnabled: (v: boolean) => Promise<void>;
   setAIProvider: (v: string) => Promise<void>;
@@ -278,6 +300,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   pitLossSeconds: 25,
   pitLossByCombo: {},
   fuelReserveLaps: 1,
+  radioMode: "engineer",
+  localAnswers: true,
+  announceEverywhere: true,
+  radioStyle: "pitwall",
+  pttBeeps: false,
   overlayToggleKey: "",
   aiCoachEnabled: true,
   aiProvider: "google",
@@ -360,6 +387,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         ? Math.min(MAX_VOICE_VOLUME, Number(cfg.voice_volume))
         : 1;
     const voiceRadio = cfg.voice_radio !== "false";
+    // « Radio stand » par défaut ; « Classique » seulement si choisi explicitement.
+    const radioStyle: "classic" | "pitwall" = cfg.voice_radio_style === "classic" ? "classic" : "pitwall";
     const voiceEngine = cfg.voice_engine === "system" ? "system" : "piper";
     // Fournisseurs custom : définitions (JSON non secret) + clé chiffrée chacun.
     const aiCustomProviders: CustomProviderDef[] = (() => {
@@ -417,6 +446,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       engine: voiceEngine,
     });
     setRadioEnabled(voiceRadio);
+    setRadioStyle(radioStyle);
     initVoiceOverrides(cfg.voice_overrides);
     initCommandOverrides(cfg.spotter_commands);
     setAppTimezone(timezone);
@@ -466,6 +496,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       fuelReserveLaps: Number.isFinite(Number(cfg.fuel_reserve_laps)) && Number(cfg.fuel_reserve_laps) >= 0
         ? Number(cfg.fuel_reserve_laps)
         : 1,
+      radioMode: cfg.radio_mode === "full" ? "full" : "engineer",
+      localAnswers: cfg.engineer_local_answers !== "false",
+      announceEverywhere: cfg.voice_everywhere !== "false",
+      radioStyle,
+      pttBeeps: cfg.ptt_beeps === "true",
       aiCoachEnabled: cfg.ai_coach_enabled !== "false",
       aiProvider: cfg.ai_provider || "google",
       aiProviderList,
@@ -786,6 +821,32 @@ export const useAppStore = create<AppState>((set, get) => ({
     const n = Number.isFinite(v) && v >= 0 ? Math.round(v * 2) / 2 : 1; // pas de 0.5 tour
     await config.set("fuel_reserve_laps", String(n));
     set({ fuelReserveLaps: n });
+  },
+
+  setRadioMode: async (m) => {
+    await config.set("radio_mode", m);
+    set({ radioMode: m });
+  },
+
+  setLocalAnswers: async (v) => {
+    await config.set("engineer_local_answers", v ? "true" : "false");
+    set({ localAnswers: v });
+  },
+
+  setAnnounceEverywhere: async (v) => {
+    await config.set("voice_everywhere", v ? "true" : "false");
+    set({ announceEverywhere: v });
+  },
+
+  setRadioStyleSetting: async (s) => {
+    setRadioStyle(s);
+    await config.set("voice_radio_style", s);
+    set({ radioStyle: s });
+  },
+
+  setPttBeeps: async (v) => {
+    await config.set("ptt_beeps", v ? "true" : "false");
+    set({ pttBeeps: v });
   },
 
   setOverlayToggleKey: async (accel) => {

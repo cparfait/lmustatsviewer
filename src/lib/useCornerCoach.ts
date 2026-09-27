@@ -20,6 +20,7 @@ import { emit } from "@tauri-apps/api/event";
 import { useAppStore } from "@/stores/app";
 import { isTauri } from "@/lib/api";
 import { speak, prewarmSpeech, clearSpeechCache } from "@/lib/voice";
+import { getSharedTone, PUSH_SUFFIXES } from "@/lib/engineer/tone";
 import {
   startCoachService,
   stopCoachService,
@@ -74,6 +75,9 @@ export function useCornerCoach() {
       if (disposed) return;
       // Re-vérifie le mute au moment de parler (l'utilisateur a pu couper depuis).
       if (!useAppStore.getState().voiceAnnouncements) return;
+      // Arbitre de ton : un « pousse » (grip inexploité, trop lent à l'apex…)
+      // se tait si le carburant, un pneu ou la mécanique commandent de gérer.
+      if (PUSH_SUFFIXES.has(msg.suffix) && getSharedTone() === "prudent") return;
       // Banque de phrases LLM à slots (§10, P4.3) : variante pré-générée (slots
       // remplis en code) si le mode est actif et couvre ce (virage, diagnostic) ;
       // sinon repli sur le gabarit déterministe i18n.
@@ -189,6 +193,8 @@ export function useCornerCoach() {
     const offRisk = onCoachRisk((adv) => {
       if (disposed) return;
       if (!useAppStore.getState().voiceAnnouncements) return;
+      // Arbitre de ton : pas de « vise là » quand une contrainte impose de gérer.
+      if (PUSH_SUFFIXES.has(adv.suffix) && getSharedTone() === "prudent") return;
       const text = tRef.current(`live.${adv.suffix}`, adv.vars);
       if (!text) return;
       speak(text, langRef.current, "coach");

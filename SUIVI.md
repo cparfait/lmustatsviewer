@@ -46,6 +46,11 @@ Construire la **V3** de LMU Stats Viewer :
 | **Langue de travail** | Réponses + docs en FR ; code/variables/fichiers en anglais. |
 | **Cadence** | Développement autonome jusqu'à blocage ou point de décision. |
 | **Pas de données mockées** | **Aucune donnée d'exemple/simulée.** On travaille uniquement sur les données de production (vrais fichiers du jeu). Supprimer `mockData.ts`, `webMock.ts` et tous les fallbacks web du bridge IPC. Pas de « mode web » avec données simulées. Tests faits sur les fichiers réels de `D:\SteamLibrary\...`. |
+| **Overlays en VR** | 🧪 **Décidé (2026-09-23), en attente de validation anti-triche** — la VR passe par **OpenKneeboard** (signé, OpenXR + SteamVR) via ses **Web Dashboards** : l'app sert chaque widget sur une URL locale (fond transparent, données live par WebSocket). **Pas de couche OpenXR maison** tant qu'on n'a pas de certificat de signature de code : une DLL non signée chargée dans LMU se heurterait à Easy Anti-Cheat (actif depuis LMU 1.2). Cibles de test : Pimax (Pimax Play OpenXR) + Quest 3 (Virtual Desktop / VDXR). Rouvre partiellement la Phase 9. |
+| **Veille concurrents** | **Décidé (2026-09-25)** — on s'inspire des idées et des réglages d'outils concurrents, mais **aucun nom de concurrent dans le code** (identifiants, commentaires, textes UI, changelog) et aucune ligne de leur code reprise. Les analyses restent dans `SUIVI.md` (doc de veille). |
+| **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
+| **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
+| **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **cochée par défaut** à l'activation (décision 2026-09-26). **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
 
 ---
@@ -181,7 +186,7 @@ Voiture · Classe · Session · Type · Version (≥, + case « cette version un
 | 6 | Live : shared memory rF2/LMU, plein écran | ✅ Fait | Page `/live` |
 | 7 | Config + Changelog + i18n + transverse | ✅ Fait | Config, Changelog, i18n complet (4 langues) |
 | 8 | Polish : auto-updater, system tray, CI, installeur | ✅ Fait | Updater signé + tray + CI tag + NSIS |
-| 9 | Overlays in-game (Trace HUB) : framework + 9 overlays + mode Édition | 🔒 **Figé (2026-07-03)** | **Fonctionnel et livré en l'état** (page `/overlays`, fenêtre transparente, 9 widgets, drag, persistance ; marche en borderless). Développement **arrêté** (plus de widgets ni de correctif plein écran) — cf. journal. |
+| 9 | Overlays in-game (Trace HUB) : framework + 9 overlays + mode Édition | 🔒 **Figé (2026-07-03)** — 🧪 volet **VR** rouvert le 2026-09-23 (cf. §2 « Overlays en VR ») | **Fonctionnel et livré en l'état** (page `/overlays`, fenêtre transparente, 9 widgets, drag, persistance ; marche en borderless). Développement **arrêté** (plus de widgets ni de correctif plein écran) — cf. journal. |
 
 ### AI Coach — ✅ FAIT (2026-06-08) — fondations + live + analyse télémétrie avancée
 
@@ -262,9 +267,18 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 - `zz_V2` contient un backend Rust complet (`src-tauri/src/`) — utilisable comme référence d'inspiration, mais à réécrire/vérifier contre la V1.
 - Le `.git` de `zz_V1` est verrouillé (fichiers `.lock` périmés) — non bloquant, le code est ailleurs.
 - ohne_speed : CSV public Google Sheets, mapping circuits/classes, calcul tier + delta vs Alien.
+- **Sources de référence circuit — à re-vérifier à chaque nouveau circuit / pack** (2026-09-25). Checklist : (1) feuille ohne_speed (`TRACK_MAP` avec le `TrackVenue` exact des XML) ; (2) playlist Unleashed Drivers `PLk_3Ekb3fRQgMjnknAxq5ZGiT3sUOyFA7` (lister avec `yt_dlp` en `extract_flat`) + transcriptions (`youtube_transcript_api`) ; (3) ApexPoints (app JS : navigateur, pas `fetch`) ; (4) `track_db.py` de LMU Telemetry Lab (profils d'altitude). Points ouverts :
+  - ⚠️ **ApexPoints Road Atlanta était faux** (données pré-sortie) → remplacé à la main le 2026-09-25. Si ApexPoints corrige sa fiche, re-comparer avant de reprendre sa donnée. **Ne pas régénérer `braking-guide-data.ts` à l'aveugle** : le générateur écraserait Road Atlanta + le bloc manuel et réintroduirait les 7 fiches retirées pour tracé erroné.
+  - ⏳ **Décision mainteneur** : la seule vidéo LMU **commentée** de Road Atlanta (GT3, `Htt-UPpr9d8`, ~4 k caractères de conseils) est publiée par **GO Fast**, marque d'une app de télémétrie/coaching (concurrent potentiel) → non intégrée, faute de feu vert (règle « aucun nom de concurrent dans le code »). Hypercar/LMP2 Long Beach et Road Atlanta : aucune vidéo commentée trouvée (HYMO / GO Setups = hotlaps muets).
+  - ⏳ **Bug ohne_speed pré-existant — layouts** : `mapTrackName` construit un `layoutMap` qu'il n'utilise jamais (il renvoie la base). COTA National, Monza Curva Grande, Fuji Classic, Sarthe Mulsanne, Bahrain Outer/Paddock… prennent donc le temps de référence du tracé **principal**. Les clés du `layoutMap` (« Curva Grande ») ne correspondent d'ailleurs pas aux `track_course` réels (« Monza Curva Grande Circuit »).
+  - ⏳ Pas encore de profil d'altitude Telemetry Lab pour Road Atlanta ni Long Beach (vue 3D plate) — à reprendre quand ils sortent. Leur profil **Daytona** est écarté (repères de virages faux, creux de 9 m inexistant à la chicane).
+  - 🔒 **Règle : aucune donnée à tracé erroné** (mainteneur, 2026-09-25). Avant d'intégrer une fiche circuit, croiser numérotation + nature des virages avec le tracé en jeu et une source officielle ; si ça ne colle pas, on n'en prend rien. ApexPoints : 7 fiches sur 12 retirées à ce titre (cf. journal du 2026-09-25).
+  - ⏳ **Panneaux ApexPoints suspects** sur les 4 fiches conservées (Le Mans, Monza, Spa, Imola) : marqueurs génériques 75/100/125 m, écarts relevés avec le wiki LMU et un guide GT3 (La Source, Roggia, Lesmo 1, chicanes Mulsanne). Annoncés en vocal par le coach → à vérifier.
+  - ⏳ ohne_speed : pas d'entrée `TRACK_MAP` pour Interlagos (nom jeu présumé « Autodromo Jose Carlos Pace », à confirmer sur une vraie session) alors que la feuille le couvre.
 - Live : plugin shared memory rF2 (`$rFactor2SMMP_Telemetry$` / `$rFactor2SMMP_Scoring$`) — l'utilisateur doit l'installer dans `<LMU>/Plugins/`.
 - ~~**À faire — badge Online/Solo**~~ : **abandonné** (2026-06-03). Redondant : la distinction est déjà visible via le type de réglage « En ligne » (Multiplayer) vs « Week-end de course » (Race Weekend) affiché dans les tableaux.
 - **Idée future — plugin SimHub** (pour les fans de SimHub) : proposer un **plugin SimHub** apportant les annonces vocales « ingénieur de course » (et/ou des propriétés de données) dans l'écosystème SimHub. ⚠️ Sous-projet **séparé en C#** (SimHub Plugin SDK / `IDataPlugin`), distinct du code Tauri/Rust : la logique de callouts (`useVoiceCallouts`) serait **réimplémentée** côté C# à partir de la télémétrie que SimHub fournit déjà. Indépendant de l'app principale. À planifier plus tard. Alternative plus légère côté app : fenêtre **overlay transparente always-on-top** (Tauri) au lieu d'un vrai plugin SimHub.
+- **Base communautaire des meilleurs tours** (2026-09-25) : spec v1 dans `COMMUNITY-SPEC.md` (opt-in, VPS du mainteneur, section `/communaute` de la vitrine) — en attente des réponses §12 puis des maquettes. Répond aussi à l'idée ci-dessous sans dépendre d'une API tierce.
 - **Idée future — intégration leaderboard en ligne (mysimrace)** (2026-06-21) : **l'option qui manque au projet**. mysimrace.com propose un connecteur (basé sur le plugin rF2 standard) qui envoie automatiquement les chronos à chaque tour et alimente des classements communautaires en ligne. Piste : permettre à la V3 d'**envoyer/afficher** les temps du joueur sur mysimrace (ou un leaderboard équivalent) — la dimension « communautaire/compétitive » absente aujourd'hui. À étudier : API mysimrace (auth par nom + mot de passe vue dans le connecteur), envoi des chronos depuis la base SQLite ou le pipeline live, affichage d'un onglet « Classement en ligne ». ⚠️ Dépend d'une API tierce (mysimrace) — vérifier disponibilité/CGU avant. Cf. liste « Projets à surveiller ».
 - **« parler au spotter » (façon CrewChief)** — **Couche 1 FAITE** (2026-06-02), **Couche 2 FAITE** (2026-06-03).
 - **Télémétrie post-session — format DuckDB** (2026-06-07) : LMU écrit nativement en `.duckdb` dans `UserData/Telemetry/` quand l'utilisateur active Telemetry Recording en jeu (Settings → Controls → Gameplay). Pas de parsing binaire `.bt` nécessaire. La crate Rust `duckdb` peut lire ces fichiers directement. Structure interne : table `metadata` (key/value) + tables continues (`value` float, alignées sur `GPS Time` via rowid) + tables événementielles (`ts` + `value`). ~60 canaux à 50-100 Hz.
@@ -795,6 +809,7 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 | **mylmu.app** | SaaS cloud | Freemium | AI Coach, Sync Agent, Discord webhooks, teams, community rankings, track analytics | https://www.mylmu.app |
 | **popometer.io** | SaaS cloud | Abonnement | Comparaison avec données pros, assisted analysis (apex, slowest point), overlays avec référence | https://popometer.io |
 | **LMU Telemetry Lab** | Open source | Gratuit | 60+ canaux 50-100Hz, 2D/3D track map, ghost car, 27 chart types, comparaison laps | https://github.com/rabbit20031225/LMU-Telemetry-Lab |
+| **TrackMind** (ex-« SLM Engineer ») | Desktop Python/pywebview, fermé | Bêta Discord (paliers prévus) | Ingénieur radio vocal (STT local Parakeet/Whisper, Piper, LLM), prévision météo `.wet`, API REST LMU, setup construit à la voix (lignée v1→v2), plan de course, carrière + fiche saison PNG, écurie/pitwall en ligne, régie spectateur. LMU + iRacing. Étude : journal 2026-09-24 | https://trackmind.gg |
 
 **🟡 Compléments / Menace partielle**
 
@@ -841,6 +856,719 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-09-26 — Base communautaire : invitation au partage, « Ma position », site allégé
+
+- ✅ **Invitation au partage** (`CommunityInvite` dans `CommunitySettings.tsx`, montée dans `App.tsx`) :
+  même fenêtre que Config → Communauté, proposée au lancement (jamais pendant l'onboarding, la
+  visite guidée ou le Live). Bénéfice montré d'abord : « avec 1:34.912 à Daytona (Hyper), vous
+  seriez 12ᵉ sur 65 pilotes » (`myCombos` + `combos/position`, repli sur le nombre de pilotes).
+  « Activer le partage » en bouton principal à droite, « Plus tard » discret, historique
+  pré-coché. **Consentement toujours explicite** : rien ne part sans clic (la demande « partage
+  activé par défaut » a été écartée : RGPD art. 6/7, ePrivacy 5(3), promesse de la vitrine).
+  « Plus tard » → photo des meilleurs tours ; **une seule** relance, au premier record battu
+  (« Nouveau record personnel : le partager ? »), puis plus jamais (`localStorage`
+  `lmu.communityInvite` : absent → `record` → `done`).
+- ✅ **« Rester anonyme » coché par défaut** à l'activation (décision mainteneur, rassurant).
+  Remplace la décision précédente « nom visible par défaut » (§2 à jour).
+- ✅ **App, page Classements** : tableaux au format du tableau de bord (en-tête de circuit
+  repliable, titres de colonnes contrastés et alignés, logo de marque, bloc performance teinté),
+  barre de filtres Circuit/Tracé/Classe/Voiture et cellules cliquables pour filtrer (comme
+  Sessions/Records). « Meilleur temps » au rang 1 (au lieu de « Derniers 100 % »).
+  « Voir sur le site » transmet `me=<repère>`.
+- ✅ **Site** : bandeau compact (carte miniature | titre | KPIs) → le classement est visible sans
+  défiler ; histogramme expliqué (compte par barre, info-bulle, « plus rapide / plus lent »,
+  « Top 10 % / Médiane / 90 % », libellés non superposés) ; panneau « Versions » retiré au profit
+  d'un **filtre Version à cases** (multi-choix + « Toutes », rien de perdu) ; **« Ma position »**
+  (ligne épinglée en couleur au-dessus du tableau, « Voir dans le tableau », « Oublier »), repère
+  retenu via `?me=` (lien depuis l'app) ou « C'est moi » sur la fiche pilote ; **logos de marque**
+  au lieu des photos (la livrée affichée n'était pas celle du pilote) — l'image Docker copie
+  `public/logos` et plus `public/cars` ; bouton **« Offrir un café »** (en-tête + pied de page) ;
+  barre de filtres de l'accueil en haut, collante.
+- ✅ **Accueil du site : filtre Version** (comme dans l'app) : `GET /combos?version=` (absent =
+  la plus récente de chaque combo, `all`, ou liste) + `versions` dans la réponse ; filtre à cases,
+  transmis à la page combo. Icônes Circuit/Tracé du site réparées (clés `track`/`course`).
+- ✅ **App, Classements : mêmes filtres que Sessions** (Circuit, Tracé, Classe, Voiture, Session,
+  Mode, Version + « cette version uniquement », réglage de version partagé avec Sessions).
+  `community_my_combos(filters)` filtre les tours locaux (règles session/mode identiques au
+  serveur, test Rust ajouté) et la position est demandée au serveur avec les mêmes critères
+  (version « ≥ v » → toutes les versions serveur à partir de v). Tuiles colorées selon le rang.
+- ✅ **Site : finitions visuelles** — listes de filtres à la largeur de leur valeur
+  (`field-sizing: content`), barres plus compactes ; titres équilibrés (`text-wrap`) ; focus
+  clavier visible ; badge GTE coloré, badges jamais coupés, contraste thème clair (classes, violet
+  des meilleurs secteurs) ; squelettes de chargement + place réservée aux filtres (plus de saut) ;
+  tableaux sur une ligne par pilote, en-tête sur fond, lignes alternées ; histogramme et barres
+  « par voiture » à la couleur de la classe ; apparition douce des cartes (respecte « réduire les
+  animations ») ; barre de filtres non collante sur mobile. NB : les captures du panneau
+  navigateur ne suivent pas le défilement (artefact de l'outil, pas du site).
+- ✅ **Déploiement VPS aligné sur la doctrine du serveur** (`~/docker/<projet>/`, cf. piles
+  coupparfait / laeti / monplandeclasse) : façade dédiée `web-lmustatsviewer` partagée avec NPM
+  seulement (plus de réseau `proxy` commun), réseau `internal: true` pour la base (sans accès
+  Internet, vérifié), alias NPM `lmustatsviewer-web`, Postgres `scram-sha-256`, service `backup`
+  (dump quotidien, 14 j) dans la pile, sonde de santé de l'API. `APP_PUBLIC_DIR` configurable
+  (archive de déploiement : compose à la racine + `public/`). Testé en local (pile recréée,
+  données conservées). DNS `lmu.cparfait.ovh` → 51.255.34.26 en place.
+- ✅ **EN PRODUCTION** (2026-09-26) : `https://lmu.cparfait.ovh` sur le VPS (`~/docker/lmustatsviewer`,
+  façade `web-lmustatsviewer`, NPM avec Force SSL + HTTP/2 + HSTS). Compose de NPM mis à jour
+  pour déclarer toutes les façades (raccordements durables). `smoke.mjs` contre la prod :
+  TOUT EST OK (données de test effacées). Test réel avec l'app de dev : activation + 145 sessions
+  reçues, suppression effective, réactivation (nouveau repère). **Cache API passé à `no-cache`**
+  (avec `max-age=120`, une suppression restait visible 2 min — contraire à la promesse faite au
+  joueur). CI : job `community` (typage + tests). Libellé de l'historique précisé (« le résumé…
+  un meilleur tour par session »). Décision : tout reste dans le dépôt public de l'app.
+- ✅ **Script de mise à jour du serveur** : `community/scripts/deploy.cmd|.sh` (PC : contrôles,
+  archive + `VERSION`, une connexion SSH) → `scripts/update.sh` (VPS : sauvegarde code + image
+  `:previous`, remplacement sans toucher `.env`/`backups`/base, build, `up --wait`, **retour
+  arrière automatique**). Vérifié sur VPS simulé : succès, API unhealthy → rollback, échec de
+  compilation → service jamais arrêté. Cible dans `community/.deploy.env` (ignoré par git).
+- ✅ **Mise à jour depuis GitHub** (`community/scripts/update-from-github.sh`, sur le VPS) : clone
+  partiel de `community/` + visuels seulement, archive + `VERSION`, puis `update.sh` de cette
+  version (verrou, sauvegarde, build, `up --wait`, retour arrière). **Bandeau « Mise à jour en
+  cours » sur le site** : `state/maintenance.json` (monté en lecture seule) → `GET /api/v1/status`
+  (sans base, `no-store`) → bandeau 4 langues, sondé toutes les 30 s. Testé sur faux dépôt + faux
+  VPS (première installation incluse). 27 tests serveur. Le script PC (`deploy.cmd`) reste en secours.
+- ✅ **Site : identité de l'app** (« garder l'âme de l'app ») — palette exacte de `src/index.css`
+  (primaire #D93B00, fond #f4f5f8, sombre bleu nuit #0b101f/#131a30), **thème clair par défaut**
+  comme l'app ; tableaux à **bandeau de titre orange** + compteur (classement, résultats filtrés,
+  fiche pilote), en-tête teinté (titres foncés), bloc temps teinté ; tuiles de chiffres à icône ;
+  boutons primaires orange/blanc. **« Ma position »** : plus de texte d'explication — on tape son
+  nom, on le choisit (rang + temps affichés), la ligne s'épingle aussitôt (repère retenu).
+- ✅ **Accueil filtré = tableau** : dès qu'un filtre est actif (circuit, classe, session, mode,
+  version, recherche), l'en-tête, les « plus roulés » et les cartes disparaissent au profit d'un
+  tableau des combos (circuit, classe, record, voiture, pilotes, version ; ligne cliquable) avec
+  compteur et « Réinitialiser les filtres ». Adresse déjà filtrée → tableau dès le chargement.
+- ✅ **Site : refonte de l'accueil** — en-tête compact (texte | chiffres en 2×2, ~300 px au lieu
+  de ~480) ; « combos les plus roulés » en liste classée (rang, tracé, nom sur une ligne, record,
+  pilotes + barre) ; cartes circuits homogènes (titre + vignette tracé OU drapeau, records par
+  classe) — plus de grande zone vide « Tracé bientôt disponible » ; « 1 pilote » au singulier ;
+  en-tête mobile sur une ligne. Vérifié 1300 px (avec et sans tracés) et mobile.
+- ✅ **Serveur** : `GET /combos/leaderboard?tag=#xxxx` → `me` (ligne et vrai rang, `null` si absent).
+  Test ajouté ; 26/26 verts.
+- ✅ **Question « temps validés ? »** : oui — seuls les tours auxquels le jeu a attribué un temps
+  (LMU écrit `--.----` pour un tour invalidé, de sortie ou incomplet), hors tours aux stands ;
+  côté serveur, secteurs cohérents (±0,05 s) et bornes anti-abus.
+- ✅ **Conditions / Aides** : viennent du XML — aides = attribut `control_aids` du pilote ;
+  « Sec / Pluie » = déduit des gommes du meilleur tour (`fcompound`/`rcompound` contenant
+  wet/rain), pas de la météo réelle.
+- ⏳ **Tracés manquants sur le site** : 7 tracés seulement (5 appris en live, Spa + Sebring depuis
+  la télémétrie ; Imola et Paul Ricard rejetés, tours incomplets). Règle : aucun tracé d'une
+  source non vérifiée sur la configuration exacte.
+- 📋 **Prochaine étape** : tester l'invitation dans l'app (effacer `lmu.communityInvite` du
+  localStorage pour la revoir) ; enregistrer un tour complet en télémétrie par circuit manquant
+  puis relancer `community/scripts/tracks-from-telemetry.py` ; mettre à jour la vitrine
+  (« 0 donnée envoyée sans votre accord », FAQ, confidentialité) avant publication.
+
+### 2026-09-26 — Base communautaire : fusion Références/Classement, anonymisation, filtres du site
+
+- ✅ **Fusion Références + Classement** (proposition discutée, pas une simple juxtaposition) :
+  un seul menu « Classements », onglet « Ma position » (rang communautaire + colonne **Niveau
+  OhneSpeed** via `TierBadge`) et onglet « Références OhneSpeed » (page `References` inchangée,
+  aucune perte). `/references` → `/classement?tab=references`. Option OhneSpeed off → ni onglet
+  ni colonne. `nav.community` = « Classements » ×4. Changelog (improved).
+- ✅ **Désactiver le partage = anonymiser** (décision mainteneur : « on garde les temps mais on
+  anonymise, comme ça on a de la data ») : `community_disable` devient async → `PATCH /me
+  {anonymous:true}` ; hors connexion, `community_anon_pending` est retenté en tête de chaque
+  `sync`. « Supprimer mes données » reste l'effacement réel. e2e : temps conservé, nom retiré.
+  Textes ×4 (`disabledToast`, `disableNote`), changelog.
+- ⚠️ **« Partage activé par défaut » demandé par le mainteneur : NON implémenté**, objection
+  motivée (voir réponse) — RGPD (consentement = acte positif, cases pré-cochées exclues,
+  considérant 32 ; protection des données par défaut, art. 25) et ePrivacy (art. 5-3 : lire des
+  données sur le terminal et les transmettre exige le consentement), + promesse de la vitrine.
+  Contre-proposition : invitation plein écran au 1er lancement, « Rejoindre » en bouton principal.
+  **En attente de décision.**
+- ✅ **Filtres serveur** : `car`, `session` (race / qualify / practice), `mode` (online =
+  `Multiplayer` / offline) sur détail, classement, position et liste ; `eligibility()` passe les
+  valeurs libres en paramètres SQL. 26 tests.
+- ✅ **Site : barre de filtres façon app** (icône + libellé + liste) — page combo : Circuit,
+  Tracé, Classe, Voiture, Session, Mode, Version (Dernière / Toutes / une version ; multi via le
+  panneau Versions), Conditions, Aides ; accueil : Circuit, Classe, Session, Mode + recherche.
+- ✅ Site pleine largeur (`--maxw` 1 880 px, 5 circuits par ligne à 1 920 px). Réponse à « Vue ? » :
+  inutile — le rendu vient du CSS ; si un framework un jour, React (celui de l'app).
+
+📋 **Prochaine étape** : décision du mainteneur sur le partage par défaut ; fin des tests locaux ;
+puis commit et déploiement.
+
+### 2026-09-26 — Base communautaire : test local avec les vraies données du mainteneur, retours
+
+Test local complet (serveur Docker + jeu de démo de 989 pilotes fictifs + app en `tauri dev`
+pointée sur `http://127.0.0.1:3080` via la clé `community_url`) : le mainteneur a activé le
+partage, **ses 145 sessions sont arrivées** (990 pilotes, 1 134 sessions, 17 tracés). Retours
+traités dans la foulée :
+
+- ✅ **Page « Classement » de l'app** : colonnes non alignées d'un circuit à l'autre (un tableau
+  par circuit, largeurs automatiques) → `table-fixed` + `colgroup` communs.
+- ✅ **Visuel manquant « Peugeot 9x8 (2024/25) »** — bug de toute l'app : le mot-clé de
+  `cars.json` était « (2024) ». Variante ajoutée (image 9X8 Evo). Changelog 1.0.7 (fixed).
+- ✅ **Versions multiples + « Toutes »** : l'API accepte `version=1.42,1.41` ou `version=all`
+  (`= any($4::text[])`), le détail renvoie `selected` ; site : pastilles cumulables + « Toutes ».
+- ✅ **Trouver vite son temps** : `leaderboard?name=` (rang réel conservé, anonymes jamais
+  trouvés) + champ « Trouver un pilote » au-dessus de chaque classement du site.
+- ✅ **Recherche de pilote** : `GET /drivers?q=` (≥ 2 caractères, 20 max, anonymes et masqués
+  exclus) + champ dans l'en-tête du site ; **fiche pilote** `pilote.html?tag=` via
+  `GET /drivers/profile` (rang par combo ; si le pilote n'a pas roulé la version la plus récente,
+  toutes les versions — sinon son temps disparaîtrait de sa fiche ; combos < 20 pilotes affichés
+  « provisoire (n/20) » au lieu d'un « Top 100 % » trompeur).
+- ✅ **Spa non dessiné** → `community/scripts/tracks-from-telemetry.py` : contours tirés de la
+  télémétrie du jeu (GPS lat/lon rangés par Lap Dist, 300 tranches moyennées sur tous les tours,
+  tour incomplet < 95 % rejeté), **clé = `TrackLayout` exact** (règle « tracé erroné » : un
+  contour n'apparaît jamais sur une autre variante ; les contours du site sont désormais indexés
+  par `track_course`). Ajoutés : Spa, Sebring. Rejetés (pas de tour complet enregistré) : Imola,
+  Paul Ricard ELMS. Sans contour : grand drapeau + « Tracé bientôt disponible ».
+- ✅ Défauts trouvés au test et corrigés : cache navigateur (scripts, CSS et données versionnés
+  `?v=`), bouton « Afficher plus » visible malgré `hidden` (`[hidden] { display:none !important }`).
+- 25 tests serveur (+ versions multiples, recherche, fiche) ; `tsc`/lint app OK.
+
+📋 **Prochaine étape** : fin des tests du mainteneur → « Supprimer mes données du serveur »
+dans l'app, retrait de `community_url`, arrêt de la pile locale ; puis commit et déploiement.
+
+### 2026-09-26 — Base communautaire : lots 4 (page « Classement ») et 3 (site) livrés
+
+- ✅ **Lot 4 — page « Classement » de l'app** (`src/routes/Classement.tsx`, route `/classement`,
+  menu entre Références et Setups, `nav.community` ×4, espace `leaderboard.*` ×4). Rust :
+  `community_public` (lectures publiques, **liste blanche** de 5 routes, HTTPS imposé comme pour
+  l'envoi) et `community_my_combos` (meilleur tour **sur le sec** du joueur par circuit × tracé ×
+  classe, base locale). La page place le joueur **même s'il ne partage pas** (classements ouverts
+  à tous) : tuiles, table par circuit (rang, top %, jauge, écart), combos < 20 pilotes avec
+  progression, détail (histogramme + « VOUS », podium + voisins), lien vers le site. Lien direct
+  `/config?cat=community` (ConfigV2 ouvre une catégorie par l'URL).
+- ✅ **Lot 3 — site `lmu.cparfait.ovh`**, servi **par le même conteneur** que l'API (`serveStatic`
+  Hono, pas de service en plus) : `community/site/` en HTML/CSS/JS sans framework, design des
+  maquettes validées (feuille propre `site.css` = base marine/ambre + composants des maquettes),
+  4 langues, thème clair/sombre. Accueil (bandeau de chiffres, combos les plus roulés, grille
+  des circuits filtrable par classe + recherche) et page combo (chiffres clés, histogramme p10/
+  p50/p90, **position exacte** d'un temps via `/combos/position`, classement paginé avec
+  médailles / anonymes / homonymes / meilleurs secteurs, par voiture, versions, partage de lien,
+  aperçu des freinages). Visuels et drapeaux = ceux de l'app (`public/`, via **contexte Docker
+  additionnel** `app_public`, mêmes règles `cars.json` / `circuits.json`).
+- ✅ **Sécurité du site** : CSP stricte (scripts du site uniquement, aucun gestionnaire en ligne —
+  `onerror` d'image remplacé par une écoute globale), `frame-ancestors 'none'`, tout nom de
+  pilote passé par `esc()`, sortie du dossier refusée (testé), pages HTML en `no-cache` (une mise
+  à jour se voit tout de suite — défaut trouvé au test : page servie depuis le cache), `/assets`
+  en cache 1 h.
+- ✅ `scripts/seed-local.mjs` : ~1 000 pilotes fictifs pour voir le site peuplé, **refuse toute
+  adresse autre que localhost**. Premier essai : 240/989 acceptés → c'était le limiteur de débit
+  (240 envois/h/IP) qui fonctionnait ; IP simulée par pilote.
+- ✅ **Vérifié** : 23 tests serveur (dont le site) ; e2e Rust étendu (21 combos locaux, position
+  sur le serveur, route hors liste blanche refusée) ; site en Docker réel peuplé : accueil,
+  grille, page combo, calculateur (1:21.480 → top 49 %, 88/180), visuels (6/6 en 200), aucune
+  erreur console malgré la CSP ; deux défauts corrigés au passage (variables de couleur de classe
+  oubliées → histogramme noir ; accord « 1 classe »). ~54 Mo en tout au repos.
+- ⚠️ Page « Classement » de l'app non vue visuellement (nécessite Tauri) ; commandes Rust
+  vérifiées de bout en bout.
+
+📋 **Prochaine étape** : commit (lots 1 à 4) puis déploiement (`community/README.md` ; cloner le
+dépôt entier, le build lit `public/`). Avant toute release : mettre à jour la vitrine
+(« 0 donnée envoyée sans votre accord », FAQ, page Confidentialité). Ensuite : pastille
+« Communauté » dans Records / détail de session, images d'aperçu OpenGraph, étape 2 (freinages
+communautaires).
+
+### 2026-09-26 — Base communautaire : lot 2 (app) livré
+
+- ✅ **Rust `commands/community.rs`** : 7 commandes (`community_status/preview/enable/disable/
+  set_anonymous/delete/sync`). Résumés construits depuis la base locale — **joueur seul**
+  (`is_player`), tours `is_valid=1 AND is_pit=0`, secteurs envoyés seulement s'ils sont complets
+  et cohérents (sinon `null`), médiane, meilleurs secteurs, aides parsées de `control_aids`,
+  composés (« 0,Soft » → « Soft »), pluie = composé Wet/Rain, `has_telemetry=false` (⏳ à relier
+  aux enregistrements). Clé d'idempotence `sha256(install_id|fichier XML)` : stable à la
+  réindexation, nom de fichier jamais envoyé en clair.
+- ✅ **File `community_outbox`** (nouvelle table, `db.rs`), indexée par la clé : `sent` UNIQUEMENT
+  si l'accusé `received` la cite ; `rejected` définitif (jamais renvoyé) ; `pending` avec backoff
+  exponentiel (60 s → 6 h) sur coupure / 5xx / 429 / accusé illisible ; quota journalier =
+  report à +6 h. Verrou de synchronisation unique ; aucun verrou SQLite tenu pendant un appel
+  réseau (`apply_ack` synchrone).
+- ✅ **Sécurité** : HTTPS obligatoire (HTTP seulement vers 127.0.0.1/localhost via `community_url`,
+  pour le dev), `https_only`, certificat rustls ; `Content-Digest` SHA-256 (base64 maison testé
+  sur les vecteurs RFC 4648 + même empreinte que le serveur) ; jeton chiffré AES-GCM
+  (`encrypt_key`/`decrypt_key` de `ai.rs` passés `pub(crate)`) ; suppression : rien n'est
+  effacé localement si le serveur ne confirme pas (sinon le jeton serait perdu et les données
+  serveur inaccessibles).
+- ✅ **UI** : Configuration → **Communauté** (`CommunitySettings.tsx`, nouvelle catégorie entre
+  Coach IA et Maintenance) — interrupteur désactivé par défaut, écran d'activation de la maquette
+  (ce qui part / ne part jamais, nom LMU en lecture seule + « Rester anonyme » sur le même
+  écran, historique en case séparée avec le nombre de sessions), statut (partagées, en attente,
+  dernier envoi, nom affiché, erreurs traduites), « Envoyer maintenant », aperçu JSON exact,
+  suppression avec confirmation. `useCommunitySync` (App) : au lancement, à chaque `dataVersion`,
+  toutes les 10 min. i18n ×4 (`config.community` + espace `community.*`), changelog 1.0.7.
+- ✅ **Vérifié** : 8 tests Rust (+ 2 outils `#[ignore]`) ; **contrat sur base réelle** : 145
+  résumés exportés d'une copie de la base, **145/145 acceptés** par le schéma zod du serveur ;
+  **bout en bout** (code Rust de l'app ↔ serveur Docker local, copie de la base) : rien ne part
+  avant activation, 145 envoyées / 0 refus, coupure simulée → 10 renvois reconnus sans doublon,
+  anonymat, suppression → serveur à 0 session. `tsc -b` OK, lint 0, 265 tests, 22 tests serveur.
+- ⚠️ UI non vérifiée visuellement (nécessite l'app Tauri ; le navigateur seul affiche
+  « disponible uniquement dans l'application de bureau »).
+
+📋 **Prochaine étape** : le mainteneur déploie le serveur (`community/README.md`) puis teste
+l'activation dans l'app (`npm run tauri dev`) ; ensuite **mise à jour de la vitrine** (compteur,
+FAQ, page Confidentialité) **avant toute release publique**, puis lot 3 (site `lmu.cparfait.ovh`)
+et lot 4 (page « Classement » dans l'app).
+
+### 2026-09-26 — Base communautaire : lot 1 (serveur) livré, à déployer
+
+**Demande** : « lance » le lot 1, avec en cours de route une exigence ajoutée par le
+mainteneur : **sécuriser données et échanges, résister à une coupure de lien avec un joueur,
+n'afficher que ce qui a été entièrement reçu** → nouvelle §4 bis de `COMMUNITY-SPEC.md`.
+
+- ✅ **`community/`** (espace de travail npm, hors build de l'app ; `eslint.config.js` l'ignore) :
+  - `shared/src/session.ts` : contrat d'envoi (zod strict, secteurs = temps ± 0,05 s, médiane ≥
+    meilleur, `gameMinor` 1.4200 → 1.42, `normalizeName`).
+  - `api/` (Node 22, Hono, `pg`) : migrations embarquées (`installs`, `name_claims`, `sessions`),
+    `ingest.ts` (réception), `stats.ts` (un meilleur tour par pilote → percentiles, histogramme
+    0,5 s, par voiture, versions, classement, position, liste, chiffres globaux), `app.ts`
+    (routes v1), `ratelimit.ts` (mémoire), `admin.ts` (modération), `index.ts`.
+  - **Sécurité des échanges** : `Content-Digest` SHA-256 obligatoire (envoi tronqué/altéré →
+    400, rien d'écrit) ; lot = 1 transaction (rien de visible avant la fin) ; accusé `received`
+    (clés réellement enregistrées) ; renvoi idempotent par `session_key` (clé d'une autre
+    installation rejetée) ; jeton 256 bits dont seul le hash est stocké ; aucune IP/jeton en base
+    ou en journal ; en-têtes de sécurité ; `no-store` sur les routes authentifiées.
+  - Noms : nom LMU de la session la plus récente, réservé par la 1ʳᵉ installation, les suivantes
+    en homonymes ; `PATCH /me` n'accepte **que** `anonymous`.
+  - Anti-abus : quota 200 sessions/jour/installation, limites de débit (IP, installation),
+    bornes dès 20 pilotes (< 97 % du p1 des autres → rejet ; > 130 % de la médiane → « slow »,
+    hors percentiles), filtres pluie / aides, modération silencieuse.
+  - Déploiement : `Dockerfile` (2 étapes, non-root), `docker-compose.yml` (aucun port publié,
+    réseau externe NPM via `NPM_NETWORK`, Postgres interne, `read_only`, `no-new-privileges`,
+    256 + 384 Mo, journaux plafonnés), `.env.example`, `scripts/backup.sh` (refuse une
+    sauvegarde vide/corrompue, chiffrement `age` optionnel, rotation 14 j), `scripts/smoke.mjs`
+    (vérification de bout en bout qui **efface** ses données de test), `README.md` pas à pas
+    (DNS OVH, réseau NPM, `.env`, hôte NPM `lmu-api:3000` + Let's Encrypt, cron, restauration).
+- ✅ **Tests** : 22/22 sur un vrai Postgres embarqué (PGlite) — dont envoi tronqué, sans
+  empreinte, **échec à la 2ᵉ écriture → lot entièrement annulé**, renvoi après coupure sans
+  doublon, homonymes, anonymat, agrégats, bornes, quotas, limites de débit, effacement RGPD.
+  `npm run typecheck` propre (sources strictes, tests avec lib DOM).
+- ✅ **Pile Docker réelle testée en local** (réseau NPM simulé) : conteneurs « healthy »,
+  `smoke.mjs` 10/10, **≈ 70 Mo** au repos (API 19 Mo, Postgres 51 Mo) ; sauvegarde puis
+  **restauration vérifiée** dans une base neuve ; pile, volume et réseau de test supprimés.
+- App non touchée hors `eslint.config.js` (ignore `community`) et `.gitignore`
+  (`community/backups/`) : lint 0, `tsc -b` OK, 265 tests verts. Pas d'entrée de changelog :
+  rien de visible dans l'app avant le lot 2.
+- ⏳ Borne « alien » ohne_speed pour les combos de moins de 20 pilotes : non implémentée (§4).
+
+📋 **Prochaine étape** : le mainteneur commite puis déploie (`community/README.md` étapes 1 à
+8 : DNS A `lmu` → IP du VPS, `.env`, `docker compose up -d --build`, hôte NPM, `smoke.mjs`
+contre `https://lmu.cparfait.ovh`, cron de sauvegarde). Ensuite **lot 2** (app : opt-in,
+file d'envoi avec accusé, jeton chiffré, suppression des données).
+
+### 2026-09-25 — Base communautaire des meilleurs tours : spec v1 (aucun code)
+
+**Demande** : une base alimentée par les utilisateurs (case à cocher) pour avoir des références
+de comparaison ; le mainteneur a un VPS et veut un site « super beau, sinon pas crédible ».
+
+- ✅ **`COMMUNITY-SPEC.md`** (racine) : principes (opt-in désactivé par défaut, tours du joueur
+  seulement, pseudonymat, hors ligne d'abord, données du jeu uniquement), 3 étapes (résumés de
+  session → résumés par virage → tours complets), payload JSON de l'étape 1, validation/
+  anti-abus, RGPD, API v1, stack VPS, site public, intégration app, plan en 6 lots, 8 questions.
+- Faits vérifiés sur la base locale : tout l'étape 1 existe déjà (`results.is_player`,
+  `laps.is_valid/is_pit`, `sessions.game_version/setting`, `results.control_aids`, composés,
+  usure) — 570 tours valides chez le mainteneur. Étape 2 : `coach_corner` a déjà
+  `brake_dist/vmin/ventry/vexit/full_throttle_dist` (vide sur ce poste).
+- **Vitrine existante** `https://lmustatsviewer.cparfait.ovh/` : statique (HTML/CSS/JS maison),
+  `Server: openresty` (⚠️ correction 2026-09-26 : c'est le proxy du **Docker domestique** du
+  mainteneur, où tourne la vitrine — pas le VPS ; le NPM du VPS est confirmé à part). Elle
+  vend « 0 donnée envoyée / aucun serveur » → **principe 8** : la promesse reste vraie par
+  défaut, vitrine + FAQ mises à jour dans le lot de l'opt-in. Les classements deviennent une
+  **section `/communaute` de la vitrine** (même cadre : marine `#0A0E1A`, ambre `#FFB400`,
+  Inter/JetBrains Mono), avec les composants « données » de l'app.
+- Stack recommandée : tout TypeScript (React Router v7 SSR + API Hono dans le même service,
+  Postgres 16, schémas zod partagés avec l'app), Docker Compose ; envoi côté app depuis le Rust
+  (token dans le magasin de clés chiffré existant).
+
+- ✅ **Suite (2026-09-26), décisions du mainteneur** : VPS = Docker + Nginx Proxy Manager, 8 Go
+  partagés (→ limites mémoire, < 400 Mo) ; classements **ouverts à tous** ; **pas dans la
+  vitrine** (« les joueurs ont déjà l'app ») → page « Classement » dans l'app **+ site dédié
+  séparé** ; nom affiché = **nom LMU du XML, non modifiable** (déjà garanti : `is_player` =
+  nom de pilote == nom XML, `indexer.rs:551`), option « Rester anonyme » ; homonymes et
+  usurpation traités (§1.4 de la spec). Inscrit en §2.
+- ✅ **Maquettes** `community/mockups/` (HTML statique, **données fictives clairement
+  signalées**, hors build de l'app — la règle « pas de données mockées » vise l'app) : accueil
+  du site dédié, page Road Atlanta · GT3 (répartition, calculateur « où se situe mon temps »,
+  classement, par voiture, par version, aperçu de partage, teaser des freinages
+  communautaires), écran d'activation dans l'app (ce qui part / ne part jamais, nom LMU en
+  lecture seule, « Rester anonyme », historique en case séparée). Tracés **réels** (issus des
+  tracés appris en jeu). Servies par la config `mockups` de `.claude/launch.json`
+  (`python -m http.server 5180`, ouvrir `/community/mockups/index.html`).
+
+- ✅ Retour mainteneur : « tout est top » sauf le bloc de compteurs (4 grosses cartes, chiffres
+  mono avec un trou au séparateur de milliers) → bandeau unique fin, police du site en chiffres
+  tabulaires, tendance hebdo, « Records battus » à la place de « Classes » (chiffre figé).
+- ✅ Sous-domaine du site dédié : **`lmu.cparfait.ovh`**.
+- ✅ **Hébergement** : la vitrine reste sur le Docker **domestique** du mainteneur ;
+  `lmu.cparfait.ovh` (site + API) va sur le **VPS** (NPM). Seule opération DNS : A `lmu` → IP
+  du VPS dans la zone OVH `cparfait.ovh`. Aucun couplage vitrine ↔ service.
+
+- ✅ **Maquette n° 4 — page « Classement » dans l'app** (`app-classement.html`), calquée sur les
+  captures réelles Records/Références (en-tête, tuiles, barre de filtres, bandeau orange, groupes
+  par circuit) : entrée de menu entre Références et Setups, statut du partage, 5 tuiles (combos
+  classés, meilleur classement, position moyenne, progression 7 j, pilotes), tableau « vos
+  positions par combo » (temps, rang, top %, jauge, écart, niveau ohne_speed, tendance 7 j),
+  ligne dépliée (tracé, répartition avec « VOUS », « Autour de vous » : podium + voisins), combo
+  sous le seuil de 20 pilotes affiché avec sa progression. Vérifiée à 1280 px sans débordement.
+
+📋 **Prochaine étape** : retour du mainteneur sur la maquette n° 4, puis lot 1 (serveur sur le
+VPS : `community/`, compose, schéma, API register/sessions/me).
+
+### 2026-09-25 — Circuits US : mise à jour des sources de référence (vidéos, freinages, benchmarks, altitude)
+
+**Demande** : après l'ajout du US Track Pack 2, vérifier si vidéos, freinages, etc. sont à
+mettre à jour par rapport aux sites sur lesquels on s'appuie. Revue des 4 sources :
+
+- ✅ **Unleashed Drivers** (source vidéo principale) : 6 nouveaux guides commentés depuis le
+  2026-08-24 — Daytona GT3 / Hypercar / LMP2 WEC / LMP2 ELMS, Laguna Seca Hypercar, Long
+  Beach GT3. Ajoutés dans la partie « générée » de `video-guides-data.ts` + transcriptions
+  (6 × ~8,5 k car., nettoyées de `[music]`/`>>`) dans `video-transcripts-data.ts`. Ils
+  **passent avant** les anciens ajouts manuels HYMO/GO Setups du même combo (première entrée
+  sans layout) : ces derniers, désormais masqués (Daytona Hypercar/GT3, Laguna Hypercar),
+  sont retirés.
+- ✅ **Ajouts manuels (hotlaps muets, pointeur seul)** pour les combos non couverts : Laguna
+  LMP2 (GO Setups), Long Beach Hypercar (HYMO), Road Atlanta GT3/Hypercar (HYMO), Road
+  Atlanta LMP2 (GO Setups). Vérifiés via oEmbed. Rien pour Long Beach LMP2.
+- ✅ **Choix de spec LMP2** : `pickGuide()` dans `video-guides.ts` — la classe DB `LMP2 ELMS`
+  reçoit la variante dont le titre contient « ELMS », sinon comportement inchangé (layout
+  principal, puis première entrée). Non-régression vérifiée (Monza LMP2 ELMS → guide LMP2
+  historique).
+- ✅ **Long Beach reconnu** (`"long-beach": ["long beach", "longbeach"]`) dans
+  `video-guides.ts` et `braking-guide.ts` — il manquait, Road Atlanta était déjà câblé.
+- ✅ **ApexPoints** : toujours 12 circuits (ni Daytona, ni Laguna, ni Long Beach). **Sa fiche
+  Road Atlanta est fausse** au regard du tracé en jeu : « chicane » au T3 (les S, à fond),
+  T10A « à fond » (c'est la chicane, plus gros freinage, meilleur dépassement), T5 « à fond »
+  (vrai freinage), T12 « 75 m » (à fond / lever). Croisé avec le guide LMU commenté GO Fast et
+  4 guides du circuit réel (Allen Berg, Just Track It, Axis of Oversteer, Paddock Pal).
+  Probablement rédigée avant la sortie du circuit. → **Réécrite** (T1, T2, T5, T6, T7, T10A,
+  T12) avec `source` explicite ; le coach live aurait sinon annoncé « chicane, freinage au
+  75 » dans les S.
+- ✅ **Long Beach : nouvelle référence de freinage** (T1, T2-T3 fontaine, T4, T5, T6, T8, T9,
+  T10 « Indy Left », T11 épingle) : repères GT3 tirés de la transcription Unleashed,
+  numérotation officielle IMSA/IndyCar (11 virages). Protos = technique GT3 + « pas d'ABS ».
+- **Choix d'honnêteté (Road Atlanta + Long Beach)** : panneaux notés tels que cités
+  (« 300 board », unité inconnue — probablement des pieds sur ces circuits US), **sans « m »**
+  → `markerM` null, le coach vocal n'annonce pas de distance ; vitesses **qualitatives** (elles
+  ne servent qu'au texte IA) ; rapports non numériques (« mid gear ») → pas de rapport annoncé.
+  Callouts prédictifs = nom du virage seul (`vPredictName`). Mieux vaut moins qu'un chiffre
+  inventé prononcé à un débutant.
+- ✅ **Daytona : chicane ignorée par le coach live** (bug du 2026-08-24) : numéro `"Chicane"`
+  non parsable par `parseCornerNumber` → le plus gros freinage du tour absent du macro. Passé
+  en `T8-T11` (numérotation IMSA : gauche-droite-droite-gauche), fenêtre composite.
+- ✅ **ohne_speed** : la feuille couvre maintenant Daytona, Laguna Seca, Long Beach et Road
+  Atlanta (noms « Long Beach » / « Road Atlanta » = notre mapping, OK). Mais **Daytona et
+  Laguna n'avaient jamais été mappés** au pack 1 → ajout `Daytona International Speedway` /
+  `WeatherTech Raceway Laguna Seca` (noms exacts relevés dans `sessions.track` de la base).
+- ✅ **LMU Telemetry Lab** (MIT) : profil d'altitude Laguna Seca ajouté à
+  `trackElevation.json` (ajout en fin de fichier, octets existants inchangés). Le profil
+  **Daytona** a été ajouté puis **retiré** (cf. règle ci-dessous) : repères faux (« Kink T5/T6 »
+  au lieu de T4, « Bus Stop T8-T10 » au lieu de T8-T11) et chicane placée dans un creux de
+  9 m alors qu'elle est sur la ligne droite opposée. Pas encore de profil Road Atlanta / Long
+  Beach chez eux.
+
+**Règle posée par le mainteneur (même session)** : « ne prends pas les infos avec des tracés
+erronés » — une source dont le tracé ne correspond pas au circuit du jeu n'est pas intégrée,
+même partiellement. → **Audit des 12 fiches ApexPoints** contre les tracés officiels (3 agents
+en parallèle ; sources : sites des circuits, Wikipedia, ACO/F1, RaceControl, wiki LMU
+`lemansultimate.wiki.gg`, guides d'écoles de pilotage) :
+- **Tracé juste, numéros décalés seulement → conservés** : Le Mans (numérotation propre,
+  ni ACO ni RaceControl ; Ford ×2 fusionnées), Monza (Curva Grande comptée T3-T4 → +1 jusqu'à
+  Lesmo 2), Spa (+1 à +3 ; « Stavelot » = T14 Campus), Imola (T1 non compté, décalage 1-2
+  jusqu'à T11).
+- **Tracé erroné → fiches RETIRÉES** de `braking-guide-data.ts` :
+  - Sebring : « Webster » (supprimé en 1967), T13 Tower décrit en « Esses » rapides,
+    « Hairpin » au T17 (Sunset Bend, rapide), « Ford Chicane » (nom du Mans) au T16.
+  - COTA : « Maggots » (Silverstone), T6 décrit à 55 km/h (esses, 3ᵉ).
+  - Interlagos : Curva do Sol (à fond) donnée en freinage au T4, Descida do Lago mal placée,
+    Mergulho (à fond) en freinage, Bico de Pato absent.
+  - Paul Ricard : « Club » (Silverstone), Bendor / Signes / Beausset / Sainte-Baume dans un
+    ordre impossible sur les 4 tracés LMU, « Pont de Fos » inexistant.
+  - Fuji : T13 donné en gros freinage lent, épingle ADVAN absente (cas limite).
+  - Portimão : noms permutés (« Sagres » au T3, « Lagos » au T8, « Galp » sur deux
+    freinages alors que c'est le dernier virage, à fond).
+  - Bahreïn : T2 (coude à fond) donné en freinage ; T11 et T13 absents.
+- `CIRCUIT_CORRECTIONS` (apex.ts) **vidée** : ses deux entrées (COTA, Sebring) rattrapaient
+  justement ces fiches. Mécanisme conservé pour une anomalie de forme sur une fiche juste.
+- Impact : sur ces 7 circuits, plus de section freinage dans le contexte IA ni de callouts
+  prédictifs nommés (le coach live retombe sur les virages détectés). Les guides vidéo +
+  transcriptions restent (sauf Paul Ricard, qui n'en a pas).
+- ✅ **Bug découvert au test : Imola et Interlagos jamais reconnus.** Le jeu écrit
+  « Autodromo Enzo e Dino Ferrari » et « Autodromo Jose Carlos Pace » : aucun ne contient les
+  mots-clés « imola » / « interlagos » → ni vidéo ni freinage servis. Ajout de
+  `"dino ferrari"` et `"carlos pace"` dans `video-guides.ts` et `braking-guide.ts`.
+- ✅ Tests de fumée esbuild : (1) US — noms DB réels × 5 classes : vidéos, ELMS/WEC,
+  transcriptions injectées, macro coach parsé (T2-T3, T10A, T8-T11), benchmarks ohne_speed
+  trouvés pour les 4 circuits × 3 classes, relief Laguna (44 m) ; (2) exclusions — les 7
+  circuits retirés renvoient une section vide et un macro vide, les 4 conservés + Road
+  Atlanta non, Sebring garde sa vidéo, Imola / Interlagos servis. `validateCorrections()` vide.
+  `tsc -b` OK, eslint OK, 265 tests verts.
+- ✅ Changelog 1.0.7 (dev) : 1 « improved » + 4 « fixed », ×4 langues.
+- 💡 **Question du mainteneur en fin de session** : une base de meilleurs tours envoyés en
+  opt-in par les utilisateurs. Réponse donnée : oui, c'est la vraie solution au problème des
+  sources tierces (données issues du jeu = tracé juste par construction). Proposé en 3 étapes :
+  temps/secteurs → résumés par virage (freinage, vitesse mini, rapport) calculés en local →
+  tours complets. Points durs : premier composant en ligne (décision §2), filtrage des tours,
+  RGPD (n'envoyer QUE les tours du joueur, pas ceux des autres pilotes présents dans le XML),
+  masse critique (repli ohne_speed). Spec à rédiger si le mainteneur valide.
+
+📋 **Prochaine étape** : reconstruire les repères de freinage des 7 circuits retirés depuis
+une source au tracé vérifié (le wiki LMU `lemansultimate.wiki.gg/wiki/Track_Guide:_*` et les
+guides RaceControl donnent des repères propres au jeu), ou attendre la base communautaire.
+Vérifier aussi les **panneaux** des 4 fiches conservées : l'audit relève des écarts (Spa La
+Source 125 m vs ~50 m en GT3, Monza Roggia 125 m vs 50 m, Mulsanne 200 m vs 75-100 m) — le
+coach vocal les annonce. Puis : décision GO Fast (§7), bug de layouts ohne_speed (§7).
+
+### 2026-09-25 — Coach live : lots 1-2-3 « ingénieur de course » (inspiration TrackMind)
+
+Demande : « fais les 3 lots » + « il ne faut pas perdre de fonctionnalité ».
+Mécanismes et seuils repris de TrackMind (docstrings + `cerveau/constantes.py`),
+**réécrits** en TS ; aucune ligne de leur Python copiée.
+
+- ✅ **Architecture** : nouveau dossier `src/lib/engineer/` (modules purs, horloge en
+  paramètre) — `arbiter` (3 lois : sécurité jamais arbitrée, fusion sans invention,
+  TTL/péremption ; anti-radotage par clé ; ≤ 3 non critiques / 12 s), `tone`
+  (prudent/normal/attaque, hystérésis 30 s, publié pour le coach par virage),
+  `lapPolicy` (point de tour, secteur faible 4 tours ≥ 0,12 s), `closing`
+  (tendance ≥ 2 erreurs-types), `traffic` (distance-tour physique, paquet ≥ 3 dans
+  5 s sur 3 tours, plus rapide derrière ≤ 12 s), `pitWindow` (+ énergie virtuelle
+  mesurée à la ligne), `rivalPits`, `battery`, `forecast` (`.wet`, validé contre la
+  température d'air ± 2,5 °C), `vigie` (limiteur), `watches`, `router`, `answers`,
+  `state` (singleton partagé Live ↔ push-to-talk), `text` (pseudo nettoyé, classe
+  en clair, rang de classe).
+- ✅ **`useRaceEngineer.ts`** : la boucle des annonces sort de `Live.tsx`
+  (2 655 → 2 026 lignes) ; chaque émetteur dépose un candidat, l'arbitre tranche.
+- ✅ **Rust** : `LiveStanding.lap_dist`, `LiveSession.track_length` + `game_phase`,
+  commande `list_weather_files` (lecture des `.wet`).
+- ✅ **Lot 3** : 15 intentions ajoutées à la grammaire fermée du spotter (Alt+T,
+  4 langues, libellés Config) ; push-to-talk du coach (Alt+C) : **routeur local
+  d'abord** (barème locution 100 / sujet 40 / indice 30, seuil 60, marge 15,
+  ambiguïté inter-familles → l'IA ne choisit **que** l'identifiant d'intention via
+  `classifyIntent`, sinon réponse libre précédée d'un accusé « reçu, je regarde ») ;
+  questions de jugement (« ça tiendra jusqu'au bout ? ») → IA ; alertes
+  « préviens-moi » (temps/tours restants, carburant, arrêt d'un rival, écart, pluie) ;
+  « compris » / « je reste dehors » (tait les rappels 2 / 5 tours, jamais le box).
+- ✅ **Aucune perte de fonctionnalité** (demande explicite) : réglage **« Débit des
+  annonces »** — `Ingénieur` (défaut, filtré) / `Complet` (= comportement historique
+  exact : chrono chaque tour, delta chaque secteur ≥ 0,1 s, écart leader chaque tour,
+  bleu à chaque épisode, meilleur temps des autres à chaque amélioration, tout dit,
+  coach jamais bridé). Mêmes annonces dans les deux modes. Réglage **« Réponses
+  instantanées sans IA »** (défaut actif ; coupé = tout part à l'IA comme avant).
+- ✅ **Bug corrigé au passage** : `rival.classRelation` ne reconnaissait pas les
+  noms de classe du live (« Hypercar », « LMGT3 ») → « autre classe » presque
+  toujours. Rang de classe robuste (`classRank`).
+- ✅ **Voix TrackMind (étude)** : 16 voix = catalogue **Cartesia** (ex-ElevenLabs)
+  via leur proxy + quota par poste ; repli Piper (5 voix FR/EN) ; cache des phrases
+  fixes + pack ~237 sons/voix ; effet radio passe-bande 250-4800 Hz + saturation
+  tanh + souffle 0,02 + squelch 30 ms ; bips PTT 1000/700 Hz ; vitesse ×1-×2.
+- ✅ Contrôles : `tsc -b` OK, lint 0 avertissement, **265 tests** (+ suite
+  `engineer.suite.ts`, 111 assertions), `npm run build` OK, `cargo check` OK.
+  Changelog 1.0.7 (`dev: true`, 4 langues).
+- ⚠️ **Non testé en jeu** : aucune session LMU jouée pendant la session. Points à
+  vérifier en piste : `lap_dist` des autres voitures (trafic), `mGamePhase` = 3 au
+  tour de formation, `state_of_charge` en %, `pit_speed_limit` (m/s) pour la vigie,
+  reconnaissance Vosk des nouvelles phrases de grammaire.
+- 📋 **Prochaine étape** : course multiclasse d'essai (Hypercar + GT3, 30 min, arrêt
+  requis) en mode Ingénieur puis Complet ; tester Alt+C (« qui est devant »,
+  « préviens-moi quand il reste 5 minutes », « jusqu'à quand je peux rouler »).
+  Ensuite : décider des voix (plus de voix Piper vs voix premium BYO-key).
+
+**Complément (même jour)** :
+- ✅ **Annonces sans la page Live** (question utilisateur « on ne peut pas l'utiliser
+  en course ? ») : le polling `live-data` ne démarrait qu'avec la page Live ou la
+  fenêtre overlay → sans elles, ni annonces, ni coach par virage, ni mesure de perte
+  au stand. Nouveau `components/RaceEngineerHost.tsx` monté dans `App.tsx` : compte
+  pour un consommateur du polling Rust et porte `useVoiceCallouts` (retiré de
+  `Live.tsx`). Réglage **« Annonces sur toutes les pages »** (défaut actif ; coupé =
+  comportement historique, page Live seulement). Bonus : l'état des annonces ne se
+  réinitialise plus à chaque changement de page.
+- ✅ **Effet radio « Style TrackMind » à comparer** : profil `trackmind` dans
+  `radioFx.ts` (`styleVoiceBuffer` : rendu hors ligne `OfflineAudioContext`, passe-
+  bande 250-4800 Hz à 2 biquads par bord, crête normalisée → tanh drive 2,6 → 0,9,
+  souffle gaussien filtré 0,02, clics de squelch 30 ms + 30 ms de silence) appliqué
+  au tampon Piper avant lecture (cache nu) ; pas de bip d'ouverture ni de roger beep
+  dans ce profil. Bouton **« Comparer »** (A classique puis B TrackMind, profil
+  restauré). **Bips PTT** optionnels 1000/700 Hz (sinus 70 ms). Défauts : profil
+  classique, bips coupés (rien ne change sans action).
+- ✅ Correctif : une annonce annulée pendant sa synthèse Piper retombait sur la voix
+  système (`trySynthAndPlay` renvoyait `false` → repli Web Speech) → abandonnée.
+- ✅ Contrôles : `tsc -b` OK, lint 0, 265 tests, build OK.
+- 📋 L'utilisateur doit écouter la comparaison (Config → Voix → Comparer) : nécessite
+  un build (`npm run tauri:dev`) et la voix Piper.
+
+**Complément 2 (même jour) — choix utilisateur après écoute** : on garde le
+nouveau profil **avec les bips radio**, on garde aussi l'ancien, et on le renomme.
+- ✅ Profil renommé **« Radio stand »** (EN « Pit radio », ES « Radio de boxes »,
+  DE « Boxenfunk »), identifiant interne `pitwall` ; **devient le défaut** (config
+  `voice_radio_style` absente ou ancienne valeur → `pitwall` ; `classic` seulement si
+  choisi). Bip d'ouverture + roger beep **conservés** (`radioStart(withStatic=false)` :
+  bips sans le lit de souffle continu, déjà présent dans le tampon). « Classique »
+  reste sélectionnable ; bouton « Comparer » inchangé.
+- ✅ **Plus aucune mention du concurrent dans le code** (identifiants, commentaires,
+  textes UI, changelog) — vérifié par `git grep` (hors `SUIVI.md`, doc de veille).
+- ✅ `tsc -b` OK, lint 0, 265 tests, build OK.
+
+### 2026-09-24 — Veille concurrent TrackMind (aucun code modifié)
+
+**Demande** : analyser trackmind.gg + l'app installée, en tirer des idées.
+
+- ✅ **Sources** : site (landing + FAQ), app lancée (écran d'accueil derrière le
+  tutoriel), et surtout les fichiers d'UI (`_internal/studio/web/index.html`,
+  `regie.html`, `ecurie.js`) + les noms/docstrings des modules du pack OTA
+  (`%LOCALAPPDATA%\SLM Engineer\maj\pack_231\commun\`). Code propriétaire :
+  on ne reprend **que des idées**, aucune ligne.
+- ✅ **Ce qu'est TrackMind** : app Python (pywebview + serveur Bottle local),
+  ingénieur radio en push-to-talk (STT local Parakeet/faster-whisper, voix Piper,
+  LLM), LMU + iRacing (ACC en validation). Deux écrans : **Studio** (accueil,
+  préparation de course, construction de setup, carrière, écurie) et **Régie**
+  (vue ingénieur/spectateur, masquée quand le joueur conduit).
+- ✅ **Déjà chez nous** (rien à refaire) : PTT + coach LLM, Piper + effet radio,
+  callouts, perte au stand + prédiction de sortie (#151/#152), lift & coast,
+  carburant pour finir, énergie virtuelle, pose auto du plugin rF2, télémétrie
+  DuckDB, diff de setups `.svm`.
+- ✅ **Faits techniques vérifiés** :
+  - Prévision météo = fichiers `.wet` JSON dans `UserData\player\Settings\<Circuit>\`
+    (par séance : ~5 nœuds `Humidity/RainChance/Sky/Temperature/Wind`, répartis
+    linéairement sur la durée). **Présent sur notre install** (`Spa/SPAWECs.wet`).
+    La mémoire partagée n'expose pas de prévision.
+  - API REST locale LMU `127.0.0.1:6397`, **GET seulement** : `/rest/garage/brakeinfo`
+    (usure freins, absente de la mémoire partagée), `/tireinfo`,
+    `/getVehicleCondition`, `/UIScreen/RepairAndRefuel`. Lente (~31 ms, > 1,5 s
+    au chargement) → worker + snapshot, jamais dans la boucle live.
+  - Réglage du menu des stands via le buffer `$rFactor2SMMP_HWControl$` du plugin
+    (`PitMenuUp/Down`, `PitMenuIncrement/DecrementValue`, boucle fermée en relisant
+    le menu). Chez eux : **opt-in, non validé en jeu**.
+  - PTT sur bouton de volant : API joystick winmm + repli HID brut (Simagic, > 32 boutons).
+- 📋 **Idées retenues (à arbitrer par l'utilisateur)** : ① prévision météo `.wet`
+  ② PTT bouton volant ③ fiche saison PNG (export local) ④ notation des
+  interventions du coach (utile / inutile / trop tard / faux → corpus lot 4)
+  ⑤ usure freins + temps d'arrêt via REST ⑥ lignée de setups + méthode
+  « 1 changement → 1 verdict » ⑦ planificateur de course + briefing vocal
+  (références tirées de notre base) ⑧ quota de pneus ⑨ arrêts adverses /
+  undercut ⑩ réglage auto du menu des stands (étude) ⑪ régie sur 2e écran via le
+  serveur HTTP prévu pour OpenKneeboard ⑫ calendrier Special Events.
+  **Écartés** : écurie en ligne (comptes, serveur), clips « Moments » (vidéo +
+  cloud), visualiseur 3D.
+- 📋 **Prochaine étape** : choix utilisateur parmi ①–⑫ ; recommandation de départ
+  ① + ② + ③ (effort faible, valeur directe, 100 % hors-ligne).
+
+**Complément (même jour) — vidéo AD SimRacing (interview du créateur, v0.7→0.8)
++ test de l'app 0.8.3 écran par écran** (texte lu via UI Automation, la fenêtre
+étant illisible en capture sur l'écran 5120 px ; course de test créée puis supprimée).
+- ✅ **Programme d'entraînement** (moment 6:12 de la vidéo) : à la création d'une
+  course (circuit, voiture, durée, quota de pneus), une checklist de références —
+  4 cœur (rythme au sec 3-4 tours, conso au sec, usure moyenne, relais plein) +
+  8 options (courbe de dégradation, temps perdu à l'arrêt, secteurs forts/faibles,
+  régularité 8 tours, rythme de nuit, pluie, usure par composé). Cochées
+  **automatiquement** quand le moteur les mesure ; en essais, l'ingénieur annonce
+  la suivante à la voix et ne parle qu'au changement d'état (pas de « rythme de nuit »
+  en plein jour). Facultatif : sinon référence prise sur les 3-5 premiers tours de course.
+- ✅ **Faille constatée** : « Plan impossible : aucune référence (rythme + conso) pour
+  ce combo » — les références ne viennent **que** du roulage live. Pourtant la page
+  Carrière lit bien les XML LMU (91 courses chez l'utilisateur). **Notre avantage** :
+  `xml_parser.rs` lit déjà par tour `fuel`, `fuel_used`, `twfl..twrr`, composés →
+  références calculables depuis l'historique, sans rouler.
+- ✅ **Moteur conversationnel** (docstrings `comprehension.py`, `client_7b.py`) :
+  routeur local par mots-clés → réponse calculée par le code (~100 ms) ; si ≥ 2 sujets
+  s'allument (ambiguïté) → un 7B auto-hébergé ne rend **que l'identifiant
+  d'intention** (jamais l'acte) ; Claude en dernier recours. « Le cerveau garde les
+  chiffres » = même principe que notre `strategy.ts`.
+- ✅ **Questions montrées en vidéo** (absentes de notre grammaire Vosk à 12
+  intentions) : « qui est P6 en LMP2 », « qui est premier en GT3 », « est-ce que je
+  reviens sur le P1 » (écart de rythme), « quand je rattrape le trafic » (« paquet de
+  GT3 dans un tour »), « quand dois-je m'arrêter » (« jusqu'au tour 26, limité par le
+  carburant »), température pneus **avec fenêtre** (« 75 à 105 »), répartition de
+  freinage du setup.
+- ✅ **Réglages** : PTT touche **ou bouton volant** (maintien/bascule), spotter
+  à la demande/continu/off, prénom du pilote dit à la radio, gain micro auto, vitesse
+  de voix ×1,0–×2,0, effet radio, « un point cinq » vs « un virgule cinq », chrono
+  cible au millième ou arrondi, voix premium en ligne.
+- ⚠️ **Vie privée (bêta)** : transcription par un prestataire européen **activée par
+  défaut** pendant l'appui PTT, enregistrements vocaux envoyés « sous pseudonyme »
+  (coché chez l'utilisateur), données de course anonymes remontées. Le « 100 % local »
+  du site ne tient pas en bêta → argument pour notre STT Vosk hors ligne.
+- ✅ **Anti-radotage** (docstrings) : drapeau bleu oublié 25 tours après annonce
+  (24 h de Spa : 117 annonces, dont 19 fois la même phrase) ; meilleur tour
+  ré-annoncé seulement si gain ≥ 0,5 s.
+- ✅ **Carrière** : filtres jeu/période, victoires, podiums, position moyenne, places
+  gagnées/course, « tu vas au bout » (61 %), 5 dernières vs 5 précédentes, rythme
+  par circuit (7 dernières vs 7 d'avant), graphe grille→arrivée par course,
+  répartition par circuit. Fiche saison PNG = 6 chiffres. Le testeur de la vidéo
+  réclame un filtre en ligne/hors ligne (nos filtres Type l'ont déjà).
+- 📋 **Nouvelles idées** : ⑬ programme d'entraînement **pré-rempli par l'historique**
+  (références déjà connues cochées d'office, seules les manquantes demandées)
+  ⑭ un seul PTT + routage hybride (dictée → routeur local → LLM limité au choix
+  d'intention → réponse `spotter.ts`) ⑮ élargir les intentions vocales (liste
+  ci-dessus) ⑯ réglages de diction (vitesse, décimales, prénom).
+
+**Complément 2 — ce qu'on reprend pour le coach LIVE** (demande utilisateur ; on
+réécrit les mécanismes en TS, pas de copie de leur Python). Sources : docstrings
+`cerveau/arbitre_proactif.py`, `ton.py`, `humanisation.py`, `trafic.py`, `vigie.py`,
+`surveillances.py`, `episodes.py` + `cerveau/constantes.py` (~120 seuils calibrés).
+- ✅ **Nos manques constatés dans `routes/Live.tsx`** : à la ligne, jusqu'à 3-4
+  phrases séparées (dernier tour **à chaque tour** + meilleur secteur + secteur perdu
+  + violet) ; drapeau bleu ré-annoncé à chaque bascule du drapeau (aucune mémoire par
+  voiture) ; écart < 1 s binaire, sans vitesse de rapprochement ; secteur perdu jugé
+  sur **un** tour (≥ 0,3 s). Aucune alerte batterie alors que `battery_charge` est lu.
+- 📋 **Lot 1 — parler moins, mieux** : arbitre éditorial (une radio dominante par
+  instant ; sécurité jamais arbitrée ; TTL → « périmé » rejeté ; aucun fait
+  fabriqué) · « point de tour » unique dit dans le 1er quart du tour · arbitre de ton
+  « pousse / gère » partagé (contraintes physiques gagnent, hystérésis 30 s) ·
+  anti-radotage (meilleur tour redit si gain ≥ 0,5 s ; bleu oublié 25 tours par
+  voiture ; secteur faible = perte moyenne ≥ 0,12 s sur 4 tours propres ; écart de
+  rythme affirmé seulement si > 2σ du bruit et < 3 s).
+- 📋 **Lot 2 — ingénieur de course** : rattrapage chiffré (moyenne 5 tours, « sur lui
+  dans ~N tours ») · trafic anticipé (plus lentes dans 10 s devant, projection
+  1-3 tours, paquet ≥ 4 ; plus rapide derrière : préavis 12 s puis 5 s) · fenêtre
+  d'arrêt (« jusqu'au tour N », « ta fenêtre se ferme » ≤ 2 tours, BOX critique
+  ≤ 1,5 tour, silence 2 tours après accusé / 5 après refus) · arrêts adverses +
+  undercut (pneus neufs +1,3 s/tour, out-lap froid −1,8 s, perte au stand mesurée)
+  · posture (15 % début = assure, 20 % fin = pousse, bagarre ≤ 3 s même classe,
+  pneus < 25 % = ménage) · batterie (critique < 15 % réarmé à 35 %, déficit
+  ≤ −8 %/tour, saturée ≥ 95 %) · pluie à venir (`.wet`) · vigie (voie des stands
+  sans limiteur, briefing au tour de formation).
+- 📋 **Lot 3 — conversation** : ~30 intentions (catalogue TrackMind : arret.*,
+  carburant.* dont relais_allonge, chrono.plateau, position.nette, rival.arret_passe
+  / rejoin / rythme, pneus.temperature, meteo.prévision…) · routage hybride sur un
+  seul PTT · « préviens-moi quand… » (alertes conditionnelles posées à la voix) ·
+  consignes du pilote prises en compte (« on vise 3 arrêts », « je reste dehors »).
+- 📋 **Prochaine étape** : validation utilisateur ; recommandation = Lot 1 d'abord
+  (le plus ressenti, contenu dans `Live.tsx` + `lib/voice.ts`, testable par rejeu).
+
+### 2026-09-23 — Overlays en VR : étude et choix d'architecture (aucun code modifié)
+
+**Demande** : des joueurs (dont l'utilisateur) veulent les overlays **dans le casque**.
+Cibles imposées : **Pimax** (casque de test de l'utilisateur) **et Meta Quest**
+(demandeur : Quest 3 + Virtual Desktop en OpenXR). « Compatible avec tout. »
+
+- ✅ **Constat** : la fenêtre overlay actuelle (Tauri transparente, `overlay.rs`)
+  n'apparaît jamais dans le casque — le runtime VR n'affiche que le rendu du jeu.
+- ✅ **Comment LMU fait de la VR** : moteur OpenVR, mais Studio 397 **embarque
+  OpenComposite** → hors SteamVR, tout passe par le runtime **OpenXR** du casque
+  (Pimax Play, VDXR, Meta Link). SteamVR reste un cas à part.
+- ✅ **Options étudiées** :
+  - A. **Couche OpenXR maison** (DLL, texture D3D11 partagée, un quad par widget)
+    + overlay SteamVR pour le reste → intégration idéale, mais ❌ **bloquée** :
+    LMU a **Easy Anti-Cheat** depuis la 1.2 et le guide officiel proscrit les DLL
+    injectées ; toute DLL chargée dans un jeu protégé doit être **signée**
+    (certificat de signature de code, ~100–400 €/an) — le projet n'en a pas.
+    Une couche implicite non signée casserait aussi *d'autres* jeux protégés.
+  - B. **OpenKneeboard** (déjà signé, OpenXR **et** SteamVR) via ses **Web
+    Dashboards** (page web par onglet, fond transparent CSS,
+    `OpenKneeboard.SetPreferredPixelSize`) → **retenu**. Rien n'est injecté par
+    l'app ; seule la couche d'OpenKneeboard entre dans le jeu.
+- ⏳ **Validation anti-triche demandée par l'utilisateur avant tout code.** Web :
+  pas de confirmation formelle pour OpenKneeboard + LMU en ligne ; indices
+  favorables (OpenXR Toolkit, autre couche signée, fonctionne depuis la màj EAC du
+  24/12/2025 ; l'app concurrente LMU DRIVE recommande OpenKneeboard pour la VR).
+  **Test sur le Pimax** : lancement par Steam (EAC actif) + onglet *Window capture*
+  sur la fenêtre overlay → ☐ démarrage sans alerte EAC ☐ panneau visible dans le
+  casque ☐ session **en ligne** de 15–20 min sans exclusion ; noter si lancement
+  administrateur requis.
+- ✅ **Veille concurrent LMU DRIVE** (app payante, SimRacing SOLUTIONS, code
+  fermé) — manuels publics LMU/ACC/iR DRIVE : **une fenêtre par widget** + option
+  « VR MODE » qui passe le fond en **opaque** pour la *Window capture*
+  d'OpenKneeboard (la capture gère mal la transparence) ; jeu en fenêtré exigé.
+  Leur guide VR détaillé est sur Discord, non consulté. Notre choix **Web
+  Dashboards** fait mieux : vraie transparence, taille auto, aucune fenêtre en
+  plus côté app.
+- 📋 **Prochaine étape** : résultat du test EAC. S'il passe → implémenter B :
+  serveur HTTP/WebSocket local dans le backend Rust (widgets servis par URL,
+  données `live-data` poussées en WebSocket), route front par widget sans
+  dépendance à l'IPC Tauri, section « VR (OpenKneeboard) » dans `/overlays` avec
+  les URL à copier + aide 4 langues + entrée changelog. S'il échoue → A est
+  également compromis, revoir la stratégie.
 
 ### 2026-09-22 — Release v1.0.6
 

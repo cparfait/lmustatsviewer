@@ -20,7 +20,8 @@ const navKeys = [
   { to: "/profile", key: "profile" },
   { to: "/", key: "records", end: true },
   { to: "/sessions", key: "sessions" },
-  { to: "/references", key: "references" },
+  // « Classements » regroupe la communauté et les Références OhneSpeed (onglet).
+  { to: "/classement", key: "community" },
   { to: "/setups", key: "setups" },
   { to: "/live", key: "live" },
   { to: "/overlays", key: "overlays" },

@@ -8,8 +8,10 @@ import { report } from "./assert";
 import { run as runPure } from "./suites/pure.suite";
 import { run as runCoach } from "./suites/coach.suite";
 import { run as runSpotter } from "./suites/spotter.suite";
+import { run as runEngineer } from "./suites/engineer.suite";
 
 runPure();
 runCoach();
 runSpotter();
+runEngineer();
 report();

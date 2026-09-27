@@ -32,7 +32,7 @@ import {
   type Install,
 } from "./ingest.js";
 import { RateLimiter, type Limit } from "./ratelimit.js";
-import { finishSteam, pollSteam, startSteam, steamReturnPage, verifyWithSteam, type SteamVerifier } from "./steam.js";
+import { finishSteam, pickLang, pollSteam, startSteam, steamReturnPage, verifyWithSteam, type SteamVerifier } from "./steam.js";
 import {
   comboDetail,
   comboList,
@@ -298,8 +298,9 @@ export function createApp(db: Db, opts: AppOptions = {}) {
 
   v1.get("/steam/return", async (c) => {
     c.header("Cache-Control", "no-store");
-    const outcome = await finishSteam(db, c.req.query(), publicUrl, steamVerify);
-    return c.html(steamReturnPage(outcome), outcome === "ok" ? 200 : 400);
+    const { outcome, mode } = await finishSteam(db, c.req.query(), publicUrl, steamVerify);
+    const page = steamReturnPage(outcome, mode, pickLang(c.req.header("accept-language")));
+    return c.html(page, outcome === "ok" ? 200 : 400);
   });
 
   v1.get("/steam/poll", publicRead, async (c) => {

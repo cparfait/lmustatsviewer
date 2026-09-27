@@ -82,6 +82,16 @@ export async function finishSteam(
   query: Record<string, string>,
   publicUrl: string,
   verify: SteamVerifier,
+): Promise<{ outcome: SteamOutcome; mode: SteamMode | null }> {
+  const [row] = await db.query<{ mode: SteamMode }>("select mode from steam_logins where state = $1", [query.state ?? ""]);
+  return { outcome: await finishOutcome(db, query, publicUrl, verify), mode: row?.mode ?? null };
+}
+
+async function finishOutcome(
+  db: Db,
+  query: Record<string, string>,
+  publicUrl: string,
+  verify: SteamVerifier,
 ): Promise<SteamOutcome> {
   const state = query.state ?? "";
   const [row] = await db.query<{ poll_hash: string; mode: SteamMode; install_id: string | null; age_ms: number }>(
@@ -142,17 +152,100 @@ export async function pollSteam(db: Db, pollId: string) {
   return { status: "ok" as const, mode: "recover" as const, install_id: inst.id, tag: inst.tag, token, anonymous: inst.anonymous };
 }
 
-/** Page affichée dans le navigateur au retour de Steam (sans script, CSP stricte). */
-export function steamReturnPage(outcome: SteamOutcome): string {
-  const msg: Record<SteamOutcome, [string, string]> = {
-    ok: ["C'est fait. Vous pouvez fermer cette page et revenir dans LMU Stats Viewer.", "Done. You can close this page and go back to LMU Stats Viewer."],
-    not_found: ["Aucun partage n'est lié à ce compte Steam. Revenez dans l'app.", "No shared laps are linked to this Steam account. Go back to the app."],
-    taken: ["Ce compte Steam est déjà lié à une autre installation. Dans l'app, utilisez « Retrouver mes tours avec Steam ».", "This Steam account is already linked to another installation. In the app, use “Recover my laps with Steam”."],
-    invalid: ["Steam n'a pas confirmé la connexion. Réessayez depuis l'app.", "Steam did not confirm the sign-in. Try again from the app."],
-    expired: ["Cette demande a expiré. Recommencez depuis l'app.", "This request has expired. Start again from the app."],
-  };
-  const [fr, en] = msg[outcome];
-  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LMU Stats Viewer — Steam</title></head>
-<body style="font-family:system-ui,sans-serif;max-width:560px;margin:15vh auto;padding:0 20px;line-height:1.5;color:#0b0f1e">
-<h1 style="font-size:1.3rem">LMU Stats Viewer</h1><p>${fr}</p><p style="color:#5a6070">${en}</p></body></html>`;
+export type PageLang = "fr" | "en" | "es" | "de";
+
+/** Langue de la page : première langue connue du navigateur, sinon anglais. */
+export function pickLang(acceptLanguage: string | undefined): PageLang {
+  for (const part of (acceptLanguage ?? "").split(",")) {
+    const code = part.trim().slice(0, 2).toLowerCase();
+    if (code === "fr" || code === "en" || code === "es" || code === "de") return code;
+  }
+  return "en";
+}
+
+type PageCase = "linked" | "recovered" | Exclude<SteamOutcome, "ok">;
+const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Record<PageCase, [string, string]>> = {
+  fr: {
+    band: "Se connecter avec Steam",
+    crumbs: "Classements",
+    cta: "Voir les classements",
+    linked: ["Compte Steam lié", "Vous pourrez retrouver vos tours sur un autre PC. Revenez dans LMU Stats Viewer : cet onglet peut être fermé."],
+    recovered: ["Tours retrouvés", "Revenez dans LMU Stats Viewer et cliquez « Activer le partage » pour reprendre. Cet onglet peut être fermé."],
+    not_found: ["Aucun partage lié à ce compte", "Ce compte Steam n'est lié à aucune installation. Liez-le d'abord depuis l'app où vos tours sont partagés (Configuration → Communauté)."],
+    taken: ["Compte Steam déjà lié", "Ce compte Steam est déjà lié à une autre installation. Dans l'app, utilisez plutôt « Retrouver mes tours avec Steam »."],
+    invalid: ["Connexion non confirmée", "Steam n'a pas confirmé la connexion. Recommencez depuis l'app."],
+    expired: ["Demande expirée", "Cette demande a expiré (10 minutes). Recommencez depuis l'app."],
+  },
+  en: {
+    band: "Sign in with Steam",
+    crumbs: "Leaderboards",
+    cta: "See the leaderboards",
+    linked: ["Steam account linked", "You will be able to recover your laps on another PC. Go back to LMU Stats Viewer: you can close this tab."],
+    recovered: ["Laps recovered", "Go back to LMU Stats Viewer and click “Enable sharing” to resume. You can close this tab."],
+    not_found: ["No shared laps linked to this account", "This Steam account is not linked to any installation. Link it first from the app where your laps are shared (Settings → Community)."],
+    taken: ["Steam account already linked", "This Steam account is already linked to another installation. In the app, use “Recover my laps with Steam” instead."],
+    invalid: ["Sign-in not confirmed", "Steam did not confirm the sign-in. Start again from the app."],
+    expired: ["Request expired", "This request has expired (10 minutes). Start again from the app."],
+  },
+  es: {
+    band: "Iniciar sesión con Steam",
+    crumbs: "Clasificaciones",
+    cta: "Ver las clasificaciones",
+    linked: ["Cuenta de Steam vinculada", "Podrás recuperar tus vueltas en otro PC. Vuelve a LMU Stats Viewer: puedes cerrar esta pestaña."],
+    recovered: ["Vueltas recuperadas", "Vuelve a LMU Stats Viewer y pulsa «Activar el uso compartido» para continuar. Puedes cerrar esta pestaña."],
+    not_found: ["Ninguna vuelta vinculada a esta cuenta", "Esta cuenta de Steam no está vinculada a ninguna instalación. Vincúlala primero desde la app donde compartes tus vueltas (Configuración → Comunidad)."],
+    taken: ["Cuenta de Steam ya vinculada", "Esta cuenta de Steam ya está vinculada a otra instalación. En la app, usa mejor «Recuperar mis vueltas con Steam»."],
+    invalid: ["Inicio de sesión no confirmado", "Steam no confirmó el inicio de sesión. Vuelve a empezar desde la app."],
+    expired: ["Solicitud caducada", "Esta solicitud ha caducado (10 minutos). Vuelve a empezar desde la app."],
+  },
+  de: {
+    band: "Mit Steam anmelden",
+    crumbs: "Ranglisten",
+    cta: "Ranglisten ansehen",
+    linked: ["Steam-Konto verknüpft", "Du kannst deine Runden auf einem anderen PC wiederfinden. Kehre zu LMU Stats Viewer zurück: Dieser Tab kann geschlossen werden."],
+    recovered: ["Runden wiedergefunden", "Kehre zu LMU Stats Viewer zurück und klicke auf „Teilen aktivieren“, um fortzufahren. Dieser Tab kann geschlossen werden."],
+    not_found: ["Keine geteilten Runden mit diesem Konto", "Dieses Steam-Konto ist mit keiner Installation verknüpft. Verknüpfe es zuerst in der App, in der deine Runden geteilt werden (Einstellungen → Community)."],
+    taken: ["Steam-Konto bereits verknüpft", "Dieses Steam-Konto ist bereits mit einer anderen Installation verknüpft. Nutze in der App stattdessen „Meine Runden mit Steam wiederfinden“."],
+    invalid: ["Anmeldung nicht bestätigt", "Steam hat die Anmeldung nicht bestätigt. Starte erneut in der App."],
+    expired: ["Anfrage abgelaufen", "Diese Anfrage ist abgelaufen (10 Minuten). Starte erneut in der App."],
+  },
+};
+
+const ICON_OK = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+const ICON_ERR = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5M12 16.5h.01"/><circle cx="12" cy="12" r="9"/></svg>';
+
+/**
+ * Page affichée dans le navigateur au retour de Steam : aux couleurs du site (même feuille
+ * de style, même `?v=` que les pages du site), sans script (CSP stricte). Textes fixes.
+ */
+export function steamReturnPage(outcome: SteamOutcome, mode: SteamMode | null, lang: PageLang): string {
+  const L = PAGE[lang];
+  const key: PageCase = outcome === "ok" ? (mode === "recover" ? "recovered" : "linked") : outcome;
+  const [title, body] = L[key];
+  const ok = outcome === "ok";
+  return `<!DOCTYPE html>
+<html lang="${lang}" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>${title} — LMU Stats Viewer</title>
+<link rel="icon" href="/favicon.ico?v=38">
+<link rel="stylesheet" href="/assets/site.css?v=38">
+</head>
+<body>
+<header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><img class="brand-logo" src="/assets/icon-32.png?v=1" alt=""><span>LMU Stats Viewer <span class="brand-sub">${L.crumbs}</span></span></a></div></header>
+<main class="wrap steam-page">
+  <section class="cgroup steam-card">
+    <div class="cg-head cg-static"><span class="cg-name">${L.band}</span></div>
+    <div class="steam-body">
+      <span class="steam-ico ${ok ? "is-ok" : "is-err"}">${ok ? ICON_OK : ICON_ERR}</span>
+      <h1>${title}</h1>
+      <p class="muted">${body}</p>
+      <a class="btn btn-primary" href="/">${L.cta}</a>
+    </div>
+  </section>
+</main>
+</body>
+</html>`;
 }

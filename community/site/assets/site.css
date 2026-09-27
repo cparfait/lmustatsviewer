@@ -722,3 +722,12 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
   .pf-table tr.is-prov td[colspan] { display: table-cell; }
   .pf-table col.c-class { width: 84px; } .pf-table col.c-time { width: 84px; } .pf-table col.c-rank { width: 70px; }
 }
+
+/* ══ Page de retour « Se connecter avec Steam » (servie par l'API, sans script) ══ */
+.steam-page { max-width: 600px; padding: clamp(36px, 10vh, 110px) 16px 80px; }
+.steam-body { display: grid; justify-items: center; gap: 10px; padding: 30px 26px 28px; text-align: center; }
+.steam-body h1 { margin-top: 6px; font-size: clamp(1.3rem, 3vw, 1.6rem); letter-spacing: -.02em; }
+.steam-body p { margin: 0 0 10px; max-width: 44ch; font-size: .95rem; }
+.steam-ico { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; }
+.steam-ico.is-ok { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); box-shadow: 0 0 0 6px color-mix(in srgb, var(--green) 7%, transparent); }
+.steam-ico.is-err { background: color-mix(in srgb, #ef4444 12%, transparent); color: #dc2626; box-shadow: 0 0 0 6px color-mix(in srgb, #ef4444 6%, transparent); }

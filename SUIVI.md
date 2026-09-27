@@ -1025,6 +1025,12 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   - 📋 **Ordre de sortie** : pousser → `update-from-github.sh` sur le VPS (migration 2 automatique) →
     tester dans l'app (Lier à Steam, puis Retrouver depuis un profil vierge) → retaguer v1.0.7.
     ⚠️ Page Confidentialité (mainteneur) : mentionner l'empreinte Steam.
+  - ✅ **Testé en production** par le mainteneur : « Lier à Steam » → page de retour « C'est fait ».
+    Page de retour refaite aux couleurs du site (en-tête, carte à bandeau, icône, titre selon le cas :
+    lié / retrouvé / inconnu / déjà lié / non confirmé / expiré, langue du navigateur FR/EN/ES/DE,
+    bouton « Voir les classements ») ; site `?v=38`.
+  - ✅ **v1.0.7 retaguée** avec l'identité durable et la case « sessions passées ». ⏳ « Retrouver mes tours
+    avec Steam » pas encore essayé avec un vrai compte (testé avec Steam simulé + e2e coffre).
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

@@ -18,12 +18,17 @@ export interface Install {
   display_name: string | null;
   homonym: boolean;
   hidden: boolean;
+  /** Liée à un compte Steam (obligatoire pour envoyer des sessions). */
+  steam_linked: boolean;
 }
 
 export const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
-/** Crée une installation : identifiant + jeton (seul son hash est conservé). */
-export async function registerInstall(db: Db): Promise<{ install_id: string; token: string; tag: string }> {
+/**
+ * Crée une installation : identifiant + jeton (seul son hash est conservé), liée à un
+ * compte Steam si `steamHash` est fourni (connexion Steam).
+ */
+export async function registerInstall(db: Db, steamHash: string | null = null): Promise<{ install_id: string; token: string; tag: string }> {
   const id = randomUUID();
   const token = randomBytes(32).toString("base64url");
   // Repère court (« #a3f9 ») pour l'anonymat et les homonymes ; unicité recherchée
@@ -34,14 +39,14 @@ export async function registerInstall(db: Db): Promise<{ install_id: string; tok
     const taken = await db.query("select 1 from installs where tag = $1", [tag]);
     if (taken.length === 0) break;
   }
-  await db.query("insert into installs (id, token_hash, tag) values ($1, $2, $3)", [id, hashToken(token), tag]);
+  await db.query("insert into installs (id, token_hash, tag, steam_hash) values ($1, $2, $3, $4)", [id, hashToken(token), tag, steamHash]);
   return { install_id: id, token, tag };
 }
 
 export async function findInstallByToken(db: Db, token: string): Promise<Install | null> {
   const rows = await db.query<Install>(
     `update installs set last_seen_at = now() where token_hash = $1
-     returning id, tag, anonymous, display_name, homonym, hidden`,
+     returning id, tag, anonymous, display_name, homonym, hidden, steam_hash is not null as steam_linked`,
     [hashToken(token)],
   );
   return rows[0] ?? null;

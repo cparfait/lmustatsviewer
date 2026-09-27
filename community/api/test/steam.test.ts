@@ -9,7 +9,7 @@ const PUBLIC = "https://lmu.test";
 /** Steam simulé : n'accepte que les assertions marquées valides. */
 const fakeSteam = async (p: Record<string, string>) => p["openid.sig"] === "ok";
 
-async function start(ctx: Ctx, mode: "link" | "recover", token?: string) {
+async function start(ctx: Ctx, mode: "link" | "recover" | "register", token?: string) {
   const res = await ctx.app.request("/api/v1/steam/start", {
     method: "POST",
     headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
@@ -40,12 +40,40 @@ const poll = async (ctx: Ctx, id: string) => (await (await ctx.app.request(`/api
 
 describe("Se connecter avec Steam", () => {
   let ctx: Ctx;
-  before(async () => { ctx = await setup({ publicUrl: PUBLIC, steamVerify: fakeSteam }); });
+  before(async () => { ctx = await setup({ publicUrl: PUBLIC, steamVerify: fakeSteam, requireSteam: true }); });
   after(() => ctx.close());
+
+  test("activer = se connecter avec Steam : une installation par compte, reprise sur un autre PC", async () => {
+    // Sans Steam, l'envoi est refusé (mais la suppression reste possible).
+    const bare = await register(ctx.app);
+    const refused = await send(ctx.app, bare.token, [session({}, { time: 90 })]);
+    assert.equal(refused.status, 403);
+    assert.deepEqual(await refused.json(), { error: "steam_required" });
+    const del = await ctx.app.request("/api/v1/me", { method: "DELETE", headers: { authorization: `Bearer ${bare.token}` } });
+    assert.equal(del.status, 204);
+
+    // 1er PC : création liée à Steam, l'envoi passe.
+    const r1 = await start(ctx, "register");
+    await steamReturn(ctx, r1.body.url, "76561198000000009");
+    const p1 = await poll(ctx, r1.body.poll_id);
+    assert.equal(p1.status, "ok");
+    assert.equal(p1.existing, false);
+    assert.equal((await send(ctx.app, String(p1.token), [session({}, { time: 88 })])).status, 200);
+
+    // 2e PC (ou réinstallation sans coffre) : la même installation, pas de doublon.
+    const r2 = await start(ctx, "register");
+    await steamReturn(ctx, r2.body.url, "76561198000000009");
+    const p2 = await poll(ctx, r2.body.poll_id);
+    assert.equal(p2.install_id, p1.install_id);
+    assert.equal(p2.existing, true);
+    const auth = (tok: unknown) => ({ headers: { authorization: `Bearer ${tok}` } });
+    assert.equal((await ctx.app.request("/api/v1/me", auth(p1.token))).status, 401, "ancien jeton révoqué");
+    const me = (await (await ctx.app.request("/api/v1/me", auth(p2.token))).json()) as { sessions: unknown[] };
+    assert.equal(me.sessions.length, 1);
+  });
 
   test("lier, puis retrouver l'installation sur un autre PC (nouveau jeton, l'ancien révoqué)", async () => {
     const a = await register(ctx.app);
-    await send(ctx.app, a.token, [session({}, { time: 80 })]);
 
     // Lier exige le jeton.
     assert.equal((await start(ctx, "link")).status, 401);
@@ -56,6 +84,8 @@ describe("Se connecter avec Steam", () => {
     assert.deepEqual(await poll(ctx, link.body.poll_id), { status: "pending" });
     assert.equal((await steamReturn(ctx, link.body.url, "76561198000000001")).status, 200);
     assert.deepEqual(await poll(ctx, link.body.poll_id), { status: "ok", mode: "link" });
+    // Liée : l'envoi est accepté.
+    assert.equal((await send(ctx.app, a.token, [session({}, { time: 80 })])).status, 200);
     // Réponse finale remise une seule fois.
     assert.deepEqual(await poll(ctx, link.body.poll_id), { status: "expired" });
 
@@ -98,12 +128,12 @@ describe("Se connecter avec Steam", () => {
     });
     assert.deepEqual(await poll(ctx, hij.body.poll_id), { status: "invalid" });
 
-    // Délier : un « retrouver » ne trouve plus rien.
+    // Supprimer ses données : un « retrouver » ne trouve plus rien.
     const c = await register(ctx.app);
     const l2 = await start(ctx, "link", c.token);
     await steamReturn(ctx, l2.body.url, "76561198000000004");
     await poll(ctx, l2.body.poll_id);
-    const del = await ctx.app.request("/api/v1/steam/link", { method: "DELETE", headers: { authorization: `Bearer ${c.token}` } });
+    const del = await ctx.app.request("/api/v1/me", { method: "DELETE", headers: { authorization: `Bearer ${c.token}` } });
     assert.equal(del.status, 204);
     const r2 = await start(ctx, "recover");
     await steamReturn(ctx, r2.body.url, "76561198000000004");

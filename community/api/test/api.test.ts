@@ -102,7 +102,7 @@ describe("tout ou rien : une erreur en cours d'écriture n'expose aucune session
         ),
     };
     const limiter = new RateLimiter();
-    const app = createApp(failing, { log: () => {}, limiter, ingest: { ...DEFAULT_INGEST, today: () => "2026-09-26" } });
+    const app = createApp(failing, { log: () => {}, limiter, requireSteam: false, ingest: { ...DEFAULT_INGEST, today: () => "2026-09-26" } });
     const inst = await register(app);
     const res = await send(app, inst.token, [session(), session(), session()]);
     assert.equal(res.status, 500);
@@ -147,7 +147,7 @@ describe("validation des envois", () => {
   });
 
   test("limite de débit à l'enregistrement → 429", async () => {
-    const c3 = await setup({ limits: { register: { max: 2, windowMs: 60_000 }, writePerInstall: { max: 99, windowMs: 60_000 }, writePerIp: { max: 99, windowMs: 60_000 }, read: { max: 99, windowMs: 60_000 } } });
+    const c3 = await setup({ limits: { register: { max: 2, windowMs: 60_000 }, steam: { max: 99, windowMs: 60_000 }, writePerInstall: { max: 99, windowMs: 60_000 }, writePerIp: { max: 99, windowMs: 60_000 }, read: { max: 99, windowMs: 60_000 } } });
     await register(c3.app, "1.1.1.1");
     await register(c3.app, "1.1.1.1");
     const res = await c3.app.request("/api/v1/register", { method: "POST", headers: { "x-real-ip": "1.1.1.1" } });

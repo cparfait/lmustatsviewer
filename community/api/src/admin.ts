@@ -6,6 +6,7 @@ import pg from "pg";
 import { pgDb } from "./db.js";
 import { purgeDemo, seedDemo } from "./demo.js";
 import { deleteInstall } from "./ingest.js";
+import { steamHashOf } from "./steam.js";
 import { globalStats } from "./stats.js";
 
 const HELP = `Commandes :
@@ -16,6 +17,8 @@ const HELP = `Commandes :
   hide-session <session_key>   masque une session
   delete-install <id>       efface une installation et toutes ses sessions
   delete-tag <#xxxx>        idem, par le repère affiché (le joueur le lit dans l'app)
+  find-steam <steamid64>    installation liée à ce compte Steam (demande d'un joueur)
+  delete-steam <steamid64>  efface l'installation liée à ce compte Steam
   seed-demo [pilotes]       crée des pilotes de DÉMONSTRATION (défaut 900), marqués pour le ménage
   purge-demo                compte les données de démonstration (rien n'est effacé)
   purge-demo --yes          efface toutes les données de démonstration (et elles seules)`;
@@ -51,6 +54,18 @@ async function run(): Promise<unknown> {
       const id = need();
       await deleteInstall(db, id);
       return { deleted: id };
+    }
+    case "find-steam":
+      return db.query(
+        `select id, tag, display_name, anonymous, created_at,
+                (select count(*)::int from sessions s where s.install_id = i.id) as sessions
+         from installs i where steam_hash = $1`,
+        [await steamHashOf(db, need())],
+      );
+    case "delete-steam": {
+      const rows = await db.query<{ id: string; tag: string }>("select id, tag from installs where steam_hash = $1", [await steamHashOf(db, need())]);
+      for (const r of rows) await deleteInstall(db, r.id);
+      return { deleted: rows.map((r) => r.tag) };
     }
     case "delete-tag": {
       const rows = await db.query<{ id: string; tag: string }>("select id, tag from installs where tag = $1", [need()]);

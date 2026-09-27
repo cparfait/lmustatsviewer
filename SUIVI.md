@@ -50,7 +50,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Veille concurrents** | **Décidé (2026-09-25)** — on s'inspire des idées et des réglages d'outils concurrents, mais **aucun nom de concurrent dans le code** (identifiants, commentaires, textes UI, changelog) et aucune ligne de leur code reprise. Les analyses restent dans `SUIVI.md` (doc de veille). |
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
-| **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **décochée par défaut** à l'activation (décision 2026-09-27, remplace « cochée » du 2026-09-26). **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. |
+| **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **décochée par défaut** à l'activation (décision 2026-09-27, remplace « cochée » du 2026-09-26). **Connexion Steam obligatoire pour partager** (décision 2026-09-27) : un compte Steam = une installation (ni doublon, ni données orphelines) ; seule une empreinte HMAC du SteamID est stockée. **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
 
 ---
@@ -1031,6 +1031,22 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
     bouton « Voir les classements ») ; site `?v=38`.
   - ✅ **v1.0.7 retaguée** avec l'identité durable et la case « sessions passées ». ⏳ « Retrouver mes tours
     avec Steam » pas encore essayé avec un vrai compte (testé avec Steam simulé + e2e coffre).
+- ✅ **Connexion Steam OBLIGATOIRE pour partager** (demande mainteneur : « sinon doublons et données
+  impossibles à effacer ») :
+  - Serveur : `POST /sessions` → 403 `steam_required` si l'installation n'est pas liée (anonymiser /
+    supprimer restent possibles) ; mode `register` (migration 3) : reprend l'installation du compte
+    Steam (même bannie, pas de contournement) ou la crée liée ; `recover` pour effacer depuis un autre
+    PC ; « délier » retiré ; quota `steam` 30/h/IP ; `PATCH /me` renvoie `steam_linked` ;
+    `admin find-steam|delete-steam <steamid64>` (demandes des joueurs, sans stocker le SteamID) ;
+    `REQUIRE_STEAM=0` réservé à la pile locale (compose local) et aux tests ; `smoke.mjs` vérifie le
+    refus sans Steam en production. Empreinte + secret dans la même base (sauvegardés ensemble).
+  - App : « Se connecter avec Steam et partager » (Steam d'abord, sauf installation déjà liée ; si ce PC
+    a une identité, elle est LIÉE plutôt que remplacée) ; tours d'un compte existant repris (« Tours
+    retrouvés #xxxx ») ; envoi refusé → message + « Lier à Steam » ; « Supprimer mes données » depuis un
+    autre PC via Steam (`recover`) ; `enable` sans identité → `steam_required`.
+  - Tests : serveur 33/33 ; Rust 17 ; e2e (pile locale `REQUIRE_STEAM=0`) OK ; app `tsc`, lint, 265.
+    Vitrine : carte « C'est vous qui décidez » et FAQ ×4 mentionnent Steam. Changelog 1.0.7 réécrit ×4.
+  - ⚠️ Le tag `v1.0.7` actuel (f697bcc) ne contient PAS cette obligation → à supprimer et retaguer.
 - ℹ️ Pas d'invitation au partage sur la version installée du mainteneur : normal, même base que la
   version de développement où le partage a été activé (l'invitation ne s'affiche que si jamais inscrit).
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou

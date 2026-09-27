@@ -102,6 +102,18 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 3,
+    name: "steam_register",
+    sql: `
+      -- Connexion Steam obligatoire pour partager : « register » retrouve l'installation
+      -- liée au compte Steam, ou la crée.
+      alter table steam_logins drop constraint steam_logins_mode_check;
+      alter table steam_logins add constraint steam_logins_mode_check
+        check (mode in ('link', 'recover', 'register'));
+      alter table steam_logins add column existing boolean not null default false;
+    `,
+  },
 ];
 
 export async function migrate(db: Db): Promise<number[]> {

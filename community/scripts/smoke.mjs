@@ -60,7 +60,15 @@ const { token } = await reg.json();
 
 try {
   const s = session();
-  const r1 = await (await post("/sessions", token, { sessions: [s] })).json();
+  const first = await post("/sessions", token, { sessions: [s] });
+  if (first.status === 403) {
+    // Production : connexion Steam obligatoire pour envoyer. Le script ne peut pas se
+    // connecter à Steam : il vérifie le refus, puis l'export et l'effacement.
+    check((await first.json()).error === "steam_required", "envoi refusé sans connexion Steam");
+    const me = await (await fetch(BASE + "/me", { headers: { authorization: `Bearer ${token}` } })).json();
+    check(Array.isArray(me.sessions) && me.sessions.length === 0, "export des données (droit d'accès)");
+  } else {
+  const r1 = await first.json();
   check(r1.accepted === 1 && r1.received?.[0] === s.session_key, "envoi + accusé de réception");
 
   const r2 = await (await post("/sessions", token, { sessions: [s] })).json();
@@ -78,6 +86,7 @@ try {
 
   const me = await (await fetch(BASE + "/me", { headers: { authorization: `Bearer ${token}` } })).json();
   check(me.sessions?.length === 1, "export des données (droit d'accès)");
+  }
 } finally {
   const del = await fetch(BASE + "/me", { method: "DELETE", headers: { authorization: `Bearer ${token}` } });
   check(del.status === 204, "effacement de l'installation de test", `HTTP ${del.status}`);

@@ -9,7 +9,9 @@
 //!   les appels partent du Rust, le jeton ne transite jamais par la WebView.
 //! - Copie du jeton dans le Gestionnaire d'identifications Windows (`community_vault`) :
 //!   une réinstallation reprend la même installation au lieu d'en créer une nouvelle.
-//! - « Se connecter avec Steam » : lier l'installation, la retrouver sur un autre PC.
+//! - Connexion Steam OBLIGATOIRE pour partager (« Se connecter avec Steam ») : un compte
+//!   Steam = une installation — ni doublon, ni données impossibles à effacer ; un autre
+//!   PC reprend les tours du compte, et « Supprimer » y marche aussi (via Steam).
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -502,6 +504,9 @@ fn forget_identity(db: &DbState) -> Result<(), AppError> {
     Ok(())
 }
 
+/// Inscription sans Steam : réservée aux tests contre une pile locale (`REQUIRE_STEAM=0`).
+/// En usage réel, l'identité vient de la connexion Steam (`community_steam_start`).
+#[cfg(test)]
 async fn register_install(db: &DbState) -> Result<(), AppError> {
     let base = api_base(db)?;
     let resp = client(&base)?.post(format!("{base}/register")).send().await.map_err(net_err)?;
@@ -537,15 +542,16 @@ pub fn community_preview(db: State<'_, DbState>) -> Result<String, AppError> {
 // ── Activation, anonymat, suppression ────────────────────────────────────────
 
 async fn patch_anonymous(db: &DbState, anonymous: bool) -> Result<(), AppError> {
-    match patch_anonymous_code(db, anonymous).await? {
+    match patch_me(db, anonymous).await?.0 {
         c if (200..300).contains(&c) => Ok(()),
         c => Err(AppError::Internal(format!("serveur : HTTP {c}"))),
     }
 }
 
-/// Code HTTP de `PATCH /me` (204 si pas de jeton : rien à faire).
-async fn patch_anonymous_code(db: &DbState, anonymous: bool) -> Result<u16, AppError> {
-    let Some(tok) = token(db)? else { return Ok(204) };
+/// `PATCH /me` : code HTTP et, en cas de succès, l'état « lié à Steam » selon le serveur
+/// (204 sans jeton : rien à faire).
+async fn patch_me(db: &DbState, anonymous: bool) -> Result<(u16, Option<bool>), AppError> {
+    let Some(tok) = token(db)? else { return Ok((204, None)) };
     let base = api_base(db)?;
     let resp = client(&base)?
         .patch(format!("{base}/me"))
@@ -554,11 +560,18 @@ async fn patch_anonymous_code(db: &DbState, anonymous: bool) -> Result<u16, AppE
         .send()
         .await
         .map_err(net_err)?;
-    Ok(resp.status().as_u16())
+    let code = resp.status().as_u16();
+    let steam = if resp.status().is_success() {
+        resp.json::<Value>().await.ok().and_then(|v| v["steam_linked"].as_bool())
+    } else {
+        None
+    };
+    Ok((code, steam))
 }
 
-/// Active le partage (enregistre l'installation au premier usage). `history` : envoyer
-/// aussi les sessions déjà jouées ; sinon seulement celles jouées à partir de maintenant.
+/// Active le partage de l'identité obtenue par la connexion Steam (ou reprise du coffre
+/// Windows). Sans identité : erreur `steam_required`. `history` : envoyer aussi les
+/// sessions déjà jouées ; sinon seulement celles jouées à partir de maintenant.
 #[tauri::command]
 pub async fn community_enable(
     history: bool,
@@ -571,24 +584,29 @@ pub async fn community_enable(
 async fn enable_inner(db: &DbState, history: bool, anonymous: bool) -> Result<CommunityStatus, AppError> {
     // Même PC après réinstallation : on reprend l'installation du coffre Windows.
     restore_from_vault(db)?;
-    if token(db)?.is_none() {
-        register_install(db).await?;
-    } else if let (Some(id), Some(tag), Some(tok)) = (cfg(db, K_INSTALL)?, cfg(db, K_TAG)?, token(db)?) {
-        // Installation créée avant le coffre (ou coffre effacé) : on l'y range.
-        if vault_for(db)?.map(|e| e.install_id) != Some(id.clone()) {
-            store_identity(db, &id, &tag, &tok)?;
-        }
+    let (Some(id), Some(tag), Some(tok)) = (cfg(db, K_INSTALL)?, cfg(db, K_TAG)?, token(db)?) else {
+        return Err(AppError::Internal("steam_required".into()));
+    };
+    // Installation créée avant le coffre (ou coffre effacé) : on l'y range.
+    if vault_for(db)?.map(|e| e.install_id) != Some(id.clone()) {
+        store_identity(db, &id, &tag, &tok)?;
     }
     db::config_set(db, K_ANON, if anonymous { "1" } else { "0" })?;
-    if patch_anonymous_code(db, anonymous).await? == 401 {
-        // Installation effacée côté serveur entre-temps : on repart d'une nouvelle.
+    let (code, steam) = patch_me(db, anonymous).await?;
+    if code == 401 {
+        // Installation effacée côté serveur entre-temps : reconnexion Steam nécessaire.
         forget_identity(db)?;
         db::get_conn(db)?
             .execute("DELETE FROM community_outbox", [])
             .map_err(|e| AppError::Database(e.to_string()))?;
-        register_install(db).await?;
+        return Err(AppError::Internal("steam_required".into()));
     }
-    patch_anonymous(db, anonymous).await?;
+    if !(200..300).contains(&code) {
+        return Err(AppError::Internal(format!("serveur : HTTP {code}")));
+    }
+    if let Some(linked) = steam {
+        db::config_set(db, K_STEAM, if linked { "1" } else { "" })?;
+    }
     db::config_set(db, K_HISTORY, if history { "1" } else { "0" })?;
     db::config_set(db, K_ENABLED_AT, &now().to_string())?;
     db::config_set(db, K_ENABLED, "1")?;
@@ -672,12 +690,22 @@ pub struct SteamStart {
     pub poll_id: String,
 }
 
-/// Commence une connexion Steam. `link` : lier l'installation de ce PC (jeton requis) ;
-/// `recover` : retrouver une installation liée depuis un autre PC.
+/// Commence une connexion Steam.
+/// - `register` : activer le partage — le serveur reprend l'installation liée à ce compte
+///   Steam, ou la crée. Si ce PC a déjà une identité (base ou coffre), on la LIE plutôt.
+/// - `link` : lier l'installation de ce PC (jeton requis) ;
+/// - `recover` : retrouver sans rien créer (effacer ses données depuis un autre PC).
 #[tauri::command]
 pub async fn community_steam_start(mode: String, db: State<'_, DbState>) -> Result<SteamStart, AppError> {
-    if mode != "link" && mode != "recover" {
+    let mut mode = mode;
+    if mode != "link" && mode != "recover" && mode != "register" {
         return Err(AppError::Internal("mode Steam inconnu".into()));
+    }
+    if mode == "register" {
+        restore_from_vault(&db)?;
+        if token(&db)?.is_some() {
+            mode = "link".into();
+        }
     }
     let base = api_base(&db)?;
     let mut req = client(&base)?.post(format!("{base}/steam/start")).json(&json!({ "mode": mode }));
@@ -706,13 +734,15 @@ pub async fn community_steam_start(mode: String, db: State<'_, DbState>) -> Resu
 pub struct SteamPoll {
     /// pending | ok | not_found | taken | invalid | expired
     pub status: String,
-    /// Installation retrouvée (mode `recover`).
+    /// Installation obtenue (modes `register` / `recover`).
     pub tag: Option<String>,
     pub anonymous: Option<bool>,
+    /// Installation déjà existante (tours retrouvés) plutôt que créée à l'instant.
+    pub existing: Option<bool>,
 }
 
-/// Interroge le serveur. `recover` réussi : l'identité retrouvée remplace celle de ce
-/// PC (jeton neuf, l'ancien est révoqué) ; le partage reste à réactiver par le joueur.
+/// Interroge le serveur. `register` / `recover` réussis : l'identité obtenue remplace
+/// celle de ce PC (jeton neuf, l'ancien est révoqué) ; `link` : ce PC est lié.
 #[tauri::command]
 pub async fn community_steam_poll(poll_id: String, db: State<'_, DbState>) -> Result<SteamPoll, AppError> {
     let base = api_base(&db)?;
@@ -732,6 +762,7 @@ pub async fn community_steam_poll(poll_id: String, db: State<'_, DbState>) -> Re
     }
     if v["mode"].as_str() == Some("link") {
         db::config_set(&db, K_STEAM, "1")?;
+        db::config_set(&db, K_LAST_ERROR, "")?;
         return Ok(SteamPoll { status, ..Default::default() });
     }
     let (Some(id), Some(tag), Some(tok)) = (v["install_id"].as_str(), v["tag"].as_str(), v["token"].as_str()) else {
@@ -746,27 +777,12 @@ pub async fn community_steam_poll(poll_id: String, db: State<'_, DbState>) -> Re
     db::config_set(&db, K_STEAM, "1")?;
     db::config_set(&db, K_ANON, if anonymous { "1" } else { "0" })?;
     db::config_set(&db, K_LAST_ERROR, "")?;
-    Ok(SteamPoll { status, tag: Some(tag.to_string()), anonymous: Some(anonymous) })
-}
-
-/// Délie l'installation de Steam (elle ne sera plus retrouvable par Steam).
-#[tauri::command]
-pub async fn community_steam_unlink(db: State<'_, DbState>) -> Result<CommunityStatus, AppError> {
-    if let Some(tok) = token(&db)? {
-        let base = api_base(&db)?;
-        let resp = client(&base)?
-            .delete(format!("{base}/steam/link"))
-            .bearer_auth(tok)
-            .send()
-            .await
-            .map_err(net_err)?;
-        let code = resp.status().as_u16();
-        if code != 204 && code != 401 {
-            return Err(AppError::Internal(format!("serveur : HTTP {code}")));
-        }
-    }
-    db::config_set(&db, K_STEAM, "")?;
-    status(&db)
+    Ok(SteamPoll {
+        status,
+        tag: Some(tag.to_string()),
+        anonymous: Some(anonymous),
+        existing: v["existing"].as_bool(),
+    })
 }
 
 // ── Synchronisation ──────────────────────────────────────────────────────────
@@ -886,6 +902,17 @@ async fn sync_inner(db: &DbState) -> Result<SyncReport, AppError> {
             }
         };
         let code = resp.status().as_u16();
+        if code == 403 {
+            let body: Value = resp.json().await.unwrap_or(Value::Null);
+            if body["error"].as_str() == Some("steam_required") {
+                // Installation d'avant la connexion obligatoire : à lier à Steam.
+                db::config_set(db, K_STEAM, "")?;
+                fail(&mut report, "steam_required".into(), 3600)?;
+                break;
+            }
+            fail(&mut report, "http_403".into(), 3600)?;
+            break;
+        }
         if code != 200 {
             let retry = resp
                 .headers()
@@ -1235,6 +1262,10 @@ mod tests {
             assert!(!s0.enabled, "désactivé par défaut");
             assert_eq!(sync(&st).await.unwrap().sent, 0, "rien ne part sans activation");
 
+            // Pile locale `REQUIRE_STEAM=0` : inscription directe (la connexion Steam
+            // passe par le navigateur, hors de portée d'un test automatique).
+            assert!(enable_inner(&st, true, false).await.is_err(), "sans identité : Steam requis");
+            register_install(&st).await.unwrap();
             let s1 = enable_inner(&st, true, false).await.unwrap();
             println!("activé : tag={:?} en attente={}", s1.tag, s1.pending);
             assert!(s1.registered);

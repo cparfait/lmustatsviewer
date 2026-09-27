@@ -6,3 +6,6 @@ services:
   api:
     ports:
       - "127.0.0.1:3080:3000"
+    environment:
+      # Pile locale : envois sans connexion Steam (tests automatiques ; jamais en production).
+      REQUIRE_STEAM: "0"

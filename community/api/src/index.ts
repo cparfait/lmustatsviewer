@@ -42,8 +42,10 @@ const stateDir = process.env.STATE_DIR;
 
 // Adresse publique (retour de « Se connecter avec Steam »).
 const publicUrl = process.env.PUBLIC_URL;
+// Connexion Steam obligatoire pour envoyer (défaut). `REQUIRE_STEAM=0` : pile locale de test.
+const requireSteam = process.env.REQUIRE_STEAM !== "0";
 
-const server = serve({ fetch: createApp(db, { siteDir, publicDir, stateDir, publicUrl }).fetch, port: PORT, hostname: "0.0.0.0" }, (info) =>
+const server = serve({ fetch: createApp(db, { siteDir, publicDir, stateDir, publicUrl, requireSteam }).fetch, port: PORT, hostname: "0.0.0.0" }, (info) =>
   console.log(JSON.stringify({ t: new Date().toISOString(), listening: info.port })),
 );
 

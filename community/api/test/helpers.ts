@@ -45,6 +45,7 @@ export async function setup(opts: AppOptions = {}) {
     log: () => {},
     limiter,
     ingest: { ...DEFAULT_INGEST, today: () => "2026-09-26" },
+    requireSteam: false,
     ...opts,
   });
   return {

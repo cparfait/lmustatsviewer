@@ -1369,11 +1369,18 @@ export const community = {
   deleteData: () => invoke<CommunityStatus>("community_delete"),
   /** Envoie les sessions en attente (sans effet si le partage est désactivé). */
   sync: () => invoke<CommunitySyncReport>("community_sync"),
-  /** Connexion Steam : `link` (lier ce PC) ou `recover` (retrouver depuis un autre PC). */
-  steamStart: (mode: "link" | "recover") => invoke<{ url: string; poll_id: string }>("community_steam_start", { mode }),
+  /**
+   * Connexion Steam (obligatoire pour partager) : `register` (activer : reprend l'installation
+   * du compte Steam ou la crée), `link` (lier l'installation de ce PC), `recover` (retrouver
+   * sans rien créer, pour effacer ses données depuis un autre PC).
+   */
+  steamStart: (mode: "register" | "link" | "recover") =>
+    invoke<{ url: string; poll_id: string }>("community_steam_start", { mode }),
   steamPoll: (pollId: string) =>
-    invoke<{ status: string; tag: string | null; anonymous: boolean | null }>("community_steam_poll", { pollId }),
-  steamUnlink: () => invoke<CommunityStatus>("community_steam_unlink"),
+    invoke<{ status: string; tag: string | null; anonymous: boolean | null; existing: boolean | null }>(
+      "community_steam_poll",
+      { pollId },
+    ),
   /** Mes combos locaux (meilleur tour sur le sec par circuit × tracé × classe). */
   myCombos: (filters?: MyCombosFilter) => invoke<MyCombo[]>("community_my_combos", { filters: filters ?? null }),
   /** Lecture publique du service (agrégats). `null` si inconnu (404). */

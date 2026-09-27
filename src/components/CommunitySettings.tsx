@@ -96,6 +96,7 @@ export function CommunitySettings() {
       return t("community.errNetwork");
     if (e === "daily_quota") return t("community.errQuota");
     if (e === "http_401") return t("community.errAuth");
+    if (e === "steam_required") return t("community.errSteam");
     return t("community.errGeneric", { error: e });
   };
 
@@ -159,6 +160,19 @@ export function CommunitySettings() {
       destructive: true,
     });
     if (!ok) return;
+    // Autre PC (aucune identité ici) : Steam prouve que ce sont vos tours.
+    if (!status?.registered && !status?.vault_tag) {
+      try {
+        const r = await steam.run("recover");
+        if (r.status !== "ok") {
+          if (r.status !== "cancelled") toastError(steamError(t, r.status));
+          return;
+        }
+      } catch {
+        toastError(t("community.steamFailed"));
+        return;
+      }
+    }
     setBusy(true);
     try {
       setStatus(await community.deleteData());
@@ -179,16 +193,6 @@ export function CommunitySettings() {
       toastError(t("community.steamFailed"));
     } finally {
       refresh();
-    }
-  };
-  const unlinkSteam = async () => {
-    setBusy(true);
-    try {
-      setStatus(await community.steamUnlink());
-    } catch {
-      toastError(t("community.errNetwork"));
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -262,15 +266,10 @@ export function CommunitySettings() {
               </Button>
             </div>
           ) : status.steam_linked ? (
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                <Check className="h-3.5 w-3.5" />
-                {t("community.steamLinked")}
-              </span>
-              <Button size="sm" variant="outline" disabled={busy} onClick={unlinkSteam}>
-                {t("community.steamUnlink")}
-              </Button>
-            </div>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <Check className="h-3.5 w-3.5" />
+              {t("community.steamLinked")}
+            </span>
           ) : (
             <Button size="sm" variant="outline" className="gap-1.5" disabled={busy} onClick={linkSteam}>
               <Link2 className="h-3.5 w-3.5" />
@@ -292,7 +291,7 @@ export function CommunitySettings() {
           size="sm"
           variant="outline"
           className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
-          disabled={busy || !(status?.registered || status?.vault_tag)}
+          disabled={busy || !status || steam.waiting}
           onClick={deleteData}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -386,7 +385,7 @@ function Teaser({ combo }: { combo: MyCombo | null }) {
   );
 }
 
-type SteamResult = { status: string; tag: string | null; anonymous: boolean | null };
+type SteamResult = { status: string; tag: string | null; anonymous: boolean | null; existing?: boolean | null };
 
 /**
  * Connexion Steam : ouvre la page officielle de Steam dans le navigateur, puis interroge
@@ -401,7 +400,7 @@ function useSteamLogin() {
     },
     [],
   );
-  const run = async (mode: "link" | "recover"): Promise<SteamResult> => {
+  const run = async (mode: "register" | "link" | "recover"): Promise<SteamResult> => {
     stop.current = false;
     setWaiting(true);
     try {
@@ -459,20 +458,8 @@ function ActivateDialog({
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const activateRef = useRef<HTMLButtonElement>(null);
-  // « Déjà partagé depuis un autre PC ? » : installation retrouvée par Steam (repère).
+  // Connexion Steam obligatoire : elle crée l'identité, ou reprend celle du compte Steam.
   const steam = useSteamLogin();
-  const [recovered, setRecovered] = useState<string | null>(null);
-  const recoverSteam = async () => {
-    try {
-      const r = await steam.run("recover");
-      if (r.status === "ok") {
-        setRecovered(r.tag);
-        if (r.anonymous != null) setAnon(r.anonymous);
-      } else if (r.status !== "cancelled") toastError(steamError(t, r.status));
-    } catch {
-      toastError(t("community.steamFailed"));
-    }
-  };
 
   useEffect(() => {
     if (invite) activateRef.current?.focus();
@@ -489,8 +476,18 @@ function ActivateDialog({
   const activate = async () => {
     setBusy(true);
     try {
+      // Rien ne part sans lien Steam : connexion d'abord (sauf installation déjà liée).
+      let recovered: string | null = null;
+      if (!(status.registered && status.steam_linked)) {
+        const r = await steam.run("register");
+        if (r.status !== "ok") {
+          if (r.status !== "cancelled") toastError(steamError(t, r.status));
+          return;
+        }
+        if (r.existing && r.tag) recovered = r.tag;
+      }
       const s = await community.enable(history, anon);
-      toastSuccess(t("community.enabledToast"));
+      toastSuccess(recovered ? t("community.steamRecovered", { tag: recovered }) : t("community.enabledToast"));
       await onActivated(s);
     } catch {
       toastError(t("community.activateFailed"));
@@ -556,31 +553,22 @@ function ActivateDialog({
           </div>
         </div>
 
-        {!status.registered && (
-          <div className="mt-3 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs">
-            {recovered ? (
-              <p className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-                <Check className="h-3.5 w-3.5" />
-                {t("community.steamRecovered", { tag: recovered })}
-              </p>
-            ) : status.vault_tag ? (
-              <p className="text-muted-foreground">{t("community.vaultFound", { tag: status.vault_tag })}</p>
-            ) : steam.waiting ? (
-              <span className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                {t("community.steamWaiting")}
-                <button type="button" className="underline" onClick={steam.cancel}>
-                  {t("community.steamCancel")}
-                </button>
-              </span>
-            ) : (
-              <span className="text-muted-foreground">
-                {t("community.steamRecoverAsk")}{" "}
-                <button type="button" className="font-semibold text-primary underline" onClick={recoverSteam}>
-                  {t("community.steamRecover")}
-                </button>
-              </span>
-            )}
+        {!(status.registered && status.steam_linked) && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <div className="space-y-1">
+              <p>{t("community.steamRequired")}</p>
+              {status.vault_tag && <p>{t("community.vaultFound", { tag: status.vault_tag })}</p>}
+              {steam.waiting && (
+                <p className="flex items-center gap-2 font-medium text-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {t("community.steamWaiting")}
+                  <button type="button" className="underline" onClick={steam.cancel}>
+                    {t("community.steamCancel")}
+                  </button>
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -620,7 +608,11 @@ function ActivateDialog({
               onClick={activate}
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
-              {busy ? t("community.activating") : t("community.activate")}
+              {busy
+                ? t("community.activating")
+                : status.registered && status.steam_linked
+                  ? t("community.activate")
+                  : t("community.activateSteam")}
             </Button>
           </div>
         </div>

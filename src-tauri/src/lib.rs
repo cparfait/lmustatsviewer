@@ -186,7 +186,6 @@ pub fn run() {
             commands::community::community_delete,
             commands::community::community_steam_start,
             commands::community::community_steam_poll,
-            commands::community::community_steam_unlink,
             commands::community::community_sync,
             commands::community::community_public,
             commands::community::community_my_combos,

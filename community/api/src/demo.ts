@@ -102,7 +102,7 @@ export async function seedDemo(db: Db, drivers = 900): Promise<{ drivers: number
     for (const { d, time } of list) {
       if (!d.install) {
         const reg = await registerInstall(db);
-        d.install = { id: reg.install_id, tag: reg.tag, anonymous: false, display_name: null, homonym: false, hidden: false };
+        d.install = { id: reg.install_id, tag: reg.tag, anonymous: false, display_name: null, homonym: false, hidden: false, steam_linked: false };
       }
       const t = +time.toFixed(3);
       const s1 = +(t * 0.3165).toFixed(3);

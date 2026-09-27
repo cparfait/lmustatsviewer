@@ -17,7 +17,7 @@
  */
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import type { Db } from "./db.js";
-import { hashToken } from "./ingest.js";
+import { hashToken, registerInstall } from "./ingest.js";
 
 export const STEAM_OPENID = "https://steamcommunity.com/openid/login";
 const OPENID_NS = "http://specs.openid.net/auth/2.0";
@@ -26,7 +26,13 @@ const CLAIMED_ID = /^https:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/;
 /** Durée de validité d'une connexion commencée. */
 const TTL_MS = 10 * 60_000;
 
-export type SteamMode = "link" | "recover";
+/**
+ * `register` : activer le partage — retrouve l'installation liée à ce compte Steam, ou
+ * la crée (un compte Steam = une installation : aucun doublon possible).
+ * `recover` : retrouver sans rien créer (supprimer ses données depuis un autre PC).
+ * `link` : lier une installation existante (créée avant la connexion obligatoire).
+ */
+export type SteamMode = "link" | "recover" | "register";
 export type SteamOutcome = "ok" | "not_found" | "taken" | "invalid" | "expired";
 
 /** Confirme une assertion auprès de Steam (remplaçable dans les tests). */
@@ -54,6 +60,11 @@ async function steamSecret(db: Db): Promise<string> {
   );
   const [row] = await db.query<{ value: string }>("select value from server_secrets where name = 'steam'");
   return row.value;
+}
+
+/** Empreinte stockée pour un SteamID64 (aussi utilisée par l'administration). */
+export async function steamHashOf(db: Db, steamId64: string): Promise<string> {
+  return createHmac("sha256", await steamSecret(db)).update(steamId64).digest("hex");
 }
 
 /** Commence une connexion : URL Steam à ouvrir + identifiant secret à interroger. */
@@ -100,8 +111,11 @@ async function finishOutcome(
     [state],
   );
   if (!row) return "expired";
-  const done = async (status: SteamOutcome, installId: string | null = row.install_id) => {
-    await db.query("update steam_logins set status = $2, install_id = $3 where poll_hash = $1", [row.poll_hash, status, installId]);
+  const done = async (status: SteamOutcome, installId: string | null = row.install_id, existing = false) => {
+    await db.query(
+      "update steam_logins set status = $2, install_id = $3, existing = $4 where poll_hash = $1",
+      [row.poll_hash, status, installId, existing],
+    );
     return status;
   };
   if (Number(row.age_ms) > TTL_MS) return done("expired");
@@ -115,7 +129,7 @@ async function finishOutcome(
     params["openid.return_to"] === returnUrl(publicUrl, state);
   if (!m || !shapeOk || !(await verify(params).catch(() => false))) return done("invalid");
 
-  const steamHash = createHmac("sha256", await steamSecret(db)).update(m[1]).digest("hex");
+  const steamHash = await steamHashOf(db, m[1]);
   if (row.mode === "link") {
     if (!row.install_id) return done("invalid");
     const other = await db.query("select 1 from installs where steam_hash = $1 and id <> $2", [steamHash, row.install_id]);
@@ -123,8 +137,12 @@ async function finishOutcome(
     await db.query("update installs set steam_hash = $2 where id = $1", [row.install_id, steamHash]);
     return done("ok");
   }
-  const [inst] = await db.query<{ id: string }>("select id from installs where steam_hash = $1 and not hidden", [steamHash]);
-  return inst ? done("ok", inst.id) : done("not_found");
+  // Installation masquée (bannie) comprise : pas de nouvelle installation pour la contourner.
+  const [inst] = await db.query<{ id: string }>("select id from installs where steam_hash = $1", [steamHash]);
+  if (inst) return done("ok", inst.id, true);
+  if (row.mode === "recover") return done("not_found");
+  const created = await registerInstall(db, steamHash);
+  return done("ok", created.install_id, false);
 }
 
 /**
@@ -132,8 +150,8 @@ async function finishOutcome(
  * effacée). Retrouver une installation : nouveau jeton, l'ancien ne vaut plus rien.
  */
 export async function pollSteam(db: Db, pollId: string) {
-  const [row] = await db.query<{ poll_hash: string; mode: SteamMode; install_id: string | null; status: string; age_ms: number }>(
-    `select poll_hash, mode, install_id, status, extract(epoch from now() - created_at) * 1000 as age_ms
+  const [row] = await db.query<{ poll_hash: string; mode: SteamMode; install_id: string | null; status: string; existing: boolean; age_ms: number }>(
+    `select poll_hash, mode, install_id, status, existing, extract(epoch from now() - created_at) * 1000 as age_ms
      from steam_logins where poll_hash = $1`,
     [sha256(pollId)],
   );
@@ -143,13 +161,23 @@ export async function pollSteam(db: Db, pollId: string) {
   if (row.status === "pending") return { status: "expired" as const };
   if (row.status !== "ok" || !row.install_id) return { status: row.status as SteamOutcome };
   if (row.mode === "link") return { status: "ok" as const, mode: "link" as const };
+  // register / recover : l'app reçoit un jeton neuf (l'ancien, s'il existe, est révoqué).
   const token = randomBytes(32).toString("base64url");
   const [inst] = await db.query<{ id: string; tag: string; anonymous: boolean }>(
     "update installs set token_hash = $2 where id = $1 returning id, tag, anonymous",
     [row.install_id, hashToken(token)],
   );
   if (!inst) return { status: "not_found" as const };
-  return { status: "ok" as const, mode: "recover" as const, install_id: inst.id, tag: inst.tag, token, anonymous: inst.anonymous };
+  return {
+    status: "ok" as const,
+    mode: row.mode,
+    install_id: inst.id,
+    tag: inst.tag,
+    token,
+    anonymous: inst.anonymous,
+    /** Installation déjà existante (tours retrouvés) plutôt que créée à l'instant. */
+    existing: row.existing,
+  };
 }
 
 export type PageLang = "fr" | "en" | "es" | "de";
@@ -163,16 +191,17 @@ export function pickLang(acceptLanguage: string | undefined): PageLang {
   return "en";
 }
 
-type PageCase = "linked" | "recovered" | Exclude<SteamOutcome, "ok">;
+type PageCase = "linked" | "recovered" | "registered" | Exclude<SteamOutcome, "ok">;
 const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Record<PageCase, [string, string]>> = {
   fr: {
     band: "Se connecter avec Steam",
     crumbs: "Classements",
     cta: "Voir les classements",
     linked: ["Compte Steam lié", "Vous pourrez retrouver vos tours sur un autre PC. Revenez dans LMU Stats Viewer : cet onglet peut être fermé."],
-    recovered: ["Tours retrouvés", "Revenez dans LMU Stats Viewer et cliquez « Activer le partage » pour reprendre. Cet onglet peut être fermé."],
-    not_found: ["Aucun partage lié à ce compte", "Ce compte Steam n'est lié à aucune installation. Liez-le d'abord depuis l'app où vos tours sont partagés (Configuration → Communauté)."],
-    taken: ["Compte Steam déjà lié", "Ce compte Steam est déjà lié à une autre installation. Dans l'app, utilisez plutôt « Retrouver mes tours avec Steam »."],
+    recovered: ["Tours retrouvés", "Revenez dans LMU Stats Viewer : cet onglet peut être fermé."],
+    registered: ["Connexion Steam réussie", "Revenez dans LMU Stats Viewer : le partage s'active. Cet onglet peut être fermé."],
+    not_found: ["Aucun partage lié à ce compte", "Ce compte Steam n'a aucun tour partagé : il n'y a rien à supprimer."],
+    taken: ["Compte Steam déjà utilisé", "Ce compte Steam a déjà des tours partagés depuis une autre installation. Dans l'app, supprimez les données de cette installation-ci, puis réactivez le partage : vos tours seront repris."],
     invalid: ["Connexion non confirmée", "Steam n'a pas confirmé la connexion. Recommencez depuis l'app."],
     expired: ["Demande expirée", "Cette demande a expiré (10 minutes). Recommencez depuis l'app."],
   },
@@ -181,9 +210,10 @@ const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Rec
     crumbs: "Leaderboards",
     cta: "See the leaderboards",
     linked: ["Steam account linked", "You will be able to recover your laps on another PC. Go back to LMU Stats Viewer: you can close this tab."],
-    recovered: ["Laps recovered", "Go back to LMU Stats Viewer and click “Enable sharing” to resume. You can close this tab."],
-    not_found: ["No shared laps linked to this account", "This Steam account is not linked to any installation. Link it first from the app where your laps are shared (Settings → Community)."],
-    taken: ["Steam account already linked", "This Steam account is already linked to another installation. In the app, use “Recover my laps with Steam” instead."],
+    recovered: ["Laps recovered", "Go back to LMU Stats Viewer: you can close this tab."],
+    registered: ["Signed in with Steam", "Go back to LMU Stats Viewer: sharing is being enabled. You can close this tab."],
+    not_found: ["No shared laps linked to this account", "This Steam account has no shared laps: there is nothing to delete."],
+    taken: ["Steam account already in use", "This Steam account already has laps shared from another installation. In the app, delete this installation's data, then enable sharing again: your laps will be taken back."],
     invalid: ["Sign-in not confirmed", "Steam did not confirm the sign-in. Start again from the app."],
     expired: ["Request expired", "This request has expired (10 minutes). Start again from the app."],
   },
@@ -192,9 +222,10 @@ const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Rec
     crumbs: "Clasificaciones",
     cta: "Ver las clasificaciones",
     linked: ["Cuenta de Steam vinculada", "Podrás recuperar tus vueltas en otro PC. Vuelve a LMU Stats Viewer: puedes cerrar esta pestaña."],
-    recovered: ["Vueltas recuperadas", "Vuelve a LMU Stats Viewer y pulsa «Activar el uso compartido» para continuar. Puedes cerrar esta pestaña."],
-    not_found: ["Ninguna vuelta vinculada a esta cuenta", "Esta cuenta de Steam no está vinculada a ninguna instalación. Vincúlala primero desde la app donde compartes tus vueltas (Configuración → Comunidad)."],
-    taken: ["Cuenta de Steam ya vinculada", "Esta cuenta de Steam ya está vinculada a otra instalación. En la app, usa mejor «Recuperar mis vueltas con Steam»."],
+    recovered: ["Vueltas recuperadas", "Vuelve a LMU Stats Viewer: puedes cerrar esta pestaña."],
+    registered: ["Sesión de Steam iniciada", "Vuelve a LMU Stats Viewer: el uso compartido se está activando. Puedes cerrar esta pestaña."],
+    not_found: ["Ninguna vuelta vinculada a esta cuenta", "Esta cuenta de Steam no tiene vueltas compartidas: no hay nada que borrar."],
+    taken: ["Cuenta de Steam ya en uso", "Esta cuenta de Steam ya tiene vueltas compartidas desde otra instalación. En la app, borra los datos de esta instalación y vuelve a activar el uso compartido: se recuperarán tus vueltas."],
     invalid: ["Inicio de sesión no confirmado", "Steam no confirmó el inicio de sesión. Vuelve a empezar desde la app."],
     expired: ["Solicitud caducada", "Esta solicitud ha caducado (10 minutos). Vuelve a empezar desde la app."],
   },
@@ -203,9 +234,10 @@ const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Rec
     crumbs: "Ranglisten",
     cta: "Ranglisten ansehen",
     linked: ["Steam-Konto verknüpft", "Du kannst deine Runden auf einem anderen PC wiederfinden. Kehre zu LMU Stats Viewer zurück: Dieser Tab kann geschlossen werden."],
-    recovered: ["Runden wiedergefunden", "Kehre zu LMU Stats Viewer zurück und klicke auf „Teilen aktivieren“, um fortzufahren. Dieser Tab kann geschlossen werden."],
-    not_found: ["Keine geteilten Runden mit diesem Konto", "Dieses Steam-Konto ist mit keiner Installation verknüpft. Verknüpfe es zuerst in der App, in der deine Runden geteilt werden (Einstellungen → Community)."],
-    taken: ["Steam-Konto bereits verknüpft", "Dieses Steam-Konto ist bereits mit einer anderen Installation verknüpft. Nutze in der App stattdessen „Meine Runden mit Steam wiederfinden“."],
+    recovered: ["Runden wiedergefunden", "Kehre zu LMU Stats Viewer zurück: Dieser Tab kann geschlossen werden."],
+    registered: ["Mit Steam angemeldet", "Kehre zu LMU Stats Viewer zurück: Das Teilen wird aktiviert. Dieser Tab kann geschlossen werden."],
+    not_found: ["Keine geteilten Runden mit diesem Konto", "Dieses Steam-Konto hat keine geteilten Runden: Es gibt nichts zu löschen."],
+    taken: ["Steam-Konto bereits verwendet", "Dieses Steam-Konto hat bereits Runden von einer anderen Installation geteilt. Lösche in der App die Daten dieser Installation und aktiviere das Teilen erneut: Deine Runden werden übernommen."],
     invalid: ["Anmeldung nicht bestätigt", "Steam hat die Anmeldung nicht bestätigt. Starte erneut in der App."],
     expired: ["Anfrage abgelaufen", "Diese Anfrage ist abgelaufen (10 Minuten). Starte erneut in der App."],
   },
@@ -220,7 +252,7 @@ const ICON_ERR = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" st
  */
 export function steamReturnPage(outcome: SteamOutcome, mode: SteamMode | null, lang: PageLang): string {
   const L = PAGE[lang];
-  const key: PageCase = outcome === "ok" ? (mode === "recover" ? "recovered" : "linked") : outcome;
+  const key: PageCase = outcome === "ok" ? (mode === "recover" ? "recovered" : mode === "register" ? "registered" : "linked") : outcome;
   const [title, body] = L[key];
   const ok = outcome === "ok";
   return `<!DOCTYPE html>

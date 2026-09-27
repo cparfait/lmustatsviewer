@@ -215,6 +215,8 @@ docker compose exec api node dist/api/src/admin.js hide-install <id>     # banni
 docker compose exec api node dist/api/src/admin.js hide-session <session_key>
 docker compose exec api node dist/api/src/admin.js delete-install <id>
 docker compose exec api node dist/api/src/admin.js delete-tag '#58ac'   # par le repère affiché dans l'app
+docker compose exec api node dist/api/src/admin.js find-steam 7656119…   # installation d'un compte Steam
+docker compose exec api node dist/api/src/admin.js delete-steam 7656119… # l'effacer (demande du joueur)
 # Données de DÉMONSTRATION (tester le site peuplé), marquées app_version = 0.0.1-demo :
 docker compose exec api node dist/api/src/admin.js seed-demo          # ~870 pilotes, ~2 700 sessions
 docker compose exec api node dist/api/src/admin.js purge-demo         # compte, n'efface rien

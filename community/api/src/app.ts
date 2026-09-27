@@ -49,6 +49,8 @@ import {
 
 export interface Limits {
   register: Limit;
+  /** Connexions Steam commencées, par IP (activer, lier, retrouver). */
+  steam: Limit;
   writePerInstall: Limit;
   writePerIp: Limit;
   read: Limit;
@@ -56,6 +58,7 @@ export interface Limits {
 
 export const DEFAULT_LIMITS: Limits = {
   register: { max: 10, windowMs: 3_600_000 },
+  steam: { max: 30, windowMs: 3_600_000 },
   writePerInstall: { max: 60, windowMs: 3_600_000 },
   writePerIp: { max: 240, windowMs: 3_600_000 },
   read: { max: 300, windowMs: 60_000 },
@@ -78,6 +81,11 @@ export interface AppOptions {
   publicUrl?: string;
   /** Vérification des connexions Steam (remplacée dans les tests). */
   steamVerify?: SteamVerifier;
+  /**
+   * Connexion Steam obligatoire pour envoyer des sessions (défaut : oui). Désactivable
+   * pour les tests et la pile locale (`REQUIRE_STEAM=0`), jamais en production.
+   */
+  requireSteam?: boolean;
   /** Journal d'une ligne par requête (JSON). Par défaut : stdout. */
   log?: (line: Record<string, unknown>) => void;
 }
@@ -250,6 +258,10 @@ export function createApp(db: Db, opts: AppOptions = {}) {
       }
       const batch = SessionBatchSchema.safeParse(body);
       if (!batch.success) return c.json({ error: "bad_batch" }, 400);
+      // Un compte Steam = une installation : ni doublon, ni données impossibles à effacer.
+      if ((opts.requireSteam ?? true) && !c.get("install").steam_linked) {
+        return c.json({ error: "steam_required" }, 403);
+      }
       const result = await ingestSessions(db, c.get("install"), batch.data.sessions, ingestOpts);
       return c.json(result, 200);
     },
@@ -268,7 +280,7 @@ export function createApp(db: Db, opts: AppOptions = {}) {
       const body = z.object({ anonymous: z.boolean() }).strict().safeParse(await c.req.json().catch(() => null));
       if (!body.success) return c.json({ error: "bad_request" }, 400);
       await db.query("update installs set anonymous = $2 where id = $1", [c.get("install").id, body.data.anonymous]);
-      return c.json({ anonymous: body.data.anonymous });
+      return c.json({ anonymous: body.data.anonymous, steam_linked: c.get("install").steam_linked });
     },
   );
 
@@ -281,9 +293,9 @@ export function createApp(db: Db, opts: AppOptions = {}) {
   const publicUrl = (opts.publicUrl ?? "https://lmu.cparfait.ovh").replace(/\/$/, "");
   const steamVerify = opts.steamVerify ?? verifyWithSteam;
 
-  v1.post("/steam/start", bodyLimit({ maxSize: 1024 }), limit("register", clientIp), async (c) => {
+  v1.post("/steam/start", bodyLimit({ maxSize: 1024 }), limit("steam", clientIp), async (c) => {
     c.header("Cache-Control", "no-store");
-    const body = z.object({ mode: z.enum(["link", "recover"]) }).strict().safeParse(await c.req.json().catch(() => null));
+    const body = z.object({ mode: z.enum(["link", "recover", "register"]) }).strict().safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: "bad_request" }, 400);
     let installId: string | null = null;
     if (body.data.mode === "link") {
@@ -309,11 +321,6 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     const r = await pollSteam(db, id.data);
     c.header("Cache-Control", "no-store");
     return c.json(r);
-  });
-
-  v1.delete("/steam/link", auth, async (c) => {
-    await db.query("update installs set steam_hash = null where id = $1", [c.get("install").id]);
-    return c.body(null, 204);
   });
 
   // ── Lectures publiques (agrégats uniquement) ─────────────────────────────

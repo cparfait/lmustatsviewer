@@ -927,6 +927,9 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   cours » sur le site** : `state/maintenance.json` (monté en lecture seule) → `GET /api/v1/status`
   (sans base, `no-store`) → bandeau 4 langues, sondé toutes les 30 s. Testé sur faux dépôt + faux
   VPS (première installation incluse). 27 tests serveur. Le script PC (`deploy.cmd`) reste en secours.
+- ✅ **Démo en production** : `admin.js seed-demo` (~870 pilotes, ~2 700 sessions, via `ingestSessions`,
+  marqueur `app_version = 0.0.1-demo`, 35 s) / `purge-demo [--yes]` (n'efface que les installations dont
+  TOUTES les sessions portent le marqueur). Test + essai local à l'échelle. ⏳ **Ménage à faire** après les tests.
 - ✅ **Site : identité de l'app** (« garder l'âme de l'app ») — palette exacte de `src/index.css`
   (primaire #D93B00, fond #f4f5f8, sombre bleu nuit #0b101f/#131a30), **thème clair par défaut**
   comme l'app ; tableaux à **bandeau de titre orange** + compteur (classement, résultats filtrés,

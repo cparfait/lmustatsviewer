@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { createApp } from "../src/app.js";
+import { purgeDemo, seedDemo } from "../src/demo.js";
 import type { Db } from "../src/db.js";
 import { DEFAULT_INGEST } from "../src/ingest.js";
 import { migrate } from "../src/migrations.js";
@@ -410,5 +411,24 @@ describe("bandeau de maintenance", () => {
     assert.deepEqual(await (await ctx.app.request("/api/v1/status")).json(), { maintenance: null });
     await ctx.close();
     rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("données de démonstration", () => {
+  test("seed-demo peuple, purge-demo n'efface QUE la démonstration", async () => {
+    const ctx = await setup();
+    const real = await register(ctx.app);
+    await send(ctx.app, real.token, [session({ driver_name: "Vrai Pilote" })]);
+    const seeded = await seedDemo(ctx.db, 25);
+    assert.ok(seeded.drivers >= 20 && seeded.sessions > 200, JSON.stringify(seeded));
+    const dry = await purgeDemo(ctx.db, false);
+    assert.equal(dry.deleted, false);
+    assert.equal(dry.installs, seeded.drivers);
+    assert.equal(await count(ctx.db), seeded.sessions + 1); // rien n'a été effacé
+    const done = await purgeDemo(ctx.db, true);
+    assert.equal(done.deleted, true);
+    assert.equal(await count(ctx.db), 1); // la vraie session reste
+    assert.equal(await count(ctx.db, "select count(*)::int as n from installs"), 1);
+    await ctx.close();
   });
 });

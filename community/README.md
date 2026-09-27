@@ -213,6 +213,10 @@ docker compose exec api node dist/api/src/admin.js homonyms
 docker compose exec api node dist/api/src/admin.js hide-install <id>     # bannissement silencieux
 docker compose exec api node dist/api/src/admin.js hide-session <session_key>
 docker compose exec api node dist/api/src/admin.js delete-install <id>
+# Données de DÉMONSTRATION (tester le site peuplé), marquées app_version = 0.0.1-demo :
+docker compose exec api node dist/api/src/admin.js seed-demo          # ~870 pilotes, ~2 700 sessions
+docker compose exec api node dist/api/src/admin.js purge-demo         # compte, n'efface rien
+docker compose exec api node dist/api/src/admin.js purge-demo --yes   # efface la démo, et elle seule
 ```
 
 ---

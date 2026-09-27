@@ -10,7 +10,8 @@ community/
   shared/         contrat d'envoi app ↔ serveur (schémas zod)
   site/           site public (HTML/CSS/JS, sans framework ; CSP stricte, 4 langues)
   scripts/        backup.sh (sauvegarde), smoke.mjs (vérification de bout en bout),
-                  seed-local.mjs (données de démonstration, LOCAL uniquement)
+                  seed-local.mjs (données de démonstration, LOCAL uniquement),
+                  serve-site.mjs (aperçu du site sans reconstruire l'image)
   mockups/        maquettes (hors déploiement)
   docker-compose.yml         pile de production (VPS)
   docker-compose.local.yml   surcharge pour tester en local
@@ -261,8 +262,8 @@ docker compose exec api node dist/api/src/admin.js purge-demo --yes   # efface l
 
 ## Site public
 
-Servi par le même conteneur : `/` (accueil : chiffres, combos les plus roulés, grille des
-circuits filtrable) et `/combo.html?track=&course=&class=` (répartition, position d'un temps,
+Servi par le même conteneur : `/` (accueil : chiffres, puis tous les classements — tableau
+circuits × classes dont chaque temps ouvre le classement, ou vue liste ; filtrable, sans tracé) et `/combo.html?track=&course=&class=` (répartition, position d'un temps,
 classement paginé, par voiture, versions). Visuels et drapeaux = ceux de l'app (mêmes règles de
 correspondance). Pages HTML en `no-cache`, `/assets` en cache 1 h ; CSP stricte (aucun script
 en ligne ni tiers) ; tout nom de pilote est échappé avant affichage.
@@ -276,6 +277,14 @@ python scripts/tracks-from-telemetry.py "<LMU>/UserData/Telemetry" site/assets/t
 ```
 
 Après toute modification du site, incrémenter le `?v=` des liens CSS/JS dans les pages HTML.
+
+Aperçu local du site sans reconstruire l'image (lit l'API indiquée, en lecture seule) :
+
+```sh
+node scripts/serve-site.mjs                                  # API locale 127.0.0.1:3080
+API=https://lmu.cparfait.ovh node scripts/serve-site.mjs     # données de production
+# → http://127.0.0.1:5190
+```
 
 Voir le site peuplé en local (jamais en production — le script refuse toute autre adresse) :
 

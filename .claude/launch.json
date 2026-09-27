@@ -21,6 +21,17 @@
         "127.0.0.1"
       ],
       "port": 5180
+    },
+    {
+      "name": "community-site",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "community/scripts/serve-site.mjs"
+      ],
+      "port": 5190,
+      "env": {
+        "API": "https://lmu.cparfait.ovh"
+      }
     }
   ]
 }

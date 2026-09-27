@@ -6,73 +6,68 @@
 <title>Classements communautaires — LMU Stats Viewer</title>
 <meta name="description" content="Les meilleurs tours des pilotes LMU Stats Viewer sur Le Mans Ultimate, circuit par circuit, par classe, voiture et version du jeu.">
 <meta name="theme-color" content="#D93B00">
-<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=26">
-<link rel="icon" href="/favicon.ico?v=26">
-<link rel="apple-touch-icon" href="/assets/icon-128.png?v=26">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=27">
+<link rel="icon" href="/favicon.ico?v=27">
+<link rel="apple-touch-icon" href="/assets/icon-128.png?v=27">
 <meta property="og:title" content="Classements communautaires — LMU Stats Viewer">
 <meta property="og:description" content="Où vous situez-vous, circuit par circuit ? Des temps enregistrés par le jeu, pas saisis à la main.">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="/assets/site.css?v=26">
+<link rel="stylesheet" href="/assets/site.css?v=27">
 </head>
 <body>
 <header class="site-header"></header>
 
 <main>
-  <div class="topfilters"><div class="wrap"><div class="filters" id="filters"></div></div></div>
-
-  <section class="hero2">
-    <div class="wrap hero2-grid">
-      <div class="hero2-text">
-        <p class="eyebrow"><span class="dot"></span><span data-i18n="hero.eyebrow"></span></p>
-        <h1 data-i18n="hero.title"></h1>
-        <p class="lead" data-i18n="hero.lead"></p>
-        <div class="cta-row">
-          <a class="btn btn-primary" href="#tracks" data-i18n="hero.explore"></a>
-          <a class="btn btn-ghost" href="#how" data-i18n="nav.share"></a>
+  <!-- Accueil = les classements, tout de suite : un en-tête court, puis le tableau
+       circuits × classes où chaque temps ouvre son classement. -->
+  <section class="intro">
+    <div class="wrap intro-grid">
+      <div class="intro-text">
+        <h1 data-i18n="home.title"></h1>
+        <p class="lead" data-i18n="home.lead"></p>
+        <p class="intro-trust muted" data-i18n="home.trust"></p>
+      </div>
+      <div class="intro-side">
+        <ul class="kstats" id="stats">
+          <li><b class="skeleton">000</b><span data-i18n="stat.drivers"></span><em></em></li>
+          <li><b class="skeleton">000</b><span data-i18n="stat.sessions"></span><em></em></li>
+          <li><b class="skeleton">00</b><span data-i18n="stat.layouts"></span><em></em></li>
+          <li><b class="skeleton">00</b><span data-i18n="stat.ranked"></span><em data-i18n="stat.rankedSub"></em></li>
+        </ul>
+        <div class="intro-actions">
+          <a class="btn btn-primary btn-sm" id="meLink" hidden data-i18n="home.me"></a>
+          <a class="btn btn-ghost btn-sm" href="#how" data-i18n="nav.share"></a>
         </div>
-      </div>
-      <div class="hero2-side">
-      <div class="stats stats-grid" id="stats">
-        <div class="stat"><span class="stat-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="stat-k" data-i18n="stat.drivers"></span><b class="skeleton">0000</b><em>&nbsp;</em></div>
-        <div class="stat"><span class="stat-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></span><span class="stat-k" data-i18n="stat.sessions"></span><b class="skeleton">0000</b><em>&nbsp;</em></div>
-        <div class="stat"><span class="stat-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></span><span class="stat-k" data-i18n="stat.layouts"></span><b class="skeleton">00</b><em>&nbsp;</em></div>
-        <div class="stat"><span class="stat-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span><span class="stat-k" data-i18n="stat.ranked"></span><b class="skeleton">00</b><em>&nbsp;</em></div>
-      </div>
-      <p class="stats-live"><span class="live-dot"></span><span data-i18n="stat.live"></span></p>
       </div>
     </div>
   </section>
+
+  <div class="topfilters"><div class="wrap"><div class="filters" id="filters"></div></div></div>
 
   <div class="wrap" id="notice"></div>
 
-  <section class="section section-tight" id="hotSection" hidden>
+  <section class="board" id="tracks">
     <div class="wrap">
-      <div class="section-head">
-        <p class="kicker" data-i18n="hot.kicker"></p>
-        <h2 data-i18n="hot.title"></h2>
-      </div>
-      <div class="hot-list" id="hot"></div>
-    </div>
-  </section>
-
-  <section class="section section-tight" id="tracks">
-    <div class="wrap">
-      <div class="section-head">
-        <p class="kicker" data-i18n="tracks.kicker"></p>
-        <h2 data-i18n="tracks.title"></h2>
-      </div>
-      <!-- Filtres actifs : tableau des combos à la place des cartes. -->
-      <div class="panel results-panel has-tbar" id="comboTable" hidden>
-        <div class="tbar"><h3 data-i18n="tracks.kicker"></h3>
-          <span class="tbar-right" id="resultsHead"><b class="tbar-n" id="resultsCount"></b><a class="btn btn-sm" href="/" data-i18n="f.reset"></a></span></div>
-        <div class="lb-scroll">
-        <table class="lb">
-          <thead><tr><th data-i18n="col.track"></th><th data-i18n="col.class"></th><th data-i18n="kpi.best"></th><th data-i18n="col.car"></th><th data-i18n="stat.drivers"></th><th data-i18n="col.version"></th><th></th></tr></thead>
-          <tbody id="comboRows"></tbody>
-        </table>
+      <div class="panel has-tbar">
+        <div class="tbar">
+          <h3 data-i18n="home.board"></h3>
+          <span class="tbar-right">
+            <b class="tbar-n" id="resultsCount"></b>
+            <span class="seg" role="group" id="sortSeg"><button type="button" data-sort="popular" data-i18n="sort.popular"></button><button type="button" data-sort="az" data-i18n="sort.az"></button></span>
+            <span class="seg" role="group" id="viewSeg"><button type="button" data-view="grid" data-i18n="view.grid"></button><button type="button" data-view="list" data-i18n="view.list"></button></span>
+            <a class="btn btn-sm" href="/" id="resetBtn" hidden data-i18n="f.reset"></a>
+          </span>
         </div>
+        <div class="lb-scroll" id="board">
+          <table class="lb sk-table"><tbody>
+            <tr class="sk-row"><td><div class="sk-line skeleton"></div></td></tr>
+            <tr class="sk-row"><td><div class="sk-line skeleton"></div></td></tr>
+            <tr class="sk-row"><td><div class="sk-line skeleton"></div></td></tr>
+            <tr class="sk-row"><td><div class="sk-line skeleton"></div></td></tr>
+          </tbody></table>
+        </div>
+        <p class="board-legend muted" data-i18n="mx.legend"></p>
       </div>
-      <div class="tracks" id="trackGrid"></div>
     </div>
   </section>
 
@@ -97,8 +92,7 @@
 
 <footer class="site-footer"></footer>
 
-<script src="/assets/tracks.js?v=26"></script>
-<script src="/assets/site.js?v=26"></script>
-<script src="/assets/home.js?v=26"></script>
+<script src="/assets/site.js?v=27"></script>
+<script src="/assets/home.js?v=27"></script>
 </body>
 </html>

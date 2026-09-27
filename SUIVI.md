@@ -857,6 +857,34 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-27 — Site communautaire : accueil recentré sur les classements
+
+- ✅ **Accueil refondu** (demande mainteneur : « plus clair et plus direct sur les pages de
+  classement, pas de tracé de circuit ») : en-tête court (titre, une phrase « cliquez sur un temps »,
+  4 chiffres en ligne, « Partager mes tours », **« Ma fiche pilote »** si le site connaît déjà le
+  pilote), filtres collants, puis **tableau « Tous les classements » circuits × classes** : une
+  ligne par tracé (drapeau, nom, pilotes), une colonne par classe dans l'ordre de l'app (§3.6),
+  chaque temps = lien direct vers son classement (voiture et version en info-bulle ; gris =
+  provisoire < 20 pilotes, légende sous le tableau). Le classement est à **un clic** de l'accueil,
+  sans défiler.
+- ✅ **Rien de perdu** : « combos les plus roulés » → tri **Plus roulés** (par défaut) ou **A → Z** ;
+  l'ancien tableau des combos filtrés devient la vue **Liste** (circuit, classe, record, voiture,
+  pilotes, version), disponible à tout moment. Vue et tri retenus (`localStorage`
+  `lmu-home-view` / `lmu-home-sort`). Filtres Circuit/Classe/Session/Mode/Version et recherche
+  inchangés (la classe filtrée réduit les colonnes).
+- ✅ **Aucun tracé sur l'accueil** : vignettes et cartes supprimées, `tracks.js` n'y est plus chargé
+  (toujours utilisé par la page combo). CSS de l'ancien accueil (`hero2`, `hot-*`, `tcard`,
+  `is-filtered`) et clés i18n orphelines (`hero.*`, `hot.*`, `tracks.*`, `f.results`…) retirées ;
+  nouvelles clés `home.*`, `view.*`, `sort.*`, `mx.legend` ×4.
+- ✅ Mobile : chiffres sur une ligne, un circuit = une carte avec ses classements en tuiles (badge de
+  classe + temps) ; le premier classement est visible dès le premier écran. Thème sombre vérifié.
+- ✅ **Outil** : `community/scripts/serve-site.mjs` (aperçu du site sans reconstruire l'image,
+  `/api` relayé en lecture seule vers `API=`) + entrée `community-site` dans `.claude/launch.json`.
+- ℹ️ Pas d'entrée dans `src/lib/changelog.ts` : changement du site seul, l'app n'est pas touchée.
+- 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
+  `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
+  (`purge-demo --yes`) quand les tests seront finis.
+
 ### 2026-09-26 — Base communautaire : invitation au partage, « Ma position », site allégé
 
 - ✅ **Invitation au partage** (`CommunityInvite` dans `CommunitySettings.tsx`, montée dans `App.tsx`) :

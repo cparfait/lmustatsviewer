@@ -896,6 +896,9 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   « Pas encore assez de pilotes » dans l'app. Le tableau croisé circuits × classes est remplacé ;
   vue Liste et tris conservés. Mobile : classe, voiture, temps, pilotes (sans défilement horizontal,
   titres masqués, icône pilote). Assets `?v=29`.
+- ✅ **« Contribuer » : étape « Installez l'app » ajoutée en tête** (retour mainteneur) — 4 étapes
+  (installer, activer, rouler, comparer), bouton « Télécharger l'app » → vitrine
+  lmustatsviewer.cparfait.ovh ; grille 4 → 2 → 1 colonnes. Textes ×4. Assets `?v=30`.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

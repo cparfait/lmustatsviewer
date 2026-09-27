@@ -262,8 +262,8 @@ docker compose exec api node dist/api/src/admin.js purge-demo --yes   # efface l
 
 ## Site public
 
-Servi par le même conteneur : `/` (accueil : chiffres, puis tous les classements — tableau
-circuits × classes dont chaque temps ouvre le classement, ou vue liste ; filtrable, sans tracé) et `/combo.html?track=&course=&class=` (répartition, position d'un temps,
+Servi par le même conteneur : `/` (accueil : chiffres, puis tous les classements — une carte
+repliable par circuit, une ligne par classement comme dans l'app, ou vue liste ; filtrable, sans tracé) et `/combo.html?track=&course=&class=` (répartition, position d'un temps,
 classement paginé, par voiture, versions). Visuels et drapeaux = ceux de l'app (mêmes règles de
 correspondance). Pages HTML en `no-cache`, `/assets` en cache 1 h ; CSP stricte (aucun script
 en ligne ni tiers) ; tout nom de pilote est échappé avant affichage.

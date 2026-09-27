@@ -6,13 +6,13 @@
 <title>Classements communautaires — LMU Stats Viewer</title>
 <meta name="description" content="Les meilleurs tours des pilotes LMU Stats Viewer sur Le Mans Ultimate, circuit par circuit, par classe, voiture et version du jeu.">
 <meta name="theme-color" content="#D93B00">
-<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=28">
-<link rel="icon" href="/favicon.ico?v=28">
-<link rel="apple-touch-icon" href="/assets/icon-128.png?v=28">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=29">
+<link rel="icon" href="/favicon.ico?v=29">
+<link rel="apple-touch-icon" href="/assets/icon-128.png?v=29">
 <meta property="og:title" content="Classements communautaires — LMU Stats Viewer">
 <meta property="og:description" content="Où vous situez-vous, circuit par circuit ? Des temps enregistrés par le jeu, pas saisis à la main.">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="/assets/site.css?v=28">
+<link rel="stylesheet" href="/assets/site.css?v=29">
 </head>
 <body>
 <header class="site-header"></header>
@@ -48,26 +48,20 @@
 
   <section class="board" id="tracks">
     <div class="wrap">
-      <div class="panel has-tbar">
-        <div class="tbar">
-          <h3 data-i18n="home.board"></h3>
-          <span class="tbar-right">
-            <b class="tbar-n" id="resultsCount"></b>
-            <span class="seg" role="group" id="sortSeg"><button type="button" data-sort="popular" data-i18n="sort.popular"></button><button type="button" data-sort="az" data-i18n="sort.az"></button></span>
-            <span class="seg" role="group" id="viewSeg"><button type="button" data-view="grid" data-i18n="view.grid"></button><button type="button" data-view="list" data-i18n="view.list"></button></span>
-            <a class="btn btn-sm" href="/" id="resetBtn" hidden data-i18n="f.reset"></a>
-          </span>
-        </div>
-        <div class="lb-scroll" id="board">
-          <table class="lb sk-table"><tbody>
-            <tr class="sk-row"><td><div class="sk-line skeleton"></div></td></tr>
-            <tr class="sk-row"><td><div class="sk-line skeleton"></div></td></tr>
-            <tr class="sk-row"><td><div class="sk-line skeleton"></div></td></tr>
-            <tr class="sk-row"><td><div class="sk-line skeleton"></div></td></tr>
-          </tbody></table>
-        </div>
-        <p class="board-legend muted" data-i18n="mx.legend"></p>
+      <div class="tbar board-bar">
+        <h3 data-i18n="home.board"></h3>
+        <span class="tbar-right">
+          <b class="tbar-n" id="resultsCount"></b>
+          <span class="seg" role="group" id="sortSeg"><button type="button" data-sort="popular" data-i18n="sort.popular"></button><button type="button" data-sort="az" data-i18n="sort.az"></button></span>
+          <span class="seg" role="group" id="viewSeg"><button type="button" data-view="grid" data-i18n="view.grid"></button><button type="button" data-view="list" data-i18n="view.list"></button></span>
+          <a class="btn btn-sm" href="/" id="resetBtn" hidden data-i18n="f.reset"></a>
+        </span>
       </div>
+      <div id="board" class="board-body">
+        <div class="panel sk-panel"><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
+        <div class="panel sk-panel"><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
+      </div>
+      <p class="board-legend muted" data-i18n="mx.legend"></p>
     </div>
   </section>
 
@@ -92,7 +86,7 @@
 
 <footer class="site-footer"></footer>
 
-<script src="/assets/site.js?v=28"></script>
-<script src="/assets/home.js?v=28"></script>
+<script src="/assets/site.js?v=29"></script>
+<script src="/assets/home.js?v=29"></script>
 </body>
 </html>

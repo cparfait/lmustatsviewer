@@ -1,6 +1,6 @@
 // Accueil du site communautaire : chiffres, puis tous les classements d'un coup d'œil.
-// Vue « Par circuit » (circuits × classes, chaque temps ouvre son classement) ou
-// vue « Liste » (une ligne par classement, avec voiture et version).
+// Vue « Par circuit » (une carte repliable par circuit, une ligne par classement — même
+// présentation que la page Classements de l'app) ou vue « Liste » (tableau unique).
 /* global carImg, driversWord, t, esc, api, fmtTime, fmtNum, flagImg, classBadge, classKey, chrome, dataReady, filterBar, bindFilterBar, getMe */
 "use strict";
 
@@ -12,6 +12,7 @@ const classRank = (c) => {
   return i < 0 ? CLASS_ORDER.length : i;
 };
 const PERSON_SVG = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+const CHEVRON_SVG = '<svg class="cg-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const byClass = (a, b) => classRank(a) - classRank(b) || a.localeCompare(b);
 const comboUrl = (c) =>
   `/combo.html?${new URLSearchParams(Object.entries({ track: c.track, course: c.track_course, class: c.car_class, ...hq }).filter(([, v]) => v))}`;
@@ -79,14 +80,6 @@ syncSegs();
     return;
   }
 
-  // Un circuit (tracé) par ligne, ses classements rangés par classe.
-  const groups = new Map();
-  for (const c of combos) {
-    const k = `${c.track}|${c.track_course}`;
-    if (!groups.has(k)) groups.set(k, { track: c.track, course: c.track_course, byClass: new Map() });
-    groups.get(k).byClass.set(c.car_class, c);
-  }
-  const circuits = [...groups.values()];
   const allClasses = [...new Set(combos.map((c) => c.car_class))].sort(byClass);
   const allTracks = [...new Set(combos.map((c) => c.track))].sort();
 
@@ -136,7 +129,8 @@ syncSegs();
   }
 
   const driversCell = (n) => `<b class="mono">${fmtNum(n)}</b> <span class="muted">${esc(driversWord(n))}</span>`;
-  const provTitle = (c) => (c.drivers < RANKED_MIN ? ` · ${t("provisional.short", { n: c.drivers })}` : "");
+  // Circuits repliés (le temps de la visite).
+  const collapsed = new Set();
 
   function render() {
     syncSegs();
@@ -157,44 +151,56 @@ syncSegs();
     $("board").innerHTML = view === "list" ? listView(rows) : gridView(rows);
   }
 
-  // Circuits × classes : chaque temps est le lien vers son classement.
+  // Une carte par circuit : en-tête repliable, une ligne par classement (tracé × classe).
   function gridView(rows) {
-    const kept = new Set(rows);
-    const cols = allClasses.filter((cl) => rows.some((c) => c.car_class === cl));
-    const list = circuits
+    const byTrack = new Map();
+    for (const c of rows) {
+      if (!byTrack.has(c.track)) byTrack.set(c.track, []);
+      byTrack.get(c.track).push(c);
+    }
+    const groups = [...byTrack.entries()]
+      .map(([track, list]) => ({
+        track,
+        list: list.sort((a, b) => byClass(a.car_class, b.car_class) || b.drivers - a.drivers),
+        total: list.reduce((s, c) => s + c.drivers, 0),
+      }))
+      .sort(sort === "az" ? (a, b) => a.track.localeCompare(b.track) : (a, b) => b.total - a.total);
+    // Fréquentation : relative au classement le plus roulé de la même classe.
+    const classMax = new Map();
+    for (const c of rows) classMax.set(c.car_class, Math.max(classMax.get(c.car_class) ?? 1, c.drivers));
+    const head = `<colgroup><col class="c-class"><col><col class="c-time"><col class="c-drv"><col class="c-pop"><col class="c-ver"><col class="c-go"></colgroup>
+      <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.recordCar"))}</th><th class="perf sep r">${esc(t("kpi.best"))}</th><th class="perf c">${esc(t("stat.drivers"))}</th><th class="perf">${esc(t("col.pop"))}</th><th class="sep c">${esc(t("col.version"))}</th><th></th></tr></thead>`;
+    return groups
       .map((g) => {
-        const cs = cols.map((cl) => g.byClass.get(cl)).filter((c) => kept.has(c));
-        return { ...g, cs, total: cs.reduce((s, c) => s + c.drivers, 0) };
+        const open = !collapsed.has(g.track);
+        return `<section class="cgroup">
+        <button type="button" class="cg-head" data-track="${esc(g.track)}" aria-expanded="${open}">${CHEVRON_SVG}${flagImg(g.track)}<span class="cg-name">${esc(g.track)}</span><span class="cg-n">${g.list.length}</span><span class="cg-drivers">${fmtNum(g.total)} ${esc(driversWord(g.total))}</span></button>
+        ${open ? `<div class="lb-scroll"><table class="lb cg-table">${head}<tbody>${g.list
+          .map((c) => {
+            const url = esc(comboUrl(c));
+            const prov = c.drivers < RANKED_MIN;
+            const pop = prov
+              ? `<span class="pop"><i class="pop-bar"><i class="pend" style="width:${Math.round((c.drivers / RANKED_MIN) * 100)}%"></i></i><span class="muted">${esc(t("home.pending", { n: c.drivers }))}</span></span>`
+              : `<span class="pop"><i class="pop-bar"><i class="cc-${classKey(c.car_class)}" style="width:${Math.max(4, Math.round((c.drivers / classMax.get(c.car_class)) * 100))}%"></i></i></span>`;
+            return `<tr class="row-link${prov ? " is-prov" : ""}" data-href="${url}">
+            <td>${classBadge(c.car_class)}</td>
+            <td><div class="car"><span class="logo-slot">${carImg(c.best_car)}</span><span class="car-txt"><span>${esc(c.best_car)}</span>${c.track_course !== c.track ? `<small class="muted">${esc(c.track_course)}</small>` : ""}</span></div></td>
+            <td class="perf sep r best-t mono">${fmtTime(c.best)}</td>
+            <td class="perf c mono" title="${esc(`${fmtNum(c.drivers)} ${driversWord(c.drivers)}`)}"><span class="drv-n">${PERSON_SVG}<b>${fmtNum(c.drivers)}</b></span></td>
+            <td class="perf">${pop}</td>
+            <td class="sep c"><span class="ver">v${esc(c.version)}</span></td>
+            <td class="r"><a class="go-link" href="${url}">${esc(t("home.open"))}</a></td>
+          </tr>`;
+          })
+          .join("")}</tbody></table></div>` : ""}
+      </section>`;
       })
-      .filter((g) => g.cs.length)
-      .sort(sort === "az" ? (a, b) => a.course.localeCompare(b.course) : (a, b) => b.total - a.total);
-    // Barre de fréquentation : relative au classement le plus roulé de la même classe.
-    const colMax = new Map(cols.map((cl) => [cl, Math.max(1, ...rows.filter((c) => c.car_class === cl).map((c) => c.drivers))]));
-    return `<table class="lb mx">
-      <thead><tr><th>${esc(t("col.track"))}</th>${cols.map((cl) => `<th class="mx-h cc-${classKey(cl)}">${classBadge(cl)}</th>`).join("")}</tr></thead>
-      <tbody>${list
-        .map((g) => {
-          // Le nom du circuit ouvre son classement le plus fréquenté.
-          const main = [...g.cs].sort((a, b) => b.drivers - a.drivers)[0];
-          return `<tr>
-          <td class="mx-track"><a class="combo-cell" href="${esc(comboUrl(main))}">${flagImg(g.track)}<span><b>${esc(g.course)}</b><small class="muted">${g.track !== g.course ? `${esc(g.track)} · ` : ""}${fmtNum(g.total)} ${esc(driversWord(g.total))}</small></span></a></td>
-          ${cols
-            .map((cl) => {
-              const c = g.cs.find((x) => x.car_class === cl);
-              if (!c) return `<td class="mx-empty"><span aria-hidden="true">—</span></td>`;
-              const w = Math.max(6, Math.round((c.drivers / colMax.get(cl)) * 100));
-              return `<td class="mx-cell"><a class="mx-link cc-${classKey(cl)}${c.drivers < RANKED_MIN ? " is-prov" : ""}" href="${esc(comboUrl(c))}" title="${esc(`${c.best_car} · v${c.version} · ${fmtNum(c.drivers)} ${driversWord(c.drivers)}${provTitle(c)}`)}">
-                <span class="mx-cls">${classBadge(cl)}</span><b class="mono">${fmtTime(c.best)}</b><small>${PERSON_SVG}${fmtNum(c.drivers)}</small><i style="width:${w}%"></i></a></td>`;
-            })
-            .join("")}
-        </tr>`;
-        })
-        .join("")}</tbody></table>`;
+      .join("");
   }
 
   // Une ligne par classement (toute la ligne est cliquable).
   function listView(rows) {
-    return `<table class="lb">
+    return `<div class="panel lb-panel"><div class="lb-scroll"><table class="lb">
       <thead><tr><th>${esc(t("col.track"))}</th><th>${esc(t("col.class"))}</th><th>${esc(t("kpi.best"))}</th><th>${esc(t("col.car"))}</th><th>${esc(t("stat.drivers"))}</th><th>${esc(t("col.version"))}</th><th></th></tr></thead>
       <tbody>${rows
         .map(
@@ -209,12 +215,20 @@ syncSegs();
           <td class="go">›</td>
         </tr>`,
         )
-        .join("")}</tbody></table>`;
+        .join("")}</tbody></table></div></div>`;
   }
 
   search.addEventListener("input", render);
-  // Vue liste : toute la ligne est cliquable (le lien du circuit reste le lien accessible).
+  // Toute la ligne est cliquable (le lien de la ligne reste le lien accessible) ; en-tête = replier.
   $("board").addEventListener("click", (e) => {
+    const head = e.target.closest(".cg-head");
+    if (head) {
+      const k = head.dataset.track;
+      if (collapsed.has(k)) collapsed.delete(k);
+      else collapsed.add(k);
+      render();
+      return;
+    }
     const tr = e.target.closest("tr.row-link");
     if (tr && !e.target.closest("a")) location.href = tr.dataset.href;
   });

@@ -886,6 +886,16 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   roulé de la même classe, pointillés = provisoire), temps + pilotes sur **une ligne**, en-têtes de
   colonne soulignés à la couleur de la classe. Lignes ~70 px → 48 px (bureau) ; mobile : deux
   tuiles par ligne (badge + temps), ligne de circuit ~233 px → ~95 px. Assets `?v=28`.
+- ✅ **Vue « Par circuit » calquée sur la page Classements de l'app** (demande mainteneur « inspire-toi
+  de cette page ») : bandeau orange en dégradé, puis **une carte par circuit** — en-tête teinté
+  repliable (chevron, drapeau, nom en capitales espacées, compteur, total pilotes), titres de colonnes
+  teintés, largeurs fixes alignées d'une carte à l'autre, **bloc perf teinté bleu** (meilleur tour en
+  vert, pilotes, fréquentation), séparateurs de groupe, lien orange « Classement › ». Une ligne par
+  classement (tracé × classe ; le tracé s'affiche sous la voiture s'il diffère), toute la ligne
+  cliquable, ~33 px. Provisoire (< 20 pilotes) : barre ambre « Provisoire : n / 20 pilotes », comme
+  « Pas encore assez de pilotes » dans l'app. Le tableau croisé circuits × classes est remplacé ;
+  vue Liste et tris conservés. Mobile : classe, voiture, temps, pilotes (sans défilement horizontal,
+  titres masqués, icône pilote). Assets `?v=29`.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

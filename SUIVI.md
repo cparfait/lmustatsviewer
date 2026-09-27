@@ -899,6 +899,8 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ **« Contribuer » : étape « Installez l'app » ajoutée en tête** (retour mainteneur) — 4 étapes
   (installer, activer, rouler, comparer), bouton « Télécharger l'app » → vitrine
   lmustatsviewer.cparfait.ovh ; grille 4 → 2 → 1 colonnes. Textes ×4. Assets `?v=30`.
+- ✅ **« Offrir un café » retiré de l'en-tête** (demande mainteneur) ; il reste dans le pied de page.
+  Clé `coffeeTitle` devenue inutile retirée. Assets `?v=31`.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

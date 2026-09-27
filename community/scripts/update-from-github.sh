@@ -14,6 +14,8 @@
 #  Variables : LMU_DIR (défaut ~/docker/lmustatsviewer), LMU_REPO (dépôt GitHub).
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
+# Jamais d'arrêt muet : toute commande en échec est signalée avec sa ligne.
+trap 'echo "✗ échec ligne $LINENO : $BASH_COMMAND" >&2' ERR
 
 REF="${1:-main}"
 DIR="${LMU_DIR:-$HOME/docker/lmustatsviewer}"
@@ -32,7 +34,9 @@ if [ ! -d "$SRC/.git" ]; then
   git clone --quiet --filter=blob:none --no-checkout "$REPO" "$SRC"
   git -C "$SRC" sparse-checkout set community public/logos public/flags public/data
 fi
-git -C "$SRC" fetch --quiet --tags origin "$REF"
+# --force : un tag supprimé puis recréé sur GitHub (republication) remplace l'ancien ;
+# sans lui, git refuse — et --quiet masquait ce refus (arrêt sans message).
+git -C "$SRC" fetch --quiet --force --tags origin "$REF"
 git -C "$SRC" -c advice.detachedHead=false checkout --quiet --force FETCH_HEAD
 COMMIT="$(git -C "$SRC" log -1 --format='%h %cd' --date=format:'%Y-%m-%d %H:%M')"
 echo "  $COMMIT"

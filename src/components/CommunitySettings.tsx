@@ -479,7 +479,14 @@ function ActivateDialog({
       // Rien ne part sans lien Steam : connexion d'abord (sauf installation déjà liée).
       let recovered: string | null = null;
       if (!(status.registered && status.steam_linked)) {
-        const r = await steam.run("register");
+        let r: SteamResult;
+        try {
+          r = await steam.run("register");
+        } catch {
+          // Serveur qui ne connaît pas (encore) la connexion Steam, navigateur indisponible…
+          toastError(t("community.steamFailed"));
+          return;
+        }
         if (r.status !== "ok") {
           if (r.status !== "cancelled") toastError(steamError(t, r.status));
           return;

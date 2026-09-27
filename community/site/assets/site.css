@@ -572,8 +572,8 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 .cg-name { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cg-n { flex: none; padding: 0 7px; border-radius: 999px; font-size: .68rem; font-weight: 800; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--amber) 22%, transparent); }
 .cg-drivers { margin-left: auto; flex: none; font-size: .74rem; font-weight: 600; opacity: .85; }
-.cg-table { table-layout: fixed; min-width: 1060px; font-size: .82rem; }
-.cg-table col.c-class { width: 112px; } .cg-table col.c-time { width: 120px; } .cg-table col.c-drv { width: 90px; }
+.cg-table { table-layout: fixed; min-width: 1270px; font-size: .82rem; }
+.cg-table col.c-class { width: 112px; } .cg-table col.c-pilot { width: 210px; } .cg-table col.c-time { width: 120px; } .cg-table col.c-drv { width: 90px; }
 .cg-table col.c-sec { width: 78px; } .cg-table col.c-pop { width: 190px; } .cg-table col.c-ver { width: 90px; } .cg-table col.c-go { width: 130px; }
 .cg-table th { padding: 5px 10px; font-size: .64rem; overflow: hidden; text-overflow: ellipsis; }
 .cg-table td { padding: 5px 10px; }
@@ -611,8 +611,10 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
   .cg-drivers { display: none; }
   /* Mobile : l'essentiel sans défilement horizontal (classe, voiture, temps, pilotes). */
   .cg-table { min-width: 0; }
-  .cg-table col.c-sec, .cg-table col.c-pop, .cg-table col.c-ver, .cg-table col.c-go,
-  .cg-table th:nth-child(n+4):not(:nth-child(7)), .cg-table td:nth-child(n+4):not(:nth-child(7)) { display: none; }
+  .cg-table col:nth-child(3), .cg-table col.c-sec, .cg-table col.c-pop, .cg-table col.c-ver, .cg-table col.c-go,
+  .cg-table th:nth-child(3), .cg-table td:nth-child(3),
+  .cg-table th:nth-child(n+5):not(:nth-child(8)), .cg-table td:nth-child(n+5):not(:nth-child(8)) { display: none; }
+  .cg-table col.c-pilot { width: auto; }
   .cg-table col.c-class { width: 84px; } .cg-table col.c-time { width: 84px; } .cg-table col.c-drv { width: 58px; }
   .cg-table td, .cg-table th { padding: 5px 6px; }
   .cg-table thead { display: none; }
@@ -695,3 +697,7 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 .cg-link:hover .cg-name { text-decoration: underline; text-underline-offset: 3px; }
 .cls-all { color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent); }
 .lb-dense .car .cls { flex: none; }
+
+/* Pilote du record : une ligne, nom tronqué proprement. */
+.cg-table td.pilot, .lb td.pilot { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.cg-table td.pilot .anon, .lb td.pilot .anon { font-weight: 500; font-style: italic; color: var(--muted); }

@@ -1,7 +1,7 @@
 // Accueil du site communautaire : chiffres, puis tous les classements d'un coup d'œil.
 // Vue « Par circuit » (une carte repliable par circuit, une ligne par classement — même
 // présentation que la page Classements de l'app) ou vue « Liste » (tableau unique).
-/* global carImg, driversWord, t, esc, api, fmtTime, fmtNum, flagImg, classBadge, classKey, chrome, dataReady, filterBar, bindFilterBar, getMe */
+/* global carImg, driverName, driversWord, t, esc, api, fmtTime, fmtNum, flagImg, classBadge, classKey, chrome, dataReady, filterBar, bindFilterBar, getMe */
 "use strict";
 
 const RANKED_MIN = 20;
@@ -177,8 +177,8 @@ syncSegs();
     // Fréquentation : relative au classement le plus roulé de la même classe.
     const classMax = new Map();
     for (const c of rows) classMax.set(c.car_class, Math.max(classMax.get(c.car_class) ?? 1, c.drivers));
-    const head = `<colgroup><col class="c-class"><col><col class="c-time"><col class="c-sec"><col class="c-sec"><col class="c-sec"><col class="c-drv"><col class="c-pop"><col class="c-ver"><col class="c-go"></colgroup>
-      <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.recordCar"))}</th><th class="perf sep r">${esc(t("kpi.best"))}</th><th class="perf r">S1</th><th class="perf r">S2</th><th class="perf r">S3</th><th class="perf c">${esc(t("stat.drivers"))}</th><th class="perf">${esc(t("col.pop"))}</th><th class="sep c">${esc(t("col.version"))}</th><th></th></tr></thead>`;
+    const head = `<colgroup><col class="c-class"><col class="c-pilot"><col><col class="c-time"><col class="c-sec"><col class="c-sec"><col class="c-sec"><col class="c-drv"><col class="c-pop"><col class="c-ver"><col class="c-go"></colgroup>
+      <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.recordDriver"))}</th><th>${esc(t("col.recordCar"))}</th><th class="perf sep r">${esc(t("kpi.best"))}</th><th class="perf r">S1</th><th class="perf r">S2</th><th class="perf r">S3</th><th class="perf c">${esc(t("stat.drivers"))}</th><th class="perf">${esc(t("col.pop"))}</th><th class="sep c">${esc(t("col.version"))}</th><th></th></tr></thead>`;
     return groups
       .map((g) => {
         const open = !collapsed.has(g.track);
@@ -193,6 +193,7 @@ syncSegs();
               : `<span class="pop"><i class="pop-bar"><i class="cc-${classKey(c.car_class)}" style="width:${Math.max(4, Math.round((c.drivers / classMax.get(c.car_class)) * 100))}%"></i></i></span>`;
             return `<tr class="row-link${prov ? " is-prov" : ""}" data-href="${url}">
             <td>${classBadge(c.car_class)}</td>
+            <td class="pilot">${c.best_driver ? driverName(c.best_driver) : "—"}</td>
             <td><div class="car"><span class="logo-slot">${carImg(c.best_car)}</span><span class="car-txt"><span>${esc(c.best_car)}</span>${c.track_course !== c.track ? `<small class="muted">${esc(c.track_course)}</small>` : ""}</span></div></td>
             <td class="perf sep r best-t mono">${fmtTime(c.best)}</td>
             ${SECTORS.map((k) => `<td class="perf r mono sec${c[k] != null && c[k] === c[`best_${k}`] ? " pb" : ""}">${c[k] != null ? c[k].toFixed(3) : "—"}</td>`).join("")}
@@ -211,7 +212,7 @@ syncSegs();
   // Une ligne par classement (toute la ligne est cliquable).
   function listView(rows) {
     return `<div class="panel lb-panel"><div class="lb-scroll"><table class="lb">
-      <thead><tr><th>${esc(t("col.track"))}</th><th>${esc(t("col.class"))}</th><th>${esc(t("kpi.best"))}</th><th>${esc(t("col.car"))}</th><th>${esc(t("stat.drivers"))}</th><th>${esc(t("col.version"))}</th><th></th></tr></thead>
+      <thead><tr><th>${esc(t("col.track"))}</th><th>${esc(t("col.class"))}</th><th>${esc(t("kpi.best"))}</th><th>${esc(t("col.recordDriver"))}</th><th>${esc(t("col.car"))}</th><th>${esc(t("stat.drivers"))}</th><th>${esc(t("col.version"))}</th><th></th></tr></thead>
       <tbody>${rows
         .map(
           (c) => `
@@ -219,6 +220,7 @@ syncSegs();
           <td><a class="combo-cell" href="${esc(comboUrl(c))}">${flagImg(c.track)}<span><b>${esc(c.track_course)}</b>${c.track !== c.track_course ? `<small class="muted">${esc(c.track)}</small>` : ""}</span></a></td>
           <td>${classBadge(c.car_class)}</td>
           <td class="t best-t">${fmtTime(c.best)}</td>
+          <td class="pilot">${c.best_driver ? driverName(c.best_driver) : "—"}</td>
           <td><div class="car">${carImg(c.best_car)}<span>${esc(c.best_car)}</span></div></td>
           <td>${driversCell(c.drivers)}</td>
           <td><span class="ver">v${esc(c.version)}</span></td>

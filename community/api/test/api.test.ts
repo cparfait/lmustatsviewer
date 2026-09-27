@@ -262,6 +262,9 @@ describe("agrégats publics", () => {
     const c0 = list.combos[0];
     assert.ok(Math.abs(c0.s1 + c0.s2 + c0.s3 - c0.best) < 0.01);
     for (const k of ["s1", "s2", "s3"]) assert.ok(c0[`best_${k}`] <= c0[k]);
+    // Pilote du record : celui de la 1re ligne du classement, avec son repère public.
+    const lb0 = await (await ctx.app.request(`/api/v1/combos/leaderboard?${RA}&limit=1`)).json();
+    assert.deepEqual(c0.best_driver, lb0.rows[0].driver);
     assert.deepEqual(list.versions.map((v: { version: string }) => v.version), ["1.42"]);
     const all = await (await ctx.app.request("/api/v1/combos?version=all")).json();
     assert.equal(all.combos[0].drivers, 25);

@@ -944,6 +944,14 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   installation déjà inscrite garde son réglage). Le nom LMU qui sera affiché reste écrit en clair à
   côté de la case, et rien ne part sans clic sur « Activer le partage ». Changelog 1.0.7 ×4, §2 et
   vitrine (carte « C'est vous qui décidez » ×4) mis à jour. Désactiver le partage anonymise toujours.
+- ✅ **Release v1.0.7 lancée** (voie GitHub Actions, comme la 1.0.6) : changelog `dev: false` daté du
+  27/09, `version.json` (`version` + `latest_version`), deux `cargo check` (lock aligné), contrôles
+  (`tsc -b`, lint, 265 tests, build) ; commit `fcdcd46`, tag `v1.0.7` poussé. ⏳ Brouillon de release à
+  vérifier (`.exe` + `latest.json`) puis publier ; vitrine à envoyer au même moment.
+- ✅ **Site : colonne « Pilote du record »** (demande mainteneur) : `GET /combos` renvoie `best_driver`
+  (même format que les lignes du classement, anonymat respecté ; départage temps puis premier reçu,
+  comme le classement) ; accueil (vue par circuit et liste) : colonne avant « Voiture ». Mobile :
+  classe, pilote, temps, pilotes. Test (pilote du record = 1re ligne du classement), 29/29. `?v=35`.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh` sur le VPS après push, ou
   `community\scripts\deploy.cmd`) et vérifier l'accueil en production ; ménage des données de démo
   (`purge-demo --yes`) quand les tests seront finis.

@@ -302,7 +302,7 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
     params.push(version);
     pick = `where e.game_minor = any($${params.length}::text[])`;
   }
-  return db.query<{
+  const rows = await db.query<{
     track: string;
     track_course: string;
     car_class: string;
@@ -310,6 +310,10 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
     drivers: number;
     best: number;
     best_car: string;
+    rec_tag: string;
+    rec_anonymous: boolean;
+    rec_name: string | null;
+    rec_homonym: boolean;
     /** Secteurs du tour record (null si le jeu ne les a pas écrits). */
     s1: number | null;
     s2: number | null;
@@ -321,7 +325,8 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
   }>(
     `with e as (
        select s.track, s.track_course, s.car_class, s.game_minor, s.install_id, s.best_time, s.car_model,
-              s.s1, s.s2, s.s3
+              s.s1, s.s2, s.s3, s.received_at,
+              i.tag, i.anonymous, i.display_name, i.homonym
        from sessions s join installs i on i.id = s.install_id
        where ${el}
      ), latest as (
@@ -329,19 +334,29 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
      ), b as (
        select distinct on (e.track, e.track_course, e.car_class, e.install_id) e.*
        from e ${pick}
-       order by e.track, e.track_course, e.car_class, e.install_id, e.best_time
+       order by e.track, e.track_course, e.car_class, e.install_id, e.best_time, e.received_at
      )
      select track, track_course, car_class, max(game_minor) as version,
             count(*)::int as drivers, min(best_time) as best,
-            (array_agg(car_model order by best_time))[1] as best_car,
-            (array_agg(s1 order by best_time))[1] as s1,
-            (array_agg(s2 order by best_time))[1] as s2,
-            (array_agg(s3 order by best_time))[1] as s3,
+            -- Tour record : même départage que le classement (temps, puis premier reçu).
+            (array_agg(car_model order by best_time, received_at))[1] as best_car,
+            (array_agg(s1 order by best_time, received_at))[1] as s1,
+            (array_agg(s2 order by best_time, received_at))[1] as s2,
+            (array_agg(s3 order by best_time, received_at))[1] as s3,
+            (array_agg(tag order by best_time, received_at))[1] as rec_tag,
+            (array_agg(anonymous order by best_time, received_at))[1] as rec_anonymous,
+            (array_agg(display_name order by best_time, received_at))[1] as rec_name,
+            (array_agg(homonym order by best_time, received_at))[1] as rec_homonym,
             min(s1) as best_s1, min(s2) as best_s2, min(s3) as best_s3
      from b group by 1, 2, 3
      order by drivers desc, track, track_course, car_class`,
     params,
   );
+  // Pilote du record, au même format que les lignes du classement (anonymat respecté).
+  return rows.map(({ rec_tag, rec_anonymous, rec_name, rec_homonym, ...c }) => ({
+    ...c,
+    best_driver: { name: rec_anonymous ? null : rec_name, tag: rec_tag, homonym: !rec_anonymous && rec_homonym },
+  }));
 }
 
 /** Versions présentes dans les combos (filtre Version de l'accueil), la plus récente d'abord. */

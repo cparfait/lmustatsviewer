@@ -174,7 +174,7 @@ const fmtNum = (n) => Number(n ?? 0).toLocaleString(LANG);
 const fmtDate = (iso) => {
   if (!iso) return "";
   const d = new Date(iso + "T12:00:00Z");
-  return d.toLocaleDateString(LANG, { day: "2-digit", month: "2-digit" });
+  return d.toLocaleDateString(LANG, { day: "2-digit", month: "2-digit", year: "numeric" });
 };
 
 async function api(route, query = {}) {

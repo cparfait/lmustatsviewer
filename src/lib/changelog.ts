@@ -64,6 +64,54 @@ export const APP_VERSION: string = __APP_VERSION__;
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.9",
+    date: "2026-09-28",
+    dev: true,
+    localized: true,
+    sections: [
+      {
+        kind: "fixed",
+        items: [
+          {
+            en: "Telemetry: the speed, throttle, brake… graphs of a lap could stay flat and show only a few metres of track when the lap started or ended right on the line, or began in the pit lane (out lap); they now always cover the whole lap.",
+            fr: "Télémétrie : les courbes (vitesse, accélérateur, frein…) d'un tour pouvaient rester plates et ne montrer que quelques mètres de piste quand le tour commençait ou finissait pile sur la ligne, ou partait de la voie des stands (tour de sortie) ; elles couvrent désormais toujours le tour entier.",
+            es: "Telemetría: las gráficas (velocidad, acelerador, freno…) de una vuelta podían quedarse planas y mostrar solo unos metros de pista cuando la vuelta empezaba o terminaba justo en la línea, o salía del pit lane (vuelta de salida); ahora cubren siempre la vuelta completa.",
+            de: "Telemetrie: Die Kurven (Geschwindigkeit, Gas, Bremse…) einer Runde konnten flach bleiben und nur wenige Meter Strecke zeigen, wenn die Runde genau auf der Linie begann oder endete oder in der Boxengasse startete (Out-Lap); sie decken jetzt immer die ganze Runde ab.",
+          },
+          {
+            en: "Telemetry: sector 2 and sector 3 times of the selected lap were wrong (S2 included S1, S3 was almost zero).",
+            fr: "Télémétrie : les temps des secteurs 2 et 3 du tour affiché étaient faux (S2 incluait S1, S3 était presque nul).",
+            es: "Telemetría: los tiempos de los sectores 2 y 3 de la vuelta mostrada eran erróneos (S2 incluía S1, S3 era casi nulo).",
+            de: "Telemetrie: Die Zeiten von Sektor 2 und 3 der angezeigten Runde waren falsch (S2 enthielt S1, S3 war fast null).",
+          },
+          {
+            en: "Telemetry: at the very start of a lap, the value under the graphs showed the end of the lap instead of the start.",
+            fr: "Télémétrie : au tout début d'un tour, la valeur sous les courbes affichait la fin du tour au lieu du départ.",
+            es: "Telemetría: al principio de una vuelta, el valor bajo las gráficas mostraba el final de la vuelta en lugar de la salida.",
+            de: "Telemetrie: Ganz am Anfang einer Runde zeigte der Wert unter den Kurven das Rundenende statt des Starts.",
+          },
+        ],
+      },
+      {
+        kind: "improved",
+        items: [
+          {
+            en: "Leaderboards page: the details of a leaderboard now open with the eye icon at the start of the row, as on the other pages.",
+            fr: "Page Classements : le détail d'un classement s'ouvre désormais avec l'icône en forme d'œil en début de ligne, comme sur les autres pages.",
+            es: "Página Clasificaciones: el detalle de una clasificación se abre ahora con el icono del ojo al principio de la fila, como en las demás páginas.",
+            de: "Seite Ranglisten: Die Details einer Rangliste öffnen sich jetzt über das Augen-Symbol am Zeilenanfang, wie auf den anderen Seiten.",
+          },
+          {
+            en: "Leaderboards page: the gap to the fastest now sits right after your time, and a “Version” column shows the game version of each leaderboard.",
+            fr: "Page Classements : l'écart au plus rapide est placé juste après votre temps, et une colonne « Version » indique la version du jeu de chaque classement.",
+            es: "Página Clasificaciones: la diferencia con el más rápido aparece justo después de tu tiempo, y una columna «Versión» indica la versión del juego de cada clasificación.",
+            de: "Seite Ranglisten: Der Abstand zum Schnellsten steht jetzt direkt nach deiner Zeit, und eine Spalte „Version“ zeigt die Spielversion jeder Rangliste.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "1.0.8",
     date: "2026-09-27",
     dev: false,

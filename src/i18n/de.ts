@@ -2135,6 +2135,7 @@ export default {
     colWhere: "Wo du stehst",
     colGap: "Abstand zum 1.",
     colLeader: "Rekordhalter",
+    colVersion: "Version",
     recordYou: "Du",
     details: "Details",
     hide: "Einklappen",

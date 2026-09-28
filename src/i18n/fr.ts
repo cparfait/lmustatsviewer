@@ -2136,6 +2136,7 @@ export default {
     colWhere: "Où vous êtes",
     colGap: "Écart au 1er",
     colLeader: "Pilote du record",
+    colVersion: "Version",
     recordYou: "Vous",
     details: "Détail",
     hide: "Replier",

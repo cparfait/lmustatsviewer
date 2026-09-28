@@ -569,6 +569,64 @@ pub fn get_telemetry_meta(
     })
 }
 
+/// Rend la distance d'un tour croissante. Le découpage (table `Lap`) et
+/// l'échantillonnage de `Lap Dist` ne tombent pas pile sur la ligne : les
+/// premiers points peuvent encore appartenir au tour précédent (≈ longueur du
+/// circuit, puis retour à 0) et les derniers au tour suivant (retour à 0). Un
+/// tour de sortie des stands contient en plus la voie des stands AVANT la ligne
+/// (saut en plein milieu), précédée de quelques points à 0 (position pas encore
+/// connue, voiture arrêtée). Les graphes calant l'axe X sur le premier et le
+/// dernier point, ces sauts réduisaient l'axe à quelques mètres (courbes plates).
+///
+/// - saut à la baisse dans les 10 % finaux → la fin est décalée d'une longueur
+///   de circuit (légèrement au-delà de la ligne) ;
+/// - tout autre saut à la baisse → ce qui précède est décalé vers le négatif
+///   (bout du tour précédent, voie des stands) : le tour lui-même reste de 0 à
+///   la longueur du circuit, aligné pour les virages et la comparaison ;
+/// - points à 0 suivis d'un saut à la hausse dans les 10 % initiaux → calés sur
+///   la première position connue (voiture arrêtée).
+///
+/// Aucun point n'est retiré : les autres canaux restent alignés.
+fn unwrap_lap_distance(dist: &mut [f32]) {
+    let n = dist.len();
+    if n < 3 {
+        return;
+    }
+    let max = dist.iter().copied().filter(|v| v.is_finite()).fold(0.0_f32, f32::max);
+    if max < 100.0 {
+        return;
+    }
+    let half = 0.5 * max;
+    let edge = (n / 10).max(1);
+    let tail = n.saturating_sub(edge).max(2);
+
+    // Position inconnue au départ (0) puis première vraie position.
+    if let Some(k) = (1..=edge.min(n - 1)).find(|&k| dist[k] - dist[k - 1] > half) {
+        let first = dist[k];
+        for v in &mut dist[..k] {
+            *v = first;
+        }
+    }
+    // Décalage = hauteur du saut + un pas voisin (pour ne pas créer de palier).
+    if let Some(k) = (tail..n).find(|&k| dist[k - 1] - dist[k] > half) {
+        let step = (dist[k - 1] - dist[k - 2]).max(0.0);
+        let s = dist[k - 1] - dist[k] + step;
+        for v in &mut dist[k..] {
+            *v += s;
+        }
+    }
+    // Du dernier saut au premier : chaque préfixe passe avant le tronçon suivant.
+    for k in (1..tail.min(n)).rev() {
+        if dist[k - 1] - dist[k] > half {
+            let step = if k + 1 < n { (dist[k + 1] - dist[k]).max(0.0) } else { 0.0 };
+            let s = dist[k - 1] - dist[k] + step;
+            for v in &mut dist[..k] {
+                *v -= s;
+            }
+        }
+    }
+}
+
 /// Charge et rééchantillonne un ensemble de canaux sur une grille temporelle
 /// commune. `lap` (optionnel) restreint à un tour (par numéro de tour du jeu) ;
 /// sinon toute la session. `max_points` borne la résolution (défaut 4000).
@@ -643,7 +701,7 @@ pub fn get_telemetry_channels(
     }
 
     // Distance : on échantillonne le canal "Lap Dist" (continu) sur la grille.
-    let dist: Vec<f32> = if tables.contains("Lap Dist") {
+    let mut dist: Vec<f32> = if tables.contains("Lap Dist") {
         match read_channel(&conn, "Lap Dist") {
             // `!ld.data[0].is_empty()` est indispensable : un canal `Lap Dist`
             // déclaré mais VIDE (session avortée avant le 1ᵉʳ échantillon, ou
@@ -667,6 +725,9 @@ pub fn get_telemetry_channels(
     } else {
         Vec::new()
     };
+    if lap.is_some() {
+        unwrap_lap_distance(&mut dist);
+    }
 
     // Rééchantillonnage de chaque canal sur la grille.
     let mut out_channels: Vec<ChannelSeries> = Vec::with_capacity(raws.len());
@@ -715,4 +776,62 @@ pub fn get_telemetry_channels(
         dist,
         channels: out_channels,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::unwrap_lap_distance;
+
+    fn lap(start: f32, end_extra: &[f32]) -> Vec<f32> {
+        // Tour de 5000 m échantillonné tous les 10 m, avec des bords parasites.
+        let mut d: Vec<f32> = vec![start];
+        d.extend((0..=500).map(|i| i as f32 * 10.0));
+        d.extend_from_slice(end_extra);
+        d
+    }
+
+    fn is_increasing(d: &[f32]) -> bool {
+        d.windows(2).all(|w| w[1] >= w[0])
+    }
+
+    #[test]
+    fn unwraps_previous_lap_at_start() {
+        let mut d = lap(4995.0, &[]);
+        unwrap_lap_distance(&mut d);
+        assert!(is_increasing(&d));
+        assert!(d[0] < 0.0 && d[0] > -20.0, "{}", d[0]);
+    }
+
+    #[test]
+    fn unwraps_next_lap_at_end() {
+        let mut d = lap(0.0, &[0.9, 3.2]);
+        d.remove(0);
+        unwrap_lap_distance(&mut d);
+        assert!(is_increasing(&d));
+        assert!(*d.last().unwrap() > 5000.0 && *d.last().unwrap() < 5030.0);
+    }
+
+    #[test]
+    fn leaves_clean_lap_untouched() {
+        let mut d = lap(0.0, &[]);
+        let clean = d.clone();
+        unwrap_lap_distance(&mut d);
+        assert_eq!(d, clean);
+    }
+
+    #[test]
+    fn out_lap_puts_pit_lane_before_the_line() {
+        // 0 (position inconnue), voie des stands 4000 → 4800, ligne, tour complet, tour suivant.
+        let mut d: Vec<f32> = vec![0.0; 5];
+        d.extend((0..40).map(|i| 4000.0 + i as f32 * 20.0));
+        d.extend((0..=500).map(|i| i as f32 * 10.0));
+        d.push(1.0);
+        unwrap_lap_distance(&mut d);
+        assert!(is_increasing(&d));
+        // Le tour reste de 0 à 5000 m ; la voie des stands passe en négatif.
+        assert_eq!(d[45], 0.0);
+        assert_eq!(d[545], 5000.0);
+        assert!(d[0] < -100.0 && d[0] > -1100.0, "{}", d[0]);
+        assert_eq!(d[0], d[5]);
+    }
 }

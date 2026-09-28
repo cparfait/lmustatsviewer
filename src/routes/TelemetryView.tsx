@@ -584,9 +584,11 @@ export function TelemetryView() {
         return v != null && isFinite(v) && v > 0 ? v : null;
       };
       const s1 = g("Current Sector1") ?? g("Last Sector1");
-      const s2 = g("Current Sector2") ?? g("Last Sector2");
+      // Le jeu donne le secteur 2 CUMULÉ (S1 + S2), comme `mCurSector2` en live.
+      const cum2 = g("Current Sector2") ?? g("Last Sector2");
+      const s2 = s1 != null && cum2 != null && cum2 > s1 ? cum2 - s1 : null;
       const lt = g("Lap Time") ?? (durFallback && durFallback > 0 ? durFallback : null);
-      const s3 = lt != null && s1 != null && s2 != null ? lt - s1 - s2 : null;
+      const s3 = lt != null && s2 != null && cum2 != null && lt > cum2 ? lt - cum2 : null;
       return { lap: lt, s1, s2, s3 };
     };
     const cur = sectorsOf(data, meta?.laps.find((l) => l.lap === lap)?.duration);

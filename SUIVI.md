@@ -857,6 +857,54 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-28 — Site communautaire : année dans les dates
+
+- ✅ **Colonne « Date » du classement avec l'année** (retour mainteneur) : `fmtDate` (`site.js`)
+  ajoute `year: "numeric"` ; le format suit la langue choisie (FR/ES 28/09/2026, EN 09/28/2026,
+  DE 28.09.2026). Vérifié sur les données réelles dans les 4 langues, colonne sans débordement.
+  Assets `?v=43`.
+- ℹ️ Pas d'entrée dans `src/lib/changelog.ts` : changement du site seul.
+- ✅ **1.0.9 (dev) — page Classements** (demande mainteneur) : le bouton texte « Détail » en fin de
+  ligne devient un **œil en première colonne** (même style que Sessions), fond plein quand le détail
+  est ouvert, info-bulle Détail / Replier. `tsc`, lint OK ; rendu non vérifiable dans le navigateur
+  (classements chargés seulement sous Tauri).
+- 🐛→✅ **Télémétrie : courbes plates** (retour d'un joueur, capture Long Beach : axe « Distance »
+  de 2,3 à 3,15 m, jauges et carte correctes). Cause : le tour découpé par la table `Lap` et
+  l'échantillonnage de `Lap Dist` ne tombent pas pile sur la ligne → premier point encore dans le
+  tour précédent (≈ longueur du circuit) ou dernier point déjà dans le suivant (retour à 0) ; uPlot
+  cale l'axe X sur le premier et le dernier point → quelques mètres affichés. Mesuré sur les fichiers
+  réels du mainteneur : la majorité des tours sont touchés (Spa, Sebring). Correctif :
+  `unwrap_lap_edges` (`telemetry.rs`) décale d'une longueur de circuit les points des bords
+  (10 % de chaque côté) après un saut > moitié de la distance max ; aucun point retiré (secteurs et
+  temps lus au dernier point). 3 tests Rust ; rejoué sur les fichiers réels : chaque tour couvre
+  0 → longueur du circuit.
+  ✅ **Tour de sortie des stands** (capture mainteneur, Spa tour 0 : vitesse nulle sur 5800 m) : le tour
+  contient la voie des stands AVANT la ligne (saut au milieu) et ~6 s à 0 (position inconnue).
+  Fonction généralisée en `unwrap_lap_distance` : saut final → fin décalée vers le haut ; tout autre
+  saut → ce qui précède passe en négatif (voie des stands ≈ −900 m, le tour reste 0 → longueur) ;
+  zéros initiaux avant un saut à la hausse → calés sur la 1re position. 4 tests Rust ; fichiers réels :
+  aucun saut restant sur les 17 tours. Tour 1 vérifié dans l'app par le mainteneur (courbes complètes).
+- 🐛→✅ **Télémétrie : S2/S3 faux** (même capture : S3 = 0:00.855). `Current/Last Sector2` est
+  **cumulé** (S1+S2), comme `mCurSector2` déjà traité ainsi dans `live.rs` ; `TelemetryView` le
+  prenait pour S2 → S2 = S1+S2 et S3 = tour − S1 − (S1+S2). Désormais S2 = cumul − S1,
+  S3 = tour − cumul. Vérifié sur les tours valides réels (somme = temps du tour).
+  Changelog 1.0.9 (fixed ×2, improved ×1) ×4.
+- 🐛→✅ **Télémétrie : légende au 1er point** : au tout début d'un tour, `valToPos` pouvait rendre une
+  position à peine négative → curseur uPlot masqué → légende sur la DERNIÈRE valeur (tour 1 de Spa :
+  « 6978 m, 181 km/h » à 0,0 s). `TelemetryChart` borne la position à la zone du graphe. Changelog ×4.
+- ✅ **Bêta `1.0.9-beta.1`** (demande mainteneur, pour le joueur qui a signalé les courbes plates) :
+  build LOCAL signé (`npm run tauri:build`, clé exportée dans l'environnement), sans release GitHub
+  ni changement de `latest_version`. Numéro `1.0.9-beta.1` et non `1.0.8_beta` : `_` n'est pas du
+  SemVer, et `1.0.8-beta` < `1.0.8` → l'auto-update aurait proposé la 1.0.8 (sans les correctifs).
+  `1.0.9-beta.1` < `1.0.9` → la vraie 1.0.9 sera proposée à sa sortie. Contient : télémétrie (courbes,
+  tour de sortie, S2/S3, curseur) + œil de Classements. `version.json` remis à 1.0.8 après le build.
+  Installeur : `src-tauri/target/release/bundle/nsis/LMU Stats Viewer_1.0.9-beta.1_x64-setup.exe`.
+- ✅ **1.0.9 (dev) — Classements** (demande mainteneur, après la bêta) : « Écart au 1er » juste après
+  « Votre temps » ; colonne « Version » en dernier (version mineure du classement, `pos.version`) ;
+  clé `leaderboard.colVersion` ×4. Changelog ×4.
+- 📋 **Prochaine étape** : pousser puis `update-from-github.sh` sur le VPS pour mettre le site à jour ;
+  retour du joueur sur la bêta, puis release 1.0.9.
+
 ### 2026-09-27 — Site communautaire : accueil recentré sur les classements
 
 - ✅ **Accueil refondu** (demande mainteneur : « plus clair et plus direct sur les pages de

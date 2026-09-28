@@ -2130,6 +2130,7 @@ export default {
     colWhere: "Where you are",
     colGap: "Gap to 1st",
     colLeader: "Record holder",
+    colVersion: "Version",
     recordYou: "You",
     details: "Details",
     hide: "Collapse",

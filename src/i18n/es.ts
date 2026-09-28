@@ -2134,6 +2134,7 @@ export default {
     colWhere: "Dónde estás",
     colGap: "Diferencia con el 1.º",
     colLeader: "Piloto del récord",
+    colVersion: "Versión",
     recordYou: "Tú",
     details: "Detalle",
     hide: "Plegar",

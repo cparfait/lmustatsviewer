@@ -210,7 +210,11 @@ export function TelemetryChart({
     const u = plotRef.current;
     if (!u || cursorIdx == null || cursorIdx < 0 || x.length === 0) return;
     const i = Math.min(x.length - 1, Math.max(0, Math.round(cursorIdx)));
-    const left = u.valToPos(x[i], "x");
+    // Bornée à la zone du graphe : au 1er point, l'arrondi pouvait donner une
+    // position à peine négative → curseur masqué, et la légende affichait alors
+    // la DERNIÈRE valeur du tour au lieu de la première.
+    const width = u.over?.offsetWidth ?? 0;
+    const left = Math.min(Math.max(0, u.valToPos(x[i], "x")), Math.max(0, width - 0.5));
     const top = (u.over?.offsetHeight ?? 0) / 2;
     // Marque le déplacement comme programmatique → n'émet pas de survol.
     settingCursorRef.current = true;

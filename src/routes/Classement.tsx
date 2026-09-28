@@ -7,13 +7,14 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, Car, ChevronDown, ExternalLink, Flag, Globe, Loader2, Package, Route, Share2, Star, Tag, Target, Timer, Trophy, Users, X } from "lucide-react";
+import { AlertTriangle, Car, ChevronDown, ExternalLink, Eye, Flag, Globe, Loader2, Package, Route, Share2, Star, Tag, Target, Timer, Trophy, Users, X } from "lucide-react";
 import { ClassBadge } from "@/components/ClassBadge";
 import { CarLogo } from "@/components/CarLogo";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterField } from "@/components/FilterField";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrackFlag } from "@/components/TrackFlag";
+import { Tip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import {
   community,
@@ -654,29 +655,31 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                 {/* Largeurs fixes : colonnes alignées d'un circuit à l'autre. */}
                 <Table className="w-full min-w-[1000px] table-fixed text-xs">
                   <colgroup>
+                    <col className="w-[64px]" />
                     <col className="w-[110px]" />
                     <col />
                     <col className="w-[120px]" />
+                    <col className="w-[110px]" />
                     {showOhne && <col className="w-[130px]" />}
                     <col className="w-[110px]" />
                     <col className="w-[130px]" />
                     <col className="w-[180px]" />
-                    <col className="w-[110px]" />
                     <col className="w-[170px]" />
-                    <col className="w-[90px]" />
+                    <col className="w-[80px]" />
                   </colgroup>
                   <TableHeader>
                     <TableRow className="border-primary/40">
+                      <TableHead className="font-medium text-center">{t("leaderboard.details")}</TableHead>
                       <TableHead className="font-medium text-left">{t("leaderboard.colClass")}</TableHead>
                       <TableHead className="font-medium text-left">{t("leaderboard.colCar")}</TableHead>
                       <TableHead className={cn("font-medium text-right", GROUP_SEP, PERF_HEAD)}>{t("leaderboard.colTime")}</TableHead>
+                      <TableHead className={cn("font-medium text-right", PERF_HEAD)}>{t("leaderboard.colGap")}</TableHead>
                       {showOhne && <TableHead className={cn("font-medium text-center", PERF_HEAD)}>{t("leaderboard.colLevel")}</TableHead>}
                       <TableHead className={cn("font-medium text-center", PERF_HEAD)}>{t("leaderboard.colRank")}</TableHead>
                       <TableHead className={cn("font-medium text-left", PERF_HEAD)}>{t("leaderboard.colTop")}</TableHead>
                       <TableHead className={cn("font-medium text-left", PERF_HEAD)}>{t("leaderboard.colWhere")}</TableHead>
-                      <TableHead className={cn("font-medium text-right", PERF_HEAD)}>{t("leaderboard.colGap")}</TableHead>
                       <TableHead className={cn("font-medium text-left", GROUP_SEP)}>{t("leaderboard.colLeader")}</TableHead>
-                      <TableHead className="font-medium" />
+                      <TableHead className="font-medium text-center">{t("leaderboard.colVersion")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -696,7 +699,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                           {newCourse && (
                             <TableRow className="hover:bg-transparent">
                               <TableCell
-                                colSpan={showOhne ? 10 : 9}
+                                colSpan={showOhne ? 11 : 10}
                                 className="border-t border-primary/25 bg-primary/[0.07] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-yellow-700 dark:text-yellow-300"
                               >
                                 <span
@@ -709,7 +712,30 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                               </TableCell>
                             </TableRow>
                           )}
-                          <TableRow className={cn(i % 2 === 1 && "bg-muted/30", isOpen && "bg-amber-400/10")}>
+                          <TableRow className={cn("group", i % 2 === 1 && "bg-muted/30", isOpen && "bg-amber-400/10")}>
+                            {/* Détail : œil en tête de ligne, comme les autres pages (pas de détail sans position). */}
+                            <TableCell className="px-2 py-1.5">
+                              {r.pos && (
+                                <div className="flex justify-center">
+                                  <Tip content={isOpen ? t("leaderboard.hide") : t("leaderboard.details")}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpen(isOpen ? null : key)}
+                                      aria-label={isOpen ? t("leaderboard.hide") : t("leaderboard.details")}
+                                      aria-expanded={isOpen}
+                                      className={cn(
+                                        "flex h-5 w-5 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                        isOpen
+                                          ? "bg-primary text-primary-foreground"
+                                          : "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground"
+                                      )}
+                                    >
+                                      <Eye className="h-3 w-3" />
+                                    </button>
+                                  </Tip>
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell
                               className="cursor-pointer px-2 py-1.5"
                               title={t("leaderboard.clickFilter")}
@@ -743,6 +769,9 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                             <TableCell className={cn("px-2 py-1.5 text-right font-mono font-bold text-emerald-500", GROUP_SEP, PERF_CELL)}>
                               {formatTime(r.combo.best)}
                             </TableCell>
+                            <TableCell className={cn("px-2 py-1.5 text-right font-mono text-muted-foreground", PERF_CELL)}>
+                              {r.pos ? (r.pos.rank === 1 ? "—" : `+${r.pos.gap_best.toFixed(3)}`) : ""}
+                            </TableCell>
                             {showOhne && (
                               <TableCell className={cn("px-2 py-1.5 text-center", PERF_CELL)}>
                                 <TierBadge
@@ -768,29 +797,24 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                                 </TableCell>
                                 <TableCell className={cn("px-2 py-1.5 whitespace-nowrap font-bold", st!.tone, PERF_CELL)}>{st!.label}</TableCell>
                                 <TableCell className={cn("px-2 py-1.5", PERF_CELL)}><Gauge pct={gaugePct(r.pos!.rank, r.pos!.drivers)} /></TableCell>
-                                <TableCell className={cn("px-2 py-1.5 text-right font-mono text-muted-foreground", PERF_CELL)}>
-                                  {r.pos!.rank === 1 ? "—" : `+${r.pos!.gap_best.toFixed(3)}`}
-                                </TableCell>
                                 <LeaderCell row={r} myTag={myTag} />
-                                <TableCell className="px-2 py-1.5 text-right">
-                                  <button type="button" className="text-xs font-semibold text-primary" onClick={() => setOpen(isOpen ? null : key)}>
-                                    {isOpen ? t("leaderboard.hide") : t("leaderboard.details")}
-                                  </button>
-                                </TableCell>
                               </>
                             ) : (
                               <>
-                              <TableCell colSpan={4} className={cn("px-2 py-1.5 text-xs text-muted-foreground", PERF_CELL)}>
+                              <TableCell colSpan={3} className={cn("px-2 py-1.5 text-xs text-muted-foreground", PERF_CELL)}>
                                 {offline ? "—" : t("leaderboard.noData")}
                               </TableCell>
                               <LeaderCell row={r} myTag={myTag} />
-                              <TableCell className="px-2 py-1.5" />
                               </>
                             )}
+                            {/* Version du jeu du classement (la plus récente, ou celle du filtre). */}
+                            <TableCell className="px-2 py-1.5 text-center font-mono text-muted-foreground">
+                              {r.pos?.version ? gameMinor(r.pos.version) : "—"}
+                            </TableCell>
                           </TableRow>
                           {isOpen && (
                             <TableRow>
-                              <TableCell colSpan={showOhne ? 10 : 9} className="p-0">
+                              <TableCell colSpan={showOhne ? 11 : 10} className="p-0">
                                 <ComboDetail row={r} myTag={myTag} />
                               </TableCell>
                             </TableRow>

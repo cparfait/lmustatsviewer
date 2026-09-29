@@ -262,11 +262,11 @@ function countryFlag(code) {
 /** Avatar Steam (pilotes qui l'ont choisi), relayé par le serveur. */
 const avatarImg = (d, cls = "av") => (d.avatar && /^[0-9a-f]{40}$/.test(d.avatar) ? `<img class="${cls}" src="/api/v1/avatar/${d.avatar}" alt="" loading="lazy">` : "");
 /**
- * Avatar + drapeau dans un emplacement de largeur fixe (avatar à gauche, drapeau à droite,
- * vides s'ils manquent) : les noms restent alignés d'une ligne à l'autre. Anonyme : vide.
+ * Pays puis avatar, dans des emplacements de largeur fixe (vides s'ils manquent) : les
+ * noms restent alignés d'une ligne à l'autre. Anonyme : vide.
  */
 const driverMarks = (d) =>
-  `<span class="dmarks"><span class="av-slot">${d.name ? avatarImg(d) : ""}</span>${d.name ? countryFlag(d.country) : ""}</span>`;
+  `<span class="dmarks"><span class="fl-slot">${d.name ? countryFlag(d.country) : ""}</span><span class="av-slot">${d.name ? avatarImg(d) : ""}</span></span>`;
 /** Nom affiché ; `marks` : avatar et drapeau devant (sauf tableau qui leur donne une colonne). */
 const driverName = (d, marks = true) =>
   (marks ? driverMarks(d) : "") +

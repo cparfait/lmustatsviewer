@@ -808,8 +808,9 @@ h1 .cflag { width: 28px; height: 21px; margin-right: 10px; border-radius: 3px; v
 .profile-id .avatar:has(.av-lg) { background: none; overflow: hidden; }
 .dsearch-list .av { width: 18px; height: 18px; }
 
-/* Colonne / emplacement fixe avatar + drapeau : noms alignés quel que soit le pilote. */
-.dmarks { display: inline-flex; align-items: center; gap: 5px; width: 43px; margin-right: 6px; vertical-align: middle; flex: none; }
+/* Colonne / emplacement fixe drapeau puis avatar : noms alignés quel que soit le pilote. */
+.dmarks { display: inline-flex; align-items: center; gap: 5px; width: 45px; margin-right: 6px; vertical-align: middle; flex: none; }
+.dmarks .fl-slot { display: inline-flex; justify-content: center; width: 20px; flex: none; }
 .dmarks .av-slot { display: inline-flex; width: 20px; height: 20px; flex: none; }
 .dmarks .av, .dmarks .cflag, .dmarks .cflag-txt { margin: 0; vertical-align: 0; }
 .lb-dense td.marks, .lb-dense th.marks { width: 52px; padding-right: 0; }

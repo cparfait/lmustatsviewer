@@ -929,6 +929,8 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   classement, colonne dédiée (`td.marks`, colspan 11) ; ailleurs (accueil, recherche, carte
   « Votre position ») emplacement de largeur fixe `driverMarks` (avatar à gauche, drapeau à
   droite, vides s'ils manquent) → noms alignés. Assets `?v=46`.
+  Puis (retour mainteneur) **pays AVANT l'avatar**, site et app (`DriverMarks` à emplacements fixes
+  aussi dans l'app). Assets `?v=47`.
 - ⚠️ Serveur déployé AVANT le correctif « avatar demandé par la 1.0.9 seulement » : un joueur
   1.0.7/1.0.8 qui se connecte à Steam désormais voit son avatar affiché sans mention dans son app
   (proposé au mainteneur, en attente).

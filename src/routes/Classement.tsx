@@ -59,22 +59,25 @@ function DriverMarks({ d }: { d: { country?: string | null; avatar?: string | nu
   const hide = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = "none";
   };
+  // Pays puis avatar, emplacements de largeur fixe : les noms restent alignés.
   return (
-    <>
-      {avatar && (
-        <img src={`${SITE}/api/v1/avatar/${avatar}`} alt="" loading="lazy" onError={hide} className="mr-1.5 inline-block h-4 w-4 rounded-full align-[-3px]" />
-      )}
-      {country && (
-        <img
-          src={`${SITE}/cflags/${country === "uk" ? "gb" : country}.svg`}
-          alt={country.toUpperCase()}
-          title={country.toUpperCase()}
-          loading="lazy"
-          onError={hide}
-          className="mr-1.5 inline-block h-2.5 w-[14px] rounded-[2px] object-cover align-[-1px] ring-1 ring-black/10"
-        />
-      )}
-    </>
+    <span className="mr-1.5 inline-flex w-[38px] shrink-0 items-center gap-1 align-[-3px]">
+      <span className="inline-flex w-[16px] justify-center">
+        {country && (
+          <img
+            src={`${SITE}/cflags/${country === "uk" ? "gb" : country}.svg`}
+            alt={country.toUpperCase()}
+            title={country.toUpperCase()}
+            loading="lazy"
+            onError={hide}
+            className="h-2.5 w-[14px] rounded-[2px] object-cover ring-1 ring-black/10"
+          />
+        )}
+      </span>
+      <span className="inline-flex h-4 w-4">
+        {avatar && <img src={`${SITE}/api/v1/avatar/${avatar}`} alt="" loading="lazy" onError={hide} className="h-4 w-4 rounded-full" />}
+      </span>
+    </span>
   );
 }
 

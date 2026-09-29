@@ -923,7 +923,16 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   Configuration → Communauté et en bandeau sur la page Classements (avec « Non merci » = retirer).
   « Ce qui part » (`sent4`) et texte vie privée du site mentionnent pays + avatar ×4. Changelog
   1.0.9 reformulé ×4. Assets `?v=45`.
-- 📋 **Prochaine étape** : déployer le serveur, puis test avec le profil du mainteneur (#7dd4) :
+- ✅ **Test réel profil mainteneur (#7dd4)** : serveur déployé, connexion Steam depuis l'app de dev →
+  API en ligne `country: "FR"` + avatar ; affiché sur le site (capture mainteneur).
+- ✅ **Colonne avatar + drapeau** (retour mainteneur « pour ne pas tout décaler ») : page d'un
+  classement, colonne dédiée (`td.marks`, colspan 11) ; ailleurs (accueil, recherche, carte
+  « Votre position ») emplacement de largeur fixe `driverMarks` (avatar à gauche, drapeau à
+  droite, vides s'ils manquent) → noms alignés. Assets `?v=46`.
+- ⚠️ Serveur déployé AVANT le correctif « avatar demandé par la 1.0.9 seulement » : un joueur
+  1.0.7/1.0.8 qui se connecte à Steam désormais voit son avatar affiché sans mention dans son app
+  (proposé au mainteneur, en attente).
+- 📋 **Prochaine étape** : (ancienne) déployer le serveur, puis test avec le profil du mainteneur (#7dd4) :
   app en dev → bandeau « Récupérer mon avatar Steam » → vérifier l'avatar sur le site ; puis
   release 1.0.9.
 

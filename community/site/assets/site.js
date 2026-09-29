@@ -261,11 +261,18 @@ function countryFlag(code) {
 }
 /** Avatar Steam (pilotes qui l'ont choisi), relayé par le serveur. */
 const avatarImg = (d, cls = "av") => (d.avatar && /^[0-9a-f]{40}$/.test(d.avatar) ? `<img class="${cls}" src="/api/v1/avatar/${d.avatar}" alt="" loading="lazy">` : "");
-// Anonyme : ni avatar ni pays (le serveur ne les renvoie pas).
-const driverName = (d) =>
-  d.name
-    ? avatarImg(d) + countryFlag(d.country) + esc(d.name) + (d.homonym ? ` <span class="muted">· ${esc(d.tag)}</span>` : "")
-    : `<span class="anon">${esc(t("anon", { tag: d.tag }))}</span>`;
+/**
+ * Avatar + drapeau dans un emplacement de largeur fixe (avatar à gauche, drapeau à droite,
+ * vides s'ils manquent) : les noms restent alignés d'une ligne à l'autre. Anonyme : vide.
+ */
+const driverMarks = (d) =>
+  `<span class="dmarks"><span class="av-slot">${d.name ? avatarImg(d) : ""}</span>${d.name ? countryFlag(d.country) : ""}</span>`;
+/** Nom affiché ; `marks` : avatar et drapeau devant (sauf tableau qui leur donne une colonne). */
+const driverName = (d, marks = true) =>
+  (marks ? driverMarks(d) : "") +
+  (d.name
+    ? esc(d.name) + (d.homonym ? ` <span class="muted">· ${esc(d.tag)}</span>` : "")
+    : `<span class="anon">${esc(t("anon", { tag: d.tag }))}</span>`);
 
 // ── En-tête / pied de page ─────────────────────────────────────────────────
 const COFFEE_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2M14 2v2M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1M6 2v2"/></svg>';
@@ -334,7 +341,7 @@ function chrome() {
       const res = await api("drivers", { q }).catch(() => null);
       const drivers = res?.drivers ?? [];
       list.innerHTML = drivers.length
-        ? drivers.map((d) => `<a href="/pilote.html?tag=${encodeURIComponent(d.tag)}"><b>${avatarImg(d)}${countryFlag(d.country)}${esc(d.name)}</b>${d.homonym ? ` <span class="muted">${esc(d.tag)}</span>` : ""}<span class="muted">${esc(t("search.combos", { n: d.combos }))}</span></a>`).join("")
+        ? drivers.map((d) => `<a href="/pilote.html?tag=${encodeURIComponent(d.tag)}"><b>${driverMarks(d)}${esc(d.name)}</b>${d.homonym ? ` <span class="muted">${esc(d.tag)}</span>` : ""}<span class="muted">${esc(t("search.combos", { n: d.combos }))}</span></a>`).join("")
         : `<span class="muted">${esc(t("search.none"))}</span>`;
       list.hidden = false;
     }, 250);

@@ -1,5 +1,5 @@
 // Page combo circuit × classe : répartition, position d'un temps, classement, par voiture.
-/* global driversWord, classKey, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, fmtDate, flagImg, carImg, classBadge, trackSvg, chrome, dataReady, driverName, filterBar, bindFilterBar */
+/* global driverMarks, driversWord, classKey, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, fmtDate, flagImg, carImg, classBadge, trackSvg, chrome, dataReady, driverName, filterBar, bindFilterBar */
 "use strict";
 
 const RANKED_MIN = 20;
@@ -204,7 +204,8 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
       .map((r) => `
       <tr class="${me && r.driver.tag === me ? "is-me" : ""}" data-rank="${r.rank}">
         <td class="pos c">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : r.rank}</td>
-        <td class="drv">${driverName(r.driver)}</td>
+        <td class="marks">${driverMarks(r.driver)}</td>
+        <td class="drv">${driverName(r.driver, false)}</td>
         <td><div class="car">${q.class ? "" : classBadge(r.car_class)}<span class="logo-slot">${carImg(r.car_model)}</span><span>${esc(r.car_model)}</span></div></td>
         <td class="t perf sep r">${fmtTime(r.time)}</td>
         <td class="gap perf r">${r.rank === 1 ? "—" : "+" + (r.time - detail.best.time).toFixed(3)}</td>

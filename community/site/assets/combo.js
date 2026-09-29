@@ -267,7 +267,7 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
           <div class="me-main"><span class="me-k">${esc(t("me.title"))}</span><b>${driverName(r.driver)}</b></div>
           <div class="me-main"><span class="me-k">${esc(t("col.time"))}</span><span class="me-time">${fmtTime(r.time)}</span></div>
           <div class="me-main"><span class="me-k">${esc(t("col.gap"))}</span><span class="me-time">${r.rank === 1 ? "—" : "+" + (r.time - detail.best.time).toFixed(3)}</span></div>
-          <div class="me-main"><span class="me-k">&nbsp;</span><b class="${st.cls}">${esc(st.label)}</b></div>
+          <div class="me-main"><span class="me-k">${esc(t("me.where"))}</span><span class="me-where"><b class="${st.cls}">${esc(st.label)}</b><span class="gauge"><i style="left:${lb.drivers <= 1 ? 0 : Math.round(((r.rank - 1) / (lb.drivers - 1)) * 100)}%"></i></span></span></div>
           <div class="me-side"><div class="car">${carImg(r.car_model)}<span>${esc(r.car_model)}</span></div>
             <button class="btn btn-ghost btn-sm" id="meJump">${esc(t("me.jump"))}</button>
             <button class="btn btn-ghost btn-sm" id="meClear">${esc(t("me.clear"))}</button></div>

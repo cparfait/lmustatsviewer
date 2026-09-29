@@ -157,6 +157,13 @@ export function createApp(db: Db, opts: AppOptions = {}) {
 
   const app = new Hono<Env>();
 
+  // Drapeaux de pays et avatars : aussi affichés par l'app (autre origine). Déclaré AVANT
+  // secureHeaders pour passer après lui au retour (il pose « same-origin » partout).
+  app.use("*", async (c, next) => {
+    await next();
+    if (/^\/(cflags\/|api\/v1\/avatar\/)/.test(c.req.path)) c.res.headers.set("Cross-Origin-Resource-Policy", "cross-origin");
+  });
+
   app.use(
     "*",
     secureHeaders({

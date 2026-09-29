@@ -125,36 +125,46 @@ const TRACK_MAP: Record<string, string> = {
   "Michelin Raceway Road Atlanta": "Road Atlanta",
 };
 
+/**
+ * Tracé du jeu (`track_course` des XML) → ligne de la feuille ohne_speed. Chaque
+ * correspondance a été vérifiée sur les temps réels de la base communautaire (record
+ * entre 100 et 106 % du hotlap de la ligne, contre 83-96 % ou 113-200 % pour les
+ * autres lignes du même circuit). Un tracé absent de la feuille (ex. Spa Endurance)
+ * n'a PAS de référence : jamais celle d'un autre tracé.
+ */
+const COURSE_MAP: Record<string, string> = {
+  "Monza Curva Grande Circuit": "Monza (curvagrande)",
+  "Bahrain Outer Circuit": "Bahrain (outer)",
+  "Bahrain Paddock Circuit": "Bahrain (paddock)",
+  "Bahrain Endurance Circuit": "Bahrain (endurance)",
+  "Circuit de la Sarthe Mulsanne": "Circuit de la Sarthe (straight)",
+  "COTA National Circuit": "COTA (national)",
+  "Daytona International Speedway Road Course": "Daytona",
+  "Fuji Speedway Classic": "Fuji (classic)",
+  "Lusail Short Circuit": "Qatar (short)",
+  "Paul Ricard - ELMS": "Paul Ricard",
+  "Paul Ricard - 1A-V2": "Paul Ricard (1A v2)",
+  "Paul Ricard - 1A-V2-Short": "Paul Ricard (1A v2 short)",
+  "Sebring School Circuit": "Sebring (school)",
+  "Silverstone Grand Prix Circuit - ELMS": "Silverstone (GP)",
+  "Silverstone Grand Prix Circuit - WEC": "Silverstone (GP)",
+  "Autódromo José Carlos Pace": "Interlagos",
+};
+
+/**
+ * Nom de la ligne ohne_speed d'un tracé. `layoutFromDb` (le `track_course`) décide : un
+ * tracé secondaire sans ligne dans la feuille renvoie `null` (avant, le circuit principal
+ * était renvoyé → Bahrain Paddock comparé au tracé WEC, toujours « Alien »). Sans tracé
+ * (appelants qui ne le connaissent pas) : circuit principal, comme avant.
+ */
 export function mapTrackName(trackFromDb: string, layoutFromDb?: string): string | null {
-  if (TRACK_MAP[trackFromDb]) return TRACK_MAP[trackFromDb];
-
-  const layoutMap: Record<string, string> = {
-    "Grand Prix": "Silverstone (GP)",
-    "National": "Silverstone (National)",
-    "International": "Silverstone (International)",
-    "Chicane": "Fuji (chicane)",
-    "Classic": "Fuji (classic)",
-    "Curva Grande": "Monza (curvagrande)",
-    "Endurance": "Bahrain (endurance)",
-    "Outer": "Bahrain (outer)",
-    "Paddock": "Bahrain (paddock)",
-    "Short": "Qatar (short)",
-    "School": "Sebring (school)",
-    "1A": "Paul Ricard (1A)",
-    "1A v2": "Paul Ricard (1A v2)",
-    "1A v2 short": "Paul Ricard (1A v2 short)",
-    "3A": "Paul Ricard (3A)",
-    "straight": "Circuit de la Sarthe (straight)",
-  };
-
-  if (layoutFromDb && layoutMap[layoutFromDb]) {
-    const base = TRACK_MAP[trackFromDb];
-    if (base) {
-      return base;
-    }
+  if (layoutFromDb) {
+    if (COURSE_MAP[layoutFromDb]) return COURSE_MAP[layoutFromDb];
+    // Tracé principal : même nom que le circuit (ou nom déjà connu comme circuit).
+    if (layoutFromDb === trackFromDb || TRACK_MAP[layoutFromDb]) return TRACK_MAP[layoutFromDb] ?? TRACK_MAP[trackFromDb] ?? null;
+    return null;
   }
-
-  return null;
+  return TRACK_MAP[trackFromDb] ?? null;
 }
 
 function parseCSV(text: string): PaceBenchmark[] {
@@ -279,14 +289,16 @@ export function computeTier(lapTimeMs: number, benchmark: PaceBenchmark): {
   const percent = (lapTimeMs / alienMs) * 100;
   const deltaMs = lapTimeMs - alienMs;
 
+  // Niveau = le premier seuil de la feuille que le temps respecte (« Bon » = dans les
+  // 102 %). Avant, chaque niveau allait jusqu'au seuil SUIVANT exclu : 103,6 % sortait
+  // « Bon » au lieu de « Peloton » (retour joueur, Sebring GT3 2:04.556).
+  const p = benchmark.racePaceMs;
   let tier: OhneSpeedTier;
-  const rounded = Math.round(percent * 10) / 10;
-
-  if (rounded < 101) tier = "Alien";
-  else if (rounded < 102) tier = "Competitive";
-  else if (rounded < 104) tier = "Good";
-  else if (rounded < 106) tier = "Midpack";
-  else if (rounded < 107) tier = "Tail-ender";
+  if (lapTimeMs <= p.alien) tier = "Alien";
+  else if (lapTimeMs <= p.competitive) tier = "Competitive";
+  else if (lapTimeMs <= p.good) tier = "Good";
+  else if (lapTimeMs <= p.midpack) tier = "Midpack";
+  else if (lapTimeMs <= p.tailEnder) tier = "Tail-ender";
   else tier = "Offline";
 
   return { tier, percent, deltaMs };

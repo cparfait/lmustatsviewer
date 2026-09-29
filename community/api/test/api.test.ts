@@ -362,6 +362,11 @@ describe("site public servi par le même service", () => {
     assert.equal((await ctx.app.request("/assets/site.js")).status, 200);
     assert.equal((await ctx.app.request("/data/cars.json")).status, 200);
     assert.equal((await ctx.app.request("/logos/ferrari.png")).status, 200);
+    // Drapeaux de pays : chargeables par l'app (autre origine) ; le reste reste « same-origin ».
+    const flag = await ctx.app.request("/cflags/fr.svg");
+    assert.equal(flag.status, 200);
+    assert.equal(flag.headers.get("cross-origin-resource-policy"), "cross-origin");
+    assert.equal(home.headers.get("cross-origin-resource-policy"), "same-origin");
     assert.equal((await ctx.app.request("/..%2f..%2fpackage.json")).status, 404);
     assert.equal((await ctx.app.request("/api/v1/inconnu")).status, 404);
     await ctx.close();

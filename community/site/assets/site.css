@@ -815,3 +815,7 @@ h1 .cflag { width: 28px; height: 21px; margin-right: 10px; border-radius: 3px; v
 .dmarks .av, .dmarks .cflag, .dmarks .cflag-txt { margin: 0; vertical-align: 0; }
 .lb-dense td.marks, .lb-dense th.marks { width: 52px; padding-right: 0; }
 .lb-dense td.marks .dmarks { margin-right: 0; }
+
+/* Carte « Votre position » : place en clair + jauge du 1er (vert) au dernier (rouge). */
+.me-where { display: flex; align-items: center; gap: 12px; }
+.me-card .gauge { width: 140px; }

@@ -84,6 +84,12 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "fixed",
         items: [
           {
+            en: "ohne_speed level: track variants (Bahrain Paddock or Outer, Sebring School, Le Mans Mulsanne, Fuji Classic…) were compared with the main layout, so almost every lap showed “Alien”; each variant now uses its own reference, and a variant missing from the reference sheet shows “—”. The level was also one notch too generous (a lap at 103.6 % showed “Good” instead of “Midpack”).",
+            fr: "Niveau ohne_speed : les variantes de circuit (Bahreïn Paddock ou Outer, Sebring School, Le Mans Mulsanne, Fuji Classic…) étaient comparées au tracé principal, d'où « Alien » presque à chaque tour ; chaque variante utilise désormais sa propre référence, et une variante absente de la feuille de référence affiche « — ». Le niveau était aussi trop généreux d'un cran (un tour à 103,6 % affichait « Bon » au lieu de « Peloton »).",
+            es: "Nivel ohne_speed: las variantes de circuito (Baréin Paddock u Outer, Sebring School, Le Mans Mulsanne, Fuji Classic…) se comparaban con el trazado principal, de ahí «Alien» casi en cada vuelta; cada variante usa ahora su propia referencia, y una variante ausente de la hoja de referencia muestra «—». El nivel también era un escalón demasiado generoso (una vuelta al 103,6 % mostraba «Bueno» en lugar de «Pelotón»).",
+            de: "ohne_speed-Stufe: Streckenvarianten (Bahrain Paddock oder Outer, Sebring School, Le Mans Mulsanne, Fuji Classic…) wurden mit der Hauptvariante verglichen, daher fast jede Runde „Alien“; jede Variante nutzt jetzt ihre eigene Referenz, und eine Variante ohne Eintrag in der Referenztabelle zeigt „—“. Die Stufe war außerdem eine Stufe zu großzügig (eine Runde mit 103,6 % zeigte „Gut“ statt „Mittelfeld“).",
+          },
+          {
             en: "Telemetry: the speed, throttle, brake… graphs of a lap could stay flat and show only a few metres of track when the lap started or ended right on the line, or began in the pit lane (out lap); they now always cover the whole lap.",
             fr: "Télémétrie : les courbes (vitesse, accélérateur, frein…) d'un tour pouvaient rester plates et ne montrer que quelques mètres de piste quand le tour commençait ou finissait pile sur la ligne, ou partait de la voie des stands (tour de sortie) ; elles couvrent désormais toujours le tour entier.",
             es: "Telemetría: las gráficas (velocidad, acelerador, freno…) de una vuelta podían quedarse planas y mostrar solo unos metros de pista cuando la vuelta empezaba o terminaba justo en la línea, o salía del pit lane (vuelta de salida); ahora cubren siempre la vuelta completa.",
@@ -106,6 +112,18 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "improved",
         items: [
+          {
+            en: "Leaderboards page: new “All leaderboards” tab, as on the website — every community leaderboard by track, with the record holder, best lap and sectors; the eye opens the full leaderboard, and a click on a track name opens its all-classes leaderboard.",
+            fr: "Page Classements : nouvel onglet « Tous les classements », comme sur le site — tous les classements de la communauté par circuit, avec le pilote du record, le meilleur tour et les secteurs ; l'œil ouvre le classement complet, et un clic sur le nom d'un circuit ouvre son classement toutes classes.",
+            es: "Página Clasificaciones: nueva pestaña «Todas las clasificaciones», como en la web — todas las clasificaciones de la comunidad por circuito, con el piloto del récord, la mejor vuelta y los sectores; el ojo abre la clasificación completa, y un clic en el nombre de un circuito abre su clasificación de todas las clases.",
+            de: "Seite Ranglisten: neuer Reiter „Alle Ranglisten“ wie auf der Website — alle Community-Ranglisten nach Strecke, mit Rekordhalter, bester Runde und Sektoren; das Auge öffnet die komplette Rangliste, und ein Klick auf einen Streckennamen öffnet die Rangliste aller Klassen.",
+          },
+          {
+            en: "Leaderboards page, details: the full leaderboard (sectors, version, date, your row highlighted) under a “Your position” card, like on the website, then the lap time spread with the matching leaderboard positions. The record holder now comes right after the class, and “Position” and “Top” are merged into one column.",
+            fr: "Page Classements, détail : le classement complet (secteurs, version, date, votre ligne surlignée) sous une carte « Votre position », comme sur le site, puis la répartition des temps avec les places correspondantes. Le pilote du record vient juste après la classe, et « Position » et « Top » ne forment plus qu'une colonne.",
+            es: "Página Clasificaciones, detalle: la clasificación completa (sectores, versión, fecha, tu fila resaltada) bajo una tarjeta «Tu posición», como en la web, y luego el reparto de tiempos con los puestos correspondientes. El piloto del récord aparece justo después de la clase, y «Posición» y «Top» forman una sola columna.",
+            de: "Seite Ranglisten, Details: die komplette Rangliste (Sektoren, Version, Datum, deine Zeile hervorgehoben) unter einer Karte „Deine Position“ wie auf der Website, darunter die Zeitverteilung mit den passenden Platzierungen. Der Rekordhalter steht direkt nach der Klasse, und „Position“ und „Top“ sind zu einer Spalte zusammengefasst.",
+          },
           {
             en: "Leaderboards page: the details of a leaderboard now open with the eye icon at the start of the row, as on the other pages.",
             fr: "Page Classements : le détail d'un classement s'ouvre désormais avec l'icône en forme d'œil en début de ligne, comme sur les autres pages.",

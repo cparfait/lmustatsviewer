@@ -1447,6 +1447,14 @@ export interface CommunityLeaderboard {
     driver: { name: string | null; tag: string; homonym: boolean; country?: string | null; avatar?: string | null };
     car_model: string;
     time: number;
+    car_class?: string;
+    /** Secteurs du meilleur tour (null si le jeu ne les a pas écrits). */
+    s1?: number | null;
+    s2?: number | null;
+    s3?: number | null;
+    /** Version du jeu (« 1.4200 ») et jour de la session (AAAA-MM-JJ). */
+    game_version?: string;
+    played_on?: string;
   }[];
 }
 

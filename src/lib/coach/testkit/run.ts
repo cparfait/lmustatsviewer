@@ -9,9 +9,11 @@ import { run as runPure } from "./suites/pure.suite";
 import { run as runCoach } from "./suites/coach.suite";
 import { run as runSpotter } from "./suites/spotter.suite";
 import { run as runEngineer } from "./suites/engineer.suite";
+import { run as runOhne } from "./suites/ohne.suite";
 
 runPure();
 runCoach();
 runSpotter();
 runEngineer();
+runOhne();
 report();

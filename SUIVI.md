@@ -857,6 +857,38 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-30 — Classements (app) comme le site, niveau ohne_speed corrigé
+
+- 🐛→✅ **Niveau ohne_speed faux** (retour joueur Discord) : (1) `mapTrackName` renvoyait le circuit
+  principal dès que le circuit était connu → toute variante (Bahrain Paddock, Sebring School, Le Mans
+  Mulsanne…) comparée au tracé principal, « Alien » quasi systématique ; désormais `COURSE_MAP`
+  (tracé du jeu → ligne de la feuille), chaque correspondance **vérifiée sur les temps réels** de la
+  base communautaire (record à 100-106 % du hotlap de la bonne ligne) ; tracé absent de la feuille
+  (Spa Endurance) → aucune référence (règle « pas de tracé erroné »). Ajouts : Silverstone GP
+  ELMS/WEC, Paul Ricard ELMS/1A-V2/short, Interlagos, Lusail short. (2) `computeTier` trop généreux
+  d'un cran (« Bon » jusqu'à 104 % exclu) → niveau = premier seuil de la feuille respecté (« Bon » =
+  dans les 102 %) ; Sebring GT3 2:04.556 (103,6 %) = « Peloton ». Suite de tests `ohne.suite.ts` (14).
+- ✅ **Page Classements de l'app** (demandes mainteneur) : nouvel onglet **« Tous les classements »**
+  (toujours visible, même sans OhneSpeed) — une carte par circuit comme l'accueil du site, pilote du
+  record (drapeau + avatar), meilleur tour, S1-S3 (violet = meilleur secteur), pilotes, version ; œil
+  = classement complet ; **clic sur le nom du circuit = classement toutes classes** (tracé le plus
+  roulé, colonne Classe). Détail d'un combo refait comme la page du site : carte « Votre position »,
+  classement complet pleine largeur sans défilement interne (secteurs, version, date), puis la
+  répartition des temps avec une **règle des places** (P1…Pn sous les temps, « VOUS · P16 ») ; version
+  retirée du sous-titre. « Ma position » : pilote du record juste après la classe (drapeau + avatar,
+  emplacements fixes), « Position » et « Top » fusionnés (« 16 / 18 16ᵉ »), jauge « Où vous êtes »
+  conservée ; marge du haut alignée sur les autres pages. Clés `leaderboard.tabAll`, `allTitle`,
+  `allSubtitle`, `colBest`, `colDrivers`, `meTitle`, `lbDriver/lbTime/lbGap/lbDate`, `histPos`,
+  `allClassesTip/Title` ×4 ; `colTop` retirée. Changelog 1.0.9 ×4.
+- 🐛→✅ **Drapeaux et avatars invisibles dans l'app** : le serveur envoyait
+  `Cross-Origin-Resource-Policy: same-origin` (secureHeaders) → images refusées hors du site.
+  `cross-origin` pour `/cflags/*` et `/api/v1/avatar/*` seulement (middleware déclaré avant
+  secureHeaders) ; test ajouté. ⚠️ Nécessite un déploiement serveur.
+- ✅ **Site** : jauge « Où vous êtes » dans la carte « Votre position » d'un classement (clé
+  `me.where` ×4). Assets `?v=48`.
+- 📋 **Prochaine étape** : déployer (`update-from-github.sh`) pour les images dans l'app et la jauge
+  du site ; release 1.0.9.
+
 ### 2026-09-29 — Site communautaire : lisible sur mobile
 
 - 🐛→✅ **Retour mainteneur « illisible sur mobile »**. Constats à 375-390 px : (1) filtres dépliés
@@ -931,9 +963,10 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   droite, vides s'ils manquent) → noms alignés. Assets `?v=46`.
   Puis (retour mainteneur) **pays AVANT l'avatar**, site et app (`DriverMarks` à emplacements fixes
   aussi dans l'app). Assets `?v=47`.
-- ⚠️ Serveur déployé AVANT le correctif « avatar demandé par la 1.0.9 seulement » : un joueur
-  1.0.7/1.0.8 qui se connecte à Steam désormais voit son avatar affiché sans mention dans son app
-  (proposé au mainteneur, en attente).
+- ✅ **Décision mainteneur** : pays et avatar affichés **par défaut pour tous**, sans demander et
+  quelle que soit la version de l'app (pas de restriction à la 1.0.9). Limites de données : pays
+  envoyé seulement par la 1.0.9 ; avatar dès la prochaine connexion Steam (nouveaux joueurs
+  immédiatement ; inscrits : un clic dans la 1.0.9). Anonyme = rien ; retrait possible (réglage).
 - 📋 **Prochaine étape** : (ancienne) déployer le serveur, puis test avec le profil du mainteneur (#7dd4) :
   app en dev → bandeau « Récupérer mon avatar Steam » → vérifier l'avatar sur le site ; puis
   release 1.0.9.

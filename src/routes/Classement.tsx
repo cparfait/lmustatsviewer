@@ -1275,10 +1275,12 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                                 </div>
                               )}
                             </TableCell>
+                            {/* Clic sur la classe : le classement de la classe (comme l'œil) ; le
+                                filtre par classe reste dans la barre de filtres. */}
                             <TableCell
-                              className="cursor-pointer px-2 py-1.5"
-                              title={t("leaderboard.clickFilter")}
-                              onClick={cellFilter(setFClass, fClass, r.combo.car_class)}
+                              className={cn("px-2 py-1.5", r.pos && "cursor-pointer")}
+                              title={r.pos ? (isOpen ? t("leaderboard.hide") : t("leaderboard.details")) : undefined}
+                              onClick={() => r.pos && setOpen(isOpen ? null : key)}
                             >
                               <ClassBadge carClass={r.combo.car_class} size="sm" />
                             </TableCell>

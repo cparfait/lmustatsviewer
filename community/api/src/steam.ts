@@ -135,13 +135,24 @@ async function finishOutcome(
   if (!m || !shapeOk || !(await verify(params).catch(() => false))) return done("invalid");
 
   const steamHash = await steamHashOf(db, m[1]);
+  /**
+   * Avatar affiché par défaut : le SteamID64 est gardé à chaque connexion Steam réussie
+   * (seulement pour lire l'avatar), sauf si le joueur l'a retiré (`avatar_off`).
+   */
+  const keepSteamId = async (installId: string) => {
+    const kept = await db.query(
+      "update installs set steam_id = $2, avatar_checked_at = null where id = $1 and not avatar_off returning 1",
+      [installId, m[1]],
+    );
+    if (kept.length && avatars) await refreshAvatars(db, avatars, [installId]).catch(() => 0);
+  };
   if (row.mode === "avatar") {
     if (!row.install_id) return done("invalid");
     const [own] = await db.query<{ steam_hash: string | null }>("select steam_hash from installs where id = $1", [row.install_id]);
     if (!own || own.steam_hash !== steamHash) return done("other_account");
-    // Le SteamID64 n'est gardé que pour rafraîchir l'avatar (effacé en le retirant).
-    await db.query("update installs set steam_id = $2, avatar_checked_at = null where id = $1", [row.install_id, m[1]]);
-    if (avatars) await refreshAvatars(db, avatars, [row.install_id]).catch(() => 0);
+    // Demande explicite : l'avatar est réactivé s'il avait été retiré.
+    await db.query("update installs set avatar_off = false where id = $1", [row.install_id]);
+    await keepSteamId(row.install_id);
     return done("ok");
   }
   if (row.mode === "link") {
@@ -149,13 +160,18 @@ async function finishOutcome(
     const other = await db.query("select 1 from installs where steam_hash = $1 and id <> $2", [steamHash, row.install_id]);
     if (other.length) return done("taken");
     await db.query("update installs set steam_hash = $2 where id = $1", [row.install_id, steamHash]);
+    await keepSteamId(row.install_id);
     return done("ok");
   }
   // Installation masquée (bannie) comprise : pas de nouvelle installation pour la contourner.
   const [inst] = await db.query<{ id: string }>("select id from installs where steam_hash = $1", [steamHash]);
-  if (inst) return done("ok", inst.id, true);
+  if (inst) {
+    await keepSteamId(inst.id);
+    return done("ok", inst.id, true);
+  }
   if (row.mode === "recover") return done("not_found");
   const created = await registerInstall(db, steamHash);
+  await keepSteamId(created.install_id);
   return done("ok", created.install_id, false);
 }
 
@@ -177,8 +193,9 @@ export async function pollSteam(db: Db, pollId: string) {
   if (row.mode === "link" || row.mode === "avatar") return { status: "ok" as const, mode: row.mode };
   // register / recover : l'app reçoit un jeton neuf (l'ancien, s'il existe, est révoqué).
   const token = randomBytes(32).toString("base64url");
-  const [inst] = await db.query<{ id: string; tag: string; anonymous: boolean; avatar: boolean }>(
-    "update installs set token_hash = $2 where id = $1 returning id, tag, anonymous, steam_id is not null as avatar",
+  const [inst] = await db.query<{ id: string; tag: string; anonymous: boolean; avatar: boolean; avatar_ready: boolean }>(
+    `update installs set token_hash = $2 where id = $1
+     returning id, tag, anonymous, not avatar_off as avatar, steam_id is not null as avatar_ready`,
     [row.install_id, hashToken(token)],
   );
   if (!inst) return { status: "not_found" as const };
@@ -189,8 +206,9 @@ export async function pollSteam(db: Db, pollId: string) {
     tag: inst.tag,
     token,
     anonymous: inst.anonymous,
-    /** Avatar Steam déjà affiché (choix fait sur un autre PC). */
+    /** Avatar voulu (défaut : oui) et déjà disponible (SteamID connu du serveur). */
     avatar: inst.avatar,
+    avatar_ready: inst.avatar_ready,
     /** Installation déjà existante (tours retrouvés) plutôt que créée à l'instant. */
     existing: row.existing,
   };

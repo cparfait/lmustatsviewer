@@ -1344,8 +1344,10 @@ export interface CommunityStatus {
   server: string;
   /** Installation liée à un compte Steam (retrouvable sur un autre PC). */
   steam_linked: boolean;
-  /** Avatar Steam affiché à côté du nom sur les classements (choix du joueur). */
+  /** Avatar Steam voulu à côté du nom sur les classements (défaut : oui). */
   avatar: boolean;
+  /** Avatar disponible côté serveur ; sinon une connexion Steam (un clic) le récupère. */
+  avatar_ready: boolean;
   /** Pays du profil du jeu (« FR »), affiché avec le nom ; null si non renseigné. */
   nationality: string | null;
   /** Non inscrit ici, mais installation de ce PC gardée dans le coffre Windows (repère). */
@@ -1386,8 +1388,8 @@ export const community = {
       "community_steam_poll",
       { pollId },
     ),
-  /** Retire l'avatar Steam des classements (le serveur oublie aussi le SteamID). */
-  avatarOff: () => invoke<CommunityStatus>("community_avatar_off"),
+  /** Affiche (défaut) ou retire l'avatar Steam ; le retirer fait oublier le SteamID au serveur. */
+  setAvatar: (on: boolean) => invoke<CommunityStatus>("community_set_avatar", { on }),
   /** Mes combos locaux (meilleur tour sur le sec par circuit × tracé × classe). */
   myCombos: (filters?: MyCombosFilter) => invoke<MyCombo[]>("community_my_combos", { filters: filters ?? null }),
   /** Lecture publique du service (agrégats). `null` si inconnu (404). */

@@ -73,10 +73,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "added",
         items: [
           {
-            en: "Leaderboards: your country (taken from your game profile) now shows as a flag next to your name, and you can add your Steam avatar (Settings → Community, “Show my avatar”). Neither is shown in anonymous mode; removing the avatar also makes the server forget your Steam ID.",
-            fr: "Classements : votre pays (celui de votre profil dans le jeu) s'affiche en drapeau à côté de votre nom, et vous pouvez ajouter votre avatar Steam (Configuration → Communauté, « Afficher mon avatar »). Ni l'un ni l'autre en mode anonyme ; retirer l'avatar efface aussi votre identifiant Steam du serveur.",
-            es: "Clasificaciones: tu país (el de tu perfil del juego) aparece como bandera junto a tu nombre, y puedes añadir tu avatar de Steam (Configuración → Comunidad, «Mostrar mi avatar»). Nada de ello en modo anónimo; quitar el avatar también borra tu identificador de Steam del servidor.",
-            de: "Ranglisten: Dein Land (aus deinem Spielprofil) erscheint als Flagge neben deinem Namen, und du kannst deinen Steam-Avatar hinzufügen (Einstellungen → Community, „Meinen Avatar zeigen“). Im anonymen Modus nichts davon; das Entfernen des Avatars löscht auch deine Steam-ID vom Server.",
+            en: "Leaderboards: your country (taken from your game profile) shows as a flag next to your name, along with your Steam avatar. Already sharing? One click on the Leaderboards page fetches your avatar. Neither is shown in anonymous mode; you can remove the avatar (Settings → Community), which also makes the server forget your Steam ID.",
+            fr: "Classements : votre pays (celui de votre profil dans le jeu) s'affiche en drapeau à côté de votre nom, avec votre avatar Steam. Vous partagez déjà ? Un clic sur la page Classements récupère votre avatar. Ni l'un ni l'autre en mode anonyme ; vous pouvez retirer l'avatar (Configuration → Communauté), ce qui efface aussi votre identifiant Steam du serveur.",
+            es: "Clasificaciones: tu país (el de tu perfil del juego) aparece como bandera junto a tu nombre, con tu avatar de Steam. ¿Ya compartes? Un clic en la página Clasificaciones recupera tu avatar. Nada de ello en modo anónimo; puedes quitar el avatar (Configuración → Comunidad), lo que también borra tu identificador de Steam del servidor.",
+            de: "Ranglisten: Dein Land (aus deinem Spielprofil) erscheint als Flagge neben deinem Namen, zusammen mit deinem Steam-Avatar. Du teilst bereits? Ein Klick auf der Seite Ranglisten holt deinen Avatar. Im anonymen Modus nichts davon; du kannst den Avatar entfernen (Einstellungen → Community), wodurch auch deine Steam-ID vom Server gelöscht wird.",
           },
         ],
       },

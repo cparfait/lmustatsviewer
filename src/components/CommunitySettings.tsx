@@ -184,27 +184,15 @@ export function CommunitySettings() {
     }
   };
 
-  // Avatar Steam : l'afficher passe par Steam (même compte que celui des tours).
+  // Avatar Steam (affiché par défaut) : le retirer ou le rétablir.
   const toggleAvatar = async (value: boolean) => {
-    if (!value) {
-      setBusy(true);
-      try {
-        setStatus(await community.avatarOff());
-      } catch {
-        toastError(t("community.errNetwork"));
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
+    setBusy(true);
     try {
-      const r = await steam.run("avatar");
-      if (r.status === "ok") toastSuccess(t("community.avatarDone"));
-      else if (r.status !== "cancelled") toastError(steamError(t, r.status));
+      setStatus(await community.setAvatar(value));
     } catch {
-      toastError(t("community.steamFailed"));
+      toastError(t("community.errNetwork"));
     } finally {
-      refresh();
+      setBusy(false);
     }
   };
   const countryName = (code: string | null) => {
@@ -292,14 +280,13 @@ export function CommunitySettings() {
           title={t("community.avatarTitle")}
           desc={`${t("community.avatarDesc")} ${t("community.countryLine", { country: countryName(status.nationality) })}`}
         >
-          <label className="flex items-center gap-2 text-sm font-medium">
-            {t("community.avatarSwitch")}
-            <Switch
-              checked={status.avatar}
-              disabled={busy || steam.waiting || !status.steam_linked || status.anonymous}
-              onCheckedChange={toggleAvatar}
-            />
-          </label>
+          <div className="flex flex-col items-end gap-2">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              {t("community.avatarSwitch")}
+              <Switch checked={status.avatar} disabled={busy || steam.waiting || status.anonymous} onCheckedChange={toggleAvatar} />
+            </label>
+            <AvatarFetch status={status} onDone={refresh} />
+          </div>
         </Row>
       )}
 
@@ -450,6 +437,63 @@ function Teaser({ combo }: { combo: MyCombo | null }) {
         <p className="mt-0.5 text-xs text-muted-foreground">{t("community.teaserCta")}</p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Avatar voulu mais pas encore disponible (installation liée avant la 1.0.9, ou avatar
+ * rétabli) : une connexion Steam, en un clic, le récupère. Rien sinon.
+ */
+export function AvatarFetch({ status, onDone, withDecline = false }: { status: CommunityStatus; onDone: () => void; withDecline?: boolean }) {
+  const { t } = useTranslation();
+  const steam = useSteamLogin();
+  const [busy, setBusy] = useState(false);
+  if (!status.registered || !status.steam_linked || status.anonymous || !status.avatar || status.avatar_ready) return null;
+  const fetchAvatar = async () => {
+    try {
+      const r = await steam.run("avatar");
+      if (r.status === "ok") toastSuccess(t("community.avatarDone"));
+      else if (r.status !== "cancelled") toastError(steamError(t, r.status));
+    } catch {
+      toastError(t("community.steamFailed"));
+    } finally {
+      onDone();
+    }
+  };
+  const decline = async () => {
+    setBusy(true);
+    try {
+      await community.setAvatar(false);
+    } catch {
+      toastError(t("community.errNetwork"));
+    } finally {
+      setBusy(false);
+      onDone();
+    }
+  };
+  if (steam.waiting) {
+    return (
+      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        {t("community.steamWaiting")}
+        <Button size="sm" variant="ghost" onClick={steam.cancel}>
+          {t("community.steamCancel")}
+        </Button>
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-2">
+      <Button size="sm" variant="outline" className="gap-1.5" disabled={busy} onClick={fetchAvatar}>
+        <Link2 className="h-3.5 w-3.5" />
+        {t("community.avatarFetch")}
+      </Button>
+      {withDecline && (
+        <Button size="sm" variant="ghost" disabled={busy} onClick={decline}>
+          {t("community.avatarDecline")}
+        </Button>
+      )}
+    </span>
   );
 }
 

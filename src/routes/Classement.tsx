@@ -31,6 +31,7 @@ import { useAppStore } from "@/stores/app";
 import { TierBadge } from "@/components/TierBadge";
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { References } from "@/routes/References";
+import { AvatarFetch } from "@/components/CommunitySettings";
 
 const RANKED_MIN = 20;
 /** Bloc « performance » teinté + séparateurs, comme les tableaux du tableau de bord. */
@@ -502,6 +503,14 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
           )
         )}
       </div>
+
+      {/* Avatar Steam voulu (défaut) mais pas encore récupéré : un clic, une connexion Steam. */}
+      {status && status.enabled && status.avatar && !status.avatar_ready && status.steam_linked && !status.anonymous && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2 text-sm">
+          <span className="text-muted-foreground">{t("community.avatarPrompt")}</span>
+          <AvatarFetch status={status} withDecline onDone={() => community.status().then(setStatus).catch(() => {})} />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Tile

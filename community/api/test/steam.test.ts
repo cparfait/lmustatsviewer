@@ -188,48 +188,56 @@ describe("Pays et avatar Steam", () => {
     return lb.rows[0].driver;
   };
 
-  test("pays du jeu, avatar sur demande avec le même compte, masqués en anonyme, retirés sur demande", async () => {
+  test("pays du jeu ; avatar affiché dès la connexion Steam, retiré puis rétabli sur demande, masqué en anonyme", async () => {
     const r = await start(ctx, "register");
     await steamReturn(ctx, r.body.url, "76561198000000042");
     const p = await poll(ctx, r.body.poll_id);
+    assert.equal(p.avatar, true);
+    assert.equal(p.avatar_ready, true);
     const token = String(p.token);
     assert.equal((await send(ctx.app, token, [session({}, { time: 85 })])).status, 200);
-    assert.deepEqual(await driver(), { name: "Cris Tof", tag: p.tag, homonym: false, country: null, avatar: null });
+    // Avatar par défaut : lu dès la connexion Steam.
+    assert.deepEqual(asked.at(-1), ["76561198000000042"]);
+    assert.deepEqual(await driver(), { name: "Cris Tof", tag: p.tag, homonym: false, country: null, avatar: AVATAR });
 
-    // Pays : envoyé par l'app, sans toucher à l'anonymat.
+    // Pays : envoyé par l'app, sans toucher au reste.
     assert.equal((await patch(token, { nationality: "fr" })).status, 200);
     assert.equal((await driver()).country, "FR");
     assert.equal((await patch(token, { nationality: "France" })).status, 400);
     assert.equal((await patch(token, {})).status, 400);
 
-    // Avatar : jeton exigé, et seulement avec le compte Steam des tours.
+    // Retirer l'avatar efface aussi le SteamID64 ; une nouvelle connexion Steam le respecte.
+    const off = (await (await patch(token, { avatar: false })).json()) as Record<string, unknown>;
+    assert.equal(off.avatar, false);
+    assert.equal(off.avatar_ready, false);
+    assert.equal((await driver()).avatar, null);
+    const again = await start(ctx, "register");
+    await steamReturn(ctx, again.body.url, "76561198000000042");
+    const p2 = await poll(ctx, again.body.poll_id);
+    assert.equal(p2.avatar, false);
+    const tok2 = String(p2.token);
+    const [row] = await ctx.db.query<{ steam_id: string | null }>("select steam_id from installs where tag = $1", [p.tag]);
+    assert.equal(row.steam_id, null);
+
+    // Le rétablir : voulu tout de suite, disponible après la connexion Steam (même compte).
+    const on = (await (await patch(tok2, { avatar: true })).json()) as Record<string, unknown>;
+    assert.deepEqual([on.avatar, on.avatar_ready], [true, false]);
     assert.equal((await start(ctx, "avatar")).status, 401);
-    const other = await start(ctx, "avatar", token);
+    const other = await start(ctx, "avatar", tok2);
     assert.equal((await steamReturn(ctx, other.body.url, "76561198000000043")).status, 400);
     assert.deepEqual(await poll(ctx, other.body.poll_id), { status: "other_account" });
-    assert.equal((await driver()).avatar, null);
-
-    const mine = await start(ctx, "avatar", token);
+    const mine = await start(ctx, "avatar", tok2);
     assert.equal((await steamReturn(ctx, mine.body.url, "76561198000000042")).status, 200);
     assert.deepEqual(await poll(ctx, mine.body.poll_id), { status: "ok", mode: "avatar" });
-    assert.deepEqual(asked.at(-1), ["76561198000000042"]);
     assert.equal((await driver()).avatar, AVATAR);
-    const me = (await (await ctx.app.request("/api/v1/me", { headers: { authorization: `Bearer ${token}` } })).json()) as Record<string, unknown>;
+    const me = (await (await ctx.app.request("/api/v1/me", { headers: { authorization: `Bearer ${tok2}` } })).json()) as Record<string, unknown>;
     assert.equal(me.steam_id, "76561198000000042");
     assert.equal(me.nationality, "FR");
 
-    // Anonyme : ni pays ni avatar publiés.
-    await patch(token, { anonymous: true });
+    // Anonyme : ni pays ni avatar publiés, ni relayés.
+    await patch(tok2, { anonymous: true });
     assert.deepEqual(await driver(), { name: null, tag: p.tag, homonym: false, country: null, avatar: null });
-    assert.equal((await ctx.app.request(`/api/v1/avatar/${AVATAR}`)).status, 404, "avatar d'un anonyme jamais relayé");
-    await patch(token, { anonymous: false });
-
-    // Retirer l'avatar efface aussi le SteamID64.
-    const off = (await (await patch(token, { avatar: false })).json()) as Record<string, unknown>;
-    assert.equal(off.avatar, false);
-    assert.equal((await driver()).avatar, null);
-    const [row] = await ctx.db.query<{ steam_id: string | null }>("select steam_id from installs where tag = $1", [p.tag]);
-    assert.equal(row.steam_id, null);
+    assert.equal((await ctx.app.request(`/api/v1/avatar/${AVATAR}`)).status, 404);
     assert.equal((await ctx.app.request("/api/v1/avatar/not-a-hash")).status, 404);
   });
 });

@@ -130,6 +130,15 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
         check (mode in ('link', 'recover', 'register', 'avatar'));
     `,
   },
+  {
+    id: 5,
+    name: "avatar_default",
+    sql: `
+      -- Avatar Steam affiché par défaut (décision 2026-09-29) : le SteamID64 est gardé à
+      -- chaque connexion Steam, sauf si le joueur a retiré son avatar.
+      alter table installs add column avatar_off boolean not null default false;
+    `,
+  },
 ];
 
 export async function migrate(db: Db): Promise<number[]> {

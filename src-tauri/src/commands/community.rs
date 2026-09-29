@@ -40,8 +40,12 @@ const K_LAST_ERROR: &str = "community_last_error";
 const K_ANON_PENDING: &str = "community_anon_pending";
 /// Installation liée à un compte Steam (retrouvable sur un autre PC).
 const K_STEAM: &str = "community_steam";
-/// Avatar Steam affiché sur les classements (choix du joueur, via la connexion Steam).
-const K_AVATAR: &str = "community_avatar";
+/// Avatar Steam retiré par le joueur (par défaut : affiché).
+const K_AVATAR_OFF: &str = "community_avatar_off";
+/// Avatar disponible côté serveur (SteamID repris à une connexion Steam).
+const K_AVATAR_READY: &str = "community_avatar_ready";
+/// État du profil (pays, avatar) déjà relu auprès du serveur au moins une fois.
+const K_PROFILE_SYNCED: &str = "community_profile_synced";
 /// Dernier pays du profil du jeu confirmé par le serveur ("" : aucun).
 const K_NATION_SENT: &str = "community_nationality_sent";
 /// Page de connexion Steam : la seule adresse que l'app accepte d'ouvrir pour Steam.
@@ -418,8 +422,10 @@ pub struct CommunityStatus {
     pub server: String,
     /// Installation liée à Steam.
     pub steam_linked: bool,
-    /// Avatar Steam affiché à côté du nom sur les classements.
+    /// Avatar Steam voulu à côté du nom sur les classements (défaut : oui).
     pub avatar: bool,
+    /// Avatar effectivement disponible : sinon, une connexion Steam le récupère.
+    pub avatar_ready: bool,
     /// Pays du profil du jeu (« FR »), affiché avec le nom.
     pub nationality: Option<String>,
     /// Non inscrit ici, mais une installation de ce PC est dans le coffre Windows :
@@ -464,7 +470,8 @@ fn status(db: &DbState) -> Result<CommunityStatus, AppError> {
         last_error: cfg(db, K_LAST_ERROR)?,
         server: cfg(db, K_URL)?.unwrap_or_else(|| DEFAULT_URL.to_string()),
         steam_linked: cfg_bool(db, K_STEAM)?,
-        avatar: cfg_bool(db, K_AVATAR)?,
+        avatar: !cfg_bool(db, K_AVATAR_OFF)?,
+        avatar_ready: cfg_bool(db, K_AVATAR_READY)?,
         nationality: game_nationality(db)?,
         vault_tag,
     })
@@ -507,7 +514,7 @@ fn restore_from_vault(db: &DbState) -> Result<bool, AppError> {
 
 /// Oublie l'identité (base + coffre).
 fn forget_identity(db: &DbState) -> Result<(), AppError> {
-    for k in [K_INSTALL, K_TAG, K_TOKEN, K_STEAM, K_AVATAR, K_NATION_SENT] {
+    for k in [K_INSTALL, K_TAG, K_TOKEN, K_STEAM, K_AVATAR_OFF, K_AVATAR_READY, K_NATION_SENT, K_PROFILE_SYNCED] {
         db::config_set(db, k, "")?;
     }
     vault::clear();
@@ -582,17 +589,31 @@ fn game_nationality(db: &DbState) -> Result<Option<String>, AppError> {
         .and_then(|p| crate::commands::config::read_profile_nationality(std::path::Path::new(&p))))
 }
 
-/// Envoie le pays du profil du jeu s'il a changé depuis le dernier envoi confirmé. Un
-/// échec (hors connexion, serveur pas encore à jour) est retenté à la synchronisation
-/// suivante.
-async fn push_nationality(db: &DbState) -> Result<(), AppError> {
+/// Reprend l'état de l'avatar renvoyé par le serveur (`PATCH /me`, connexion Steam).
+fn apply_avatar(db: &DbState, v: &Value) -> Result<(), AppError> {
+    if let Some(on) = v["avatar"].as_bool() {
+        db::config_set(db, K_AVATAR_OFF, if on { "" } else { "1" })?;
+    }
+    if let Some(ready) = v["avatar_ready"].as_bool() {
+        db::config_set(db, K_AVATAR_READY, if ready { "1" } else { "" })?;
+    }
+    Ok(())
+}
+
+/// Envoie le pays du profil du jeu s'il a changé depuis le dernier envoi confirmé (et, une
+/// première fois, relit l'état de l'avatar). Un échec (hors connexion, serveur pas encore
+/// à jour) est retenté à la synchronisation suivante.
+async fn push_profile(db: &DbState) -> Result<(), AppError> {
     let current = game_nationality(db)?;
-    if cfg(db, K_NATION_SENT)?.unwrap_or_default() == current.clone().unwrap_or_default() {
+    let same = cfg(db, K_NATION_SENT)?.unwrap_or_default() == current.clone().unwrap_or_default();
+    if same && cfg_bool(db, K_PROFILE_SYNCED)? {
         return Ok(());
     }
-    let (code, _) = patch_me(db, json!({ "nationality": current })).await?;
+    let (code, me) = patch_me(db, json!({ "nationality": current })).await?;
     if (200..300).contains(&code) {
         db::config_set(db, K_NATION_SENT, current.as_deref().unwrap_or(""))?;
+        apply_avatar(db, &me)?;
+        db::config_set(db, K_PROFILE_SYNCED, "1")?;
     }
     Ok(())
 }
@@ -635,10 +656,8 @@ async fn enable_inner(db: &DbState, history: bool, anonymous: bool) -> Result<Co
     if let Some(linked) = me["steam_linked"].as_bool() {
         db::config_set(db, K_STEAM, if linked { "1" } else { "" })?;
     }
-    if let Some(avatar) = me["avatar"].as_bool() {
-        db::config_set(db, K_AVATAR, if avatar { "1" } else { "" })?;
-    }
-    let _ = push_nationality(db).await;
+    apply_avatar(db, &me)?;
+    let _ = push_profile(db).await;
     db::config_set(db, K_HISTORY, if history { "1" } else { "0" })?;
     db::config_set(db, K_ENABLED_AT, &now().to_string())?;
     db::config_set(db, K_ENABLED, "1")?;
@@ -702,7 +721,7 @@ async fn delete_inner(db: &DbState) -> Result<CommunityStatus, AppError> {
             return Err(AppError::Internal(format!("serveur : HTTP {code}")));
         }
     }
-    for k in [K_ENABLED, K_ENABLED_AT, K_HISTORY, K_ANON, K_LAST_SENT, K_LAST_ERROR, K_ANON_PENDING, K_AVATAR, K_NATION_SENT] {
+    for k in [K_ENABLED, K_ENABLED_AT, K_HISTORY, K_ANON, K_LAST_SENT, K_LAST_ERROR, K_ANON_PENDING] {
         db::config_set(db, k, "")?;
     }
     forget_identity(db)?;
@@ -712,19 +731,20 @@ async fn delete_inner(db: &DbState) -> Result<CommunityStatus, AppError> {
     status(db)
 }
 
-/// Retire l'avatar Steam des classements (le serveur oublie aussi le SteamID).
+/// Affiche (défaut) ou retire l'avatar Steam des classements. Le retirer fait oublier le
+/// SteamID au serveur ; le rétablir le reprend à la prochaine connexion Steam.
 #[tauri::command]
-pub async fn community_avatar_off(db: State<'_, DbState>) -> Result<CommunityStatus, AppError> {
-    avatar_off_inner(&db).await
+pub async fn community_set_avatar(on: bool, db: State<'_, DbState>) -> Result<CommunityStatus, AppError> {
+    set_avatar_inner(&db, on).await
 }
 
-async fn avatar_off_inner(db: &DbState) -> Result<CommunityStatus, AppError> {
-    match patch_me(db, json!({ "avatar": false })).await?.0 {
-        c if (200..300).contains(&c) => {
-            db::config_set(db, K_AVATAR, "")?;
+async fn set_avatar_inner(db: &DbState, on: bool) -> Result<CommunityStatus, AppError> {
+    match patch_me(db, json!({ "avatar": on })).await? {
+        (c, me) if (200..300).contains(&c) => {
+            apply_avatar(db, &me)?;
             status(db)
         }
-        c => Err(AppError::Internal(format!("serveur : HTTP {c}"))),
+        (c, _) => Err(AppError::Internal(format!("serveur : HTTP {c}"))),
     }
 }
 
@@ -812,10 +832,15 @@ pub async fn community_steam_poll(poll_id: String, db: State<'_, DbState>) -> Re
     if v["mode"].as_str() == Some("link") {
         db::config_set(&db, K_STEAM, "1")?;
         db::config_set(&db, K_LAST_ERROR, "")?;
+        // Le serveur reprend le SteamID à la liaison, sauf avatar retiré.
+        if !cfg_bool(&db, K_AVATAR_OFF)? {
+            db::config_set(&db, K_AVATAR_READY, "1")?;
+        }
         return Ok(SteamPoll { status, ..Default::default() });
     }
     if v["mode"].as_str() == Some("avatar") {
-        db::config_set(&db, K_AVATAR, "1")?;
+        db::config_set(&db, K_AVATAR_OFF, "")?;
+        db::config_set(&db, K_AVATAR_READY, "1")?;
         return Ok(SteamPoll { status, ..Default::default() });
     }
     let (Some(id), Some(tag), Some(tok)) = (v["install_id"].as_str(), v["tag"].as_str(), v["token"].as_str()) else {
@@ -828,7 +853,7 @@ pub async fn community_steam_poll(poll_id: String, db: State<'_, DbState>) -> Re
         .map_err(|e| AppError::Database(e.to_string()))?;
     store_identity(&db, id, tag, tok)?;
     db::config_set(&db, K_STEAM, "1")?;
-    db::config_set(&db, K_AVATAR, if v["avatar"].as_bool() == Some(true) { "1" } else { "" })?;
+    apply_avatar(&db, &v)?;
     db::config_set(&db, K_NATION_SENT, "")?;
     db::config_set(&db, K_ANON, if anonymous { "1" } else { "0" })?;
     db::config_set(&db, K_LAST_ERROR, "")?;
@@ -875,7 +900,7 @@ async fn sync(db: &DbState) -> Result<SyncReport, AppError> {
     }
     let out = sync_inner(db).await;
     if out.as_ref().is_ok_and(|r| r.error.is_none()) {
-        let _ = push_nationality(db).await;
+        let _ = push_profile(db).await;
     }
     SYNCING.store(false, Ordering::SeqCst);
     let report = out?;

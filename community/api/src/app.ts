@@ -285,8 +285,8 @@ export function createApp(db: Db, opts: AppOptions = {}) {
           anonymous: z.boolean().optional(),
           // Pays du profil du jeu (« FR ») ; null = inconnu.
           nationality: z.string().regex(/^[A-Za-z]{2,3}$/).nullable().optional(),
-          // Retirer son avatar Steam (l'afficher passe par la connexion Steam, mode « avatar »).
-          avatar: z.literal(false).optional(),
+          // Avatar Steam affiché (défaut) ou retiré ; false efface aussi le SteamID64.
+          avatar: z.boolean().optional(),
         })
         .strict()
         .refine((b) => Object.keys(b).length > 0)
@@ -296,12 +296,15 @@ export function createApp(db: Db, opts: AppOptions = {}) {
       const { anonymous, nationality, avatar } = body.data;
       if (anonymous !== undefined) await db.query("update installs set anonymous = $2 where id = $1", [id, anonymous]);
       if (nationality !== undefined) await db.query("update installs set nationality = $2 where id = $1", [id, nationality?.toUpperCase() ?? null]);
-      if (avatar === false) await db.query("update installs set steam_id = null, avatar = null, avatar_checked_at = null where id = $1", [id]);
-      const [me] = await db.query<{ anonymous: boolean; avatar: boolean }>(
-        "select anonymous, steam_id is not null as avatar from installs where id = $1",
+      if (avatar === false)
+        await db.query("update installs set avatar_off = true, steam_id = null, avatar = null, avatar_checked_at = null where id = $1", [id]);
+      // Réactiver : le SteamID sera repris à la prochaine connexion Steam (mode « avatar »).
+      if (avatar === true) await db.query("update installs set avatar_off = false where id = $1", [id]);
+      const [me] = await db.query<{ anonymous: boolean; avatar: boolean; avatar_ready: boolean }>(
+        "select anonymous, not avatar_off as avatar, steam_id is not null as avatar_ready from installs where id = $1",
         [id],
       );
-      return c.json({ anonymous: me.anonymous, steam_linked: c.get("install").steam_linked, avatar: me.avatar });
+      return c.json({ anonymous: me.anonymous, steam_linked: c.get("install").steam_linked, avatar: me.avatar, avatar_ready: me.avatar_ready });
     },
   );
 

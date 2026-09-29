@@ -50,7 +50,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Veille concurrents** | **Décidé (2026-09-25)** — on s'inspire des idées et des réglages d'outils concurrents, mais **aucun nom de concurrent dans le code** (identifiants, commentaires, textes UI, changelog) et aucune ligne de leur code reprise. Les analyses restent dans `SUIVI.md` (doc de veille). |
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
-| **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **décochée par défaut** à l'activation (décision 2026-09-27, remplace « cochée » du 2026-09-26). **Connexion Steam obligatoire pour partager** (décision 2026-09-27) : un compte Steam = une installation (ni doublon, ni données orphelines) ; seule une empreinte HMAC du SteamID est stockée. **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. **Pays et avatar (décision 2026-09-29)** : pays = `Nationality` du profil du jeu (comme le nom, non modifiable) ; **avatar Steam sur demande** (case dans l'app, connexion Steam avec le même compte) → seul cas où le **SteamID64 est conservé** (pour rafraîchir l'avatar), effacé quand le joueur retire l'avatar. Ni pays ni avatar publiés en mode anonyme ; images relayées par le serveur (aucune requête des visiteurs vers Steam). |
+| **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **décochée par défaut** à l'activation (décision 2026-09-27, remplace « cochée » du 2026-09-26). **Connexion Steam obligatoire pour partager** (décision 2026-09-27) : un compte Steam = une installation (ni doublon, ni données orphelines) ; seule une empreinte HMAC du SteamID est stockée. **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. **Pays et avatar (décision 2026-09-29)** : pays = `Nationality` du profil du jeu (comme le nom, non modifiable) ; **avatar Steam affiché par défaut** (arbitrage mainteneur, option « 2 » : pas de lecture silencieuse des fichiers Steam du joueur) → le **SteamID64 est conservé** à chaque connexion Steam (seulement pour lire l'avatar), sauf si le joueur retire l'avatar (`avatar_off`, SteamID effacé) ; joueurs déjà inscrits : un clic (connexion Steam) dans l'app 1.0.9 ; « Ce qui part » le mentionne. Ni pays ni avatar publiés en mode anonyme ; images relayées par le serveur (aucune requête des visiteurs vers Steam). |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
 
 ---
@@ -905,9 +905,27 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
     Changelog 1.0.9 (added) ×4.
   - ⚠️ **Ordre de déploiement** : serveur AVANT la sortie de l'app 1.0.9 (un ancien serveur refuse
     le `PATCH /me` du pays → sans gravité, retenté, mais le mode `avatar` échouerait).
-- 📋 **Prochaine étape** : pousser puis `update-from-github.sh` sur le VPS (migration 4 appliquée au
-  démarrage) ; option : créer une clé Steam Web API et la mettre dans `.env` ; tester la case
-  « Afficher mon avatar » depuis l'app ; puis release 1.0.9.
+- ✅ **Déployé** (commit `d1b40f5`, `update-from-github.sh` lancé par le mainteneur) : vérifié en
+  production — assets `?v=44`, `country`/`avatar` présents dans l'API (null tant que la 1.0.9
+  n'envoie rien), `/cflags/*` servis, relais d'avatar refusant une empreinte inconnue (404),
+  accueil mobile à 390 px sans débordement. Compatible avec les apps 1.0.8 / bêta.
+- ℹ️ Clé Steam Web API : existe déjà (projet backlog-killer). À poser à la main dans
+  `~/docker/lmustatsviewer/.env` (`STEAM_API_KEY=`) puis `docker compose up -d api` — jamais
+  dans le dépôt (public). Sans elle, repli sur le profil Steam public (XML).
+- ✅ **Avatar forcé (par défaut)** — demande mainteneur « il faut forcer l'avatar », option 2 retenue
+  (l'option 1, lire `loginusers.vdf` du joueur en silence, écartée : lecture de données de compte
+  Steam sans action du joueur). Serveur : migration 5 `avatar_default` (`installs.avatar_off`) ;
+  SteamID gardé + avatar lu à CHAQUE connexion Steam réussie (register/link/recover/avatar) sauf
+  `avatar_off` ; `PATCH /me {avatar: true|false}` ; réponses `avatar` (voulu) + `avatar_ready`
+  (SteamID connu). Test réécrit (34/34). App : `K_AVATAR_OFF` / `K_AVATAR_READY` /
+  `K_PROFILE_SYNCED` (état relu une fois auprès du serveur via `push_profile`), commande
+  `community_set_avatar(on)` ; `AvatarFetch` (un clic → connexion Steam « avatar ») dans
+  Configuration → Communauté et en bandeau sur la page Classements (avec « Non merci » = retirer).
+  « Ce qui part » (`sent4`) et texte vie privée du site mentionnent pays + avatar ×4. Changelog
+  1.0.9 reformulé ×4. Assets `?v=45`.
+- 📋 **Prochaine étape** : déployer le serveur, puis test avec le profil du mainteneur (#7dd4) :
+  app en dev → bandeau « Récupérer mon avatar Steam » → vérifier l'avatar sur le site ; puis
+  release 1.0.9.
 
 ### 2026-09-28 — Site communautaire : année dans les dates
 

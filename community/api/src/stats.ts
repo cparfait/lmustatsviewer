@@ -95,6 +95,8 @@ interface BestRow {
   anonymous: boolean;
   display_name: string | null;
   homonym: boolean;
+  nationality: string | null;
+  avatar: string | null;
 }
 
 /** Versions disponibles d'un combo, la plus récente d'abord. */
@@ -141,7 +143,7 @@ async function bestPerDriver(db: Db, key: ComboKey, versions: string[], f: Filte
        select distinct on (s.install_id)
          s.install_id, s.car_class, s.best_time, s.car_model, s.s1, s.s2, s.s3, s.game_version,
          s.played_on::text as played_on, s.received_at,
-         i.tag, i.anonymous, i.display_name, i.homonym
+         i.tag, i.anonymous, i.display_name, i.homonym, i.nationality, i.avatar
        from sessions s join installs i on i.id = s.install_id
        where s.track = $1 and s.track_course = $2 ${cls} and s.game_minor = any($${vi}::text[])
          and ${el} ${exclude}
@@ -218,12 +220,18 @@ export async function comboDetail(db: Db, key: ComboKey, f: Filters) {
   };
 }
 
-const driverOf = (r: BestRow) => ({
-  // Anonyme : aucun nom, seulement le repère (« Pilote #a3f9 » côté client, localisé).
+/**
+ * Pilote tel qu'affiché publiquement. Anonyme : aucun nom, pays ni avatar, seulement le
+ * repère (« Pilote #a3f9 » côté client, localisé).
+ */
+export const publicDriver = (r: { anonymous: boolean; display_name: string | null; tag: string; homonym: boolean; nationality: string | null; avatar: string | null }) => ({
   name: r.anonymous ? null : r.display_name,
   tag: r.tag,
   homonym: !r.anonymous && r.homonym,
+  country: r.anonymous ? null : r.nationality,
+  avatar: r.anonymous ? null : r.avatar,
 });
+const driverOf = (r: BestRow) => publicDriver(r);
 
 /**
  * Classement d'un combo (rang « compétition » : ex-æquo au même rang). `name` : ne
@@ -315,6 +323,8 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
     rec_anonymous: boolean;
     rec_name: string | null;
     rec_homonym: boolean;
+    rec_nationality: string | null;
+    rec_avatar: string | null;
     track_drivers: number;
     /** Secteurs du tour record (null si le jeu ne les a pas écrits). */
     s1: number | null;
@@ -328,7 +338,7 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
     `with e as (
        select s.track, s.track_course, s.car_class, s.game_minor, s.install_id, s.best_time, s.car_model,
               s.s1, s.s2, s.s3, s.received_at,
-              i.tag, i.anonymous, i.display_name, i.homonym
+              i.tag, i.anonymous, i.display_name, i.homonym, i.nationality, i.avatar
        from sessions s join installs i on i.id = s.install_id
        where ${el}
      ), latest as (
@@ -352,15 +362,17 @@ export async function comboList(db: Db, f: Filters, version?: string[] | "all" |
             (array_agg(anonymous order by best_time, received_at))[1] as rec_anonymous,
             (array_agg(display_name order by best_time, received_at))[1] as rec_name,
             (array_agg(homonym order by best_time, received_at))[1] as rec_homonym,
+            (array_agg(nationality order by best_time, received_at))[1] as rec_nationality,
+            (array_agg(avatar order by best_time, received_at))[1] as rec_avatar,
             min(s1) as best_s1, min(s2) as best_s2, min(s3) as best_s3
      from b join td on td.track = b.track group by 1, 2, 3
      order by drivers desc, b.track, track_course, car_class`,
     params,
   );
   // Pilote du record, au même format que les lignes du classement (anonymat respecté).
-  return rows.map(({ rec_tag, rec_anonymous, rec_name, rec_homonym, ...c }) => ({
+  return rows.map(({ rec_tag, rec_anonymous, rec_name, rec_homonym, rec_nationality, rec_avatar, ...c }) => ({
     ...c,
-    best_driver: { name: rec_anonymous ? null : rec_name, tag: rec_tag, homonym: !rec_anonymous && rec_homonym },
+    best_driver: publicDriver({ anonymous: rec_anonymous, display_name: rec_name, tag: rec_tag, homonym: rec_homonym, nationality: rec_nationality, avatar: rec_avatar }),
   }));
 }
 
@@ -403,12 +415,12 @@ export async function globalStats(db: Db) {
 /** Pilotes dont le nom contient `q` (insensible à la casse), 20 au plus. */
 export async function searchDrivers(db: Db, q: string) {
   const like = "%" + q.replace(/[\\%_]/g, (c) => "\\" + c) + "%";
-  return db.query<{ name: string; tag: string; homonym: boolean; combos: number }>(
-    `select i.display_name as name, i.tag, i.homonym,
+  return db.query<{ name: string; tag: string; homonym: boolean; country: string | null; avatar: string | null; combos: number }>(
+    `select i.display_name as name, i.tag, i.homonym, i.nationality as country, i.avatar,
             count(distinct (s.track, s.track_course, s.car_class))::int as combos
      from installs i join sessions s on s.install_id = i.id and s.status = 'ok'
      where not i.anonymous and not i.hidden and i.display_name ilike $1
-     group by i.id, i.display_name, i.tag, i.homonym
+     group by i.id, i.display_name, i.tag, i.homonym, i.nationality, i.avatar
      order by lower(i.display_name), i.tag
      limit 20`,
     [like],
@@ -417,8 +429,8 @@ export async function searchDrivers(db: Db, q: string) {
 
 /** Fiche d'un pilote (par son repère) : son rang sur chaque combo, version la plus récente. */
 export async function driverProfile(db: Db, tag: string) {
-  const [inst] = await db.query<{ id: string; name: string; tag: string; homonym: boolean }>(
-    "select id, display_name as name, tag, homonym from installs where tag = $1 and not anonymous and not hidden",
+  const [inst] = await db.query<{ id: string; name: string; tag: string; homonym: boolean; country: string | null; avatar: string | null }>(
+    "select id, display_name as name, tag, homonym, nationality as country, avatar from installs where tag = $1 and not anonymous and not hidden",
     [tag],
   );
   if (!inst) return null;
@@ -451,5 +463,5 @@ export async function driverProfile(db: Db, tag: string) {
     });
   }
   out.sort((a, b) => a.top_pct - b.top_pct);
-  return { name: inst.name, tag: inst.tag, homonym: inst.homonym, combos: out };
+  return { name: inst.name, tag: inst.tag, homonym: inst.homonym, country: inst.country, avatar: inst.avatar, combos: out };
 }

@@ -70,6 +70,17 @@ export const CHANGELOG: ChangelogEntry[] = [
     localized: true,
     sections: [
       {
+        kind: "added",
+        items: [
+          {
+            en: "Leaderboards: your country (taken from your game profile) now shows as a flag next to your name, and you can add your Steam avatar (Settings → Community, “Show my avatar”). Neither is shown in anonymous mode; removing the avatar also makes the server forget your Steam ID.",
+            fr: "Classements : votre pays (celui de votre profil dans le jeu) s'affiche en drapeau à côté de votre nom, et vous pouvez ajouter votre avatar Steam (Configuration → Communauté, « Afficher mon avatar »). Ni l'un ni l'autre en mode anonyme ; retirer l'avatar efface aussi votre identifiant Steam du serveur.",
+            es: "Clasificaciones: tu país (el de tu perfil del juego) aparece como bandera junto a tu nombre, y puedes añadir tu avatar de Steam (Configuración → Comunidad, «Mostrar mi avatar»). Nada de ello en modo anónimo; quitar el avatar también borra tu identificador de Steam del servidor.",
+            de: "Ranglisten: Dein Land (aus deinem Spielprofil) erscheint als Flagge neben deinem Namen, und du kannst deinen Steam-Avatar hinzufügen (Einstellungen → Community, „Meinen Avatar zeigen“). Im anonymen Modus nichts davon; das Entfernen des Avatars löscht auch deine Steam-ID vom Server.",
+          },
+        ],
+      },
+      {
         kind: "fixed",
         items: [
           {

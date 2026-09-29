@@ -609,17 +609,6 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
   .board-bar { flex-direction: column; align-items: flex-start; }
   .board-bar .tbar-right { flex-wrap: wrap; }
   .cg-drivers { display: none; }
-  /* Mobile : l'essentiel sans défilement horizontal (classe, voiture, temps, pilotes). */
-  .cg-table { min-width: 0; }
-  /* Accueil seulement (la fiche pilote a ses propres colonnes). */
-  .cg-table:not(.pf-table) col:nth-child(3), .cg-table col.c-sec, .cg-table col.c-pop, .cg-table col.c-ver, .cg-table:not(.pf-table) col.c-go,
-  .cg-table:not(.pf-table) th:nth-child(3), .cg-table:not(.pf-table) td:nth-child(3),
-  .cg-table:not(.pf-table) th:nth-child(n+5):not(:nth-child(8)), .cg-table:not(.pf-table) td:nth-child(n+5):not(:nth-child(8)) { display: none; }
-  .cg-table col.c-pilot { width: auto; }
-  .cg-table col.c-class { width: 84px; } .cg-table col.c-time { width: 84px; } .cg-table col.c-drv { width: 58px; }
-  .cg-table td, .cg-table th { padding: 5px 6px; }
-  .cg-table thead { display: none; }
-  .cg-table .logo-slot { display: none; }
 }
 
 /* Contribuer : 4 étapes (installer, activer, rouler, comparer). */
@@ -715,12 +704,6 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 .gauge i { position: absolute; top: -6px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.6); }
 @media (max-width: 760px) {
   .profile-id .avatar { width: 44px; height: 44px; font-size: 1.2rem; }
-  .pf-table { min-width: 0; }
-  /* Mobile : classe, voiture, temps, position. */
-  .pf-table col.c-top, .pf-table col.c-where, .pf-table col.c-gap, .pf-table col.c-go,
-  .pf-table th:nth-child(n+5), .pf-table td:nth-child(n+5) { display: none; }
-  .pf-table tr.is-prov td[colspan] { display: table-cell; }
-  .pf-table col.c-class { width: 84px; } .pf-table col.c-time { width: 84px; } .pf-table col.c-rank { width: 70px; }
 }
 
 /* ══ Page de retour « Se connecter avec Steam » (servie par l'API, sans script) ══ */
@@ -742,3 +725,85 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
   letter-spacing: .08em; text-transform: uppercase; color: var(--amber-ink); }
 .cg-table tr.cg-sub:first-child td { border-top: 0; }
 .cg-table tr.cg-sub td span::before { content: "↳ "; opacity: .6; }
+
+/* ══ Mobile (≤ 760 px) : lisible sans zoom ni défilement horizontal ══ */
+.dsearch-btn, .ftoggle { display: none; }
+@media (max-width: 960px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) {
+  /* Recherche de pilote : loupe dans l'en-tête, champ pleine largeur dessous. */
+  .dsearch-btn { display: grid; }
+  .site-header.search-open .dsearch { display: block; position: absolute; left: 16px; right: 16px; top: 68px; z-index: 60; }
+  .site-header.search-open .dsearch .search { width: 100%; min-width: 0; height: 42px; font-size: 16px; box-shadow: var(--shadow); }
+  .site-header.search-open .dsearch-list { left: 0; right: 0; width: auto; top: 48px; }
+  .site-header.search-open .dsearch-btn { border-color: var(--amber); color: var(--amber-ink); }
+}
+@media (max-width: 760px) {
+  /* Filtres repliés derrière « Filtres » (rappel des choix en cours). */
+  .ftoggle { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; margin: 12px 0; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: 600 .88rem var(--font); cursor: pointer; text-align: left; }
+  .ftoggle b { flex: none; }
+  .ftoggle-sum { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-weight: 500; font-size: .82rem; }
+  .ftoggle-chev { flex: none; margin-left: auto; transition: transform .15s var(--ease); }
+  .ftoggle[aria-expanded="true"] .ftoggle-chev { transform: rotate(180deg); }
+  #filters:not(.is-open) .fbar { display: none; }
+  #filters .fbar { margin: 0 0 12px; }
+  .topfilters .filters { flex-wrap: nowrap; }
+  .topfilters .ftoggle { width: auto; flex: 1 1 0; margin: 0; }
+  .topfilters .search { flex: 1 1 0; min-width: 0; max-width: none; font-size: 16px; }
+  .topfilters #filters.is-open { flex-wrap: wrap; }
+  .topfilters #filters.is-open .fbar { order: 3; width: 100%; margin: 0; }
+  /* Chaque liste : libellé à gauche, valeur à droite, pleine largeur (cible tactile). */
+  #filters .fbar .fsel { flex: 1 1 100%; }
+  #filters .fbar .fsel select, #filters .fbar .fmulti-btn { flex: 1 1 auto; max-width: none; font-size: 16px; text-align: left; }
+  #filters .fbar .fsel-k { min-width: 118px; }
+  #filters .fmulti-list { left: 0; right: 0; }
+
+  /* Cartes circuit (accueil, fiche pilote) : une grille par ligne, plus de tableau à colonnes fixes. */
+  .cg-table, .cg-table tbody { display: block; min-width: 0 !important; }
+  .cg-table colgroup, .cg-table thead { display: none; }
+  .cg-table tr { display: grid; align-items: center; }
+  .cg-table tr.cg-sub, .cg-table tr.cg-sub td { display: block; }
+  .cg-table td { display: block; min-width: 0; padding: 6px 8px; border: 0 !important; background: none !important; }
+  .cg-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--text) 2.5%, transparent); }
+  .cg-table tr.row-link + tr.row-link { border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+  .cg-table td.perf { align-self: stretch; display: flex; align-items: center; justify-content: flex-end; background: color-mix(in srgb, #0ea5e9 6%, transparent) !important; }
+  .cg-table .best-t { font-size: .88rem; }
+  .cg-table td.perf + td.perf { justify-content: flex-start; }
+  /* Accueil : classe | pilote du record / voiture | temps | pilotes. */
+  .cg-table:not(.pf-table) tr.row-link { grid-template-columns: 92px minmax(0, 1fr) 84px 46px; grid-template-areas: "cls pilot time drv" "cls car time drv"; }
+  .cg-table:not(.pf-table) td:nth-child(1) { grid-area: cls; }
+  .cg-table:not(.pf-table) td:nth-child(2) { grid-area: pilot; padding-bottom: 0; }
+  .cg-table:not(.pf-table) td:nth-child(3) { grid-area: car; padding-top: 0; font-size: .76rem; color: var(--muted); }
+  .cg-table:not(.pf-table) td:nth-child(3) .car-txt span { font-weight: 500; }
+  .cg-table:not(.pf-table) td:nth-child(4) { grid-area: time; }
+  .cg-table:not(.pf-table) td:nth-child(8) { grid-area: drv; padding-left: 4px; }
+  .cg-table:not(.pf-table) td:nth-child(n+5):not(:nth-child(8)) { display: none; }
+  .cg-table:not(.pf-table) .logo-slot, .cg-table:not(.pf-table) .logo-slot img.brand-img { width: 14px !important; height: 14px !important; }
+  /* Fiche pilote : classe | voiture | temps | position. */
+  .pf-table tr.row-link { grid-template-columns: 92px minmax(0, 1fr) 84px 64px; }
+  .pf-table td:nth-child(n+5) { display: none; }
+  .pf-table td:nth-child(4) { padding-left: 4px; }
+
+  /* Vue Liste : circuit, classe, temps, pilote, pilotes (voiture et version sur la page du classement). */
+  .lb-list th:nth-child(5), .lb-list td:nth-child(5), .lb-list th:nth-child(7), .lb-list td:nth-child(7), .lb-list th:nth-child(8), .lb-list td:nth-child(8) { display: none; }
+  .lb-list td, .lb-list th { padding: 8px 8px; }
+
+  /* Page d'un classement : champs à 16 px (sinon iOS zoome au focus), tableau un peu plus aéré. */
+  .lb-card .lb-actions { width: 100%; }
+  .lb-card .lb-actions .search, .calc input { font-size: 16px; }
+  .lb-dense { font-size: .86rem; }
+  .lb-dense td { padding: 7px 6px; }
+  .lb-dense td.drv { max-width: 44vw; overflow: hidden; text-overflow: ellipsis; }
+  .me-card { gap: 10px 14px; padding: 10px 12px; }
+  .me-card .me-main { min-width: 0; }
+  .me-card .me-side { margin-left: 0; }
+  .crumbs { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* Avatar Steam (sur demande du pilote) et drapeau du pays du profil du jeu. */
+.av { width: 20px; height: 20px; margin-right: 6px; border-radius: 50%; object-fit: cover; vertical-align: -5px; background: var(--bg-3); }
+.cflag { width: 16px; height: 12px; margin-right: 6px; border-radius: 2px; object-fit: cover; vertical-align: -1px; box-shadow: 0 0 0 1px rgba(0,0,0,.14); }
+.cflag-txt { display: inline-block; margin-right: 6px; padding: 0 3px; border: 1px solid var(--border); border-radius: 3px; font-size: .6rem; font-weight: 700; line-height: 1.4; color: var(--muted); vertical-align: 1px; }
+h1 .cflag { width: 28px; height: 21px; margin-right: 10px; border-radius: 3px; vertical-align: 1px; }
+.avatar .av-lg { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.profile-id .avatar:has(.av-lg) { background: none; overflow: hidden; }
+.dsearch-list .av { width: 18px; height: 18px; }

@@ -218,7 +218,7 @@ syncSegs();
 
   // Une ligne par classement (toute la ligne est cliquable).
   function listView(rows) {
-    return `<div class="panel lb-panel"><div class="lb-scroll"><table class="lb">
+    return `<div class="panel lb-panel"><div class="lb-scroll"><table class="lb lb-list">
       <thead><tr><th>${esc(t("col.track"))}</th><th>${esc(t("col.class"))}</th><th>${esc(t("kpi.best"))}</th><th>${esc(t("col.recordDriver"))}</th><th>${esc(t("col.car"))}</th><th>${esc(t("stat.drivers"))}</th><th>${esc(t("col.version"))}</th><th></th></tr></thead>
       <tbody>${rows
         .map(

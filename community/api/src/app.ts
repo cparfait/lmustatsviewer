@@ -31,6 +31,7 @@ import {
   type IngestOptions,
   type Install,
 } from "./ingest.js";
+import { avatarImage, steamAvatarFetcher, type AvatarFetcher } from "./avatar.js";
 import { RateLimiter, type Limit } from "./ratelimit.js";
 import { finishSteam, pickLang, pollSteam, startSteam, steamReturnPage, verifyWithSteam, type SteamVerifier } from "./steam.js";
 import {
@@ -81,6 +82,8 @@ export interface AppOptions {
   publicUrl?: string;
   /** Vérification des connexions Steam (remplacée dans les tests). */
   steamVerify?: SteamVerifier;
+  /** Lecture des avatars Steam (remplacée dans les tests). */
+  steamAvatars?: AvatarFetcher;
   /**
    * Connexion Steam obligatoire pour envoyer des sessions (défaut : oui). Désactivable
    * pour les tests et la pile locale (`REQUIRE_STEAM=0`), jamais en production.
@@ -277,10 +280,28 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     auth,
     limit("writePerInstall", (c) => c.get("install").id),
     async (c) => {
-      const body = z.object({ anonymous: z.boolean() }).strict().safeParse(await c.req.json().catch(() => null));
+      const body = z
+        .object({
+          anonymous: z.boolean().optional(),
+          // Pays du profil du jeu (« FR ») ; null = inconnu.
+          nationality: z.string().regex(/^[A-Za-z]{2,3}$/).nullable().optional(),
+          // Retirer son avatar Steam (l'afficher passe par la connexion Steam, mode « avatar »).
+          avatar: z.literal(false).optional(),
+        })
+        .strict()
+        .refine((b) => Object.keys(b).length > 0)
+        .safeParse(await c.req.json().catch(() => null));
       if (!body.success) return c.json({ error: "bad_request" }, 400);
-      await db.query("update installs set anonymous = $2 where id = $1", [c.get("install").id, body.data.anonymous]);
-      return c.json({ anonymous: body.data.anonymous, steam_linked: c.get("install").steam_linked });
+      const id = c.get("install").id;
+      const { anonymous, nationality, avatar } = body.data;
+      if (anonymous !== undefined) await db.query("update installs set anonymous = $2 where id = $1", [id, anonymous]);
+      if (nationality !== undefined) await db.query("update installs set nationality = $2 where id = $1", [id, nationality?.toUpperCase() ?? null]);
+      if (avatar === false) await db.query("update installs set steam_id = null, avatar = null, avatar_checked_at = null where id = $1", [id]);
+      const [me] = await db.query<{ anonymous: boolean; avatar: boolean }>(
+        "select anonymous, steam_id is not null as avatar from installs where id = $1",
+        [id],
+      );
+      return c.json({ anonymous: me.anonymous, steam_linked: c.get("install").steam_linked, avatar: me.avatar });
     },
   );
 
@@ -292,14 +313,15 @@ export function createApp(db: Db, opts: AppOptions = {}) {
   // ── Se connecter avec Steam (lier / retrouver son installation) ─────────────
   const publicUrl = (opts.publicUrl ?? "https://lmu.cparfait.ovh").replace(/\/$/, "");
   const steamVerify = opts.steamVerify ?? verifyWithSteam;
+  const steamAvatars = opts.steamAvatars ?? steamAvatarFetcher();
 
   v1.post("/steam/start", bodyLimit({ maxSize: 1024 }), limit("steam", clientIp), async (c) => {
     c.header("Cache-Control", "no-store");
-    const body = z.object({ mode: z.enum(["link", "recover", "register"]) }).strict().safeParse(await c.req.json().catch(() => null));
+    const body = z.object({ mode: z.enum(["link", "recover", "register", "avatar"]) }).strict().safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: "bad_request" }, 400);
     let installId: string | null = null;
-    if (body.data.mode === "link") {
-      // Lier : seul le détenteur du jeton peut rattacher son installation à Steam.
+    if (body.data.mode === "link" || body.data.mode === "avatar") {
+      // Lier / afficher l'avatar : seul le détenteur du jeton agit sur son installation.
       const m = /^Bearer ([A-Za-z0-9_-]{20,128})$/.exec(c.req.header("authorization") ?? "");
       const install = m ? await findInstallByToken(db, m[1]) : null;
       if (!install) return c.json({ error: "unauthorized" }, 401);
@@ -310,7 +332,7 @@ export function createApp(db: Db, opts: AppOptions = {}) {
 
   v1.get("/steam/return", async (c) => {
     c.header("Cache-Control", "no-store");
-    const { outcome, mode } = await finishSteam(db, c.req.query(), publicUrl, steamVerify);
+    const { outcome, mode } = await finishSteam(db, c.req.query(), publicUrl, steamVerify, steamAvatars);
     const page = steamReturnPage(outcome, mode, pickLang(c.req.header("accept-language")));
     return c.html(page, outcome === "ok" ? 200 : 400);
   });
@@ -389,6 +411,21 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     return c.json({ drivers: await searchDrivers(db, q.data) });
   });
 
+  // Avatar Steam relayé (les visiteurs ne contactent jamais Steam) ; seulement ceux de la base.
+  v1.get("/avatar/:hash", async (c) => {
+    const retry = limiter.hit(`read:${clientIp(c)}`, limits.read);
+    if (retry != null) {
+      c.header("Retry-After", String(retry));
+      return c.json({ error: "rate_limited" }, 429);
+    }
+    const img = await avatarImage(db, c.req.param("hash")).catch(() => null);
+    if (!img) return c.json({ error: "not_found" }, 404);
+    // L'empreinte change avec l'image : réponse immuable.
+    c.header("Cache-Control", "public, max-age=604800, immutable");
+    c.header("Content-Type", img.type);
+    return c.body(img.body as Uint8Array<ArrayBuffer>);
+  });
+
   v1.get("/drivers/profile", publicRead, async (c) => {
     const tag = z.string().regex(/^#[0-9a-f]{4}$/).safeParse(c.req.query("tag"));
     if (!tag.success) return c.json({ error: "bad_request" }, 400);
@@ -408,6 +445,7 @@ export function createApp(db: Db, opts: AppOptions = {}) {
       for (const p of ["/logos/*", "/flags/*", "/data/*"]) app.use(p, cache, serveStatic({ root: opts.publicDir }));
     }
     app.use("/assets/*", cache);
+    app.use("/cflags/*", cache);
     // Pages HTML : toujours revalidées (une mise à jour du site est visible tout de suite).
     app.use("/*", async (c, next) => {
       await next();

@@ -50,7 +50,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Veille concurrents** | **Décidé (2026-09-25)** — on s'inspire des idées et des réglages d'outils concurrents, mais **aucun nom de concurrent dans le code** (identifiants, commentaires, textes UI, changelog) et aucune ligne de leur code reprise. Les analyses restent dans `SUIVI.md` (doc de veille). |
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
-| **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **décochée par défaut** à l'activation (décision 2026-09-27, remplace « cochée » du 2026-09-26). **Connexion Steam obligatoire pour partager** (décision 2026-09-27) : un compte Steam = une installation (ni doublon, ni données orphelines) ; seule une empreinte HMAC du SteamID est stockée. **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. |
+| **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **décochée par défaut** à l'activation (décision 2026-09-27, remplace « cochée » du 2026-09-26). **Connexion Steam obligatoire pour partager** (décision 2026-09-27) : un compte Steam = une installation (ni doublon, ni données orphelines) ; seule une empreinte HMAC du SteamID est stockée. **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. **Pays et avatar (décision 2026-09-29)** : pays = `Nationality` du profil du jeu (comme le nom, non modifiable) ; **avatar Steam sur demande** (case dans l'app, connexion Steam avec le même compte) → seul cas où le **SteamID64 est conservé** (pour rafraîchir l'avatar), effacé quand le joueur retire l'avatar. Ni pays ni avatar publiés en mode anonyme ; images relayées par le serveur (aucune requête des visiteurs vers Steam). |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
 
 ---
@@ -857,6 +857,58 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-09-29 — Site communautaire : lisible sur mobile
+
+- 🐛→✅ **Retour mainteneur « illisible sur mobile »**. Constats à 375-390 px : (1) filtres dépliés
+  = tout le premier écran (page d'un classement : tableau à ~960 px du haut) ; (2) cartes circuit
+  de l'accueil et de la fiche pilote : `table-layout: fixed` + colonnes masquées + sous-titre de tracé
+  en `colspan` → colonne pilote/voiture écrasée à ~14 px (« L. », « K ») et vide à droite ;
+  (3) `.grid-2 { 1.7fr 1fr }` déclaré APRÈS la media query → histogramme et calculateur côte à côte
+  sur mobile ; (4) recherche de pilote masquée sous 700 px (fonction perdue sur mobile).
+- ✅ **Correctifs** (site seul) : `foldFilterBar` (`site.js`, appelé par `bindFilterBar`) — sous 760 px
+  les filtres se replient derrière un bouton **« Filtres »** qui rappelle les choix en cours (listes
+  « Tous/Toutes » omises), listes pleine largeur ; sur l'accueil, bouton + recherche de circuit sur
+  une ligne. **Loupe** dans l'en-tête (≤ 700 px) : champ de recherche de pilote pleine largeur sous
+  l'en-tête. Cartes circuit en **grille par ligne** (plus de tableau à colonnes fixes) : accueil =
+  classe | pilote du record + voiture (2 lignes) | temps | pilotes ; fiche pilote = classe | voiture |
+  temps | position. Vue Liste : voiture/version/› masquées. `.grid-2` en une colonne ≤ 960 px.
+  Champs à 16 px (évite le zoom iOS au focus). Bureau inchangé (vérifié 1024 px). Clés
+  `f.toggle`, `search.open` ×4. Assets `?v=44`.
+- ✅ Vérifié à 390 px sur les données réelles (accueil, Spa GT3, fiche pilote avec sous-titres de
+  tracé Fuji) : aucun débordement horizontal, classement visible dès le premier écran.
+- ℹ️ Pas d'entrée dans `src/lib/changelog.ts` : changement du site seul.
+- 🐛→✅ Mobile, page d'un classement : nom de pilote long qui chevauchait le logo → tronqué (`…`).
+- ✅ **Pays + avatar Steam des pilotes** (demande mainteneur, arbitrage « pays + avatar », cf. §2) :
+  - **Serveur** : migration 4 `driver_profile` (`installs.nationality`, `steam_id`, `avatar`,
+    `avatar_checked_at` ; mode Steam `avatar`). `PATCH /me` accepte `anonymous`, `nationality`
+    (2-3 lettres), `avatar: false` (efface SteamID + avatar), au moins un champ. Mode Steam
+    `avatar` (jeton requis) : refusé (`other_account`) si le compte n'est pas celui des tours ;
+    sinon SteamID gardé + avatar lu. `avatar.ts` : API Web Steam si `STEAM_API_KEY` (compose +
+    `.env.example`), sinon profil public XML ; rafraîchi ≤ 1×/jour (minuterie horaire dans
+    `index.ts`) ; stocke l'empreinte seule, avatar Steam par défaut ignoré. `GET /api/v1/avatar/:hash`
+    relaie l'image (seulement une empreinte connue d'un pilote non anonyme, cache mémoire, réponse
+    immuable) → CSP inchangée. `publicDriver` (stats.ts) : `country`/`avatar` sur classements,
+    record des combos, recherche, fiche pilote — `null` en anonyme. Export `/me` : pays, SteamID,
+    avatar. Retour Steam : pages « Avatar Steam affiché » / « Autre compte Steam » ×4. Test ajouté
+    (34/34).
+  - **Site** : `driverName` = avatar rond + drapeau + nom ; drapeaux de pays `site/cflags/*.svg`
+    (257 codes ISO, `flag-icons` 7.5.0, licence MIT copiée), nom du pays en info-bulle
+    (`Intl.DisplayNames`), code inconnu → code en texte ; fiche pilote : avatar à la place de
+    l'initiale, drapeau devant le nom ; recherche de pilote aussi. Vérifié sur une API locale
+    PGlite (script jetable supprimé) : mobile + bureau, drapeau inconnu « ZZ » en texte.
+  - **App** : `read_profile_nationality` (config.rs, test Rust) ; `push_nationality` après chaque
+    synchro réussie et à l'activation (envoyé seulement s'il change ; échec = retenté) ;
+    `CommunityStatus.avatar/nationality` ; commande `community_avatar_off` ; Steam `avatar` ;
+    Configuration → Communauté : ligne « Avatar Steam et pays » (interrupteur, pays du jeu en
+    clair, désactivé si anonyme ou non lié à Steam). Page Classements de l'app : avatar + drapeau
+    (`DriverMarks`, images du site). Clés `community.avatar*`, `countryLine`, `countryNone` ×4.
+    Changelog 1.0.9 (added) ×4.
+  - ⚠️ **Ordre de déploiement** : serveur AVANT la sortie de l'app 1.0.9 (un ancien serveur refuse
+    le `PATCH /me` du pays → sans gravité, retenté, mais le mode `avatar` échouerait).
+- 📋 **Prochaine étape** : pousser puis `update-from-github.sh` sur le VPS (migration 4 appliquée au
+  démarrage) ; option : créer une clé Steam Web API et la mettre dans `.env` ; tester la case
+  « Afficher mon avatar » depuis l'app ; puis release 1.0.9.
+
 ### 2026-09-28 — Site communautaire : année dans les dates
 
 - ✅ **Colonne « Date » du classement avec l'année** (retour mainteneur) : `fmtDate` (`site.js`)
@@ -902,6 +954,30 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ **1.0.9 (dev) — Classements** (demande mainteneur, après la bêta) : « Écart au 1er » juste après
   « Votre temps » ; colonne « Version » en dernier (version mineure du classement, `pos.version`) ;
   clé `leaderboard.colVersion` ×4. Changelog ×4.
+- ✅ **Discord réorganisé** (demande mainteneur, hors dépôt) : `#rules` désabonné des annonces
+  Assetto Corsa ; messages du haut réécrits FR 🇫🇷 / EN 🇬🇧 (règlement dans `#rules`, présentation dans
+  `#screenshots`, support sans PHP/V1, modèle de bug avec `.duckdb`, suggestions) ; accueil dans
+  `#welcome` (lecture seule) ; nouveau salon `#🏆｜classements` ; sujets de salon support/bugs/
+  suggestions ; processus d'accueil Discord activé (question de langue → rôles @Français/@English,
+  4 tâches) ; profil du serveur (jeu LMU, particularités, description FR/EN). Doublons à effacer
+  par le mainteneur (bas de `#rules`, `#support`, `#bugs`).
+- ✅ **Discord : salons doublés par langue** (demande mainteneur « tout faire double FR / EN, on
+  choisit sa langue au début ») : catégories 🇫🇷 ACCUEIL / COMMUNAUTÉ / LMU / VOCAL (`#bienvenue`,
+  `#captures` renommés) et 🇬🇧 WELCOME / COMMUNITY / LMU / VOICE (`#welcome`, `#paddock`, `#help`,
+  `#bug-reports`, `#ideas`, `#leaderboards`, `#screenshots`, vocal General), messages épinglés et
+  sujets dans une seule langue. Communs : `#rules` (FR+EN) et `#annonces`. Accueil Discord en mode
+  avancé : question de langue obligatoire, une seule réponse, Français → catégories FR + @Français,
+  English → catégories EN + @English ; salons par défaut = `#rules` + `#annonces` ; message et tâches
+  du guide bilingues. Visibilité par opt-in d'accueil (pas de permissions par rôle : tout reste
+  consultable via « Parcourir les salons »).
+- ✅ **Discord : un bloc par langue, 4 langues de l'app** (demande mainteneur, modèle d'un autre
+  serveur) : catégories `FR · FRANÇAIS`, `EN · ENGLISH`, `ES · ESPAÑOL`, `DE · DEUTSCH` (codes en
+  texte : Windows affiche les drapeaux en lettres « FR/GB » dans les noms), 8 salons chacune au
+  format `emoji・nom` (accueil lecture seule, discussion, support, bugs, idées, classements,
+  captures, vocal). ES/DE : salons créés, messages épinglés + sujets ; rôles @Español/@Deutsch ;
+  `#rules` : 2ᵉ message épinglé ES+DE. Accueil : question « Langue ? Language? ¿Idioma? Sprache? »
+  à 4 réponses (catégorie + rôle) ; message de bienvenue en 4 langues. ⏳ 4 catégories vides
+  (ACCUEIL, LMU, VOCAL, WELCOME) à supprimer par le mainteneur.
 - 📋 **Prochaine étape** : pousser puis `update-from-github.sh` sur le VPS pour mettre le site à jour ;
   retour du joueur sur la bêta, puis release 1.0.9.
 

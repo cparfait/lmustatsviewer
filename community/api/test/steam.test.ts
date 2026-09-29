@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 import { STEAM_OPENID } from "../src/steam.js";
-import { register, send, session, setup } from "./helpers.js";
+import { RA, register, send, session, setup } from "./helpers.js";
 
 type Ctx = Awaited<ReturnType<typeof setup>>;
 const PUBLIC = "https://lmu.test";
@@ -9,7 +9,7 @@ const PUBLIC = "https://lmu.test";
 /** Steam simulé : n'accepte que les assertions marquées valides. */
 const fakeSteam = async (p: Record<string, string>) => p["openid.sig"] === "ok";
 
-async function start(ctx: Ctx, mode: "link" | "recover" | "register", token?: string) {
+async function start(ctx: Ctx, mode: "link" | "recover" | "register" | "avatar", token?: string) {
   const res = await ctx.app.request("/api/v1/steam/start", {
     method: "POST",
     headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
@@ -157,5 +157,79 @@ describe("suppression : le nom revient à l'homonyme suivant", () => {
     const del = await ctx.app.request("/api/v1/me", { method: "DELETE", headers: { authorization: `Bearer ${a.token}` } });
     assert.equal(del.status, 204);
     assert.deepEqual(await search(), [{ ...(await search())[0], tag: b.tag, homonym: false }]);
+  });
+});
+
+describe("Pays et avatar Steam", () => {
+  let ctx: Ctx;
+  const AVATAR = "0123456789abcdef0123456789abcdef01234567";
+  const asked: string[][] = [];
+  before(async () => {
+    ctx = await setup({
+      publicUrl: PUBLIC,
+      steamVerify: fakeSteam,
+      requireSteam: true,
+      steamAvatars: async (ids) => {
+        asked.push(ids);
+        return new Map(ids.map((id) => [id, AVATAR]));
+      },
+    });
+  });
+  after(() => ctx.close());
+
+  const patch = (token: string, body: unknown) =>
+    ctx.app.request("/api/v1/me", {
+      method: "PATCH",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  const driver = async () => {
+    const lb = (await (await ctx.app.request(`/api/v1/combos/leaderboard?${RA}`)).json()) as { rows: { driver: Record<string, unknown> }[] };
+    return lb.rows[0].driver;
+  };
+
+  test("pays du jeu, avatar sur demande avec le même compte, masqués en anonyme, retirés sur demande", async () => {
+    const r = await start(ctx, "register");
+    await steamReturn(ctx, r.body.url, "76561198000000042");
+    const p = await poll(ctx, r.body.poll_id);
+    const token = String(p.token);
+    assert.equal((await send(ctx.app, token, [session({}, { time: 85 })])).status, 200);
+    assert.deepEqual(await driver(), { name: "Cris Tof", tag: p.tag, homonym: false, country: null, avatar: null });
+
+    // Pays : envoyé par l'app, sans toucher à l'anonymat.
+    assert.equal((await patch(token, { nationality: "fr" })).status, 200);
+    assert.equal((await driver()).country, "FR");
+    assert.equal((await patch(token, { nationality: "France" })).status, 400);
+    assert.equal((await patch(token, {})).status, 400);
+
+    // Avatar : jeton exigé, et seulement avec le compte Steam des tours.
+    assert.equal((await start(ctx, "avatar")).status, 401);
+    const other = await start(ctx, "avatar", token);
+    assert.equal((await steamReturn(ctx, other.body.url, "76561198000000043")).status, 400);
+    assert.deepEqual(await poll(ctx, other.body.poll_id), { status: "other_account" });
+    assert.equal((await driver()).avatar, null);
+
+    const mine = await start(ctx, "avatar", token);
+    assert.equal((await steamReturn(ctx, mine.body.url, "76561198000000042")).status, 200);
+    assert.deepEqual(await poll(ctx, mine.body.poll_id), { status: "ok", mode: "avatar" });
+    assert.deepEqual(asked.at(-1), ["76561198000000042"]);
+    assert.equal((await driver()).avatar, AVATAR);
+    const me = (await (await ctx.app.request("/api/v1/me", { headers: { authorization: `Bearer ${token}` } })).json()) as Record<string, unknown>;
+    assert.equal(me.steam_id, "76561198000000042");
+    assert.equal(me.nationality, "FR");
+
+    // Anonyme : ni pays ni avatar publiés.
+    await patch(token, { anonymous: true });
+    assert.deepEqual(await driver(), { name: null, tag: p.tag, homonym: false, country: null, avatar: null });
+    assert.equal((await ctx.app.request(`/api/v1/avatar/${AVATAR}`)).status, 404, "avatar d'un anonyme jamais relayé");
+    await patch(token, { anonymous: false });
+
+    // Retirer l'avatar efface aussi le SteamID64.
+    const off = (await (await patch(token, { avatar: false })).json()) as Record<string, unknown>;
+    assert.equal(off.avatar, false);
+    assert.equal((await driver()).avatar, null);
+    const [row] = await ctx.db.query<{ steam_id: string | null }>("select steam_id from installs where tag = $1", [p.tag]);
+    assert.equal(row.steam_id, null);
+    assert.equal((await ctx.app.request("/api/v1/avatar/not-a-hash")).status, 404);
   });
 });

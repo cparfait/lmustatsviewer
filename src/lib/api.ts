@@ -1344,6 +1344,10 @@ export interface CommunityStatus {
   server: string;
   /** Installation liée à un compte Steam (retrouvable sur un autre PC). */
   steam_linked: boolean;
+  /** Avatar Steam affiché à côté du nom sur les classements (choix du joueur). */
+  avatar: boolean;
+  /** Pays du profil du jeu (« FR »), affiché avec le nom ; null si non renseigné. */
+  nationality: string | null;
   /** Non inscrit ici, mais installation de ce PC gardée dans le coffre Windows (repère). */
   vault_tag: string | null;
 }
@@ -1372,15 +1376,18 @@ export const community = {
   /**
    * Connexion Steam (obligatoire pour partager) : `register` (activer : reprend l'installation
    * du compte Steam ou la crée), `link` (lier l'installation de ce PC), `recover` (retrouver
-   * sans rien créer, pour effacer ses données depuis un autre PC).
+   * sans rien créer, pour effacer ses données depuis un autre PC), `avatar` (afficher son
+   * avatar Steam : même compte que celui des tours).
    */
-  steamStart: (mode: "register" | "link" | "recover") =>
+  steamStart: (mode: "register" | "link" | "recover" | "avatar") =>
     invoke<{ url: string; poll_id: string }>("community_steam_start", { mode }),
   steamPoll: (pollId: string) =>
     invoke<{ status: string; tag: string | null; anonymous: boolean | null; existing: boolean | null }>(
       "community_steam_poll",
       { pollId },
     ),
+  /** Retire l'avatar Steam des classements (le serveur oublie aussi le SteamID). */
+  avatarOff: () => invoke<CommunityStatus>("community_avatar_off"),
   /** Mes combos locaux (meilleur tour sur le sec par circuit × tracé × classe). */
   myCombos: (filters?: MyCombosFilter) => invoke<MyCombo[]>("community_my_combos", { filters: filters ?? null }),
   /** Lecture publique du service (agrégats). `null` si inconnu (404). */
@@ -1434,7 +1441,8 @@ export interface CommunityLeaderboard {
   drivers: number;
   rows: {
     rank: number;
-    driver: { name: string | null; tag: string; homonym: boolean };
+    /** `country` (profil du jeu) et `avatar` (Steam, sur demande) : absents si anonyme. */
+    driver: { name: string | null; tag: string; homonym: boolean; country?: string | null; avatar?: string | null };
     car_model: string;
     time: number;
   }[];

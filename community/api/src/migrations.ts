@@ -114,6 +114,22 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       alter table steam_logins add column existing boolean not null default false;
     `,
   },
+  {
+    id: 4,
+    name: "driver_profile",
+    sql: `
+      -- Pays du profil du jeu (\`Settings.JSON\` → Nationality), envoyé par l'app.
+      alter table installs add column nationality text;
+      -- Avatar Steam, sur demande du joueur uniquement (mode « avatar ») : le SteamID64
+      -- n'est conservé que pour rafraîchir l'avatar, et effacé quand il le retire.
+      alter table installs add column steam_id text unique;
+      alter table installs add column avatar text;
+      alter table installs add column avatar_checked_at timestamptz;
+      alter table steam_logins drop constraint steam_logins_mode_check;
+      alter table steam_logins add constraint steam_logins_mode_check
+        check (mode in ('link', 'recover', 'register', 'avatar'));
+    `,
+  },
 ];
 
 export async function migrate(db: Db): Promise<number[]> {

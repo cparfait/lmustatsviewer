@@ -37,7 +37,7 @@ const I18N = {
     "share.title": "Partager cette page", "share.copy": "Copier le lien", "share.copied": "Lien copié",
     "dry": "Sec", "wet": "Pluie", "aidsClean": "Sans aide au freinage", "aidsAll": "Toutes aides",
     "versions.all": "Toutes", "find.ph": "Trouver un pilote dans ce classement…", "find.none": "Aucun pilote de ce nom sur ce combo.", "find.matches": "Résultats : {n}", "search.ph": "Rechercher un pilote…", "search.none": "Aucun pilote trouvé", "search.combos": "{n} combos", "profile.kicker": "Fiche pilote", "profile.sub": "Son meilleur tour et son rang sur chaque combo (toutes versions)", "profile.none": "Pilote introuvable (il est peut-être anonyme).", "profile.positions": "Ses positions par combo", "profile.k.combos": "Combos roulés", "profile.k.ranked": "Définitifs (20+ pilotes)", "profile.k.records": "Records", "profile.k.podiums": "Podiums", "profile.k.best": "Meilleur classement", "col.where": "Où il se situe", "col.gapFirst": "Écart au 1er", "provisional.short": "provisoire ({n}/20)", "col.track": "Circuit", "col.class": "Classe", "col.rank": "Position", "col.top": "Top",
-    "f.circuit": "Circuit", "f.layout": "Tracé", "f.class": "Classe", "f.car": "Voiture", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aides", "f.all": "Tous", "f.allF": "Toutes", "f.allClasses": "Toutes les classes", "home.allClasses": "Classement du circuit, toutes classes", "f.race": "Course", "f.qualify": "Qualif", "f.practice": "Essais", "f.online": "En ligne", "f.offline": "Hors ligne", "f.latest": "Dernière", "f.several": "Plusieurs",
+    "f.toggle": "Filtres", "search.open": "Rechercher un pilote", "f.circuit": "Circuit", "f.layout": "Tracé", "f.class": "Classe", "f.car": "Voiture", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aides", "f.all": "Tous", "f.allF": "Toutes", "f.allClasses": "Toutes les classes", "home.allClasses": "Classement du circuit, toutes classes", "f.race": "Course", "f.qualify": "Qualif", "f.practice": "Essais", "f.online": "En ligne", "f.offline": "Hors ligne", "f.latest": "Dernière", "f.several": "Plusieurs",
     "anon": "Pilote {tag}", "notFound": "Ce combo n'a encore aucun tour partagé.", "back": "Retour aux circuits", "latest": "actuelle",
   },
   en: {
@@ -73,7 +73,7 @@ const I18N = {
     "share.title": "Share this page", "share.copy": "Copy link", "share.copied": "Link copied",
     "dry": "Dry", "wet": "Wet", "aidsClean": "No braking aid", "aidsAll": "All aids",
     "versions.all": "All", "find.ph": "Find a driver in this leaderboard…", "find.none": "No driver by that name on this combo.", "find.matches": "Results: {n}", "search.ph": "Search a driver…", "search.none": "No driver found", "search.combos": "{n} combos", "profile.kicker": "Driver profile", "profile.sub": "Their best lap and position on each combo (all versions)", "profile.none": "Driver not found (they may be anonymous).", "profile.positions": "Positions by combo", "profile.k.combos": "Combos driven", "profile.k.ranked": "Final (20+ drivers)", "profile.k.records": "Records", "profile.k.podiums": "Podiums", "profile.k.best": "Best standing", "col.where": "Where they stand", "col.gapFirst": "Gap to P1", "provisional.short": "provisional ({n}/20)", "col.track": "Track", "col.class": "Class", "col.rank": "Position", "col.top": "Top",
-    "f.circuit": "Track", "f.layout": "Layout", "f.class": "Class", "f.car": "Car", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aids", "f.all": "All", "f.allF": "All", "f.allClasses": "All classes", "home.allClasses": "Track leaderboard, all classes", "f.race": "Race", "f.qualify": "Qualifying", "f.practice": "Practice", "f.online": "Online", "f.offline": "Offline", "f.latest": "Latest", "f.several": "Several",
+    "f.toggle": "Filters", "search.open": "Search a driver", "f.circuit": "Track", "f.layout": "Layout", "f.class": "Class", "f.car": "Car", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aids", "f.all": "All", "f.allF": "All", "f.allClasses": "All classes", "home.allClasses": "Track leaderboard, all classes", "f.race": "Race", "f.qualify": "Qualifying", "f.practice": "Practice", "f.online": "Online", "f.offline": "Offline", "f.latest": "Latest", "f.several": "Several",
     "anon": "Driver {tag}", "notFound": "No lap has been shared on this combo yet.", "back": "Back to tracks", "latest": "current",
   },
   es: {
@@ -109,7 +109,7 @@ const I18N = {
     "share.title": "Compartir esta página", "share.copy": "Copiar el enlace", "share.copied": "Enlace copiado",
     "dry": "Seco", "wet": "Lluvia", "aidsClean": "Sin ayuda de frenada", "aidsAll": "Todas las ayudas",
     "versions.all": "Todas", "find.ph": "Buscar un piloto en esta clasificación…", "find.none": "Ningún piloto con ese nombre en este combo.", "find.matches": "Resultados: {n}", "search.ph": "Buscar un piloto…", "search.none": "Ningún piloto encontrado", "search.combos": "{n} combos", "profile.kicker": "Ficha del piloto", "profile.sub": "Su mejor vuelta y su posición en cada combo (todas las versiones)", "profile.none": "Piloto no encontrado (quizá sea anónimo).", "profile.positions": "Sus puestos por combinación", "profile.k.combos": "Combinaciones rodadas", "profile.k.ranked": "Definitivas (20+ pilotos)", "profile.k.records": "Récords", "profile.k.podiums": "Podios", "profile.k.best": "Mejor clasificación", "col.where": "Dónde se sitúa", "col.gapFirst": "Diferencia con el 1.º", "provisional.short": "provisional ({n}/20)", "col.track": "Circuito", "col.class": "Clase", "col.rank": "Posición", "col.top": "Top",
-    "f.circuit": "Circuito", "f.layout": "Trazado", "f.class": "Clase", "f.car": "Coche", "f.session": "Sesión", "f.mode": "Modo", "f.version": "Versión", "f.conditions": "Condiciones", "f.aids": "Ayudas", "f.all": "Todos", "f.allF": "Todas", "f.allClasses": "Todas las clases", "home.allClasses": "Clasificación del circuito, todas las clases", "f.race": "Carrera", "f.qualify": "Clasificación", "f.practice": "Libres", "f.online": "En línea", "f.offline": "Sin conexión", "f.latest": "Última", "f.several": "Varias",
+    "f.toggle": "Filtros", "search.open": "Buscar un piloto", "f.circuit": "Circuito", "f.layout": "Trazado", "f.class": "Clase", "f.car": "Coche", "f.session": "Sesión", "f.mode": "Modo", "f.version": "Versión", "f.conditions": "Condiciones", "f.aids": "Ayudas", "f.all": "Todos", "f.allF": "Todas", "f.allClasses": "Todas las clases", "home.allClasses": "Clasificación del circuito, todas las clases", "f.race": "Carrera", "f.qualify": "Clasificación", "f.practice": "Libres", "f.online": "En línea", "f.offline": "Sin conexión", "f.latest": "Última", "f.several": "Varias",
     "anon": "Piloto {tag}", "notFound": "Nadie ha compartido todavía una vuelta en este combo.", "back": "Volver a los circuitos", "latest": "actual",
   },
   de: {
@@ -145,7 +145,7 @@ const I18N = {
     "share.title": "Diese Seite teilen", "share.copy": "Link kopieren", "share.copied": "Link kopiert",
     "dry": "Trocken", "wet": "Regen", "aidsClean": "Ohne Bremshilfe", "aidsAll": "Alle Hilfen",
     "versions.all": "Alle", "find.ph": "Fahrer in dieser Rangliste finden…", "find.none": "Kein Fahrer mit diesem Namen auf dieser Kombo.", "find.matches": "Treffer: {n}", "search.ph": "Fahrer suchen…", "search.none": "Kein Fahrer gefunden", "search.combos": "{n} Kombos", "profile.kicker": "Fahrerprofil", "profile.sub": "Seine beste Runde und Position auf jeder Kombo (alle Versionen)", "profile.none": "Fahrer nicht gefunden (vielleicht anonym).", "profile.positions": "Platzierungen pro Kombination", "profile.k.combos": "Gefahrene Kombos", "profile.k.ranked": "Endgültig (20+ Fahrer)", "profile.k.records": "Rekorde", "profile.k.podiums": "Podien", "profile.k.best": "Beste Platzierung", "col.where": "Wo er steht", "col.gapFirst": "Abstand zu P1", "provisional.short": "vorläufig ({n}/20)", "col.track": "Strecke", "col.class": "Klasse", "col.rank": "Position", "col.top": "Top",
-    "f.circuit": "Strecke", "f.layout": "Variante", "f.class": "Klasse", "f.car": "Auto", "f.session": "Session", "f.mode": "Modus", "f.version": "Version", "f.conditions": "Bedingungen", "f.aids": "Hilfen", "f.all": "Alle", "f.allF": "Alle", "f.allClasses": "Alle Klassen", "home.allClasses": "Rangliste der Strecke, alle Klassen", "f.race": "Rennen", "f.qualify": "Qualifying", "f.practice": "Training", "f.online": "Online", "f.offline": "Offline", "f.latest": "Neueste", "f.several": "Mehrere",
+    "f.toggle": "Filter", "search.open": "Fahrer suchen", "f.circuit": "Strecke", "f.layout": "Variante", "f.class": "Klasse", "f.car": "Auto", "f.session": "Session", "f.mode": "Modus", "f.version": "Version", "f.conditions": "Bedingungen", "f.aids": "Hilfen", "f.all": "Alle", "f.allF": "Alle", "f.allClasses": "Alle Klassen", "home.allClasses": "Rangliste der Strecke, alle Klassen", "f.race": "Rennen", "f.qualify": "Qualifying", "f.practice": "Training", "f.online": "Online", "f.offline": "Offline", "f.latest": "Neueste", "f.several": "Mehrere",
     "anon": "Fahrer {tag}", "notFound": "Auf dieser Kombo wurde noch keine Runde geteilt.", "back": "Zurück zu den Strecken", "latest": "aktuell",
   },
 };
@@ -220,7 +220,12 @@ const carImg = (car) => {
 };
 // Visuel absent : on masque l'image (pas de gestionnaire en ligne, interdit par la CSP).
 document.addEventListener("error", (e) => {
-  if (e.target instanceof HTMLImageElement) e.target.style.visibility = "hidden";
+  const img = e.target;
+  if (!(img instanceof HTMLImageElement)) return;
+  // Drapeau de pays inconnu : son code en texte ; avatar indisponible : retiré.
+  if (img.classList.contains("cflag")) img.replaceWith(Object.assign(document.createElement("span"), { className: "cflag-txt", textContent: img.alt, title: img.title }));
+  else if (img.classList.contains("av")) img.remove();
+  else img.style.visibility = "hidden";
 }, true);
 
 /** Badge de classe (couleurs de l'app). */
@@ -239,7 +244,28 @@ function trackSvg(course, pad = 6) {
   return `<svg viewBox="${-pad} ${-pad} ${200 + 2 * pad} ${200 + 2 * pad}" aria-hidden="true"><path class="track-glow" d="${d}"/><path class="track-line" d="${d}"/>${first ? `<circle class="track-sf" cx="${first[1]}" cy="${first[2]}" r="5"/>` : ""}</svg>`;
 }
 
-const driverName = (d) => (d.name ? esc(d.name) + (d.homonym ? ` <span class="muted">· ${esc(d.tag)}</span>` : "") : `<span class="anon">${esc(t("anon", { tag: d.tag }))}</span>`);
+/** Nom du pays dans la langue du site (« FR » → « France »). */
+function regionName(code) {
+  try {
+    return new Intl.DisplayNames([LANG], { type: "region" }).of(code.toUpperCase()) || code;
+  } catch {
+    return code;
+  }
+}
+/** Drapeau du pays du profil du jeu (« FR ») ; code en texte si le drapeau manque. */
+function countryFlag(code) {
+  if (!code || !/^[A-Za-z]{2,3}$/.test(code)) return "";
+  const file = code.toLowerCase() === "uk" ? "gb" : code.toLowerCase();
+  const name = regionName(code);
+  return `<img class="cflag" src="/cflags/${esc(file)}.svg" alt="${esc(code.toUpperCase())}" title="${esc(name)}" loading="lazy">`;
+}
+/** Avatar Steam (pilotes qui l'ont choisi), relayé par le serveur. */
+const avatarImg = (d, cls = "av") => (d.avatar && /^[0-9a-f]{40}$/.test(d.avatar) ? `<img class="${cls}" src="/api/v1/avatar/${d.avatar}" alt="" loading="lazy">` : "");
+// Anonyme : ni avatar ni pays (le serveur ne les renvoie pas).
+const driverName = (d) =>
+  d.name
+    ? avatarImg(d) + countryFlag(d.country) + esc(d.name) + (d.homonym ? ` <span class="muted">· ${esc(d.tag)}</span>` : "")
+    : `<span class="anon">${esc(t("anon", { tag: d.tag }))}</span>`;
 
 // ── En-tête / pied de page ─────────────────────────────────────────────────
 const COFFEE_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2M14 2v2M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1M6 2v2"/></svg>';
@@ -275,6 +301,7 @@ function chrome() {
       <nav class="nav"><a href="/#tracks">${t("nav.tracks")}</a><a href="/#how">${t("nav.how")}</a></nav>
       <div class="header-actions">
         <div class="dsearch"><input class="search" id="driverSearch" placeholder="${esc(t("search.ph"))}" autocomplete="off"><div class="dsearch-list" id="driverResults" hidden></div></div>
+        <button class="icon-btn dsearch-btn" id="searchBtn" aria-label="${esc(t("search.open"))}" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
         <select class="lang-select" aria-label="Langue">${LANGS.map((l) => `<option value="${l}" ${l === LANG ? "selected" : ""}>${l.toUpperCase()}</option>`).join("")}</select>
         <button class="icon-btn" id="themeBtn" aria-label="Thème">
           <svg class="i-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -291,6 +318,13 @@ function chrome() {
   // Recherche de pilote (les anonymes ne sont jamais trouvables).
   const input = header.querySelector("#driverSearch");
   const list = header.querySelector("#driverResults");
+  // Mobile : la recherche s'ouvre sous l'en-tête depuis la loupe.
+  const searchBtn = header.querySelector("#searchBtn");
+  searchBtn.addEventListener("click", () => {
+    const open = header.classList.toggle("search-open");
+    searchBtn.setAttribute("aria-expanded", String(open));
+    if (open) input.focus();
+  });
   let timer = null;
   input.addEventListener("input", () => {
     clearTimeout(timer);
@@ -300,12 +334,17 @@ function chrome() {
       const res = await api("drivers", { q }).catch(() => null);
       const drivers = res?.drivers ?? [];
       list.innerHTML = drivers.length
-        ? drivers.map((d) => `<a href="/pilote.html?tag=${encodeURIComponent(d.tag)}"><b>${esc(d.name)}</b>${d.homonym ? ` <span class="muted">${esc(d.tag)}</span>` : ""}<span class="muted">${esc(t("search.combos", { n: d.combos }))}</span></a>`).join("")
+        ? drivers.map((d) => `<a href="/pilote.html?tag=${encodeURIComponent(d.tag)}"><b>${avatarImg(d)}${countryFlag(d.country)}${esc(d.name)}</b>${d.homonym ? ` <span class="muted">${esc(d.tag)}</span>` : ""}<span class="muted">${esc(t("search.combos", { n: d.combos }))}</span></a>`).join("")
         : `<span class="muted">${esc(t("search.none"))}</span>`;
       list.hidden = false;
     }, 250);
   });
-  document.addEventListener("click", (e) => { if (!e.target.closest(".dsearch")) list.hidden = true; });
+  document.addEventListener("click", (e) => {
+    if (e.target.closest(".dsearch, #searchBtn")) return;
+    list.hidden = true;
+    header.classList.remove("search-open");
+    searchBtn.setAttribute("aria-expanded", "false");
+  });
   header.querySelector(".lang-select").addEventListener("change", (e) => {
     localStorage.setItem("lmu-lang", e.target.value);
     location.reload();
@@ -366,7 +405,37 @@ function multiFilter(d) {
       </div>
     </div>`;
 }
+/**
+ * Mobile : la barre de filtres se replie derrière un bouton « Filtres » qui rappelle les
+ * choix en cours (les listes « Tous / Toutes » n'y figurent pas). Sans effet sur ordinateur.
+ */
+function foldFilterBar(root) {
+  const bar = root.querySelector(".fbar");
+  if (!bar) return;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "ftoggle";
+  btn.setAttribute("aria-expanded", "false");
+  btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg><b>${esc(t("f.toggle"))}</b><span class="ftoggle-sum"></span><svg class="ftoggle-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+  bar.before(btn);
+  const summary = () => {
+    const parts = [];
+    bar.querySelectorAll(".fsel select").forEach((sel) => {
+      if (sel.value === "" || sel.value === "all") return;
+      parts.push(sel.selectedOptions[0]?.textContent ?? "");
+    });
+    bar.querySelectorAll(".fmulti").forEach((box) => {
+      const all = box.querySelector(".fmulti-list input[value=__all]");
+      if (!all?.checked) parts.push(box.querySelector(".fmulti-btn").textContent);
+    });
+    btn.querySelector(".ftoggle-sum").textContent = [...new Set(parts.filter(Boolean))].join(" · ");
+  };
+  summary();
+  bar.addEventListener("change", summary);
+  btn.addEventListener("click", () => btn.setAttribute("aria-expanded", String(root.classList.toggle("is-open"))));
+}
 function bindFilterBar(root, onChange) {
+  foldFilterBar(root);
   root.querySelectorAll(".fsel select").forEach((sel) => sel.addEventListener("change", () => onChange(sel.dataset.key, sel.value)));
   root.querySelectorAll(".fmulti").forEach((box) => {
     const list = box.querySelector(".fmulti-list");

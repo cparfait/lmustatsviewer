@@ -133,6 +133,16 @@ fn read_profile_name(lmu_path: &std::path::Path) -> Option<String> {
         .filter(|n| !n.trim().is_empty())
 }
 
+/// Pays du profil du jeu (`Settings.JSON`, clé « Nationality », ex. « FR »), en
+/// majuscules ; `None` si absent ou illisible.
+pub(crate) fn read_profile_nationality(lmu_path: &std::path::Path) -> Option<String> {
+    let path = lmu_path.join("UserData").join("player").join("Settings.JSON");
+    let raw = std::fs::read(path).ok()?;
+    let code = json_string_field(&String::from_utf8_lossy(&raw), "Nationality")?;
+    let code = code.trim().to_ascii_uppercase();
+    ((2..=3).contains(&code.len()) && code.chars().all(|c| c.is_ascii_alphabetic())).then_some(code)
+}
+
 /// Valeur texte de `"clé" : "valeur"` (première occurrence), sans échappements.
 fn json_string_field(content: &str, key: &str) -> Option<String> {
     let at = content.find(&format!("\"{key}\""))?;
@@ -334,7 +344,7 @@ fn read_steam_install_path_from_registry() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod player_name_tests {
-    use super::{json_string_field, rank_player_names};
+    use super::{json_string_field, rank_player_names, read_profile_nationality};
 
     fn file(names: &[(&str, bool)]) -> Vec<(String, bool)> {
         names.iter().map(|(n, p)| (n.to_string(), *p)).collect()
@@ -384,5 +394,21 @@ mod player_name_tests {
         assert_eq!(json_string_field(json, "Player Name").as_deref(), Some("Cris Tof"));
         assert_eq!(json_string_field(json, "Player Nick").as_deref(), Some("CT"));
         assert_eq!(json_string_field(json, "Absent"), None);
+    }
+
+    #[test]
+    fn pays_du_profil() {
+        let dir = std::env::temp_dir().join(format!("lmu-nat-{}", std::process::id()));
+        let player = dir.join("UserData").join("player");
+        std::fs::create_dir_all(&player).unwrap();
+        let write = |v: &str| std::fs::write(player.join("Settings.JSON"), format!("{{\"Nationality\": \"{v}\"}}")).unwrap();
+        write("fr");
+        assert_eq!(read_profile_nationality(&dir).as_deref(), Some("FR"));
+        write("");
+        assert_eq!(read_profile_nationality(&dir), None);
+        write("France");
+        assert_eq!(read_profile_nationality(&dir), None);
+        std::fs::remove_dir_all(&dir).ok();
+        assert_eq!(read_profile_nationality(&dir), None);
     }
 }

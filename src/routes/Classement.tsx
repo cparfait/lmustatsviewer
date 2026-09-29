@@ -44,6 +44,37 @@ interface RecordHolder {
   name: string | null;
   tag: string;
   homonym: boolean;
+  country?: string | null;
+  avatar?: string | null;
+}
+
+/**
+ * Avatar Steam (si le pilote l'a choisi) et drapeau du pays de son profil du jeu, servis
+ * par le site communautaire. Rien pour un pilote anonyme (le serveur ne les renvoie pas).
+ */
+function DriverMarks({ d }: { d: { country?: string | null; avatar?: string | null } }) {
+  const country = d.country && /^[A-Za-z]{2,3}$/.test(d.country) ? d.country.toLowerCase() : null;
+  const avatar = d.avatar && /^[0-9a-f]{40}$/.test(d.avatar) ? d.avatar : null;
+  const hide = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.style.display = "none";
+  };
+  return (
+    <>
+      {avatar && (
+        <img src={`${SITE}/api/v1/avatar/${avatar}`} alt="" loading="lazy" onError={hide} className="mr-1.5 inline-block h-4 w-4 rounded-full align-[-3px]" />
+      )}
+      {country && (
+        <img
+          src={`${SITE}/cflags/${country === "uk" ? "gb" : country}.svg`}
+          alt={country.toUpperCase()}
+          title={country.toUpperCase()}
+          loading="lazy"
+          onError={hide}
+          className="mr-1.5 inline-block h-2.5 w-[14px] rounded-[2px] object-cover align-[-1px] ring-1 ring-black/10"
+        />
+      )}
+    </>
+  );
 }
 
 interface Row {
@@ -220,6 +251,7 @@ function ComboDetail({ row, myTag }: { row: Row; myTag?: string | null }) {
                 <tr key={r.rank + r.driver.tag} className={r.driver.name === playerName ? "bg-amber-400/10 font-bold" : ""}>
                   <td className="w-10 py-1 font-mono">{r.rank}</td>
                   <td className="py-1">
+                    <DriverMarks d={r.driver} />
                     {name(r.driver)}
                     {r.driver.name === playerName && ` (${t("leaderboard.you")})`}
                   </td>
@@ -846,6 +878,7 @@ function LeaderCell({ row, myTag }: { row: Row; myTag: string | null }) {
         <span className="font-semibold text-emerald-500">{t("leaderboard.recordYou")}</span>
       ) : l.name ? (
         <span className="block truncate font-medium" title={l.homonym ? `${l.name} · ${l.tag}` : l.name}>
+          <DriverMarks d={l} />
           {l.name}
           {l.homonym && <span className="text-muted-foreground"> · {l.tag}</span>}
         </span>

@@ -184,6 +184,38 @@ export function CommunitySettings() {
     }
   };
 
+  // Avatar Steam : l'afficher passe par Steam (même compte que celui des tours).
+  const toggleAvatar = async (value: boolean) => {
+    if (!value) {
+      setBusy(true);
+      try {
+        setStatus(await community.avatarOff());
+      } catch {
+        toastError(t("community.errNetwork"));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    try {
+      const r = await steam.run("avatar");
+      if (r.status === "ok") toastSuccess(t("community.avatarDone"));
+      else if (r.status !== "cancelled") toastError(steamError(t, r.status));
+    } catch {
+      toastError(t("community.steamFailed"));
+    } finally {
+      refresh();
+    }
+  };
+  const countryName = (code: string | null) => {
+    if (!code) return t("community.countryNone");
+    try {
+      return new Intl.DisplayNames([i18n.language], { type: "region" }).of(code) ?? code;
+    } catch {
+      return code;
+    }
+  };
+
   const linkSteam = async () => {
     try {
       const r = await steam.run("link");
@@ -254,6 +286,22 @@ export function CommunitySettings() {
           </label>
         )}
       </Row>
+
+      {status?.registered && (
+        <Row
+          title={t("community.avatarTitle")}
+          desc={`${t("community.avatarDesc")} ${t("community.countryLine", { country: countryName(status.nationality) })}`}
+        >
+          <label className="flex items-center gap-2 text-sm font-medium">
+            {t("community.avatarSwitch")}
+            <Switch
+              checked={status.avatar}
+              disabled={busy || steam.waiting || !status.steam_linked || status.anonymous}
+              onCheckedChange={toggleAvatar}
+            />
+          </label>
+        </Row>
+      )}
 
       {status?.registered && (
         <Row title={t("community.steamTitle")} desc={status.steam_linked ? t("community.steamLinkedDesc") : t("community.steamDesc")}>
@@ -420,7 +468,7 @@ function useSteamLogin() {
     },
     [],
   );
-  const run = async (mode: "register" | "link" | "recover"): Promise<SteamResult> => {
+  const run = async (mode: "register" | "link" | "recover" | "avatar"): Promise<SteamResult> => {
     stop.current = false;
     setWaiting(true);
     try {
@@ -448,7 +496,13 @@ function useSteamLogin() {
 }
 
 const steamError = (t: (k: string) => string, status: string) =>
-  status === "not_found" ? t("community.steamNotFound") : status === "taken" ? t("community.steamTaken") : t("community.steamFailed");
+  status === "not_found"
+    ? t("community.steamNotFound")
+    : status === "taken"
+      ? t("community.steamTaken")
+      : status === "other_account"
+        ? t("community.avatarOtherAccount")
+        : t("community.steamFailed");
 
 /**
  * Fenêtre d'activation du partage : bénéfice (invitation), ce qui part / ne part jamais,

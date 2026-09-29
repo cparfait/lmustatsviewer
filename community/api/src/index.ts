@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { serve } from "@hono/node-server";
 import pg from "pg";
 import { createApp } from "./app.js";
+import { refreshAvatars, steamAvatarFetcher } from "./avatar.js";
 import { pgDb } from "./db.js";
 import { migrate } from "./migrations.js";
 
@@ -45,7 +46,13 @@ const publicUrl = process.env.PUBLIC_URL;
 // Connexion Steam obligatoire pour envoyer (défaut). `REQUIRE_STEAM=0` : pile locale de test.
 const requireSteam = process.env.REQUIRE_STEAM !== "0";
 
-const server = serve({ fetch: createApp(db, { siteDir, publicDir, stateDir, publicUrl, requireSteam }).fetch, port: PORT, hostname: "0.0.0.0" }, (info) =>
+// Avatars Steam (pilotes qui l'ont demandé) : rafraîchis au plus une fois par jour.
+const avatars = steamAvatarFetcher();
+const tick = () => refreshAvatars(db, avatars).catch((e) => console.log(JSON.stringify({ t: new Date().toISOString(), avatars: String(e) })));
+setInterval(tick, 3_600_000).unref();
+setTimeout(tick, 60_000).unref();
+
+const server = serve({ fetch: createApp(db, { siteDir, publicDir, stateDir, publicUrl, requireSteam, steamAvatars: avatars }).fetch, port: PORT, hostname: "0.0.0.0" }, (info) =>
   console.log(JSON.stringify({ t: new Date().toISOString(), listening: info.port })),
 );
 

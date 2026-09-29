@@ -1,6 +1,6 @@
 // Fiche pilote : son rang sur chaque combo, une carte par circuit (même présentation que
 // l'accueil et que la page Classements de l'app). Un pilote anonyme n'a pas de fiche.
-/* global getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, flagImg, carImg, classBadge, chrome, dataReady */
+/* global avatarImg, countryFlag, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, flagImg, carImg, classBadge, chrome, dataReady */
 "use strict";
 
 const RANKED_MIN = 20;
@@ -35,8 +35,10 @@ chrome();
   document.title = `${p.name} — LMU Stats Viewer`;
   $("head").hidden = false;
   $("bar").hidden = false;
-  $("avatar").textContent = (p.name || "?").trim().charAt(0).toUpperCase();
-  $("name").innerHTML = esc(p.name) + (p.homonym ? ` <span class="muted" style="font-size:1rem">${esc(p.tag)}</span>` : "");
+  // Avatar Steam s'il l'a choisi, sinon son initiale.
+  if (p.avatar) $("avatar").innerHTML = avatarImg(p, "av-lg");
+  else $("avatar").textContent = (p.name || "?").trim().charAt(0).toUpperCase();
+  $("name").innerHTML = countryFlag(p.country) + esc(p.name) + (p.homonym ? ` <span class="muted" style="font-size:1rem">${esc(p.tag)}</span>` : "");
   $("headTag").textContent = p.tag;
 
   // « C'est moi » : ce navigateur épinglera ce pilote en haut des classements.

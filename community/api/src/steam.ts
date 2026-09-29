@@ -16,6 +16,7 @@
  * Retrouver une installation lui remet un NOUVEAU jeton (l'ancien est révoqué).
  */
 import { createHash, createHmac, randomBytes } from "node:crypto";
+import { refreshAvatars, type AvatarFetcher } from "./avatar.js";
 import type { Db } from "./db.js";
 import { hashToken, registerInstall } from "./ingest.js";
 
@@ -31,9 +32,11 @@ const TTL_MS = 10 * 60_000;
  * la crée (un compte Steam = une installation : aucun doublon possible).
  * `recover` : retrouver sans rien créer (supprimer ses données depuis un autre PC).
  * `link` : lier une installation existante (créée avant la connexion obligatoire).
+ * `avatar` : afficher son avatar Steam (sur demande) — le compte doit être celui déjà lié.
  */
-export type SteamMode = "link" | "recover" | "register";
-export type SteamOutcome = "ok" | "not_found" | "taken" | "invalid" | "expired";
+export type SteamMode = "link" | "recover" | "register" | "avatar";
+/** `other_account` : mode « avatar » avec un autre compte Steam que celui des tours. */
+export type SteamOutcome = "ok" | "not_found" | "taken" | "invalid" | "expired" | "other_account";
 
 /** Confirme une assertion auprès de Steam (remplaçable dans les tests). */
 export type SteamVerifier = (params: Record<string, string>) => Promise<boolean>;
@@ -93,9 +96,10 @@ export async function finishSteam(
   query: Record<string, string>,
   publicUrl: string,
   verify: SteamVerifier,
+  avatars?: AvatarFetcher,
 ): Promise<{ outcome: SteamOutcome; mode: SteamMode | null }> {
   const [row] = await db.query<{ mode: SteamMode }>("select mode from steam_logins where state = $1", [query.state ?? ""]);
-  return { outcome: await finishOutcome(db, query, publicUrl, verify), mode: row?.mode ?? null };
+  return { outcome: await finishOutcome(db, query, publicUrl, verify, avatars), mode: row?.mode ?? null };
 }
 
 async function finishOutcome(
@@ -103,6 +107,7 @@ async function finishOutcome(
   query: Record<string, string>,
   publicUrl: string,
   verify: SteamVerifier,
+  avatars?: AvatarFetcher,
 ): Promise<SteamOutcome> {
   const state = query.state ?? "";
   const [row] = await db.query<{ poll_hash: string; mode: SteamMode; install_id: string | null; age_ms: number }>(
@@ -130,6 +135,15 @@ async function finishOutcome(
   if (!m || !shapeOk || !(await verify(params).catch(() => false))) return done("invalid");
 
   const steamHash = await steamHashOf(db, m[1]);
+  if (row.mode === "avatar") {
+    if (!row.install_id) return done("invalid");
+    const [own] = await db.query<{ steam_hash: string | null }>("select steam_hash from installs where id = $1", [row.install_id]);
+    if (!own || own.steam_hash !== steamHash) return done("other_account");
+    // Le SteamID64 n'est gardé que pour rafraîchir l'avatar (effacé en le retirant).
+    await db.query("update installs set steam_id = $2, avatar_checked_at = null where id = $1", [row.install_id, m[1]]);
+    if (avatars) await refreshAvatars(db, avatars, [row.install_id]).catch(() => 0);
+    return done("ok");
+  }
   if (row.mode === "link") {
     if (!row.install_id) return done("invalid");
     const other = await db.query("select 1 from installs where steam_hash = $1 and id <> $2", [steamHash, row.install_id]);
@@ -160,11 +174,11 @@ export async function pollSteam(db: Db, pollId: string) {
   await db.query("delete from steam_logins where poll_hash = $1", [row.poll_hash]);
   if (row.status === "pending") return { status: "expired" as const };
   if (row.status !== "ok" || !row.install_id) return { status: row.status as SteamOutcome };
-  if (row.mode === "link") return { status: "ok" as const, mode: "link" as const };
+  if (row.mode === "link" || row.mode === "avatar") return { status: "ok" as const, mode: row.mode };
   // register / recover : l'app reçoit un jeton neuf (l'ancien, s'il existe, est révoqué).
   const token = randomBytes(32).toString("base64url");
-  const [inst] = await db.query<{ id: string; tag: string; anonymous: boolean }>(
-    "update installs set token_hash = $2 where id = $1 returning id, tag, anonymous",
+  const [inst] = await db.query<{ id: string; tag: string; anonymous: boolean; avatar: boolean }>(
+    "update installs set token_hash = $2 where id = $1 returning id, tag, anonymous, steam_id is not null as avatar",
     [row.install_id, hashToken(token)],
   );
   if (!inst) return { status: "not_found" as const };
@@ -175,6 +189,8 @@ export async function pollSteam(db: Db, pollId: string) {
     tag: inst.tag,
     token,
     anonymous: inst.anonymous,
+    /** Avatar Steam déjà affiché (choix fait sur un autre PC). */
+    avatar: inst.avatar,
     /** Installation déjà existante (tours retrouvés) plutôt que créée à l'instant. */
     existing: row.existing,
   };
@@ -191,7 +207,7 @@ export function pickLang(acceptLanguage: string | undefined): PageLang {
   return "en";
 }
 
-type PageCase = "linked" | "recovered" | "registered" | Exclude<SteamOutcome, "ok">;
+type PageCase = "linked" | "recovered" | "registered" | "avatar" | Exclude<SteamOutcome, "ok">;
 const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Record<PageCase, [string, string]>> = {
   fr: {
     band: "Se connecter avec Steam",
@@ -199,6 +215,8 @@ const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Rec
     cta: "Voir les classements",
     linked: ["Compte Steam lié", "Vous pourrez retrouver vos tours sur un autre PC. Revenez dans LMU Stats Viewer : cet onglet peut être fermé."],
     recovered: ["Tours retrouvés", "Revenez dans LMU Stats Viewer : cet onglet peut être fermé."],
+    avatar: ["Avatar Steam affiché", "Votre avatar Steam apparaît à côté de votre nom dans les classements (sauf en mode anonyme). Revenez dans LMU Stats Viewer : cet onglet peut être fermé."],
+    other_account: ["Autre compte Steam", "Ce compte Steam n'est pas celui lié à vos tours partagés. Reconnectez-vous avec le même compte."],
     registered: ["Connexion Steam réussie", "Revenez dans LMU Stats Viewer : le partage s'active. Cet onglet peut être fermé."],
     not_found: ["Aucun partage lié à ce compte", "Ce compte Steam n'a aucun tour partagé : il n'y a rien à supprimer."],
     taken: ["Compte Steam déjà utilisé", "Ce compte Steam a déjà des tours partagés depuis une autre installation. Dans l'app, supprimez les données de cette installation-ci, puis réactivez le partage : vos tours seront repris."],
@@ -211,6 +229,8 @@ const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Rec
     cta: "See the leaderboards",
     linked: ["Steam account linked", "You will be able to recover your laps on another PC. Go back to LMU Stats Viewer: you can close this tab."],
     recovered: ["Laps recovered", "Go back to LMU Stats Viewer: you can close this tab."],
+    avatar: ["Steam avatar shown", "Your Steam avatar appears next to your name in the leaderboards (except in anonymous mode). Go back to LMU Stats Viewer: you can close this tab."],
+    other_account: ["Different Steam account", "This Steam account is not the one linked to your shared laps. Sign in again with the same account."],
     registered: ["Signed in with Steam", "Go back to LMU Stats Viewer: sharing is being enabled. You can close this tab."],
     not_found: ["No shared laps linked to this account", "This Steam account has no shared laps: there is nothing to delete."],
     taken: ["Steam account already in use", "This Steam account already has laps shared from another installation. In the app, delete this installation's data, then enable sharing again: your laps will be taken back."],
@@ -223,6 +243,8 @@ const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Rec
     cta: "Ver las clasificaciones",
     linked: ["Cuenta de Steam vinculada", "Podrás recuperar tus vueltas en otro PC. Vuelve a LMU Stats Viewer: puedes cerrar esta pestaña."],
     recovered: ["Vueltas recuperadas", "Vuelve a LMU Stats Viewer: puedes cerrar esta pestaña."],
+    avatar: ["Avatar de Steam visible", "Tu avatar de Steam aparece junto a tu nombre en las clasificaciones (salvo en modo anónimo). Vuelve a LMU Stats Viewer: puedes cerrar esta pestaña."],
+    other_account: ["Otra cuenta de Steam", "Esta cuenta de Steam no es la vinculada a tus vueltas compartidas. Vuelve a iniciar sesión con la misma cuenta."],
     registered: ["Sesión de Steam iniciada", "Vuelve a LMU Stats Viewer: el uso compartido se está activando. Puedes cerrar esta pestaña."],
     not_found: ["Ninguna vuelta vinculada a esta cuenta", "Esta cuenta de Steam no tiene vueltas compartidas: no hay nada que borrar."],
     taken: ["Cuenta de Steam ya en uso", "Esta cuenta de Steam ya tiene vueltas compartidas desde otra instalación. En la app, borra los datos de esta instalación y vuelve a activar el uso compartido: se recuperarán tus vueltas."],
@@ -235,6 +257,8 @@ const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Rec
     cta: "Ranglisten ansehen",
     linked: ["Steam-Konto verknüpft", "Du kannst deine Runden auf einem anderen PC wiederfinden. Kehre zu LMU Stats Viewer zurück: Dieser Tab kann geschlossen werden."],
     recovered: ["Runden wiedergefunden", "Kehre zu LMU Stats Viewer zurück: Dieser Tab kann geschlossen werden."],
+    avatar: ["Steam-Avatar sichtbar", "Dein Steam-Avatar erscheint neben deinem Namen in den Ranglisten (außer im anonymen Modus). Kehre zu LMU Stats Viewer zurück: Dieser Tab kann geschlossen werden."],
+    other_account: ["Anderes Steam-Konto", "Dieses Steam-Konto ist nicht das mit deinen geteilten Runden verknüpfte. Melde dich erneut mit demselben Konto an."],
     registered: ["Mit Steam angemeldet", "Kehre zu LMU Stats Viewer zurück: Das Teilen wird aktiviert. Dieser Tab kann geschlossen werden."],
     not_found: ["Keine geteilten Runden mit diesem Konto", "Dieses Steam-Konto hat keine geteilten Runden: Es gibt nichts zu löschen."],
     taken: ["Steam-Konto bereits verwendet", "Dieses Steam-Konto hat bereits Runden von einer anderen Installation geteilt. Lösche in der App die Daten dieser Installation und aktiviere das Teilen erneut: Deine Runden werden übernommen."],
@@ -252,7 +276,8 @@ const ICON_ERR = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" st
  */
 export function steamReturnPage(outcome: SteamOutcome, mode: SteamMode | null, lang: PageLang): string {
   const L = PAGE[lang];
-  const key: PageCase = outcome === "ok" ? (mode === "recover" ? "recovered" : mode === "register" ? "registered" : "linked") : outcome;
+  const key: PageCase =
+    outcome === "ok" ? (mode === "recover" ? "recovered" : mode === "register" ? "registered" : mode === "avatar" ? "avatar" : "linked") : outcome;
   const [title, body] = L[key];
   const ok = outcome === "ok";
   return `<!DOCTYPE html>

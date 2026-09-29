@@ -116,6 +116,8 @@ services:
       DATABASE_URL: postgres://lmu:${POSTGRES_PASSWORD}@db:5432/lmu
       PORT: "3000"
       STATE_DIR: /app/state
+      # Avatars Steam : clé de l'API Web Steam (facultative ; vide = profil public XML).
+      STEAM_API_KEY: ${STEAM_API_KEY:-}
     # Bandeau « mise à jour en cours » : scripts/update.sh y pose maintenance.json.
     volumes:
       - ./state:/app/state:ro

@@ -238,12 +238,19 @@ export async function exportInstall(db: Db, install: Install) {
      from sessions where install_id = $1 order by played_on desc, id desc`,
     [install.id],
   );
+  const [profile] = await db.query<{ nationality: string | null; steam_id: string | null; avatar: string | null }>(
+    "select nationality, steam_id, avatar from installs where id = $1",
+    [install.id],
+  );
   return {
     install_id: install.id,
     tag: install.tag,
     anonymous: install.anonymous,
     display_name: install.display_name,
     homonym: install.homonym,
+    nationality: profile?.nationality ?? null,
+    steam_id: profile?.steam_id ?? null,
+    avatar: profile?.avatar ?? null,
     sessions,
   };
 }

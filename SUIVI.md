@@ -896,8 +896,14 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   écarts recalculés) ; clic sur la classe d'une ligne = son classement. Clés `colRecord`, `noTime`,
   `onlyMine`, `clsFilterOn/Off` ×4 ; `tabAll`, `allTitle`, `allSubtitle`, `colBest`, `colDrivers`
   retirées. Changelog 1.0.9 reformulé ×4.
+- ✅ **Bêta `1.0.9-beta.2`** (demande mainteneur) : build LOCAL non signé (clé de l'updater non
+  chargée → installeur OK, pas de `latest.json` ; test d'installation seulement), version passée à
+  `1.0.9-beta.2` le temps du build puis remise à 1.0.8. ⚠️ Un premier build est sorti numéroté 1.0.8 :
+  `build.rs` ne propage la version qu'APRÈS la lecture de `tauri.conf.json` par la CLI → lancer le
+  build deux fois (ou propager avant) quand on change `version.json`. Installeur :
+  `src-tauri/target/release/bundle/nsis/LMU Stats Viewer_1.0.9-beta.2_x64-setup.exe`.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh`) pour les images dans l'app et la jauge
-  du site ; bêta `1.0.9-beta.2` au mainteneur ; release 1.0.9.
+  du site ; retours sur la bêta 2 ; release 1.0.9.
 
 ### 2026-09-29 — Site communautaire : lisible sur mobile
 

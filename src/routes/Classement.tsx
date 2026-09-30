@@ -88,7 +88,21 @@ interface Row {
   q: Record<string, string>;
   /** Détenteur du meilleur temps du combo (liste `combos` du serveur). */
   leader?: RecordHolder | null;
+  /** Meilleur temps du combo (record, tous pilotes). */
+  record?: number | null;
+  /**
+   * Classement où le joueur n'a pas de temps (même circuit jamais roulé) : affiché pour voir les
+   * meilleurs temps de toutes les classes (`combo.car_model` = voiture du record).
+   */
+  other?: boolean;
 }
+
+/** Ordre des classes de l'app (SUIVI §3.6) ; une classe inconnue passe en dernier. */
+const CLASS_ORDER = [/hyper/i, /lmp2.*elms/i, /lmp2/i, /lmp3/i, /gt3/i, /gte/i];
+const classRank = (c: string) => {
+  const i = CLASS_ORDER.findIndex((re) => re.test(c));
+  return i < 0 ? CLASS_ORDER.length : i;
+};
 
 const recordKey = (track: string, course: string, cls: string) => `${track}|${course}|${cls}`;
 
@@ -248,25 +262,34 @@ type LbRow = CommunityLeaderboard["rows"][number];
  * Détail d'un combo, comme la page d'un classement sur le site : carte « Votre position »,
  * puis le classement complet en pleine largeur (secteurs, version, date ; meilleurs
  * secteurs en violet, votre ligne surlignée), sans défilement interne ; la répartition
- * des temps en dessous. Au-delà de 100 pilotes : les 100 premiers, puis vos voisins.
+ * des temps en dessous. Sans classe (`q.class` absent) : tous les pilotes de toutes les
+ * classes du circuit, colonne Classe en plus.
  */
 function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; myBest: number | null; myRank: number | null; myTag?: string | null }) {
   const { t, i18n } = useTranslation();
   const playerName = useAppStore((s) => s.playerName);
   const [detail, setDetail] = useState<CommunityDetail | null>(null);
   const [lb, setLb] = useState<(LbRow | null)[] | null>(null);
+  /** Classement toutes classes : classe choisie d'un clic sur son badge (null = toutes). */
+  const [cls, setCls] = useState<string | null>(null);
 
   const qKey = JSON.stringify(q);
   useEffect(() => {
     community.get<CommunityDetail>("combos/detail", q).then(setDetail).catch(() => {});
     const rank = myRank ?? 1;
     (async () => {
-      const first = await community.get<CommunityLeaderboard>("combos/leaderboard", { ...q, limit: 100, offset: 0 });
-      const rows: (LbRow | null)[] = [...(first?.rows ?? [])];
-      if (rank > 100) {
-        const near = await community.get<CommunityLeaderboard>("combos/leaderboard", { ...q, limit: 11, offset: Math.max(100, rank - 6) });
-        const nearRows = (near?.rows ?? []).filter((r) => r.rank > 100);
-        if (nearRows.length && nearRows[0].rank > 101) rows.push(null);
+      // Tous les pilotes, page par page (100 par requête, limite du serveur) ; au-delà de
+      // 1000 lignes, vos voisins après un « ⋯ ».
+      const rows: (LbRow | null)[] = [];
+      for (let offset = 0; offset < 1000; offset += 100) {
+        const page = await community.get<CommunityLeaderboard>("combos/leaderboard", { ...q, limit: 100, offset });
+        rows.push(...(page?.rows ?? []));
+        if (!page || page.rows.length < 100) break;
+      }
+      if (rank > rows.length && rows.length >= 1000) {
+        const near = await community.get<CommunityLeaderboard>("combos/leaderboard", { ...q, limit: 11, offset: Math.max(1000, rank - 6) });
+        const nearRows = (near?.rows ?? []).filter((r) => r.rank > 1000);
+        if (nearRows.length && nearRows[0].rank > 1001) rows.push(null);
         rows.push(...nearRows);
       }
       setLb(rows);
@@ -276,7 +299,14 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
   }, [qKey, myRank]);
 
   const isMe = (r: LbRow) => (myTag ? r.driver.tag === myTag : !!playerName && r.driver.name === playerName);
-  const rows = (lb ?? []).filter((r): r is LbRow => !!r);
+  const all = (lb ?? []).filter((r): r is LbRow => !!r);
+  // Filtre par classe : places et écarts recalculés dans la classe (ex-æquo au même rang).
+  const rows = cls
+    ? all
+        .filter((r) => r.car_class === cls)
+        .map((r, _i, same) => ({ ...r, rank: same.filter((x) => x.time < r.time).length + 1 }))
+    : all;
+  const list: (LbRow | null)[] | null = lb === null ? null : cls ? rows : lb;
   const me = rows.find(isMe) ?? null;
   const best = rows[0]?.time ?? null;
   // Meilleur secteur du classement (violet), comme sur le site.
@@ -314,7 +344,7 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
         <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-lg border-2 border-primary bg-primary/10 px-4 py-2.5">
           <span className="font-extrabold tracking-tight text-primary">
             <span className="text-3xl">{me.rank}</span>
-            {detail && <span className="text-sm text-muted-foreground"> / {detail.drivers}</span>}
+            {(cls || detail) && <span className="text-sm text-muted-foreground"> / {cls ? rows.length : detail!.drivers}</span>}
           </span>
           <span className="min-w-0">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.meTitle")}</span>
@@ -336,6 +366,17 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
         </div>
       )}
 
+      {cls && (
+        <button
+          type="button"
+          onClick={() => setCls(null)}
+          className="inline-flex items-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold"
+          title={t("leaderboard.clsFilterOff")}
+        >
+          {t("leaderboard.colClass")} : <ClassBadge carClass={cls} size="sm" />
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
       <div className="overflow-x-auto rounded-md border border-border/60 bg-card">
         <table className="w-full min-w-[900px] text-xs">
           <thead className="bg-muted text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -361,7 +402,7 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
                 </td>
               </tr>
             )}
-            {lb?.map((r, i) =>
+            {list?.map((r, i) =>
               r === null ? (
                 <tr key={`gap${i}`}>
                   <td colSpan={cols} className="py-0.5 text-center text-muted-foreground">⋯</td>
@@ -382,7 +423,17 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
                     </span>
                   </td>
                   {allClasses && (
-                    <td className="px-2 py-1.5">{r.car_class ? <ClassBadge carClass={r.car_class} size="sm" /> : "—"}</td>
+                    <td className="px-2 py-1.5">
+                      {r.car_class ? (
+                        <Tip content={cls ? t("leaderboard.clsFilterOff") : t("leaderboard.clsFilterOn")}>
+                          <button type="button" onClick={() => setCls(cls === r.car_class ? null : r.car_class!)} className="cursor-pointer">
+                            <ClassBadge carClass={r.car_class} size="sm" />
+                          </button>
+                        </Tip>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                   )}
                   <td className="px-2 py-1.5">
                     <span className="flex min-w-0 items-center gap-1.5">
@@ -452,16 +503,14 @@ export function Classement() {
   const { t } = useTranslation();
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
   const [params, setParams] = useSearchParams();
-  const asked = params.get("tab");
-  const tab = asked === "all" ? "all" : showOhneSpeed && asked === "references" ? "references" : "position";
-  const setTab = (v: "position" | "all" | "references") => setParams(v === "position" ? {} : { tab: v }, { replace: true });
-  const tabs = showOhneSpeed ? (["position", "all", "references"] as const) : (["position", "all"] as const);
+  const tab = showOhneSpeed && params.get("tab") === "references" ? "references" : "position";
+  const setTab = (v: "position" | "references") => setParams(v === "references" ? { tab: v } : {}, { replace: true });
 
   return (
     <div className="flex flex-col gap-4">
-      {(
+      {showOhneSpeed && (
         <div className="inline-flex rounded-lg border border-border/60 bg-card p-1">
-          {tabs.map((v) => (
+          {(["position", "references"] as const).map((v) => (
             <button
               key={v}
               type="button"
@@ -470,338 +519,12 @@ export function Classement() {
                 tab === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t(v === "position" ? "leaderboard.tabMine" : v === "all" ? "leaderboard.tabAll" : "leaderboard.tabRefs")}
+              {t(v === "position" ? "leaderboard.tabMine" : "leaderboard.tabRefs")}
             </button>
           ))}
         </div>
       )}
-      {tab === "references" ? <References /> : tab === "all" ? <AllLeaderboards /> : <MyPosition showOhne={showOhneSpeed} />}
-    </div>
-  );
-}
-
-/** Classement du serveur (liste `combos`), tel que renvoyé par l'API. */
-interface ServerCombo {
-  track: string;
-  track_course: string;
-  car_class: string;
-  version: string;
-  drivers: number;
-  best: number;
-  best_car: string;
-  best_driver?: RecordHolder | null;
-  track_drivers?: number;
-  s1: number | null;
-  s2: number | null;
-  s3: number | null;
-  best_s1: number | null;
-  best_s2: number | null;
-  best_s3: number | null;
-}
-
-/** Ordre des classes de l'app (SUIVI §3.6) ; une classe inconnue passe en dernier. */
-const CLASS_ORDER = [/hyper/i, /lmp2.*elms/i, /lmp2/i, /lmp3/i, /gt3/i, /gte/i];
-const classRank = (c: string) => {
-  const i = CLASS_ORDER.findIndex((re) => re.test(c));
-  return i < 0 ? CLASS_ORDER.length : i;
-};
-
-/**
- * Onglet « Tous les classements » : tous les classements de la communauté, comme
- * l'accueil du site (une carte par circuit, une ligne par tracé × classe, pilote du
- * record avec drapeau et avatar). L'œil ouvre le classement complet ; votre ligne y est
- * surlignée si vous avez un temps sur ce combo.
- */
-function AllLeaderboards() {
-  const { t } = useTranslation();
-  const [combos, setCombos] = useState<ServerCombo[] | null>(null);
-  const [offline, setOffline] = useState(false);
-  const [mine, setMine] = useState<Map<string, MyCombo>>(new Map());
-  const [myTag, setMyTag] = useState<string | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
-  /** Circuit dont le classement toutes classes est ouvert (clic sur son nom). */
-  const [openTrack, setOpenTrack] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [fTrack, setFTrack] = useState("");
-  const [fClass, setFClass] = useState("");
-
-  useEffect(() => {
-    if (!isTauri()) return;
-    let cancelled = false;
-    community
-      .get<{ combos: ServerCombo[] }>("combos")
-      .then((r) => !cancelled && setCombos(r?.combos ?? []))
-      .catch(() => !cancelled && (setOffline(true), setCombos([])));
-    community
-      .myCombos()
-      .then((list) => !cancelled && setMine(new Map(list.map((c) => [recordKey(c.track, c.track_course, c.car_class), c]))))
-      .catch(() => {});
-    community
-      .status()
-      .then((s) => !cancelled && setMyTag(s.registered ? s.tag : null))
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const options = useMemo(() => {
-    const uniq = (xs: string[]) => [...new Set(xs)];
-    return {
-      tracks: uniq((combos ?? []).map((c) => c.track)).sort((a, b) => a.localeCompare(b)),
-      classes: uniq((combos ?? []).map((c) => c.car_class)).sort((a, b) => classRank(a) - classRank(b) || a.localeCompare(b)),
-    };
-  }, [combos]);
-
-  // Une carte par circuit (le plus roulé d'abord) ; dans un circuit, le tracé principal
-  // d'abord puis les autres, et les classes dans l'ordre de l'app.
-  const groups = useMemo(() => {
-    const m = new Map<string, ServerCombo[]>();
-    for (const c of combos ?? []) {
-      if ((fTrack && c.track !== fTrack) || (fClass && c.car_class !== fClass)) continue;
-      m.set(c.track, [...(m.get(c.track) ?? []), c]);
-    }
-    return [...m.entries()]
-      .map(([track, list]) => {
-        const sorted = [...list].sort(
-          (a, b) =>
-            Number(b.track_course === track) - Number(a.track_course === track) ||
-            a.track_course.localeCompare(b.track_course) ||
-            classRank(a.car_class) - classRank(b.car_class),
-        );
-        const total = !fClass && list[0].track_drivers != null ? list[0].track_drivers : list.reduce((s, c) => s + c.drivers, 0);
-        return { track, list: sorted, total };
-      })
-      .sort((a, b) => b.total - a.total);
-  }, [combos, fTrack, fClass]);
-
-  if (combos === null) {
-    return (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        {t("leaderboard.loading")}
-      </p>
-    );
-  }
-  if (offline) return <p className="text-sm text-muted-foreground">{t("leaderboard.offline")}</p>;
-
-  const sec = (v: number | null, bestV: number | null) => (
-    <span className={cn(v != null && v === bestV ? "font-bold text-violet-600 dark:text-violet-400" : "text-muted-foreground")}>
-      {v != null ? v.toFixed(3) : "—"}
-    </span>
-  );
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {t("leaderboard.allTitle")} <span className="text-primary">{t("leaderboard.titleAccent")}</span>
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("leaderboard.allSubtitle", { count: combos.length })}</p>
-      </div>
-      <Card>
-        <CardContent className="flex flex-wrap items-center gap-2 p-3">
-          <FilterField
-            icon={Flag}
-            label={t("sessions.fCircuit")}
-            value={fTrack}
-            onChange={setFTrack}
-            options={[{ value: "", label: t("sessions.allTracks") }, ...options.tracks.map((v) => ({ value: v, label: v }))]}
-          />
-          <FilterField
-            icon={Tag}
-            label={t("sessions.fClass")}
-            value={fClass}
-            onChange={setFClass}
-            options={[{ value: "", label: t("leaderboard.filterAll") }, ...options.classes.map((v) => ({ value: v, label: v }))]}
-          />
-          {(fTrack || fClass) && (
-            <Button size="sm" variant="ghost" className="gap-1" onClick={() => (setFTrack(""), setFClass(""))}>
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      {groups.length === 0 && <p className="text-sm text-muted-foreground">{t("leaderboard.noMatch")}</p>}
-      {groups.map(({ track, list, total }) => {
-        const isCollapsed = collapsed.has(track);
-        const withCourses = new Set(list.map((c) => c.track_course)).size > 1 || list[0].track_course !== track;
-        // Classement toutes classes du circuit : son tracé le plus roulé (comme le site).
-        const byCourse = new Map<string, number>();
-        for (const c of list) byCourse.set(c.track_course, (byCourse.get(c.track_course) ?? 0) + c.drivers);
-        const mainCourse = [...byCourse.entries()].sort((a, b) => b[1] - a[1])[0][0];
-        const trackOpen = openTrack === track;
-        return (
-          <Card key={track} className="overflow-hidden">
-            <div
-              className="group flex cursor-pointer items-center gap-2 bg-primary/30 px-3 py-1.5 transition-colors hover:bg-primary/40 dark:bg-primary/25"
-              onClick={() =>
-                setCollapsed((s) => {
-                  const n = new Set(s);
-                  if (n.has(track)) n.delete(track);
-                  else n.add(track);
-                  return n;
-                })
-              }
-            >
-              <ChevronDown className={cn("h-3.5 w-3.5 text-yellow-700 transition-transform dark:text-yellow-300", isCollapsed && "-rotate-90")} />
-              <TrackFlag track={track} className="h-3.5 w-auto rounded-[2px] shadow-sm ring-1 ring-black/20" />
-              <Tip content={t("leaderboard.allClassesTip")}>
-                <button
-                  type="button"
-                  onClick={(e) => (e.stopPropagation(), setOpenTrack(trackOpen ? null : track))}
-                  aria-expanded={trackOpen}
-                  className={cn(
-                    "rounded px-1 text-xs font-semibold uppercase tracking-[0.12em] text-yellow-700 hover:underline dark:text-yellow-300",
-                    trackOpen && "bg-primary text-primary-foreground no-underline dark:text-primary-foreground",
-                  )}
-                >
-                  {track}
-                </button>
-              </Tip>
-              <span className="rounded-full bg-primary/20 px-1.5 py-0 text-micro font-bold tabular-nums text-yellow-700 dark:text-yellow-300">
-                {list.length}
-              </span>
-              <span className="ml-auto flex items-center gap-1 text-xs font-semibold text-yellow-700/90 dark:text-yellow-300/90">
-                <Users className="h-3 w-3" />
-                {total}
-              </span>
-            </div>
-            {trackOpen && (
-              <div className="border-b border-border/60">
-                <p className="px-4 pt-3 text-xs font-semibold text-primary">
-                  {t("leaderboard.allClassesTitle", { course: mainCourse })}
-                </p>
-                <ComboDetail q={{ track, course: mainCourse }} myBest={null} myRank={null} myTag={myTag} />
-              </div>
-            )}
-            {!isCollapsed && (
-              <div className="overflow-x-auto">
-                <Table className="w-full min-w-[1000px] table-fixed text-xs">
-                  <colgroup>
-                    <col className="w-[64px]" />
-                    <col className="w-[110px]" />
-                    <col className="w-[210px]" />
-                    <col />
-                    <col className="w-[110px]" />
-                    <col className="w-[76px]" />
-                    <col className="w-[76px]" />
-                    <col className="w-[76px]" />
-                    <col className="w-[80px]" />
-                    <col className="w-[80px]" />
-                  </colgroup>
-                  <TableHeader>
-                    <TableRow className="border-primary/40">
-                      <TableHead className="font-medium text-center">{t("leaderboard.details")}</TableHead>
-                      <TableHead className="font-medium text-left">{t("leaderboard.colClass")}</TableHead>
-                      <TableHead className="font-medium text-left">{t("leaderboard.colLeader")}</TableHead>
-                      <TableHead className="font-medium text-left">{t("leaderboard.colCar")}</TableHead>
-                      <TableHead className={cn("font-medium text-right", GROUP_SEP, PERF_HEAD)}>{t("leaderboard.colBest")}</TableHead>
-                      <TableHead className={cn("font-medium text-right", PERF_HEAD)}>S1</TableHead>
-                      <TableHead className={cn("font-medium text-right", PERF_HEAD)}>S2</TableHead>
-                      <TableHead className={cn("font-medium text-right", PERF_HEAD)}>S3</TableHead>
-                      <TableHead className={cn("font-medium text-center", PERF_HEAD)}>{t("leaderboard.colDrivers")}</TableHead>
-                      <TableHead className={cn("font-medium text-center", GROUP_SEP)}>{t("leaderboard.colVersion")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {list.map((c, i) => {
-                      const key = recordKey(c.track, c.track_course, c.car_class);
-                      const isOpen = open === key;
-                      const me = mine.get(key) ?? null;
-                      const newCourse = withCourses && (i === 0 || list[i - 1].track_course !== c.track_course);
-                      const provisional = c.drivers < RANKED_MIN;
-                      const leaderRow = { leader: c.best_driver ?? null } as Row;
-                      return (
-                        <Fragment key={key}>
-                          {newCourse && (
-                            <TableRow className="hover:bg-transparent">
-                              <TableCell
-                                colSpan={10}
-                                className="border-t border-primary/25 bg-primary/[0.07] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-yellow-700 dark:text-yellow-300"
-                              >
-                                ↳ {c.track_course}
-                              </TableCell>
-                            </TableRow>
-                          )}
-                          <TableRow
-                            className={cn("group cursor-pointer", i % 2 === 1 && "bg-muted/30", isOpen && "bg-amber-400/10")}
-                            onClick={() => setOpen(isOpen ? null : key)}
-                          >
-                            <TableCell className="px-2 py-1.5">
-                              <div className="flex justify-center">
-                                <Tip content={isOpen ? t("leaderboard.hide") : t("leaderboard.details")}>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => (e.stopPropagation(), setOpen(isOpen ? null : key))}
-                                    aria-label={isOpen ? t("leaderboard.hide") : t("leaderboard.details")}
-                                    aria-expanded={isOpen}
-                                    className={cn(
-                                      "flex h-5 w-5 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                      isOpen ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground",
-                                    )}
-                                  >
-                                    <Eye className="h-3 w-3" />
-                                  </button>
-                                </Tip>
-                              </div>
-                            </TableCell>
-                            <TableCell className="px-2 py-1.5">
-                              <ClassBadge carClass={c.car_class} size="sm" />
-                            </TableCell>
-                            <LeaderCell row={leaderRow} myTag={myTag} />
-                            <TableCell className="px-2 py-1.5">
-                              <div className="flex items-center gap-2">
-                                <CarLogo carName={c.best_car} className="h-3.5 w-auto shrink-0 object-contain opacity-80" />
-                                <span className="min-w-0 truncate font-medium">{c.best_car}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "px-2 py-1.5 text-right font-mono font-bold",
-                                provisional ? "text-muted-foreground" : "text-emerald-500",
-                                GROUP_SEP,
-                                PERF_CELL,
-                              )}
-                            >
-                              {formatTime(c.best)}
-                            </TableCell>
-                            <TableCell className={cn("px-2 py-1.5 text-right font-mono", PERF_CELL)}>{sec(c.s1, c.best_s1)}</TableCell>
-                            <TableCell className={cn("px-2 py-1.5 text-right font-mono", PERF_CELL)}>{sec(c.s2, c.best_s2)}</TableCell>
-                            <TableCell className={cn("px-2 py-1.5 text-right font-mono", PERF_CELL)}>{sec(c.s3, c.best_s3)}</TableCell>
-                            <TableCell
-                              className={cn("px-2 py-1.5 text-center font-mono", PERF_CELL)}
-                              title={provisional ? t("leaderboard.provisionalTip", { n: c.drivers, min: RANKED_MIN }) : undefined}
-                            >
-                              <span className={provisional ? "font-semibold text-amber-600 dark:text-amber-400" : ""}>{c.drivers}</span>
-                            </TableCell>
-                            <TableCell className={cn("px-2 py-1.5 text-center font-mono text-muted-foreground", GROUP_SEP)}>
-                              {c.version}
-                            </TableCell>
-                          </TableRow>
-                          {isOpen && (
-                            <TableRow>
-                              <TableCell colSpan={10} className="p-0">
-                                <ComboDetail
-                                  q={{ track: c.track, course: c.track_course, class: c.car_class }}
-                                  myBest={me?.best ?? null}
-                                  myRank={null}
-                                  myTag={myTag}
-                                />
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </Card>
-        );
-      })}
+      {tab === "references" ? <References /> : <MyPosition showOhne={showOhneSpeed} />}
     </div>
   );
 }
@@ -818,6 +541,8 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [offline, setOffline] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  /** Circuit dont le classement toutes classes est ouvert (clic sur son nom). */
+  const [openTrack, setOpenTrack] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   // Filtres (barre + clic sur une cellule, comme Sessions / Records).
   const [fTrack, setFTrack] = useState("");
@@ -826,6 +551,13 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   const [fCar, setFCar] = useState("");
   const [fSession, setFSession] = useState<"" | "race" | "qualify" | "practice">("");
   const [fMode, setFMode] = useState<"" | "online" | "offline">("");
+  // « Mes combos » : seulement les combos roulés (l'ancien affichage), retenu d'une visite à l'autre.
+  const [onlyMine, setOnlyMine] = useState(() => localStorage.getItem("lmu-lb-only-mine") === "1");
+  const toggleOnlyMine = () =>
+    setOnlyMine((v) => {
+      localStorage.setItem("lmu-lb-only-mine", v ? "0" : "1");
+      return !v;
+    });
   const gameVersions = useAppStore((s) => s.gameVersions);
   const selectedVersion = useAppStore((s) => s.selectedVersion);
   const setSelectedVersion = useAppStore((s) => s.setSelectedVersion);
@@ -887,12 +619,16 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
       if (!cancelled) setStats(st);
       // Pilote du record de chaque combo : une seule requête, mêmes filtres que les positions.
       const leaders = new Map<string, RecordHolder>();
+      const records = new Map<string, number>();
+      type ServerCombo = { track: string; track_course: string; car_class: string; best: number; best_car: string; best_driver?: RecordHolder };
+      let serverCombos: ServerCombo[] = [];
       try {
-        const list = await community.get<{
-          combos: { track: string; track_course: string; car_class: string; best_driver?: RecordHolder }[];
-        }>("combos", extra);
-        for (const c of list?.combos ?? []) {
-          if (c.best_driver) leaders.set(recordKey(c.track, c.track_course, c.car_class), c.best_driver);
+        const list = await community.get<{ combos: ServerCombo[] }>("combos", extra);
+        serverCombos = list?.combos ?? [];
+        for (const c of serverCombos) {
+          const k = recordKey(c.track, c.track_course, c.car_class);
+          if (c.best_driver) leaders.set(k, c.best_driver);
+          records.set(k, c.best);
         }
       } catch {
         /* colonne vide : les positions restent affichées */
@@ -908,10 +644,26 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
               q,
               pos: await community.get<CommunityPosition>("combos/position", { ...q, time: combo.best }).catch(() => null),
               leader: leaders.get(recordKey(combo.track, combo.track_course, combo.car_class)) ?? null,
+              record: records.get(recordKey(combo.track, combo.track_course, combo.car_class)) ?? null,
             };
           }),
         );
         out.push(...part);
+      }
+      // Tous les autres classements aussi (même circuits jamais roulés) : meilleurs temps de
+      // toutes les classes, sans place pour le joueur.
+      const mineKeys = new Set(mine.map((c) => recordKey(c.track, c.track_course, c.car_class)));
+      for (const c of serverCombos) {
+        const k = recordKey(c.track, c.track_course, c.car_class);
+        if (mineKeys.has(k)) continue;
+        out.push({
+          combo: { track: c.track, track_course: c.track_course, car_class: c.car_class, car_model: c.best_car, best: c.best, last_played: 0 },
+          q: { track: c.track, course: c.track_course, class: c.car_class, ...extra },
+          pos: null,
+          leader: c.best_driver ?? null,
+          record: c.best,
+          other: true,
+        });
       }
       if (!cancelled) setRows(out);
     })();
@@ -937,21 +689,28 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
       const c = r.combo;
       if ((fTrack && c.track !== fTrack) || (fCourse && c.track_course !== fCourse)) continue;
       if ((fClass && c.car_class !== fClass) || (fCar && c.car_model !== fCar)) continue;
+      if (onlyMine && r.other) continue;
       m.set(c.track, [...(m.get(c.track) ?? []), r]);
     }
     // Dans chaque circuit, regroupement par TRACÉ : le principal (même nom que le circuit)
-    // d'abord, puis les plus fournis ; l'ordre d'origine est gardé à l'intérieur d'un tracé.
+    // d'abord, puis les plus fournis ; dans un tracé, les classes dans l'ordre de l'app.
     return [...m.entries()].map(([track, list]) => {
       const count = new Map<string, number>();
       for (const r of list) count.set(r.combo.track_course, (count.get(r.combo.track_course) ?? 0) + 1);
       const rank = (c: string) => (c === track ? -1e9 : -(count.get(c) ?? 0));
       const sorted = list
         .map((r, i) => ({ r, i }))
-        .sort((a, b) => rank(a.r.combo.track_course) - rank(b.r.combo.track_course) || a.r.combo.track_course.localeCompare(b.r.combo.track_course) || a.i - b.i)
+        .sort(
+          (a, b) =>
+            rank(a.r.combo.track_course) - rank(b.r.combo.track_course) ||
+            a.r.combo.track_course.localeCompare(b.r.combo.track_course) ||
+            classRank(a.r.combo.car_class) - classRank(b.r.combo.car_class) ||
+            a.i - b.i,
+        )
         .map((x) => x.r);
       return [track, sorted] as [string, Row[]];
     });
-  }, [rows, fTrack, fCourse, fClass, fCar]);
+  }, [rows, fTrack, fCourse, fClass, fCar, onlyMine]);
 
   // Tous les combos où le joueur a une place (provisoires compris, comme le tableau) ;
   // « définitifs » = 20 pilotes ou plus.
@@ -1016,7 +775,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
         <Tile
           label={t("leaderboard.tileCombos")}
           value={String(placed.length)}
-          sub={t("leaderboard.tileCombosSub", { count: rows?.length ?? 0, ranked: ranked.length })}
+          sub={t("leaderboard.tileCombosSub", { count: (rows ?? []).filter((r) => !r.other).length, ranked: ranked.length })}
           icon={Target}
         />
         <Tile
@@ -1147,6 +906,16 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                 {t("sessions.versionExact")}
               </label>
             )}
+            <Button
+              variant={onlyMine ? "default" : "outline"}
+              size="sm"
+              className="h-9 gap-1.5 text-xs"
+              aria-pressed={onlyMine}
+              onClick={toggleOnlyMine}
+            >
+              <Star className="h-3.5 w-3.5" />
+              {t("leaderboard.onlyMine")}
+            </Button>
             {hasFilters && (
               <Button variant="ghost" size="sm" className="h-9 gap-1 text-xs text-muted-foreground" onClick={clearFilters}>
                 <X className="h-3.5 w-3.5" /> {t("sessions.clearFilters")}
@@ -1161,6 +930,9 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
 
       {groups.map(([track, list]) => {
         const isCollapsed = collapsed.has(track);
+        const trackOpen = openTrack === track;
+        // Toutes classes : le tracé principal s'il est dans la liste, sinon le premier.
+        const mainCourse = list.find((r) => r.combo.track_course === track)?.combo.track_course ?? list[0].combo.track_course;
         return (
           // Même présentation que les tableaux du tableau de bord : en-tête de circuit
           // repliable, ligne de titres contrastée, bloc « performance » teinté.
@@ -1180,17 +952,33 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                 className={cn("h-3.5 w-3.5 text-yellow-700 transition-transform dark:text-yellow-300", isCollapsed && "-rotate-90")}
               />
               <TrackFlag track={track} className="h-3.5 w-auto rounded-[2px] shadow-sm ring-1 ring-black/20" />
-              <span
-                className="text-xs font-semibold uppercase tracking-[0.12em] text-yellow-700 hover:underline dark:text-yellow-300"
-                title={t("leaderboard.clickFilter")}
-                onClick={cellFilter(setFTrack, fTrack, track)}
-              >
-                {track}
-              </span>
+              {/* Nom du circuit : tous les temps de toutes les classes (le filtre par circuit
+                  reste dans la barre de filtres). */}
+              <Tip content={t("leaderboard.allClassesTip")}>
+                <button
+                  type="button"
+                  onClick={(e) => (e.stopPropagation(), setOpenTrack(trackOpen ? null : track))}
+                  aria-expanded={trackOpen}
+                  className={cn(
+                    "rounded px-1 text-xs font-semibold uppercase tracking-[0.12em] text-yellow-700 hover:underline dark:text-yellow-300",
+                    trackOpen && "bg-primary text-primary-foreground no-underline dark:text-primary-foreground",
+                  )}
+                >
+                  {track}
+                </button>
+              </Tip>
               <span className="rounded-full bg-primary/20 px-1.5 py-0 text-micro font-bold tabular-nums text-yellow-700 dark:text-yellow-300">
                 {list.length}
               </span>
             </div>
+            {trackOpen && (
+              <div className="border-b border-border/60">
+                <p className="px-4 pt-3 text-xs font-semibold text-primary">
+                  {t("leaderboard.allClassesTitle", { course: mainCourse })}
+                </p>
+                <ComboDetail q={{ track, course: mainCourse }} myBest={null} myRank={null} myTag={myTag} />
+              </div>
+            )}
             {!isCollapsed && (
               <div className="overflow-x-auto">
                 {/* Largeurs fixes : colonnes alignées d'un circuit à l'autre. */}
@@ -1200,8 +988,9 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                     <col className="w-[110px]" />
                     <col className="w-[210px]" />
                     <col />
-                    <col className="w-[120px]" />
+                    <col className="w-[100px]" />
                     <col className="w-[110px]" />
+                    <col className="w-[100px]" />
                     {showOhne && <col className="w-[130px]" />}
                     <col className="w-[190px]" />
                     <col className="w-[180px]" />
@@ -1213,6 +1002,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                       <TableHead className="font-medium text-left">{t("leaderboard.colClass")}</TableHead>
                       <TableHead className="font-medium text-left">{t("leaderboard.colLeader")}</TableHead>
                       <TableHead className="font-medium text-left">{t("leaderboard.colCar")}</TableHead>
+                      <TableHead className="font-medium text-right">{t("leaderboard.colRecord")}</TableHead>
                       <TableHead className={cn("font-medium text-right", GROUP_SEP, PERF_HEAD)}>{t("leaderboard.colTime")}</TableHead>
                       <TableHead className={cn("font-medium text-right", PERF_HEAD)}>{t("leaderboard.colGap")}</TableHead>
                       {showOhne && <TableHead className={cn("font-medium text-center", PERF_HEAD)}>{t("leaderboard.colLevel")}</TableHead>}
@@ -1238,7 +1028,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                           {newCourse && (
                             <TableRow className="hover:bg-transparent">
                               <TableCell
-                                colSpan={showOhne ? 10 : 9}
+                                colSpan={showOhne ? 11 : 10}
                                 className="border-t border-primary/25 bg-primary/[0.07] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-yellow-700 dark:text-yellow-300"
                               >
                                 <span
@@ -1251,10 +1041,18 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                               </TableCell>
                             </TableRow>
                           )}
-                          <TableRow className={cn("group", i % 2 === 1 && "bg-muted/30", isOpen && "bg-amber-400/10")}>
+                          <TableRow
+                            className={cn(
+                              "group",
+                              i % 2 === 1 && "bg-muted/30",
+                              isOpen && "bg-amber-400/10",
+                              // Combo roulé : entouré en orange (seulement s'il côtoie d'autres classements).
+                              !r.other && !onlyMine && "outline outline-2 -outline-offset-2 outline-orange-500/80",
+                            )}
+                          >
                             {/* Détail : œil en tête de ligne, comme les autres pages (pas de détail sans position). */}
                             <TableCell className="px-2 py-1.5">
-                              {r.pos && (
+                              {(r.pos || r.other) && (
                                 <div className="flex justify-center">
                                   <Tip content={isOpen ? t("leaderboard.hide") : t("leaderboard.details")}>
                                     <button
@@ -1278,9 +1076,9 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                             {/* Clic sur la classe : le classement de la classe (comme l'œil) ; le
                                 filtre par classe reste dans la barre de filtres. */}
                             <TableCell
-                              className={cn("px-2 py-1.5", r.pos && "cursor-pointer")}
-                              title={r.pos ? (isOpen ? t("leaderboard.hide") : t("leaderboard.details")) : undefined}
-                              onClick={() => r.pos && setOpen(isOpen ? null : key)}
+                              className={cn("px-2 py-1.5", (r.pos || r.other) && "cursor-pointer")}
+                              title={r.pos || r.other ? (isOpen ? t("leaderboard.hide") : t("leaderboard.details")) : undefined}
+                              onClick={() => (r.pos || r.other) && setOpen(isOpen ? null : key)}
                             >
                               <ClassBadge carClass={r.combo.car_class} size="sm" />
                             </TableCell>
@@ -1309,8 +1107,11 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                                 </span>
                               </div>
                             </TableCell>
+                            <TableCell className="px-2 py-1.5 text-right font-mono font-semibold">
+                              {r.record != null ? formatTime(r.record) : "—"}
+                            </TableCell>
                             <TableCell className={cn("px-2 py-1.5 text-right font-mono font-bold text-emerald-500", GROUP_SEP, PERF_CELL)}>
-                              {formatTime(r.combo.best)}
+                              {r.other ? <span className="font-normal text-muted-foreground">—</span> : formatTime(r.combo.best)}
                             </TableCell>
                             <TableCell className={cn("px-2 py-1.5 text-right font-mono text-muted-foreground", PERF_CELL)}>
                               {r.pos ? (r.pos.rank === 1 ? "—" : `+${r.pos.gap_best.toFixed(3)}`) : ""}
@@ -1322,7 +1123,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                                   track={r.combo.track}
                                   layout={r.combo.track_course}
                                   carClass={r.combo.car_class}
-                                  lapSeconds={r.combo.best}
+                                  lapSeconds={r.other ? null : r.combo.best}
                                 />
                               </TableCell>
                             )}
@@ -1346,7 +1147,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                               </>
                             ) : (
                               <TableCell colSpan={2} className={cn("px-2 py-1.5 text-xs text-muted-foreground", PERF_CELL)}>
-                                {offline ? "—" : t("leaderboard.noData")}
+                                {offline ? "—" : r.other ? t("leaderboard.noTime") : t("leaderboard.noData")}
                               </TableCell>
                             )}
                             {/* Version du jeu du classement (la plus récente, ou celle du filtre). */}
@@ -1356,8 +1157,8 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                           </TableRow>
                           {isOpen && (
                             <TableRow>
-                              <TableCell colSpan={showOhne ? 10 : 9} className="p-0">
-                                <ComboDetail q={r.q} myBest={r.combo.best} myRank={r.pos?.rank ?? null} myTag={myTag} />
+                              <TableCell colSpan={showOhne ? 11 : 10} className="p-0">
+                                <ComboDetail q={r.q} myBest={r.other ? null : r.combo.best} myRank={r.pos?.rank ?? null} myTag={myTag} />
                               </TableCell>
                             </TableRow>
                           )}

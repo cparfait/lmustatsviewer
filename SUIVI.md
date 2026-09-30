@@ -886,8 +886,17 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   secureHeaders) ; test ajouté. ⚠️ Nécessite un déploiement serveur.
 - ✅ **Site** : jauge « Où vous êtes » dans la carte « Votre position » d'un classement (clé
   `me.where` ×4). Assets `?v=48`.
+- ✅ **Retours mainteneur, suite (même jour)** : onglet « Tous les classements » **retiré** (doublon,
+  demande mainteneur) ; à la place, **« Ma position » liste tous les classements** de la communauté
+  (même circuits jamais roulés) avec une colonne **Record** et le pilote du record ; ceux du joueur
+  **entourés en orange** ; bouton **« Mes combos »** (= ancien affichage, retenu en `localStorage`
+  `lmu-lb-only-mine`). Clic sur le **nom d'un circuit** = classement toutes classes (toutes les pages,
+  colonne Classe) ; clic sur un **badge de classe** dans ce tableau = filtre par classe (places et
+  écarts recalculés) ; clic sur la classe d'une ligne = son classement. Clés `colRecord`, `noTime`,
+  `onlyMine`, `clsFilterOn/Off` ×4 ; `tabAll`, `allTitle`, `allSubtitle`, `colBest`, `colDrivers`
+  retirées. Changelog 1.0.9 reformulé ×4.
 - 📋 **Prochaine étape** : déployer (`update-from-github.sh`) pour les images dans l'app et la jauge
-  du site ; release 1.0.9.
+  du site ; bêta `1.0.9-beta.2` au mainteneur ; release 1.0.9.
 
 ### 2026-09-29 — Site communautaire : lisible sur mobile
 

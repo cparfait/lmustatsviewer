@@ -889,8 +889,9 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ **Retours mainteneur, suite (même jour)** : onglet « Tous les classements » **retiré** (doublon,
   demande mainteneur) ; à la place, **« Ma position » liste tous les classements** de la communauté
   (même circuits jamais roulés) avec une colonne **Record** et le pilote du record ; ceux du joueur
-  **entourés en orange** ; bouton **« Mes combos »** (= ancien affichage, retenu en `localStorage`
-  `lmu-lb-only-mine`). Clic sur le **nom d'un circuit** = classement toutes classes (toutes les pages,
+  mis en évidence par le bouton **« Mes combos »** (désactivé à l'ouverture ; actif = bouton orange,
+  étoile jaune, lignes du joueur teintées orange + barre à gauche, autres estompées ; case « Masquer
+  les autres » = ancien affichage). Clic sur le **nom d'un circuit** = classement toutes classes (toutes les pages,
   colonne Classe) ; clic sur un **badge de classe** dans ce tableau = filtre par classe (places et
   écarts recalculés) ; clic sur la classe d'une ligne = son classement. Clés `colRecord`, `noTime`,
   `onlyMine`, `clsFilterOn/Off` ×4 ; `tabAll`, `allTitle`, `allSubtitle`, `colBest`, `colDrivers`

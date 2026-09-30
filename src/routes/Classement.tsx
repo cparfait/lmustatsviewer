@@ -551,13 +551,10 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   const [fCar, setFCar] = useState("");
   const [fSession, setFSession] = useState<"" | "race" | "qualify" | "practice">("");
   const [fMode, setFMode] = useState<"" | "online" | "offline">("");
-  // « Mes combos » : seulement les combos roulés (l'ancien affichage), retenu d'une visite à l'autre.
-  const [onlyMine, setOnlyMine] = useState(() => localStorage.getItem("lmu-lb-only-mine") === "1");
-  const toggleOnlyMine = () =>
-    setOnlyMine((v) => {
-      localStorage.setItem("lmu-lb-only-mine", v ? "0" : "1");
-      return !v;
-    });
+  // « Mes combos » : désactivé à l'ouverture (rien de mis en évidence) ; « Masquer les autres »
+  // redonne l'ancien affichage (seulement les combos roulés).
+  const [showMine, setShowMine] = useState(false);
+  const [hideOthers, setHideOthers] = useState(false);
   const gameVersions = useAppStore((s) => s.gameVersions);
   const selectedVersion = useAppStore((s) => s.selectedVersion);
   const setSelectedVersion = useAppStore((s) => s.setSelectedVersion);
@@ -689,7 +686,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
       const c = r.combo;
       if ((fTrack && c.track !== fTrack) || (fCourse && c.track_course !== fCourse)) continue;
       if ((fClass && c.car_class !== fClass) || (fCar && c.car_model !== fCar)) continue;
-      if (onlyMine && r.other) continue;
+      if (showMine && hideOthers && r.other) continue;
       m.set(c.track, [...(m.get(c.track) ?? []), r]);
     }
     // Dans chaque circuit, regroupement par TRACÉ : le principal (même nom que le circuit)
@@ -710,7 +707,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
         .map((x) => x.r);
       return [track, sorted] as [string, Row[]];
     });
-  }, [rows, fTrack, fCourse, fClass, fCar, onlyMine]);
+  }, [rows, fTrack, fCourse, fClass, fCar, showMine, hideOthers]);
 
   // Tous les combos où le joueur a une place (provisoires compris, comme le tableau) ;
   // « définitifs » = 20 pilotes ou plus.
@@ -906,16 +903,24 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                 {t("sessions.versionExact")}
               </label>
             )}
+            {/* « Mes combos » : met en évidence les combos roulés (bouton orange tant qu'actif) ;
+                « Masquer les autres » = n'afficher que ceux-là. */}
             <Button
-              variant={onlyMine ? "default" : "outline"}
+              variant={showMine ? "default" : "outline"}
               size="sm"
               className="h-9 gap-1.5 text-xs"
-              aria-pressed={onlyMine}
-              onClick={toggleOnlyMine}
+              aria-pressed={showMine}
+              onClick={() => setShowMine(!showMine)}
             >
-              <Star className="h-3.5 w-3.5" />
+              <Star className={cn("h-3.5 w-3.5", showMine && "fill-yellow-400 text-yellow-400")} />
               {t("leaderboard.onlyMine")}
             </Button>
+            {showMine && (
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                <input type="checkbox" className="accent-primary" checked={hideOthers} onChange={(e) => setHideOthers(e.target.checked)} />
+                {t("leaderboard.hideOthers")}
+              </label>
+            )}
             {hasFilters && (
               <Button variant="ghost" size="sm" className="h-9 gap-1 text-xs text-muted-foreground" onClick={clearFilters}>
                 <X className="h-3.5 w-3.5" /> {t("sessions.clearFilters")}
@@ -1046,12 +1051,12 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                               "group",
                               i % 2 === 1 && "bg-muted/30",
                               isOpen && "bg-amber-400/10",
-                              // Combo roulé : entouré en orange (seulement s'il côtoie d'autres classements).
-                              !r.other && !onlyMine && "outline outline-2 -outline-offset-2 outline-orange-500/80",
+                              // « Mes combos » : les combos roulés teintés en orange, les autres estompés.
+                              showMine && (r.other ? "opacity-45" : "bg-orange-500/15 font-semibold"),
                             )}
                           >
                             {/* Détail : œil en tête de ligne, comme les autres pages (pas de détail sans position). */}
-                            <TableCell className="px-2 py-1.5">
+                            <TableCell className={cn("px-2 py-1.5", showMine && !r.other && "shadow-[inset_5px_0_0_#f97316]")}>
                               {(r.pos || r.other) && (
                                 <div className="flex justify-center">
                                   <Tip content={isOpen ? t("leaderboard.hide") : t("leaderboard.details")}>

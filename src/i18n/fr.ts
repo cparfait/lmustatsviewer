@@ -2152,6 +2152,7 @@ export default {
     colRecord: "Record",
     noTime: "Pas encore de temps dans cette classe",
     onlyMine: "Mes combos",
+    hideOthers: "Masquer les autres",
     colVersion: "Version",
     recordYou: "Vous",
     details: "Détail",

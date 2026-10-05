@@ -905,9 +905,21 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   Site communautaire : assets `?v=49`. Commits : travail en attente (filtres, multiclasse, coach BB) ;
   italien ; release. Tag `v1.0.9` poussé → CI (brouillon). Notes GitHub 5 langues générées par
   `scripts/release-notes.mjs` ; textes forum / Discord rédigés.
-- 📋 **Prochaine étape** : vérifier le brouillon (`.exe` + `latest.json`), coller les notes, **Publish** ;
-  `update-from-github.sh` sur le VPS (italien du site + page Steam) ; envoyer la vitrine (SFTP +
-  Portainer) ; annonces ; faire relire l'italien par un joueur italophone.
+- ✅ **v1.0.9 publiée** (2026-10-05 22:02 UTC, notes 5 langues) ; vitrine en ligne avec les notes par langue.
+- ✅ **Discord (mainteneur, hors dépôt)** : catégorie `IT · ITALIANO` (7 salons dupliqués du bloc ES →
+  benvenuto, paddock, supporto, bug, suggerimenti, classifiche, screenshot ; messages épinglés en
+  italien avec mentions cliquables ; sujets supporto/bug/suggerimenti) ; rôle @Italiano ; **catégorie
+  vocale commune `VOCAL · VOICE`** (les 5 « General » regroupés et renommés 🔊 Français/English/
+  Español/Deutsch/Italiano — droits du vocal FR conservés) ; accueil : question « … Lingua? », 5ᵉ
+  réponse Italiano (catégorie IT + vocal + rôle), chaque réponse reçoit son vocal ; **réponse Français
+  corrigée** (n'ouvrait que #captures → catégorie FR entière) ; message de bienvenue +IT (limite 300 car.
+  → fin en anglais seul) ; profil serveur : tag « FR · EN · ES · DE · IT », description (…/IT) ;
+  règlement italien épinglé dans #rules ; annonce 1.0.9 postée ×5 dans #annonces.
+- ⏳ Un message « Chronos, télémétrie… (FR/EN/ES/DE) » posté à 00:04 dans #annonces (pas par moi) : à
+  vérifier par le mainteneur.
+- 📋 **Prochaine étape** : `update-from-github.sh` sur le VPS si pas encore fait (italien du site + page
+  Steam) ; forum (textes dans `ANNONCES-1.0.9.md`) ; faire relire l'italien par un joueur italophone ;
+  corriger le chemin « Config → Audio / Voix » dans l'entrée changelog italien (1.0.10).
 
 ### 2026-10-04 — Coach IA : répartition de freinage inversée
 

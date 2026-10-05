@@ -40,7 +40,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Périmètre** | **Toutes** les fonctionnalités V1 + 3 nouveautés V2 retenues : (1) comparaison ohne_speed, (2) distinction LMP2 WEC / LMP2 ELMS, (3) Live amélioré (shared memory rF2/LMU). |
 | **NON retenu de V2** | Multi-profils — V3 reste **mono-profil** comme la V1 (un seul nom de joueur). |
 | **Garage / car_config** | **Exception à la règle V1** : la gestion des configs/garage est reprise de la **V2** (plus poussée — parser/writer `.svm`, scan dossier Settings, CRUD, comparaison diff A/B). |
-| **Langues** | FR / EN / ES / DE (i18n complet). |
+| **Langues** | FR / EN / ES / DE / **IT** (i18n complet). Italien ajouté le 2026-10-05 (app, voix, commandes vocales, coach IA, site communautaire, vitrine). Toute nouvelle chaîne/annonce/entrée de changelog = **5 langues**. |
 | **Thèmes** | Dark + Light, toggle header. Palette « Le Mans dark » (#0A0E1A + #FFB400). **Défaut = Light** depuis la préparation « public large » (clé `lmu-theme-v2`, cf. `stores/theme.ts`) ; l'ancien défaut Dark est conservé comme thème au choix. *(Màj 2026-07-06 — supersède « dark par défaut ».)* |
 | **Distribution** | `.exe` Windows, installeur Tauri (NSIS), auto-update GitHub. |
 | **Langue de travail** | Réponses + docs en FR ; code/variables/fichiers en anglais. |
@@ -51,6 +51,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
 | **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **décochée par défaut** à l'activation (décision 2026-09-27, remplace « cochée » du 2026-09-26). **Connexion Steam obligatoire pour partager** (décision 2026-09-27) : un compte Steam = une installation (ni doublon, ni données orphelines) ; seule une empreinte HMAC du SteamID est stockée. **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. **Pays et avatar (décision 2026-09-29)** : pays = `Nationality` du profil du jeu (comme le nom, non modifiable) ; **avatar Steam affiché par défaut** (arbitrage mainteneur, option « 2 » : pas de lecture silencieuse des fichiers Steam du joueur) → le **SteamID64 est conservé** à chaque connexion Steam (seulement pour lire l'avatar), sauf si le joueur retire l'avatar (`avatar_off`, SteamID effacé) ; joueurs déjà inscrits : un clic (connexion Steam) dans l'app 1.0.9 ; « Ce qui part » le mentionne. Ni pays ni avatar publiés en mode anonyme ; images relayées par le serveur (aucune requête des visiteurs vers Steam). |
+| **Mémoire des filtres** | **Décidé (2026-09-30)** — filtres, tris, page et vue de chaque page conservés **le temps que l'app tourne** (`usePageState`, en mémoire) ; remis à zéro au redémarrage. Un lien profond (`?track=…`) impose ses filtres. |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
 
 ---
@@ -856,6 +857,128 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-05 — Italien, 5ᵉ langue (app, site communautaire, vitrine) — release 1.0.9
+
+- ✅ **App** : `src/i18n/it.ts` (2 118 clés, parité exacte avec `en.ts`, mêmes `{{variables}}` ;
+  seul écart voulu : `leaderboard.nth` = `{{n}}°`, ordinal italien qui ignore `sfx` comme fr/de/es).
+  Branché dans `i18n/index.ts`, `voiceMessages.ts` (annonces personnalisables), sélecteurs de langue
+  (Header + Config, drapeau `public/flags/it.png` déjà présent), `Changelog.tsx` (bouton Traduire),
+  message d'accueil « Tester l'IA » (`ConfigV2.tsx`). Tutoiement, vocabulaire simracing italien.
+- ✅ **Changelog** : type `LocalizedText` + `pickLang` acceptent `it` ; `it:` ajouté aux **102**
+  textes localisés existants ; entrée 1.0.9 « L'app est disponible en italien » (featured) ×5.
+- ✅ **Voix** (`assets.rs` + `scripts/fetch-piper.ps1`) : voix Piper `it` = **Paola** (it_IT medium,
+  63,5 Mo, défaut, féminine) et **Riccardo** (it_IT x_low, 28,1 Mo, masculine) — SHA-256 relevés sur
+  les pointeurs LFS du commit HF figé `e21c7de…`. STT : `vosk-model-small-it-0.22` (49,7 Mo,
+  `fetch-vosk.ps1`). `voice.ts` : `it-IT` + lecture des nombres (virgola, secondi…) + prénoms des
+  voix système italiennes. Texte « Auto » italien sans « maschile » (la voix par défaut est féminine).
+- ✅ **Commandes vocales** : `engineer/router.ts` (27 intentions, nombres en lettres jusqu'à 60 dont
+  composés soudés via `itCompounds()`, ordinaux, déclencheurs « dimmi/avvisami/fammi sapere quando »),
+  `spotterCommands.ts` (grammaire `it`, mots courants pour le modèle Vosk). 13 tests italiens dans
+  `engineer.suite.ts`.
+- ✅ **Coach IA** : `system.ts` (IT, « Rispondi in italiano »), `postrace.ts` (rapide + complète),
+  `coach.ts` (consigne radio), `phrasebank-gen.ts`.
+- ✅ **Site communautaire** : `site.js` (`I18N.it`, 166 clés, `LANGS` + détection navigateur),
+  `api/src/steam.ts` (page de retour Steam italienne, `pickLang`) + 2 tests (36/36). ⏳ Non déployé ;
+  penser à monter `?v=48` des assets au déploiement.
+- ✅ **Vitrine** (`C:	mp\__DEV__\lmusv-site`, hors dépôt) : sauvegarde `lmusv-site.bak-20261005`,
+  `assets/js/i18n.js` (bloc `it`, 209 clés), `app.js` (`LANGS`), `index.html`/`changelog.html`
+  (drapeau SVG + « Italiano »), compteur « 5 langues ». ⏳ À envoyer (SFTP + redéploiement Portainer).
+- ✅ README : 5 langues. Vérifs : `tsc -b` 0, `eslint .` 0, 291/291 tests coach, `cargo check` OK.
+- ✅ **Vitrine, notes de version dans la langue du visiteur** (retour mainteneur : les notes GitHub
+  s'affichaient en FR + EN quelle que soit la langue). `assets/js/changelog.js` découpe les notes
+  en blocs, devine la langue de chacun (mots courants propres à chaque langue ; bloc bilingue =
+  affiché partout ; titre = langue de ce qu'il introduit) et n'affiche que la langue du visiteur,
+  repli anglais + mention « Notes non traduites dans votre langue » ; ligne « Lire en : FR · EN »
+  pour changer de langue sur une version (aucune perte : tout reste lisible). Titres
+  `## 🇫🇷 Français`… = langue imposée. Vérifié sur les 10 releases réelles (dont v1.0.5 EN→FR,
+  v1.0.3 « ###Français », v1.0.4 sans séparateur) et en navigateur (IT, FR, clic « FR »). Clés
+  `cl.readIn`, `cl.notInLang` ×5 ; style `.cl-langs`. Config `vitrine` ajoutée à `.claude/launch.json`.
+- ✅ **`scripts/release-notes.mjs`** : génère les notes GitHub d'une version depuis `changelog.ts`
+  dans les 5 langues, au format ci-dessus (`node scripts/release-notes.mjs 1.0.9 --out notes.md`).
+  Documenté dans `RELEASE.md` (A.2) et le README de la vitrine.
+- ✅ **Bêta `1.0.9-beta.4`** (la beta.3 existait déjà) : build LOCAL non signé, version propagée dans
+  les 4 fichiers avant le build puis remise à 1.0.8. Installeur :
+  `src-tauri/target/release/bundle/nsis/LMU Stats Viewer_1.0.9-beta.4_x64-setup.exe`.
+- ✅ **Release `v1.0.9`** (demande mainteneur) : changelog 1.0.9 daté du 2026-10-05 (`dev: false`),
+  `version.json` (`version` + `latest_version`) → 1.0.9, propagé par `cargo check` (Cargo.lock compris).
+  Site communautaire : assets `?v=49`. Commits : travail en attente (filtres, multiclasse, coach BB) ;
+  italien ; release. Tag `v1.0.9` poussé → CI (brouillon). Notes GitHub 5 langues générées par
+  `scripts/release-notes.mjs` ; textes forum / Discord rédigés.
+- 📋 **Prochaine étape** : vérifier le brouillon (`.exe` + `latest.json`), coller les notes, **Publish** ;
+  `update-from-github.sh` sur le VPS (italien du site + page Steam) ; envoyer la vitrine (SFTP +
+  Portainer) ; annonces ; faire relire l'italien par un joueur italophone.
+
+### 2026-10-04 — Coach IA : répartition de freinage inversée
+
+- 🐛→✅ **Retour joueur** (réglage 54:46 dans le jeu, le coach annonçait « 46 % » et conseillait de
+  monter vers 50 %) : le canal télémétrie `Brake Bias Rear` est la **part arrière** (fraction) ; le
+  contexte IA (`telemetry-context.ts` → `fmtElec`) l'envoyait en `Brake bias: 46.0%`, lu par le
+  modèle comme la répartition avant. Désormais `54.0:46.0 (front:rear)`. Idem setup `.svm`
+  (`RearBrakeSetting`, commentaire déjà `AV:AR`) : libellé `(front:rear)` ajouté. Encart « BB » de
+  la page Télémétrie aligné sur Live/overlay (`54.0 : 46.0`).
+- ✅ **Position en classe d'abord** (même joueur : « better to have the position information within
+  your class ») : nouveau `src/lib/livePosition.ts` (`playerClassPosition`, `isMulticlass`,
+  `gapBetween` — regroupement par `vehicle_class` brut comme le Rust). En multiclasse uniquement
+  (une seule classe → inchangé) :
+  - coach IA live (`live-context.ts`) : `Class position: P3/12 … (overall P15/40)` + écarts au leader
+    de classe / voiture de classe devant (« +N lap(s) » si tours d'écart), écarts généraux gardés à part ;
+  - en-tête Live : `P3/12` couleur de classe + `P15 au général` ;
+  - overlays Tableau de bord / Endurance : `positionStat()` (`format.ts`) → `P3` + `P15 gén.` ;
+  - overlays Classement / Relatif : numéro = position en classe, nouvel élément de contenu
+    `classPosition` (actif par défaut, décochable → numérotation générale, rien de perdu).
+  - Non traité : l'overlay Classement reste le top 12 général (un GT3 loin au général n'y figure pas)
+    → piste : élément « Ma classe uniquement ». La télémétrie ne contient pas la position.
+- 📋 Prochaine étape : redemander une analyse coach sur une session avec électronique enregistrée
+  et vérifier que la répartition est citée dans le bon sens ; tester une course multiclasse
+  (en-tête Live, overlays, coach live) et décider du filtre « Ma classe » pour l'overlay Classement.
+
+### 2026-09-30 — Filtres conservés d'une visite à l'autre sur chaque page
+
+- ✅ **Retour joueur** (« conserver les filtres de chaque onglet au lieu de les reset à chaque
+  affichage ») : nouveau hook `src/lib/usePageState.ts` — `usePageState(key, initial, fresh?)`,
+  `useState` dont la valeur survit au démontage (Map **en mémoire** : durée de vie = celle de l'app,
+  pas de `localStorage` → un filtre oublié ne masque pas de données au lancement suivant ; les `Set`
+  sont gardés tels quels). Appliqué : Tableau de bord (6 filtres + groupes repliés), Sessions (6
+  filtres, tri, page), Records (recherche, classe), Références (circuit, classe, voiture, version,
+  niveau), Classements (onglet, 6 filtres, groupes repliés, « Mes combos » — toujours désactivé au
+  lancement), Télémétrie (4 filtres, tri, page), Setups (vue, voiture, circuit
+  — repli sur le 1er si la valeur retenue n'existe plus), détail setup (2 cases), Live (filtre de
+  classes — seules les classes présentes dans la session comptent, sinon un filtre GT3 resté d'une
+  course précédente viderait le tableau).
+- ✅ Sessions : un **lien profond** (`?track=&course=&class=&car=…`) impose tous ses filtres et la
+  page 1 (`fresh`) ; sans paramètre, on retrouve la dernière visite.
+- 🐛→✅ **Liens profonds vers Sessions** : les cascades `useEffect(() => setTrackCourse(""), [track])`
+  et `setCar("")` sur `[carClass]` tournaient **au montage** → `course` (Records, Références, Profil)
+  et `car` (Profil) des liens étaient effacés. Remplacées par `useChangeEffect` (ne s'exécute que sur
+  un vrai changement de dépendance ; comparaison aux deps précédentes pour rester correct sous
+  `StrictMode`) ; idem remise à la page 1 (Sessions, Télémétrie), qui aurait sinon écrasé la page
+  restaurée. Changelog 1.0.9 ×4 (amélioré + corrigé).
+- ✅ **Classements, « Mes combos »** (retour mainteneur) : la case « Masquer les autres » est
+  **retirée** — le bouton fait désormais les deux (n'affiche que les combos du joueur, teintés orange ;
+  re-clic = liste complète). Libellé fixe « Mes combos » : **sans fond** inactif, **fond orange +
+  coupe jaune** (`Trophy`, remplace l'étoile) actif. Survol teinté orange dans les deux états (le
+  survol `outline` = `--color-accent` #fff0e8, quasi blanc en thème clair, le rendait illisible).
+  Clé `hideOthers` retirée ×4. Changelog 1.0.9 reformulé ×4.
+- ✅ **Classements, combo ouvert peu visible** (retour mainteneur, capture LMP2 WEC) : ligne ouverte
+  `bg-primary/20` + gras (l'emporte sur « Mes combos »), barre `--color-primary` à gauche prolongée
+  sur toute la cellule du détail, bordure basse orange ; titre du détail « Classement · {tracé}
+  [badge classe] ». Puis (2ᵉ retour) : **tout le reste grisé** tant qu'un combo est ouvert
+  (`opacity-40`, pleine opacité au survol) — autres lignes et sous-titres de tracé du même circuit,
+  autres cartes circuit (idem avec un classement toutes classes ouvert) ; teinte de la ligne ouverte
+  ramenée à `bg-primary/10` (à `/20`, le badge « Hors rythme » devenait illisible). Changelog 1.0.9
+  complété ×4.
+- 💡 **Classement général par position moyenne** (idée mainteneur) : proposition faite (score
+  « pilotes battus » moyen, seuil de combos, combos ≥ 3 pilotes), puis **abandonnée** par le
+  mainteneur — rien de codé.
+- ✅ **Bêta `1.0.9-beta.3`** : build LOCAL non signé (comme la bêta 2), version propagée dans
+  `version.json`, `tauri.conf.json`, `package.json`, `Cargo.toml` **avant** le build (un seul
+  build suffit), puis remise à 1.0.8. Installeur :
+  `src-tauri/target/release/bundle/nsis/LMU Stats Viewer_1.0.9-beta.3_x64-setup.exe`.
+- ✅ `tsc -b` + `eslint .` : 0 erreur, 0 warning. Aperçu navigateur non probant (l'app exige Tauri,
+  pas de mode web) → à vérifier dans `tauri dev`.
+- 📋 **Prochaine étape** : vérifier en `tauri dev` (filtrer Sessions page 2 → Records → retour ;
+  lien « voir les sessions » d'un record avec tracé) ; puis déploiement serveur et release 1.0.9.
 
 ### 2026-09-30 — Classements (app) comme le site, niveau ohne_speed corrigé
 

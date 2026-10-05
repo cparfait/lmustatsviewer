@@ -146,6 +146,7 @@ export const OVERLAY_DEFS: OverlayDef[] = [
     width: 460,
     elements: [
       { key: "classColors" },
+      { key: "classPosition" },
       { key: "gaps" },
       { key: "sectors" },
       { key: "bestLap" },
@@ -158,7 +159,7 @@ export const OVERLAY_DEFS: OverlayDef[] = [
     defaultX: 40,
     defaultY: 360,
     width: 440,
-    elements: [{ key: "classColors" }, { key: "gaps" }, { key: "pitFlag" }],
+    elements: [{ key: "classColors" }, { key: "classPosition" }, { key: "gaps" }, { key: "pitFlag" }],
   },
   {
     id: "rival",

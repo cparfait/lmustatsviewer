@@ -4,10 +4,13 @@ import { ArrowUpDown } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
 import { liveClassColor } from "@/components/overlay/format";
 import type { LiveStanding } from "@/lib/api";
+import { isMulticlass } from "@/lib/livePosition";
 import type { WidgetProps } from "./types";
 
 export function RelativeWidget({ data, content, accent, t }: WidgetProps) {
   const player = data.standings.find((s) => s.is_player);
+  // Multiclasse : numéro = position dans la classe (désactivable → générale).
+  const classNumbers = content.classPosition !== false && isMulticlass(data.standings);
 
   let rows: Array<{ s: LiveStanding; rel: number }> = [];
   if (player) {
@@ -41,7 +44,7 @@ export function RelativeWidget({ data, content, accent, t }: WidgetProps) {
                     style={{ background: s.is_player ? `${accent}22` : "transparent" }}
                   >
                     <td className="w-6 py-0.5 text-center font-mono font-bold text-white/70">
-                      {s.position}
+                      {classNumbers ? s.class_position : s.position}
                     </td>
                     <td className="w-1 py-0.5">
                       <span

@@ -32,8 +32,14 @@ const ELEC_LABEL: Record<string, string> = {
 };
 
 function fmtElec(name: string, v: number): string {
-  // Brake Bias Rear = fraction (0.54 → 54.0% à l'arrière). Le reste = niveaux entiers.
-  return name === "Brake Bias Rear" ? `${(v * 100).toFixed(1)}%` : String(Math.round(v));
+  // Brake Bias Rear = fraction ARRIÈRE (0.46 → 46 % à l'arrière). On l'exprime
+  // explicitement avant:arrière comme dans le jeu (54.0:46.0), sinon le modèle lit
+  // « 46 % » comme la répartition avant et inverse ses conseils.
+  if (name === "Brake Bias Rear") {
+    const rear = v > 1.5 ? v : v * 100;
+    return `${(100 - rear).toFixed(1)}:${rear.toFixed(1)} (front:rear)`;
+  }
+  return String(Math.round(v));
 }
 
 /**

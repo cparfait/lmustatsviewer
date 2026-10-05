@@ -47,6 +47,7 @@ import {
 } from "@/lib/utils";
 import { records as recordsApi } from "@/lib/api";
 import type { RecordOverviewRow, RecordProgression } from "@/lib/api";
+import { usePageState } from "@/lib/usePageState";
 import { useAppStore } from "@/stores/app";
 import {
   fetchBenchmarks,
@@ -201,8 +202,8 @@ function Overview({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-  const [classFilter, setClassFilter] = useState("");
+  const [query, setQuery] = usePageState("records.query", "");
+  const [classFilter, setClassFilter] = usePageState("records.class", "");
 
   const classes = useMemo(
     () => [...new Set(rows.map((r) => r.car_class))].sort(),

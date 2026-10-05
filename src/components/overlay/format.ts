@@ -10,6 +10,7 @@ import type { LiveData } from "@/lib/api";
 import type { Tr } from "@/i18n";
 import { CAR_CLASS_COLORS } from "@/lib/staticData";
 import { computeStrategy } from "@/lib/strategy";
+import { playerClassPosition } from "@/lib/livePosition";
 
 /** Étiquettes de position des roues, localisées (ordre rF2 : FL, FR, RL, RR). */
 export function wheelLabels(t: Tr): [string, string, string, string] {
@@ -59,6 +60,26 @@ export function liveClassKey(vehicleClass: string): string {
 /** Couleur d'accent de la classe (ou null). */
 export function liveClassColor(vehicleClass: string): string | null {
   return CAR_CLASS_COLORS[liveClassKey(vehicleClass)]?.color ?? null;
+}
+
+/**
+ * Case « Position » des overlays : en multiclasse, position dans la classe
+ * (couleur de classe) + générale en petit ; sinon position générale seule.
+ */
+export function positionStat(
+  data: LiveData,
+  t: Tr,
+): { value: string; unit?: string; color?: string } {
+  const cp = playerClassPosition(data.standings);
+  if (cp?.multiclass) {
+    const me = data.standings.find((s) => s.is_player);
+    return {
+      value: `P${cp.classPos}`,
+      unit: t("overlays.elements.overallShort", { p: cp.overall }),
+      color: (me && liveClassColor(me.vehicle_class)) ?? undefined,
+    };
+  }
+  return { value: data.player ? `P${data.player.position}` : "—" };
 }
 
 /**

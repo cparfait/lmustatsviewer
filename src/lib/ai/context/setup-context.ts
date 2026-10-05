@@ -66,7 +66,8 @@ export function buildSetupSummary(svm: SvmFile, name?: string): string {
   if (suspLine) lines.push(`Suspension: ${suspLine}`);
 
   const brakeLine = join([
-    val(ctrl, "RearBrakeSetting") && `bias ${val(ctrl, "RearBrakeSetting")}`,
+    // Commentaire .svm au format « avant:arrière » (ex. 54.0:46.0).
+    val(ctrl, "RearBrakeSetting") && `bias ${val(ctrl, "RearBrakeSetting")} (front:rear)`,
     val(ctrl, "BrakeMigrationSetting") && `migration ${val(ctrl, "BrakeMigrationSetting")}`,
     val(ctrl, "BrakePressureSetting") && `pressure ${val(ctrl, "BrakePressureSetting")}`,
   ]);

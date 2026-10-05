@@ -2,7 +2,7 @@
 
 import { LayoutGrid } from "lucide-react";
 import { Panel, PanelHeader, Stat } from "@/components/overlay/ui";
-import { fmtLap } from "@/components/overlay/format";
+import { fmtLap, positionStat } from "@/components/overlay/format";
 import type { WidgetProps } from "./types";
 
 export function DashboardWidget({ data, content, accent, t }: WidgetProps) {
@@ -13,7 +13,7 @@ export function DashboardWidget({ data, content, accent, t }: WidgetProps) {
       <PanelHeader accent={accent} icon={LayoutGrid} title={t("overlays.items.dashboard.title")} />
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-3">
         {content.position !== false && (
-          <Stat label={t("overlays.elements.position")} value={p ? `P${p.position}` : "—"} />
+          <Stat label={t("overlays.elements.position")} {...positionStat(data, t)} />
         )}
         {content.laps !== false && (
           <Stat label={t("overlays.elements.laps")} value={p ? String(p.total_laps) : "—"} />

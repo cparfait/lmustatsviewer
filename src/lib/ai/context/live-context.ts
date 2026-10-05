@@ -10,7 +10,8 @@
 import { formatTime } from "../../utils";
 import { computeStrategy, strategyToText } from "../../strategy";
 import { buildTyreInsights } from "../insights";
-import type { LiveData } from "../../api";
+import { playerClassPosition, gapBetween } from "../../livePosition";
+import type { LiveData, LiveStanding } from "../../api";
 
 function sessionTypeLabel(s: number): string {
   if (s === 0) return "Test";
@@ -47,13 +48,28 @@ export function buildLiveContext(data: LiveData): string {
   if (p) {
     lines.push("");
     lines.push("## You");
-    const cls = me ? ` (class P${me.class_position})` : "";
-    lines.push(`Position: P${p.position}${cls} · Lap ${p.total_laps} · Pit stops: ${p.num_pitstops} · Penalties: ${p.num_penalties}`);
+    // Multiclasse : la position qui compte est celle de la classe (la générale
+    // mélange des voitures qui ne se battent pas entre elles).
+    const cp = playerClassPosition(data.standings);
+    const pos = cp?.multiclass
+      ? `Class position: P${cp.classPos}/${cp.classCount} in ${me?.vehicle_class || "your class"} (overall P${cp.overall}/${cp.total} — multi-class session, other classes are not direct rivals)`
+      : `Position: P${p.position}${s ? `/${s.num_vehicles}` : ""}`;
+    lines.push(`${pos} · Lap ${p.total_laps} · Pit stops: ${p.num_pitstops} · Penalties: ${p.num_penalties}`);
     lines.push(`Last lap: ${formatTime(p.last_lap_time)} (delta ${n(p.lap_delta, 3, "s")} vs best) · Best: ${formatTime(p.best_lap_time)}`);
     if (p.last_sectors) {
       lines.push(`Last sectors: S1 ${n(p.last_sectors[0], 3)} · S2 ${n(p.last_sectors[1], 3)} · S3 ${n(p.last_sectors[2], 3)}`);
     }
-    if (me) {
+    if (me && cp?.multiclass) {
+      const gap = (other: LiveStanding | null, label: string): string => {
+        if (!other) return `${label}: — (you lead the class)`;
+        const g = gapBetween(other, me);
+        if (g != null) return `${label}: ${n(g, 3, "s")}`;
+        const laps = me.laps_behind_leader - other.laps_behind_leader;
+        return `${label}: ${laps > 0 ? `+${laps} lap(s)` : "N/A"}`;
+      };
+      lines.push(`${gap(cp.classLeader, "Gap to class leader")} · ${gap(cp.classAhead, "Gap to class car ahead")}`);
+      lines.push(`Overall: gap to overall leader ${n(me.time_behind_leader, 3, "s")} · gap to car ahead on road (any class) ${n(me.time_behind_next, 3, "s")}`);
+    } else if (me) {
       lines.push(`Gap to leader: ${n(me.time_behind_leader, 3, "s")} · Gap to car ahead: ${n(me.time_behind_next, 3, "s")}`);
     }
   }

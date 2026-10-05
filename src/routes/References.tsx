@@ -27,6 +27,7 @@ import { TrackFlag } from "@/components/TrackFlag";
 import { queries, type BestLapRow } from "@/lib/api";
 import { formatTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { usePageState } from "@/lib/usePageState";
 import {
   fetchBenchmarks,
   mapTrackName,
@@ -85,11 +86,11 @@ export function References() {
   const [benchmarks, setBenchmarks] = useState<PaceBenchmark[] | null>(null);
   const [bestLaps, setBestLaps] = useState<BestLapRow[]>([]);
   const [error, setError] = useState(false);
-  const [filter, setFilter] = useState(""); // circuit (sélection exacte)
-  const [classFilter, setClassFilter] = useState("");
-  const [carFilter, setCarFilter] = useState(""); // modèle (sans version)
-  const [versionFilter, setVersionFilter] = useState("");
-  const [showLevel, setShowLevel] = useState(false);
+  const [filter, setFilter] = usePageState("references.track", ""); // circuit (sélection exacte)
+  const [classFilter, setClassFilter] = usePageState("references.class", "");
+  const [carFilter, setCarFilter] = usePageState("references.car", ""); // modèle (sans version)
+  const [versionFilter, setVersionFilter] = usePageState("references.version", "");
+  const [showLevel, setShowLevel] = usePageState("references.showLevel", false);
 
   useEffect(() => {
     fetchBenchmarks()

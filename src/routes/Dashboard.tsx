@@ -27,6 +27,7 @@ import { CarLogo } from "@/components/CarLogo";
 import { SessionBadge } from "@/components/SessionBadge";
 import { sessionTypeLabel as sharedSessionTypeLabel } from "@/lib/sessionLabels";
 import { getCircuitFlagUrlSync, classChartColor } from "@/lib/staticData";
+import { usePageState } from "@/lib/usePageState";
 import {
   cn,
   chartTooltipStyle,
@@ -88,13 +89,13 @@ export function Dashboard() {
   } = useAppStore();
 
   // Filtres (barre de recherche `index.php` V1) — appliqués côté client.
-  const [track, setTrack] = useState("");
-  const [trackCourse, setTrackCourse] = useState("");
-  const [carClass, setCarClass] = useState("");
-  const [car, setCar] = useState("");
-  const [sessionType, setSessionType] = useState("");
-  const [setting, setSetting] = useState("");
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [track, setTrack] = usePageState("dashboard.track", "");
+  const [trackCourse, setTrackCourse] = usePageState("dashboard.trackCourse", "");
+  const [carClass, setCarClass] = usePageState("dashboard.carClass", "");
+  const [car, setCar] = usePageState("dashboard.car", "");
+  const [sessionType, setSessionType] = usePageState("dashboard.sessionType", "");
+  const [setting, setSetting] = usePageState("dashboard.setting", "");
+  const [collapsed, setCollapsed] = usePageState<Set<string>>("dashboard.collapsed", () => new Set());
 
   // Modale graphe de tours
   const [lapChartSessionId, setLapChartSessionId] = useState<number | null>(null);
@@ -113,7 +114,7 @@ export function Dashboard() {
       else if (field === "session") setSessionType(value);
       else if (field === "setting") setSetting(value);
     },
-    []
+    [setCarClass, setCar, setSessionType, setSetting]
   );
 
   const tracks = filterOptions?.tracks ?? [];

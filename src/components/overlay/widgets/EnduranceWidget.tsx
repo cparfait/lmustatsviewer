@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Timer } from "lucide-react";
 import { Panel, PanelHeader, Stat } from "@/components/overlay/ui";
-import { fmtLap } from "@/components/overlay/format";
+import { fmtLap, positionStat } from "@/components/overlay/format";
 import type { WidgetProps } from "./types";
 
 export function EnduranceWidget({ data, content, accent, t }: WidgetProps) {
@@ -30,7 +30,7 @@ export function EnduranceWidget({ data, content, accent, t }: WidgetProps) {
           <Stat label={t("overlays.elements.stint")} value={String(stintLaps)} />
         )}
         {content.position !== false && (
-          <Stat label={t("overlays.elements.position")} value={p ? `P${p.position}` : "—"} />
+          <Stat label={t("overlays.elements.position")} {...positionStat(data, t)} />
         )}
         {content.lapTimes !== false && (
           <Stat label={t("overlays.elements.lastLap")} value={fmtLap(p?.last_lap_time ?? 0)} />

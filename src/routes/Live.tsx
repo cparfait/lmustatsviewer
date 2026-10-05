@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { usePageState } from "@/lib/usePageState";
 import {
   Table,
   TableHeader,
@@ -54,6 +55,7 @@ import { TrackFlag } from "@/components/TrackFlag";
 import { CAR_CLASS_COLORS } from "@/lib/staticData";
 import { toast, toastSuccess, toastError, confirmDialog } from "@/stores/dialogs";
 import { computeStrategy, type StrategySnapshot } from "@/lib/strategy";
+import { playerClassPosition } from "@/lib/livePosition";
 import { flagFromPhase, type FlagKind } from "@/lib/engineer/useRaceEngineer";
 import type { Tr } from "@/i18n";
 
@@ -534,6 +536,8 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
     : "none";
   const delta = player ? player.lap_delta : 0;
   const fuelToFinish = computeStrategy(sc, player, tel);
+  const classPos = playerClassPosition(data.standings);
+  const playerClass = data.standings.find((s) => s.is_player)?.vehicle_class ?? "";
 
   const overlayLabel =
     overlay === "paused"
@@ -582,10 +586,28 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
       <div className="flex items-center justify-between px-6 py-3 border-b border-border gap-4 flex-wrap">
         <div className="flex items-center gap-8">
           <Stat label={t("live.statPosition")}>
-            <span className="text-primary">P{player?.position ?? "–"}</span>
-            <span className="text-muted-foreground text-xl">
-              /{sc?.num_vehicles ?? "–"}
-            </span>
+            {classPos?.multiclass ? (
+              // Multiclasse : position dans la classe en premier, générale à côté.
+              <>
+                <span
+                  className="text-primary"
+                  style={{ color: liveClassColor(playerClass) ?? undefined }}
+                >
+                  P{classPos.classPos}
+                </span>
+                <span className="text-muted-foreground text-xl">/{classPos.classCount}</span>
+                <span className="ml-2 text-muted-foreground text-base font-medium">
+                  P{classPos.overall} {t("live.overall")}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-primary">P{player?.position ?? "–"}</span>
+                <span className="text-muted-foreground text-xl">
+                  /{sc?.num_vehicles ?? "–"}
+                </span>
+              </>
+            )}
           </Stat>
           <Stat label={t("live.statLap")}>
             {player?.total_laps ?? "–"}
@@ -1848,7 +1870,13 @@ const STANDINGS_CLASS_ORDER = [
 function StandingsTable({ standings }: { standings: LiveStanding[] }) {
   const { t } = useTranslation();
   // Filtre par classe : ensemble vide = toutes affichées (comportement par défaut).
-  const [activeClasses, setActiveClasses] = useState<Set<string>>(new Set());
+  // Retenu d'une visite à l'autre ; seules les classes présentes dans la session
+  // comptent (`selected`), sinon un filtre GT3 laissé d'une course précédente
+  // viderait le tableau d'une course sans GT3.
+  const [activeClasses, setActiveClasses] = usePageState<Set<string>>(
+    "live.classes",
+    () => new Set(),
+  );
 
   // Classes réellement présentes dans la session, dans l'ordre canonique.
   const presentClasses = useMemo(() => {
@@ -1858,10 +1886,15 @@ function StandingsTable({ standings }: { standings: LiveStanding[] }) {
     return [...ordered, ...extras];
   }, [standings]);
 
+  const selected = useMemo(
+    () => new Set(presentClasses.filter((k) => activeClasses.has(k))),
+    [presentClasses, activeClasses],
+  );
+
   const shown =
-    activeClasses.size === 0
+    selected.size === 0
       ? standings
-      : standings.filter((s) => activeClasses.has(liveClassKey(s.vehicle_class)));
+      : standings.filter((s) => selected.has(liveClassKey(s.vehicle_class)));
 
   const toggleClass = (k: string) =>
     setActiveClasses((prev) => {
@@ -1884,7 +1917,7 @@ function StandingsTable({ standings }: { standings: LiveStanding[] }) {
       {presentClasses.length > 1 && (
         <div className="flex flex-wrap items-center gap-1.5">
           {presentClasses.map((k) => {
-            const on = activeClasses.size === 0 || activeClasses.has(k);
+            const on = selected.size === 0 || selected.has(k);
             return (
               <button
                 key={k}
@@ -1900,7 +1933,7 @@ function StandingsTable({ standings }: { standings: LiveStanding[] }) {
               </button>
             );
           })}
-          {activeClasses.size > 0 && (
+          {selected.size > 0 && (
             <button
               onClick={() => setActiveClasses(new Set())}
               className="ml-1 text-micro text-muted-foreground underline hover:text-foreground"

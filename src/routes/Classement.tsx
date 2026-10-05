@@ -27,6 +27,7 @@ import {
   type MyCombo,
 } from "@/lib/api";
 import { cn, formatTime } from "@/lib/utils";
+import { usePageState } from "@/lib/usePageState";
 import { useAppStore } from "@/stores/app";
 import { TierBadge } from "@/components/TierBadge";
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
@@ -331,7 +332,13 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
     <div className="space-y-4 border-t border-border/60 bg-muted/20 p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold">{t("leaderboard.aroundTitle")}</p>
+          {/* Le titre nomme le combo ouvert (tracé + classe) : on sait tout de suite lequel on lit. */}
+          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            {t("leaderboard.aroundTitle")}
+            <span className="text-muted-foreground">·</span>
+            <span>{q.course || q.track}</span>
+            {q.class && <ClassBadge carClass={q.class} size="sm" />}
+          </p>
           <p className="text-xs text-muted-foreground">{t("leaderboard.aroundSub")}</p>
         </div>
         <a href={siteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
@@ -503,8 +510,13 @@ export function Classement() {
   const { t } = useTranslation();
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
   const [params, setParams] = useSearchParams();
-  const tab = showOhneSpeed && params.get("tab") === "references" ? "references" : "position";
-  const setTab = (v: "position" | "references") => setParams(v === "references" ? { tab: v } : {}, { replace: true });
+  // Sans `?tab=` (entrée par le menu), on rouvre le dernier onglet consulté.
+  const [lastTab, setLastTab] = usePageState<"position" | "references">("classement.tab", "position");
+  const tab = showOhneSpeed && (params.get("tab") ?? lastTab) === "references" ? "references" : "position";
+  const setTab = (v: "position" | "references") => {
+    setLastTab(v);
+    setParams(v === "references" ? { tab: v } : {}, { replace: true });
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -543,18 +555,17 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   const [open, setOpen] = useState<string | null>(null);
   /** Circuit dont le classement toutes classes est ouvert (clic sur son nom). */
   const [openTrack, setOpenTrack] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsed, setCollapsed] = usePageState<Set<string>>("classement.collapsed", () => new Set());
   // Filtres (barre + clic sur une cellule, comme Sessions / Records).
-  const [fTrack, setFTrack] = useState("");
-  const [fCourse, setFCourse] = useState("");
-  const [fClass, setFClass] = useState("");
-  const [fCar, setFCar] = useState("");
-  const [fSession, setFSession] = useState<"" | "race" | "qualify" | "practice">("");
-  const [fMode, setFMode] = useState<"" | "online" | "offline">("");
-  // « Mes combos » : désactivé à l'ouverture (rien de mis en évidence) ; « Masquer les autres »
-  // redonne l'ancien affichage (seulement les combos roulés).
-  const [showMine, setShowMine] = useState(false);
-  const [hideOthers, setHideOthers] = useState(false);
+  const [fTrack, setFTrack] = usePageState("classement.track", "");
+  const [fCourse, setFCourse] = usePageState("classement.course", "");
+  const [fClass, setFClass] = usePageState("classement.class", "");
+  const [fCar, setFCar] = usePageState("classement.car", "");
+  const [fSession, setFSession] = usePageState<"" | "race" | "qualify" | "practice">("classement.session", "");
+  const [fMode, setFMode] = usePageState<"" | "online" | "offline">("classement.mode", "");
+  // « Mes combos » : n'affiche que les combos roulés, teintés orange (re-clic = liste complète).
+  // Désactivé au lancement de l'app, puis retenu d'une visite à l'autre comme les filtres.
+  const [showMine, setShowMine] = usePageState("classement.showMine", false);
   const gameVersions = useAppStore((s) => s.gameVersions);
   const selectedVersion = useAppStore((s) => s.selectedVersion);
   const setSelectedVersion = useAppStore((s) => s.setSelectedVersion);
@@ -686,7 +697,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
       const c = r.combo;
       if ((fTrack && c.track !== fTrack) || (fCourse && c.track_course !== fCourse)) continue;
       if ((fClass && c.car_class !== fClass) || (fCar && c.car_model !== fCar)) continue;
-      if (showMine && hideOthers && r.other) continue;
+      if (showMine && r.other) continue;
       m.set(c.track, [...(m.get(c.track) ?? []), r]);
     }
     // Dans chaque circuit, regroupement par TRACÉ : le principal (même nom que le circuit)
@@ -707,7 +718,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
         .map((x) => x.r);
       return [track, sorted] as [string, Row[]];
     });
-  }, [rows, fTrack, fCourse, fClass, fCar, showMine, hideOthers]);
+  }, [rows, fTrack, fCourse, fClass, fCar, showMine]);
 
   // Tous les combos où le joueur a une place (provisoires compris, comme le tableau) ;
   // « définitifs » = 20 pilotes ou plus.
@@ -903,24 +914,24 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                 {t("sessions.versionExact")}
               </label>
             )}
-            {/* « Mes combos » : met en évidence les combos roulés (bouton orange tant qu'actif) ;
-                « Masquer les autres » = n'afficher que ceux-là. */}
+            {/* « Mes combos » : sans fond quand inactif ; actif = fond orange + coupe jaune.
+                Survol teinté orange dans les deux états (le survol « outline » par défaut est
+                quasi blanc en thème clair, illisible). */}
             <Button
               variant={showMine ? "default" : "outline"}
               size="sm"
-              className="h-9 gap-1.5 text-xs"
+              className={cn(
+                "h-9 gap-1.5 text-xs",
+                showMine
+                  ? "hover:bg-primary/85 hover:text-primary-foreground"
+                  : "hover:border-primary hover:bg-primary/10 hover:text-primary",
+              )}
               aria-pressed={showMine}
               onClick={() => setShowMine(!showMine)}
             >
-              <Star className={cn("h-3.5 w-3.5", showMine && "fill-yellow-400 text-yellow-400")} />
+              {showMine && <Trophy className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />}
               {t("leaderboard.onlyMine")}
             </Button>
-            {showMine && (
-              <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
-                <input type="checkbox" className="accent-primary" checked={hideOthers} onChange={(e) => setHideOthers(e.target.checked)} />
-                {t("leaderboard.hideOthers")}
-              </label>
-            )}
             {hasFilters && (
               <Button variant="ghost" size="sm" className="h-9 gap-1 text-xs text-muted-foreground" onClick={clearFilters}>
                 <X className="h-3.5 w-3.5" /> {t("sessions.clearFilters")}
@@ -936,12 +947,20 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
       {groups.map(([track, list]) => {
         const isCollapsed = collapsed.has(track);
         const trackOpen = openTrack === track;
+        // Un combo (ou un classement toutes classes) est ouvert : le reste est grisé pour que la
+        // sélection saute aux yeux ; le survol rend sa pleine opacité à ce qui est grisé.
+        const openHere = !!open && open.startsWith(`${track}|`);
+        const dimCard = (!!open || !!openTrack) && !openHere && !trackOpen;
+        const openCourse = openHere ? open!.split("|")[1] : null;
         // Toutes classes : le tracé principal s'il est dans la liste, sinon le premier.
         const mainCourse = list.find((r) => r.combo.track_course === track)?.combo.track_course ?? list[0].combo.track_course;
         return (
           // Même présentation que les tableaux du tableau de bord : en-tête de circuit
           // repliable, ligne de titres contrastée, bloc « performance » teinté.
-          <Card key={track} className="overflow-hidden">
+          <Card
+            key={track}
+            className={cn("overflow-hidden transition-opacity", dimCard && "opacity-40 hover:opacity-100")}
+          >
             <div
               className="group flex cursor-pointer items-center gap-2 bg-primary/30 px-3 py-1.5 transition-colors hover:bg-primary/40 dark:bg-primary/25"
               onClick={() =>
@@ -1031,7 +1050,12 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                       return (
                         <Fragment key={key}>
                           {newCourse && (
-                            <TableRow className="hover:bg-transparent">
+                            <TableRow
+                              className={cn(
+                                "transition-opacity hover:bg-transparent",
+                                openCourse !== null && r.combo.track_course !== openCourse && "opacity-40",
+                              )}
+                            >
                               <TableCell
                                 colSpan={showOhne ? 11 : 10}
                                 className="border-t border-primary/25 bg-primary/[0.07] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-yellow-700 dark:text-yellow-300"
@@ -1050,13 +1074,23 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                             className={cn(
                               "group",
                               i % 2 === 1 && "bg-muted/30",
-                              isOpen && "bg-amber-400/10",
                               // « Mes combos » : les combos roulés teintés en orange, les autres estompés.
                               showMine && (r.other ? "opacity-45" : "bg-orange-500/15 font-semibold"),
+                              // Combo ouvert : teinte nette (l'emporte sur les précédentes), barre
+                              // à gauche prolongée sur tout le détail (cf. cellule du détail).
+                              isOpen && "bg-primary/10 font-semibold opacity-100 hover:bg-primary/15",
+                              // Autres lignes du même circuit grisées tant qu'un combo est ouvert.
+                              openHere && !isOpen && "opacity-40 transition-opacity hover:opacity-100",
                             )}
                           >
                             {/* Détail : œil en tête de ligne, comme les autres pages (pas de détail sans position). */}
-                            <TableCell className={cn("px-2 py-1.5", showMine && !r.other && "shadow-[inset_5px_0_0_#f97316]")}>
+                            <TableCell
+                              className={cn(
+                                "px-2 py-1.5",
+                                showMine && !r.other && "shadow-[inset_5px_0_0_#f97316]",
+                                isOpen && "shadow-[inset_5px_0_0_var(--color-primary)]",
+                              )}
+                            >
                               {(r.pos || r.other) && (
                                 <div className="flex justify-center">
                                   <Tip content={isOpen ? t("leaderboard.hide") : t("leaderboard.details")}>
@@ -1161,8 +1195,11 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                             </TableCell>
                           </TableRow>
                           {isOpen && (
-                            <TableRow>
-                              <TableCell colSpan={showOhne ? 11 : 10} className="p-0">
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={showOhne ? 11 : 10}
+                                className="border-b-2 border-primary/50 p-0 shadow-[inset_5px_0_0_var(--color-primary)]"
+                              >
                                 <ComboDetail q={r.q} myBest={r.other ? null : r.combo.best} myRank={r.pos?.rank ?? null} myTag={myTag} />
                               </TableCell>
                             </TableRow>

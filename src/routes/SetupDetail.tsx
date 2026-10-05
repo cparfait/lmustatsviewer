@@ -36,6 +36,7 @@ import {
   StickyNote,
 } from "lucide-react";
 import { cn, formatTime, formatDateTime } from "@/lib/utils";
+import { usePageState } from "@/lib/usePageState";
 import { paramLabel } from "@/lib/setupParams";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 
@@ -903,11 +904,11 @@ function LinkedSessionSection({
   // voiture+circuit du setup, qui est le cas normal). Si le matching échoue
   // (nom de dossier ≠ nom XML, ex. anciennes versions du jeu), décocher pour
   // voir toutes les sessions de la voiture.
-  const [filterByCircuit, setFilterByCircuit] = useState(true);
+  const [filterByCircuit, setFilterByCircuit] = usePageState("setupDetail.filterByCircuit", true);
   // Mode comparaison : décoché par défaut → 1 seul meilleur tour par circuit.
   // Coché : toutes les sessions (chaque tentative avec un setup différent),
   // utile pour comparer les chronos sur un même circuit.
-  const [compareAll, setCompareAll] = useState(false);
+  const [compareAll, setCompareAll] = usePageState("setupDetail.compareAll", false);
   // Détail de la session liée — chargé directement par ID (lookup backend)
   // dès que `entry.linked_session_id` change. Évite le mode dégradé qui ne
   // montrait que l'ID brut tant que la recherche n'avait pas tourné.

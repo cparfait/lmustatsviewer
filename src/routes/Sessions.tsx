@@ -20,6 +20,7 @@ import { sessionTypeLabel } from "@/lib/sessionLabels";
 import { TrackFlag } from "@/components/TrackFlag";
 import { CarLogo } from "@/components/CarLogo";
 import { cn, formatTime, formatDateTime } from "@/lib/utils";
+import { usePageState, useChangeEffect } from "@/lib/usePageState";
 import {
   ChevronRight,
   Eye,
@@ -159,25 +160,34 @@ export function Sessions() {
   // Filtres — pré-remplis depuis l'URL (lien profond depuis Profile / Records).
   // Lecture une seule fois au montage ; les changements internes ne sont pas
   // resynchronisés dans l'URL pour éviter une boucle navigate ↔ state.
-  const [track, setTrack] = useState(() => searchParams.get("track") ?? "");
-  const [trackCourse, setTrackCourse] = useState(
-    () => searchParams.get("course") ?? ""
+  // Sans lien profond : on retrouve les filtres de la dernière visite ; avec un
+  // lien profond, il impose tous ses filtres (les autres repartent à vide).
+  const deepLink = ["track", "course", "class", "car", "session_type", "setting"].some(
+    (k) => searchParams.has(k)
   );
-  const [carClass, setCarClass] = useState(
-    () => searchParams.get("class") ?? ""
+  const [track, setTrack] = usePageState(
+    "sessions.track", () => searchParams.get("track") ?? "", deepLink
   );
-  const [car, setCar] = useState(() => searchParams.get("car") ?? "");
-  const [sessionType, setSessionType] = useState(
-    () => searchParams.get("session_type") ?? ""
+  const [trackCourse, setTrackCourse] = usePageState(
+    "sessions.trackCourse", () => searchParams.get("course") ?? "", deepLink
   );
-  const [setting, setSetting] = useState(
-    () => searchParams.get("setting") ?? ""
+  const [carClass, setCarClass] = usePageState(
+    "sessions.carClass", () => searchParams.get("class") ?? "", deepLink
+  );
+  const [car, setCar] = usePageState(
+    "sessions.car", () => searchParams.get("car") ?? "", deepLink
+  );
+  const [sessionType, setSessionType] = usePageState(
+    "sessions.sessionType", () => searchParams.get("session_type") ?? "", deepLink
+  );
+  const [setting, setSetting] = usePageState(
+    "sessions.setting", () => searchParams.get("setting") ?? "", deepLink
   );
 
   // Tri + pagination
-  const [sortBy, setSortBy] = useState<SortKey>("Date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = usePageState<SortKey>("sessions.sortBy", "Date");
+  const [sortDir, setSortDir] = usePageState<"asc" | "desc">("sessions.sortDir", "desc");
+  const [page, setPage] = usePageState("sessions.page", 1, deepLink);
   const [perPage, setPerPage] = useState(() => {
     const s = localStorage.getItem(PAGE_SIZE_KEY);
     return s ? Number(s) : 25;
@@ -260,9 +270,11 @@ export function Sessions() {
     // chargement quand l'index bouge, sans changer l'identité de la fonction.
   }, [load, dataVersion]);
 
-  useEffect(() => setTrackCourse(""), [track]);
-  useEffect(() => setCar(""), [carClass]);
-  useEffect(() => {
+  // Cascades sur changement seulement : au montage, elles effaceraient les
+  // filtres et la page restaurés.
+  useChangeEffect(() => setTrackCourse(""), [track]);
+  useChangeEffect(() => setCar(""), [carClass]);
+  useChangeEffect(() => {
     setPage(1);
   }, [track, trackCourse, carClass, car, sessionType, setting, selectedVersion, versionExact]);
 

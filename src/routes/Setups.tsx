@@ -38,6 +38,7 @@ import {
 } from "@/lib/api";
 import { useAppStore } from "@/stores/app";
 import { cn, formatTime } from "@/lib/utils";
+import { usePageState } from "@/lib/usePageState";
 import {
   confirmDialog,
   promptDialog,
@@ -170,9 +171,9 @@ export function Setups() {
   // Défaut « Tous les setups » : c'est la vue tableau plat qui sert d'index
   // d'entrée — l'utilisateur peut ensuite basculer vers la vue par voiture
   // ou par circuit pour explorer.
-  const [view, setView] = useState<"car" | "global" | "circuit">("global");
-  const [activeCircuit, setActiveCircuit] = useState<string | null>(null);
-  const [activeCar, setActiveCar] = useState<string | null>(null);
+  const [view, setView] = usePageState<"car" | "global" | "circuit">("setups.view", "global");
+  const [activeCircuit, setActiveCircuit] = usePageState<string | null>("setups.circuit", null);
+  const [activeCar, setActiveCar] = usePageState<string | null>("setups.car", null);
   const [selectedSetupId, setSelectedSetupId] = useState<number | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
 
@@ -187,8 +188,9 @@ export function Setups() {
           : await setupsApi.list();
         if (!ignore) {
           setGroups(data);
-          // Auto-sélection de la 1ʳᵉ voiture du garage.
-          if (data.length > 0 && !activeCar) {
+          // Auto-sélection de la 1ʳᵉ voiture du garage (aussi si la voiture
+          // retenue de la visite précédente n'y est plus).
+          if (data.length > 0 && !data.some((g) => g.car === activeCar)) {
             setActiveCar(data[0].car);
           }
         }
@@ -1079,9 +1081,10 @@ function CircuitView({
       .map(([name, count]) => ({ name, count }));
   }, [groups]);
 
-  // Auto-sélection du 1er circuit si aucun n'est encore actif.
+  // Auto-sélection du 1er circuit si aucun n'est actif (ou si celui retenu de la
+  // visite précédente n'a plus de setup).
   useEffect(() => {
-    if (!activeCircuit && circuitsList.length > 0) {
+    if (circuitsList.length > 0 && !circuitsList.some((c) => c.name === activeCircuit)) {
       setActiveCircuit(circuitsList[0].name);
     }
   }, [activeCircuit, circuitsList, setActiveCircuit]);

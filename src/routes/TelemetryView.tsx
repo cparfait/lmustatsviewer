@@ -469,7 +469,10 @@ export function TelemetryView() {
   };
   const elecBB = (): string => {
     const v = at(scal("Brake Bias Rear"));
-    return v != null && isFinite(v) ? `${(v * 100).toFixed(1)}%` : "—";
+    // Fraction arrière → affichage avant : arrière, comme dans le jeu.
+    if (v == null || !isFinite(v)) return "—";
+    const rear = v > 1.5 ? v : v * 100;
+    return `${(100 - rear).toFixed(1)} : ${rear.toFixed(1)}`;
   };
 
   // ── Séries des graphes (mémoïsées → stables pendant la lecture) ───────────────

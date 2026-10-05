@@ -22,6 +22,7 @@ import { SessionBadge } from "@/components/SessionBadge";
 import { sessionTypeLabel } from "@/lib/sessionLabels";
 import { telemetry } from "@/lib/api";
 import type { TelemetryFileInfo } from "@/lib/api";
+import { usePageState, useChangeEffect } from "@/lib/usePageState";
 import { formatDateTime, formatTime } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 
@@ -38,10 +39,10 @@ export function Telemetry() {
   const [files, setFiles] = useState<TelemetryFileInfo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [fTrack, setFTrack] = useState("");
-  const [fClass, setFClass] = useState("");
-  const [fCar, setFCar] = useState("");
-  const [fSession, setFSession] = useState("");
+  const [fTrack, setFTrack] = usePageState("telemetry.track", "");
+  const [fClass, setFClass] = usePageState("telemetry.class", "");
+  const [fCar, setFCar] = usePageState("telemetry.car", "");
+  const [fSession, setFSession] = usePageState("telemetry.session", "");
 
   type SortKey =
     | "track"
@@ -52,8 +53,8 @@ export function Telemetry() {
     | "driver"
     | "bestlap"
     | "date";
-  const [sortBy, setSortBy] = useState<SortKey>("date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [sortBy, setSortBy] = usePageState<SortKey>("telemetry.sortBy", "date");
+  const [sortDir, setSortDir] = usePageState<"asc" | "desc">("telemetry.sortDir", "desc");
   const onSort = (k: SortKey) => {
     if (k === sortBy) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
@@ -64,7 +65,7 @@ export function Telemetry() {
   };
 
   // Pagination (côté client, façon Sessions)
-  const [page, setPage] = useState(1);
+  const [page, setPage] = usePageState("telemetry.page", 1);
   const [perPage, setPerPage] = useState(() => {
     const s = localStorage.getItem(PAGE_SIZE_KEY);
     return s ? Number(s) : 25;
@@ -117,7 +118,7 @@ export function Telemetry() {
     });
   }, [files, fTrack, fClass, fCar, fSession]);
 
-  useEffect(() => {
+  useChangeEffect(() => {
     setPage(1);
   }, [fTrack, fClass, fCar, fSession]);
 

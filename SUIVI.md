@@ -915,6 +915,12 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   corrigée** (n'ouvrait que #captures → catégorie FR entière) ; message de bienvenue +IT (limite 300 car.
   → fin en anglais seul) ; profil serveur : tag « FR · EN · ES · DE · IT », description (…/IT) ;
   règlement italien épinglé dans #rules ; annonce 1.0.9 postée ×5 dans #annonces.
+- 🐛→✅ **Vitrine : la 1.0.9 n'apparaissait pas** (retour mainteneur) : liste des versions et dernière
+  version gardées en `sessionStorage` **sans expiration** → un rechargement réaffichait la 1.0.8.
+  Cache horodaté de 10 min (`lmusv.releases.v2`, `lmusv.release.v3` : anciennes entrées ignorées),
+  dernière valeur connue en repli si GitHub ne répond pas ; `?v=20261006` sur les JS/CSS des deux
+  pages. Vérifié en local avec l'ancien cache simulé : 1.0.9 affichée, liens de téléchargement 1.0.9.
+  ⏳ À envoyer (SFTP : `index.html`, `changelog.html`, `assets/js/app.js`, `assets/js/changelog.js`).
 - ⏳ Un message « Chronos, télémétrie… (FR/EN/ES/DE) » posté à 00:04 dans #annonces (pas par moi) : à
   vérifier par le mainteneur.
 - 📋 **Prochaine étape** : `update-from-github.sh` sur le VPS si pas encore fait (italien du site + page

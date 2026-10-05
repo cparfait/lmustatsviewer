@@ -25,7 +25,9 @@ $Voices = @(
   @{ out = "es"; path = "es/es_ES/davefx/medium/es_ES-davefx-medium" },
   @{ out = "es_MX-claude-high"; path = "es/es_MX/claude/high/es_MX-claude-high" },
   @{ out = "de"; path = "de/de_DE/thorsten/medium/de_DE-thorsten-medium" },
-  @{ out = "de_DE-eva_k-x_low"; path = "de/de_DE/eva_k/x_low/de_DE-eva_k-x_low" }
+  @{ out = "de_DE-eva_k-x_low"; path = "de/de_DE/eva_k/x_low/de_DE-eva_k-x_low" },
+  @{ out = "it"; path = "it/it_IT/paola/medium/it_IT-paola-medium" },
+  @{ out = "it_IT-riccardo-x_low"; path = "it/it_IT/riccardo/x_low/it_IT-riccardo-x_low" }
 )
 $HfBase = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 

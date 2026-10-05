@@ -41,6 +41,7 @@ export const SPEECH_LANG: Record<string, string> = {
   en: "en-GB",
   es: "es-ES",
   de: "de-DE",
+  it: "it-IT",
 };
 
 /** Normalise un code langue (« fr-FR » → « fr »). */
@@ -52,12 +53,14 @@ const MALE_VOICE_HINTS = [
   "paul", "claude", "david", "mark", "george", "guy", "ryan", "thomas",
   "daniel", "guillaume", "henri", "nicolas", "stefan", "conrad", "pablo",
   "jorge", "diego", "alvaro", "remy", "male", "homme", "männlich", "hombre",
-  "masculin",
+  "masculin", "giuseppe", "cosimo", "benigno", "calimero", "gianni",
+  "lisandro", "rinaldo", "maschile",
 ];
 const FEMALE_VOICE_HINTS = [
   "hortense", "julie", "denise", "zira", "hazel", "susan", "linda", "aria",
   "jenny", "helena", "laura", "sabina", "elvira", "hedda", "katja", "amala",
-  "vivienne", "female", "femme", "weiblich", "mujer", "féminin",
+  "vivienne", "female", "femme", "weiblich", "mujer", "féminin", "elsa",
+  "isabella", "fabiola", "fiamma", "imelda", "palmira", "pierina", "femminile",
 ];
 
 let cachedVoices: SpeechSynthesisVoice[] = [];
@@ -439,12 +442,13 @@ const TTS_WORDS: Record<
   en: { decimal: "point", seconds: "seconds", kmh: "kilometers per hour", plus: "plus", minus: "minus", degrees: "degrees" },
   es: { decimal: "coma", seconds: "segundos", kmh: "kilómetros por hora", plus: "más", minus: "menos", degrees: "grados" },
   de: { decimal: "Komma", seconds: "Sekunden", kmh: "Kilometer pro Stunde", plus: "plus", minus: "minus", degrees: "Grad" },
+  it: { decimal: "virgola", seconds: "secondi", kmh: "chilometri orari", plus: "più", minus: "meno", degrees: "gradi" },
 };
 
 /**
  * Normalise le jargon course pour la synthèse — Piper lit les formes écrites
  * telles quelles : « P13 » devient un mot déformé, « 1:42.123 » est lu avec
- * « deux-points », « km/h » avec « slash », « 0.5 » à l'anglaise en FR/ES/DE.
+ * « deux-points », « km/h » avec « slash », « 0.5 » à l'anglaise en FR/ES/DE/IT.
  * On réécrit en toutes lettres, par langue. S'applique à TOUT ce qui est dit
  * (spotter, coach, test IA) — les textes affichés ne sont pas touchés.
  */

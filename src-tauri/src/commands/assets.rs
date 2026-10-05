@@ -1,6 +1,6 @@
 //! Téléchargement **à la demande** des modèles vocaux — voix TTS Piper et
 //! modèles STT Vosk — sortis de l'installeur pour l'alléger (~550 Mo de voix
-//! pour 4 langues alors qu'un utilisateur n'en emploie qu'une).
+//! pour 5 langues alors qu'un utilisateur n'en emploie qu'une).
 //!
 //! Les fichiers sont écrits dans `app_data_dir/tts/voices` et
 //! `app_data_dir/stt/models/<code>`, dossiers scannés en priorité par
@@ -46,6 +46,8 @@ const TTS_VOICES: &[TtsVoice] = &[
     TtsVoice { id: "es_MX-claude-high", lang: "es", label: "Claude", hf_path: "es/es_MX/claude/high/es_MX-claude-high", size: 63_122_309, sha256: "3ef40a71ea63852cd8ab7e6fa7d2ecdcfa67a0b47c9c48e3f10e02ee02083ea0" },
     TtsVoice { id: "de", lang: "de", label: "Thorsten", hf_path: "de/de_DE/thorsten/medium/de_DE-thorsten-medium", size: 63_201_294, sha256: "7e64762d8e5118bb578f2eea6207e1a35a8e0c30595010b666f983fc87bb7819" },
     TtsVoice { id: "de_DE-eva_k-x_low", lang: "de", label: "Eva K", hf_path: "de/de_DE/eva_k/x_low/de_DE-eva_k-x_low", size: 20_628_813, sha256: "e88cf290fbfb768bf111330d2e8a46e376b0d85e3423a28bfebbc863a260dad8" },
+    TtsVoice { id: "it", lang: "it", label: "Paola", hf_path: "it/it_IT/paola/medium/it_IT-paola-medium", size: 63_511_038, sha256: "6fc918b5a0ea6137382833dddfa567bffbe6a5060c02043c87192ee59c04210c" },
+    TtsVoice { id: "it_IT-riccardo-x_low", lang: "it", label: "Riccardo", hf_path: "it/it_IT/riccardo/x_low/it_IT-riccardo-x_low", size: 28_130_791, sha256: "1368de15f123275a7ef951c9e5e30be0f58a032daa14a0da44037443c1d1d21b" },
 ];
 
 struct SttModel {
@@ -59,6 +61,7 @@ const STT_MODELS: &[SttModel] = &[
     SttModel { lang: "fr", name: "vosk-model-small-fr-0.22", size: 42_233_323 },
     SttModel { lang: "es", name: "vosk-model-small-es-0.42", size: 39_817_833 },
     SttModel { lang: "de", name: "vosk-model-small-de-0.15", size: 46_499_967 },
+    SttModel { lang: "it", name: "vosk-model-small-it-0.22", size: 49_665_141 },
 ];
 
 /// Élément du catalogue exposé au frontend (Config → Audio / Voix).

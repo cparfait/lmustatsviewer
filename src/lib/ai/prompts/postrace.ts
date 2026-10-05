@@ -1,6 +1,6 @@
 /**
  * Prompts utilisateur post-race : analyse rapide (≈300 tokens) et complète
- * (≈1000 tokens), 4 langues. La question est suivie du contexte de données
+ * (≈1000 tokens), 5 langues. La question est suivie du contexte de données
  * (`context/postrace-context.ts`).
  */
 
@@ -11,6 +11,7 @@ const QUICK: Record<string, string> = {
   en: `Quick analysis of my session. Give me 3 points: my main strength, my main weakness, and THE #1 priority for my next session on this combo. One data point per item. Be direct.`,
   es: `Análisis rápido de mi sesión. Dame 3 puntos: mi punto fuerte principal, mi punto débil principal y LA prioridad nº1 para mi próxima sesión en este combo. Un dato por punto. Sé directo.`,
   de: `Schnellanalyse meiner Session. Gib mir 3 Punkte: meine größte Stärke, meine größte Schwäche und DIE Priorität Nr. 1 für meine nächste Session auf dieser Kombination. Eine Kennzahl pro Punkt. Sei direkt.`,
+  it: `Analisi rapida della mia sessione. Dammi 3 punti: il mio principale punto di forza, il mio principale punto debole e LA priorità n°1 per la mia prossima sessione su questa combinazione. Un dato numerico per ogni punto. Sii diretto.`,
 };
 
 const FULL: Record<string, string> = {
@@ -38,6 +39,12 @@ const FULL: Record<string, string> = {
 3. Sektoranalyse — S1/S2/S3 vs. meine Referenz und vs. die Klasse.
 4. Strategie — Kraftstoff- / Reifen- / Boxenmanagement.
 5. Empfehlungen — 3 konkrete, mit Zahlen belegte Tipps für die nächste Session.`,
+  it: `Analisi completa della mia sessione in 5 parti, con i numeri:
+1. Punti di forza — cosa ho fatto bene (settori forti, costanza, gestione).
+2. Margini di miglioramento — dove ho perso tempo (settori deboli, incoerenze).
+3. Analisi per settori — S1/S2/S3 rispetto al mio riferimento e alla classe.
+4. Strategia — gestione di carburante / gomme / soste.
+5. Raccomandazioni — 3 consigli concreti e quantificati per la prossima sessione.`,
 };
 
 /**

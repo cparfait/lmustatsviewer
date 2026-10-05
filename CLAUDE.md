@@ -18,7 +18,7 @@ Il contient : objectif, décisions verrouillées, règles métier extraites de l
 Toute modification visible par l'utilisateur (correctif, nouveauté, changement de
 comportement) doit être **loguée dans `src/lib/changelog.ts`** dans la foulée, sans
 attendre la publication : entrée de la prochaine version, `dev: true` tant qu'elle
-n'est pas sortie, `localized: true` avec les 4 langues. `SUIVI.md` (section 8) est le
+n'est pas sortie, `localized: true` avec les 5 langues (FR/EN/ES/DE/IT). `SUIVI.md` (section 8) est le
 journal *technique* — il ne remplace pas le changelog *utilisateur*.
 
 ## Règle d'or
@@ -29,4 +29,4 @@ La migration depuis la V1 PHP est **terminée** : la V3 fait foi. Les calculs et
 
 - Réponses utilisateur + documentation + commentaires : français.
 - Code, variables, noms de fichiers : anglais.
-- Strings UI : via `t("key")` (react-i18next), 4 langues FR/EN/ES/DE.
+- Strings UI : via `t("key")` (react-i18next), 5 langues FR/EN/ES/DE/IT.

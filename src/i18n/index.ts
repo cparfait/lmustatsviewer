@@ -5,6 +5,7 @@ import fr from "./fr";
 import en from "./en";
 import de from "./de";
 import es from "./es";
+import it from "./it";
 
 /**
  * Fonction de traduction (typage léger pour les helpers/sous-composants qui
@@ -23,10 +24,11 @@ export const i18nReady = i18n
       en: { translation: en },
       de: { translation: de },
       es: { translation: es },
+      it: { translation: it },
     },
     // Anglais par défaut : la langue du système est détectée en premier (un
     // Windows français ouvre l'app en français), mais toute langue hors des
-    // quatre supportées retombe sur l'anglais — pas sur le français, qui
+    // cinq supportées retombe sur l'anglais — pas sur le français, qui
     // n'aurait aucun sens pour le public international.
     fallbackLng: "en",
     interpolation: {

@@ -148,9 +148,47 @@ const I18N = {
     "f.toggle": "Filter", "search.open": "Fahrer suchen", "f.circuit": "Strecke", "f.layout": "Variante", "f.class": "Klasse", "f.car": "Auto", "f.session": "Session", "f.mode": "Modus", "f.version": "Version", "f.conditions": "Bedingungen", "f.aids": "Hilfen", "f.all": "Alle", "f.allF": "Alle", "f.allClasses": "Alle Klassen", "home.allClasses": "Rangliste der Strecke, alle Klassen", "f.race": "Rennen", "f.qualify": "Qualifying", "f.practice": "Training", "f.online": "Online", "f.offline": "Offline", "f.latest": "Neueste", "f.several": "Mehrere",
     "anon": "Fahrer {tag}", "notFound": "Auf dieser Kombo wurde noch keine Runde geteilt.", "back": "Zurück zu den Strecken", "latest": "aktuell",
   },
+  it: {
+    "home.title": "Classifiche della community", "home.lead": "I giri migliori dei piloti di LMU Stats Viewer, per circuito e per classe. Clicca su un tempo per aprire la classifica completa.", "home.trust": "Tempi letti dai file del gioco: nulla viene inserito a mano.",
+    "home.me": "La mia scheda pilota", "home.board": "Tutte le classifiche", "home.count": "{n} classifiche", "home.count1": "1 classifica",
+    "view.grid": "Per circuito", "view.list": "Elenco", "sort.popular": "Più frequentati", "sort.az": "A → Z",
+    "mx.legend": "Partecipazione: numero di piloti, rispetto alla classifica più frequentata della stessa classe. Una classifica resta provvisoria finché conta meno di 20 piloti.", "col.recordCar": "Vettura", "col.recordDriver": "Detentore del record", "col.pop": "Partecipazione", "home.pending": "Provvisoria: {n} / 20 piloti", "home.open": "Classifica",
+    "nav.tracks": "Circuiti", "nav.how": "Partecipa", "nav.app": "L'app", "nav.share": "Condividi i miei giri",
+    "stat.drivers": "Piloti", "stat.sessions": "Sessioni condivise", "stat.layouts": "Circuiti e tracciati", "stat.ranked": "Classifiche",
+    "stat.week": "+{n} questa settimana", "stat.rankedSub": "di cui {n} con 20+ piloti", "stat.live": "Aggiornato in tempo reale",
+    "drivers": "piloti", "driver1": "pilota",
+    "search": "Cerca un circuito…", "noResult": "Nessun circuito corrisponde.", "f.reset": "Azzera i filtri",
+    "how.kicker": "Partecipa", "how.title": "Quattro passi, e decidi tu",
+    "how.0t": "Installa l'app", "how.0d": "LMU Stats Viewer, per Windows 10 e 11. Legge i tuoi risultati direttamente dai file del gioco: niente da inserire.", "how.0cta": "Scarica l'app",
+    "how.1t": "Attiva la condivisione", "how.1d": "Nell'app, Impostazioni → Community. Vedi esattamente cosa viene inviato prima di confermare.",
+    "how.2t": "Guida", "how.2d": "Dopo ogni sessione, il tuo miglior giro valido viene inviato da solo. Mai quelli degli altri piloti.",
+    "how.3t": "Confronta", "how.3d": "La tua posizione su ogni combo, nell'app e qui, per classe, vettura e versione.",
+    "privacy": "Nulla viene inviato senza il tuo consenso. Appari con il tuo nome pilota di LMU, il tuo paese e il tuo avatar Steam, oppure resti anonimo, a tua scelta. Un clic nell'app cancella tutti i tuoi dati dal server.",
+    "empty.title": "Le classifiche aprono", "empty.text": "Ancora nessun giro condiviso. Installa l'app e attiva la condivisione per essere tra i primi.",
+    "offline": "Il servizio non risponde al momento. Riprova tra qualche minuto.",
+    "maint.title": "Aggiornamento in corso", "maint.text": "Il sito potrebbe non essere disponibile per qualche istante. I giri condivisi dall'app vengono conservati e reinviati automaticamente.", "footer.tagline": "Fatto per la community di Le Mans Ultimate.", "footer.app": "L'applicazione", "footer.privacy": "Privacy",
+    "footer.legal": "LMU Stats Viewer non è affiliato a Studio 397 né a Le Mans Ultimate.",
+    "crumbs": "Classifiche", "provisional": "Classifica provvisoria: {n} / 20 piloti. I valori si stabilizzano con più giri condivisi.",
+    "kpi.drivers": "Piloti", "kpi.best": "Miglior giro", "kpi.p10": "Top 10 %", "kpi.median": "Mediana", "kpi.laps": "Giri validi",
+    "hist.title": "Dove si collocano i piloti", "hist.sub": "Ogni barra conta i piloti il cui miglior giro cade in quella fascia di 0,5 s. A sinistra i più veloci, a destra i più lenti.", "hist.fast": "← più veloce", "hist.slow": "più lento →", "hist.axisY": "piloti", "hist.top10": "Top 10 %", "hist.median": "Mediana", "hist.p90": "90 %", "hist.bar": "{n} pilota/i tra {a} e {b}", "hist.you": "Tu", "me.btn": "La mia posizione", "me.title": "La tua posizione", "me.none": "Non hai ancora un tempo su questa combo con questi filtri.", "me.unknown": "Apri questa classifica dall'app (Classifiche → Vedi sul sito), oppure clicca «Sono io» sulla tua scheda pilota.", "me.set": "Sono io", "me.pickPh": "Il tuo nome pilota LMU…", "me.pickNone": "Nessun pilota con questo nome in questa classifica (un pilota anonimo non si può trovare per nome).", "me.saved": "Salvato: la tua riga sarà fissata in cima alle classifiche.", "me.clear": "Dimentica", "me.jump": "Mostra nella tabella", "me.where": "Dove ti trovi", "coffee": "Offrimi un caffè",
+    "calc.title": "Dove si colloca il tuo tempo?", "calc.sub": "Inserisci un tempo sul giro per collocarti — l'app lo fa da sola dopo ogni sessione.",
+    "calc.first": "Miglior tempo", "calc.last": "Ultimo", "calc.nth": "{n}º", "calc.bottom": "Ultimi {pct} %", "calc.top": "Top {pct} %", "calc.of": "su {n} piloti", "calc.rank": "Posizione", "calc.gapBest": "Distacco dal migliore", "calc.gapMedian": "Distacco dalla mediana",
+    "lb.title": "Classifica", "lb.sub": "Migliori settori della classifica in viola · anonimato a scelta di ogni pilota", "lb.more": "Mostra altri",
+    "col.driver": "Pilota", "col.car": "Vettura", "col.time": "Tempo", "col.gap": "Distacco", "col.version": "Versione", "col.date": "Data",
+    "byCar.title": "Per vettura", "byCar.sub": "Dal miglior giro (inizio della barra) alla mediana (tacca) di ogni modello",
+    "versions.title": "Versioni del gioco", "versions.sub": "Ogni aggiornamento e il suo BoP hanno una classifica propria",
+    "brakes.title": "Zone di frenata della community", "brakes.soon": "Prossimamente", "brakes.text": "Calcolate dai giri condivisi — mai inserite a mano.",
+    "share.title": "Condividi questa pagina", "share.copy": "Copia il link", "share.copied": "Link copiato",
+    "dry": "Asciutto", "wet": "Pioggia", "aidsClean": "Senza aiuto in frenata", "aidsAll": "Tutti gli aiuti",
+    "versions.all": "Tutte", "find.ph": "Trova un pilota in questa classifica…", "find.none": "Nessun pilota con questo nome su questa combo.", "find.matches": "Risultati: {n}", "search.ph": "Cerca un pilota…", "search.none": "Nessun pilota trovato", "search.combos": "{n} combo", "profile.kicker": "Scheda pilota", "profile.sub": "Il suo miglior giro e la sua posizione su ogni combo (tutte le versioni)", "profile.none": "Pilota non trovato (forse è anonimo).", "profile.positions": "Le sue posizioni per combo", "profile.k.combos": "Combo guidate", "profile.k.ranked": "Definitive (20+ piloti)", "profile.k.records": "Record", "profile.k.podiums": "Podi", "profile.k.best": "Miglior piazzamento", "col.where": "Dove si colloca", "col.gapFirst": "Distacco dal 1º", "provisional.short": "provvisoria ({n}/20)", "col.track": "Circuito", "col.class": "Classe", "col.rank": "Posizione", "col.top": "Top",
+    "f.toggle": "Filtri", "search.open": "Cerca un pilota", "f.circuit": "Circuito", "f.layout": "Tracciato", "f.class": "Classe", "f.car": "Vettura", "f.session": "Sessione", "f.mode": "Modo", "f.version": "Versione", "f.conditions": "Condizioni", "f.aids": "Aiuti", "f.all": "Tutti", "f.allF": "Tutte", "f.allClasses": "Tutte le classi", "home.allClasses": "Classifica del circuito, tutte le classi", "f.race": "Gara", "f.qualify": "Qualifica", "f.practice": "Prove libere", "f.online": "Online", "f.offline": "Offline", "f.latest": "Ultima", "f.several": "Diverse",
+    "anon": "Pilota {tag}", "notFound": "Nessuno ha ancora condiviso un giro su questa combo.", "back": "Torna ai circuiti", "latest": "attuale",
+  },
 };
 
-const LANGS = ["fr", "en", "es", "de"];
+// Italien : « combo » au féminin (usage courant chez les simracers italiens) ; « Modo »
+// plutôt que « Modalità » pour s'accorder avec « Tutti » (f.all, partagé avec le circuit).
+const LANGS = ["fr", "en", "es", "de", "it"];
 let LANG = localStorage.getItem("lmu-lang") || (navigator.language || "fr").slice(0, 2);
 if (!LANGS.includes(LANG)) LANG = "en";
 

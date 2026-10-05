@@ -136,6 +136,12 @@ est créée avec l'installeur signé + `latest.json`.
 **Publier :** GitHub → *Releases* → ouvrir le brouillon `v1.1.0` → rédiger les notes de
 version → **Publish release**.
 
+> **Notes de version** : les générer depuis `src/lib/changelog.ts` dans les 5 langues avec
+> `node scripts/release-notes.mjs 1.1.0 --out notes.md`, puis coller le contenu dans la release.
+> Format : un titre par langue (`## 🇫🇷 Français`, `## 🇬🇧 English`, `## 🇪🇸 Español`,
+> `## 🇩🇪 Deutsch`, `## 🇮🇹 Italiano`), langues séparées par `---`. La page « Notes de version »
+> de la vitrine s'appuie sur ces titres pour n'afficher que la langue du visiteur (repli anglais).
+
 > Tant que la release est en **brouillon**, aucun client ne la voit. La publication est
 > l'acte final qui rend la mise à jour disponible.
 

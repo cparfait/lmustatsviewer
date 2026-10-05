@@ -32,6 +32,20 @@
       "env": {
         "API": "https://lmu.cparfait.ovh"
       }
+    },
+    {
+      "name": "vitrine",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8777",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "C:/tmp/__DEV__/lmusv-site"
+      ],
+      "port": 8777
     }
   ]
 }

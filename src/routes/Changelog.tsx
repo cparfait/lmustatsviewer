@@ -34,6 +34,7 @@ const LANG_MAP: Record<string, string> = {
   en: "en",
   es: "es",
   de: "de",
+  it: "it",
 };
 
 async function translateEntry(entry: ChangelogEntry, targetLang: string) {

@@ -46,6 +46,7 @@ const languages = [
   { code: "en", label: "English", flag: "gb" },
   { code: "es", label: "Español", flag: "es" },
   { code: "de", label: "Deutsch", flag: "de" },
+  { code: "it", label: "Italiano", flag: "it" },
 ];
 
 export function Header() {

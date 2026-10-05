@@ -164,6 +164,38 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     repeat: ["wiederhole", "noch mal", "was"],
     mute: ["stumm", "ruhe", "halt den mund", "ton an"],
   },
+  // Italien : mots courants uniquement (vocabulaire du modèle Vosk small-it),
+  // sans apostrophe (« c'è », « l'ultimo ») ni anglicisme douteux. « tempo »
+  // seul est évité (temps au tour ET météo : l'inclusion le prendrait pour la météo).
+  it: {
+    status: ["stato", "riepilogo", "situazione", "dove sono", "a che punto sono"],
+    gap: ["distacco", "quale distacco", "davanti", "dietro"],
+    fuel: ["benzina", "carburante", "quanta benzina", "autonomia", "consumo"],
+    tyres: ["gomme", "pneumatici", "usura", "stato delle gomme"],
+    position: ["posizione", "che posizione", "classifica", "leader"],
+    pace: ["passo", "il mio passo", "ultimo giro", "miglior giro", "tempo sul giro"],
+    remaining: ["rimanente", "quanti giri", "quanto manca", "tempo rimanente", "giri rimanenti"],
+    weather: ["meteo", "pioggia", "che tempo fa", "temperatura"],
+    pit: ["box", "ai box", "se rientro", "sosta", "se mi fermo"],
+    rival: ["rivale", "battaglia", "avversario", "duello"],
+    ahead: ["chi ho davanti", "chi è davanti", "macchina davanti"],
+    behind: ["chi ho dietro", "chi è dietro", "macchina dietro"],
+    classLeader: ["chi è in testa", "chi è primo", "primo della mia classe"],
+    closing: ["lo sto prendendo", "sto recuperando", "mi sto avvicinando", "si avvicina"],
+    traffic: ["traffico", "doppiati", "macchine lente"],
+    forecast: ["previsioni", "previsioni meteo", "pioverà"],
+    tyreTemp: ["temperatura gomme", "temperatura delle gomme", "temperatura pneumatici"],
+    brakeBias: ["ripartizione", "ripartizione di frenata", "bilanciamento freni"],
+    battery: ["batteria", "energia", "ibrido"],
+    sessionBest: ["miglior giro della sessione", "giro più veloce", "miglior tempo della sessione"],
+    pitWindow: ["quando devo rientrare", "quando rientro", "quando mi fermo", "finestra di sosta", "fino a quando"],
+    stops: ["quante soste", "numero di soste", "quante fermate"],
+    ackBox: ["ricevuto", "capito", "copiato", "va bene"],
+    stayOut: ["resto fuori", "rimango fuori", "resto in pista"],
+    watchCancel: ["annulla gli avvisi", "cancella gli avvisi"],
+    repeat: ["ripeti", "ripetere", "di nuovo", "cosa"],
+    mute: ["silenzio", "zitto", "stai zitto", "muto", "attiva il suono"],
+  },
 };
 
 /** Ordre de test : intentions spécifiques d'abord (évite qu'un mot court masque). */

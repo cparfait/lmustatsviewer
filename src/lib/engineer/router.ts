@@ -75,13 +75,43 @@ const NUM_WORDS: Record<string, Record<string, number>> = {
     siebzehn: 17, achtzehn: 18, neunzehn: 19, zwanzig: 20, dreissig: 30, vierzig: 40, funfzig: 50,
     sechzig: 60,
   },
+  it: {
+    zero: 0, uno: 1, una: 1, un: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9,
+    dieci: 10, undici: 11, dodici: 12, tredici: 13, quattordici: 14, quindici: 15, sedici: 16, diciassette: 17,
+    diciotto: 18, diciannove: 19, venti: 20, trenta: 30, quaranta: 40, cinquanta: 50, sessanta: 60,
+    ...itCompounds(),
+  },
 };
+
+/**
+ * Composés italiens soudés (« ventidue », « trentotto ») : la dizaine perd sa
+ * voyelle finale devant « uno » / « otto » (« ventuno », « trentotto »). Accents
+ * déjà retirés par la normalisation (« ventitré » → « ventitre »).
+ */
+function itCompounds(): Record<string, number> {
+  const tens: [string, number][] = [["venti", 20], ["trenta", 30], ["quaranta", 40], ["cinquanta", 50], ["sessanta", 60]];
+  const units: [string, number][] = [
+    ["uno", 1], ["due", 2], ["tre", 3], ["quattro", 4], ["cinque", 5], ["sei", 6], ["sette", 7], ["otto", 8], ["nove", 9],
+  ];
+  const out: Record<string, number> = {};
+  for (const [t, tv] of tens) {
+    for (const [u, uv] of units) {
+      const stem = u === "uno" || u === "otto" ? t.slice(0, -1) : t;
+      out[stem + u] = tv + uv;
+    }
+  }
+  return out;
+}
 
 const ORDINALS: Record<string, Record<string, number>> = {
   fr: { premier: 1, premiere: 1, deuxieme: 2, troisieme: 3, quatrieme: 4, cinquieme: 5, sixieme: 6, septieme: 7, huitieme: 8, neuvieme: 9, dixieme: 10 },
   en: { first: 1, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10 },
   es: { primero: 1, primera: 1, segundo: 2, segunda: 2, tercero: 3, tercera: 3, cuarto: 4, quinto: 5, sexto: 6, septimo: 7, octavo: 8, noveno: 9, decimo: 10 },
   de: { erster: 1, erste: 1, zweiter: 2, zweite: 2, dritter: 3, dritte: 3, vierter: 4, funfter: 5, sechster: 6, siebter: 7, achter: 8, neunter: 9, zehnter: 10 },
+  it: {
+    primo: 1, prima: 1, secondo: 2, seconda: 2, terzo: 3, terza: 3, quarto: 4, quarta: 4, quinto: 5, quinta: 5,
+    sesto: 6, sesta: 6, settimo: 7, settima: 7, ottavo: 8, ottava: 8, nono: 9, nona: 9, decimo: 10, decima: 10,
+  },
 };
 
 const lng = (lang: string) => {
@@ -255,6 +285,35 @@ const T: Record<string, Def[]> = {
     { id: "repeat", family: "command", exact: ["wiederhole", "noch mal", "was", "wie bitte", "nochmal"] },
     { id: "mute", family: "command", exact: ["stumm", "ruhe", "halt den mund"] },
   ],
+  it: [
+    { id: "status", family: "status", idioms: ["dove sono", "a che punto sono", "fai il punto", "riepilogo", "riassunto", "situazione"] },
+    { id: "ahead", family: "gap", idioms: ["chi ho davanti", "chi c e davanti", "chi e davanti", "chi sta davanti", "davanti a me", "macchina davanti", "auto davanti", "pilota davanti", "chi mi precede"] },
+    { id: "behind", family: "gap", idioms: ["chi ho dietro", "chi c e dietro", "chi e dietro", "chi sta dietro", "dietro di me", "macchina dietro", "auto dietro", "pilota dietro", "chi mi segue", "chi mi insegue"] },
+    { id: "gap", family: "gap", idioms: ["che distacco", "quale distacco", "quanto distacco", "il distacco", "i distacchi", "distacco davanti", "distacco dietro"], subjects: ["distacco", "distacchi", "gap", "margine"], cues: ["quanto", "quale", "che", "davanti", "dietro"] },
+    { id: "closing", family: "rival", idioms: ["lo sto prendendo", "lo prendo", "sto recuperando", "recupero su", "lo riprendo", "mi avvicino", "mi sto avvicinando", "si avvicina", "mi sta prendendo", "mi sta recuperando", "sta scappando", "si allontana", "sto guadagnando"] },
+    { id: "rival", family: "rival", idioms: ["il mio rivale", "mio rivale", "la battaglia", "il duello", "il mio avversario", "con chi lotto", "con chi sto lottando"] },
+    { id: "position", family: "position", idioms: ["che posizione", "quale posizione", "in che posizione sono", "la mia posizione", "che posto", "in che posto sono", "dove sono in classifica", "la mia classifica"], subjects: ["posizione", "posto", "classifica"], cues: ["che", "quale", "mia", "dove"] },
+    { id: "classLeader", family: "position", idioms: ["chi comanda", "chi e in testa", "chi e primo", "chi guida", "il leader", "primo in", "leader in", "chi vince", "chi sta vincendo", "in testa in"] },
+    { id: "sessionBest", family: "pace", idioms: ["miglior giro della sessione", "miglior tempo della sessione", "giro piu veloce della sessione", "record della sessione", "giro piu veloce", "giro veloce", "chi e il piu veloce", "il piu veloce in pista", "miglior giro della gara"] },
+    { id: "pace", family: "pace", idioms: ["il mio ultimo giro", "ultimo giro", "il mio miglior giro", "miglior giro", "il mio passo", "il mio ritmo", "il mio tempo sul giro", "tempo sul giro", "il mio tempo", "la mia media"], subjects: ["passo", "ritmo", "cronometro"], cues: ["mio", "che", "quale", "com e"] },
+    { id: "stops", family: "pit", idioms: ["quante soste", "numero di soste", "quante fermate", "quanti pit stop", "quante volte mi fermo", "quante volte devo fermarmi", "quante volte rientro"] },
+    { id: "pitWindow", family: "pit", idioms: ["quando devo rientrare", "quando rientro", "quando mi fermo", "quando devo fermarmi", "quando mi devo fermare", "quando devo entrare ai box", "quando entro ai box", "finestra di sosta", "finestra pit", "fino a quando", "in che giro rientro", "a che giro rientro", "quando rientriamo", "quando ci fermiamo", "devo rientrare", "devo fermarmi"] },
+    { id: "pit", family: "pit", idioms: ["se rientro", "se mi fermo", "se entro ai box", "se rientriamo", "se ci fermiamo", "dove esco", "dove rientro in pista", "in che posizione esco"] },
+    { id: "fuel", family: "fuel", idioms: ["quanta benzina", "quanto carburante", "giri di benzina", "giri di carburante", "mi basta la benzina", "basta la benzina", "ho abbastanza benzina", "abbastanza per finire", "basta per finire", "il mio consumo", "quanto consumo", "consumo per giro"], subjects: ["benzina", "carburante", "fuel", "serbatoio", "litri", "autonomia", "consumo"], cues: ["quanto", "quanta", "quanti", "resta", "rimane", "basta", "abbastanza", "quale"] },
+    { id: "tyreTemp", family: "tyres", idioms: ["temperatura delle gomme", "temperatura gomme", "temperatura degli pneumatici", "temperatura pneumatici", "gomme calde", "gomme fredde", "gomme in temperatura", "pneumatici caldi", "pneumatici freddi"] },
+    { id: "tyres", family: "tyres", idioms: ["le mie gomme", "stato delle gomme", "usura delle gomme", "usura gomme", "i miei pneumatici", "stato degli pneumatici", "usura degli pneumatici"], subjects: ["gomme", "gomma", "pneumatici", "pneumatico", "usura"], cues: ["stato", "quanto", "quanta", "come", "che"] },
+    { id: "forecast", family: "weather", idioms: ["previsioni", "previsione", "previsioni meteo", "piovera", "sta per piovere", "arriva la pioggia", "pioggia in arrivo", "pioggia prevista", "rischio pioggia", "probabilita di pioggia"] },
+    { id: "weather", family: "weather", idioms: ["che tempo fa", "il meteo", "sta piovendo", "piove", "temperatura della pista", "temperatura pista", "condizioni della pista", "pista asciutta", "pista bagnata"], subjects: ["meteo", "pioggia", "cielo"], cues: ["che", "come", "com e", "sta"] },
+    { id: "traffic", family: "traffic", idioms: ["quando prendo il traffico", "il traffico", "c e traffico", "doppiati", "macchine lente", "auto lente", "vetture lente", "quando raggiungo i"], subjects: ["traffico", "doppiato", "doppiati"] },
+    { id: "remaining", family: "remaining", idioms: ["quanti giri", "giri rimanenti", "giri mancanti", "quanti giri mancano", "quanto manca", "tempo rimanente", "tempo restante", "quanto tempo", "minuti rimanenti", "quando finisce", "fine gara"] },
+    { id: "battery", family: "battery", idioms: ["livello batteria", "livello della batteria", "la mia batteria", "energia virtuale", "la mia energia"], subjects: ["batteria", "ibrido", "energia"], cues: ["quanto", "quanta", "livello", "resta", "rimane"] },
+    { id: "brakeBias", family: "brakes", idioms: ["ripartizione", "ripartizione di frenata", "ripartizione frenata", "ripartizione dei freni", "ripartitore", "bilanciamento dei freni", "bilanciamento freni", "brake bias"] },
+    { id: "stayOut", family: "command", idioms: ["resto fuori", "restiamo fuori", "rimango fuori", "resto in pista", "rimango in pista", "non rientro", "negativo resto fuori", "non mi fermo"] },
+    { id: "watchCancel", family: "command", idioms: ["annulla gli avvisi", "annulla i miei avvisi", "cancella gli avvisi", "annulla gli allarmi", "cancella gli allarmi", "dimentica gli avvisi", "annulla l avviso", "smetti di controllare"] },
+    { id: "ackBox", family: "command", exact: ["ricevuto", "capito", "ok", "okay", "va bene", "d accordo", "rientro", "box box", "box", "copiato", "chiaro", "perfetto"] },
+    { id: "repeat", family: "command", exact: ["ripeti", "puoi ripetere", "ripeti per favore", "come", "cosa", "scusa", "di nuovo", "non ho capito"] },
+    { id: "mute", family: "command", exact: ["silenzio", "zitto", "stai zitto", "taci", "muto"] },
+  ],
 };
 
 /** Paires de familles qui ne rendent pas une question ambiguë. */
@@ -287,10 +346,10 @@ export function extractEntities(norm: string, lang: string): Entities {
   else if (/ (lmp ?3|l m p ?3) /.test(n)) e.cls = "LMP3";
   else if (/ (lm ?gt ?3|gt ?3|g t ?3) /.test(n)) e.cls = "GT3";
   else if (/ (gte|g t e) /.test(n)) e.cls = "GTE";
-  if (/ (au general|general|overall|absolu|gesamt|insgesamt|en la general) /.test(n)) e.overall = true;
+  if (/ (au general|general|overall|absolu|gesamt|insgesamt|en la general|generale|assoluta|assoluto) /.test(n)) e.overall = true;
   const pm =
     / p ?(\d{1,2}) /.exec(n) ??
-    / (?:position|place|posicion|puesto|platz|rang) (\d{1,2}) /.exec(n) ??
+    / (?:position|place|posicion|puesto|platz|rang|posizione) (\d{1,2}) /.exec(n) ??
     / (\d{1,2}) ?(?:e|eme|er|th|st|nd|rd|ter|te) /.exec(n);
   if (pm) e.pos = Number(pm[1]);
   else {
@@ -298,7 +357,7 @@ export function extractEntities(norm: string, lang: string): Entities {
     const word = norm.split(" ").find((w) => ord[w] !== undefined);
     if (word) e.pos = ord[word];
   }
-  const cm = / (?:la|le|numero|number|no|nummer|#|voiture|car|coche|auto|wagen|el|der|die|das) (\d{1,3}) /.exec(n);
+  const cm = / (?:la|le|numero|number|no|nummer|#|voiture|car|coche|auto|wagen|el|der|die|das|macchina|vettura) (\d{1,3}) /.exec(n);
   if (cm) e.carNo = cm[1];
   return e;
 }
@@ -310,18 +369,19 @@ const WATCH_TRIGGERS: Record<string, string[]> = {
   en: ["let me know when", "tell me when", "warn me when", "alert me when", "notify me when", "let me know if", "tell me if", "warn me if"],
   es: ["avisame cuando", "avisame si", "dime cuando", "alertame cuando", "avisa cuando"],
   de: ["sag mir wenn", "sag mir bescheid wenn", "sag bescheid wenn", "warn mich wenn", "melde dich wenn", "gib mir bescheid wenn"],
+  it: ["dimmi quando", "avvisami quando", "avvisami se", "fammi sapere quando", "fammi sapere se", "avvertimi quando", "avvertimi se", "segnalami quando"],
 };
 
 const W = {
-  time: /(\d+) ?(minutes?|min|minutos?|minuten?)/,
-  laps: /(\d+) ?(tours?|laps?|vueltas?|runden?)/,
-  secs: /(\d+(?:[.,]\d+)?) ?(secondes?|seconds?|sec|segundos?|sekunden?)/,
-  fuel: / (essence|carburant|fuel|gasolina|combustible|sprit|benzin|kraftstoff|autonomie|range|autonomia|reichweite) /,
-  pit: / (s arrete|arrete|au stand|aux stands|rentre|pits|pit|boxes|box|boxt|para|entra|reinkommt|stoppt|boxen) /,
-  rain: / (pluie|pleut|pleuvoir|rain|raining|lluvia|llueve|llover|regen|regnet) /,
-  ahead: / (devant|ahead|in front|delante|vor mir|vorne) /,
-  behind: / (derriere|behind|detras|hinter mir|hinten) /,
-  leader: / (leader|premier|en tete|first|lider|primero|fuhrende|erster) /,
+  time: /(\d+) ?(minutes?|min|minutos?|minuten?|minut[oi])/,
+  laps: /(\d+) ?(tours?|laps?|vueltas?|runden?|gir[oi])/,
+  secs: /(\d+(?:[.,]\d+)?) ?(secondes?|seconds?|sec|segundos?|sekunden?|second[oi])/,
+  fuel: / (essence|carburant|fuel|gasolina|combustible|sprit|benzin|kraftstoff|autonomie|range|autonomia|reichweite|benzina|carburante) /,
+  pit: / (s arrete|arrete|au stand|aux stands|rentre|pits|pit|boxes|box|boxt|para|entra|reinkommt|stoppt|boxen|rientra|si ferma|ferma) /,
+  rain: / (pluie|pleut|pleuvoir|rain|raining|lluvia|llueve|llover|regen|regnet|pioggia|piove|piovere|piovera) /,
+  ahead: / (devant|ahead|in front|delante|vor mir|vorne|davanti) /,
+  behind: / (derriere|behind|detras|hinter mir|hinten|dietro) /,
+  leader: / (leader|premier|en tete|first|lider|primero|fuhrende|erster|primo|in testa) /,
 };
 
 export function isWatchRequest(norm: string, lang: string): boolean {
@@ -346,11 +406,11 @@ export function parseWatch(norm: string, ent: Entities): WatchSpec | null {
   if (t) return { kind: "timeLeft", minutes: Number(t[1]) };
   const l = W.laps.exec(n);
   if (l) return { kind: "lapsLeft", laps: Number(l[1]) };
-  if (secs || / (moins d|less than|menos de|weniger als|sous|under) /.test(n)) {
+  if (secs || / (moins d|less than|menos de|weniger als|sous|under|meno di|sotto) /.test(n)) {
     const s = secs ? Number(secs[1].replace(",", ".")) : DEFAULTS.gapS;
     return W.behind.test(n) ? { kind: "gapBehind", seconds: s } : { kind: "gapAhead", seconds: s };
   }
-  if (/ (fin|end|final|ende) /.test(n)) return { kind: "timeLeft", minutes: DEFAULTS.timeLeftMin };
+  if (/ (fin|end|final|ende|fine) /.test(n)) return { kind: "timeLeft", minutes: DEFAULTS.timeLeftMin };
   return null;
 }
 
@@ -384,7 +444,7 @@ export const INTENT_HELP: Partial<Record<AnswerIntent, string>> = {
 
 // ── Routage ──────────────────────────────────────────────────────────────────
 
-const WHO = / (qui|who|quien|wer|c est qui|ou est|where is|donde esta|wo ist) /;
+const WHO = / (qui|who|quien|wer|c est qui|ou est|where is|donde esta|wo ist|chi|dov e|dove e|dove sta) /;
 
 /**
  * Marqueurs de jugement / conseil (« ça tiendra jusqu'au bout ? », « tu me
@@ -392,7 +452,7 @@ const WHO = / (qui|who|quien|wer|c est qui|ou est|where is|donde esta|wo ist) /;
  * d'une lecture de chiffres.
  */
 const JUDGMENT =
-  / (pourquoi|comment je|comment faire|tiendr\w*|tiennent|tient|jusqu a la fin|jusqu au bout|vaut il mieux|tu penses|tu conseilles|conseil|je devrais|faut il|strategie|why|how do i|how can i|should i|will it last|last until|do you think|advice|strategy|better to|por que|como puedo|deberia|aguanta\w*|crees|consejo|estrategia|warum|wie kann ich|sollte ich|halten|meinst du|strategie) /;
+  / (pourquoi|comment je|comment faire|tiendr\w*|tiennent|tient|jusqu a la fin|jusqu au bout|vaut il mieux|tu penses|tu conseilles|conseil|je devrais|faut il|strategie|why|how do i|how can i|should i|will it last|last until|do you think|advice|strategy|better to|por que|como puedo|deberia|aguanta\w*|crees|consejo|estrategia|warum|wie kann ich|sollte ich|halten|meinst du|strategie|perche|come faccio|come posso|dovrei|conviene|secondo te|pensi|consigli\w*|strategia|durer\w*|regg\w*|fino alla fine|fino in fondo) /;
 
 export function route(text: string, lang: string): Route {
   const norm = normalize(text, lang);

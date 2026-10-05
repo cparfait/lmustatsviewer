@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
-import { STEAM_OPENID } from "../src/steam.js";
+import { STEAM_OPENID, pickLang, steamReturnPage } from "../src/steam.js";
 import { RA, register, send, session, setup } from "./helpers.js";
 
 type Ctx = Awaited<ReturnType<typeof setup>>;
@@ -239,5 +239,20 @@ describe("Pays et avatar Steam", () => {
     assert.deepEqual(await driver(), { name: null, tag: p.tag, homonym: false, country: null, avatar: null });
     assert.equal((await ctx.app.request(`/api/v1/avatar/${AVATAR}`)).status, 404);
     assert.equal((await ctx.app.request("/api/v1/avatar/not-a-hash")).status, 404);
+  });
+});
+
+// Langue de la page de retour Steam : première langue connue du navigateur, sinon anglais.
+describe("steam return page language", () => {
+  test("picks the first supported language, including Italian", () => {
+    assert.equal(pickLang("it-IT,it;q=0.9,en;q=0.8"), "it");
+    assert.equal(pickLang("pt-BR,de;q=0.7"), "de");
+    assert.equal(pickLang("ja"), "en");
+    assert.equal(pickLang(undefined), "en");
+  });
+  test("renders the Italian page", () => {
+    const html = steamReturnPage("ok", "link", "it");
+    assert.match(html, /<html lang="it"/);
+    assert.match(html, /Account Steam collegato/);
   });
 });

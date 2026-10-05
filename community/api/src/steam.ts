@@ -214,13 +214,13 @@ export async function pollSteam(db: Db, pollId: string) {
   };
 }
 
-export type PageLang = "fr" | "en" | "es" | "de";
+export type PageLang = "fr" | "en" | "es" | "de" | "it";
 
 /** Langue de la page : première langue connue du navigateur, sinon anglais. */
 export function pickLang(acceptLanguage: string | undefined): PageLang {
   for (const part of (acceptLanguage ?? "").split(",")) {
     const code = part.trim().slice(0, 2).toLowerCase();
-    if (code === "fr" || code === "en" || code === "es" || code === "de") return code;
+    if (code === "fr" || code === "en" || code === "es" || code === "de" || code === "it") return code;
   }
   return "en";
 }
@@ -282,6 +282,20 @@ const PAGE: Record<PageLang, { band: string; crumbs: string; cta: string } & Rec
     taken: ["Steam-Konto bereits verwendet", "Dieses Steam-Konto hat bereits Runden von einer anderen Installation geteilt. Lösche in der App die Daten dieser Installation und aktiviere das Teilen erneut: Deine Runden werden übernommen."],
     invalid: ["Anmeldung nicht bestätigt", "Steam hat die Anmeldung nicht bestätigt. Starte erneut in der App."],
     expired: ["Anfrage abgelaufen", "Diese Anfrage ist abgelaufen (10 Minuten). Starte erneut in der App."],
+  },
+  it: {
+    band: "Accedi con Steam",
+    crumbs: "Classifiche",
+    cta: "Vedi le classifiche",
+    linked: ["Account Steam collegato", "Potrai ritrovare i tuoi giri su un altro PC. Torna su LMU Stats Viewer: puoi chiudere questa scheda."],
+    recovered: ["Giri ritrovati", "Torna su LMU Stats Viewer: puoi chiudere questa scheda."],
+    avatar: ["Avatar Steam visibile", "Il tuo avatar Steam appare accanto al tuo nome nelle classifiche (tranne in modalità anonima). Torna su LMU Stats Viewer: puoi chiudere questa scheda."],
+    other_account: ["Altro account Steam", "Questo account Steam non è quello collegato ai tuoi giri condivisi. Accedi di nuovo con lo stesso account."],
+    registered: ["Accesso con Steam riuscito", "Torna su LMU Stats Viewer: la condivisione si sta attivando. Puoi chiudere questa scheda."],
+    not_found: ["Nessuna condivisione collegata a questo account", "Questo account Steam non ha giri condivisi: non c'è nulla da cancellare."],
+    taken: ["Account Steam già in uso", "Questo account Steam ha già giri condivisi da un'altra installazione. Nell'app, cancella i dati di questa installazione, poi riattiva la condivisione: i tuoi giri verranno recuperati."],
+    invalid: ["Accesso non confermato", "Steam non ha confermato l'accesso. Ricomincia dall'app."],
+    expired: ["Richiesta scaduta", "Questa richiesta è scaduta (10 minuti). Ricomincia dall'app."],
   },
 };
 

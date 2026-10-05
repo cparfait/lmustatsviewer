@@ -129,6 +129,7 @@ const LANGUAGES = [
   { code: "en", label: "English", flag: "/flags/gb.png" },
   { code: "es", label: "Español", flag: "/flags/es.png" },
   { code: "de", label: "Deutsch", flag: "/flags/de.png" },
+  { code: "it", label: "Italiano", flag: "/flags/it.png" },
 ];
 
 /** Crédits — sources de données / inspirations utilisées par l'app. */
@@ -442,7 +443,7 @@ export function ConfigV2() {
             role: "user",
             content:
               `Driver data:\n${facts.join("\n")}\n\n` +
-              `In ${i18n.language.startsWith("fr") ? "French" : i18n.language.startsWith("es") ? "Spanish" : i18n.language.startsWith("de") ? "German" : "English"}, greet the driver by name and give a short, warm 2-3 sentence radio message using these facts (last race, favourite car and track). No lists, no headings.`,
+              `In ${i18n.language.startsWith("fr") ? "French" : i18n.language.startsWith("es") ? "Spanish" : i18n.language.startsWith("de") ? "German" : i18n.language.startsWith("it") ? "Italian" : "English"}, greet the driver by name and give a short, warm 2-3 sentence radio message using these facts (last race, favourite car and track). No lists, no headings.`,
           },
         ],
         300,

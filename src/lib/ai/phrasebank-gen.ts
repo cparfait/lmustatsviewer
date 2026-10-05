@@ -31,6 +31,7 @@ const LANG_NAME: Record<string, string> = {
   en: "English",
   es: "Spanish",
   de: "German",
+  it: "Italian",
 };
 
 /** Consigne système : générateur de phrases radio, sortie JSON stricte. */

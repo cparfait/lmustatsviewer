@@ -21,7 +21,8 @@ $Models = @(
   @{ code = "en"; name = "vosk-model-small-en-us-0.15" },
   @{ code = "fr"; name = "vosk-model-small-fr-0.22" },
   @{ code = "es"; name = "vosk-model-small-es-0.42" },
-  @{ code = "de"; name = "vosk-model-small-de-0.15" }
+  @{ code = "de"; name = "vosk-model-small-de-0.15" },
+  @{ code = "it"; name = "vosk-model-small-it-0.22" }
 )
 $ModelBase = "https://alphacephei.com/vosk/models"
 

@@ -92,6 +92,7 @@ const VOICE_STYLE: Record<string, string> = {
   en: "(Answer in 2 sentences max, race-engineer radio style, spoken aloud.)",
   es: "(Responde en 2 frases como máximo, estilo ingeniero de radio, en voz alta.)",
   de: "(Antworte in maximal 2 Sätzen, im Funkstil eines Renningenieurs, laut gesprochen.)",
+  it: "(Rispondi in 2 frasi al massimo, stile ingegnere di pista via radio, ad alta voce.)",
 };
 
 /**

@@ -17,6 +17,7 @@ import fr from "@/i18n/fr";
 import en from "@/i18n/en";
 import es from "@/i18n/es";
 import de from "@/i18n/de";
+import it from "@/i18n/it";
 
 // ── Catalogue (déclencheurs documentés via les clés `vmWhen*`) ─────────────────
 
@@ -248,6 +249,7 @@ const SOURCES: Record<string, { live: Record<string, string> }> = {
   en: en as never,
   es: es as never,
   de: de as never,
+  it: it as never,
 };
 const fullKey = (suffix: string) => `live.${suffix}`;
 const norm = (lang: string) => (lang || "fr").slice(0, 2).toLowerCase();

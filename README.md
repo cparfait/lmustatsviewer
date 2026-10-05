@@ -6,7 +6,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
 ![Tauri](https://img.shields.io/badge/Tauri-2-24C8D8)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
-![Langues](https://img.shields.io/badge/langues-FR%20%7C%20EN%20%7C%20ES%20%7C%20DE-green)
+![Langues](https://img.shields.io/badge/langues-FR%20%7C%20EN%20%7C%20ES%20%7C%20DE%20%7C%20IT-green)
 ![Licence](https://img.shields.io/badge/licence-MIT-orange)
 
 **L'outil tout-en-un pour [Le Mans Ultimate](https://www.lemansultimate.com/) — stats, records, setups, télémétrie, live timing, overlays in-game, spotter vocal et coach IA.**
@@ -80,7 +80,7 @@ Toutes les classes de Le Mans Ultimate sont supportées :
 
 ### 🎙️ Spotter vocal & annonces de course
 - **Spotter à la demande** : raccourcis globaux (statut, répéter, muet) actifs même quand le jeu a le focus
-- **Commandes vocales** (`Alt+T`, push-to-talk) : écart, carburant, pneus, position, rythme, temps restant, météo… — reconnaissance **100 % hors-ligne** (Vosk, 4 langues)
+- **Commandes vocales** (`Alt+T`, push-to-talk) : écart, carburant, pneus, position, rythme, temps restant, météo… — reconnaissance **100 % hors-ligne** (Vosk, 5 langues)
 - **Annonces automatiques** : drapeaux, carburant (3/2/1 tours, ravitaillement à prévoir), pneus (froids / usure / crevaison), surchauffes, dégâts, positions, podium, sous attaque, drapeau bleu, record perso, secteur violet, **débrief du pire secteur du tour**, delta, pluie, mi-course / dernier tour…
 - **Catalogue personnalisable** : modifiez le texte de chaque annonce et testez-la, par langue
 - **Voix neuronale offline** (Piper) avec **effet radio** (bips + filtre), repli sur la voix système, file d'annonces à priorités
@@ -99,9 +99,9 @@ Toutes les classes de Le Mans Ultimate sont supportées :
 - Filtre par version du jeu
 
 ### 🌐 Langues disponibles
-| 🇫🇷 Français | 🇬🇧 English | 🇪🇸 Español | 🇩🇪 Deutsch |
-|---|---|---|---|
-| ✅ | ✅ | ✅ | ✅ |
+| 🇫🇷 Français | 🇬🇧 English | 🇪🇸 Español | 🇩🇪 Deutsch | 🇮🇹 Italiano |
+|---|---|---|---|---|
+| ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ### 🎨 Thèmes
 Mode clair et mode sombre — bascule en un clic, mémorisé entre les sessions.
@@ -160,7 +160,7 @@ Cliquez sur ⚙️ dans l'en-tête de l'application.
 |---|---|
 | Nom du joueur | Votre pseudo en jeu (utilisé pour mettre vos tours en évidence) |
 | Répertoires | Résultats XML et enregistrements de télémétrie LMU |
-| Langue | FR / EN / ES / DE |
+| Langue | FR / EN / ES / DE / IT |
 | Thème | Clair / Sombre |
 | Niveaux ohne_speed | Active/désactive les badges de niveau communautaires |
 | Coach IA | Fournisseur, clé API (chiffrée), modèle, test de connexion, prompt système par langue |
@@ -286,7 +286,7 @@ cargo check             # compilation Rust (dans src-tauri/)
 
 ### Évolutions récentes (1.x)
 - **Coach IA** multi-fournisseurs : analyses post-course / télémétrie / live, conversation en streaming, question vocale push-to-talk, mémoire du pilote (historique du combo) et objectifs épinglés vérifiés à la session suivante
-- **Spotter vocal** hors-ligne (commandes Vosk 4 langues) + annonces de course automatiques personnalisables — voix neuronale Piper avec effet radio
+- **Spotter vocal** hors-ligne (commandes Vosk 5 langues) + annonces de course automatiques personnalisables — voix neuronale Piper avec effet radio
 - **Télémétrie `.duckdb`** : dashboard multi-canaux, cartes 2D/3D, analyse par virage, meilleur théorique, comparaison inter-sessions
 - **Overlays in-game** : 16 widgets, mode édition par glisser-déposer, profils, opacité
 - **Profil** : heatmap d'activité et indicateurs de régularité

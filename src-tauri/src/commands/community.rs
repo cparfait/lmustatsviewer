@@ -1031,7 +1031,14 @@ async fn sync_inner(db: &DbState) -> Result<SyncReport, AppError> {
 // ── Lectures publiques (page « Classement », lot 4) ──────────────────────────
 
 /// Routes publiques autorisées (agrégats seulement ; aucune donnée personnelle).
-const PUBLIC_ROUTES: [&str; 5] = ["stats", "combos", "combos/detail", "combos/leaderboard", "combos/position"];
+const PUBLIC_ROUTES: [&str; 6] = [
+    "stats",
+    "combos",
+    "combos/detail",
+    "combos/leaderboard",
+    "combos/position",
+    "combos/compare",
+];
 
 /// Lecture publique du service (sans jeton). `null` si le combo n'existe pas (404).
 #[tauri::command]

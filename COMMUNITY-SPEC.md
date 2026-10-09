@@ -187,6 +187,7 @@ Implémentée au lot 1 (`community/api`, détail dans `community/README.md`) :
 | GET | `/api/v1/combos/detail?track=&course=&class=[&version=&aids=clean\|all&conditions=dry\|wet]` | n pilotes, `ranked` (n ≥ 20), meilleur, p1…p90, histogramme (pas 0,5 s), par voiture, versions, tours valides |
 | GET | `/api/v1/combos/leaderboard?…&limit=&offset=` | Classement (rang « compétition »), pilote `{ name \| null, tag, homonym }` |
 | GET | `/api/v1/combos/position?…&time=` | Rang, top %, écarts au meilleur et à la médiane d'un temps |
+| GET | `/api/v1/combos/compare?…&tags=#a,#b` | Comparaison de 1 à 4 pilotes (fenêtre ouverte d'un clic sur un pseudo) : ligne du classement + meilleurs secteurs de la session, vitesse de pointe, rythme médian, pneus, type de session, sessions et tours sur le combo. **Aides de pilotage non publiées.** |
 
 Les lectures publiques ne renvoient **que des agrégats** et le classement, jamais de lignes
 brutes ; `Cache-Control: public, max-age=120`, CORS ouvert en lecture seule. Les routes

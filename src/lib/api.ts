@@ -1400,7 +1400,7 @@ export const community = {
     }),
 };
 
-export type CommunityRoute = "stats" | "combos" | "combos/detail" | "combos/leaderboard" | "combos/position";
+export type CommunityRoute = "stats" | "combos" | "combos/detail" | "combos/leaderboard" | "combos/position" | "combos/compare";
 
 /** Filtres de la page Classements (session/mode : mêmes règles que le serveur). */
 export interface MyCombosFilter {
@@ -1456,6 +1456,32 @@ export interface CommunityLeaderboard {
     game_version?: string;
     played_on?: string;
   }[];
+}
+
+/**
+ * Comparaison de pilotes sur un combo (`combos/compare`) : ligne du classement + détail
+ * du meilleur tour et expérience du combo. Absent des serveurs antérieurs (→ `null`).
+ */
+export interface CommunityCompare {
+  version: string;
+  drivers: number;
+  rows: (CommunityLeaderboard["rows"][number] & {
+    /** Meilleurs secteurs de la session du meilleur tour (somme = tour idéal). */
+    best_s1: number | null;
+    best_s2: number | null;
+    best_s3: number | null;
+    top_speed: number | null;
+    median_lap: number | null;
+    /** Tours valides de la session du meilleur tour. */
+    valid_laps: number;
+    compound_f: string | null;
+    compound_r: string | null;
+    session_type: string;
+    setting: string;
+    /** Sessions et tours valides partagés sur ce combo (mêmes filtres). */
+    combo_sessions: number;
+    combo_laps: number;
+  })[];
 }
 
 export interface CommunityStats {

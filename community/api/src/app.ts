@@ -42,6 +42,7 @@ import {
   driverProfile,
   searchDrivers,
   globalStats,
+  compare,
   leaderboard,
   position,
   type ComboKey,
@@ -405,6 +406,15 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     if (!p || !page.success) return c.json({ error: "bad_request" }, 400);
     const lb = await leaderboard(db, p.key, p.f, page.data.limit, page.data.offset, page.data.name, page.data.tag);
     return lb ? c.json(lb) : c.json({ error: "not_found" }, 404);
+  });
+
+  // Comparaison de 1 à 4 pilotes (repères publics, séparés par des virgules).
+  v1.get("/combos/compare", publicRead, async (c) => {
+    const p = parseCombo(c);
+    const tags = z.string().regex(/^#[0-9a-f]{4}(,#[0-9a-f]{4}){0,3}$/).safeParse(c.req.query("tags"));
+    if (!p || !tags.success) return c.json({ error: "bad_request" }, 400);
+    const cmp = await compare(db, p.key, p.f, [...new Set(tags.data.split(","))]);
+    return cmp ? c.json(cmp) : c.json({ error: "not_found" }, 404);
   });
 
   v1.get("/combos/position", publicRead, async (c) => {

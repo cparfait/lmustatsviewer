@@ -205,7 +205,7 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
       <tr class="${me && r.driver.tag === me ? "is-me" : ""}" data-rank="${r.rank}">
         <td class="pos c">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : r.rank}</td>
         <td class="marks">${driverMarks(r.driver)}</td>
-        <td class="drv">${driverName(r.driver, false)}</td>
+        <td class="drv"><button type="button" class="drv-btn" data-tag="${esc(r.driver.tag)}" title="${esc(t("cmp.tip"))}">${driverName(r.driver, false)}</button></td>
         <td><div class="car">${q.class ? "" : classBadge(r.car_class)}<span class="logo-slot">${carImg(r.car_model)}</span><span>${esc(r.car_model)}</span></div></td>
         <td class="t perf sep r">${fmtTime(r.time)}</td>
         <td class="gap perf r">${r.rank === 1 ? "—" : "+" + (r.time - detail.best.time).toFixed(3)}</td>
@@ -217,6 +217,199 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
     $("more").hidden = offset >= lb.matches;
   }
   $("more").addEventListener("click", () => loadMore());
+
+  // Comparaison : un clic sur un pseudo ouvre la fenêtre — vous à gauche (sinon le 1er, ou
+  // le pilote juste devant si c'est votre nom), le pilote cliqué à droite, chacun modifiable.
+  let cmpTags = ["", ""];
+  let cmpSeq = 0;
+  const plainName = (d) => (d.name ? (d.homonym ? `${d.name} · ${d.tag}` : d.name) : t("anon", { tag: d.tag }));
+  const minor = (v) => {
+    const [major, frac = ""] = String(v || "").split(".");
+    return `${Number(major)}.${frac.padEnd(2, "0").slice(0, 2)}`;
+  };
+  const f3 = (v) => v.toFixed(3);
+  $("lbBody").addEventListener("click", (e) => {
+    const b = e.target.closest("button.drv-btn");
+    if (!b) return;
+    const tag = b.dataset.tag;
+    const i = rows.findIndex((r) => r.driver.tag === tag);
+    const ref = me && me !== tag ? me : me ? (rows[i - 1] ?? rows[i + 1])?.driver.tag : (rows[0]?.driver.tag !== tag ? rows[0] : rows[1])?.driver.tag;
+    cmpTags = [ref || "", tag];
+    renderCompare();
+  });
+  function cmpShell() {
+    let el = $("cmpOverlay");
+    if (el) return el;
+    el = document.createElement("div");
+    el.id = "cmpOverlay";
+    el.className = "cmp-overlay";
+    el.innerHTML = `
+      <div class="cmp-modal" role="dialog" aria-modal="true" aria-labelledby="cmpTitle">
+        <div class="cmp-head">
+          <div><b id="cmpTitle">${esc(t("cmp.title"))}</b><div class="cmp-sub"><span>${esc(q.course)}</span>${q.class ? classBadge(q.class) : ""}</div></div>
+          <button type="button" class="cmp-x" aria-label="${esc(t("cmp.close"))}">×</button>
+        </div>
+        <div class="cmp-body" id="cmpBody"></div>
+      </div>`;
+    document.body.appendChild(el);
+    const close = () => {
+      el.hidden = true;
+      document.body.classList.remove("cmp-open");
+    };
+    el.addEventListener("click", (e) => {
+      if (e.target === el || e.target.closest(".cmp-x")) close();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !el.hidden) close();
+    });
+    el.addEventListener("change", (e) => {
+      const sel = e.target.closest("select[data-side]");
+      if (!sel) return;
+      cmpTags[+sel.dataset.side] = sel.value;
+      renderCompare();
+    });
+    return el;
+  }
+  async function renderCompare() {
+    const el = cmpShell();
+    el.hidden = false;
+    document.body.classList.add("cmp-open");
+    const body = $("cmpBody");
+    if (!cmpTags[0]) {
+      body.innerHTML = `<p class="cmp-empty">${esc(t("cmp.alone"))}</p>`;
+      return;
+    }
+    if (!body.querySelector(".cmp-pair")) body.innerHTML = `<div class="skeleton sk-line"></div><div class="skeleton sk-line"></div><div class="skeleton sk-line"></div>`;
+    const seq = ++cmpSeq;
+    const res = await api("combos/compare", { ...q, version, tags: cmpTags.join(",") }).catch(() => null);
+    if (seq !== cmpSeq) return;
+    const by = new Map((res?.rows ?? []).map((r) => [r.driver.tag, r]));
+    const L = by.get(cmpTags[0]);
+    const R = by.get(cmpTags[1]);
+    body.innerHTML = L && R ? compareHtml(L, R) : `<p class="cmp-empty">${esc(t("offline"))}</p>`;
+  }
+  /** Retard du plus lent : pastille rouge, la donnée à lire en premier. */
+  const deficit = (text, lg = false) => `<span class="cmp-chip${lg ? " lg" : ""}">${esc(text)}</span>`;
+  /**
+   * Valeur d'un côté : le meilleur des deux en gras à sa couleur, l'autre accompagné de son
+   * retard (`chipFirst` : pastille avant la valeur, pour garder les chiffres alignés à droite).
+   */
+  function val(side, v, other, fmt, better = "low", delta = (d) => "+" + f3(d), chipFirst = true) {
+    if (v == null) return `<span class="muted">—</span>`;
+    const win = better && other != null && Math.abs(v - other) > 0.0005 ? (better === "low" ? v < other : v > other) : null;
+    const chip = win === false ? deficit(delta(Math.abs(v - other))) : "";
+    const value = `<span class="mono${win === true ? ` cmp-win s${side}` : ""}">${esc(fmt(v))}</span>`;
+    return `<span class="cmp-val">${chipFirst ? chip + value : value + chip}</span>`;
+  }
+  function compareHtml(L, R) {
+    const pair = [L, R];
+    const gap = R.time - L.time; // > 0 : la gauche est plus rapide
+    const tie = Math.abs(gap) < 0.0005;
+    const slower = gap > 0 ? R : L;
+    // Liste des pilotes : lignes chargées + les deux comparés (peut-être plus loin dans le classement).
+    const list = [...rows];
+    for (const r of pair) if (!list.some((x) => x.driver.tag === r.driver.tag)) list.push(r);
+    list.sort((a, b) => a.rank - b.rank);
+    const options = (side) => list
+      .filter((r) => r.driver.tag !== cmpTags[1 - side])
+      .map((r) => `<option value="${esc(r.driver.tag)}"${r.driver.tag === cmpTags[side] ? " selected" : ""}>P${r.rank} · ${esc(plainName(r.driver))}${r.driver.tag === me ? ` (${esc(t("cmp.you"))})` : ""}</option>`)
+      .join("");
+    const card = (r, side) => {
+      const isSlower = !tie && r === slower;
+      return `
+      <div class="cmp-card s${side}${isSlower ? "" : " win"}">
+        <select data-side="${side}" aria-label="${esc(t("col.driver"))}">${options(side)}</select>
+        <div class="cmp-who">
+          <span class="cmp-rank">P${r.rank}</span>
+          <div><b>${driverName(r.driver, !!(r.driver.name && (r.driver.country || r.driver.avatar)))}</b><div class="car">${q.class ? "" : classBadge(r.car_class)}${carImg(r.car_model)}<span>${esc(r.car_model)}</span></div></div>
+        </div>
+        <div class="cmp-time"><span class="mono">${fmtTime(r.time)}</span>${isSlower ? deficit(`+${f3(Math.abs(gap))} s`, true) : ""}</div>
+      </div>`;
+    };
+
+    const notes = [];
+    if (!q.class && L.car_class !== R.car_class) notes.push(t("cmp.diffClass"));
+    if (minor(L.game_version) !== minor(R.game_version)) notes.push(t("cmp.diffVersion", { a: minor(L.game_version), b: minor(R.game_version) }));
+
+    // Où se fait l'écart : une barre par secteur, du côté du plus rapide.
+    const sectors = ["s1", "s2", "s3"].map((k) => ({ k: k.toUpperCase(), a: L[k], b: R[k], d: L[k] != null && R[k] != null ? R[k] - L[k] : null }));
+    const maxD = Math.max(0.001, ...sectors.map((s) => Math.abs(s.d ?? 0)));
+    // Temps perdu par le plus lent dans chaque secteur (négatif = secteur qu'il gagne).
+    const losses = sectors.filter((s) => s.d != null).map((s) => ({ sector: s.k, loss: gap > 0 ? s.d : -s.d }));
+    const worst = losses.length ? losses.reduce((m, x) => (x.loss > m.loss ? x : m)) : null;
+    const worstSector = worst && worst.loss > 0.0005 ? worst.sector : null;
+    const comeback = losses.length ? losses.reduce((m, x) => (x.loss < m.loss ? x : m)) : null;
+    // Conclusion : textes de traduction (fiables, avec <b>) ; seul le nom vient des joueurs → échappé.
+    const nm = esc(plainName(slower.driver));
+    let say = tie
+      ? esc(t("cmp.tie"))
+      : worstSector
+        ? t("cmp.behind", { name: nm, gap: f3(Math.abs(gap)), part: f3(worst.loss), sector: worstSector })
+        : t("cmp.behindOnly", { name: nm, gap: f3(Math.abs(gap)) });
+    if (comeback && comeback.loss < -0.0005) say += " " + t("cmp.gains", { gain: f3(-comeback.loss), sector: comeback.sector });
+    const bar = (d) => (d != null && Math.abs(d) > 0.0005
+      ? `<i class="s${d > 0 ? 0 : 1}" style="width:${((Math.abs(d) / maxD) * 50).toFixed(1)}%;${d > 0 ? "right" : "left"}:50%"></i>`
+      : "");
+    const secs = losses.length ? `
+      <div class="cmp-box">
+        <p class="cmp-box-h">${esc(t("cmp.sectors"))}</p>
+        <div class="cmp-secs">${sectors.map((s) => `
+          <div class="cmp-sec${s.k === worstSector ? " worst" : ""}">
+            <b>${s.k}</b>
+            <span>${val(0, s.a, s.b, f3)}</span>
+            <span class="cmp-bar">${bar(s.d)}</span>
+            <span>${val(1, s.b, s.a, f3, "low", undefined, false)}</span>
+          </div>`).join("")}
+        </div>
+      </div>` : "";
+
+    const optimal = (r) => (r.best_s1 != null && r.best_s2 != null && r.best_s3 != null ? r.best_s1 + r.best_s2 + r.best_s3 : null);
+    const spread = (r) => (r.median_lap != null ? r.median_lap - r.time : null);
+    const tyres = (r) => (r.compound_f ? (r.compound_r && r.compound_r !== r.compound_f ? `${r.compound_f} / ${r.compound_r}` : r.compound_f) : null);
+    const session = (r) => {
+      const s = r.session_type || "";
+      const type = /race/i.test(s) ? t("f.race") : /qual/i.test(s) ? t("f.qualify") : /practice|warm/i.test(s) ? t("f.practice") : s;
+      return `${type} · ${r.setting === "Multiplayer" ? t("f.online") : t("f.offline")}`;
+    };
+    const numRow = (label, get, fmt, better = "low", delta) => {
+      const a = get(L);
+      const b = get(R);
+      if (a == null && b == null) return "";
+      return `<tr><td>${esc(label)}</td><td>${val(0, a, b, fmt, better, delta)}</td><td>${val(1, b, a, fmt, better, delta)}</td></tr>`;
+    };
+    const textRow = (label, get) => `<tr class="ctx"><td>${esc(label)}</td><td>${esc(get(L) ?? "—")}</td><td>${esc(get(R) ?? "—")}</td></tr>`;
+    const perf = [
+      numRow(t("cmp.optimal"), optimal, fmtTime),
+      numRow(t("cmp.median"), (r) => r.median_lap, fmtTime),
+      numRow(t("cmp.spread"), spread, (v) => `+${f3(v)} s`),
+      numRow(t("cmp.vmax"), (r) => r.top_speed, (v) => `${v.toFixed(1)} km/h`, "high", (d) => `−${d.toFixed(1)}`),
+    ].join("");
+
+    return `
+      <div class="cmp-pair">
+        ${card(L, 0)}
+        <div class="cmp-mid"><span>${esc(t("cmp.gap"))}</span><b>${f3(Math.abs(gap))}</b><small>s</small></div>
+        ${card(R, 1)}
+      </div>
+      ${notes.length ? `<p class="cmp-note">⚠ ${esc(notes.join(" "))}</p>` : ""}
+      <p class="cmp-say">${say}</p>
+      ${secs}
+      <div class="cmp-box">
+        <table class="cmp-table">
+          <thead><tr><th>${esc(t(perf ? "cmp.detail" : "cmp.context"))}</th>${pair.map((r, side) => `<th class="s${side}">${esc(plainName(r.driver))}</th>`).join("")}</tr></thead>
+          <tbody>
+            ${perf}
+            ${perf ? `<tr class="ctx-h"><td colspan="3">${esc(t("cmp.context"))}</td></tr>` : ""}
+            ${textRow(t("cmp.tyres"), tyres)}
+            ${textRow(t("cmp.session"), session)}
+            ${textRow(t("cmp.sessions"), (r) => r.combo_sessions)}
+            ${textRow(t("cmp.laps"), (r) => r.combo_laps)}
+            ${textRow(t("col.version"), (r) => r.game_version)}
+            ${textRow(t("col.date"), (r) => fmtDate(r.played_on))}
+          </tbody>
+        </table>
+      </div>`;
+  }
 
   // Ma position : ligne épinglée en couleur au-dessus du tableau.
   let me = getMe();

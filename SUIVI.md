@@ -51,6 +51,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
 | **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **décochée par défaut** à l'activation (décision 2026-09-27, remplace « cochée » du 2026-09-26). **Connexion Steam obligatoire pour partager** (décision 2026-09-27) : un compte Steam = une installation (ni doublon, ni données orphelines) ; seule une empreinte HMAC du SteamID est stockée. **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. **Pays et avatar (décision 2026-09-29)** : pays = `Nationality` du profil du jeu (comme le nom, non modifiable) ; **avatar Steam affiché par défaut** (arbitrage mainteneur, option « 2 » : pas de lecture silencieuse des fichiers Steam du joueur) → le **SteamID64 est conservé** à chaque connexion Steam (seulement pour lire l'avatar), sauf si le joueur retire l'avatar (`avatar_off`, SteamID effacé) ; joueurs déjà inscrits : un clic (connexion Steam) dans l'app 1.0.9 ; « Ce qui part » le mentionne. Ni pays ni avatar publiés en mode anonyme ; images relayées par le serveur (aucune requête des visiteurs vers Steam). |
+| **Aides de pilotage publiques** | **Décidé (2026-10-08)** — les aides (TC, aide au freinage/direction, boîte auto) sont envoyées au serveur mais **jamais publiées pilote par pilote** (classements, comparaison `combos/compare`, fiche pilote). Elles ne servent qu'aux filtres et agrégats (ex. « Sans aide au freinage »). |
 | **Mémoire des filtres** | **Décidé (2026-09-30)** — filtres, tris, page et vue de chaque page conservés **le temps que l'app tourne** (`usePageState`, en mémoire) ; remis à zéro au redémarrage. Un lien profond (`?track=…`) impose ses filtres. |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
 
@@ -857,6 +858,49 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-08 — Classements : comparaison de pilotes d'un clic sur un pseudo (app + site)
+
+- ✅ **Demande mainteneur** : « en cliquant sur le pseudo, une fenêtre de comparaisons, sur l'app et
+  le site », comme l'onglet Comparaison d'une course. Vous à gauche (sinon le 1er ; le pilote juste
+  devant si on clique son propre nom), le pilote cliqué à droite, chacun modifiable.
+- ✅ **Serveur** : route publique `GET /combos/compare?…&tags=#a,#b` (1 à 4 repères, mêmes filtres
+  que le classement) → ligne du classement + `best_s1..3` (tour idéal de la session), `top_speed`,
+  `median_lap`, `valid_laps`, pneus, `session_type`/`setting`, `combo_sessions`/`combo_laps`.
+  `bestPerDriver` sélectionne ces colonnes ; rang factorisé (`ranks()`). **Aides de pilotage non
+  publiées** (envoyées, jamais montrées pilote par pilote). Test dédié, 37/37.
+- ✅ **App** (`Classement.tsx`, `DriverCompare`) : nom cliquable dans le classement d'un combo →
+  fenêtre (portail) : cartes des 2 pilotes, écart, barres par secteur du côté du plus rapide,
+  phrase « X : 1.238 s de retard au tour, dont 0.490 s en S2 » (+ secteur repris), tableau du
+  meilleur tour (meilleur des deux en couleur, retard de l'autre à côté). Avertissement si classes
+  ou versions diffèrent. **Repli** : serveur sans la route (404 → `null`) → temps, secteurs,
+  version, date du classement seulement. Route ajoutée à `PUBLIC_ROUTES` (Rust) et `CommunityRoute`.
+  20 clés `leaderboard.cmp*` ×5. Changelog 1.0.10 (added). tsc, eslint, cargo check OK.
+- ✅ **Site** (`combo.js`, `site.css`, `?v=50`) : même fenêtre (`select` natifs, Échap/clic dehors),
+  clés `cmp.*` ×5. Vérifié sur une API locale PGlite + démo (250 pilotes) : clair/sombre,
+  desktop/mobile, anonyme, « (vous) » via le repère mémorisé. Corrigé en route : la grille de la
+  fenêtre écrasait les blocs `overflow: hidden` sur petit écran (`grid-auto-rows: max-content`).
+- ⚠️ App non vue dans Tauri (pas de rendu hors app) : vérifiée par typage + lint seulement.
+- 📋 **Prochaine étape** : déployer l'API + le site sur le VPS (la fenêtre de l'app reste
+  minimale tant que la route n'y est pas), puis contrôler la fenêtre dans l'app sur un vrai combo.
+- ✅ **Décision mainteneur** : les aides ne sont **pas** publiées dans la comparaison (ni ailleurs,
+  pilote par pilote) → section 2.
+- ✅ **Retours en test (même jour)** : soulignement au survol des pseudos retiré (app + site).
+  **Mise en avant** de la fenêtre (« ça manque de mise en avant des infos ») : conclusion en tête
+  dans un encadré (`<b>` via `Trans` côté app, gabarit i18n + nom échappé côté site, tournure neutre
+  « En S1, c'est l'inverse : … »), retard en **pastille rouge** à côté du plus lent (cartes,
+  secteurs, tableau), carte du plus rapide bordure pleine, **secteur le plus coûteux surligné**,
+  ligne « Temps » retirée du tableau (déjà dans les cartes), **contexte** (pneus, session,
+  expérience, version, date) séparé et en retrait. Clé `cmpContext` / `cmp.context` ×5.
+- ✅ **Classements (app)** : ouvrir un combo ou le classement toutes classes d'un circuit fait
+  remonter sa ligne en haut de l'écran (`data-combo` / `data-track` + `scroll-mt-16`,
+  `scrollIntoView` à l'ouverture) — demande « la première ligne doit être celle de ce combo ».
+  Changelog 1.0.10 (improved).
+- ✅ **Couleurs** : tableau de la fenêtre de comparaison rayé une ligne sur deux à l'orange du
+  survol (site : `--amber` 5 %, survol 10 % ; app : `even:bg-primary/5`). En-têtes aux couleurs de
+  l'app au lieu du gris : classement d'un combo dans l'app (comme `TableHeader` : `bg-primary/15`,
+  texte `yellow-900`/`yellow-100`, bloc perf bleu conservé), en-têtes de la fenêtre (app + site,
+  `--th-bg` / `--th-text`).
 
 ### 2026-10-08 — Testeur italien : réponse sur la beta.1
 

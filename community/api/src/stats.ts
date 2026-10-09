@@ -89,6 +89,17 @@ interface BestRow {
   s1: number | null;
   s2: number | null;
   s3: number | null;
+  /** Meilleurs secteurs de la session du meilleur tour (leur somme = tour idéal). */
+  best_s1: number | null;
+  best_s2: number | null;
+  best_s3: number | null;
+  top_speed: number | null;
+  median_lap: number | null;
+  valid_laps: number;
+  compound_f: string | null;
+  compound_r: string | null;
+  session_type: string;
+  setting: string;
   game_version: string;
   played_on: string;
   tag: string;
@@ -142,6 +153,8 @@ async function bestPerDriver(db: Db, key: ComboKey, versions: string[], f: Filte
     `select * from (
        select distinct on (s.install_id)
          s.install_id, s.car_class, s.best_time, s.car_model, s.s1, s.s2, s.s3, s.game_version,
+         s.best_s1, s.best_s2, s.best_s3, s.top_speed, s.median_lap, s.valid_laps,
+         s.compound_f, s.compound_r, s.session_type, s.setting,
          s.played_on::text as played_on, s.received_at,
          i.tag, i.anonymous, i.display_name, i.homonym, i.nationality, i.avatar
        from sessions s join installs i on i.id = s.install_id
@@ -233,6 +246,12 @@ export const publicDriver = (r: { anonymous: boolean; display_name: string | nul
 });
 const driverOf = (r: BestRow) => publicDriver(r);
 
+/** Rang « compétition » (ex-æquo au même rang) de lignes triées par temps. */
+function ranks(rows: BestRow[]): number[] {
+  let rank = 0;
+  return rows.map((r, i) => (i === 0 || r.best_time > rows[i - 1].best_time ? (rank = i + 1) : rank));
+}
+
 /**
  * Classement d'un combo (rang « compétition » : ex-æquo au même rang). `name` : ne
  * garde que les pilotes dont le nom contient ce texte (rang réel conservé) — pour
@@ -252,11 +271,62 @@ export async function leaderboard(
   const versions = await resolveVersions(db, key, f);
   if (!versions.length) return null;
   const rows = await bestPerDriver(db, key, versions, f);
-  let rank = 0;
-  const ranked = rows.map((r, i) => {
-    if (i === 0 || r.best_time > rows[i - 1].best_time) rank = i + 1;
-    return {
-      rank,
+  const rk = ranks(rows);
+  const ranked = rows.map((r, i) => ({
+    rank: rk[i],
+    driver: driverOf(r),
+    car_class: r.car_class,
+    car_model: r.car_model,
+    time: r.best_time,
+    s1: r.s1,
+    s2: r.s2,
+    s3: r.s3,
+    game_version: r.game_version,
+    played_on: r.played_on,
+  }));
+  const needle = name?.trim().toLowerCase();
+  const list = needle
+    ? ranked.filter((r) => r.driver.name != null && r.driver.name.toLowerCase().includes(needle))
+    : ranked;
+  const me = tag ? (ranked.find((r) => r.driver.tag === tag) ?? null) : undefined;
+  return { version: versions.join(","), drivers: rows.length, matches: list.length, rows: list.slice(offset, offset + limit), me };
+}
+
+/**
+ * Comparaison de pilotes sur un combo (fenêtre ouverte d'un clic sur un pseudo, app et
+ * site) : pour chaque repère, sa ligne du classement complétée par le détail de son
+ * meilleur tour (meilleurs secteurs de la session, vitesse de pointe, rythme médian,
+ * pneus, type de session) et son expérience du combo (sessions et tours valides, mêmes
+ * filtres). Les aides de pilotage ne sont pas publiées. Repère sans temps ici : absent.
+ */
+export async function compare(db: Db, key: ComboKey, f: Filters, tags: string[]) {
+  const versions = await resolveVersions(db, key, f);
+  if (!versions.length) return null;
+  const rows = await bestPerDriver(db, key, versions, f);
+  const rk = ranks(rows);
+  const params: unknown[] = [key.track, key.course];
+  const cls = classCond(key, params);
+  params.push(versions);
+  const vi = params.length;
+  const el = eligibility(f, params);
+  params.push(tags);
+  const ti = params.length;
+  const exp = await db.query<{ tag: string; sessions: number; laps: number }>(
+    `select i.tag, count(*)::int as sessions, coalesce(sum(s.valid_laps), 0)::int as laps
+     from sessions s join installs i on i.id = s.install_id
+     where s.track = $1 and s.track_course = $2 ${cls} and s.game_minor = any($${vi}::text[])
+       and ${el} and i.tag = any($${ti}::text[])
+     group by i.tag`,
+    params,
+  );
+  const expOf = new Map(exp.map((e) => [e.tag, e]));
+  const out = [];
+  for (const tag of tags) {
+    const i = rows.findIndex((r) => r.tag === tag);
+    if (i < 0) continue;
+    const r = rows[i];
+    out.push({
+      rank: rk[i],
       driver: driverOf(r),
       car_class: r.car_class,
       car_model: r.car_model,
@@ -264,16 +334,23 @@ export async function leaderboard(
       s1: r.s1,
       s2: r.s2,
       s3: r.s3,
+      best_s1: r.best_s1,
+      best_s2: r.best_s2,
+      best_s3: r.best_s3,
+      top_speed: r.top_speed,
+      median_lap: r.median_lap,
+      valid_laps: r.valid_laps,
+      compound_f: r.compound_f,
+      compound_r: r.compound_r,
+      session_type: r.session_type,
+      setting: r.setting,
       game_version: r.game_version,
       played_on: r.played_on,
-    };
-  });
-  const needle = name?.trim().toLowerCase();
-  const list = needle
-    ? ranked.filter((r) => r.driver.name != null && r.driver.name.toLowerCase().includes(needle))
-    : ranked;
-  const me = tag ? (ranked.find((r) => r.driver.tag === tag) ?? null) : undefined;
-  return { version: versions.join(","), drivers: rows.length, matches: list.length, rows: list.slice(offset, offset + limit), me };
+      combo_sessions: expOf.get(tag)?.sessions ?? 0,
+      combo_laps: expOf.get(tag)?.laps ?? 0,
+    });
+  }
+  return { version: versions.join(","), drivers: rows.length, rows: out };
 }
 
 /** Position d'un temps dans un combo (l'app place le joueur sans tout télécharger). */

@@ -4,9 +4,10 @@
  * de ses meilleurs tours locaux. Classements ouverts à tous : la page fonctionne même
  * si le joueur ne partage pas ses tours (il n'y apparaît simplement pas).
  */
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { AlertTriangle, Car, ChevronDown, ExternalLink, Eye, Flag, Globe, Loader2, Package, Route, Share2, Star, Tag, Target, Timer, Trophy, Users, X } from "lucide-react";
 import { ClassBadge } from "@/components/ClassBadge";
 import { CarLogo } from "@/components/CarLogo";
@@ -16,9 +17,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TrackFlag } from "@/components/TrackFlag";
 import { Tip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import {
   community,
   isTauri,
+  type CommunityCompare,
   type CommunityDetail,
   type CommunityLeaderboard,
   type CommunityPosition,
@@ -259,6 +262,408 @@ function Histogram({
 /** Ligne du classement communautaire (`null` dans la liste = trou « ⋯ »). */
 type LbRow = CommunityLeaderboard["rows"][number];
 
+/** Ligne complétée par `combos/compare` (champs absents si le serveur ne le fournit pas). */
+type CmpRow = LbRow & Partial<Omit<CommunityCompare["rows"][number], keyof LbRow>>;
+
+/** Couleurs des deux pilotes comparés : à gauche la référence (vous), à droite le pilote cliqué. */
+const CMP_SIDES = [
+  { text: "text-amber-600 dark:text-amber-400", bar: "bg-amber-500" },
+  { text: "text-sky-600 dark:text-sky-400", bar: "bg-sky-500" },
+] as const;
+
+/** Somme des meilleurs secteurs de la session du meilleur tour (null s'il en manque un). */
+const optimalOf = (r: CmpRow) =>
+  r.best_s1 != null && r.best_s2 != null && r.best_s3 != null ? r.best_s1 + r.best_s2 + r.best_s3 : null;
+
+/**
+ * Fenêtre de comparaison ouverte d'un clic sur un pseudo, comme l'onglet « Comparaison »
+ * d'une course : vous à gauche (sinon le 1er, ou le pilote juste devant si vous cliquez
+ * votre propre nom), le pilote cliqué à droite, chacun modifiable. Les secteurs montrent
+ * où se fait l'écart ; le détail du meilleur tour (tour idéal, rythme médian, vitesse de
+ * pointe, pneus, session, expérience du combo) vient de `combos/compare` — sans lui
+ * (serveur pas encore à jour), restent le temps et les secteurs du classement.
+ */
+function DriverCompare({
+  q,
+  rows,
+  target,
+  meTag,
+  allClasses,
+  name,
+  onClose,
+}: {
+  q: Record<string, string>;
+  /** Lignes affichées (rangs recalculés si une classe est filtrée). */
+  rows: LbRow[];
+  target: LbRow;
+  meTag: string | null;
+  allClasses: boolean;
+  name: (d: LbRow["driver"]) => string;
+  onClose: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [tags, setTags] = useState<[string, string]>(() => {
+    const tTag = target.driver.tag;
+    const ti = rows.findIndex((r) => r.driver.tag === tTag);
+    const ref =
+      meTag && meTag !== tTag
+        ? meTag
+        : meTag
+          ? (rows[ti - 1] ?? rows[ti + 1])?.driver.tag
+          : (rows[0]?.driver.tag !== tTag ? rows[0] : rows[1])?.driver.tag;
+    return [ref ?? "", tTag];
+  });
+  const [extra, setExtra] = useState<Map<string, CommunityCompare["rows"][number]> | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const qKey = JSON.stringify(q);
+  useEffect(() => {
+    if (!tags[0]) return;
+    let alive = true;
+    setExtra(null);
+    community
+      .get<CommunityCompare>("combos/compare", { ...q, tags: tags.join(",") })
+      .then((c) => alive && setExtra(new Map((c?.rows ?? []).map((r) => [r.driver.tag, r]))))
+      .catch(() => alive && setExtra(new Map()));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qKey, tags[0], tags[1]]);
+
+  const byTag = useMemo(() => new Map(rows.map((r) => [r.driver.tag, r])), [rows]);
+  const options = useMemo(
+    () =>
+      rows.map((r) => ({
+        value: r.driver.tag,
+        label: `P${r.rank} · ${name(r.driver)}${r.driver.tag === meTag ? ` (${t("leaderboard.you")})` : ""}`,
+      })),
+    [rows, meTag, name, t],
+  );
+  // Rang affiché = celui du tableau (classe filtrée comprise) ; le reste vient du serveur.
+  const full = (tag: string): CmpRow | null => {
+    const r = byTag.get(tag);
+    return r ? { ...extra?.get(tag), ...r } : null;
+  };
+  const L = full(tags[0]);
+  const R = full(tags[1]);
+
+  const fmtGap = (v: number) => v.toFixed(3);
+  const date = (iso?: string | null) =>
+    iso ? new Date(`${iso}T12:00:00Z`).toLocaleDateString(i18n.language, { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+  const sessionLabel = (r: CmpRow) => {
+    if (!r.session_type) return null;
+    const s = r.session_type;
+    const type = /race/i.test(s) ? t("leaderboard.sRace") : /qual/i.test(s) ? t("leaderboard.sQualify") : /practice|warm/i.test(s) ? t("leaderboard.sPractice") : s;
+    return `${type} · ${r.setting === "Multiplayer" ? t("sessions.online") : t("sessions.offline")}`;
+  };
+
+  let body: React.ReactNode;
+  if (!L || !R) {
+    body = <p className="p-8 text-center text-sm text-muted-foreground">{t("leaderboard.cmpAlone")}</p>;
+  } else {
+    const pair = [L, R];
+    const gap = R.time - L.time; // > 0 : la gauche est plus rapide
+    const slower = gap > 0 ? R : L;
+    const sectors = (["s1", "s2", "s3"] as const).map((k) => {
+      const a = L[k] ?? null;
+      const b = R[k] ?? null;
+      return { k, a, b, d: a != null && b != null ? b - a : null };
+    });
+    const maxD = Math.max(0.001, ...sectors.map((s) => Math.abs(s.d ?? 0)));
+    // Temps perdu par le plus lent dans chaque secteur (négatif = secteur qu'il gagne).
+    const losses = sectors
+      .filter((s) => s.d != null)
+      .map((s) => ({ sector: s.k.toUpperCase(), loss: gap > 0 ? s.d! : -s.d! }));
+    const worst = losses.length ? losses.reduce((m, x) => (x.loss > m.loss ? x : m)) : null;
+    const comeback = losses.length ? losses.reduce((m, x) => (x.loss < m.loss ? x : m)) : null;
+    const sameVersion = !L.game_version || !R.game_version || gameMinor(L.game_version) === gameMinor(R.game_version);
+
+    const worstSector = worst && worst.loss > 0.0005 ? worst.sector : null;
+    /** Retard du plus lent : pastille rouge, la donnée à lire en premier. */
+    const deficit = (text: string, size: "sm" | "lg" = "sm") => (
+      <span
+        className={cn(
+          "inline-block rounded bg-red-500/10 font-mono font-semibold text-red-600 dark:text-red-400",
+          size === "lg" ? "px-1.5 py-0.5 text-sm" : "px-1 py-px text-[11px]",
+        )}
+      >
+        {text}
+      </span>
+    );
+    /**
+     * Valeur d'un côté : le meilleur des deux en gras à sa couleur, l'autre accompagné de son
+     * retard (`chipFirst` : pastille avant la valeur, pour garder les chiffres alignés à droite).
+     */
+    const val = (
+      side: number,
+      v: number | null | undefined,
+      other: number | null | undefined,
+      fmt: (v: number) => string,
+      better: "low" | "high" | null = "low",
+      delta: (d: number) => string = (d) => `+${fmtGap(d)}`,
+      chipFirst = true,
+    ) => {
+      if (v == null) return <span className="text-muted-foreground">—</span>;
+      const win = better && other != null && Math.abs(v - other) > 0.0005 ? (better === "low" ? v < other : v > other) : null;
+      const chip = win === false && other != null ? deficit(delta(Math.abs(v - other))) : null;
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          {chipFirst && chip}
+          <span className={cn("font-mono", win === true && cn("font-bold", CMP_SIDES[side].text))}>{fmt(v)}</span>
+          {!chipFirst && chip}
+        </span>
+      );
+    };
+    const numRow = (
+      label: string,
+      get: (r: CmpRow) => number | null | undefined,
+      fmt: (v: number) => string,
+      better: "low" | "high" | null = "low",
+      delta?: (d: number) => string,
+    ) => {
+      const a = get(L);
+      const b = get(R);
+      if (a == null && b == null) return null;
+      return (
+        <tr key={label} className="border-t border-border/40 even:bg-primary/5 hover:bg-primary/10">
+          <td className="px-3 py-2 font-medium">{label}</td>
+          <td className="px-3 py-2 text-right">{val(0, a, b, fmt, better, delta)}</td>
+          <td className="px-3 py-2 text-right">{val(1, b, a, fmt, better, delta)}</td>
+        </tr>
+      );
+    };
+    const textRow = (label: string, get: (r: CmpRow) => React.ReactNode) => {
+      const a = get(L);
+      const b = get(R);
+      if (a == null && b == null) return null;
+      return (
+        <tr key={label} className="border-t border-border/40 text-[11px] text-muted-foreground even:bg-primary/5 hover:bg-primary/10">
+          <td className="px-3 py-1">{label}</td>
+          <td className="px-3 py-1 text-right">{a ?? "—"}</td>
+          <td className="px-3 py-1 text-right">{b ?? "—"}</td>
+        </tr>
+      );
+    };
+    const tyres = (r: CmpRow) =>
+      r.compound_f ? (r.compound_r && r.compound_r !== r.compound_f ? `${r.compound_f} / ${r.compound_r}` : r.compound_f) : null;
+    const spread = (r: CmpRow) => (r.median_lap != null ? r.median_lap - r.time : null);
+    const perfRows = [
+      numRow(t("leaderboard.cmpOptimal"), optimalOf, formatTime),
+      numRow(t("leaderboard.cmpMedian"), (r) => r.median_lap, formatTime),
+      numRow(t("leaderboard.cmpSpread"), spread, (v) => `+${fmtGap(v)} s`),
+      numRow(t("leaderboard.cmpVmax"), (r) => r.top_speed, (v) => `${v.toFixed(1)} km/h`, "high", (d) => `−${d.toFixed(1)}`),
+    ].filter(Boolean);
+    const contextRows = [
+      textRow(t("leaderboard.cmpTyres"), tyres),
+      textRow(t("leaderboard.cmpSession"), sessionLabel),
+      textRow(t("leaderboard.cmpSessions"), (r) => r.combo_sessions),
+      textRow(t("leaderboard.cmpLaps"), (r) => r.combo_laps),
+      textRow(t("leaderboard.colVersion"), (r) => (r.game_version ? gameMinor(r.game_version) : null)),
+      textRow(t("leaderboard.lbDate"), (r) => date(r.played_on)),
+    ];
+    const bold = { b: <b className="font-bold" /> };
+    const summary =
+      Math.abs(gap) < 0.0005 ? (
+        t("leaderboard.cmpTie")
+      ) : (
+        <>
+          <Trans
+            i18nKey={worstSector ? "leaderboard.cmpBehind" : "leaderboard.cmpBehindOnly"}
+            values={{ name: name(slower.driver), gap: fmtGap(Math.abs(gap)), part: worst ? fmtGap(worst.loss) : "", sector: worstSector ?? "" }}
+            components={bold}
+          />
+          {comeback && comeback.loss < -0.0005 && (
+            <>
+              {" "}
+              <Trans
+                i18nKey="leaderboard.cmpGains"
+                values={{ name: name(slower.driver), gain: fmtGap(-comeback.loss), sector: comeback.sector }}
+                components={bold}
+              />
+            </>
+          )}
+        </>
+      );
+
+    body = (
+      <div className="space-y-4 overflow-y-auto p-5">
+        {/* Les deux pilotes, chacun modifiable ; l'écart au tour au milieu, le retard sous le plus lent. */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-3">
+          {pair.map((r, side) => {
+            const isSlower = Math.abs(gap) >= 0.0005 && r === slower;
+            return (
+              <Fragment key={side}>
+                {side === 1 && (
+                  <div className="flex flex-col items-center justify-center px-2 text-center">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.cmpGap")}</span>
+                    <span className="font-mono text-3xl font-extrabold leading-tight">{fmtGap(Math.abs(gap))}</span>
+                    <span className="text-[11px] text-muted-foreground">s</span>
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    "min-w-0 rounded-lg border-2 bg-card p-3",
+                    side === 0 ? "border-amber-500/50" : "border-sky-500/50",
+                    !isSlower && (side === 0 ? "border-amber-500 bg-amber-500/[0.04]" : "border-sky-500 bg-sky-500/[0.04]"),
+                  )}
+                >
+                  <Select
+                    value={tags[side]}
+                    onValueChange={(v) => setTags((p) => (side === 0 ? [v, p[1]] : [p[0], v]))}
+                    options={options.filter((o) => o.value !== tags[1 - side])}
+                    ariaLabel={t("leaderboard.lbDriver")}
+                    className="h-8 text-xs"
+                  />
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <span className={cn("text-2xl font-extrabold", CMP_SIDES[side].text)}>P{r.rank}</span>
+                    <span className="min-w-0">
+                      <span className="flex items-center text-sm font-bold">
+                        {(r.driver.country || r.driver.avatar) && <DriverMarks d={r.driver} />}
+                        <span className="truncate">{name(r.driver)}</span>
+                      </span>
+                      <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                        {allClasses && r.car_class && <ClassBadge carClass={r.car_class} size="sm" />}
+                        <CarLogo carName={r.car_model} className="h-3.5 w-auto shrink-0 object-contain opacity-80" />
+                        <span className="truncate">{r.car_model}</span>
+                      </span>
+                    </span>
+                  </div>
+                  <p className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xl font-bold">{formatTime(r.time)}</span>
+                    {isSlower && deficit(`+${fmtGap(Math.abs(gap))} s`, "lg")}
+                  </p>
+                </div>
+              </Fragment>
+            );
+          })}
+        </div>
+
+        {(!sameVersion || (allClasses && L.car_class !== R.car_class)) && (
+          <p className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              {allClasses && L.car_class !== R.car_class && t("leaderboard.cmpDiffClass")}{" "}
+              {!sameVersion &&
+                t("leaderboard.cmpDiffVersion", { a: gameMinor(L.game_version!), b: gameMinor(R.game_version!) })}
+            </span>
+          </p>
+        )}
+
+        {/* La conclusion d'abord : qui perd combien, et où. */}
+        <div className="flex items-start gap-2.5 rounded-lg border border-primary/30 bg-primary/[0.06] px-3.5 py-2.5 text-sm leading-relaxed">
+          <Target className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <p>{summary}</p>
+        </div>
+
+        {/* Où se fait l'écart : une barre par secteur, du côté du plus rapide ; le secteur le plus coûteux surligné. */}
+        {losses.length > 0 && (
+          <div className="overflow-hidden rounded-lg border border-border/60">
+            <p className="border-b border-primary/30 bg-primary/15 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-yellow-900 dark:bg-primary/10 dark:text-yellow-100">
+              {t("leaderboard.cmpSectors")}
+            </p>
+            <div className="space-y-0.5 p-1.5">
+              {sectors.map((s) => (
+                <div
+                  key={s.k}
+                  className={cn(
+                    "grid grid-cols-[2rem_9rem_1fr_9rem] items-center gap-2 rounded-md px-1.5 py-1.5 text-xs",
+                    s.k.toUpperCase() === worstSector && "bg-red-500/[0.07]",
+                  )}
+                >
+                  <span className={cn("font-bold", s.k.toUpperCase() === worstSector ? "text-red-600 dark:text-red-400" : "text-muted-foreground")}>
+                    {s.k.toUpperCase()}
+                  </span>
+                  <span className="text-right">{val(0, s.a, s.b, (v) => v.toFixed(3))}</span>
+                  <span className="relative h-4 rounded bg-muted/60">
+                    <span className="absolute inset-y-0 left-1/2 w-px bg-border" />
+                    {s.d != null && Math.abs(s.d) > 0.0005 && (
+                      <span
+                        className={cn("absolute inset-y-0.5 rounded-sm", CMP_SIDES[s.d > 0 ? 0 : 1].bar)}
+                        style={{
+                          width: `${(Math.abs(s.d) / maxD) * 50}%`,
+                          ...(s.d > 0 ? { right: "50%" } : { left: "50%" }),
+                        }}
+                      />
+                    )}
+                  </span>
+                  <span>{val(1, s.b, s.a, (v) => v.toFixed(3), "low", undefined, false)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Détail du meilleur tour de chacun, puis le contexte (en retrait). */}
+        <div className="overflow-hidden rounded-lg border border-border/60">
+          <table className="w-full text-xs">
+            <thead className="border-b border-primary/30 bg-primary/15 text-[11px] uppercase tracking-wide text-yellow-900 dark:bg-primary/10 dark:text-yellow-100">
+              <tr>
+                <th className="px-3 py-1.5 text-left font-bold">
+                  {perfRows.length ? t("leaderboard.cmpDetail") : t("leaderboard.cmpContext")}
+                  {extra === null && <Loader2 className="ml-1.5 inline h-3 w-3 animate-spin" />}
+                </th>
+                {pair.map((r, side) => (
+                  <th key={side} className={cn("max-w-0 truncate px-3 py-1.5 text-right font-bold normal-case", CMP_SIDES[side].text)}>
+                    {name(r.driver)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {perfRows}
+              {perfRows.length > 0 && (
+                <tr className="border-t border-border/60 bg-muted/40">
+                  <td colSpan={3} className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                    {t("leaderboard.cmpContext")}
+                  </td>
+                </tr>
+              )}
+              {contextRows}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  return createPortal(
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={(e) => e.target === overlayRef.current && onClose()}
+    >
+      <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold leading-tight">{t("leaderboard.cmpTitle")}</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span>{q.course || q.track}</span>
+                {q.class && <ClassBadge carClass={q.class} size="sm" />}
+              </div>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label={t("community.close")}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        {body}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 /**
  * Détail d'un combo, comme la page d'un classement sur le site : carte « Votre position »,
  * puis le classement complet en pleine largeur (secteurs, version, date ; meilleurs
@@ -273,6 +678,8 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
   const [lb, setLb] = useState<(LbRow | null)[] | null>(null);
   /** Classement toutes classes : classe choisie d'un clic sur son badge (null = toutes). */
   const [cls, setCls] = useState<string | null>(null);
+  /** Pilote cliqué : fenêtre de comparaison ouverte. */
+  const [cmp, setCmp] = useState<LbRow | null>(null);
 
   const qKey = JSON.stringify(q);
   useEffect(() => {
@@ -386,8 +793,8 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
       )}
       <div className="overflow-x-auto rounded-md border border-border/60 bg-card">
         <table className="w-full min-w-[900px] text-xs">
-          <thead className="bg-muted text-[10px] uppercase tracking-wider text-muted-foreground">
-            <tr>
+          <thead className="text-[10px] uppercase tracking-wider text-yellow-900 dark:text-yellow-100">
+            <tr className="border-b border-primary/30 bg-primary/15 dark:bg-primary/10">
               <th className={cn(th, "w-12 text-center")}>#</th>
               <th className={cn(th, "text-left")}>{t("leaderboard.lbDriver")}</th>
               {allClasses && <th className={cn(th, "text-left")}>{t("leaderboard.colClass")}</th>}
@@ -426,7 +833,17 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
                   <td className="px-2 py-1.5">
                     <span className="flex min-w-0 items-center">
                       <DriverMarks d={r.driver} />
-                      <span className={cn("truncate text-sm", !r.driver.name && "italic text-muted-foreground")}>{name(r.driver)}</span>
+                      <button
+                        type="button"
+                        onClick={() => setCmp(r)}
+                        title={t("leaderboard.cmpTip")}
+                        className={cn(
+                          "cursor-pointer truncate text-left text-sm hover:text-primary",
+                          !r.driver.name && "italic text-muted-foreground",
+                        )}
+                      >
+                        {name(r.driver)}
+                      </button>
                     </span>
                   </td>
                   {allClasses && (
@@ -476,6 +893,18 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
           </tbody>
         </table>
       </div>
+
+      {cmp && (
+        <DriverCompare
+          q={q}
+          rows={rows}
+          target={cmp}
+          meTag={me?.driver.tag ?? null}
+          allClasses={allClasses}
+          name={name}
+          onClose={() => setCmp(null)}
+        />
+      )}
 
       <div>
         <p className="text-sm font-semibold">{t("leaderboard.distTitle")}</p>
@@ -555,6 +984,12 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   const [open, setOpen] = useState<string | null>(null);
   /** Circuit dont le classement toutes classes est ouvert (clic sur son nom). */
   const [openTrack, setOpenTrack] = useState<string | null>(null);
+  // Combo (ou circuit toutes classes) ouvert : sa ligne remonte en haut de l'écran, sous
+  // l'en-tête de l'app, pour que le détail occupe la fenêtre au lieu de déborder en bas.
+  useEffect(() => {
+    const sel = open ? `[data-combo="${CSS.escape(open)}"]` : openTrack ? `[data-track="${CSS.escape(openTrack)}"]` : null;
+    if (sel) document.querySelector(sel)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [open, openTrack]);
   const [collapsed, setCollapsed] = usePageState<Set<string>>("classement.collapsed", () => new Set());
   // Filtres (barre + clic sur une cellule, comme Sessions / Records).
   const [fTrack, setFTrack] = usePageState("classement.track", "");
@@ -959,7 +1394,8 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
           // repliable, ligne de titres contrastée, bloc « performance » teinté.
           <Card
             key={track}
-            className={cn("overflow-hidden transition-opacity", dimCard && "opacity-40 hover:opacity-100")}
+            data-track={track}
+            className={cn("scroll-mt-16 overflow-hidden transition-opacity", dimCard && "opacity-40 hover:opacity-100")}
           >
             <div
               className="group flex cursor-pointer items-center gap-2 bg-primary/30 px-3 py-1.5 transition-colors hover:bg-primary/40 dark:bg-primary/25"
@@ -1071,8 +1507,9 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                             </TableRow>
                           )}
                           <TableRow
+                            data-combo={key}
                             className={cn(
-                              "group",
+                              "group scroll-mt-16",
                               i % 2 === 1 && "bg-muted/30",
                               // « Mes combos » : les combos roulés teintés en orange, les autres estompés.
                               showMine && (r.other ? "opacity-45" : "bg-orange-500/15 font-semibold"),

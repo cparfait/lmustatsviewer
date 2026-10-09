@@ -819,3 +819,85 @@ h1 .cflag { width: 28px; height: 21px; margin-right: 10px; border-radius: 3px; v
 /* Carte « Votre position » : place en clair + jauge du 1er (vert) au dernier (rouge). */
 .me-where { display: flex; align-items: center; gap: 12px; }
 .me-card .gauge { width: 140px; }
+
+/* Comparaison de pilotes : fenêtre ouverte d'un clic sur un pseudo du classement.
+   Gauche (vous / référence) en orange, droite (pilote cliqué) en bleu. */
+.lb .drv-btn { all: unset; cursor: pointer; }
+.lb .drv-btn:hover { color: var(--amber-ink); }
+.lb .drv-btn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; border-radius: 4px; }
+body.cmp-open { overflow: hidden; }
+.cmp-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(5,8,18,.6); backdrop-filter: blur(4px); }
+.cmp-overlay[hidden] { display: none; }
+.cmp-modal { width: min(820px, 100%); max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+.cmp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.cmp-sub { display: flex; align-items: center; gap: 8px; margin-top: 2px; font-size: .82rem; color: var(--muted); }
+.cmp-x { width: 32px; height: 32px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 1.4rem; line-height: 1; cursor: pointer; }
+.cmp-x:hover { border-color: var(--border); color: var(--text); }
+/* Lignes à la taille du contenu : sinon, sur petit écran, la grille écrase les blocs à overflow: hidden. */
+.cmp-body { display: grid; grid-auto-rows: max-content; gap: 16px; padding: 18px 20px; overflow-y: auto; }
+.cmp-pair { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
+.cmp-card { min-width: 0; padding: 12px; border: 2px solid; border-radius: var(--radius); background: var(--bg-2); }
+.cmp-card.s0 { border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+.cmp-card.s1 { border-color: color-mix(in srgb, var(--blue) 45%, transparent); }
+.cmp-card.s0.win { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 5%, var(--bg-2)); }
+.cmp-card.s1.win { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 5%, var(--bg-2)); }
+.cmp-card select { width: 100%; height: 34px; padding: 0 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: 600 .82rem var(--font); }
+.cmp-who { display: flex; align-items: center; gap: 10px; min-width: 0; margin-top: 10px; }
+.cmp-who > div { min-width: 0; }
+.cmp-who b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-who .car { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: .8rem; color: var(--muted); }
+.cmp-who .car span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-rank { font-size: 1.6rem; font-weight: 800; }
+.s0 .cmp-rank, .cmp-win.s0, .cmp-table th.s0 { color: var(--amber-ink); }
+.s1 .cmp-rank, .cmp-win.s1, .cmp-table th.s1 { color: var(--blue); }
+.cmp-time { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.cmp-time .mono { font-size: 1.3rem; font-weight: 700; }
+.cmp-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 6px; text-align: center; }
+.cmp-mid span { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.cmp-mid b { font-family: var(--mono); font-size: 2rem; font-weight: 800; line-height: 1.15; }
+.cmp-mid small { color: var(--muted); }
+.cmp-note { margin: 0; font-size: .82rem; color: var(--amber-ink); }
+.cmp-box { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); }
+.cmp-box-h { margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--th-bg); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--th-text); }
+.cmp-secs { display: grid; gap: 2px; padding: 6px; }
+.cmp-sec { display: grid; grid-template-columns: 2.2rem 9rem 1fr 9rem; gap: 8px; align-items: center; padding: 5px 6px; border-radius: 8px; font-size: .85rem; }
+.cmp-sec > b { color: var(--muted); }
+.cmp-sec.worst { background: color-mix(in srgb, var(--red) 8%, transparent); }
+.cmp-sec.worst > b { color: var(--red); }
+.cmp-sec > span:nth-child(2) { text-align: right; }
+.cmp-bar { position: relative; height: 16px; border-radius: 4px; background: var(--bg-3); }
+.cmp-bar::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--border); }
+.cmp-bar i { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
+.cmp-bar i.s0 { background: var(--amber); }
+.cmp-bar i.s1 { background: var(--blue); }
+/* La conclusion d'abord : qui perd combien, et où. */
+.cmp-say { margin: 0; padding: 10px 14px 10px 12px; border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent); border-left: 4px solid var(--amber); border-radius: var(--radius); background: color-mix(in srgb, var(--amber) 6%, transparent); font-size: .92rem; line-height: 1.5; }
+.cmp-say b { font-weight: 800; }
+.cmp-win { font-weight: 700; }
+.cmp-val { display: inline-flex; align-items: center; gap: 6px; }
+.cmp-chip { display: inline-block; padding: 1px 5px; border-radius: 5px; background: color-mix(in srgb, var(--red) 11%, transparent); color: var(--red); font: 600 .74rem var(--mono); }
+.cmp-chip.lg { padding: 2px 7px; font-size: .88rem; }
+.cmp-table { width: 100%; border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.cmp-table th { max-width: 0; padding: 8px 12px; overflow: hidden; border-bottom: 1px solid var(--border); background: var(--th-bg); font-size: .72rem; letter-spacing: .06em; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-table th:first-child { width: 40%; text-align: left; text-transform: uppercase; color: var(--th-text); }
+.cmp-table td { padding: 8px 12px; border-top: 1px solid var(--border); text-align: right; }
+.cmp-table td:first-child { font-weight: 600; }
+.cmp-table tr.ctx-h td { padding: 5px 12px; background: var(--bg-2); font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cmp-table tr.ctx td { padding: 4px 12px; font-size: .78rem; font-weight: 400; color: var(--muted); }
+.cmp-table tr:first-child td { border-top: 0; }
+/* Une ligne sur deux à l'orange du survol des classements ; survol un cran au-dessus. */
+.cmp-table tbody tr:not(.ctx-h):nth-child(even) td { background: color-mix(in srgb, var(--amber) 5%, transparent); }
+.cmp-table tbody tr:not(.ctx-h):hover td { background: color-mix(in srgb, var(--amber) 10%, transparent); }
+.cmp-table td:first-child { text-align: left; }
+.cmp-empty { margin: 0; padding: 24px; text-align: center; color: var(--muted); }
+@media (max-width: 640px) {
+  .cmp-body { padding: 14px; }
+  .cmp-pair { grid-template-columns: 1fr 1fr; }
+  .cmp-mid { grid-column: 1 / -1; grid-row: 2; flex-direction: row; gap: 8px; }
+  .cmp-who { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .cmp-who > div { width: 100%; }
+  .cmp-rank { font-size: 1.3rem; }
+  .cmp-sec { grid-template-columns: 2rem 6rem 1fr 6rem; gap: 6px; font-size: .8rem; }
+  .cmp-sec > span:nth-child(2) .cmp-val { flex-direction: column-reverse; align-items: flex-end; gap: 1px; }
+  .cmp-sec > span:last-child .cmp-val { flex-direction: column; align-items: flex-start; gap: 1px; }
+}

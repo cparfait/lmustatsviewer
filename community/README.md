@@ -262,6 +262,7 @@ docker compose exec api node dist/api/src/admin.js purge-demo --yes   # efface l
 | GET | `/api/v1/combos/detail?track=&course=&class=[&version=&aids=&conditions=]` | percentiles, histogramme, par voiture, versions |
 | GET | `/api/v1/combos/leaderboard?…&limit=&offset=` | classement (noms au choix de chaque pilote) |
 | GET | `/api/v1/combos/position?…&time=` | rang, top %, écarts d'un temps |
+| GET | `/api/v1/combos/compare?…&tags=#a,#b` | comparaison de 1 à 4 pilotes (détail du meilleur tour, expérience du combo ; sans les aides) |
 | POST | `/api/v1/steam/start` | `{"mode":"link"}` (jeton requis) ou `{"mode":"recover"}` → `url` (page Steam), `poll_id` |
 | GET | `/api/v1/steam/return` | retour de Steam (navigateur) : assertion vérifiée auprès de Steam, page de résultat |
 | GET | `/api/v1/steam/poll?id=` | `pending` / `ok` (+ nouveau jeton si `recover`) / `not_found` / `taken` / `invalid` / `expired` |

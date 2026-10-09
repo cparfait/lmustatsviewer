@@ -403,6 +403,40 @@ describe("versions multiples et recherche de pilotes", () => {
     await ctx.close();
   });
 
+  test("comparaison : détail du meilleur tour et expérience du combo, rang du classement", async () => {
+    const ctx = await setup();
+    const [a, b] = await populate(ctx.app, 3);
+    // Seconde session de A, plus lente : comptée dans l'expérience, pas dans le détail.
+    await send(ctx.app, a.token, [session({ driver_name: "Pilote 0", session_type: "Qualify", setting: "Solo" }, { time: 79, top_speed: 250 })]);
+    const enc = (tags: string) => encodeURIComponent(tags);
+    const cmp = await (await ctx.app.request(`/api/v1/combos/compare?${RA}&tags=${enc(`${b.tag},${a.tag},#0000`)}`)).json();
+    assert.equal(cmp.drivers, 3);
+    // Ordre des repères demandés ; un repère sans temps ici est simplement absent.
+    assert.deepEqual(cmp.rows.map((r: { driver: { tag: string } }) => r.driver.tag), [b.tag, a.tag]);
+    const [rb, ra] = cmp.rows;
+    assert.equal(ra.rank, 1);
+    assert.equal(rb.rank, 2);
+    assert.equal(ra.time, 78);
+    assert.equal(ra.top_speed, 262.1);
+    assert.equal(ra.session_type, "Race");
+    assert.equal(ra.compound_f, "Medium");
+    assert.equal(ra.valid_laps, 18);
+    assert.ok(Math.abs(ra.best_s1 + ra.best_s2 + ra.best_s3 - 78) < 0.01);
+    assert.equal(ra.median_lap, 79.2);
+    assert.equal(ra.combo_sessions, 2);
+    assert.equal(ra.combo_laps, 36);
+    assert.equal(rb.combo_sessions, 1);
+    // Les aides de pilotage ne sont pas publiées.
+    assert.equal("aids_raw" in ra || "tc" in ra || "brake_help" in ra, false);
+    // Repères invalides ou trop nombreux → refusé.
+    assert.equal((await ctx.app.request(`/api/v1/combos/compare?${RA}&tags=abc`)).status, 400);
+    assert.equal((await ctx.app.request(`/api/v1/combos/compare?${RA}`)).status, 400);
+    const five = ["#0001", "#0002", "#0003", "#0004", "#0005"].join(",");
+    assert.equal((await ctx.app.request(`/api/v1/combos/compare?${RA}&tags=${enc(five)}`)).status, 400);
+    assert.equal((await ctx.app.request(`/api/v1/combos/compare?track=X&course=X&class=GT3&tags=${enc(a.tag)}`)).status, 404);
+    await ctx.close();
+  });
+
   test("recherche : nom partiel, anonymes introuvables ; fiche pilote avec rang par combo", async () => {
     const ctx = await setup();
     const [a, b] = await populate(ctx.app, 3);

@@ -34,6 +34,7 @@ import { BOX_CRITICAL_LAPS } from "./pitWindow";
 import { consistentWithLive, parseWet, pickWetFile, wetSession } from "./forecast";
 import { engineer } from "./state";
 import { radioClass, radioName } from "./text";
+import { scopedPosition } from "@/lib/livePosition";
 import {
   currentForecast,
   currentPitWindow,
@@ -96,6 +97,78 @@ function sustainedAlert(
   return true;
 }
 
+/** Seuil de surchauffe historique (pic instantané, débit Complet) (°C). */
+const BRAKE_HOT_C = 750;
+
+/**
+ * Seuils de la MOYENNE glissante selon le matériau des disques de la classe
+ * (débit Ingénieur). Sources (recherche du 06/10/2026, cf. SUIVI) :
+ *  - Brembo, 24 h du Mans 2025 : Hypercar et LMP2 = carbone, 250–850 °C ;
+ *    LMGT3 = fonte, 250–750 °C. LMP3 = acier imposé (règlement LMP3 art. 12.3).
+ *  - Seuils par matériau d'un ingénieur vocal communautaire : fonte course
+ *    « chaud » au-delà de 700 °C, carbone au-delà de 1 200 °C.
+ * La moyenne restant sous les pics, son dépassement du HAUT de la plage de
+ * fonctionnement signale une vraie surchauffe, pas un gros freinage.
+ * Classe inconnue (GTE, autres) : 750 °C, valeur d'origine.
+ */
+export function brakeAvgLimits(vehicleClass: string): { hot: number; rearm: number } {
+  const cls = radioClass(vehicleClass);
+  if (cls === "Hypercar" || cls === "LMP2") return { hot: 850, rearm: 800 }; // carbone
+  return { hot: 750, rearm: 700 }; // fonte/acier (LMP3, GT3) et repli
+}
+/** Constante de temps de la moyenne glissante (ms) — environ 2 à 4 freinages. */
+const BRAKE_TAU_MS = 30000;
+
+interface BrakeAvgState {
+  avg: number;
+  /** Début des échantillons valides (0 = aucun) / dernier échantillon. */
+  start: number;
+  at: number;
+  /** Alerte déjà donnée pour le dépassement en cours. */
+  warned: boolean;
+  lastSaid: number;
+}
+
+function newBrakeAvg(): BrakeAvgState {
+  return { avg: 0, start: 0, at: 0, warned: false, lastSaid: -Infinity };
+}
+
+/**
+ * Met à jour la moyenne glissante (exponentielle, pondérée par le temps) de la
+ * température du frein le plus chaud. Renvoie `true` quand la moyenne franchit
+ * le seuil : au moins une constante de temps d'échantillons, une seule annonce
+ * par dépassement, 2 min minimum entre deux annonces.
+ */
+function updateBrakeAvg(
+  s: BrakeAvgState,
+  temp: number,
+  now: number,
+  limits: { hot: number; rearm: number },
+): boolean {
+  if (!(temp > 0)) return false; // non significatif (arrêt, garage)
+  if (s.start === 0) {
+    s.start = now;
+    s.at = now;
+    s.avg = temp;
+    return false;
+  }
+  const dt = Math.max(0, now - s.at);
+  s.at = now;
+  s.avg += (temp - s.avg) * (1 - Math.exp(-dt / BRAKE_TAU_MS));
+  if (s.avg < limits.rearm) s.warned = false;
+  if (
+    !s.warned &&
+    now - s.start >= BRAKE_TAU_MS &&
+    s.avg > limits.hot &&
+    now - s.lastSaid >= 120000
+  ) {
+    s.warned = true;
+    s.lastSaid = now;
+    return true;
+  }
+  return false;
+}
+
 export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: string, t: Tr) {
   const prevFlag = useRef<FlagKind>("none");
   const fuelBucket = useRef<number>(99);
@@ -103,6 +176,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const tyreSeenFresh = useRef(false);
   const coldWarned = useRef(false);
   const prevPos = useRef<number>(0);
+  /** Périmètre de `prevPos` (classe brute, ou "" = général). */
+  const prevScope = useRef<string>("");
   const prevLaps = useRef<number>(-1);
   const prevBest = useRef<number>(0);
   const prevPenalties = useRef<number>(0);
@@ -124,6 +199,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   // Surchauffes : état « seuil tenu » (since = début au-dessus du seuil, last = dernière annonce).
   const tyreHot = useRef({ since: 0, last: 0 });
   const brakeHot = useRef({ since: 0, last: 0 });
+  // Freins (débit Ingénieur) : moyenne glissante de la température du frein le
+  // plus chaud, pour juger la tendance et non chaque pic de freinage.
+  const brakeAvg = useRef<BrakeAvgState>(newBrakeAvg());
   // Usure : état « sous le seuil tenu » (filtre les frames de télémétrie
   // corrompues au lancement → fausse « usure pneus critique »).
   const tyreLow = useRef({ since: 0, last: 0 });
@@ -167,6 +245,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const lmuPath = useAppStore((s) => s.lmuPath);
   // Débit « complet » : chaque annonce historique garde sa fréquence d'avant.
   const full = useAppStore((s) => s.radioMode) === "full";
+  // Multiclasse : positions/écarts annoncés dans la classe (réglage, défaut oui).
+  const classPositions = useAppStore((s) => s.classPositions);
   useEffect(() => {
     if (!enabled || !track || !lmuPath || forecastTrack.current === track) return;
     forecastTrack.current = track;
@@ -229,6 +309,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       detachedWarned.current = false;
       tyreHot.current = { since: 0, last: 0 };
       brakeHot.current = { since: 0, last: 0 };
+      brakeAvg.current = newBrakeAvg();
       tyreLow.current = { since: 0, last: 0 };
       engineTempWarned.current = false;
       overheatWarned.current = false;
@@ -341,7 +422,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         prevFastest.current = 0;
         coldWarned.current = false;
         prevPitstops.current = player.num_pitstops;
-        prevLeader.current = player.position === 1;
+        prevLeader.current = (scopedPosition(data.standings, classPositions)?.pos ?? player.position) === 1;
         podiumWarned.current = false;
         refuelWarned.current = false;
         timeBucket.current = 99999;
@@ -353,10 +434,20 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         // Baseline de position = position de grille courante (évite un faux
         // « place gagnée/perdue » dû au saut depuis la position de la session
         // précédente — prevPos fuyait d'une session à l'autre).
-        prevPos.current = player.position;
+        prevPos.current = scopedPosition(data.standings, classPositions)?.pos ?? player.position;
       }
 
-      const leader = player.position === 1;
+      // Position annoncée : dans la classe en multiclasse (réglage), sinon au
+      // général. Changement de périmètre (réglage basculé, classes qui
+      // apparaissent) → nouvelle base, pas de fausse « place gagnée/perdue ».
+      const sp = scopedPosition(data.standings, classPositions);
+      const scopeKey = sp?.cls ?? "";
+      if (scopeKey !== prevScope.current) {
+        prevScope.current = scopeKey;
+        prevPos.current = sp?.pos ?? player.position;
+        prevLeader.current = (sp?.pos ?? player.position) === 1;
+      }
+      const leader = (sp?.pos ?? player.position) === 1;
       // Course réellement lancée (drapeau vert ou ≥ 1 tour) : avant cela, la
       // grille / le tour de formation réordonnent les positions → ce ne sont
       // pas de vrais dépassements à annoncer.
@@ -366,7 +457,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       // ── Positions — place gagnée / perdue ────────────────────────────────
       // Aux stands : positions, écarts et chronos sont distordus → silence ;
       // les baselines continuent de se mettre à jour.
-      const pos = player.position;
+      const pos = sp?.pos ?? player.position;
       if (
         warmedUp &&
         racing &&
@@ -388,7 +479,12 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
       // ── Prise de tête de la course ───────────────────────────────────────
       if (!inPits && leader && !prevLeader.current) {
-        say("pos:lead", t("live.vTakeLead"), "normal", { score: 60 });
+        say(
+          "pos:lead",
+          sp?.cls ? t("live.vTakeClassLead", { cls: radioClass(sp.cls) }) : t("live.vTakeLead"),
+          "normal",
+          { score: 60 },
+        );
       }
       prevLeader.current = leader;
 
@@ -409,7 +505,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         underAttackWarned.current = false;
       } else {
         if (gapsReady && playerStanding && !leader) {
-          const gAhead = playerStanding.time_behind_next;
+          const gAhead = sp?.gapAhead ?? 0;
           if (gAhead > 0 && gAhead < 1 && !gapAheadWarned.current) {
             say("gap:ahead", t("live.vGapAhead"), "chatty", { score: 25 });
             gapAheadWarned.current = true;
@@ -417,11 +513,10 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
             gapAheadWarned.current = false;
           }
         }
-        const behind = gapsReady
-          ? data.standings.find((s) => s.position === pos + 1)
-          : undefined;
+        // Voiture derrière dans le même classement (classe ou général).
+        const behind = gapsReady ? sp?.behind : undefined;
         if (behind) {
-          const gBehind = behind.time_behind_next; // écart de la voiture derrière = à nous
+          const gBehind = sp?.gapBehind ?? 0;
           if (gBehind > 0 && gBehind < 1 && !underAttackWarned.current) {
             say("gap:behind", t("live.vUnderAttack"), "normal", { score: 50 });
             underAttackWarned.current = true;
@@ -570,11 +665,13 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         debriefSkip.current = false;
         prevBestSectors.current = [...player.best_sectors];
 
-        // Écart au leader — en course seulement, un tour sur LEADER_GAP_EVERY.
-        if ((full || isRace) && playerStanding && !leader && playerStanding.time_behind_leader > 0) {
+        // Écart au leader (de la classe en multiclasse) — en course seulement,
+        // un tour sur LEADER_GAP_EVERY.
+        const gapLeader = sp?.gapLeader ?? 0;
+        if ((full || isRace) && playerStanding && !leader && gapLeader > 0) {
           say(
             "gap:leader",
-            t("live.vGapLeader", { time: fmtLapVoice(playerStanding.time_behind_leader, t) }),
+            t("live.vGapLeader", { time: fmtLapVoice(gapLeader, t) }),
             "chatty",
             full ? { score: 5 } : { score: 5, cooldownLaps: LEADER_GAP_EVERY },
           );
@@ -849,10 +946,21 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (sustainedAlert(tyreHot.current, maxTyre > 115, now, 10000, 120000)) {
         say("tyres:hot", t("live.vTyreOverheat"), "normal", { score: 55 });
       }
-      // Freins en surchauffe : seuil tenu ≥ 6 s (ignore les pics de freinage), silence 2 min.
       const brakeTemps = tel.wheels.map((w) => w.brake_temp).filter((x) => x > 0);
       const maxBrake = brakeTemps.length ? Math.max(...brakeTemps) : 0;
-      if (sustainedAlert(brakeHot.current, maxBrake > 750, now, 6000, 120000)) {
+      if (full) {
+        // Débit Complet (historique) : seuil instantané tenu ≥ 6 s, silence 2 min.
+        if (sustainedAlert(brakeHot.current, maxBrake > BRAKE_HOT_C, now, 6000, 120000)) {
+          say("mech:brakes", t("live.vBrakeOverheat"), "critical");
+        }
+      } else if (inPits) {
+        // Arrêt aux stands : les freins refroidissent, la moyenne repart de zéro.
+        brakeAvg.current = newBrakeAvg();
+      } else if (
+        updateBrakeAvg(brakeAvg.current, maxBrake, now, brakeAvgLimits(playerStanding?.vehicle_class ?? ""))
+      ) {
+        // Débit Ingénieur : une annonce quand la MOYENNE dépasse le seuil ;
+        // réarmée seulement une fois la moyenne redescendue (hystérésis).
         say("mech:brakes", t("live.vBrakeOverheat"), "critical");
       }
       // Température d'eau / d'huile élevée.
@@ -982,5 +1090,5 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (c.prio === "critical" || !critical) rawSpeak(c.text, lang, c.prio, c.ttlMs);
       else deferred.current.push({ text: c.text, prio: c.prio, ttl: c.ttlMs, at: now });
     }
-  }, [data, enabled, lang, t, full]);
+  }, [data, enabled, lang, t, full, classPositions]);
 }

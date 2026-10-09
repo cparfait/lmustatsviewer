@@ -95,6 +95,7 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vPosGain", vars: ["p"], sample: { p: 3 } },
       { key: "vPosLoss", vars: ["p"], sample: { p: 5 } },
       { key: "vTakeLead", vars: [] },
+      { key: "vTakeClassLead", vars: ["cls"], sample: { cls: "LMP3" } },
       { key: "vPodium", vars: ["p"], sample: { p: 2 } },
     ],
   },

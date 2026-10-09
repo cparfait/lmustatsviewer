@@ -64,6 +64,83 @@ export const APP_VERSION: string = __APP_VERSION__;
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.0.10",
+    date: "2026-10-06",
+    dev: true,
+    localized: true,
+    sections: [
+      {
+        kind: "added",
+        items: [
+          {
+            text: {
+              en: "New setting (Settings → Voice): \"Announce positions within class\". In multi-class sessions, the race engineer now gives your position in your class — place gained/lost, podium, lead, status, gaps to the cars ahead and behind, \"what's my position?\", position after a pit stop. Turn it off to keep overall positions as before.",
+              fr: "Nouveau réglage (Configuration → Voix) : « Positions annoncées dans la classe ». En multiclasse, l'ingénieur donne désormais ta place dans ta classe — place gagnée/perdue, podium, prise de tête, statut, écarts devant/derrière, « quelle position ? », position à la sortie des stands. Désactive-le pour garder les positions au général comme avant.",
+              es: "Nuevo ajuste (Configuración → Voz): «Posiciones anunciadas en la clase». En multiclase, el ingeniero da ahora tu posición en tu clase — posición ganada/perdida, podio, liderato, estado, diferencias con el de delante y el de detrás, «¿en qué posición voy?», posición al salir de boxes. Desactívalo para mantener las posiciones en la general como antes.",
+              de: "Neue Einstellung (Einstellungen → Stimme): „Positionen innerhalb der Klasse ansagen“. In Multiklassen-Sessions nennt der Renningenieur jetzt deine Klassenposition — Platz gewonnen/verloren, Podium, Führung, Status, Abstände nach vorn und hinten, „Welche Position?“, Position nach dem Boxenstopp. Ausschalten, um wie bisher Gesamtpositionen zu hören.",
+              it: "Nuova impostazione (Impostazioni → Voce): «Posizioni annunciate nella classe». In multiclasse l'ingegnere ora indica la tua posizione nella tua classe — posizione guadagnata/persa, podio, testa, stato, distacchi da chi ti precede e ti segue, «che posizione?», posizione all'uscita dai box. Disattivala per mantenere le posizioni nella classifica generale come prima.",
+            },
+          },
+        ],
+      },
+      {
+        kind: "improved",
+        items: [
+          {
+            text: {
+              en: "Brake overheating callout: with the \"Engineer\" announcement rate, the alert now follows the average brake temperature (over about 30 s) instead of every braking peak — one call when the average goes over the limit, repeated only after the brakes have cooled down. The limit depends on the brake material: 850 °C for the carbon brakes of Hypercars and LMP2s, 750 °C for the steel brakes of LMP3s and LMGT3s. The \"Full\" rate keeps the previous behaviour.",
+              fr: "Alerte de surchauffe des freins : en débit « Ingénieur », elle suit désormais la température moyenne des freins (sur environ 30 s) et non chaque pic de freinage — une annonce quand la moyenne dépasse le seuil, répétée seulement après refroidissement. Le seuil dépend du matériau des freins : 850 °C pour le carbone des Hypercars et LMP2, 750 °C pour l'acier des LMP3 et LMGT3. Le débit « Complet » garde l'ancien comportement.",
+              es: "Aviso de sobrecalentamiento de frenos: con el ritmo «Ingeniero», ahora sigue la temperatura media de los frenos (unos 30 s) y no cada pico de frenada — un aviso cuando la media supera el límite, repetido solo tras enfriarse. El límite depende del material de los frenos: 850 °C para el carbono de Hypercars y LMP2, 750 °C para el acero de LMP3 y LMGT3. El ritmo «Completo» conserva el comportamiento anterior.",
+              de: "Ansage „Bremsen überhitzen“: Im Modus „Ingenieur“ folgt sie jetzt der durchschnittlichen Bremstemperatur (über ca. 30 s) statt jeder Bremsspitze — eine Ansage, wenn der Durchschnitt die Grenze überschreitet, erneut erst nach dem Abkühlen. Die Grenze hängt vom Bremsmaterial ab: 850 °C für die Carbonbremsen der Hypercars und LMP2, 750 °C für die Stahlbremsen der LMP3 und LMGT3. Der Modus „Vollständig“ behält das bisherige Verhalten.",
+              it: "Avviso di surriscaldamento dei freni: con la frequenza «Ingegnere» ora segue la temperatura media dei freni (su circa 30 s) e non ogni picco di frenata — un avviso quando la media supera il limite, ripetuto solo dopo il raffreddamento. La soglia dipende dal materiale dei freni: 850 °C per il carbonio di Hypercar e LMP2, 750 °C per l'acciaio di LMP3 e LMGT3. La frequenza «Completo» mantiene il comportamento precedente.",
+            },
+          },
+          {
+            text: {
+              en: "Setups page: the matrix title now names the selected circuit or car (\"Setups for Bahrain — one row per car\"), so the \"By circuit\" and \"By car\" views no longer look swapped.",
+              fr: "Page Setups : le titre de la matrice nomme désormais le circuit ou la voiture choisi(e) (« Setups pour Bahrain — une ligne par voiture ») : les vues « Par circuit » et « Par voiture » ne semblent plus inversées.",
+              es: "Página Setups: el título de la matriz indica ahora el circuito o el coche elegido («Setups para Bahrain — una fila por coche»), así las vistas «Por circuito» y «Por coche» ya no parecen invertidas.",
+              de: "Setups-Seite: Der Titel der Matrix nennt jetzt die gewählte Strecke bzw. das gewählte Auto („Setups für Bahrain — eine Zeile pro Auto“), damit die Ansichten „Nach Strecke“ und „Nach Auto“ nicht mehr vertauscht wirken.",
+              it: "Pagina Setup: il titolo della matrice ora indica il circuito o l'auto scelti («Setup per Bahrain — una riga per auto»), così le viste «Per circuito» e «Per auto» non sembrano più invertite.",
+            },
+          },
+        ],
+      },
+      {
+        kind: "fixed",
+        items: [
+          {
+            text: {
+              en: "Brake temperatures were shown 273 °C too high (the game sends them in Kelvin): the Live page, the tyre overlay, the AI coach and the brake overheating callout now use the real temperature. This is why the overheating alert went off at almost every braking point.",
+              fr: "Les températures de freins étaient affichées 273 °C trop haut (le jeu les envoie en Kelvin) : la page Live, l'overlay pneus, le coach IA et l'alerte de surchauffe des freins utilisent désormais la vraie température. C'est ce qui faisait sonner l'alerte de surchauffe à presque chaque freinage.",
+              es: "Las temperaturas de frenos se mostraban 273 °C demasiado altas (el juego las envía en Kelvin): la página Live, el overlay de neumáticos, el coach IA y el aviso de sobrecalentamiento usan ahora la temperatura real. Por eso el aviso saltaba en casi cada frenada.",
+              de: "Bremstemperaturen wurden 273 °C zu hoch angezeigt (das Spiel liefert sie in Kelvin): Live-Seite, Reifen-Overlay, KI-Coach und die Überhitzungsansage nutzen jetzt die echte Temperatur. Deshalb kam die Überhitzungswarnung fast bei jedem Bremsen.",
+              it: "Le temperature dei freni erano mostrate 273 °C troppo alte (il gioco le invia in Kelvin): la pagina Live, l'overlay gomme, il coach IA e l'avviso di surriscaldamento usano ora la temperatura reale. Ecco perché l'avviso scattava quasi a ogni frenata.",
+            },
+          },
+          {
+            text: {
+              en: "AI coach: a sector time the game doesn't report (lap incomplete, invalidated, or car back in the garage) is no longer sent as \"0.000\", and tyre temperatures of a car in the garage are no longer sent as −273 °C — the coach used to read them as a lost sector or a sensor fault. The coach is also told when the car is in the pits.",
+              fr: "Coach IA : un temps de secteur non fourni par le jeu (tour incomplet, invalidé ou voiture rentrée au garage) n'est plus transmis comme « 0.000 », et les températures pneus d'une voiture au garage ne sont plus transmises à −273 °C — le coach y voyait un secteur perdu ou un capteur en panne. Le coach sait aussi quand la voiture est aux stands.",
+              es: "Coach IA: un tiempo de sector que el juego no proporciona (vuelta incompleta, invalidada o coche de vuelta en el garaje) ya no se envía como «0.000», y las temperaturas de neumáticos de un coche en el garaje ya no se envían a −273 °C — el coach lo interpretaba como un sector perdido o un sensor averiado. El coach también sabe cuándo el coche está en boxes.",
+              de: "KI-Coach: Eine Sektorzeit, die das Spiel nicht liefert (Runde unvollständig, ungültig oder Auto zurück in der Garage), wird nicht mehr als „0.000“ gesendet, und Reifentemperaturen eines Autos in der Garage nicht mehr als −273 °C — der Coach deutete das als verlorenen Sektor oder defekten Sensor. Der Coach weiß jetzt auch, wann das Auto an der Box steht.",
+              it: "Coach IA: un tempo di settore non fornito dal gioco (giro incompleto, invalidato o auto rientrata ai box) non viene più inviato come «0.000», e le temperature gomme di un'auto ai box non vengono più inviate a −273 °C — il coach li interpretava come un settore perso o un sensore guasto. Il coach sa anche quando l'auto è ai box.",
+            },
+          },
+          {
+            text: {
+              en: "AI coach: the internal reasoning of \"thinking\" models (Gemini/Gemma thought parts, <think> blocks of DeepSeek R1, Qwen, local models…) is no longer shown in the answer.",
+              fr: "Coach IA : le raisonnement interne des modèles « thinking » (parties de réflexion Gemini/Gemma, blocs <think> de DeepSeek R1, Qwen, modèles locaux…) n'apparaît plus dans la réponse.",
+              es: "Coach IA: el razonamiento interno de los modelos «thinking» (partes de reflexión de Gemini/Gemma, bloques <think> de DeepSeek R1, Qwen, modelos locales…) ya no aparece en la respuesta.",
+              de: "KI-Coach: Das interne Nachdenken von „Thinking“-Modellen (Gedanken-Teile von Gemini/Gemma, <think>-Blöcke von DeepSeek R1, Qwen, lokalen Modellen…) erscheint nicht mehr in der Antwort.",
+              it: "Coach IA: il ragionamento interno dei modelli «thinking» (parti di riflessione di Gemini/Gemma, blocchi <think> di DeepSeek R1, Qwen, modelli locali…) non compare più nella risposta.",
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
     version: "1.0.9",
     date: "2026-10-05",
     dev: false,

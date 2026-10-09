@@ -20,7 +20,8 @@ export function buildTyreInsights(data: LiveData): string {
   if (!tel || !tel.wheels) return "";
   const wheels = tel.wheels;
   const temps = wheels.map((x) => x.temp);
-  if (temps.every((t) => t <= 0)) return ""; // pas encore de données pneus
+  // Pas encore de données pneus, ou voiture au garage (0 K → −273 °C).
+  if (temps.every((t) => t <= 0) || temps.some((t) => !(t > -50 && t < 250))) return "";
 
   const lines: string[] = [];
   lines.push(

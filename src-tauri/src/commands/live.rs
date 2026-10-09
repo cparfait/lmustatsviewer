@@ -1089,10 +1089,16 @@ fn extract(state: &mut PollState) -> LiveData {
 
         let wheels: [LiveWheel; 4] = std::array::from_fn(|i| {
             let w = t.m_wheels[i];
-            let mut bt = w.m_brake_temp as f32;
-            if speed_kmh < 1.0 && bt > (track_temp as f32 + 50.0) {
-                bt = -1.0;
-            }
+            // `mBrakeTemp` est en KELVIN dans LMU (comme les pneus), malgré le
+            // commentaire « Celsius » de l'en-tête rF2 : freins froids ≈ 290 K.
+            // Faute de conversion, l'app affichait +273 °C et l'alerte « 750 °C »
+            // partait vers 477 °C réels. Vérifié : l'API REST LMU (`brakeTemp`)
+            // renvoie ≈ 291 K à froid (sources détaillées dans SUIVI.md, 06/10/2026).
+            // L'ancien filtre « à l'arrêt, > piste + 50 → masqué » ne servait qu'à
+            // cacher ces ~290 « °C » à froid : il n'a plus lieu d'être.
+            let bt_c = (w.m_brake_temp - 273.15) as f32;
+            // 0 K (garage, voiture non simulée) ou valeur aberrante → non significatif.
+            let bt = if bt_c > -50.0 && bt_c < 1500.0 { bt_c } else { -1.0 };
             let temp3 = w.m_temperature;
             let inner = w.m_tire_inner_layer_temperature;
             LiveWheel {

@@ -16,6 +16,8 @@ import type { Tr } from "@/i18n";
 import type { Intent } from "@/lib/spotterCommands";
 import { buildRivalInfo } from "@/lib/rival";
 import { computeStrategy, fuelToEnd } from "@/lib/strategy";
+import { scopedPosition, type ScopedPosition } from "@/lib/livePosition";
+import { radioClass } from "@/lib/engineer/text";
 
 /** Écart max (s) pour considérer un rival « à portée » (commande Rival). */
 const RIVAL_MAX_GAP = 3;
@@ -32,18 +34,16 @@ export function lapVoice(s: number, t: Tr): string {
     : t("live.vLapTimeShort", { sec });
 }
 
-/** Écart au pilote devant (s, 0 si en tête / indisponible). */
-function gapAhead(data: LiveData): number {
-  const me = data.standings.find((s) => s.is_player);
-  if (!me || (data.player?.position ?? 0) <= 1) return 0;
-  return me.time_behind_next > 0 ? me.time_behind_next : 0;
-}
-
-/** Écart du poursuivant immédiat (s, 0 si dernier / indisponible). */
-function gapBehind(data: LiveData): number {
-  const pos = data.player?.position ?? 0;
-  const behind = data.standings.find((s) => s.position === pos + 1);
-  return behind && behind.time_behind_next > 0 ? behind.time_behind_next : 0;
+/**
+ * Position parlée : « En tête » / « Position 3 », suffixée de la classe quand
+ * la position est ramenée à la classe (multiclasse, réglage actif).
+ */
+function positionPhrase(sp: ScopedPosition, t: Tr): string {
+  if (sp.cls) {
+    const cls = radioClass(sp.cls);
+    return sp.pos === 1 ? t("live.spLeaderClass", { cls }) : t("live.spPosClass", { pos: sp.pos, cls });
+  }
+  return sp.pos === 1 ? t("live.spLeader") : t("live.spPos", { pos: sp.pos });
 }
 
 /** Prédiction de position à la sortie des stands (T13 #151). */
@@ -65,18 +65,24 @@ export interface PitExitPrediction {
 export function predictPitExit(
   data: LiveData,
   pitLossSec: number,
+  /** Multiclasse : position et voitures comptées dans la classe du joueur. */
+  classScope = true,
 ): PitExitPrediction | null {
   const me = data.standings.find((s) => s.is_player);
   if (!me || pitLossSec <= 0 || me.position <= 0) return null;
+  const sp = scopedPosition(data.standings, classScope);
+  const cls = sp?.cls ?? null;
+  const basePos = sp?.pos ?? me.position;
   const myGap = me.time_behind_leader;
   let jumped = 0;
   for (const s of data.standings) {
     if (s.is_player) continue;
+    if (cls && s.vehicle_class !== cls) continue; // autres classes : pas des rivaux
     if (s.laps_behind_leader !== me.laps_behind_leader) continue; // même tour seulement
     const gapToMe = s.time_behind_leader - myGap; // > 0 = derrière moi
     if (gapToMe > 0 && gapToMe < pitLossSec) jumped++;
   }
-  return { currentPos: me.position, newPos: me.position + jumped, lost: jumped };
+  return { currentPos: basePos, newPos: basePos + jumped, lost: jumped };
 }
 
 /**
@@ -87,7 +93,12 @@ export function predictPitExit(
  * (pas de bruit). Les écarts sont omis aux stands (valeurs aberrantes). Repli
  * explicite si pas en session.
  */
-export function buildStatus(data: LiveData | null, t: Tr): string {
+export function buildStatus(
+  data: LiveData | null,
+  t: Tr,
+  /** Multiclasse : position et écarts dans la classe du joueur (réglage). */
+  classScope = true,
+): string {
   if (
     !data ||
     !data.connected ||
@@ -103,9 +114,9 @@ export function buildStatus(data: LiveData | null, t: Tr): string {
   const inPits = me?.in_pits ?? false;
   const parts: string[] = [];
 
-  // Position au général.
-  if (p.position === 1) parts.push(t("live.spLeader"));
-  else if (p.position > 0) parts.push(t("live.spPos", { pos: p.position }));
+  // Position (classe en multiclasse si réglage actif, sinon générale).
+  const sp = scopedPosition(data.standings, classScope);
+  if (sp) parts.push(positionPhrase(sp, t));
 
   // Aux stands : on le signale (et on omet les écarts plus bas).
   if (inPits) parts.push(t("live.spInPits"));
@@ -119,17 +130,9 @@ export function buildStatus(data: LiveData | null, t: Tr): string {
   }
 
   // Écarts devant / derrière — sans objet aux stands.
-  if (!inPits) {
-    const gapNext = me?.time_behind_next ?? 0;
-    if (p.position > 1 && gapNext > 0) {
-      parts.push(t("live.spGapNext", { time: gapNext.toFixed(1) }));
-    }
-    // Voiture juste derrière : son écart au précédent (= nous).
-    const behind = data.standings.find((s) => s.position === p.position + 1);
-    const gapBehind = behind?.time_behind_next ?? 0;
-    if (gapBehind > 0) {
-      parts.push(t("live.spGapBehind", { time: gapBehind.toFixed(1) }));
-    }
+  if (!inPits && sp) {
+    if (sp.gapAhead) parts.push(t("live.spGapNext", { time: sp.gapAhead.toFixed(1) }));
+    if (sp.gapBehind) parts.push(t("live.spGapBehind", { time: sp.gapBehind.toFixed(1) }));
   }
 
   // Restant : tours (course au tour) ou minutes (course au temps).
@@ -165,6 +168,8 @@ export function buildAnswer(
   t: Tr,
   pitLossSec = 25,
   fuelReserveLaps = 1,
+  /** Multiclasse : position et écarts dans la classe du joueur (réglage). */
+  classScope = true,
 ): string {
   if (!data || !data.connected || data.paused || !data.session || !data.player) {
     return t("live.spNoSession");
@@ -178,10 +183,9 @@ export function buildAnswer(
     case "gap": {
       if (inPits) return t("live.spInPits");
       const parts: string[] = [];
-      const ahead = gapAhead(data);
-      if (ahead > 0) parts.push(t("live.spGapNext", { time: ahead.toFixed(1) }));
-      const behind = gapBehind(data);
-      if (behind > 0) parts.push(t("live.spGapBehind", { time: behind.toFixed(1) }));
+      const sp = scopedPosition(data.standings, classScope);
+      if (sp?.gapAhead) parts.push(t("live.spGapNext", { time: sp.gapAhead.toFixed(1) }));
+      if (sp?.gapBehind) parts.push(t("live.spGapBehind", { time: sp.gapBehind.toFixed(1) }));
       return parts.length ? parts.join(", ") : t("live.spNoData");
     }
 
@@ -219,11 +223,10 @@ export function buildAnswer(
 
     case "position": {
       const parts: string[] = [];
-      if (p.position === 1) parts.push(t("live.spLeader"));
-      else if (p.position > 0) parts.push(t("live.spPos", { pos: p.position }));
-      const gapLeader = me?.time_behind_leader ?? 0;
-      if (!inPits && p.position > 1 && gapLeader > 0) {
-        parts.push(t("live.spGapLeader", { time: gapLeader.toFixed(1) }));
+      const sp = scopedPosition(data.standings, classScope);
+      if (sp) parts.push(positionPhrase(sp, t));
+      if (!inPits && sp?.gapLeader) {
+        parts.push(t("live.spGapLeader", { time: sp.gapLeader.toFixed(1) }));
       }
       return parts.length ? parts.join(", ") : t("live.spNoData");
     }
@@ -275,7 +278,7 @@ export function buildAnswer(
 
     case "pit": {
       // Prédiction de position à la sortie des stands (T13 #151).
-      const pred = predictPitExit(data, pitLossSec);
+      const pred = predictPitExit(data, pitLossSec, classScope);
       if (!pred) return t("live.spNoData");
       return pred.lost > 0
         ? t("live.spPitExit", { pos: pred.newPos })
@@ -310,6 +313,6 @@ export function buildAnswer(
     case "repeat":
     case "mute":
     default:
-      return buildStatus(data, t);
+      return buildStatus(data, t, classScope);
   }
 }

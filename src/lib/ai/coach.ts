@@ -10,6 +10,7 @@ import { ai } from "../api";
 import type { Tr } from "../../i18n";
 import type { AIMessage, AIProvider } from "./types";
 import { systemPrompt } from "./prompts/system";
+import { stripThinking, ThinkingStreamFilter } from "./thinking";
 
 /** Rend lisible (et traduite) une erreur de proxy (`HTTP 401: …`). */
 export function friendlyError(e: unknown, t: Tr): string {
@@ -49,7 +50,7 @@ export async function chat(
     provider.buildHeaders(apiKey),
     provider.buildBody(messages, model, maxTokens),
   );
-  return provider.parseResponse(raw);
+  return stripThinking(provider.parseResponse(raw)).trim();
 }
 
 /**
@@ -190,12 +191,15 @@ export async function converseStream(args: {
   let full = "";
   let streamError: string | null = null;
   let truncated: string | null = null;
+  // Raisonnement écrit dans le texte (`<think>…</think>`) : jamais montré.
+  const thinking = new ThinkingStreamFilter();
   const unlisten = await listen<string>(`ai-stream-${streamId}`, (e) => {
     const chunk = provider.parseStreamChunk(e.payload);
     if (!chunk) return;
     if (chunk.kind === "text") {
       full += chunk.text;
-      onToken(chunk.text);
+      const visible = thinking.push(chunk.text);
+      if (visible) onToken(visible);
     } else if (chunk.kind === "error") {
       streamError = chunk.message;
     } else {
@@ -215,9 +219,9 @@ export async function converseStream(args: {
   }
   // Erreur annoncée dans le flux (surcharge, quota) : sans texte, c'est un échec
   // franc ; avec du texte, la réponse est simplement incomplète.
-  if (streamError && !full) throw new Error(streamError);
+  if (streamError && !stripThinking(full)) throw new Error(streamError);
   if (streamError) truncated = truncated ?? streamError;
 
   onTruncated?.(truncated);
-  return full;
+  return stripThinking(full);
 }

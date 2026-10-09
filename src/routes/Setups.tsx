@@ -457,7 +457,7 @@ function CarView({
             <TableTitle
               title={
                 <span className="inline-flex items-center gap-2">
-                  <Grid3x3 className="h-3.5 w-3.5" /> {t("setups.matrixTitle")}
+                  <Grid3x3 className="h-3.5 w-3.5" /> {t("setups.matrixTitle", { name: activeCar ?? "—" })}
                 </span>
               }
             />
@@ -1167,7 +1167,7 @@ function CircuitView({
             <TableTitle
               title={
                 <span className="inline-flex items-center gap-2">
-                  <Grid3x3 className="h-3.5 w-3.5" /> {t("setups.matrixCircuitTitle")}
+                  <Grid3x3 className="h-3.5 w-3.5" /> {t("setups.matrixCircuitTitle", { name: activeCircuit ?? "—" })}
                 </span>
               }
             />

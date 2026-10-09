@@ -73,6 +73,7 @@ import {
   Disc,
   Upload,
   Users,
+  Trophy,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
@@ -259,6 +260,7 @@ export function ConfigV2() {
   const radioMode = useAppStore((s) => s.radioMode);
   const localAnswers = useAppStore((s) => s.localAnswers);
   const announceEverywhere = useAppStore((s) => s.announceEverywhere);
+  const classPositions = useAppStore((s) => s.classPositions);
   const radioStyleSetting = useAppStore((s) => s.radioStyle);
   const pttBeeps = useAppStore((s) => s.pttBeeps);
   const [comparing, setComparing] = useState<"classic" | "pitwall" | null>(null);
@@ -1210,6 +1212,16 @@ export function ConfigV2() {
                     tip={t("config.announceEverywhereTip")}
                     checked={announceEverywhere}
                     onChange={(v) => void useAppStore.getState().setAnnounceEverywhere(v)}
+                  />
+                )}
+                {voiceAnnouncements && (
+                  <ToggleRow
+                    icon={<Trophy className="h-4 w-4" />}
+                    label={t("config.classPositions")}
+                    desc={t("config.classPositionsDesc")}
+                    tip={t("config.classPositionsTip")}
+                    checked={classPositions}
+                    onChange={(v) => void useAppStore.getState().setClassPositions(v)}
                   />
                 )}
                 {/* Coach par virage — modes avancés (mêmes réglages que Config V1,

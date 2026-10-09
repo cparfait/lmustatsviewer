@@ -30,6 +30,8 @@ export interface AnswerOpts {
   norm?: string;
   pitLossSec: number;
   fuelReserveLaps: number;
+  /** Multiclasse : position/écarts dans la classe (réglage, défaut oui). */
+  classPositions?: boolean;
 }
 
 const inSession = (d: LiveData | null): d is LiveData =>
@@ -329,7 +331,7 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       return t("live.spWatchUnknown");
 
     default:
-      return buildAnswer(intent, d, t, o.pitLossSec, o.fuelReserveLaps);
+      return buildAnswer(intent, d, t, o.pitLossSec, o.fuelReserveLaps, o.classPositions ?? true);
   }
 }
 

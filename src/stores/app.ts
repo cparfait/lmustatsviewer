@@ -125,6 +125,12 @@ interface AppState {
    * quand la page Live est affichée (comportement historique).
    */
   announceEverywhere: boolean;
+  /**
+   * Multiclasse : positions annoncées par l'ingénieur (places gagnées/perdues,
+   * podium, tête, statut, sortie des stands) **dans la classe** ; `false` =
+   * position au général (comportement historique).
+   */
+  classPositions: boolean;
   /** Profil de l'effet radio : `pitwall` « Radio stand » (défaut) ou `classic` (historique). */
   radioStyle: "classic" | "pitwall";
   /** Bips du push-to-talk (1000 Hz ouverture / 700 Hz envoi). */
@@ -241,6 +247,7 @@ interface AppState {
   setRadioMode: (m: "full" | "engineer") => Promise<void>;
   setLocalAnswers: (v: boolean) => Promise<void>;
   setAnnounceEverywhere: (v: boolean) => Promise<void>;
+  setClassPositions: (v: boolean) => Promise<void>;
   setRadioStyleSetting: (s: "classic" | "pitwall") => Promise<void>;
   setPttBeeps: (v: boolean) => Promise<void>;
   setOverlayToggleKey: (accel: string) => Promise<void>;
@@ -303,6 +310,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   radioMode: "engineer",
   localAnswers: true,
   announceEverywhere: true,
+  classPositions: true,
   radioStyle: "pitwall",
   pttBeeps: false,
   overlayToggleKey: "",
@@ -499,6 +507,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       radioMode: cfg.radio_mode === "full" ? "full" : "engineer",
       localAnswers: cfg.engineer_local_answers !== "false",
       announceEverywhere: cfg.voice_everywhere !== "false",
+      classPositions: cfg.voice_class_positions !== "false",
       radioStyle,
       pttBeeps: cfg.ptt_beeps === "true",
       aiCoachEnabled: cfg.ai_coach_enabled !== "false",
@@ -836,6 +845,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAnnounceEverywhere: async (v) => {
     await config.set("voice_everywhere", v ? "true" : "false");
     set({ announceEverywhere: v });
+  },
+
+  setClassPositions: async (v) => {
+    await config.set("voice_class_positions", v ? "true" : "false");
+    set({ classPositions: v });
   },
 
   setRadioStyleSetting: async (s) => {

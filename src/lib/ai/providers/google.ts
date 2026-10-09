@@ -15,6 +15,16 @@ const BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 interface GeminiPart {
   text?: string;
+  /** Partie « raisonnement » d'un modèle thinking : jamais affichée. */
+  thought?: boolean;
+}
+
+/** Texte de réponse seul : les parties de raisonnement (`thought`) sont écartées. */
+function answerText(parts: GeminiPart[]): string {
+  return parts
+    .filter((p) => !p.thought)
+    .map((p) => p.text ?? "")
+    .join("");
 }
 interface GeminiContent {
   role?: string;
@@ -82,11 +92,7 @@ export const googleProvider: AIProvider = {
 
   parseResponse: (raw) => {
     const r = raw as GeminiResponse;
-    const parts = r.candidates?.[0]?.content?.parts ?? [];
-    return parts
-      .map((p) => p.text ?? "")
-      .join("")
-      .trim();
+    return answerText(r.candidates?.[0]?.content?.parts ?? []).trim();
   },
 
   parseStreamChunk: (line) => {
@@ -98,7 +104,7 @@ export const googleProvider: AIProvider = {
       if (blocked) return { kind: "error", message: `invite bloquée (${blocked})` };
       const cand = r.candidates?.[0];
       const parts = cand?.content?.parts ?? [];
-      const text = parts.map((p) => p.text ?? "").join("");
+      const text = answerText(parts);
       if (text) return { kind: "text", text };
       // Fin anticipée : plafond de sortie atteint ou réponse filtrée.
       const finish = cand?.finishReason;

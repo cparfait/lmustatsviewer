@@ -858,6 +858,100 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-08 — Testeur italien : réponse sur la beta.1
+
+- ✅ **Setups** : compris (« Understood ») → clos.
+- ⏳ **Positions en classe** : il confirme que le réglage est actif par défaut en beta.1, pas encore
+  le comportement en piste.
+- ⏳ **Freins** : il n'a pas trouvé le « radio mode » — notre réponse employait un terme absent de
+  l'UI. Le réglage s'appelle `config.radioMode` = « Frequenza degli annunci » (IT), dans
+  Config → « Audio / Voce », visible **seulement si « Annunci vocali (Live) » est activé**, boutons
+  « Ingegnere » / « Completa ». Risque de confusion avec « Profilo effetto radio » (`radioStyle`).
+- 📋 **Prochaine étape** : lui indiquer l'emplacement exact, puis attendre son retour en course
+  multiclasse (annonces LMP3 + freins en mode Ingegnere).
+
+### 2026-10-07 — Testeur italien : vérification des 3 points face à la bêta `1.0.10-beta.1`
+
+- ✅ **Contexte** : le testeur trouve le Coach IA meilleur en beta.1 et « teste encore » 3 points
+  remontés sur le forum. Sa capture Setups montre le titre **« Matrice per auto »** = libellé 1.0.9 :
+  le `dist/` de la beta.1 (06/10, 20 h 45) contient « una riga per auto » et plus « Matrice per auto ».
+  Les 3 points décrivent donc la 1.0.9, déjà traités dans la beta.1 (cf. entrée du 06/10).
+- ✅ **Setups** : pas d'inversion. « Per circuito » = on choisit un circuit, une ligne par voiture.
+  Seul le titre prêtait à confusion ; corrigé en beta.1 (« Setup per {{name}} — una riga per auto »).
+- ✅ **Positions en classe** : relu tous les chemins vocaux. `scopedPosition()` couvre place gagnée/
+  perdue, tête de classe, podium, écarts, statut, réponses « quelle position / qui est devant »,
+  sortie des stands ; `class_position` côté Rust regroupe bien par `vehicle_class`. Réglage par défaut
+  oui (y compris pour les configs existantes). ⏳ Reste au général : alertes « préviens-moi » écart
+  devant/derrière (`watches.ts`, `time_behind_next` général) — à ramener à la classe si besoin.
+  Note : « P3, posizione guadagnata » ne dit pas « en classe » (seul le statut le précise).
+- ✅ **Freins** : la demande du testeur (alerter sur la moyenne, pas à chaque pic) est exactement le
+  débit Ingénieur de la beta.1 (défaut). Simulation 10 tours LMP3 (60 pics > 750 °C) : 0 annonce en
+  conduite normale (moy. max 527 °C) ou chaude (732 °C), 1 seule en surchauffe réelle (813 °C).
+  Le débit Complet garde le pic tenu 6 s (comportement historique), désormais en vrais °C.
+  `updateBrakeAvg` n'est pas couvert par un test unitaire (seul `brakeAvgLimits` l'est).
+- ✅ Commentaire `live.rs` (conversion Kelvin) : retrait de 2 noms d'outils tiers (règle « aucun nom
+  de concurrent dans le code ») ; sources laissées ici dans l'entrée du 06/10. Autres occurrences
+  anciennes (TrackMap, radioFx, app.ts, infobulle `voiceAnnounceTip` ×5) : tâche séparée proposée.
+- ✅ `npm test` 318/318.
+- 📋 **Prochaine étape** : demander au testeur de confirmer les 3 points **sur la beta.1** (titre Setups,
+  annonces en LMP3, freins), en mode radio Ingénieur, et quel mode radio il utilise ; s'il trouve encore
+  la vue Setups inversée, envisager de renommer les onglets (« Choisir un circuit / une voiture »).
+
+### 2026-10-06 — Retours testeur italien sur la 1.0.9 (Coach IA, positions en classe, freins, Setups)
+
+- ✅ **Coach IA — « S3 perdu »** : le contexte avait été pris **au garage** (100/100 L, pneus 100 %,
+  carcasse à 0 K = −273 °C). Le S3 vaut 0 côté Rust quand `mLastLapTime ≤ 0` (tour incomplet/invalidé,
+  retour garage) et `live-context.ts` l'envoyait tel quel (`S3 0.000`) → le modèle y voyait un
+  secteur perdu. Désormais : secteurs ≤ 0 → `N/A` + mention « pas une perte de temps », secteurs
+  meilleurs individuels de la session ajoutés, ligne `Status: IN THE PITS / GARAGE` si `in_pits`,
+  températures pneus hors plage (< −50 / ≥ 250 °C) → `N/A` (idem `insights.ts`).
+- ✅ **Coach IA — raisonnement affiché** : la réponse du testeur contenait tout le brouillon interne
+  du modèle (EN) puis une réponse IT tronquée. Filtre ajouté : parties `thought` Gemini ignorées
+  (`google.ts`), blocs `<think>/<thinking>/<reasoning>` retirés en réponse simple et en flux
+  (`ai/thinking.ts`, filtre incrémental qui retient une balise coupée entre fragments). ⏳ Fournisseur /
+  modèle du testeur inconnu : si c'est un modèle qui raisonne en texte brut sans balise ni champ
+  dédié, le filtre ne suffira pas → le lui demander.
+- ✅ **Positions en classe (voix)** : seul le contexte du Coach IA était passé en classe en 1.0.9.
+  Helper partagé `scopedPosition()` (`livePosition.ts`) : place, voisins et écarts dans la classe en
+  multiclasse. Branché sur : place gagnée/perdue, prise de tête (nouvelle annonce `vTakeClassLead`,
+  personnalisable), podium, écart devant/sous attaque, écart au leader, statut, « quelle position ? »,
+  écarts, sortie des stands (`predictPitExit` ne compte plus les autres classes). Réglage
+  `classPositions` (config `voice_class_positions`, défaut oui) — off = général historique.
+- ✅ **Freins** : en débit Ingénieur, alerte sur **moyenne glissante exponentielle (τ 30 s)** du frein
+  le plus chaud > 750 °C, une annonce par dépassement, réarmée sous 700 °C, ≥ 2 min entre deux,
+  remise à zéro aux stands. Débit Complet = ancien comportement (pic tenu 6 s).
+- ✅ **Seuil freins par matériau** (recherche web, pas de test en piste possible) : `brakeAvgLimits()` —
+  carbone (Hypercar, LMP2) **850 °C** (réarmement 800), acier/fonte (LMP3, LMGT3) et classes inconnues
+  **750 °C** (réarmement 700). Sources : Brembo, 24 h du Mans 2025 (Hypercar/LMP2 carbone 250–850 °C,
+  LMGT3 fonte 250–750 °C) ; règlement LMP3 ACO/IMSA 2023 art. 12.3 (disques acier imposés) ; seuils
+  par matériau d'un ingénieur vocal communautaire open source (fonte course chaud > 700 °C, carbone
+  > 1 200 °C). Aucun chiffre officiel LMU publié (les plages `BrakeResponseCurve` des voitures sont dans
+  des fichiers chiffrés) ; le mod SimHub calé sur le HUD du jeu ne publie pas ses seuils.
+- ✅ **BUG `mBrakeTemp` en Kelvin** (trouvé en cherchant surface/cœur) : `live.rs` le lisait comme des °C
+  → toutes les températures de freins live (page Live, overlay pneus, Coach IA, alerte) étaient **+273 °C**,
+  et l'alerte « 750 °C » partait vers **477 °C réels** = la vraie cause du spam signalé par le testeur.
+  Preuves : TinyPedal retire 273,15 dans ses lecteurs LMU **et** rF2 (`lmu_reader.py`/`rf2_reader.py`) ;
+  KoDriver (PR #1689) mesure 280–290 à froid et l'API REST LMU `brakeTemp` = 291,16 K. Correctif :
+  conversion −273,15, valeur hors (−50, 1500) °C → −1 ; suppression de l'ancien filtre « à l'arrêt et
+  > piste + 50 → masqué », qui ne servait qu'à cacher ces ~290 « °C » à froid. Les fichiers de
+  télémétrie enregistrés (« Brakes Temp ») ne sont pas concernés (aucune conversion, pneus compris).
+- ✅ **Surface ou cœur ?** La mémoire partagée LMU ne fournit qu'**une** température de frein par roue
+  (pas de séparation surface/cœur, contrairement aux pneus). LMU 1.4 (28/07/2026) simule surface et cœur
+  séparément (« brake disc thermal physics simulation overhaul focusing on core temperatures and
+  emissivity ») ; laquelle est exposée n'est documentée nulle part. Seuils 850/750 °C conservés (plages
+  réelles Brembo) ; la moyenne glissante lisse de toute façon les pics de surface.
+- ✅ **Setups** : pas de bug d'inversion (vue « Par circuit » = choisir un circuit → ses voitures),
+  mais le titre « Matrice par voiture » se lisait comme l'inverse de l'onglet. Titres nommant la
+  sélection : « Setups pour {{name}} — une ligne par voiture / par circuit » (5 langues).
+- ✅ **Bêta `1.0.10-beta.1`** : build LOCAL non signé (pas de clé updater → pas de `latest.json`), version
+  propagée dans les 4 fichiers avant le build puis remise à 1.0.9. Contient tous les correctifs ci-dessus
+  (dont Kelvin). Installeur : `src-tauri/target/release/bundle/nsis/LMU Stats Viewer_1.0.10-beta.1_x64-setup.exe`.
+- ✅ Suite `feedback.suite.ts` (positions classe/général, sortie des stands, filtre thinking, contexte
+  garage). `npm test` 313/313, `tsc` et ESLint propres. Changelog 1.0.10 (dev) ×5 langues.
+- 📋 **Prochaine étape** : demander au testeur son fournisseur/modèle IA et une nouvelle capture
+  d'analyse rapide prise en piste ; valider en multiclasse réelle les annonces de position en classe
+  et les seuils freins moyens (750 °C acier / 850 °C carbone) dès qu'un PC de test est disponible.
+
 ### 2026-10-05 — Italien, 5ᵉ langue (app, site communautaire, vitrine) — release 1.0.9
 
 - ✅ **App** : `src/i18n/it.ts` (2 118 clés, parité exacte avec `en.ts`, mêmes `{{variables}}` ;

@@ -56,7 +56,7 @@ export function useSpotter() {
       const lang = langRef.current;
       try {
         const data = await live.getData();
-        announce(buildStatus(data, tt), lang);
+        announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
       } catch {
         announce(tt("live.spNoSession"), lang);
       }
@@ -104,7 +104,7 @@ export function useSpotter() {
       }
       // Pas d'audio capté → repli direct sur le statut.
       if (pcm.length === 0) {
-        announce(buildStatus(data, tt), lang);
+        announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
         return;
       }
       try {
@@ -115,7 +115,7 @@ export function useSpotter() {
         });
         const intent = matchIntent(text, lang);
         if (intent === "repeat") {
-          if (!repeatLast()) announce(buildStatus(data, tt), lang);
+          if (!repeatLast()) announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
         } else if (intent === "mute") {
           onMute();
         } else if (intent) {
@@ -127,6 +127,7 @@ export function useSpotter() {
             answerIntent(intent, data, tt, {
               pitLossSec: st.pitLossSeconds,
               fuelReserveLaps: st.fuelReserveLaps,
+              classPositions: st.classPositions,
               entities: extractEntities(norm, lang),
               norm,
             }),
@@ -134,10 +135,10 @@ export function useSpotter() {
           );
         } else {
           // Commande non reconnue → repli statut (filet de sécurité §7 SUIVI).
-          announce(buildStatus(data, tt), lang);
+          announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
         }
       } catch {
-        announce(buildStatus(data, tt), lang);
+        announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
       }
     };
 

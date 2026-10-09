@@ -27,6 +27,23 @@ function n(v: number | null | undefined, digits = 0, unit = ""): string {
   return `${v.toFixed(digits)}${unit}`;
 }
 
+/**
+ * Temps de secteur : le backend écrit 0 quand le jeu ne le fournit pas (tour en
+ * cours, tour invalidé, retour au garage…). Un « 0.000 » brut était lu par le
+ * modèle comme un vrai chrono (« S3 0.000 → secteur perdu ») : on écrit N/A.
+ */
+function sec(v: number | null | undefined): string {
+  return v != null && isFinite(v) && v > 0 ? v.toFixed(3) : "N/A";
+}
+
+/**
+ * Température pneu plausible. À l'arrêt au garage, LMU renvoie 0 K, converti en
+ * −273 °C côté Rust : ce n'est pas une mesure, on ne la transmet pas.
+ */
+function tyreTempValid(c: number): boolean {
+  return isFinite(c) && c > -50 && c < 250;
+}
+
 export function buildLiveContext(data: LiveData): string {
   if (!data.connected) return "Live: not connected to the game (no session running).";
 
@@ -57,7 +74,22 @@ export function buildLiveContext(data: LiveData): string {
     lines.push(`${pos} · Lap ${p.total_laps} · Pit stops: ${p.num_pitstops} · Penalties: ${p.num_penalties}`);
     lines.push(`Last lap: ${formatTime(p.last_lap_time)} (delta ${n(p.lap_delta, 3, "s")} vs best) · Best: ${formatTime(p.best_lap_time)}`);
     if (p.last_sectors) {
-      lines.push(`Last sectors: S1 ${n(p.last_sectors[0], 3)} · S2 ${n(p.last_sectors[1], 3)} · S3 ${n(p.last_sectors[2], 3)}`);
+      const ls = p.last_sectors;
+      lines.push(
+        `Last lap sectors: S1 ${sec(ls[0])} · S2 ${sec(ls[1])} · S3 ${sec(ls[2])}` +
+          (ls.some((x) => !(x > 0))
+            ? " (N/A = not reported by the game for that lap — lap incomplete/invalid or car returned to the garage; this is NOT a time loss)"
+            : ""),
+      );
+    }
+    if (p.best_sectors && p.best_sectors.some((x) => x > 0)) {
+      const bs = p.best_sectors;
+      lines.push(`Best individual sectors seen live this session: S1 ${sec(bs[0])} · S2 ${sec(bs[1])} · S3 ${sec(bs[2])}`);
+    }
+    if (me?.in_pits) {
+      lines.push(
+        "Status: IN THE PITS / GARAGE — the car is not on a flying lap; live fuel and tyre readings describe the stationary car, not a running stint.",
+      );
     }
     if (me && cp?.multiclass) {
       const gap = (other: LiveStanding | null, label: string): string => {
@@ -85,7 +117,9 @@ export function buildLiveContext(data: LiveData): string {
       const labels = ["FL", "FR", "RL", "RR"];
       // `wear` est déjà en % de gomme restante (conversion faite côté Rust).
       const wear = tel.wheels.map((wh, i) => `${labels[i]} ${n(wh.wear)}%`).join(" ");
-      const temp = tel.wheels.map((wh, i) => `${labels[i]} ${n(wh.temp)}°C`).join(" ");
+      const temp = tel.wheels.every((wh) => tyreTempValid(wh.temp))
+        ? tel.wheels.map((wh, i) => `${labels[i]} ${n(wh.temp)}°C`).join(" ")
+        : "N/A (not reported — car stationary / in the garage)";
       const pres = tel.wheels.map((wh, i) => `${labels[i]} ${n(wh.pressure / 100, 2)}bar`).join(" ");
       lines.push(`Tyre rubber remaining: ${wear}`);
       lines.push(`Tyre temp (carcass): ${temp}`);

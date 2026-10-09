@@ -191,6 +191,7 @@ export function useCoachVoice() {
         const opts = {
           pitLossSec: st0.pitLossSeconds,
           fuelReserveLaps: st0.fuelReserveLaps,
+          classPositions: st0.classPositions,
           entities: r.entities,
           norm: r.norm,
         };
@@ -205,7 +206,7 @@ export function useCoachVoice() {
           return;
         }
         if (r.intent === "repeat") {
-          if (!repeatLast()) sayLocal(buildStatus(data, tt));
+          if (!repeatLast()) sayLocal(buildStatus(data, tt, useAppStore.getState().classPositions));
           return;
         }
         if (r.intent === "mute") {

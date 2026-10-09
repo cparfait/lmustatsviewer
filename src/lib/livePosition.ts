@@ -58,3 +58,62 @@ export function gapBetween(ahead: LiveStanding, behind: LiveStanding): number | 
   const g = behind.time_behind_leader - ahead.time_behind_leader;
   return Number.isFinite(g) && g >= 0 ? g : null;
 }
+
+/**
+ * Position « annoncée » du joueur et ses voisins directs, pour l'ingénieur
+ * vocal (annonces, statut, réponses parlées). En multiclasse avec
+ * `classScope`, tout est ramené à la classe du joueur : place dans la classe,
+ * voiture de la classe devant/derrière, écarts entre elles. Sinon (monoclasse,
+ * ou réglage désactivé) : classement général, comme historiquement.
+ */
+export interface ScopedPosition {
+  /** Place annoncée (classe ou générale). */
+  pos: number;
+  /** Nom brut de la classe si la position est ramenée à la classe, sinon null. */
+  cls: string | null;
+  /** Voiture juste devant / derrière dans ce classement. */
+  ahead: LiveStanding | null;
+  behind: LiveStanding | null;
+  /** Écarts (s) ; null si inconnus ou à un tour d'écart. */
+  gapAhead: number | null;
+  gapBehind: number | null;
+  gapLeader: number | null;
+}
+
+export function scopedPosition(standings: LiveStanding[], classScope: boolean): ScopedPosition | null {
+  const me = standings.find((s) => s.is_player);
+  if (!me || me.position <= 0) return null;
+  const pos0 = (x: number | undefined | null) => (x != null && x > 0 ? x : null);
+
+  if (classScope && isMulticlass(standings) && me.class_position > 0) {
+    const pos = me.class_position;
+    const mate = (p: number) =>
+      standings.find((s) => s.vehicle_class === me.vehicle_class && s.class_position === p) ?? null;
+    const ahead = pos > 1 ? mate(pos - 1) : null;
+    const behind = mate(pos + 1);
+    const leader = pos > 1 ? mate(1) : null;
+    return {
+      pos,
+      cls: me.vehicle_class,
+      ahead,
+      behind,
+      gapAhead: ahead ? pos0(gapBetween(ahead, me)) : null,
+      gapBehind: behind ? pos0(gapBetween(me, behind)) : null,
+      gapLeader: leader ? pos0(gapBetween(leader, me)) : null,
+    };
+  }
+
+  const pos = me.position;
+  const ahead = pos > 1 ? (standings.find((s) => s.position === pos - 1) ?? null) : null;
+  const behind = standings.find((s) => s.position === pos + 1) ?? null;
+  return {
+    pos,
+    cls: null,
+    ahead,
+    behind,
+    // Général : écarts fournis par le jeu (au précédent / au leader).
+    gapAhead: pos > 1 ? pos0(me.time_behind_next) : null,
+    gapBehind: behind ? pos0(behind.time_behind_next) : null,
+    gapLeader: pos > 1 ? pos0(me.time_behind_leader) : null,
+  };
+}

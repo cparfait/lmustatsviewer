@@ -746,6 +746,29 @@ export interface LiveData {
   track_points: [number, number][];
   /** Distance-tour (m) du centre de chaque `track_points[i]` (buckets 20 m). */
   track_dists: number[];
+  /**
+   * Voitures à moins de 30 m du joueur, dans SON repère (spotter de proximité).
+   * Hors joueur, hors voitures aux stands/garage (sauf si le joueur y est),
+   * hors voitures à plus de 3 m de dénivelé (ponts). Triées par distance.
+   * Optionnel : absent des anciennes charges utiles / des objets construits à la main.
+   */
+  nearby?: NearbyCar[];
+  /**
+   * Les signes des axes avant/droite du repère local ont été auto-calibrés en
+   * roulant. Tant que `false`, `nearby` utilise des signes provisoires : ne pas
+   * annoncer gauche/droite.
+   */
+  spotter_calibrated?: boolean;
+}
+
+/** Voiture proche, exprimée dans le repère du joueur (`live::NearbyCar`). */
+export interface NearbyCar {
+  /** Décalage latéral (m) : + = à droite du joueur. */
+  lat: number;
+  /** Décalage longitudinal (m) : + = devant le joueur. */
+  lon: number;
+  /** Écart de vitesse (m/s) : + = plus rapide que le joueur. */
+  dv: number;
 }
 
 // ─── Télémétrie post-session (.duckdb) (`telemetry`) ────────────────────────

@@ -1,14 +1,15 @@
 /**
- * Coach IA vocal — push-to-talk global (le « vrai » coach live, mains libres).
+ * « Parler à l'ingénieur » — push-to-talk global (mains libres).
  *
- * On **maintient** une touche (configurable, défaut `Alt+C`), on pose une
- * question libre (« je dois pit ? », « mes pneus tiennent ? »…). Au relâchement :
- * micro → STT **dictée libre** (`stt_recognize_free`, Vosk, modèle téléchargé) →
- * snapshot live (`live.getData` → `buildLiveContext`) → réponse **courte** du LLM
- * (`askCoachVoice`) lue à voix haute. Aucun écran/clavier requis.
+ * On **maintient** une touche (configurable, défaut `Alt+C`) et on parle. Au
+ * relâchement : micro → STT **dictée libre** (`stt_recognize_free`, Vosk) →
+ * routeur local. Les commandes radio (« on se bat », « juste l'essentiel »…),
+ * les questions de course (écarts, carburant, arrêt…) et « coach-moi » sont
+ * traitées **sur place, sans IA**. Seules les questions ouvertes partent au
+ * **Coach IA** (LLM), s'il est activé et configuré ; sinon l'ingénieur le dit.
  *
- * Monté une seule fois (App.tsx), à côté de `useSpotter`. Indépendant du spotter
- * déterministe : actif dès que le Coach IA est configuré.
+ * Monté une seule fois (App.tsx), à côté de `useSpotter`. La touche écoute dès
+ * qu'elle est définie : ingénieur et coach par virage ne dépendent pas de l'IA.
  */
 
 import { useEffect, useRef } from "react";
@@ -23,7 +24,7 @@ import { pttBeep } from "@/lib/radioFx";
 import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, classifyIntent, friendlyError } from "@/lib/ai/coach";
 import { buildStatus } from "@/lib/spotter";
-import { route, INTENT_HELP, type AnswerIntent } from "@/lib/engineer/router";
+import { route, INTENT_HELP, RADIO_COMMANDS, type AnswerIntent } from "@/lib/engineer/router";
 import { answerIntent, registerWatch } from "@/lib/engineer/answers";
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
@@ -109,30 +110,11 @@ function recentDiagnosticsBlock(): string {
 
 export function useCoachVoice() {
   const { t, i18n } = useTranslation();
-  const aiCoachEnabled = useAppStore((s) => s.aiCoachEnabled);
   const keyCoach = useAppStore((s) => s.spotterKeyCoach);
   const pttMode = useAppStore((s) => s.spotterPttMode);
-  // Abonnements explicites : `ready` doit être recalculé dès qu'un de ces
-  // réglages change (fournisseur/modèle/clés, côté analyse comme côté vocal).
-  const aiProvider = useAppStore((s) => s.aiProvider);
-  const aiModel = useAppStore((s) => s.aiModel);
-  const aiVoiceProvider = useAppStore((s) => s.aiVoiceProvider);
-  const aiVoiceModel = useAppStore((s) => s.aiVoiceModel);
-  const aiProviderKeys = useAppStore((s) => s.aiProviderKeys);
-
-  const target = resolveVoiceTarget({
-    aiProvider,
-    aiModel,
-    aiVoiceProvider,
-    aiVoiceModel,
-    aiProviderKeys,
-  });
-  const needsKey = target.provider?.needsKey ?? true;
-  const ready =
-    aiCoachEnabled &&
-    !!target.provider &&
-    !!target.model &&
-    (!needsKey || !!target.apiKey);
+  // La touche écoute dès qu'elle est définie. La configuration IA (activation,
+  // fournisseur, modèle, clé) est relue au moment d'une question ouverte
+  // (`aiReady`) : aucun abonnement nécessaire.
 
   const tRef = useRef(t);
   const langRef = useRef(i18n.language);
@@ -143,7 +125,7 @@ export function useCoachVoice() {
   const lastToggle = useRef(0);
 
   useEffect(() => {
-    if (!ready || !keyCoach || !isTauri()) return;
+    if (!keyCoach || !isTauri()) return;
     let disposed = false;
 
     const onStart = async () => {
@@ -219,16 +201,26 @@ export function useCoachVoice() {
         // Commandes (accusé, rester dehors, annuler les alertes) : toujours locales,
         // l'IA ne sait pas les exécuter. Questions factuelles : locales si le
         // réglage est actif (défaut), sinon l'IA répond comme avant.
-        const control = r.intent === "ackBox" || r.intent === "stayOut" || r.intent === "watchCancel";
-        if (r.intent && (control || st0.localAnswers)) {
+        const control =
+          r.intent === "ackBox" || r.intent === "stayOut" || r.intent === "watchCancel" || (!!r.intent && RADIO_COMMANDS.has(r.intent));
+        const st = useAppStore.getState();
+        const { provider: p, model, apiKey } = resolveVoiceTarget(st);
+        const aiReady = st.aiCoachEnabled && !!p && !!model && (!p.needsKey || !!apiKey);
+        // Sans Coach IA, toute intention reconnue est répondue en local (même si
+        // le réglage « réponses sans IA » est coupé : il n'y a personne d'autre).
+        if (r.intent && (control || st0.localAnswers || !aiReady)) {
           sayLocal(answerIntent(r.intent, data, tt, opts));
           return;
         }
-
-        const st = useAppStore.getState();
-        const { provider: p, model, apiKey } = resolveVoiceTarget(st);
-        if (!p || !model || (p.needsKey && !apiKey)) {
-          announce(tt("coach.voiceNotConfigured"), lang);
+        if (!aiReady || !p) {
+          // Question ambiguë : la meilleure intention locale plutôt que rien.
+          if (r.ambiguous && r.candidates.length) {
+            sayLocal(answerIntent(r.candidates[0], data, tt, opts));
+            return;
+          }
+          // Question ouverte : seul le Coach IA saurait y répondre.
+          const configured = !!p && !!model && (!p.needsKey || !!apiKey);
+          announce(tt(st.aiCoachEnabled && !configured ? "coach.voiceNotConfigured" : "coach.voiceNoAi"), lang);
           return;
         }
         // Accusé immédiat : l'appel IA prend 1 à 3 s, le pilote sait qu'on a entendu.
@@ -316,5 +308,5 @@ export function useCoachVoice() {
         }
       })();
     };
-  }, [ready, keyCoach, pttMode]);
+  }, [keyCoach, pttMode]);
 }

@@ -10,7 +10,7 @@ import { create } from "zustand";
 import { config, indexer, queries, ai, system } from "@/lib/api";
 import { setAppTimezone } from "@/lib/utils";
 import { preloadStaticData } from "@/lib/staticData";
-import { configureVoice } from "@/lib/voice";
+import { configureVoice, setSpeechReplay, setTalkSilence } from "@/lib/voice";
 import { initVoiceOverrides } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled, setRadioStyle, MAX_VOICE_VOLUME } from "@/lib/radioFx";
@@ -135,6 +135,26 @@ interface AppState {
   radioStyle: "classic" | "pitwall";
   /** Bips du push-to-talk (1000 Hz ouverture / 700 Hz envoi). */
   pttBeeps: boolean;
+  /**
+   * Silence anticipé : aucune annonce non critique n'est entamée à moins de
+   * 200 m d'un freinage appris, en virage ou pendant que le pilote parle ;
+   * `false` = garde historique (frein > 0,5 / braquage > 0,4).
+   */
+  radioQuietZones: boolean;
+  /** Phases de course (départ, stands, fin de course, damier, après un choc). */
+  radioPhases: boolean;
+  /** Budgets par tour (situation, confort, par rival) en course. */
+  radioBudgets: boolean;
+  /** Annonce coupée redite une fois, annonce importante perdue retentée, anti-redite. */
+  radioReplay: boolean;
+  /** Chronos dits au dixième (`tenth`) ou au millième (`ms`, historique). */
+  voiceLapPrecision: "tenth" | "ms";
+  /** Prénom du pilote dit à la radio, avec parcimonie ("" = jamais). */
+  radioDriverName: string;
+  /** Coach par virage rigoureux : verdict mesuré, « oublie mon conseil », virage clos. */
+  coachRigor: boolean;
+  /** Spotter de proximité (voiture à gauche / à droite / libre). */
+  proximitySpotter: boolean;
 
   // AI Coach
   /** Coach IA activé : si false, le coach disparaît de toutes les pages. */
@@ -250,6 +270,14 @@ interface AppState {
   setClassPositions: (v: boolean) => Promise<void>;
   setRadioStyleSetting: (s: "classic" | "pitwall") => Promise<void>;
   setPttBeeps: (v: boolean) => Promise<void>;
+  setRadioQuietZones: (v: boolean) => Promise<void>;
+  setRadioPhases: (v: boolean) => Promise<void>;
+  setRadioBudgets: (v: boolean) => Promise<void>;
+  setRadioReplay: (v: boolean) => Promise<void>;
+  setVoiceLapPrecision: (v: "tenth" | "ms") => Promise<void>;
+  setRadioDriverName: (v: string) => Promise<void>;
+  setCoachRigor: (v: boolean) => Promise<void>;
+  setProximitySpotter: (v: boolean) => Promise<void>;
   setOverlayToggleKey: (accel: string) => Promise<void>;
   setAICoachEnabled: (v: boolean) => Promise<void>;
   setAIProvider: (v: string) => Promise<void>;
@@ -313,6 +341,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   classPositions: true,
   radioStyle: "pitwall",
   pttBeeps: false,
+  radioQuietZones: true,
+  radioPhases: true,
+  radioBudgets: true,
+  radioReplay: true,
+  voiceLapPrecision: "tenth",
+  radioDriverName: "",
+  coachRigor: true,
+  proximitySpotter: false,
   overlayToggleKey: "",
   aiCoachEnabled: true,
   aiProvider: "google",
@@ -455,6 +491,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     setRadioEnabled(voiceRadio);
     setRadioStyle(radioStyle);
+    setSpeechReplay(cfg.voice_replay !== "false");
+    setTalkSilence(cfg.voice_quiet_zones !== "false");
     initVoiceOverrides(cfg.voice_overrides);
     initCommandOverrides(cfg.spotter_commands);
     setAppTimezone(timezone);
@@ -510,6 +548,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       classPositions: cfg.voice_class_positions !== "false",
       radioStyle,
       pttBeeps: cfg.ptt_beeps === "true",
+      radioQuietZones: cfg.voice_quiet_zones !== "false",
+      radioPhases: cfg.voice_race_phases !== "false",
+      radioBudgets: cfg.voice_budgets !== "false",
+      radioReplay: cfg.voice_replay !== "false",
+      voiceLapPrecision: cfg.voice_lap_precision === "ms" ? "ms" : "tenth",
+      radioDriverName: cfg.voice_driver_name ?? "",
+      coachRigor: cfg.coach_rigor !== "false",
+      proximitySpotter: cfg.spotter_proximity === "true",
       aiCoachEnabled: cfg.ai_coach_enabled !== "false",
       aiProvider: cfg.ai_provider || "google",
       aiProviderList,
@@ -861,6 +907,49 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPttBeeps: async (v) => {
     await config.set("ptt_beeps", v ? "true" : "false");
     set({ pttBeeps: v });
+  },
+
+  setRadioQuietZones: async (v) => {
+    setTalkSilence(v);
+    await config.set("voice_quiet_zones", v ? "true" : "false");
+    set({ radioQuietZones: v });
+  },
+
+  setRadioPhases: async (v) => {
+    await config.set("voice_race_phases", v ? "true" : "false");
+    set({ radioPhases: v });
+  },
+
+  setRadioBudgets: async (v) => {
+    await config.set("voice_budgets", v ? "true" : "false");
+    set({ radioBudgets: v });
+  },
+
+  setRadioReplay: async (v) => {
+    setSpeechReplay(v);
+    await config.set("voice_replay", v ? "true" : "false");
+    set({ radioReplay: v });
+  },
+
+  setVoiceLapPrecision: async (v) => {
+    await config.set("voice_lap_precision", v);
+    set({ voiceLapPrecision: v });
+  },
+
+  setRadioDriverName: async (v) => {
+    const name = v.trim().slice(0, 40);
+    await config.set("voice_driver_name", name);
+    set({ radioDriverName: name });
+  },
+
+  setCoachRigor: async (v) => {
+    await config.set("coach_rigor", v ? "true" : "false");
+    set({ coachRigor: v });
+  },
+
+  setProximitySpotter: async (v) => {
+    await config.set("spotter_proximity", v ? "true" : "false");
+    set({ proximitySpotter: v });
   },
 
   setOverlayToggleKey: async (accel) => {

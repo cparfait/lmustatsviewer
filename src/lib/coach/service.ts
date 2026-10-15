@@ -39,6 +39,7 @@ import {
   isCalmWindow,
   observeCorner,
   stepCoachVoice,
+  voiceKeyForDiag,
   type CoachVoiceState,
   type CoachVoiceMsg,
 } from "./voice";
@@ -212,6 +213,8 @@ let stint: StintState = createStintState();
 // ── Coaching du risque + cible de classe (§12 P3, P5.4) ───────────────────────
 /** Coaching du risque actif ? (interrupteur Config via le hook). */
 let riskActive = false;
+/** Coach rigoureux (verdict mesuré, virages clos) — interrupteur Config, défaut actif. */
+let rigorActive = true;
 /** État risque (coupures/virage + cooldown cible de classe). */
 let risk: RiskState = createRiskState();
 
@@ -352,6 +355,8 @@ function trackLengthFromRef(): number {
 
 /** Anneau des derniers diagnostics émis (injectés au contexte du « pourquoi ? »). */
 let recentDiags: RecentDiag[] = [];
+/** Dernier diagnostic par virage (matière du « coach-moi »). */
+let lastDiagByUid = new Map<string, CoachDiagnostic>();
 /** Taille de l'anneau des diagnostics récents (§12). */
 const RECENT_DIAG_MAX = 6;
 
@@ -389,6 +394,7 @@ function dispatch(events: CoachEvent[], frame: CoachFrame): void {
       // hook (I/O) rechargera/régénérera la banque du nouveau combo si le mode est actif.
       phraseBank = null;
       recentDiags = [];
+  lastDiagByUid = new Map();
       sideQueue = []; // conseils du combo précédent : caducs
       bestCleanLapMs = Infinity;
       if (!driverLevelPinned) driverLevel = "intermediate";
@@ -468,6 +474,7 @@ function runDiagnostic(measurement: CornerMeasurement, frame: CoachFrame): void 
   // injecter au contexte live si le pilote demande une explication vocale (Alt+C).
   if (result.kind === "diagnostic") {
     const d = result.diag;
+    lastDiagByUid.set(d.corner_uid, d);
     recentDiags.push({
       n: d.n,
       code: d.code,
@@ -486,6 +493,7 @@ function runDiagnostic(measurement: CornerMeasurement, frame: CoachFrame): void 
     if (verdict) queueSide({ ch: "drill", msg: verdict, at: frame.elapsed });
   } else {
     const policy = policyFor(modeFromSession(frame.sessionNum, state.ref !== null));
+    voice.rigor = rigorActive;
     observeCorner(
       voice,
       {
@@ -826,6 +834,7 @@ function maybeResetSession(frame: CoachFrame): void {
   resetRisk(risk);
   hist = createSessionHistory();
   recentDiags = [];
+  lastDiagByUid = new Map();
   sideQueue = []; // conseils de la session précédente : caducs
   lastInPits = frame.inPits;
   sessionBestSaved = Infinity; // la meilleure réf de session se rejoue à neuf
@@ -939,6 +948,7 @@ export async function startCoachService(): Promise<void> {
   bestCleanLapMs = Infinity;
   phraseBank = null;
   recentDiags = [];
+  lastDiagByUid = new Map();
   sideQueue = [];
   uidToMacroN = new Map();
   if (!driverLevelPinned) driverLevel = "intermediate";
@@ -993,6 +1003,7 @@ export function stopCoachService(): void {
   bestCleanLapMs = Infinity;
   phraseBank = null;
   recentDiags = [];
+  lastDiagByUid = new Map();
   sideQueue = [];
   uidToMacroN = new Map();
 }
@@ -1125,6 +1136,15 @@ export function setRiskMode(active: boolean): void {
 }
 
 /**
+ * Coach rigoureux : un conseil se juge sur mesure (avant / après, test de Welch),
+ * « oublie mon conseil » s'il nuit, virage clos s'il ne change rien ; `false` =
+ * pédagogie historique (deux passages propres → « voilà, c'est ça »).
+ */
+export function setCoachRigor(active: boolean): void {
+  rigorActive = active;
+}
+
+/**
  * Fixe le niveau pilote **manuellement** et **épingle** le réglage : l'auto-calibration
  * ohne_speed (§7) ne le modifie plus jusqu'au prochain `start`/`stop`. Défaut : niveau
  * auto-calibré (`intermediate` tant qu'aucun tour propre n'a été mesuré).
@@ -1188,6 +1208,43 @@ export function resolveCoachPhrase(msg: {
 // ── « Pourquoi ? » vocal (§12, P4.3) ──────────────────────────────────────────
 
 /** Les N derniers diagnostics chiffrés émis (matière du « pourquoi ? », §12). */
+/** Perte moyenne mesurée sur un virage (réponses « coach-moi » / « où je perds »). */
+export interface CornerLoss {
+  n: number;
+  uid: string;
+  /** Perte moyenne vs la réf sur les derniers passages (s, + = plus lent). */
+  meanDt: number;
+  passes: number;
+  /** Dernier conseil chiffré du virage (gabarit `live.vCorner*`), s'il y en a un. */
+  tip: { suffix: string; vars: Record<string, string | number> } | null;
+}
+
+/** Passages récents pris en compte dans la perte moyenne d'un virage. */
+const LOSS_RECENT = 5;
+
+/**
+ * Virages classés du plus coûteux au moins coûteux, d'après les passages
+ * mesurés de la séance (au moins 2). Vide sans réf ou sans passages.
+ */
+export function coachCornerLosses(): CornerLoss[] {
+  const out: CornerLoss[] = [];
+  for (const [uid, list] of voice.samples) {
+    if (list.length < 2) continue;
+    const recent = list.slice(-LOSS_RECENT);
+    const d = lastDiagByUid.get(uid);
+    const n = state.windows.find((w) => w.corner_uid === uid)?.n ?? d?.n;
+    if (!n) continue;
+    out.push({
+      n,
+      uid,
+      meanDt: recent.reduce((a, b) => a + b, 0) / recent.length,
+      passes: list.length,
+      tip: d ? voiceKeyForDiag(d) : null,
+    });
+  }
+  return out.sort((a, b) => b.meanDt - a.meanDt);
+}
+
 export function coachRecentDiagnostics(): RecentDiag[] {
   return recentDiags;
 }

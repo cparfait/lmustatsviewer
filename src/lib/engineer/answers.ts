@@ -20,6 +20,7 @@ import { nextSlowerAhead, onTrack, slowerPackAhead } from "./traffic";
 import { interp, nextRain, wetSession } from "./forecast";
 import { normalize, type AnswerIntent, type Entities, type WatchSpec } from "./router";
 import type { WatchCond } from "./watches";
+import { coachCornerLosses } from "@/lib/coach/service";
 
 /** Fenêtre de température « de travail » des pneus (°C, générique). */
 export const TYRE_WINDOW: [number, number] = [75, 105];
@@ -156,6 +157,9 @@ export function whenLaps(t: Tr, laps: number): string {
 export function rankGap(myCls: string) {
   return (cls: string) => Math.max(1, classRank(cls) - classRank(myCls));
 }
+
+/** Perte moyenne en deçà de laquelle un virage n'est pas cité (s). */
+const LOSS_MIN_S = 0.05;
 
 export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr, o: AnswerOpts): string {
   if (!inSession(data)) return t("live.spNoSession");
@@ -329,6 +333,42 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
 
     case "watch":
       return t("live.spWatchUnknown");
+
+    // ── Régimes radio (« on se bat », « juste l'essentiel »…) ────────────────
+    case "radioBattle":
+      engineer.policy.setRegime("battle", p.total_laps, p.num_pitstops);
+      return t("live.aRadioBattle");
+    case "radioHome":
+      engineer.policy.setRegime("home", p.total_laps, p.num_pitstops);
+      return t("live.aRadioHome");
+    case "radioEssential":
+      engineer.policy.setRegime("essential", p.total_laps, p.num_pitstops);
+      return t("live.aRadioEssential");
+    case "radioQuiet": {
+      const until = e?.lap && e.lap > p.total_laps ? e.lap : undefined;
+      engineer.policy.setRegime("quiet", p.total_laps, p.num_pitstops, until);
+      return until ? t("live.aRadioQuietUntil", { n: until }) : t("live.aRadioQuiet");
+    }
+    case "radioNormal":
+      engineer.policy.setRegime("normal", p.total_laps, p.num_pitstops);
+      return t("live.aRadioNormal");
+
+    // ── Coaching de pilotage (mesures du coach par virage) ───────────────────
+    case "coachMe":
+    case "whereLose": {
+      const losses = coachCornerLosses().filter((l) => l.meanDt >= LOSS_MIN_S);
+      if (!losses.length) return t("live.aCoachNone");
+      const tenths = (s: number) => Math.max(1, Math.round(s * 10));
+      if (intent === "whereLose") {
+        return t("live.aWhereLose", { n: losses[0].n, d: tenths(losses[0].meanDt) });
+      }
+      const items = losses.slice(0, 2).map((l) =>
+        l.tip
+          ? t("live.aCoachMeTip", { tip: t(`live.${l.tip.suffix}`, l.tip.vars), d: tenths(l.meanDt) })
+          : t("live.aCoachMeItem", { n: l.n, d: tenths(l.meanDt) }),
+      );
+      return t("live.aCoachMe", { list: items.join(". ") });
+    }
 
     default:
       return buildAnswer(intent, d, t, o.pitLossSec, o.fuelReserveLaps, o.classPositions ?? true);

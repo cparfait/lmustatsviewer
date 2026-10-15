@@ -74,6 +74,13 @@ import {
   Upload,
   Users,
   Trophy,
+  Ear,
+  Flag,
+  Gauge,
+  Repeat,
+  Timer,
+  ArrowLeftRight,
+  Scale,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
@@ -261,6 +268,13 @@ export function ConfigV2() {
   const localAnswers = useAppStore((s) => s.localAnswers);
   const announceEverywhere = useAppStore((s) => s.announceEverywhere);
   const classPositions = useAppStore((s) => s.classPositions);
+  const radioQuietZones = useAppStore((s) => s.radioQuietZones);
+  const radioPhases = useAppStore((s) => s.radioPhases);
+  const radioBudgets = useAppStore((s) => s.radioBudgets);
+  const radioReplay = useAppStore((s) => s.radioReplay);
+  const voiceLapPrecision = useAppStore((s) => s.voiceLapPrecision);
+  const proximitySpotter = useAppStore((s) => s.proximitySpotter);
+  const coachRigor = useAppStore((s) => s.coachRigor);
   const radioStyleSetting = useAppStore((s) => s.radioStyle);
   const pttBeeps = useAppStore((s) => s.pttBeeps);
   const [comparing, setComparing] = useState<"classic" | "pitwall" | null>(null);
@@ -1224,6 +1238,109 @@ export function ConfigV2() {
                     onChange={(v) => void useAppStore.getState().setClassPositions(v)}
                   />
                 )}
+                {/* Diffusion de la radio : chaque réglage garde l'ancien
+                    comportement accessible (décoché = comme avant). */}
+                {voiceAnnouncements && (
+                  <>
+                    <ToggleRow
+                      icon={<Ear className="h-4 w-4" />}
+                      label={t("config.radioQuietZones")}
+                      desc={t("config.radioQuietZonesDesc")}
+                      tip={t("config.radioQuietZonesTip")}
+                      checked={radioQuietZones}
+                      onChange={(v) => void useAppStore.getState().setRadioQuietZones(v)}
+                    />
+                    <ToggleRow
+                      icon={<Flag className="h-4 w-4" />}
+                      label={t("config.radioPhases")}
+                      desc={t("config.radioPhasesDesc")}
+                      tip={t("config.radioPhasesTip")}
+                      checked={radioPhases}
+                      onChange={(v) => void useAppStore.getState().setRadioPhases(v)}
+                      disabled={radioMode === "full"}
+                    />
+                    <ToggleRow
+                      icon={<Gauge className="h-4 w-4" />}
+                      label={t("config.radioBudgets")}
+                      desc={t("config.radioBudgetsDesc")}
+                      tip={t("config.radioBudgetsTip")}
+                      checked={radioBudgets}
+                      onChange={(v) => void useAppStore.getState().setRadioBudgets(v)}
+                      disabled={radioMode === "full"}
+                    />
+                    <ToggleRow
+                      icon={<Repeat className="h-4 w-4" />}
+                      label={t("config.radioReplay")}
+                      desc={t("config.radioReplayDesc")}
+                      tip={t("config.radioReplayTip")}
+                      checked={radioReplay}
+                      onChange={(v) => void useAppStore.getState().setRadioReplay(v)}
+                    />
+                    <div className="flex items-center justify-between py-2 gap-3">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <Tip content={t("config.voiceLapPrecisionTip")} side="right">
+                          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+                            <Timer className="h-4 w-4" />
+                          </span>
+                        </Tip>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium leading-tight">
+                            {t("config.voiceLapPrecision")}
+                          </div>
+                          <div className="text-xs text-muted-foreground/80 mt-0.5">
+                            {t("config.voiceLapPrecisionDesc")}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex rounded-md border border-input overflow-hidden shrink-0">
+                        {(["tenth", "ms"] as const).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => void useAppStore.getState().setVoiceLapPrecision(m)}
+                            className={cn(
+                              "px-2.5 py-1 text-xs transition-colors",
+                              voiceLapPrecision === m
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-transparent hover:bg-accent",
+                            )}
+                          >
+                            {t(m === "tenth" ? "config.voiceLapTenth" : "config.voiceLapMs")}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <DriverNameRow />
+                    <ToggleRow
+                      icon={<ArrowLeftRight className="h-4 w-4" />}
+                      label={t("config.proximitySpotter")}
+                      desc={t("config.proximitySpotterDesc")}
+                      tip={t("config.proximitySpotterTip")}
+                      checked={proximitySpotter}
+                      onChange={(v) => void useAppStore.getState().setProximitySpotter(v)}
+                    />
+                  </>
+                )}
+                {/* « Parler à l'ingénieur » : push-to-talk indépendant de l'IA
+                    (commandes radio, questions de course, « coach-moi » en local ;
+                    l'IA ne reçoit que les questions ouvertes). */}
+                <div className="py-2 space-y-1.5">
+                  <ShortcutCapture
+                    label={t("config.engineerKey")}
+                    value={spotterKeyCoach}
+                    onChange={(accel) => void useAppStore.getState().setSpotterKey("coach", accel)}
+                    onClear={() => void useAppStore.getState().setSpotterKey("coach", "")}
+                  />
+                  <p className="text-xs text-muted-foreground/70">{t("config.engineerKeyDesc")}</p>
+                  <ToggleRow
+                    icon={<Zap className="h-4 w-4" />}
+                    label={t("config.localAnswers")}
+                    desc={t("config.localAnswersDesc")}
+                    tip={t("config.localAnswersTip")}
+                    checked={localAnswers}
+                    onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
+                  />
+                </div>
                 {/* Coach par virage — modes avancés (mêmes réglages que Config V1,
                     gated sur les annonces vocales). Intertitre pour distinguer ce
                     coach déterministe du Coach IA (onglet dédié, LLM). */}
@@ -1237,6 +1354,14 @@ export function ConfigV2() {
                         {t("config.coachSectionDesc")}
                       </p>
                     </div>
+                    <ToggleRow
+                      icon={<Scale className="h-4 w-4" />}
+                      label={t("config.coachRigor")}
+                      desc={t("config.coachRigorDesc")}
+                      tip={t("config.coachRigorTip")}
+                      checked={coachRigor}
+                      onChange={(v) => void useAppStore.getState().setCoachRigor(v)}
+                    />
                     <ToggleRow
                       icon={<Target className="h-4 w-4" />}
                       label={t("config.coachDrill")}
@@ -2112,27 +2237,9 @@ export function ConfigV2() {
                     </div>
                     <Separator />
                     <div className="py-2 space-y-1.5">
-                      <ShortcutCapture
-                        label={t("config.aiVoiceKey")}
-                        value={spotterKeyCoach}
-                        onChange={(accel) =>
-                          void useAppStore.getState().setSpotterKey("coach", accel)
-                        }
-                        onClear={() =>
-                          void useAppStore.getState().setSpotterKey("coach", "")
-                        }
-                      />
                       <p className="text-xs text-muted-foreground/70">
-                        {t("config.aiVoiceKeyDesc")}
+                        {t("config.aiVoiceKeyMoved")}
                       </p>
-                      <ToggleRow
-                        icon={<Zap className="h-4 w-4" />}
-                        label={t("config.localAnswers")}
-                        desc={t("config.localAnswersDesc")}
-                        tip={t("config.localAnswersTip")}
-                        checked={localAnswers}
-                        onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
-                      />
                     </div>
                     <Separator />
                     <div className="flex items-center justify-end gap-2 py-2">
@@ -2624,6 +2731,46 @@ function Disclosure({
       {open && (
         <div className="space-y-2.5 px-2 pb-2 pt-1">{children}</div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Prénom dit à la radio (avec parcimonie : départ, dernier tour, prise de tête,
+ * record). Vide = jamais. Enregistré à la sortie du champ.
+ */
+function DriverNameRow() {
+  const { t } = useTranslation();
+  const saved = useAppStore((s) => s.radioDriverName);
+  const [draft, setDraft] = useState(saved);
+  useEffect(() => setDraft(saved), [saved]);
+  const commit = () => {
+    if (draft.trim() !== saved) void useAppStore.getState().setRadioDriverName(draft);
+  };
+  return (
+    <div className="flex items-center justify-between py-2 gap-3">
+      <div className="flex items-start gap-2 min-w-0">
+        <Tip content={t("config.radioDriverNameTip")} side="right">
+          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+            <User className="h-4 w-4" />
+          </span>
+        </Tip>
+        <div className="min-w-0">
+          <div className="text-sm font-medium leading-tight">{t("config.radioDriverName")}</div>
+          <div className="text-xs text-muted-foreground/80 mt-0.5">{t("config.radioDriverNameDesc")}</div>
+        </div>
+      </div>
+      <Input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+        }}
+        placeholder={t("config.radioDriverNamePlaceholder")}
+        maxLength={40}
+        className="h-8 w-36 text-sm shrink-0"
+      />
     </div>
   );
 }

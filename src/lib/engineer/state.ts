@@ -9,6 +9,8 @@
 import { ClosingTracker } from "./closing";
 import { EnergyTracker, PitWindowTracker } from "./pitWindow";
 import { WatchList } from "./watches";
+import { RadioPolicy } from "./policy";
+import { BrakeMap, type DriverSnapshot } from "./focus";
 import type { WetData } from "./forecast";
 
 export interface ForecastState {
@@ -29,6 +31,14 @@ class EngineerState {
   lastPitCallLap = -99;
   /** Tours bouclés du joueur (dernière valeur vue). */
   lap = 0;
+  /** Arrêts aux stands du joueur (dernière valeur vue). */
+  pitstops = 0;
+  /** Régimes radio posés à la voix, phases de course, budgets. */
+  policy = new RadioPolicy();
+  /** Freinages appris (silence anticipé avant les zones de freinage). */
+  brakes = new BrakeMap();
+  /** Dernier état de pilotage vu (garde « pilote occupé » de la file vocale). */
+  driver: DriverSnapshot | null = null;
 
   /** Nouvelle session : repart de zéro (les alertes posées sont effacées). */
   resetSession(): void {
@@ -39,6 +49,12 @@ class EngineerState {
     this.forecastValid = false;
     this.lastPitCallLap = -99;
     this.lap = 0;
+    this.pitstops = 0;
+    this.policy.reset();
+    // Les freinages appris restent : ils appartiennent au circuit, pas à la
+    // session (essais → qualif → course). `brakes.setTrack` repart de zéro au
+    // changement de circuit.
+    this.driver = null;
   }
 }
 

@@ -36,6 +36,7 @@ import {
   setDrillMode,
   setStintMode,
   setRiskMode,
+  setCoachRigor,
   resolveCoachPhrase,
   setCoachPhraseBank,
   coachCornerEvent,
@@ -56,6 +57,7 @@ export function useCornerCoach() {
   const stintMode = useAppStore((s) => s.coachStint);
   const riskMode = useAppStore((s) => s.coachRisk);
   const phrasebankMode = useAppStore((s) => s.coachPhrasebank);
+  const rigor = useAppStore((s) => s.coachRigor);
   const lang = i18n.language;
 
   // Refs « vivantes » : le handler de délivrance est enregistré une seule fois
@@ -81,8 +83,11 @@ export function useCornerCoach() {
       // Banque de phrases LLM à slots (§10, P4.3) : variante pré-générée (slots
       // remplis en code) si le mode est actif et couvre ce (virage, diagnostic) ;
       // sinon repli sur le gabarit déterministe i18n.
-      const text = resolveCoachPhrase(msg) ?? tRef.current(`live.${msg.suffix}`, msg.vars);
-      if (!text) return;
+      const base = resolveCoachPhrase(msg) ?? tRef.current(`live.${msg.suffix}`, msg.vars);
+      if (!base) return;
+      // Coach rigoureux : la 1ʳᵉ fois qu'un conseil est dit, on annonce qu'on va
+      // vérifier son effet sur les prochains passages.
+      const text = msg.follow ? `${base} ${tRef.current("live.vCornerWatching")}` : base;
       speak(text, langRef.current, "coach");
       // Miroir visuel (P2.3) : le widget overlay `cornercoach` affiche le même
       // conseil + le détail chiffré exact que la voix n'énonce pas (§1.2). Porte
@@ -258,6 +263,11 @@ export function useCornerCoach() {
   useEffect(() => {
     setStintMode(enabled && isTauri() ? stintMode : false);
   }, [enabled, stintMode]);
+
+  // Coach rigoureux (verdict mesuré) : reflète l'interrupteur Config.
+  useEffect(() => {
+    setCoachRigor(rigor);
+  }, [rigor]);
 
   // Coaching du risque + cible de classe (§12, P5.4) : reflète l'interrupteur Config.
   useEffect(() => {

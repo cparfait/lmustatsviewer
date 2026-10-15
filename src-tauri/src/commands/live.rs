@@ -677,6 +677,15 @@ pub struct LiveData {
     /// Permet d'associer une position de virage (lap_dist) à un point (x,z) —
     /// heatmap des pertes par virage sur le tracé.
     pub track_dists: Vec<f64>,
+    /// Spotter de proximité : voitures à moins de 30 m, dans le repère du
+    /// joueur (cf. `compute_nearby`). Triées par distance croissante.
+    #[serde(default)]
+    pub nearby: Vec<NearbyCar>,
+    /// Signes des axes avant/droite auto-calibrés (cf. `SpotterCalib`). Tant que
+    /// `false`, `nearby` repose sur des signes provisoires : ne pas annoncer
+    /// gauche/droite côté frontend.
+    #[serde(default)]
+    pub spotter_calibrated: bool,
 }
 
 impl Default for LiveData {
@@ -694,8 +703,202 @@ impl Default for LiveData {
             track_layout: None,
             track_points: Vec::new(),
             track_dists: Vec::new(),
+            nearby: Vec::new(),
+            spotter_calibrated: false,
         }
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Spotter de proximité (voiture à gauche / à droite / trois de front)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Toutes les voitures sont dans `Telemetry.m_vehicles` (rafraîchi à chaque
+// frame, contrairement au scoring ~5 Hz). On exprime la position de chacune
+// dans le repère local du joueur via sa matrice d'orientation `m_ori`.
+//
+// Doc rF2 : `m_ori[i]` = i-ème LIGNE de la matrice ; composante monde i d'un
+// vecteur local = dot(m_ori[i], local). Le passage monde → local est donc la
+// transposée : local_j = Σ_i m_ori[i][j] · monde_i.
+//
+// Les SENS des axes locaux (x = gauche ou droite ? z = avant ou arrière ?) sont
+// incertains selon les sources : plutôt que de les coder en dur, on les
+// auto-calibre en roulant (cf. `SpotterCalib`).
+
+/// Voiture proche, exprimée dans le repère du joueur.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NearbyCar {
+    /// Décalage latéral (m) : + = à droite du joueur.
+    pub lat: f32,
+    /// Décalage longitudinal (m) : + = devant le joueur.
+    pub lon: f32,
+    /// Écart de vitesse (m/s) : `|v_autre| − |v_joueur|`, + = plus rapide.
+    pub dv: f32,
+}
+
+/// Rayon de détection du spotter (m, distance dans le plan local x/z).
+const SPOTTER_RANGE_M: f64 = 30.0;
+/// Dénivelé monde au-delà duquel une voiture est ignorée (pont, passage dessous).
+const SPOTTER_MAX_DY_M: f64 = 3.0;
+/// Votes majoritaires minimum pour considérer un axe calibré.
+const SPOTTER_VOTE_MIN: u32 = 40;
+/// Plafond de votes : au-delà, les compteurs sont divisés par deux (mémoire
+/// décroissante — un changement de convention finirait par être réappris).
+const SPOTTER_VOTE_CAP: u32 = 400;
+
+/// Compteur de votes pour le signe d'un axe.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+struct AxisVote {
+    pos: u32,
+    neg: u32,
+}
+
+impl AxisVote {
+    fn vote(&mut self, positive: bool) {
+        if positive {
+            self.pos += 1;
+        } else {
+            self.neg += 1;
+        }
+        if self.pos + self.neg > SPOTTER_VOTE_CAP {
+            self.pos /= 2;
+            self.neg /= 2;
+        }
+    }
+
+    /// Signe calibré : ≥ `SPOTTER_VOTE_MIN` votes majoritaires ET ≥ 80 %
+    /// d'accord. `None` tant que ce n'est pas le cas.
+    fn sign(&self) -> Option<f64> {
+        let total = self.pos + self.neg;
+        let major = self.pos.max(self.neg);
+        if major >= SPOTTER_VOTE_MIN && major * 5 >= total * 4 {
+            Some(if self.pos >= self.neg { 1.0 } else { -1.0 })
+        } else {
+            None
+        }
+    }
+
+    /// Signe calibré, sinon tendance actuelle, sinon `default` (provisoire).
+    fn sign_or(&self, default: f64) -> f64 {
+        self.sign().unwrap_or(if self.pos > self.neg {
+            1.0
+        } else if self.neg > self.pos {
+            -1.0
+        } else {
+            default
+        })
+    }
+}
+
+/// Auto-calibration des sens des axes locaux du joueur.
+///
+/// - **Avant** : en roulant (> 5 m/s, vitesse essentiellement longitudinale),
+///   le signe de `m_local_vel.z` indique le sens « avant » de l'axe z.
+/// - **Droite** : en virage (|braquage| > 0,15, > 15 m/s, |accel lat| > 1 m/s²),
+///   l'accélération centripète pointe vers l'intérieur du virage. Braquage rF2
+///   −1 = gauche, +1 = droite → `signe(braquage) × signe(accel.x)` donne le
+///   sens « droite » de l'axe x. Le contre-braquage (survirage) vote faux,
+///   d'où le seuil d'accord de 80 %.
+#[derive(Debug, Clone, Copy, Default)]
+struct SpotterCalib {
+    forward: AxisVote,
+    right: AxisVote,
+}
+
+impl SpotterCalib {
+    fn observe(&mut self, local_vel: [f64; 3], local_accel_x: f64, steering: f64) {
+        let speed = norm3(local_vel);
+        if speed > 5.0 && local_vel[2].abs() > 0.8 * speed {
+            self.forward.vote(local_vel[2] > 0.0);
+        }
+        if speed > 15.0 && steering.abs() > 0.15 && local_accel_x.abs() > 1.0 {
+            self.right.vote((steering > 0.0) == (local_accel_x > 0.0));
+        }
+    }
+
+    fn calibrated(&self) -> bool {
+        self.forward.sign().is_some() && self.right.sign().is_some()
+    }
+
+    /// (signe avant de z, signe droite de x). Valeurs provisoires par défaut
+    /// (z = arrière, x = droite — hypothèse déjà utilisée pour g_long/g_lat)
+    /// tant que la calibration n'a pas conclu.
+    fn signs(&self) -> (f64, f64) {
+        (self.forward.sign_or(-1.0), self.right.sign_or(1.0))
+    }
+}
+
+/// Instantané minimal d'une voiture pour le spotter (tableaux alignés, plus
+/// simples à manipuler et à tester que les structures `packed`).
+#[derive(Debug, Clone, Copy)]
+struct CarSample {
+    pos: [f64; 3],
+    ori: [[f64; 3]; 3],
+    speed: f64,
+}
+
+fn vec3_arr(v: Vec3) -> [f64; 3] {
+    [v.x, v.y, v.z]
+}
+
+fn norm3(v: [f64; 3]) -> f64 {
+    (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt()
+}
+
+impl CarSample {
+    fn from_tele(t: &VehicleTelemetry) -> Self {
+        let ori = t.m_ori;
+        CarSample {
+            pos: vec3_arr(t.m_pos),
+            ori: [vec3_arr(ori[0]), vec3_arr(ori[1]), vec3_arr(ori[2])],
+            speed: norm3(vec3_arr(t.m_local_vel)),
+        }
+    }
+}
+
+/// Vecteur monde `d` → composantes locales (x, z) du repère décrit par `ori`
+/// (lignes de la matrice local → monde) : local_j = Σ_i ori[i][j] · d_i.
+fn to_local(ori: &[[f64; 3]; 3], d: [f64; 3]) -> (f64, f64) {
+    let x = ori[0][0] * d[0] + ori[1][0] * d[1] + ori[2][0] * d[2];
+    let z = ori[0][2] * d[0] + ori[1][2] * d[1] + ori[2][2] * d[2];
+    (x, z)
+}
+
+/// Voitures à portée du joueur, dans son repère (lat + = droite, lon + = avant),
+/// triées par distance. `others` doit déjà exclure le joueur et les voitures
+/// non pertinentes (stands).
+fn compute_nearby(
+    player: &CarSample,
+    others: impl IntoIterator<Item = CarSample>,
+    forward_sign: f64,
+    right_sign: f64,
+) -> Vec<NearbyCar> {
+    let mut out: Vec<(f64, NearbyCar)> = Vec::new();
+    for o in others {
+        let d = [
+            o.pos[0] - player.pos[0],
+            o.pos[1] - player.pos[1],
+            o.pos[2] - player.pos[2],
+        ];
+        if d[1].abs() > SPOTTER_MAX_DY_M {
+            continue;
+        }
+        let (x, z) = to_local(&player.ori, d);
+        let dist = (x * x + z * z).sqrt();
+        if !dist.is_finite() || dist > SPOTTER_RANGE_M {
+            continue;
+        }
+        out.push((
+            dist,
+            NearbyCar {
+                lat: (x * right_sign) as f32,
+                lon: (z * forward_sign) as f32,
+                dv: (o.speed - player.speed) as f32,
+            },
+        ));
+    }
+    out.sort_by(|a, b| a.0.total_cmp(&b.0));
+    out.into_iter().map(|(_, c)| c).collect()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -791,6 +994,8 @@ struct PollState {
     dr_anchor_et: f64,
     /// Vitesse (m/s) au moment de l'ancrage (extrapolation trapézoïdale).
     dr_anchor_speed: f64,
+    /// Auto-calibration des sens des axes locaux (spotter de proximité).
+    spotter: SpotterCalib,
 }
 
 impl PollState {
@@ -815,6 +1020,7 @@ impl PollState {
             dr_anchor_dist: 0.0,
             dr_anchor_et: 0.0,
             dr_anchor_speed: 0.0,
+            spotter: SpotterCalib::default(),
         }
     }
 }
@@ -1292,7 +1498,49 @@ fn extract(state: &mut PollState) -> LiveData {
         // référence carburant de l'ancienne session fausserait le 1er tour).
         state.fuel_at_lap_start = 0.0;
         state.lap_fuel_history.clear();
+        // Nouvelle session → on recalibre le spotter (autre voiture possible).
+        state.spotter = SpotterCalib::default();
     }
+
+    // ── Spotter de proximité (toutes les voitures de la télémétrie) ──────────
+    let (nearby, spotter_calibrated) = match (player_tele.as_ref(), tele_buf.as_ref()) {
+        (Some(pt), Some(buf)) => {
+            state.spotter.observe(
+                vec3_arr(pt.m_local_vel),
+                pt.m_local_accel.x,
+                pt.m_unfiltered_steering,
+            );
+            // Stands/garage par id (scoring). Une voiture absente du scoring
+            // (slot télémétrie périmé) est ignorée.
+            let mut in_pits_by_id: HashMap<i32, bool> = HashMap::new();
+            for i in 0..n {
+                if let Some(v) = veh_scor(i) {
+                    in_pits_by_id.insert(v.m_id, v.m_in_pits != 0 || v.m_in_garage_stall != 0);
+                }
+            }
+            let player_in_pits = in_pits_by_id.get(&player_id).copied().unwrap_or(false);
+            let tele_n: i32 =
+                unsafe { read_at(buf, offset_of!(Telemetry, _num)) }.unwrap_or(0);
+            let tele_n = (tele_n.max(0) as usize).min(MAX_VEH);
+            let base = offset_of!(Telemetry, m_vehicles);
+            let others = (0..tele_n)
+                .filter_map(|i| unsafe {
+                    read_at::<VehicleTelemetry>(buf, base + i * size_of::<VehicleTelemetry>())
+                })
+                .filter(|t| t.m_id != player_id)
+                .filter(|t| match in_pits_by_id.get(&t.m_id) {
+                    Some(&in_pits) => player_in_pits || !in_pits,
+                    None => false,
+                })
+                .map(|t| CarSample::from_tele(&t));
+            let (fwd, right) = state.spotter.signs();
+            (
+                compute_nearby(&CarSample::from_tele(pt), others, fwd, right),
+                state.spotter.calibrated(),
+            )
+        }
+        _ => (Vec::new(), state.spotter.calibrated()),
+    };
 
     let mut standings: Vec<LiveStanding> = Vec::new();
     let (mut min_x, mut max_x, mut min_z, mut max_z) =
@@ -1526,6 +1774,8 @@ fn extract(state: &mut PollState) -> LiveData {
         track_layout,
         track_points,
         track_dists,
+        nearby,
+        spotter_calibrated,
     }
 }
 
@@ -1729,4 +1979,126 @@ pub fn stop_live_polling(window: tauri::Window) -> Result<(), AppError> {
         LIVE_POLLING.store(false, Ordering::SeqCst);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod spotter_tests {
+    use super::*;
+
+    /// Matrice local → monde (lignes) d'une rotation de lacet `yaw` autour de y.
+    /// Local (0,0,1) → monde (sin, 0, cos) ; local (1,0,0) → monde (cos, 0, −sin).
+    fn yaw_ori(yaw: f64) -> [[f64; 3]; 3] {
+        let (s, c) = yaw.sin_cos();
+        [[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]]
+    }
+
+    /// Applique la matrice (lignes) à un vecteur local → monde.
+    fn to_world(ori: &[[f64; 3]; 3], l: [f64; 3]) -> [f64; 3] {
+        std::array::from_fn(|i| ori[i][0] * l[0] + ori[i][1] * l[1] + ori[i][2] * l[2])
+    }
+
+    fn car(pos: [f64; 3], ori: [[f64; 3]; 3], speed: f64) -> CarSample {
+        CarSample { pos, ori, speed }
+    }
+
+    #[test]
+    fn to_local_identity() {
+        let id = yaw_ori(0.0);
+        let (x, z) = to_local(&id, [2.0, 5.0, -7.0]);
+        assert!((x - 2.0).abs() < 1e-9 && (z + 7.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn to_local_inverts_rotated_frame() {
+        for yaw in [0.3_f64, std::f64::consts::FRAC_PI_2, 2.5, -1.2] {
+            let ori = yaw_ori(yaw);
+            let local = [3.0, 0.0, -11.0];
+            let (x, z) = to_local(&ori, to_world(&ori, local));
+            assert!((x - 3.0).abs() < 1e-9, "yaw {yaw}: x = {x}");
+            assert!((z + 11.0).abs() < 1e-9, "yaw {yaw}: z = {z}");
+        }
+        // Lacet de 90° : l'avant local (z) pointe vers +x monde.
+        let ori = yaw_ori(std::f64::consts::FRAC_PI_2);
+        let (x, z) = to_local(&ori, [10.0, 0.0, 0.0]);
+        assert!(x.abs() < 1e-9 && (z - 10.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn compute_nearby_rotated_player_with_signs() {
+        let ori = yaw_ori(0.7);
+        let p = car([100.0, 5.0, -40.0], ori, 50.0);
+        let at = |l: [f64; 3]| {
+            let w = to_world(&ori, l);
+            [p.pos[0] + w[0], p.pos[1] + w[1], p.pos[2] + w[2]]
+        };
+        let others = vec![
+            car(at([2.0, 0.0, 1.0]), ori, 52.0),   // proche, côté +x
+            car(at([-3.0, 0.0, -8.0]), ori, 45.0), // côté −x, z négatif
+            car(at([0.0, 0.0, 40.0]), ori, 50.0),  // hors portée (40 m)
+            car(at([1.0, 4.0, 0.0]), ori, 50.0),   // pont : |dy| > 3 m
+        ];
+        // Convention supposée « x = gauche, z = arrière » → signes (−1, −1).
+        let out = compute_nearby(&p, others, -1.0, -1.0);
+        assert_eq!(out.len(), 2);
+        assert!((out[0].lat + 2.0).abs() < 1e-4 && (out[0].lon + 1.0).abs() < 1e-4);
+        assert!((out[0].dv - 2.0).abs() < 1e-4);
+        assert!((out[1].lat - 3.0).abs() < 1e-4 && (out[1].lon - 8.0).abs() < 1e-4);
+        assert!((out[1].dv + 5.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn axis_vote_threshold_and_agreement() {
+        let mut v = AxisVote::default();
+        for _ in 0..39 {
+            v.vote(false);
+        }
+        assert_eq!(v.sign(), None, "39 votes : pas encore calibré");
+        v.vote(false);
+        assert_eq!(v.sign(), Some(-1.0));
+        // 40 contre 11 → 78 % < 80 % : plus calibré.
+        for _ in 0..11 {
+            v.vote(true);
+        }
+        assert_eq!(v.sign(), None);
+        assert_eq!(v.sign_or(1.0), -1.0, "tendance conservée en provisoire");
+        assert_eq!(AxisVote::default().sign_or(1.0), 1.0);
+    }
+
+    #[test]
+    fn axis_vote_decays_and_keeps_sign() {
+        let mut v = AxisVote::default();
+        for _ in 0..10_000 {
+            v.vote(true);
+        }
+        assert!(v.pos + v.neg <= SPOTTER_VOTE_CAP);
+        assert_eq!(v.sign(), Some(1.0));
+    }
+
+    #[test]
+    fn calib_learns_forward_and_right() {
+        // Voiture dont z local = arrière (vitesse z négative en marche avant) et
+        // x local = gauche : en braquant à droite (+), l'accélération centripète
+        // (vers la droite) a un x négatif.
+        let mut c = SpotterCalib::default();
+        for i in 0..60 {
+            let steer = if i % 2 == 0 { 0.4 } else { -0.4 };
+            let accel_x = if steer > 0.0 { -8.0 } else { 8.0 };
+            c.observe([0.5, 0.0, -40.0], accel_x, steer);
+        }
+        assert!(c.calibrated());
+        assert_eq!(c.signs(), (-1.0, -1.0));
+    }
+
+    #[test]
+    fn calib_ignores_slow_or_straight_samples() {
+        let mut c = SpotterCalib::default();
+        for _ in 0..200 {
+            c.observe([0.0, 0.0, 3.0], 5.0, 0.5); // trop lent
+            c.observe([0.0, 0.0, 40.0], 0.2, 0.5); // accel lat négligeable
+            c.observe([0.0, 0.0, 40.0], 5.0, 0.05); // ligne droite
+        }
+        assert_eq!(c.forward.sign(), Some(1.0));
+        assert_eq!(c.right, AxisVote::default());
+        assert!(!c.calibrated());
+    }
 }

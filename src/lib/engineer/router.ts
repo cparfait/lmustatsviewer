@@ -22,7 +22,23 @@ import type { Intent } from "@/lib/spotterCommands";
 import { DEFAULTS, type WatchCond } from "./watches";
 
 /** Intentions du routeur libre (spotter + intentions à paramètres). */
-export type AnswerIntent = Intent | "positionOf" | "carInfo" | "watch";
+export type AnswerIntent =
+  | Intent
+  | "positionOf"
+  | "carInfo"
+  | "watch"
+  // Régimes radio posés à la voix (`policy.ts`).
+  | "radioBattle"
+  | "radioHome"
+  | "radioEssential"
+  | "radioQuiet"
+  | "radioNormal"
+  // Coaching de pilotage, répondu depuis les mesures du coach par virage.
+  | "coachMe"
+  | "whereLose";
+
+/** Commandes radio : toujours traitées en local (l'IA ne sait pas les exécuter). */
+export const RADIO_COMMANDS = new Set<AnswerIntent>(["radioBattle", "radioHome", "radioEssential", "radioQuiet", "radioNormal"]);
 
 export interface Entities {
   /** Classe citée (clé radio : Hypercar / LMP2 / LMP3 / GT3 / GTE). */
@@ -30,6 +46,8 @@ export interface Entities {
   overall?: boolean;
   pos?: number;
   carNo?: string;
+  /** Tour cité (« jusqu'au tour 12 »). */
+  lap?: number;
 }
 
 /** Condition d'alerte lue, cible de rival non encore résolue. */
@@ -195,6 +213,13 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["je reste dehors", "on reste dehors", "je reste en piste", "negatif je reste", "je ne rentre pas", "non je reste", "on ne rentre pas", "je rentre pas"] },
     { id: "watchCancel", family: "command", idioms: ["annule les alertes", "annule mes alertes", "oublie les alertes", "plus d alertes", "annule l alerte", "arrete de surveiller", "efface les alertes"] },
     { id: "ackBox", family: "command", exact: ["compris", "recu", "bien recu", "ok", "d accord", "ok je rentre", "je rentre", "box box", "box", "copie", "ca marche", "c est note"] },
+    { id: "radioBattle", family: "radio", idioms: ["on se bat", "je me bats", "je suis en bagarre", "mode bagarre", "laisse moi me battre", "je suis en duel"] },
+    { id: "radioHome", family: "radio", idioms: ["on ramene la voiture", "je ramene la voiture", "ramener la voiture", "on assure", "on securise"] },
+    { id: "radioEssential", family: "radio", idioms: ["juste l essentiel", "que l essentiel", "seulement l essentiel", "parle moins", "moins d annonces", "moins de messages"] },
+    { id: "radioQuiet", family: "radio", idioms: ["silence radio", "tais toi jusqu au tour", "silence jusqu au tour", "ne me parle plus", "laisse moi tranquille", "plus d annonces"] },
+    { id: "radioNormal", family: "radio", idioms: ["tu peux reparler", "reprends les annonces", "parle moi a nouveau", "annonces normales", "fin de la bagarre", "c est fini la bagarre", "retour a la normale"] },
+    { id: "coachMe", family: "coach", idioms: ["coach moi", "coache moi", "fais moi progresser", "aide moi a progresser", "donne moi un conseil de pilotage", "comment aller plus vite"] },
+    { id: "whereLose", family: "coach", idioms: ["ou je perds", "ou est ce que je perds", "ou je perds du temps", "ou est ce que je perds du temps", "mon point faible", "quel virage je perds"] },
     { id: "repeat", family: "command", exact: ["repete", "tu peux repeter", "redis", "quoi", "pardon", "repete s il te plait"] },
     { id: "mute", family: "command", exact: ["silence", "tais toi", "coupe les annonces", "mute", "chut"] },
   ],
@@ -224,6 +249,13 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["i m staying out", "i am staying out", "staying out", "stay out", "negative staying out", "not pitting", "i m not pitting"] },
     { id: "watchCancel", family: "command", idioms: ["cancel the alerts", "cancel alerts", "cancel my alerts", "clear alerts", "stop watching", "forget the alerts"] },
     { id: "ackBox", family: "command", exact: ["copy", "copy that", "understood", "roger", "ok", "okay", "boxing", "box box", "box", "got it", "pitting this lap"] },
+    { id: "radioBattle", family: "radio", idioms: ["we re fighting", "we are fighting", "i m in a battle", "i am in a battle", "battle mode", "let me race"] },
+    { id: "radioHome", family: "radio", idioms: ["bring it home", "bring the car home", "bringing it home", "just bring it home"] },
+    { id: "radioEssential", family: "radio", idioms: ["just the essentials", "essentials only", "only the essentials", "talk less", "less talking", "fewer calls"] },
+    { id: "radioQuiet", family: "radio", idioms: ["radio silence", "quiet until lap", "be quiet until", "stop talking", "leave me alone", "no more calls"] },
+    { id: "radioNormal", family: "radio", idioms: ["you can talk again", "resume calls", "talk to me again", "back to normal", "normal calls", "battle is over"] },
+    { id: "coachMe", family: "coach", idioms: ["coach me", "help me improve", "make me faster", "give me driving advice", "driving tip", "how to go faster"] },
+    { id: "whereLose", family: "coach", idioms: ["where am i losing", "where do i lose", "where am i losing time", "where do i lose time", "my weak spot", "which corner am i losing"] },
     { id: "repeat", family: "command", exact: ["repeat", "say again", "what", "again", "come again", "pardon"] },
     { id: "mute", family: "command", exact: ["mute", "quiet", "shut up", "silence"] },
   ],
@@ -253,6 +285,13 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["me quedo fuera", "nos quedamos fuera", "sigo en pista", "no entro", "negativo me quedo"] },
     { id: "watchCancel", family: "command", idioms: ["cancela las alertas", "cancela mis alertas", "borra las alertas", "olvida las alertas"] },
     { id: "ackBox", family: "command", exact: ["entendido", "recibido", "ok", "vale", "de acuerdo", "entro", "box box", "box", "copiado"] },
+    { id: "radioBattle", family: "radio", idioms: ["estoy peleando", "estamos peleando", "modo batalla", "estoy en una pelea", "dejame pelear"] },
+    { id: "radioHome", family: "radio", idioms: ["llevamos el coche a casa", "llevar el coche a casa", "asegurar el coche", "aseguramos"] },
+    { id: "radioEssential", family: "radio", idioms: ["solo lo esencial", "lo esencial", "habla menos", "menos mensajes"] },
+    { id: "radioQuiet", family: "radio", idioms: ["silencio de radio", "silencio hasta la vuelta", "callate hasta la vuelta", "no me hables", "dejame tranquilo"] },
+    { id: "radioNormal", family: "radio", idioms: ["puedes volver a hablar", "vuelve a hablar", "mensajes normales", "vuelta a la normalidad", "se acabo la pelea"] },
+    { id: "coachMe", family: "coach", idioms: ["entrename", "ayudame a mejorar", "hazme mas rapido", "dame un consejo de pilotaje", "como ir mas rapido"] },
+    { id: "whereLose", family: "coach", idioms: ["donde pierdo", "donde pierdo tiempo", "donde estoy perdiendo", "mi punto debil", "en que curva pierdo"] },
     { id: "repeat", family: "command", exact: ["repite", "repitelo", "otra vez", "que", "perdon"] },
     { id: "mute", family: "command", exact: ["silencio", "callate", "calla"] },
   ],
@@ -282,6 +321,13 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["ich bleibe draussen", "wir bleiben draussen", "ich komme nicht rein", "negativ ich bleibe", "bleibe draussen"] },
     { id: "watchCancel", family: "command", idioms: ["alarme loschen", "alle alarme loschen", "alarme abbrechen", "vergiss die alarme"] },
     { id: "ackBox", family: "command", exact: ["verstanden", "roger", "ok", "okay", "alles klar", "ich komme rein", "box box", "box", "kopiert"] },
+    { id: "radioBattle", family: "radio", idioms: ["wir kampfen", "ich kampfe", "kampfmodus", "ich bin im zweikampf", "lass mich kampfen"] },
+    { id: "radioHome", family: "radio", idioms: ["bring das auto heim", "auto nach hause bringen", "wir bringen es nach hause", "sicher ins ziel"] },
+    { id: "radioEssential", family: "radio", idioms: ["nur das wesentliche", "nur das notigste", "weniger funk", "rede weniger"] },
+    { id: "radioQuiet", family: "radio", idioms: ["funkstille", "ruhe bis runde", "still bis runde", "lass mich in ruhe", "keine ansagen mehr"] },
+    { id: "radioNormal", family: "radio", idioms: ["du kannst wieder reden", "ansagen wieder an", "zuruck zum normalen", "der kampf ist vorbei"] },
+    { id: "coachMe", family: "coach", idioms: ["coache mich", "hilf mir besser zu werden", "mach mich schneller", "gib mir einen fahrtipp", "wie werde ich schneller"] },
+    { id: "whereLose", family: "coach", idioms: ["wo verliere ich", "wo verliere ich zeit", "meine schwachstelle", "in welcher kurve verliere ich"] },
     { id: "repeat", family: "command", exact: ["wiederhole", "noch mal", "was", "wie bitte", "nochmal"] },
     { id: "mute", family: "command", exact: ["stumm", "ruhe", "halt den mund"] },
   ],
@@ -311,6 +357,13 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["resto fuori", "restiamo fuori", "rimango fuori", "resto in pista", "rimango in pista", "non rientro", "negativo resto fuori", "non mi fermo"] },
     { id: "watchCancel", family: "command", idioms: ["annulla gli avvisi", "annulla i miei avvisi", "cancella gli avvisi", "annulla gli allarmi", "cancella gli allarmi", "dimentica gli avvisi", "annulla l avviso", "smetti di controllare"] },
     { id: "ackBox", family: "command", exact: ["ricevuto", "capito", "ok", "okay", "va bene", "d accordo", "rientro", "box box", "box", "copiato", "chiaro", "perfetto"] },
+    { id: "radioBattle", family: "radio", idioms: ["sto lottando", "stiamo lottando", "modalita battaglia", "sono in lotta", "lasciami lottare"] },
+    { id: "radioHome", family: "radio", idioms: ["portiamo a casa la macchina", "porta a casa la macchina", "portiamola a casa", "portare a casa la macchina"] },
+    { id: "radioEssential", family: "radio", idioms: ["solo l essenziale", "l essenziale", "parla meno", "meno messaggi"] },
+    { id: "radioQuiet", family: "radio", idioms: ["silenzio radio", "zitto fino al giro", "silenzio fino al giro", "non parlarmi", "lasciami in pace"] },
+    { id: "radioNormal", family: "radio", idioms: ["puoi riparlare", "riprendi gli annunci", "torna a parlare", "annunci normali", "la battaglia e finita"] },
+    { id: "coachMe", family: "coach", idioms: ["allenami", "aiutami a migliorare", "fammi andare piu veloce", "dammi un consiglio di guida", "come andare piu veloce"] },
+    { id: "whereLose", family: "coach", idioms: ["dove perdo", "dove perdo tempo", "dove sto perdendo", "il mio punto debole", "in che curva perdo"] },
     { id: "repeat", family: "command", exact: ["ripeti", "puoi ripetere", "ripeti per favore", "come", "cosa", "scusa", "di nuovo", "non ho capito"] },
     { id: "mute", family: "command", exact: ["silenzio", "zitto", "stai zitto", "taci", "muto"] },
   ],
@@ -359,6 +412,8 @@ export function extractEntities(norm: string, lang: string): Entities {
   }
   const cm = / (?:la|le|numero|number|no|nummer|#|voiture|car|coche|auto|wagen|el|der|die|das|macchina|vettura) (\d{1,3}) /.exec(n);
   if (cm) e.carNo = cm[1];
+  const lm = / (?:tour|lap|vuelta|runde|giro) (\d{1,3}) /.exec(n);
+  if (lm) e.lap = Number(lm[1]);
   return e;
 }
 
@@ -440,6 +495,8 @@ export const INTENT_HELP: Partial<Record<AnswerIntent, string>> = {
   remaining: "laps or time remaining",
   battery: "hybrid battery and virtual energy",
   brakeBias: "brake bias",
+  coachMe: "driving coaching: the corners where I lose the most time and what to change",
+  whereLose: "where on the lap I lose the most time",
 };
 
 // ── Routage ──────────────────────────────────────────────────────────────────

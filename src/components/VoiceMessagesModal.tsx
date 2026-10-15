@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { previewVoice } from "@/lib/voice";
+import { splitVariants } from "@/lib/engineer/variants";
 import {
   VOICE_MESSAGE_GROUPS,
   type VoiceMsgDef,
@@ -114,7 +115,9 @@ export function VoiceMessagesModal({ onClose }: { onClose: () => void }) {
 
   const handlePlay = (def: VoiceMsgDef) => {
     commit(def.key);
-    let text = fillVars(drafts[def.key] ?? "", def.sample);
+    // Plusieurs formulations (« A | B ») : on en fait entendre une au hasard.
+    const variants = splitVariants(fillVars(drafts[def.key] ?? "", def.sample));
+    let text = variants[Math.floor(Math.random() * variants.length)] ?? "";
     if (def.appendTime)
       text = `${text} ${t("live.vLapTime", { min: t("live.vMinOne"), sec: "23.4" })}`;
     previewVoice(text, lang);

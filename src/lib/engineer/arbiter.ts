@@ -45,9 +45,16 @@ export interface Candidate {
   retryS?: number;
   /** TTL de la file vocale (ms) une fois prononcé. */
   ttlMs?: number;
+  /** Moment où le prénom du pilote peut être dit (`variants.ts`). */
+  moment?: string;
+  /**
+   * Gabarit complet (toutes variantes) quand `text` est une variante tirée :
+   * l'anti-redite compare le fond, pas la formulation du jour.
+   */
+  canon?: string;
 }
 
-export type RejectReason = "cooldown" | "dominated" | "burst" | "too-long" | "expired" | "duplicate";
+export type RejectReason = "cooldown" | "dominated" | "burst" | "too-long" | "expired" | "duplicate" | "repeat";
 
 export interface Decision {
   /** À prononcer, dans l'ordre (critiques d'abord, puis le dominant). */
@@ -60,8 +67,10 @@ export const BURST_MAX = 3;
 export const BURST_WINDOW_S = 12;
 /** Nombre max de fragments collés dans une même phrase fusionnée. */
 export const GROUP_MAX_FRAGMENTS = 2;
+/** Anti-redite : une phrase déjà dite n'est pas redite avant N tours (réglage). */
+export const TEXT_REPEAT_LAPS = 5;
 
-const RANK: Record<VoicePriority, number> = { critical: 3, normal: 2, chatty: 1, coach: 1 };
+const RANK: Record<VoicePriority, number> = { spotter: 4, critical: 3, normal: 2, chatty: 1, coach: 1 };
 
 interface Fused extends Candidate {
   parts?: Candidate[];
@@ -73,12 +82,22 @@ export class RadioArbiter {
   private said = new Map<string, { t: number; lap: number }>();
   private pending: { c: Candidate; until: number }[] = [];
   private recent: number[] = [];
+  /** Phrases déjà dites (texte exact → tour) : anti-redite et anti-oscillation A-B-A. */
+  private texts = new Map<string, number>();
+  /**
+   * Fenêtre de l'anti-redite (tours) ; 0 = coupé. Un même texte, quel que soit
+   * l'émetteur, n'est pas redit avant ce délai : une info qui bascule
+   * (« la pluie arrive » / « la pluie s'arrête » / « la pluie arrive ») n'est
+   * plus répétée en boucle.
+   */
+  textRepeatLaps = 0;
 
   /** Oublie tout (nouvelle session). */
   reset(): void {
     this.said.clear();
     this.pending = [];
     this.recent = [];
+    this.texts.clear();
   }
 
   /** Vrai si `key` a été prononcée il y a moins de `s` secondes. */
@@ -138,6 +157,13 @@ export class RadioArbiter {
         rejected.push({ c, reason: "cooldown" });
         continue;
       }
+      if (c.prio !== "critical" && this.textRepeatLaps > 0) {
+        const at = this.texts.get(c.canon ?? c.text);
+        if (at != null && lap - at < this.textRepeatLaps) {
+          rejected.push({ c, reason: "repeat" });
+          continue;
+        }
+      }
       live.push(c);
     }
 
@@ -169,6 +195,7 @@ export class RadioArbiter {
         prio: top.prio,
         score: Math.max(...keep.map((c) => c.score ?? 0)),
         ttlMs: Math.max(...keep.map((c) => c.ttlMs ?? 0)) || undefined,
+        moment: keep.find((c) => c.moment)?.moment,
         parts: keep,
       });
     }
@@ -195,7 +222,10 @@ export class RadioArbiter {
 
     // Mémoire d'anti-radotage : chaque fragment prononcé compte pour sa clé.
     for (const c of spoken) {
-      for (const part of (c as Fused).parts ?? [c]) this.said.set(part.key, { t: nowS, lap });
+      for (const part of (c as Fused).parts ?? [c]) {
+        this.said.set(part.key, { t: nowS, lap });
+        if (part.prio !== "critical") this.texts.set(part.canon ?? part.text, lap);
+      }
     }
     return { spoken, rejected };
   }

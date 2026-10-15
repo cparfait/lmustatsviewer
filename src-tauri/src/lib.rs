@@ -223,6 +223,7 @@ pub fn run() {
             commands::overlay::refresh_overlay_bounds,
             // Synthèse vocale neuronale (Piper)
             commands::tts::tts_synthesize,
+            commands::tts::tts_warmup,
             commands::tts::tts_available,
             commands::tts::tts_list_voices,
             // Téléchargement à la demande des modèles vocaux (voix Piper, Vosk)

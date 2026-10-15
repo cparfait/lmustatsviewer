@@ -102,6 +102,14 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
   {
     id: "rivals",
     items: [
+      // Spotter de proximité (réglage, bêta).
+      { key: "vSpotLeft", vars: [] },
+      { key: "vSpotRight", vars: [] },
+      { key: "vSpotThree", vars: [] },
+      { key: "vSpotClear", vars: [] },
+      { key: "vSpotClearLeft", vars: [] },
+      { key: "vSpotClearRight", vars: [] },
+      { key: "vSpotStill", vars: [] },
       { key: "vGapAhead", vars: [] },
       { key: "vUnderAttack", vars: [] },
       { key: "vGapLeader", vars: ["time"], sample: { time: "12 secondes" } },
@@ -157,6 +165,8 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
   {
     id: "race",
     items: [
+      // Préfixe d'une annonce coupée puis redite (« Je répète : … »).
+      { key: "vRepeatPrefix", vars: [] },
       { key: "vFinalLap", vars: [] },
       { key: "vHalfway", vars: [] },
       { key: "vBlueFlag", vars: [] },
@@ -207,6 +217,10 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       // Renforcement positif §1.4 (P2.4) : {{d}} = dixièmes repris.
       { key: "vCornerResolved", vars: ["n", "d"], sample: { n: 3, d: 2 } },
       { key: "vCornerClean", vars: ["n"], sample: { n: 3 } },
+      // Coach rigoureux : conseil retiré (il a empiré le passage) + annonce de
+      // la vérification ajoutée au conseil la 1ʳᵉ fois.
+      { key: "vCornerWorse", vars: ["n"], sample: { n: 3 } },
+      { key: "vCornerWatching", vars: [] },
       // Callouts prédictifs Découverte (§8, P3.3) : repère ApexPoints avant le
       // freinage. {{name}} = nom du virage, {{marker}} = panneau (m), {{gear}} = rapport.
       {

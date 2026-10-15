@@ -32,7 +32,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@/lib/api";
 
-export type VoicePriority = "critical" | "normal" | "chatty" | "coach";
+export type VoicePriority = "spotter" | "critical" | "normal" | "chatty" | "coach";
 export type VoiceEngine = "piper" | "system";
 
 /** Code langue app (2 lettres) → BCP-47. */
@@ -169,17 +169,44 @@ export function pickVoice(lang: string): SpeechSynthesisVoice | null {
 
 // ── File à priorité + fraîcheur ───────────────────────────────────────────────
 
+/** Options de diffusion d'une annonce (toutes facultatives). */
+export interface SpeakOpts {
+  /**
+   * Coupée en cours de lecture par une annonce plus urgente → redite **une**
+   * fois, précédée de ce préfixe (« Je répète, »), si elle est encore fraîche.
+   */
+  replayPrefix?: string;
+  /**
+   * Annonce importante : périmée dans la file sans avoir jamais été jouée →
+   * remise **une** fois en file (nouvelle durée de vie), puis abandonnée.
+   */
+  retryIfLost?: boolean;
+  /**
+   * Tenue du canal (ms) : après cette annonce, aucune annonce non critique ne
+   * démarre pendant ce délai (le spotter garde la parole).
+   */
+  holdChannelMs?: number;
+}
+
 interface QueueItem {
   text: string;
   lang: string;
   priority: VoicePriority;
   /** Date limite (ms epoch) au-delà de laquelle l'annonce est périmée. */
   expiry: number;
+  /** Durée de vie initiale (ms) — resservie pour une reprise. */
+  ttl: number;
   /** Appelé à la **fin naturelle** de la lecture (pas sur interruption). */
   onEnd?: () => void;
+  opts?: SpeakOpts;
+  /** Déjà reprise une fois (coupure ou perte) : jamais deux. */
+  retried?: boolean;
 }
 
 const PRIORITY_RANK: Record<VoicePriority, number> = {
+  // Spotter de proximité (« voiture à gauche ») : passe avant tout, coupe même
+  // une alerte critique — c'est l'information la plus urgente à 250 km/h.
+  spotter: 4,
   critical: 3,
   normal: 2,
   chatty: 1,
@@ -192,6 +219,8 @@ const PRIORITY_RANK: Record<VoicePriority, number> = {
 
 /** Durée de vie d'une annonce selon sa priorité (ms). */
 const TTL: Record<VoicePriority, number> = {
+  // Un « voiture à gauche » dit 2 s trop tard est faux : il périme très vite.
+  spotter: 1500,
   critical: 12000,
   normal: 7000,
   chatty: 4000,
@@ -210,10 +239,92 @@ interface Playback {
   text: string;
   rank: number;
   end: (roger: boolean) => void;
+  /** Annonce d'origine (reprise après coupure). */
+  item: QueueItem;
 }
 
 let queue: QueueItem[] = [];
 let current: Playback | null = null;
+
+// ── Quand ne pas entamer une phrase ──────────────────────────────────────────
+// Ces gardes **retiennent** une annonce non critique dans la file (elle part dès
+// que la voie est libre, ou périme) ; elles ne coupent jamais une phrase en cours,
+// sauf la prise de parole du pilote. La sécurité (`critical`) passe toujours.
+
+/** Garde « pilote occupé » posée par l'ingénieur (freinage proche, virage…). */
+let busyGate: (() => boolean) | null = null;
+/** Le pilote parle (push-to-talk tenu) : rien de non critique ne démarre. */
+let driverTalking = false;
+/** Canal tenu (spotter) jusqu'à cette date (ms epoch). */
+let channelHoldUntil = 0;
+/** Réessai programmé d'une annonce retenue. */
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+/** Reprise des annonces coupées / perdues (réglage, défaut actif). */
+let replayEnabled = true;
+/** Silence radio pendant que le pilote parle (réglage, défaut actif). */
+let talkSilence = true;
+
+/**
+ * Pose (ou retire avec `null`) la garde « pilote occupé ». Revérifiée **juste
+ * avant** chaque prise de parole non critique, pas seulement à la décision.
+ */
+export function setSpeechGate(gate: (() => boolean) | null) {
+  busyGate = gate;
+}
+
+/** Active / coupe la reprise des annonces coupées ou perdues. */
+export function setSpeechReplay(on: boolean) {
+  replayEnabled = on;
+}
+
+/** Active / coupe le silence radio pendant la prise de parole du pilote. */
+export function setTalkSilence(on: boolean) {
+  talkSilence = on;
+  if (!on) void pump();
+}
+
+/** Remet une annonce coupée en tête de sa priorité (une seule fois). */
+function requeueCut(item: QueueItem) {
+  if (!replayEnabled || item.retried || !item.opts?.replayPrefix) return;
+  if (item.expiry <= Date.now()) return;
+  queue.unshift({
+    ...item,
+    text: `${item.opts.replayPrefix} ${item.text}`,
+    retried: true,
+    expiry: Date.now() + item.ttl,
+  });
+}
+
+/**
+ * Le pilote prend / rend la parole (push-to-talk). À la prise : l'annonce non
+ * critique en cours est coupée (et reprise plus tard si elle le prévoit). Au
+ * relâchement : la file repart.
+ */
+export function setDriverTalking(on: boolean) {
+  driverTalking = on;
+  if (on && talkSilence && current && current.rank < PRIORITY_RANK.critical) {
+    const cut = current;
+    cut.end(false);
+    requeueCut(cut.item);
+  }
+  if (!on) void pump();
+}
+
+/** Une annonce non critique peut-elle démarrer maintenant ? */
+function laneFree(now: number): boolean {
+  if ((talkSilence && driverTalking) || now < channelHoldUntil) return false;
+  try {
+    return !busyGate?.();
+  } catch {
+    return true; // garde en erreur : on ne bâillonne pas la radio
+  }
+}
+
+/** Marque le canal tenu (spotter) à la prise et à la fin de parole. */
+function holdChannel(item: QueueItem) {
+  const ms = item.opts?.holdChannelMs;
+  if (ms && ms > 0) channelHoldUntil = Math.max(channelHoldUntil, Date.now() + ms);
+}
 /** Dernière annonce émise (callout auto OU spotter) — pour la commande « Répète ». */
 let lastSpokenText = "";
 let lastSpokenLang = "";
@@ -265,8 +376,10 @@ function playSpeech(item: QueueItem) {
     }
     if (roger) radioEnd();
     else radioInterrupt();
+    holdChannel(item);
   };
-  const pb: Playback = { text: item.text, rank: PRIORITY_RANK[item.priority], end };
+  const pb: Playback = { text: item.text, rank: PRIORITY_RANK[item.priority], end, item };
+  holdChannel(item);
   u.onend = () => {
     end(true);
     item.onEnd?.();
@@ -311,8 +424,10 @@ function playBuffer(ctx: AudioContext, buffer: AudioBuffer, item: QueueItem) {
     if (current === pb) current = null;
     if (roger) radioEnd();
     else radioInterrupt();
+    holdChannel(item);
   };
-  const pb: Playback = { text: item.text, rank: PRIORITY_RANK[item.priority], end };
+  const pb: Playback = { text: item.text, rank: PRIORITY_RANK[item.priority], end, item };
+  holdChannel(item);
   src.onended = () => {
     end(true);
     item.onEnd?.();
@@ -376,8 +491,11 @@ export async function prewarmSpeech(texts: string[], lang: string): Promise<void
   if (piperUnavailable.has(code)) return;
   const ctx = audioContext();
   if (!ctx) return;
-  for (const text of texts) {
-    if (!text) continue;
+  for (const raw of texts) {
+    if (!raw) continue;
+    // Même normalisation que `speak` : sinon la clé ne correspond jamais au
+    // texte réellement dit dès qu'il contient un chiffre ou une unité.
+    const text = normalizeForTts(raw, lang);
     const key = synthKey(code, text);
     if (synthCache.has(key)) continue;
     const buffer = await synthBuffer(ctx, code, text);
@@ -389,6 +507,42 @@ export async function prewarmSpeech(texts: string[], lang: string): Promise<void
 /** Vide le cache de pré-synthèse (changement de combo / arrêt du coach). */
 export function clearSpeechCache() {
   synthCache.clear();
+  fixedKeys.length = 0;
+}
+
+// Phrases fixes (drapeaux, box, spotter…) : sans chiffre et courtes, elles
+// reviennent mot pour mot. On garde leur tampon nu (l'habillage radio est
+// appliqué à chaque lecture) pour les rejouer sans repasser par Piper. Plafond
+// bas : un tampon de 2-3 s pèse quelques centaines de Ko.
+const FIXED_MAX = 60;
+const fixedKeys: string[] = [];
+
+function isFixedPhrase(text: string): boolean {
+  return text.length <= 70 && !/\d/.test(text);
+}
+
+function rememberPhrase(key: string, buffer: AudioBuffer) {
+  if (synthCache.has(key)) return;
+  synthCache.set(key, buffer);
+  fixedKeys.push(key);
+  if (fixedKeys.length > FIXED_MAX) synthCache.delete(fixedKeys.shift()!);
+}
+
+/**
+ * Démarre la voix Piper de la langue sans rien dire (le moteur garde le modèle
+ * chargé) : la première vraie annonce n'attend plus le chargement. Best-effort.
+ */
+export function warmupVoice(lang: string) {
+  if (engine !== "piper" || !isTauri()) return;
+  const code = norm(lang);
+  invoke("tts_warmup", {
+    lang: code,
+    voiceId: preferredPiperByLang[code] || undefined,
+    rate: speechRate,
+    speakerId: preferredSpeakerByLang[code] || undefined,
+  }).catch(() => {
+    /* moteur absent ou commande inconnue : la première phrase sera juste plus lente */
+  });
 }
 
 /** Tente la synthèse Piper + lecture. Renvoie false si indisponible/échec. */
@@ -399,8 +553,14 @@ async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
   const ctx = audioContext();
   if (!ctx) return false;
   const g = generation;
-  // Callout pré-synthétisé (P3.3) → lecture immédiate, sans appel Piper.
-  const raw = synthCache.get(synthKey(code, item.text)) ?? (await synthBuffer(ctx, code, item.text));
+  // Callout pré-synthétisé (P3.3) ou phrase fixe déjà dite → lecture immédiate,
+  // sans appel Piper.
+  const key = synthKey(code, item.text);
+  let raw = synthCache.get(key) ?? null;
+  if (!raw) {
+    raw = await synthBuffer(ctx, code, item.text);
+    if (raw && isFixedPhrase(item.text)) rememberPhrase(key, raw);
+  }
   if (!raw) return false; // Piper indisponible → repli voix système
   // Annulé entre-temps (`cancelSpeech`) : rien ne joue — pas même en repli.
   if (g !== generation) return true;
@@ -414,11 +574,32 @@ async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
 async function pump() {
   if (current || busy) return;
   const now = Date.now();
-  queue = queue.filter((it) => it.expiry > now); // purge des périmés
+  // Purge des périmés. Une annonce importante qui n'a jamais pu passer (file
+  // retenue, pilote occupé) a droit à une seconde chance, une seule.
+  const alive: QueueItem[] = [];
+  for (const it of queue) {
+    if (it.expiry > now) alive.push(it);
+    else if (replayEnabled && it.opts?.retryIfLost && !it.retried) {
+      alive.push({ ...it, retried: true, expiry: now + it.ttl });
+    }
+  }
+  queue = alive;
   if (queue.length === 0) return;
   // Plus haute priorité d'abord (ordre d'insertion conservé à priorité égale).
   queue.sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority]);
-  const item = queue.shift()!;
+  // La sécurité part toujours ; le reste attend que la voie soit libre.
+  const free = laneFree(now);
+  const idx = queue.findIndex((it) => PRIORITY_RANK[it.priority] >= PRIORITY_RANK.critical || free);
+  if (idx < 0) {
+    if (!retryTimer) {
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        void pump();
+      }, 150);
+    }
+    return;
+  }
+  const item = queue.splice(idx, 1)[0];
   busy = true;
   try {
     const played = await trySynthAndPlay(item);
@@ -494,6 +675,7 @@ export function speak(
   lang: string,
   priority: VoicePriority = "normal",
   ttlMs?: number,
+  opts?: SpeakOpts,
 ) {
   if (!text || (!speechSupported() && !isTauri())) return;
   text = normalizeForTts(text, lang);
@@ -502,9 +684,13 @@ export function speak(
   if (current?.text === text) return;
   if (queue.some((it) => it.text === text)) return;
   const ttl = ttlMs !== undefined && ttlMs > 0 ? ttlMs : TTL[priority];
-  queue.push({ text, lang, priority, expiry: Date.now() + ttl });
+  queue.push({ text, lang, priority, expiry: Date.now() + ttl, ttl, opts });
   if (current && PRIORITY_RANK[priority] > current.rank) {
-    current.end(false); // interrompt l'annonce en cours, moins prioritaire
+    // Interrompt l'annonce en cours, moins prioritaire ; elle sera redite une
+    // fois après (« Je répète… ») si elle le prévoit et reste fraîche.
+    const cut = current;
+    cut.end(false);
+    requeueCut(cut.item);
   }
   void pump();
 }
@@ -513,6 +699,10 @@ export function speak(
 export function cancelSpeech() {
   generation++; // invalide toute synthèse Piper en vol
   queue = [];
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
   if (current) current.end(false);
   current = null;
   if (speechSupported()) window.speechSynthesis.cancel();
@@ -539,6 +729,7 @@ export function announce(text: string, lang: string, onEnd?: () => void) {
     lang,
     priority: "critical",
     expiry: Date.now() + TTL.critical,
+    ttl: TTL.critical,
     onEnd,
   });
   void pump();

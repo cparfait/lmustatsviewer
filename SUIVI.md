@@ -859,6 +859,212 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-15 — Coach audio : lots A à E en une passe (suite de la veille du jour)
+
+**Demande** : « fais tout en une passe » (les 5 lots proposés dans l'entrée suivante).
+Mécanismes réécrits en TS/Rust, aucune ligne reprise, aucun nom de concurrent dans le
+code (vérifié par `git grep`). Chaque comportement nouveau a son réglage pour revenir
+à l'ancien (règle « ne jamais perdre de fonctionnalité »).
+
+- ✅ **Lot A — parler au bon moment** :
+  - `engineer/focus.ts` : `BrakeMap` apprend les attaques de pédale (≥ 0,2, > 60 km/h,
+    fusion à 40 m, « connu » si vu sur 2 tours, gardé entre sessions du même circuit) ;
+    `driverBusy` = < 200 m d'un freinage connu, frein > 0,15, volant > 0,30
+    (télémétrie > 1 s → levée).
+  - `voice.ts` : garde `setSpeechGate` revérifiée **juste avant** chaque prise de parole
+    non critique (ingénieur ET coach → fenêtres coordonnées) ; file retenue, réessai
+    toutes les 150 ms ; TTL des annonces non critiques porté à 10 s quand la garde est
+    active. `setDriverTalking` branché dans `mic.ts` (start/stop capture) : PTT tenu →
+    l'annonce non critique en cours est coupée (et reprise), rien ne démarre.
+  - `engineer/policy.ts` (`RadioPolicy`, dans `engineer.policy`) : familles sécurité /
+    décision / situation / confort ; phases (départ jusqu'à 20 s après le tour 1 —
+    sauf ingénieur lancé en cours de course —, stands, gel stratégie 20 dernières min
+    ou 2 derniers tours avec le box critique conservé, damier, 30 s après un choc,
+    20 s après un box).
+  - Réglages `radioQuietZones` (`voice_quiet_zones`), `radioPhases` (`voice_race_phases`).
+- ✅ **Lot B — être sûr d'être entendu** (`radioReplay`, `voice_replay`) : préemption →
+  la phrase coupée revient une fois en tête (« Je répète : », `live.vRepeatPrefix`) si
+  encore fraîche ; annonce importante (critique ou « décision ») périmée sans avoir été
+  jouée → une seconde chance ; arbitre : anti-redite par texte (5 tours, champ `canon`
+  = gabarit complet pour ignorer la variante tirée).
+- ✅ **Lot C — voix** :
+  - Rust `tts.rs` : **worker Piper persistant** (`--json-input --output_dir`, un process
+    par modèle + `length_scale`, lecture stdout sur thread + `recv_timeout`, repli sur
+    l'ancien lancement ponctuel, commandes passées en `async`) + commande `tts_warmup`.
+    Mesuré : 470-1030 ms → 65-350 ms après la 1ʳᵉ phrase.
+  - Cache LRU (60) des phrases fixes sans chiffre ; préchauffage au démarrage des
+    annonces (drapeaux, box, crevaison, limiteur, + spotter) ; `prewarmSpeech`
+    normalise désormais le texte (les clés de cache ne collaient pas dès qu'il y avait
+    un chiffre — bug latent des callouts prédictifs).
+  - `engineer/variants.ts` : variantes `A | B | C` (rotation sans redite consécutive,
+    départ tiré par session) — 10 gabarits fréquents × 5 langues ; aperçu aléatoire
+    dans l'éditeur ; prénom dosé (`radioDriverName`, moments formation / dernier tour
+    100 %, tête / podium / record 50 %, ≥ 210 s, jamais deux de suite, jamais en alerte).
+  - Chronos au dixième (`voiceLapPrecision`, défaut `tenth`, `ms` = historique).
+- ✅ **Lot D — coach rigoureux** (`coachRigor`, défaut actif) dans `coach/voice.ts` :
+  échantillons de temps par virage (≤ 12), « avant » figé au moment où le conseil est
+  **réellement dit**, verdict de Welch (|t| ≥ 2, écart ≥ 0,05 s, plancher d'erreur
+  0,02 s) dès 3 passages « après » ; « mieux » → dixièmes repris ; « pire » →
+  `vCornerWorse` + virage clos ; inchangé à 6 passages → silence + virage clos ; non
+  concluant à 8 tours → libéré ; conseil dit une fois + `vCornerWatching` ; course :
+  12 tours entre deux conseils. Réponses locales « coach-moi » / « où je perds »
+  (`coachCornerLosses()` dans `coach/service.ts`).
+- ✅ **Lot E** :
+  - Régimes à la voix (`radioBattle/Home/Essential/Quiet/Normal` dans `router.ts`,
+    5 langues, « tais-toi jusqu'au tour N » via l'entité `lap`) — passent par
+    Alt+C (donc seulement si le Coach IA est configuré) ; « tais-toi » seul reste la
+    coupure totale historique.
+  - Budgets par tour en course (`radioBudgets`) : situation 1/tour, confort 1/3 tours
+    (essentiel : 3 / jamais), 2 messages max par rival et par tour.
+  - **Spotter de proximité** (`proximitySpotter`, défaut **off**, bêta) : Rust
+    `live.rs` expose `nearby` (repère joueur, calibration auto des axes par votes
+    vitesse/accélération latérale) + `spotter_calibrated` ; `engineer/proximity.ts`
+    (entrée 4,5/4,9 m, sortie 5,4 m, latéral 1,2-7 m, muet < 10 m/s ou |Δv| > 12 m/s,
+    2 trames de confirmation, « toujours là » / 5 s) ; nouvelle priorité vocale
+    `spotter` (rang 4, TTL 1,5 s) qui tient le canal 4 s.
+- ✅ **Coach ≠ Coach IA** (retour utilisateur) : la touche Alt+C devient « Parler à
+  l'ingénieur », déplacée de l'onglet Coach IA vers Audio / Voix (avec « Réponses
+  instantanées sans IA »), et **écoute sans IA configurée** : commandes radio, questions
+  de course et « coach-moi » en local ; sans IA, une intention reconnue est toujours
+  répondue en local, une ambiguë prend la meilleure candidate, une question ouverte →
+  `coach.voiceNoAi`. Note de renvoi dans l'onglet Coach IA. Vérifié à l'écran via le
+  serveur de dev (état forcé `voiceAnnouncements` par import du store).
+- ✅ Config (onglet Voix) : 7 réglages + coach rigoureux ; i18n 5 langues (gabarits,
+  `vmWhen`, réglages) ; nouveaux gabarits éditables ; changelog 1.0.10 (`dev: true`).
+- ✅ Contrôles : `tsc -b` OK, lint OK, **428 tests** (+ suite `radio.suite.ts`, 110
+  assertions), `npm run build` OK, `cargo check` OK, `cargo test` 29 OK.
+- ⚠️ **Rien de testé en jeu.** À vérifier en piste : apprentissage des freinages (silence
+  avant chaque gros freinage dès le tour 3), PTT qui coupe la radio, latence Piper réelle
+  en build release, verdicts du coach sur une séance d'essais, et surtout le spotter
+  (calibration, côtés gauche/droite, faux positifs voie des stands).
+- 📋 **Prochaine étape** : séance d'essais 20 min + course courte multiclasse avec le
+  spotter activé ; noter tout faux « voiture à gauche/droite » et toute phrase entamée
+  dans un freinage.
+
+### 2026-10-15 — Veille TrackMind, 2ᵉ passe avec l'outil REA (aucun code modifié)
+
+**Demande** : installer `rea-agents` (outil de rétro-ingénierie, MCP + skill Claude Code)
+et analyser l'app TrackMind installée (`C:\Program Files\TrackMind`, build du 2026-09-22).
+Complète l'entrée du 2026-09-24, ne liste que **le nouveau**. Code propriétaire : idées
+seulement, aucune ligne reprise.
+
+- ✅ **REA installé** : `npx -y rea-agents@6.5.0 setup --client claude_code --yes`
+  (serveur MCP `rea` dans `~/.claude.json`, sauvegarde `.claude.json.rea.backup`, skill
+  `~/.claude/skills/reverse-engineer-anything`). Aucun moteur natif (Ghidra/IDA) configuré :
+  inutile ici, l'app est du Python.
+- ✅ **Méthode** : app = PyInstaller Python 3.12 (`TrackMind.exe` + `_internal/`), donc ni
+  Electron ni binaire natif → REA n'apporte rien de direct. Lecture **statique** de la
+  table des modules du `PYZ.pyz` (script maison en lecture seule, ~3 570 modules) + chaînes
+  de quelques modules + ressources livrées en clair + site. Le serveur local
+  (`127.0.0.1:42001`, Bottle) répond 500 hors de sa fenêtre pywebview : pas creusé.
+- ✅ **Nouveau côté produit** :
+  - **4 simus dans le code** : sources LMU, iRacing, ACC (dont broadcast), **R3E** ; le site
+    annonce « ACC en validation, rF2 prévu ».
+  - **IA = SDK Anthropic embarqué** (Claude), + voix en ligne `edge_tts` à côté de Piper ;
+    STT Parakeet (640 Mo, int8 ONNX) / faster-whisper / Vosk.
+  - **Monétisation en préparation** : licence signée Ed25519 liée à la machine, **paliers**
+    (un palier sans dialogue IA ; un autre limité à N questions IA **par jour**). Les bêta-
+    testeurs tournent en palier « pro » via un jeton bêta (non reproduit ici). La DLL du
+    plugin rF2 est GPL « free only » : leur propre note dit « à ré-examiner à la bascule
+    commerciale ».
+  - **Moments** : clips vidéo automatiques des temps forts (départ réussi, places gagnées,
+    dépassement, coude-à-coude, three-wide, contact) via un exécutable de capture séparé
+    (`TrackMindCapture.exe`), rendu 1080p/2K et **9:16** (réseaux sociaux).
+  - **Réglage auto du menu des stands** : codé pour l'**énergie** (`pit_controle`, boucle
+    fermée Incrément/Décrément + relecture, abandon si `mHWControlInputEnabled = False`,
+    « le pilote garde la main »).
+  - **Carnet d'ingénieur hors ligne** : 11 fiches markdown (sous/survirage, pression et
+    température pneus slick/pluie, pluie, carburant, freinage dégressif, anti-roulis,
+    tour de chauffe, undercut/overcut), chacune avec `confiance` ; « faible » = jamais dite
+    à la radio, seulement donnée en contexte à l'IA. Bonne règle anti-hallucination.
+  - **Laboratoires internes** : `intelligence_lab` (arène de scénarios de conversation,
+    oracles, campagnes) et `replay_lab` (capture + rejeu de séances) pour tester l'ingénieur
+    sans rouler.
+  - **Nouveaux modules « cerveau »** (noms seuls) : jumeau probabiliste/ombre, fantôme,
+    registre et hypothèses de rivaux, rejoin, dégâts, soleil, talonnage, coaching pilotage
+    / geste pilote, diagnostic + lignée + verdict de setup, feuille de relais, équipage.
+  - **Désactivés derrière drapeau** : Régie (`regie_active = False`, « roadmap D22 ») et
+    overlay en jeu (« retours bêta 15/07/2026 »).
+  - **Circuits** : 46 images issues de « track-atlas (OSM/ODbL) » — tracés réels, pas ceux
+    du jeu → incompatible avec notre règle de ne pas intégrer de tracé erroné.
+  - **Site** : mise sur « < 10 ms calcul local, ~100 ms voix, 0 % FPS », connexion bêta par
+    Discord, assistant setup `.svm` annoncé « en validation » (1 levier, 1 cran, validé en piste).
+- 📋 **Idées en plus de ①–⑯** : ⑰ fiches de savoir avec niveau de confiance (seules les
+  sûres sont dites à la voix) pour notre Coach IA ⑱ banc de rejeu de séances pour tester le
+  coach live hors piste (prolonge le corpus du lot 4) ⑲ réglage auto de l'énergie au stand
+  (étude, opt-in, abandon propre si le jeu n'écoute pas).
+- 📋 **Prochaine étape** : arbitrage utilisateur sur ⑰–⑲ ; recommandation = ⑰ (effort
+  faible, renforce la fiabilité du Coach IA, 100 % hors ligne).
+
+**Complément (même jour) — le coaching audio, comparé au nôtre.** Le pack OTA actif
+(`%LOCALAPPDATA%\SLM Engineer\maj\pack_277`, v0.8.26) contient les **sources `.py`
+lisibles** (489 fichiers). Lecture par 3 agents en parallèle : sortie audio (`voix.py`,
+`radio_base.py`, `humanisation.py`…), décision de parole (`cerveau/parole.py`,
+`arbitre_proactif.py`, `concentration.py`, `accuses.py`), coaching de pilotage
+(`coaching_pilotage.py`, `coaching_geste.py`, `fantome.py`) ; un 4ᵉ a cartographié le
+nôtre. Idées seulement, rien de copié.
+- ✅ **Où on est déjà au niveau ou devant** : arbitre 3 lois + rafale 3/12 s, ton avec
+  tenue 30 s, routeur PTT local (même barème), effet radio, et surtout le **diagnostic
+  par virage** (9 causes sur grille 4 m, seuils adaptatifs 2σ/1σ, niveau auto-calibré —
+  le leur ne compare qu'au meilleur tour perso sur 60 tranches à ~4 Hz).
+- ✅ **Leurs mécanismes qui nous manquent** :
+  - **Silence anticipé** : pas de début de phrase non critique à moins de **200 m d'un
+    freinage appris**, frein > 0,15, volant > 0,30, lapeur en train de passer ; revérifié
+    **juste avant le son** (attente max 12 s, puis dite). Chez nous : frein > 0,5 /
+    braquage > 0,4 instantanés (`driving.ts:10`), donc une phrase peut démarrer juste
+    avant le freinage ; et la fenêtre calme du coach (`coach/voice.ts`, gaz ≥ 90 % +
+    temps avant freinage) n'est pas partagée avec l'ingénieur.
+  - **Pilote qui parle** : rien ne démarre pendant le PTT (chez nous : aucune coupure).
+  - **Phases** : départ = affiché sans voix jusqu'à 20 s après le tour 1 ; voie des stands
+    = messages de piste muets ; **20 dernières minutes = stratégie gelée** (un seul point
+    final), pas de box qui ne rapporte rien ; après le damier = débrief seul ; calme
+    après crash (sécurité seule) et après un BOX dit.
+  - **Préemption** : un critique coupe le non critique en cours, vide la file non urgente,
+    et la phrase coupée est **redite une fois** (≤ 12 s). Chez nous : interruption
+    seulement par rang strictement supérieur, rien n'est rejoué.
+  - **Accusé de lecture** : une consigne n'est « en vigueur » qu'au départ réel du son ;
+    perdue → une seule reprise « Je répète… », puis abandon.
+  - **Anti-redite** sur 5 tours : texte déjà dit, oscillation A-B-A, phrase proche d'un
+    autre émetteur. Chez nous : texte exact seulement.
+  - **Budgets par classe et par tour** (situation 1/tour, coaching 1/2 tours, confort
+    1/5 tours) + **2 messages par rival et par tour**.
+  - **Régimes à la voix** : « bagarre » (sécurité seule), « on ramène la voiture »,
+    « juste l'essentiel », « tais-toi jusqu'au tour N » ; mémorisés entre courses.
+  - **Voix** : variantes (pools de 5, départ tiré par séance), prénom ≤ 1 fois / 210 s,
+    jamais de félicitation après une perte ; chronos **au dixième** ; phrases figées
+    (drapeaux, spotter) en **cache + préchauffage** au démarrage. Chez nous : un seul
+    gabarit par clé, chrono au millième lu en entier, et **Piper relancé (process +
+    modèle) à chaque phrase** (`tts.rs:204-233`), sans cache côté ingénieur.
+  - **Coach — verdict honnête** : « avant » = toutes les mesures propres de la zone (≤ 12),
+    « après » = ≥ 3 tours propres, test statistique, attente max 8 tours ; seuls
+    « mieux » et « pire → oublie mon conseil » sont dits ; inchangé/pire **ferme le
+    virage pour la séance**. Chez nous : « voilà, c'est ça » après 2 passages propres
+    (sensible au retour à la moyenne) et aucun « oublie ». Le conseil annonce la
+    vérification (« je regarde les prochains passages »). En course : 12 tours entre deux
+    conseils, détail virage par virage seulement sur « coach-moi ».
+  - **Questions locales** (sans IA) : « coach-moi » (2 virages les plus coûteux),
+    « je freine trop tard à X ? », « où je perds », « ma vitesse en courbe ».
+  - **Spotter de proximité** (gauche/droite/libre, géométrie classique 4,5/4,9 m) qui
+    **tient le canal 4 s** : nous n'avons qu'un spotter à la demande.
+  - **Mode observateur** : chaque candidat journalisé avec son motif de rejet, pour
+    régler l'arbitre par rejeu.
+- 📋 **Propositions (réglages pour garder l'ancien comportement)** :
+  - **Lot A — parler au bon moment** : module de concentration commun ingénieur + coach
+    (zones de freinage déjà connues du coach, seuils 0,15/0,30, revérif avant le son),
+    silence pendant le PTT, phases (départ, stands, damier, gel de fin de course).
+  - **Lot B — être sûr d'être entendu** : préemption + reprise unique, accusé de lecture,
+    anti-redite élargie (A-B-A, 5 tours).
+  - **Lot C — une voix plus vivante et plus rapide** : Piper en processus persistant (ou
+    cache + préchauffage des phrases figées), variantes par clé (les gabarits édités par
+    l'utilisateur restent prioritaires), chrono au dixième (réglage), prénom dosé.
+  - **Lot D — un coach plus honnête** : verdict statistique, « oublie mon conseil »,
+    fermeture du virage sans effet, réponses locales « coach-moi » / « je freine trop
+    tard à X ? ».
+  - **Lot E — plus gros** : régimes à la voix, budgets par classe/rival, spotter de
+    proximité.
+- 📋 **Prochaine étape** : choix utilisateur ; recommandation = **Lot A** (le plus
+  ressenti en piste, effort moyen, la carte des freinages existe déjà dans `src/lib/coach`).
+
 ### 2026-10-08 — Classements : comparaison de pilotes d'un clic sur un pseudo (app + site)
 
 - ✅ **Demande mainteneur** : « en cliquant sur le pseudo, une fenêtre de comparaisons, sur l'app et

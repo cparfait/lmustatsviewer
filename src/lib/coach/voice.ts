@@ -22,6 +22,16 @@
  *     conseil n'est prononcé que dans une fenêtre **calme** (gaz > 90 %, prochain
  *     freinage assez loin) et **fraîche** (≤ 8 s, sinon abandon → report débrief).
  *
+ *  4. **Mode rigoureux** (`st.rigor`, réglage, défaut actif) : un conseil se
+ *     **juge sur mesure**, pas sur deux passages propres (qui peuvent n'être qu'un
+ *     retour à la moyenne). « Avant » = tous les passages mesurés du virage (≤ 12,
+ *     bons et mauvais) ; « après » = au moins 3 passages suivant le conseil ; test
+ *     de Welch sur le temps du virage. Seuls « mieux » (dixièmes repris) et « pire »
+ *     (« oublie mon conseil ») sont dits ; un conseil sans effet ou nuisible **clôt
+ *     le virage pour la séance** (on n'insiste plus). Le conseil est dit une fois,
+ *     suivi de « je regarde les prochains passages ». En course, 12 tours au moins
+ *     entre deux conseils.
+ *
  * Déterministe (horloge = `elapsed` sim de la trame, pas `Date.now()`) → rejouable
  * hors Tauri (tests §14).
  */
@@ -49,7 +59,9 @@ export type CoachMsgKind =
   | "out-lap"
   // Risque + cible de classe (§12 P3, P5.4).
   | "risk-limits"
-  | "class-target";
+  | "class-target"
+  // Mode rigoureux : le conseil a empiré le passage → « oublie mon conseil ».
+  | "worse";
 
 /** Un message vocal prêt à formater + à afficher (widget P2.3). */
 export interface CoachVoiceMsg {
@@ -71,6 +83,8 @@ export interface CoachVoiceMsg {
   sign: number;
   /** true = renforcement positif §1.4 (le widget peut le styliser en « validé »). */
   positive: boolean;
+  /** Mode rigoureux : 1ʳᵉ fois que ce conseil est dit → annoncer la vérification. */
+  follow?: boolean;
 }
 
 /**
@@ -168,7 +182,14 @@ export function voiceKeyForDiag(
 
 /** Un conseil en attente de sa fenêtre de délivrance (diagnostic ou positif). */
 type Pending =
-  | { kind: "diag"; diag: CoachDiagnostic; queuedAt: number }
+  | {
+      kind: "diag";
+      diag: CoachDiagnostic;
+      queuedAt: number;
+      /** Mode rigoureux : base « avant » à figer quand le conseil est réellement dit. */
+      before?: number[];
+    }
+  | { kind: "worse"; corner: number; corner_uid: string; queuedAt: number }
   | {
       kind: "positive";
       corner: number;
@@ -196,6 +217,10 @@ interface Focus {
   cleanStreak: number;
   /** A-t-on déjà parlé de ce chantier ? (rien à valider sinon). */
   spokenAtLeastOnce: boolean;
+  /** Mode rigoureux : temps du virage avant le conseil (figé à la 1ʳᵉ parole). */
+  before?: number[];
+  /** Mode rigoureux : temps du virage depuis le conseil. */
+  after?: number[];
 }
 
 /** Historique de délivrance d'une clé `uid×code` (anti-spam backstop §9). */
@@ -217,6 +242,14 @@ export interface CoachVoiceState {
   lastByKey: Map<string, SpokenMark>;
   /** Occurrences cumulées d'un `uid|code` sur la session (escalade Course §8). */
   occurrences: Map<string, number>;
+  /** Mode rigoureux (réglage) : verdict mesuré, virages clos, écart en course. */
+  rigor: boolean;
+  /** Temps des derniers passages mesurés par virage (≤ `SAMPLES_MAX`). */
+  samples: Map<string, number[]>;
+  /** Virages clos pour la séance (conseil sans effet ou nuisible). */
+  closed: Set<string>;
+  /** Tour du dernier conseil en course (écart minimal entre deux conseils). */
+  lastRaceTipLap: number;
 }
 
 export function createCoachVoiceState(): CoachVoiceState {
@@ -227,6 +260,10 @@ export function createCoachVoiceState(): CoachVoiceState {
     spokenThisLap: 0,
     lastByKey: new Map(),
     occurrences: new Map(),
+    rigor: false,
+    samples: new Map(),
+    closed: new Set(),
+    lastRaceTipLap: -Infinity,
   };
 }
 
@@ -248,6 +285,97 @@ const RESOLVE_PASSES = 2;
 const MAX_FOCUS_LAPS = 5;
 /** Occurrences d'une même erreur avant de parler en mode Course (§8). */
 const ESCALATION_MIN = 3;
+
+// ── Mode rigoureux : verdict mesuré ───────────────────────────────────────────
+/** Passages mémorisés par virage (la base « avant » du verdict). */
+export const SAMPLES_MAX = 12;
+/** Passages « après » minimaux avant de juger. */
+export const VERDICT_MIN_AFTER = 3;
+/** Passages « après » au-delà desquels un conseil sans effet est déclaré inchangé. */
+export const VERDICT_MAX_AFTER = 6;
+/** Tours max d'attente d'un verdict (au-delà : non concluant, on libère). */
+export const VERDICT_MAX_LAPS = 8;
+/** |t| de Welch au-delà duquel l'écart est jugé réel. */
+export const VERDICT_T = 2;
+/** Écart moyen minimal pour parler de progrès / recul (s). */
+export const VERDICT_MIN_DIFF_S = 0.05;
+/** Plancher d'erreur-type (s) : deux passages identiques ne prouvent rien. */
+const VERDICT_SE_FLOOR_S = 0.02;
+/** Course, mode rigoureux : tours minimaux entre deux conseils. */
+export const RACE_TIP_GAP_LAPS = 12;
+
+const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+const variance = (a: number[]) => {
+  if (a.length < 2) return 0;
+  const m = mean(a);
+  return a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1);
+};
+
+/**
+ * Test de Welch : renvoie `(diff, t)` avec `diff = moyenne(après) − moyenne(avant)`
+ * (négatif = plus rapide après le conseil).
+ */
+export function welch(before: number[], after: number[]): { diff: number; t: number } {
+  const diff = mean(after) - mean(before);
+  const se = Math.max(VERDICT_SE_FLOOR_S, Math.sqrt(variance(before) / before.length + variance(after) / after.length));
+  return { diff, t: diff / se };
+}
+
+export type Verdict = "better" | "worse" | "unchanged" | null;
+
+/** Verdict d'un conseil (null = pas encore assez de passages). */
+export function judgeTip(before: number[], after: number[]): Verdict {
+  if (before.length < VERDICT_MIN_AFTER || after.length < VERDICT_MIN_AFTER) return null;
+  const { diff, t } = welch(before, after);
+  if (Math.abs(t) >= VERDICT_T && Math.abs(diff) >= VERDICT_MIN_DIFF_S) return diff < 0 ? "better" : "worse";
+  return after.length >= VERDICT_MAX_AFTER ? "unchanged" : null;
+}
+
+/** Mémorise le temps d'un passage mesuré (base « avant » des verdicts). */
+function recordSample(st: CoachVoiceState, uid: string, dt: number | null): void {
+  if (dt === null || !isFinite(dt)) return;
+  const list = st.samples.get(uid) ?? [];
+  list.push(dt);
+  if (list.length > SAMPLES_MAX) list.shift();
+  st.samples.set(uid, list);
+}
+
+/**
+ * Mode rigoureux : un passage sur le chantier après le conseil. Alimente
+ * « après » et rend le verdict quand il y a de quoi juger. Renvoie `true` si le
+ * passage a été absorbé par le suivi (la pédagogie historique ne s'applique pas).
+ */
+function followTip(
+  st: CoachVoiceState,
+  m: CornerOutcome,
+  elapsed: number,
+  policy: ModePolicy,
+): boolean {
+  const f = st.focus;
+  if (!st.rigor || !f || f.uid !== m.corner_uid || !f.before || !f.after) return false;
+  if (m.dtVsRef !== null && isFinite(m.dtVsRef)) f.after.push(m.dtVsRef);
+  const verdict = judgeTip(f.before, f.after);
+  if (verdict === "better") {
+    // « Mieux » : dixièmes repris (moyenne après vs avant), puis on libère.
+    if (policy.positive && !st.pending) {
+      const tenths = Math.max(1, Math.round(-welch(f.before, f.after).diff * 10));
+      st.pending = { kind: "positive", corner: f.n, corner_uid: f.uid, tenths, queuedAt: elapsed };
+    }
+    st.focus = null;
+  } else if (verdict === "worse") {
+    // « Pire » : on retire le conseil et on n'y revient plus de la séance.
+    if (!st.pending) st.pending = { kind: "worse", corner: f.n, corner_uid: f.uid, queuedAt: elapsed };
+    st.closed.add(f.uid);
+    st.focus = null;
+  } else if (verdict === "unchanged") {
+    // Sans effet : silence (pas de « bravo » ni de reproche), virage clos.
+    st.closed.add(f.uid);
+    st.focus = null;
+  } else if (m.lapNum - f.sinceLap > VERDICT_MAX_LAPS) {
+    st.focus = null; // non concluant : on libère sans juger
+  }
+  return true;
+}
 
 const keyOf = (uid: string, code: DiagCode) => `${uid}|${code}`;
 
@@ -293,6 +421,8 @@ function queueDiag(
 ): boolean {
   if (st.pending) return false; // un seul conseil en vol (§1.3)
   if (st.spokenThisLap >= policy.budgetPerLap) return false; // budget §9
+  // Course, mode rigoureux : un conseil au plus tous les 12 tours.
+  if (st.rigor && policy.escalationOnly && diag.lapNum - st.lastRaceTipLap < RACE_TIP_GAP_LAPS) return false;
   // Anti-répétition backstop : même virage×diagnostic dans les 2 derniers tours,
   // sauf aggravation nette (filet pour les binaires/Course, hors chantier collant).
   if (!bypassRepeat) {
@@ -306,6 +436,7 @@ function queueDiag(
     }
   }
   st.pending = { kind: "diag", diag, queuedAt: elapsed };
+  if (st.rigor && policy.escalationOnly) st.lastRaceTipLap = diag.lapNum;
   return true;
 }
 
@@ -336,6 +467,7 @@ function onCleanPass(
   elapsed: number,
   policy: ModePolicy,
 ): void {
+  if (followTip(st, m, elapsed, policy)) return;
   const f = st.focus;
   if (!f || f.uid !== m.corner_uid) return; // seul le chantier nous intéresse
   f.passesSinceSpoken++;
@@ -361,6 +493,18 @@ function onDiagPractice(
     queueDiag(st, diag, elapsed, policy, false);
     return;
   }
+  // Mode rigoureux : un virage clos ne reçoit plus de conseil ; un conseil en
+  // cours de vérification n'est pas répété (le passage nourrit le verdict).
+  if (st.rigor && st.closed.has(diag.corner_uid)) return;
+  if (
+    followTip(
+      st,
+      { corner_uid: diag.corner_uid, n: diag.n, lapNum: diag.lapNum, dtVsRef },
+      elapsed,
+      policy,
+    )
+  )
+    return;
 
   if (!st.focus) {
     // Adopte ce virage comme chantier (§1.3). Le moteur l'a déjà confirmé (2 passages).
@@ -386,6 +530,13 @@ function onDiagPractice(
     return;
   }
   if (queueDiag(st, diag, elapsed, policy, true)) {
+    // Mode rigoureux : 1ʳᵉ parole → on fige « avant » (tous les passages mesurés
+    // du virage, bons et mauvais) et on annonce la vérification. Sans assez de
+    // mesures, on retombe sur la pédagogie historique (série propre).
+    const base = st.samples.get(f.uid) ?? [];
+    if (st.rigor && !f.spokenAtLeastOnce && base.length >= VERDICT_MIN_AFTER && st.pending?.kind === "diag") {
+      st.pending.before = [...base];
+    }
     f.spokenCount++;
     f.passesSinceSpoken = 0;
     f.spokenAtLeastOnce = true;
@@ -423,16 +574,22 @@ export function observeCorner(
     st.spokenThisLap = 0;
   }
   // Péremption du chantier : tenu trop longtemps sans résolution → on en libère un.
-  if (st.focus && m.lapNum - st.focus.sinceLap > MAX_FOCUS_LAPS) st.focus = null;
+  // (Mode rigoureux : un chantier en vérification a son propre délai, `followTip`.)
+  const verifying = st.rigor && !!st.focus?.before;
+  if (st.focus && !verifying && m.lapNum - st.focus.sinceLap > MAX_FOCUS_LAPS) st.focus = null;
 
   if (result.kind === "muted") return; // mesure douteuse : n'influence pas la pédagogie
   if (result.kind === "none") {
     onCleanPass(st, m, elapsed, policy);
+    recordSample(st, m.corner_uid, m.dtVsRef);
     return;
   }
+  recordSample(st, m.corner_uid, m.dtVsRef);
 
   // result.kind === "diagnostic"
   const diag = result.diag;
+  // (le passage fautif est mémorisé après la pédagogie : la base « avant » d'un
+  // conseil inclut le passage qui l'a déclenché, pas l'inverse.)
   const occKey = keyOf(diag.corner_uid, diag.code);
   st.occurrences.set(occKey, (st.occurrences.get(occKey) ?? 0) + 1);
 
@@ -542,6 +699,20 @@ export function stepCoachVoice(
   st.pending = null;
   st.spokenThisLap++;
 
+  if (p.kind === "worse") {
+    return {
+      suffix: "vCornerWorse",
+      vars: { n: p.corner },
+      kind: "worse",
+      corner: p.corner,
+      corner_uid: p.corner_uid,
+      magnitude: 0,
+      unit: "",
+      sign: 0,
+      positive: false,
+    };
+  }
+
   if (p.kind === "positive") {
     const { suffix, vars, kind } = voiceKeyForPositive(p.tenths, p.corner);
     return {
@@ -558,6 +729,13 @@ export function stepCoachVoice(
   }
 
   const diag = p.diag;
+  // Mode rigoureux : le conseil est réellement dit → la vérification commence.
+  const follow = !!p.before && st.focus?.uid === diag.corner_uid;
+  if (follow && st.focus) {
+    st.focus.before = p.before;
+    st.focus.after = [];
+    st.focus.sinceLap = diag.lapNum;
+  }
   st.lastByKey.set(keyOf(diag.corner_uid, diag.code), {
     lapNum: diag.lapNum,
     magnitude: diag.magnitude,
@@ -573,5 +751,6 @@ export function stepCoachVoice(
     unit: diag.unit,
     sign: diag.sign,
     positive: false,
+    follow,
   };
 }

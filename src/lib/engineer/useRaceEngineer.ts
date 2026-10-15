@@ -19,11 +19,23 @@
 import { useEffect, useRef } from "react";
 import { live as liveApi, type LiveData } from "@/lib/api";
 import type { Tr } from "@/i18n";
-import { speak as rawSpeak, cancelSpeech, type VoicePriority } from "@/lib/voice";
+import {
+  speak as rawSpeak,
+  cancelSpeech,
+  setSpeechGate,
+  prewarmSpeech,
+  warmupVoice,
+  type SpeakOpts,
+  type VoicePriority,
+} from "@/lib/voice";
 import { inCriticalZone } from "@/lib/driving";
 import { computeStrategy } from "@/lib/strategy";
 import { useAppStore } from "@/stores/app";
-import { RadioArbiter, type Candidate } from "./arbiter";
+import { RadioArbiter, TEXT_REPEAT_LAPS, type Candidate } from "./arbiter";
+import { classOf, type PolicyCtx } from "./policy";
+import { driverBusy } from "./focus";
+import { NameDoser, VariantPicker } from "./variants";
+import { ProximitySpotter, type SpotCall } from "./proximity";
 import { ToneArbiter, setSharedTone, BATTLE_GAP_S } from "./tone";
 import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY } from "./lapPolicy";
 import { onTrack, slowerPackAhead, fasterBehind } from "./traffic";
@@ -57,11 +69,13 @@ export function flagFromPhase(phase: number, yellow: number): FlagKind {
 
 /** Temps au tour en forme parlée : « une minute 23.456 » (ou « 23.456 » si
  *  < 1 min). « 1 » → forme parlée localisée (`vMinOne`) : en français le TTS
- *  prononçait « un minute » au masculin. */
-function fmtLapVoice(s: number, t: Tr): string {
+ *  prononçait « un minute » au masculin. `tenth` : arrondi au dixième
+ *  (« une minute 23.5 ») — un muret ne lit pas les millièmes à la radio. */
+export function fmtLapVoice(s: number, t: Tr, tenth = false): string {
   if (!s || s <= 0 || !isFinite(s)) return "";
+  if (tenth) s = Math.round(s * 10) / 10;
   const m = Math.floor(s / 60);
-  const sec = (s - m * 60).toFixed(3);
+  const sec = (s - m * 60).toFixed(tenth ? 1 : 3);
   return m > 0
     ? t("live.vLapTime", { min: m === 1 ? t("live.vMinOne") : m, sec })
     : t("live.vLapTimeShort", { sec });
@@ -69,6 +83,12 @@ function fmtLapVoice(s: number, t: Tr): string {
 
 /** Délai de stabilisation de la télémétrie après un (re)démarrage de session. */
 const WARMUP_MS = 6000;
+/**
+ * Durée de vie d'une annonce non critique quand la radio attend une zone calme
+ * (ms) : en enchaînement de virages, la voie peut rester fermée plusieurs
+ * secondes ; au-delà, l'info est périmée et abandonnée.
+ */
+const QUIET_TTL_MS = 10000;
 /** Valeur rF2 du drapeau bleu (mFlag) — À CONFIRMER en piste si faux positifs. */
 const BLUE_FLAG = 6;
 /** Préavis « plus rapide derrière » déjà donné pour cette voiture : pas de bleu redondant (s). */
@@ -96,6 +116,29 @@ function sustainedAlert(
   s.last = now;
   return true;
 }
+
+/** Annonces du spotter de proximité (gabarits `live.vSpot*`). */
+const SPOT_KEYS: Record<SpotCall, string> = {
+  left: "live.vSpotLeft",
+  right: "live.vSpotRight",
+  three: "live.vSpotThree",
+  clear: "live.vSpotClear",
+  clearLeft: "live.vSpotClearLeft",
+  clearRight: "live.vSpotClearRight",
+  still: "live.vSpotStill",
+};
+/** Le spotter tient le canal : pas d'annonce non critique pendant ce délai (ms). */
+const SPOT_HOLD_MS = 4000;
+/** Phrases fixes préparées d'avance (aucune latence de synthèse au moment critique). */
+const PREWARM_KEYS = [
+  "live.vFlagYellow",
+  "live.vFlagFcy",
+  "live.vFlagStopped",
+  "live.vBoxBox",
+  "live.vPuncture",
+  "live.vPitLaneLimiter",
+  "live.vLimiterForgotten",
+];
 
 /** Seuil de surchauffe historique (pic instantané, débit Complet) (°C). */
 const BRAKE_HOT_C = 750;
@@ -219,7 +262,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const warmupStart = useRef(0);
   const prevSessionTime = useRef(0);
   // Callouts non-critiques différés en zone de freinage/virage (§150, T13).
-  const deferred = useRef<{ text: string; prio: VoicePriority; ttl?: number; at: number }[]>([]);
+  const deferred = useRef<{ text: string; prio: VoicePriority; ttl?: number; at: number; opts?: SpeakOpts }[]>([]);
 
   // ── Ingénieur : arbitre, ton, suivis ──────────────────────────────────────
   const arbiter = useRef(new RadioArbiter());
@@ -239,6 +282,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const postureSaid = useRef(false);
   const forecastSaid = useRef({ first: false, soon: false });
   const forecastTrack = useRef("");
+  const variants = useRef(new VariantPicker());
+  const names = useRef(new NameDoser());
 
   // Prévision `.wet` : rechargée au changement de circuit (lecture disque).
   const track = data?.session?.track ?? "";
@@ -247,6 +292,52 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const full = useAppStore((s) => s.radioMode) === "full";
   // Multiclasse : positions/écarts annoncés dans la classe (réglage, défaut oui).
   const classPositions = useAppStore((s) => s.classPositions);
+  // Réglages de diffusion (chacun garde l'ancien comportement accessible).
+  const quietZones = useAppStore((s) => s.radioQuietZones);
+  const phases = useAppStore((s) => s.radioPhases);
+  const budgets = useAppStore((s) => s.radioBudgets);
+  const replay = useAppStore((s) => s.radioReplay);
+  const tenth = useAppStore((s) => s.voiceLapPrecision) === "tenth";
+  const driverName = useAppStore((s) => s.radioDriverName);
+  const proximity = useAppStore((s) => s.proximitySpotter);
+  const spot = useRef(new ProximitySpotter());
+
+  // Voix prête avant la première annonce : moteur Piper démarré, alertes fixes
+  // (et phrases du spotter) synthétisées d'avance.
+  useEffect(() => {
+    if (!enabled) return;
+    warmupVoice(lang);
+    const keys = proximity ? [...PREWARM_KEYS, ...Object.values(SPOT_KEYS)] : PREWARM_KEYS;
+    void prewarmSpeech(keys.map((k) => t(k)), lang);
+  }, [enabled, proximity, lang, t]);
+
+  // Spotter de proximité : à chaque trame, hors arbitre (sa priorité passe avant
+  // tout et tient le canal quelques secondes).
+  useEffect(() => {
+    if (!enabled || !proximity) {
+      spot.current.reset();
+      return;
+    }
+    const tel = data?.telemetry;
+    if (!data || !data.connected || data.paused || !tel) return;
+    const nowS = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const call = spot.current.update(data.nearby ?? [], tel.speed_kmh / 3.6, !!data.spotter_calibrated, nowS);
+    if (!call) return;
+    const ttl = call === "left" || call === "right" || call === "three" ? 1200 : 3000;
+    rawSpeak(t(SPOT_KEYS[call]), lang, "spotter", ttl, { holdChannelMs: SPOT_HOLD_MS });
+  }, [data, enabled, proximity, lang, t]);
+
+  // Garde « pilote occupé » de la file vocale : revérifiée juste avant chaque
+  // prise de parole non critique (ingénieur ET coach : fenêtres coordonnées).
+  useEffect(() => {
+    if (!enabled || !quietZones) {
+      setSpeechGate(null);
+      return;
+    }
+    const clock = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+    setSpeechGate(() => driverBusy(engineer.driver, clock()));
+    return () => setSpeechGate(null);
+  }, [enabled, quietZones]);
   useEffect(() => {
     if (!enabled || !track || !lmuPath || forecastTrack.current === track) return;
     forecastTrack.current = track;
@@ -284,8 +375,12 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
     // ── Candidats de la trame (arbitrés en fin d'effet) ──────────────────────
     const cands: Candidate[] = [];
+    // Variante tirée dès le dépôt (chaque fragment d'une phrase fusionnée a la
+    // sienne) ; le gabarit complet reste pour l'anti-redite.
     const say = (key: string, text: string, prio: VoicePriority, opts: Partial<Candidate> = {}) => {
-      if (text && clockRunning.current) cands.push({ key, text, prio, ...opts });
+      if (!text || !clockRunning.current) return;
+      const picked = variants.current.pick(key, text);
+      cands.push({ key, text: picked, prio, ...opts, canon: picked !== text ? text : undefined });
     };
 
     // ── (Re)démarrage de session + warm-up ───────────────────────────────────
@@ -333,12 +428,28 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       formationSaid.current = false;
       postureSaid.current = false;
       forecastSaid.current = { first: false, soon: false };
+      variants.current.reset();
+      names.current.reset();
     }
     if (sessionReset) clockRunning.current = false;
     else if (sc.session_time > prevSessionTime.current + 1e-3) clockRunning.current = true;
     prevSessionTime.current = sc.session_time;
     // Télémétrie stabilisée ? (seuils suspendus pendant le warm-up)
     const warmedUp = now - warmupStart.current > WARMUP_MS;
+
+    // ── Concentration : freinages appris + état de pilotage pour la file vocale ─
+    if (tel) {
+      engineer.brakes.setTrack(sc.track);
+      const dist = tel.lap_dist_est > 0 ? tel.lap_dist_est : tel.lap_dist;
+      engineer.brakes.push(dist, tel.brake, lapNow, tel.speed_kmh, sc.track_length);
+      engineer.driver = {
+        brake: tel.brake,
+        steer: tel.steering,
+        distToBrake: engineer.brakes.distToNext(dist, sc.track_length),
+        at: now,
+      };
+    }
+    let nearestGap = Infinity;
 
     // Stratégie commune (carburant, énergie virtuelle, tours restants).
     const strat = player ? computeStrategy(sc, player, tel) : null;
@@ -483,14 +594,14 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
           "pos:lead",
           sp?.cls ? t("live.vTakeClassLead", { cls: radioClass(sp.cls) }) : t("live.vTakeLead"),
           "normal",
-          { score: 60 },
+          { score: 60, moment: "pos:lead" },
         );
       }
       prevLeader.current = leader;
 
       // ── Entrée en position de podium (P2 / P3) ───────────────────────────
       if (racing && !inPits && pos >= 2 && pos <= 3 && !podiumWarned.current) {
-        say("pos:podium", t("live.vPodium", { p: pos }), "normal", { score: 45 });
+        say("pos:podium", t("live.vPodium", { p: pos }), "normal", { score: 45, moment: "pos:podium" });
         podiumWarned.current = true;
       } else if (pos > 3 || pos === 1) {
         podiumWarned.current = false;
@@ -579,7 +690,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (!inPits && lapDone && player.last_lap_time > 0) {
         const best = player.best_lap_time;
         const isPb = best > 0 && (prevBest.current <= 0 || best < prevBest.current - 0.001);
-        const lapVoice = fmtLapVoice(player.last_lap_time, t);
+        const lapVoice = fmtLapVoice(player.last_lap_time, t, tenth);
         const decision = full ? (isPb ? "pb" : "last") : decideLapCallout({
           isRace,
           lapTime: player.last_lap_time,
@@ -593,7 +704,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
             "lap:time",
             `${t(decision === "pb" ? "live.vBestLap" : "live.vLastLap")} ${lapVoice}`,
             "chatty",
-            { group: "lap", order: 0, score: decision === "pb" ? 35 : 20 },
+            { group: "lap", order: 0, score: decision === "pb" ? 35 : 20, moment: decision === "pb" ? "lap:pb" : undefined },
           );
           lapsSinceLapCallout.current = 0;
           if (decision === "pb") lastAnnouncedPb.current = player.last_lap_time;
@@ -671,7 +782,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         if ((full || isRace) && playerStanding && !leader && gapLeader > 0) {
           say(
             "gap:leader",
-            t("live.vGapLeader", { time: fmtLapVoice(gapLeader, t) }),
+            t("live.vGapLeader", { time: fmtLapVoice(gapLeader, t, tenth) }),
             "chatty",
             full ? { score: 5 } : { score: 5, cooldownLaps: LEADER_GAP_EVERY },
           );
@@ -803,7 +914,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       // ── Dernier tour / mi-course (courses au nombre de tours) ────────────
       if (sc.max_laps > 0 && sc.max_laps < 1000) {
         if (!announcedFinal.current && player.total_laps === sc.max_laps - 1) {
-          say("race:final", t("live.vFinalLap"), "normal", { score: 75 });
+          say("race:final", t("live.vFinalLap"), "normal", { score: 75, moment: "race:final" });
           announcedFinal.current = true;
         }
         const half = Math.floor(sc.max_laps / 2);
@@ -853,7 +964,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       // ── Tour de formation : briefing ─────────────────────────────────────
       if (isRace && sc.game_phase === 3 && clockRunning.current && !formationSaid.current && tel && tel.fuel > 0) {
         formationSaid.current = true;
-        say("formation", t("live.vFormation", { fuel: Math.round(tel.fuel) }), "normal", { score: 50 });
+        say("formation", t("live.vFormation", { fuel: Math.round(tel.fuel) }), "normal", { score: 50, moment: "formation" });
       }
 
       // ── Ton « pousse / gère » + posture de fin de course ─────────────────
@@ -872,6 +983,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         if (!nb || nb.laps_behind_leader !== playerStanding.laps_behind_leader) return Infinity;
         return Math.abs(nb.time_behind_leader - playerStanding.time_behind_leader);
       };
+      nearestGap = Math.min(neighborGap(-1), neighborGap(1));
       const level = tone.current.update(
         {
           mech:
@@ -884,7 +996,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
           tyreOverheat: tyreHot.current.since > 0 && now - tyreHot.current.since >= 10000,
           pathWetness: weather?.path_wetness_avg ?? 0,
           minWear: minWear > 0 ? minWear : 100,
-          battle: racing && !inPits && Math.min(neighborGap(-1), neighborGap(1)) <= BATTLE_GAP_S,
+          battle: racing && !inPits && nearestGap <= BATTLE_GAP_S,
           raceFraction,
           isRace,
         },
@@ -918,6 +1030,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (warmedUp && dmg - prevDamage.current > 10) {
       say("mech:damage", t("live.vDamage"), "critical");
       lastDamageAt.current = now;
+      engineer.policy.noteCrash(nowS); // calme de sécurité après le choc
     }
     prevDamage.current = dmg;
 
@@ -1026,7 +1139,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       const improved =
         prevFastest.current <= 0 || fastest < prevFastest.current - 0.001;
       if (improved) {
-        const tv = fmtLapVoice(fastest, t);
+        const tv = fmtLapVoice(fastest, t, tenth);
         const isPlayer = !!player && fastestDriver === player.driver;
         if (isPlayer) say("fastest:me", t("live.vFastestYou", { time: tv }), "chatty", { score: 30 });
         else
@@ -1072,23 +1185,62 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       }
     }
 
+    // ── Politique de parole : régime choisi à la voix, phases, budgets ───────
+    // Le régime (« on se bat », « tais-toi jusqu'au tour 12 »…) vaut dans les deux
+    // débits ; phases et budgets seulement en débit Ingénieur (Complet = historique).
+    const finished = flag === "over" || (player?.finish_status ?? 0) > 0;
+    engineer.pitstops = player?.num_pitstops ?? engineer.pitstops;
+    const policyCtx: PolicyCtx = {
+      nowS,
+      lap: lapNow,
+      isRace,
+      racing: flag === "green" || lapNow >= 1,
+      inPits,
+      finished,
+      remainingS: sc.end_et > 0 ? Math.max(0, sc.end_et - sc.session_time) : null,
+      lapsLeft: sc.max_laps > 0 && sc.max_laps < 1000 && player ? sc.max_laps - player.total_laps : null,
+      pitstops: engineer.pitstops,
+      nearestGapS: nearestGap,
+      phases: !full && phases,
+      budgets: !full && budgets,
+    };
+    const allowed = engineer.policy.filter(cands, policyCtx);
+
     // ── Arbitrage + diffusion ────────────────────────────────────────────────
-    // Silence en zone de freinage/virage (§150, T13) : les annonces **non
-    // critiques** sont différées tant que le pilote freine fort ou braque ; la
-    // sécurité passe toujours. Les différées sont rejouées à la sortie de zone
-    // (péremption 4 s).
+    arbiter.current.textRepeatLaps = !full && replay ? TEXT_REPEAT_LAPS : 0;
+    const { spoken } = arbiter.current.decide(allowed, nowS, lapNow, full);
+    engineer.policy.commit(spoken, policyCtx);
+    const repeatPrefix = t("live.vRepeatPrefix");
+    const voiceOf = (c: Candidate) => names.current.apply(driverName, c.moment ?? null, c.text, nowS);
+    const optsOf = (c: Candidate): SpeakOpts | undefined =>
+      replay ? { replayPrefix: repeatPrefix, retryIfLost: c.prio === "critical" || classOf(c) === "decision" } : undefined;
+
+    if (quietZones) {
+      // Silence anticipé : la file vocale retient elle-même les annonces non
+      // critiques tant que le pilote est occupé (freinage connu à < 200 m, frein,
+      // volant, push-to-talk) et revérifie juste avant de parler.
+      for (const c of spoken) {
+        const ttl = c.prio === "critical" ? c.ttlMs : Math.max(c.ttlMs ?? 0, QUIET_TTL_MS);
+        rawSpeak(voiceOf(c), lang, c.prio, ttl, optsOf(c));
+      }
+      deferred.current = [];
+      return;
+    }
+    // Comportement historique (réglage coupé) : silence en zone de freinage/virage
+    // (§150, T13) — annonces **non critiques** différées tant que le pilote freine
+    // fort ou braque, rejouées à la sortie de zone (péremption 4 s).
     const critical = inCriticalZone(tel?.brake ?? 0, tel?.steering ?? 0);
     const DEFER_MAX_MS = 4000;
     if (!critical && deferred.current.length) {
       for (const d of deferred.current) {
-        if (now - d.at < DEFER_MAX_MS) rawSpeak(d.text, lang, d.prio, d.ttl);
+        if (now - d.at < DEFER_MAX_MS) rawSpeak(d.text, lang, d.prio, d.ttl, d.opts);
       }
       deferred.current = [];
     }
-    const { spoken } = arbiter.current.decide(cands, nowS, lapNow, full);
     for (const c of spoken) {
-      if (c.prio === "critical" || !critical) rawSpeak(c.text, lang, c.prio, c.ttlMs);
-      else deferred.current.push({ text: c.text, prio: c.prio, ttl: c.ttlMs, at: now });
+      const text = voiceOf(c);
+      if (c.prio === "critical" || !critical) rawSpeak(text, lang, c.prio, c.ttlMs, optsOf(c));
+      else deferred.current.push({ text, prio: c.prio, ttl: c.ttlMs, at: now, opts: optsOf(c) });
     }
-  }, [data, enabled, lang, t, full, classPositions]);
+  }, [data, enabled, lang, t, full, classPositions, quietZones, phases, budgets, replay, tenth, driverName]);
 }

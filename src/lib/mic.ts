@@ -10,6 +10,8 @@
  * latence n'a pas d'importance ici (on traite le buffer complet hors-ligne).
  */
 
+import { setDriverTalking } from "@/lib/voice";
+
 const TARGET_RATE = 16000;
 
 interface Capture {
@@ -49,6 +51,8 @@ export async function startCapture(): Promise<void> {
   processor.connect(sink);
   sink.connect(ctx.destination);
   active = { ctx, stream, source, processor, chunks, sampleRate: ctx.sampleRate };
+  // Le pilote parle : la radio ne lui coupe pas la parole (annonces retenues).
+  setDriverTalking(true);
 }
 
 /** Arrête et libère les ressources sans produire de résultat. */
@@ -56,6 +60,7 @@ function stopRaw(): Capture | null {
   const cap = active;
   active = null;
   if (!cap) return null;
+  setDriverTalking(false);
   try {
     cap.processor.onaudioprocess = null;
     cap.processor.disconnect();

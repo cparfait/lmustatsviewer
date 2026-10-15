@@ -211,6 +211,7 @@ pub fn run() {
             commands::live::is_sim_running,
             commands::live::start_live_polling,
             commands::live::stop_live_polling,
+            commands::lmu_rest::get_lmu_garage_bounds,
             // Overlays in-game (fenêtre transparente always-on-top)
             commands::overlay::open_overlay_window,
             commands::overlay::close_overlay_window,

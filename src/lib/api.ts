@@ -8,6 +8,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { enrichLive } from "@/lib/lmuRest";
 
 /**
  * Détecte si on tourne dans le runtime Tauri (et non dans un navigateur seul).
@@ -746,6 +747,126 @@ export interface LiveData {
   track_points: [number, number][];
   /** Distance-tour (m) du centre de chaque `track_points[i]` (buckets 20 m). */
   track_dists: number[];
+  /** Voie des stands (x/z) fournie par le jeu, vide sinon. */
+  pit_lane_points?: [number, number][];
+  /** Fins de S1 et S2 (distance-tour, m) mesurées ; 0 à 2 valeurs. */
+  sector_dists?: number[];
+  /** Le tracé a été complété / corrigé avec celui du jeu. */
+  track_from_game?: boolean;
+  /** Dernier instantané du pont REST du jeu (`lmu_rest.rs`) ; absent hors flux live. */
+  rest?: LmuRestLive | null;
+  /** Ajouté côté front par `enrichLive` : d'où viennent les chiffres corrigés. */
+  rest_used?: RestUsed;
+}
+
+// ─── Pont REST du jeu (`lmu_rest`, lecture seule) ───────────────────────────
+
+/** Fraîcheur d'une valeur REST : seules les valeurs `fresh` sont exploitées. */
+export type RestFreshness = "absent" | "empty" | "invalid" | "stale" | "fresh";
+
+export interface RestField<T> {
+  state: RestFreshness;
+  /** Âge de la dernière lecture valide (ms), null si jamais reçue. */
+  age_ms: number | null;
+  data: T | null;
+}
+
+/** `getVehicleCondition` (roues FL, FR, RL, RR). */
+export interface RestVehicle {
+  fuel: number | null;
+  fuel_capacity: number | null;
+  /** État des plaquettes (1 = neuves). Absent de la mémoire partagée. */
+  brake_condition: number[];
+  tire_condition: number[];
+  suspension_damage: number[];
+  vehicle_damage: number | null;
+}
+
+export interface RestForecastNode {
+  rain_chance: number;
+  temperature: number;
+  sky: number;
+  humidity: number;
+}
+
+export interface RestTableEntry {
+  value: number;
+  unit: "percent" | "liters" | "gallons";
+  laps: number;
+}
+
+/** `UIScreen/RepairAndRefuel`. */
+export interface RestPitScreen {
+  energy_table: RestTableEntry[];
+  fuel_table: RestTableEntry[];
+  /** Conso officielle d'énergie virtuelle (fraction/tour). */
+  energy_per_lap: number | null;
+  /** Conso officielle de carburant (L/tour). */
+  fuel_per_lap: number | null;
+  /** Durée prévue de l'arrêt avec le menu actuel (s). */
+  pit_stop_length_s: number | null;
+  current_fuel: number | null;
+  max_fuel: number | null;
+  energy_fraction: number | null;
+  /** Prévision de la séance en cours (START, 25 %, 50 %, 75 %, FINISH). */
+  forecast: RestForecastNode[];
+  place_in_class: number | null;
+  place_overall: number | null;
+  gap_to_class_leader_s: number | null;
+  gap_to_class_leader_laps: number | null;
+  aero_damage: number | null;
+  brake_wear: number[];
+  suspension_wear: number[];
+  tire_wear: number[];
+  pit_menu: { name: string; text: string }[];
+}
+
+/** `watch/sessionInfo`. */
+export interface RestSessionInfo {
+  session: string;
+  game_phase: number | null;
+  current_event_time: number | null;
+  start_event_time: number | null;
+  end_event_time: number | null;
+  max_time: number | null;
+  maximum_laps: number | null;
+  time_remaining_in_phase: number | null;
+  race_completion: number | null;
+  track_name: string;
+}
+
+/** `sessions/weather`. */
+export interface RestWeekendWeather {
+  practice: RestForecastNode[];
+  qualify: RestForecastNode[];
+  race: RestForecastNode[];
+}
+
+export interface LmuRestLive {
+  /** Le jeu a répondu à la dernière tentative. */
+  reachable: boolean;
+  /** Recul en cours (s) quand le jeu ne répond pas. */
+  backoff_s: number;
+  vehicle: RestField<RestVehicle>;
+  pit: RestField<RestPitScreen>;
+  session: RestField<RestSessionInfo>;
+  weather: RestField<RestWeekendWeather>;
+  garage_state: RestFreshness;
+}
+
+/** Bornes d'un réglage (`getPlayerGarageData`, figé au chargement de la voiture). */
+export interface RestSettingBound {
+  key: string;
+  value: number;
+  min: number;
+  max: number;
+  text: string;
+}
+
+/** Sources retenues par `enrichLive` (indicateur discret de la page Live). */
+export interface RestUsed {
+  fuel: "measured" | "game" | null;
+  sessionEnd: "live" | "game" | null;
 }
 
 // ─── Télémétrie post-session (.duckdb) (`telemetry`) ────────────────────────
@@ -1214,7 +1335,7 @@ export const setups = {
 
 export const live = {
   /** Lit une fois les données de télémétrie/scoring. */
-  getData: () => invoke<LiveData>("get_live_data"),
+  getData: () => invoke<LiveData>("get_live_data").then(enrichLive),
   /** Vérifie si la mémoire partagée du simulateur est disponible. */
   isSimRunning: () => invoke<boolean>("is_sim_running"),
   /** Démarre le polling backend ; les données arrivent via l'événement `live-data`. */
@@ -1223,7 +1344,9 @@ export const live = {
   stopPolling: () => invoke<void>("stop_live_polling"),
   /** S'abonne aux mises à jour `live-data` poussées par le backend. */
   onData: (cb: (data: LiveData) => void): Promise<UnlistenFn> =>
-    listen<LiveData>("live-data", (e) => cb(e.payload)),
+    listen<LiveData>("live-data", (e) => cb(enrichLive(e.payload))),
+  /** Bornes des réglages du setup lues dans le jeu (pont REST). */
+  garageBounds: () => invoke<RestField<RestSettingBound[]>>("get_lmu_garage_bounds"),
   /** Fichiers météo scénarisés `.wet` du dossier Settings (prévision). */
   weatherFiles: (lmuPath: string) =>
     invoke<WetFile[]>("list_weather_files", { lmuPath }),

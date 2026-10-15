@@ -15,6 +15,8 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 
+use super::lmu_rest;
+use super::track_align::{self, Polyline};
 use crate::error::AppError;
 
 const TELEMETRY_MAP: &str = "$rFactor2SMMP_Telemetry$";
@@ -677,6 +679,17 @@ pub struct LiveData {
     /// Permet d'associer une position de virage (lap_dist) à un point (x,z) —
     /// heatmap des pertes par virage sur le tracé.
     pub track_dists: Vec<f64>,
+    /// Voie des stands (x/z) fournie par le jeu (`watch/trackmap`), vide sinon.
+    pub pit_lane_points: Vec<[f64; 2]>,
+    /// Fins de S1 et de S2 (distance-tour, m), mesurées aux changements de
+    /// secteur des voitures et conservées par circuit. 0, 1 ou 2 valeurs.
+    pub sector_dists: Vec<f64>,
+    /// Le tracé a été complété / corrigé avec celui du jeu.
+    pub track_from_game: bool,
+    /// Dernier instantané du pont REST du jeu (`lmu_rest.rs`), copié sans
+    /// attendre le réseau. `None` hors flux live.
+    #[serde(default, skip_deserializing)]
+    pub rest: Option<lmu_rest::LmuRestLive>,
 }
 
 impl Default for LiveData {
@@ -694,6 +707,10 @@ impl Default for LiveData {
             track_layout: None,
             track_points: Vec::new(),
             track_dists: Vec::new(),
+            pit_lane_points: Vec::new(),
+            sector_dists: Vec::new(),
+            track_from_game: false,
+            rest: None,
         }
     }
 }
@@ -791,6 +808,24 @@ struct PollState {
     dr_anchor_et: f64,
     /// Vitesse (m/s) au moment de l'ancrage (extrapolation trapézoïdale).
     dr_anchor_speed: f64,
+    // ── Tracé du jeu (pont REST `watch/trackmap`) ─────────────────────────
+    /// Numéro du dernier tracé du jeu examiné (`lmu_rest::track_map_generation`).
+    game_map_gen: u64,
+    /// Boucle du jeu pour le circuit courant, en attente de recalage.
+    game_poly: Option<Polyline>,
+    /// Échantillons (position, lap_dist) de voitures en piste pour le recalage.
+    align_samples: Vec<([f64; 2], f64)>,
+    /// Le tracé du jeu a été versé dans les buckets de ce circuit.
+    game_filled: bool,
+    /// Voie des stands du jeu (allégée), pour le circuit courant.
+    pit_lane: Vec<[f64; 2]>,
+    // ── Bornes de secteurs ───────────────────────────────────────────────
+    /// Dernier secteur vu par voiture (`mID` → `mSector`).
+    last_sector: HashMap<i32, u8>,
+    /// Fins de S1 / S2 : (moyenne lap_dist, nombre de mesures).
+    sector_bounds: [(f64, u32); 2],
+    /// Mesures de secteurs déjà écrites sur disque.
+    sectors_saved: u32,
 }
 
 impl PollState {
@@ -815,8 +850,93 @@ impl PollState {
             dr_anchor_dist: 0.0,
             dr_anchor_et: 0.0,
             dr_anchor_speed: 0.0,
+            game_map_gen: 0,
+            game_poly: None,
+            align_samples: Vec::new(),
+            game_filled: false,
+            pit_lane: Vec::new(),
+            last_sector: HashMap::new(),
+            sector_bounds: [(0.0, 0); 2],
+            sectors_saved: 0,
         }
     }
+
+    /// Bornes de secteurs exploitables (≥ 2 mesures) : [fin S1] ou [fin S1,
+    /// fin S2]. La fin de S2 seule n'est pas renvoyée (elle serait lue comme S1).
+    fn sector_dists(&self) -> Vec<f64> {
+        let [(s1, n1), (s2, n2)] = self.sector_bounds;
+        match (n1 >= 2, n2 >= 2) {
+            (true, true) if s2 > s1 => vec![s1, s2],
+            (true, _) => vec![s1],
+            _ => Vec::new(),
+        }
+    }
+
+    /// Une voiture change de secteur à `lap_dist` (mSector : 1 = S1, 2 = S2,
+    /// 0 = S3). 1→2 = fin de S1, 2→0 = fin de S2. Moyenne glissante bornée,
+    /// mesures aberrantes (> 100 m de la moyenne) ignorées.
+    fn record_sector(&mut self, id: i32, sector: u8, lap_dist: f64) {
+        let prev = self.last_sector.insert(id, sector);
+        let slot = match (prev, sector) {
+            (Some(1), 2) => 0,
+            (Some(2), 0) => 1,
+            _ => return,
+        };
+        let (mean, n) = &mut self.sector_bounds[slot];
+        if *n >= 3 && (lap_dist - *mean).abs() > 100.0 {
+            return;
+        }
+        let k = (*n).min(19) as f64;
+        *mean = (*mean * k + lap_dist) / (k + 1.0);
+        *n = (*n + 1).min(1000);
+    }
+}
+
+/// Écart (m) au-delà duquel un bucket appris est jugé aberrant face au tracé du
+/// jeu (sortie de piste, voiture IA hors trajectoire) et remplacé.
+const GAME_MAP_REPLACE_M: f64 = 15.0;
+
+/// Verse le tracé du jeu dans les buckets : comble les trous et remplace les
+/// points aberrants. Les buckets appris cohérents restent prioritaires.
+fn fill_from_game(
+    buckets: &mut HashMap<i64, ([f64; 2], u32)>,
+    poly: &Polyline,
+    align: &track_align::Alignment,
+    lap_len: f64,
+) {
+    let n = (lap_len / 20.0).ceil() as i64;
+    for k in 0..n {
+        let d = (k as f64 * 20.0 + 10.0).min(lap_len);
+        let p = poly.at(align.abscissa(d));
+        match buckets.get(&k) {
+            Some((q, _)) if poly.project(*q).1 <= GAME_MAP_REPLACE_M => {}
+            _ => {
+                buckets.insert(k, (p, 2));
+            }
+        }
+    }
+    // Buckets au-delà de la longueur du tour (autre variante) : retirés.
+    buckets.retain(|k, _| *k < n);
+}
+
+/// Allège une polyligne (un point tous les `step` mètres environ).
+fn thin(pts: &[[f64; 2]], step: f64) -> Vec<[f64; 2]> {
+    let mut out: Vec<[f64; 2]> = Vec::new();
+    for p in pts {
+        let keep = out
+            .last()
+            .map(|q| ((p[0] - q[0]).powi(2) + (p[1] - q[1]).powi(2)).sqrt() >= step)
+            .unwrap_or(true);
+        if keep {
+            out.push(*p);
+        }
+    }
+    if let (Some(last), Some(end)) = (out.last().copied(), pts.last()) {
+        if last != *end {
+            out.push(*end);
+        }
+    }
+    out
 }
 
 /// Identifiant de fichier pour un circuit (nom normalisé).
@@ -872,13 +992,40 @@ fn load_track(dir: &Path, slug: &str) -> HashMap<i64, ([f64; 2], u32)> {
     map
 }
 
+/// Bornes de secteurs conservées dans le fichier de tracé de l'utilisateur
+/// (clés « s1 » / « s2 » → [distance, nombre de mesures] ; ignorées par
+/// `merge_track_json`, dont les clés sont des numéros de bucket).
+fn load_sectors(dir: &Path, slug: &str) -> [(f64, u32); 2] {
+    let mut out = [(0.0, 0); 2];
+    if let Ok(txt) = fs::read_to_string(dir.join(format!("{slug}.json"))) {
+        if let Ok(v) = serde_json::from_str::<HashMap<String, [f64; 2]>>(&txt) {
+            for (i, key) in ["s1", "s2"].iter().enumerate() {
+                if let Some([d, n]) = v.get(*key) {
+                    out[i] = (*d, *n as u32);
+                }
+            }
+        }
+    }
+    out
+}
+
 /// Sauvegarde le tracé accumulé (écriture atomique).
-fn save_track(dir: &Path, slug: &str, buckets: &HashMap<i64, ([f64; 2], u32)>) {
+fn save_track(
+    dir: &Path,
+    slug: &str,
+    buckets: &HashMap<i64, ([f64; 2], u32)>,
+    sectors: &[(f64, u32); 2],
+) {
     if buckets.len() < 30 {
         return;
     }
-    let m: HashMap<String, [f64; 2]> =
+    let mut m: HashMap<String, [f64; 2]> =
         buckets.iter().map(|(k, (p, _))| (k.to_string(), *p)).collect();
+    for (i, key) in ["s1", "s2"].iter().enumerate() {
+        if sectors[i].1 >= 2 {
+            m.insert(key.to_string(), [sectors[i].0, sectors[i].1 as f64]);
+        }
+    }
     if let Ok(txt) = serde_json::to_string(&m) {
         let tmp = dir.join(format!("{slug}.json.tmp"));
         let final_path = dir.join(format!("{slug}.json"));
@@ -1288,10 +1435,40 @@ fn extract(state: &mut PollState) -> LiveData {
             None => HashMap::new(),
         };
         state.last_saved = state.track_buckets.len();
+        state.sector_bounds = match &state.tracks_dir {
+            Some(dir) => load_sectors(dir, &state.track_slug),
+            None => [(0.0, 0); 2],
+        };
+        state.last_sector.clear();
+        state.sectors_saved = state.sector_bounds[0].1 + state.sector_bounds[1].1;
+        // Tracé du jeu : réexaminé pour ce circuit.
+        state.game_map_gen = 0;
+        state.game_poly = None;
+        state.align_samples.clear();
+        state.game_filled = false;
+        state.pit_lane.clear();
         // Nouvelle session → la mesure de consommation repart de zéro (une
         // référence carburant de l'ancienne session fausserait le 1er tour).
         state.fuel_at_lap_start = 0.0;
         state.lap_fuel_history.clear();
+    }
+
+    // Tracé du jeu (pont REST) : relu seulement quand un nouveau tracé arrive.
+    let lap_len = scor_info.m_lap_dist;
+    let map_gen = lmu_rest::track_map_generation();
+    if map_gen != state.game_map_gen && !state.game_filled {
+        state.game_map_gen = map_gen;
+        if let Some(map) = lmu_rest::track_map() {
+            let same_name = track_slug(&map.track) == state.track_slug;
+            if let Some(poly) = Polyline::closed(map.racing) {
+                let same_len = lap_len > 0.0 && ((poly.length() - lap_len) / lap_len).abs() < 0.15;
+                if same_name || (map.track.is_empty() && same_len) {
+                    state.pit_lane = thin(&map.pit_lane, 15.0);
+                    state.game_poly = Some(poly);
+                    state.align_samples.clear();
+                }
+            }
+        }
     }
 
     let mut standings: Vec<LiveStanding> = Vec::new();
@@ -1323,6 +1500,14 @@ fn extract(state: &mut PollState) -> LiveData {
         // Accumulation du tracé (résolution 20 m, hors stands, moyenne 2 passages).
         let lap_dist = v.m_lap_dist;
         if lap_dist > 0.0 && v.m_in_pits == 0 {
+            state.record_sector(v.m_id, v.m_sector, lap_dist);
+            // Échantillons de recalage du tracé du jeu (espacés d'au moins 50 m).
+            if state.game_poly.is_some()
+                && state.align_samples.len() < 40
+                && state.align_samples.iter().all(|(_, d)| (d - lap_dist).abs() >= 50.0)
+            {
+                state.align_samples.push(([pos.x, pos.z], lap_dist));
+            }
             let bucket = (lap_dist / 20.0) as i64;
             let entry = state.track_buckets.entry(bucket).or_insert(([pos.x, pos.z], 0));
             if entry.1 < 2 {
@@ -1405,6 +1590,26 @@ fn extract(state: &mut PollState) -> LiveData {
     } else {
         None
     };
+    if !state.game_filled && state.align_samples.len() >= 4 {
+        if let Some(poly) = state.game_poly.take() {
+            match track_align::align(&poly, &state.align_samples, lap_len) {
+                Some(a) => {
+                    fill_from_game(&mut state.track_buckets, &poly, &a, lap_len);
+                    state.game_filled = true;
+                    state.align_samples.clear();
+                }
+                None => {
+                    // Pas encore d'accord : on garde le tracé et on réessaie
+                    // avec d'autres échantillons (fenêtre glissante).
+                    if state.align_samples.len() >= 40 {
+                        state.align_samples.drain(..20);
+                    }
+                    state.game_poly = Some(poly);
+                }
+            }
+        }
+    }
+
     let mut sorted: Vec<(i64, [f64; 2])> = state
         .track_buckets
         .iter()
@@ -1420,9 +1625,14 @@ fn extract(state: &mut PollState) -> LiveData {
     // Persistance périodique du tracé (toutes les ~3 s, si enrichi).
     state.frames = state.frames.wrapping_add(1);
     if let Some(dir) = &state.tracks_dir {
-        if state.frames % 60 == 0 && state.track_buckets.len() > state.last_saved + 10 {
-            save_track(dir, &state.track_slug, &state.track_buckets);
+        let sectors_n = state.sector_bounds[0].1 + state.sector_bounds[1].1;
+        let grown = state.track_buckets.len() > state.last_saved + 10;
+        // Bornes de secteurs : réécrites au plus toutes les ~60 s si affinées.
+        let sectors_new = state.frames % 1200 == 0 && sectors_n > state.sectors_saved;
+        if (state.frames % 60 == 0 && grown) || sectors_new {
+            save_track(dir, &state.track_slug, &state.track_buckets, &state.sector_bounds);
             state.last_saved = state.track_buckets.len();
+            state.sectors_saved = sectors_n;
         }
     }
 
@@ -1526,6 +1736,10 @@ fn extract(state: &mut PollState) -> LiveData {
         track_layout,
         track_points,
         track_dists,
+        pit_lane_points: state.pit_lane.clone(),
+        sector_dists: state.sector_dists(),
+        track_from_game: state.game_filled,
+        rest: None,
     }
 }
 
@@ -1653,7 +1867,9 @@ pub fn get_live_data() -> Result<LiveData, AppError> {
         .lock()
         .map_err(|e| AppError::Internal(format!("live state lock: {e}")))?;
     let state = guard.get_or_insert_with(PollState::new);
-    Ok(extract(state))
+    let mut data = extract(state);
+    data.rest = lmu_rest::live_view();
+    Ok(data)
 }
 
 #[tauri::command]
@@ -1687,6 +1903,7 @@ pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), A
     if let Some(d) = &tracks_dir {
         let _ = fs::create_dir_all(d);
     }
+    lmu_rest::ensure_worker(|| LIVE_POLLING.load(Ordering::SeqCst));
     std::thread::spawn(move || {
         let mut state = PollState::new();
         state.tracks_dir = tracks_dir;
@@ -1695,7 +1912,10 @@ pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), A
         while LIVE_POLLING.load(Ordering::SeqCst)
             && LIVE_GEN.load(Ordering::SeqCst) == generation
         {
-            let data = extract(&mut state);
+            let mut data = extract(&mut state);
+            // Pont REST : le thread dédié lit le jeu ; ici on copie seulement.
+            lmu_rest::set_sim_present(data.connected);
+            data.rest = lmu_rest::live_view();
             if app.emit("live-data", &data).is_err() {
                 // Plus personne à qui émettre : on ne coupe le drapeau que si
                 // aucune génération plus récente n'a démarré entre-temps.

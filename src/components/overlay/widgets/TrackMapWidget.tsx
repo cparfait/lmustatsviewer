@@ -1,9 +1,10 @@
-/** Overlay Track Map : tracé du circuit (figé) + position des voitures. */
+/** Overlay Track Map : tracé du circuit (figé) + voie des stands + voitures. */
 
 import { useEffect, useRef, useState } from "react";
 import { Map as MapIcon } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
 import { liveClassColor } from "@/components/overlay/format";
+import { mapComplete, pathOf, trackPaths, type Pt } from "@/lib/trackMapGeom";
 import type { WidgetProps } from "./types";
 
 const SIZE = 300;
@@ -17,7 +18,10 @@ interface Bounds {
 }
 interface Outline {
   bounds: Bounds;
-  path: string;
+  /** Tronçons du tracé (un seul, fermé, quand le tour est complet). */
+  paths: string[];
+  /** Voie des stands (fournie par le jeu), absente sinon. */
+  pit?: string;
 }
 
 /** Projette (x,z) monde → (px,py) écran selon des bornes. */
@@ -47,24 +51,26 @@ function computeBounds(pts: [number, number][]): Bounds {
   return { min_x, max_x, min_z, max_z };
 }
 
-function buildPath(pts: [number, number][], bounds: Bounds): string {
+function buildOutline(pts: Pt[], dists: number[], lapLen: number, pit: Pt[]): Outline {
+  const bounds = computeBounds([...pts, ...pit]);
   const project = makeProject(bounds);
-  return (
-    pts
-      .map(([x, z], i) => {
-        const [px, py] = project(x, z);
-        return `${i === 0 ? "M" : "L"}${px.toFixed(1)},${py.toFixed(1)}`;
-      })
-      .join(" ") + " Z"
-  );
+  const proj = (p: Pt): Pt => project(p[0], p[1]);
+  return {
+    bounds,
+    paths: trackPaths(pts, dists, lapLen, proj),
+    pit: pit.length >= 2 ? pathOf(pit.map(proj), false) : undefined,
+  };
 }
 
-const cacheKey = (track: string) => `lmu_trackmap_${track}`;
+// v2 : tronçons + voie des stands. L'ancien cache (`lmu_trackmap_*`) pouvait
+// contenir un tracé partiel figé à tort : il est ignoré.
+const cacheKey = (track: string) => `lmu_trackmap_v2_${track}`;
 function loadCache(track: string): Outline | null {
   if (!track) return null;
   try {
     const raw = localStorage.getItem(cacheKey(track));
-    return raw ? (JSON.parse(raw) as Outline) : null;
+    const o = raw ? (JSON.parse(raw) as Outline) : null;
+    return o && Array.isArray(o.paths) ? o : null;
   } catch {
     return null;
   }
@@ -79,12 +85,18 @@ function saveCache(track: string, o: Outline) {
 }
 
 export function TrackMapWidget({ data, content, accent, t }: WidgetProps) {
-  const pts = data.track_points as [number, number][];
+  const pts = data.track_points as Pt[];
+  const dists = data.track_dists;
+  const lapLen = data.session?.track_length ?? 0;
+  const pit = data.pit_lane_points as Pt[] | undefined;
   const trackKey = data.session?.track ?? "";
 
-  // Tracé FIGÉ (bornes + path). On le construit pendant le 1er tour, puis on le
-  // gèle et on le met en cache par circuit → carte statique, seules les voitures
-  // bougent. Au rechargement d'un circuit connu, il est figé immédiatement.
+  // Tracé FIGÉ (bornes + tronçons). On le construit pendant le 1er tour, puis on
+  // le gèle et on le met en cache par circuit → carte statique, seules les
+  // voitures bougent. Gel seulement quand le tour est COMPLET (≥ 95 % de la
+  // longueur, sans trou) : avant, deux trames de même longueur suffisaient et un
+  // tracé partiel pouvait rester figé pour de bon. Au rechargement d'un circuit
+  // connu, il est figé immédiatement.
   const [outline, setOutline] = useState<Outline | null>(null);
   const stateRef = useRef<{ track: string; len: number; frozen: boolean }>({
     track: "",
@@ -104,16 +116,18 @@ export function TrackMapWidget({ data, content, accent, t }: WidgetProps) {
     }
     if (stateRef.current.frozen || pts.length < 2) return;
 
-    const bounds = computeBounds(pts);
-    setOutline({ bounds, path: buildPath(pts, bounds) });
+    const o = buildOutline(pts, dists, lapLen, pit ?? []);
+    setOutline(o);
 
-    // Gèle quand le tracé est assez complet ET stable (plus de nouveaux points).
-    if (pts.length >= 80 && pts.length === stateRef.current.len) {
+    // Gèle quand le tour est complet ET stable (plus de nouveaux points). La
+    // voie des stands, si le jeu la fournit, doit être arrivée aussi.
+    const complete = lapLen > 0 ? mapComplete(dists, lapLen) : pts.length >= 80;
+    if (complete && pts.length === stateRef.current.len) {
       stateRef.current.frozen = true;
-      saveCache(trackKey, { bounds, path: buildPath(pts, bounds) });
+      saveCache(trackKey, o);
     }
     stateRef.current.len = pts.length;
-  }, [pts, trackKey]);
+  }, [pts, dists, lapLen, pit, trackKey]);
 
   const project = outline ? makeProject(outline.bounds) : null;
   const clamp = (v: number) => Math.max(3, Math.min(SIZE - 3, v));
@@ -129,13 +143,26 @@ export function TrackMapWidget({ data, content, accent, t }: WidgetProps) {
             className="aspect-square w-full"
             style={{ overflow: "hidden" }}
           >
-            <path
-              d={outline.path}
-              fill="none"
-              stroke="rgba(255,255,255,0.35)"
-              strokeWidth={3}
-              strokeLinejoin="round"
-            />
+            {outline.pit && (
+              <path
+                d={outline.pit}
+                fill="none"
+                stroke="rgba(255,255,255,0.15)"
+                strokeWidth={2}
+                strokeDasharray="4 3"
+                strokeLinejoin="round"
+              />
+            )}
+            {outline.paths.map((d, i) => (
+              <path
+                key={i}
+                d={d}
+                fill="none"
+                stroke="rgba(255,255,255,0.35)"
+                strokeWidth={3}
+                strokeLinejoin="round"
+              />
+            ))}
             {data.standings.map((s) => {
               const [cx, cy] = project(s.pos_x, s.pos_z);
               const color =

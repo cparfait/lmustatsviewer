@@ -17,7 +17,8 @@ import { engineer } from "./state";
 import { carNumber, classRank, radioClass, radioName } from "./text";
 import { pitWindow, stopsNeeded } from "./pitWindow";
 import { nextSlowerAhead, onTrack, slowerPackAhead } from "./traffic";
-import { interp, nextRain, wetSession } from "./forecast";
+import { fromGameNodes, interp, nextRain, pickForecast, wetSession, type WetNode } from "./forecast";
+import { brakePads, gameForecast, guardPerLap, officialEnergyPerLap } from "@/lib/lmuRest";
 import { normalize, type AnswerIntent, type Entities, type WatchSpec } from "./router";
 import type { WatchCond } from "./watches";
 
@@ -100,10 +101,20 @@ export function findCited(d: LiveData, e: Entities | undefined, norm: string | u
   return null;
 }
 
+/**
+ * Conso d'énergie virtuelle (fraction/tour) : mesure à la ligne, avec la table
+ * du jeu comme garde-fou (avant 3 tours mesurés, après un ravitaillement, ou si
+ * la mesure s'écarte de plus de 40 %).
+ */
+export function energyPerLap(d: LiveData): number | null {
+  return guardPerLap(engineer.energy.perLap(), officialEnergyPerLap(d.rest))?.perLap ?? null;
+}
+
 /** Autonomie en énergie virtuelle (tours), si voiture WEC et mesurée. */
 function energyLaps(d: LiveData): number | null {
   const ve = d.extended?.virtual_energy ?? 0;
-  return ve > 0 ? engineer.energy.lapsRemaining(ve) : null;
+  const per = energyPerLap(d);
+  return ve > 0 && per ? ve / per : null;
 }
 
 /** Fenêtre d'arrêt courante (carburant + énergie virtuelle). */
@@ -119,25 +130,36 @@ export function currentPitWindow(d: LiveData) {
 
 /** Prévision validée pour la séance en cours : prochaine pluie, ou « sec », ou null. */
 export function currentForecast(d: LiveData): { rain: { inS: number; chance: number } | null } | null {
-  const f = engineer.forecast;
   const sc = d.session!;
-  if (!f || !engineer.forecastValid || sc.end_et <= 0) return null;
-  const key = wetSession(sc.session);
-  const nodes = key ? f.data[key] : undefined;
-  if (!nodes) return null;
+  if (sc.end_et <= 0) return null;
   const frac = Math.min(1, Math.max(0, sc.session_time / sc.end_et));
+  const nodes = activeForecast(d, frac)?.nodes;
+  if (!nodes) return null;
   return { rain: nextRain(nodes, frac, sc.end_et) };
+}
+
+/** Prévision retenue : celle du jeu si cohérente, sinon le `.wet` validé. */
+export function activeForecast(d: LiveData, frac: number): { nodes: WetNode[]; source: "game" | "wet" } | null {
+  const sc = d.session;
+  if (!sc) return null;
+  const game = gameForecast(d.rest, sc.session);
+  const key = wetSession(sc.session);
+  const wet = key ? (engineer.forecast?.data[key] ?? null) : null;
+  return pickForecast(game ? fromGameNodes(game) : null, wet, engineer.forecastValid, frac, d.weather?.air_temp ?? NaN);
 }
 
 /** Température d'air annoncée par la prévision à l'instant présent (validation). */
 export function forecastTempNow(d: LiveData): number | null {
-  const f = engineer.forecast;
   const sc = d.session;
-  if (!f || !sc || sc.end_et <= 0) return null;
+  if (!sc || sc.end_et <= 0) return null;
+  const frac = Math.min(1, Math.max(0, sc.session_time / sc.end_et));
+  const game = gameForecast(d.rest, sc.session);
+  if (game) return interp(fromGameNodes(game), frac).Temperature;
+  const f = engineer.forecast;
   const key = wetSession(sc.session);
-  const nodes = key ? f.data[key] : undefined;
+  const nodes = f && key ? f.data[key] : undefined;
   if (!nodes) return null;
-  return interp(nodes, Math.min(1, Math.max(0, sc.session_time / sc.end_et))).Temperature;
+  return interp(nodes, frac).Temperature;
 }
 
 /** « dans environ N minutes » / « dans moins d'une minute ». */
@@ -268,6 +290,18 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       return t("live.spBrakeBias", { f: ((1 - rear) * 100).toFixed(1) });
     }
 
+    case "brakeWear": {
+      const pads = brakePads(d.rest);
+      if (!pads) return t("live.spBrakePadsNone");
+      const pct = (a: number, b: number) => Math.round(Math.min(a, b) * 100);
+      let txt = t("live.spBrakePads", { f: pct(pads[0], pads[1]), r: pct(pads[2], pads[3]) });
+      // Verdict : tiendront-elles jusqu'au bout (seuil 10 %) ?
+      const left = computeStrategy(d.session, p, d.telemetry)?.sessionLapsLeft ?? null;
+      const lapsTo = engineer.pads.lapsTo(Math.min(...pads));
+      if (left != null && lapsTo != null) txt += ". " + t(lapsTo >= left ? "live.spBrakePadsOk" : "live.spBrakePadsChange");
+      return txt;
+    }
+
     case "battery": {
       const x = d.extended;
       if (!x || !(x.boost_state > 0)) return t("live.spNoHybrid");
@@ -303,7 +337,7 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       const perStint =
         info.limitedBy === "energy"
           ? (() => {
-              const per = engineer.energy.perLap();
+              const per = energyPerLap(d);
               return per ? 1 / per : null;
             })()
           : tel && tel.fuel_consumption > 0 && tel.fuel_capacity > 0

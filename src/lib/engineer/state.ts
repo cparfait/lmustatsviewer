@@ -10,6 +10,7 @@ import { ClosingTracker } from "./closing";
 import { EnergyTracker, PitWindowTracker } from "./pitWindow";
 import { WatchList } from "./watches";
 import type { WetData } from "./forecast";
+import { PadWearTracker } from "@/lib/lmuRest";
 
 export interface ForecastState {
   data: WetData;
@@ -19,6 +20,8 @@ export interface ForecastState {
 class EngineerState {
   closing = new ClosingTracker();
   energy = new EnergyTracker();
+  /** Usure des plaquettes par tour (donnée du jeu via le pont REST). */
+  pads = new PadWearTracker();
   pit = new PitWindowTracker();
   watches = new WatchList();
   /** Fichier `.wet` retenu pour le circuit courant (non validé). */
@@ -34,6 +37,7 @@ class EngineerState {
   resetSession(): void {
     this.closing.reset();
     this.energy.reset();
+    this.pads.reset();
     this.pit.reset();
     this.watches.clear();
     this.forecastValid = false;

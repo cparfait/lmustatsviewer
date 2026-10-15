@@ -11,6 +11,7 @@ import { run as runSpotter } from "./suites/spotter.suite";
 import { run as runEngineer } from "./suites/engineer.suite";
 import { run as runOhne } from "./suites/ohne.suite";
 import { run as runFeedback } from "./suites/feedback.suite";
+import { run as runRest } from "./suites/rest.suite";
 
 runPure();
 runCoach();
@@ -18,4 +19,5 @@ runSpotter();
 runEngineer();
 runOhne();
 runFeedback();
+runRest();
 report();

@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live } from "@/lib/api";
+import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, repeatLast, cancelSpeech } from "@/lib/voice";
 import { buildStatus } from "@/lib/spotter";
 import { answerIntent } from "@/lib/engineer/answers";
@@ -125,7 +126,7 @@ export function useSpotter() {
           const norm = normalize(text, lang);
           announce(
             answerIntent(intent, data, tt, {
-              pitLossSec: st.pitLossSeconds,
+              pitLossSec: effectivePitLoss(data, st.pitLossSeconds, st.pitLaneLoss),
               fuelReserveLaps: st.fuelReserveLaps,
               classPositions: st.classPositions,
               entities: extractEntities(norm, lang),

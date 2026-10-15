@@ -22,6 +22,7 @@ import type { Tr } from "@/i18n";
 import { speak as rawSpeak, cancelSpeech, type VoicePriority } from "@/lib/voice";
 import { inCriticalZone } from "@/lib/driving";
 import { computeStrategy } from "@/lib/strategy";
+import { aeroDamage, brakePads, damagedSuspensions, effectivePitLoss, WHEELS } from "@/lib/lmuRest";
 import { useAppStore } from "@/stores/app";
 import { RadioArbiter, type Candidate } from "./arbiter";
 import { ToneArbiter, setSharedTone, BATTLE_GAP_S } from "./tone";
@@ -173,6 +174,11 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const prevFlag = useRef<FlagKind>("none");
   const fuelBucket = useRef<number>(99);
   const tyreWarned = useRef(false);
+  /** Plaquettes : 0 = rien dit, 1 = alerte 25 % dite, 2 = alerte 10 % dite. */
+  const padsLevel = useRef(0);
+  /** Roues dont la suspension touchée a déjà été annoncée. */
+  const suspSaid = useRef<Set<number>>(new Set());
+  const aeroSaid = useRef(false);
   const tyreSeenFresh = useRef(false);
   const coldWarned = useRef(false);
   const prevPos = useRef<number>(0);
@@ -409,6 +415,38 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       tyreWarned.current = true;
     }
 
+    // ── Plaquettes (donnée du jeu, absente de la mémoire partagée) — alerte à
+    // 25 % puis 10 % de la plus usée ; réarmée quand elles sont changées.
+    const pads = brakePads(data.rest);
+    if (pads) {
+      const minPad = Math.min(...pads);
+      if (minPad >= 0.6) padsLevel.current = 0;
+      const level = minPad < 0.1 ? 2 : minPad < 0.25 ? 1 : 0;
+      if (warmedUp && level > padsLevel.current) {
+        say(`brakes:pads${level}`, t("live.vBrakePads", { pct: Math.round(minPad * 100) }), "normal", {
+          score: level === 2 ? 65 : 50,
+          retryS: 30,
+        });
+        padsLevel.current = level;
+      }
+    }
+
+    // ── Dégâts détaillés (donnée du jeu) : quelle suspension, aéro ────────────
+    const susp = damagedSuspensions(data.rest);
+    if (susp.length === 0) suspSaid.current.clear();
+    const newSusp = susp.filter((i) => !suspSaid.current.has(i));
+    if (warmedUp && newSusp.length) {
+      const wheels = newSusp.map((i) => t(`live.wheelVoice.${WHEELS[i].toLowerCase()}`)).join(", ");
+      say("mech:suspension", t("live.vSuspensionDamage", { wheels }), "normal", { score: 60, retryS: 20 });
+      newSusp.forEach((i) => suspSaid.current.add(i));
+    }
+    const aero = aeroDamage(data.rest);
+    if (aero != null && aero < 0.02) aeroSaid.current = false;
+    if (warmedUp && aero != null && aero >= 0.1 && !aeroSaid.current) {
+      say("mech:aero", t("live.vAeroDamage", { pct: Math.round(aero * 100) }), "normal", { score: 50, retryS: 20 });
+      aeroSaid.current = true;
+    }
+
     const inPits = playerStanding?.in_pits ?? false;
 
     if (player) {
@@ -575,6 +613,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (lapDone) {
         lapsSinceLapCallout.current++;
         engineer.energy.push(data.extended?.virtual_energy ?? 0);
+        const pads = brakePads(data.rest);
+        engineer.pads.push(pads ? Math.min(...pads) : null);
       }
       if (!inPits && lapDone && player.last_lap_time > 0) {
         const best = player.best_lap_time;
@@ -785,7 +825,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
       // ── Arrêts des rivaux directs (classe) ───────────────────────────────
       if (warmedUp && isRace) {
-        const loss = useAppStore.getState().pitLossSeconds;
+        const st = useAppStore.getState();
+        const loss = effectivePitLoss(data, st.pitLossSeconds, st.pitLaneLoss);
         for (const ev of rivalPits.current.push(data, loss)) {
           const name = radioName(ev.driver);
           const key =
@@ -987,16 +1028,17 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         rainHeavy.current = false;
       }
 
-      // Prévision `.wet` : validée une fois contre la température d'air mesurée,
-      // puis annoncée à ≤ 20 min de la pluie probable et rappelée à ≤ 5 min.
+      // Prévision : celle du jeu (pont REST) si fraîche et cohérente avec l'air
+      // mesuré, sinon le `.wet` validé une fois contre la mesure. Annoncée à
+      // ≤ 20 min de la pluie probable et rappelée à ≤ 5 min.
       const f = engineer.forecast;
       const key = wetSession(sc.session);
-      if (f && key && f.data[key] && sc.end_et > 0 && warmedUp) {
-        if (!engineer.forecastValid) {
+      if (sc.end_et > 0 && warmedUp) {
+        if (f && key && f.data[key] && !engineer.forecastValid) {
           const frac = Math.min(1, sc.session_time / sc.end_et);
           engineer.forecastValid = consistentWithLive(f.data[key]!, frac, weather.air_temp);
         }
-        const fc = engineer.forecastValid ? currentForecast(data) : null;
+        const fc = currentForecast(data);
         if (fc?.rain) {
           const { inS, chance } = fc.rain;
           const txt = t("live.vRainForecast", { pct: chance, when: whenMinutes(t, inS) });

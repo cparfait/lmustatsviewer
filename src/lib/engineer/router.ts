@@ -192,6 +192,7 @@ const T: Record<string, Def[]> = {
     { id: "remaining", family: "remaining", idioms: ["combien de tours", "tours restants", "il reste combien", "temps restant", "combien de temps", "quand ca finit", "fin de course", "minutes restantes", "il reste combien de temps"] },
     { id: "battery", family: "battery", idioms: ["niveau de batterie", "ma batterie", "energie virtuelle", "mon energie"], subjects: ["batterie", "hybride", "energie", "deploiement"], cues: ["combien", "niveau", "quel", "reste"] },
     { id: "brakeBias", family: "brakes", idioms: ["repartition", "repartition de freinage", "repartition des freins", "repartiteur", "balance de frein", "brake bias"] },
+    { id: "brakeWear", family: "brakes", idioms: ["plaquettes", "mes plaquettes", "usure des freins", "usure des plaquettes", "etat des freins", "etat des plaquettes", "mes freins"] },
     { id: "stayOut", family: "command", idioms: ["je reste dehors", "on reste dehors", "je reste en piste", "negatif je reste", "je ne rentre pas", "non je reste", "on ne rentre pas", "je rentre pas"] },
     { id: "watchCancel", family: "command", idioms: ["annule les alertes", "annule mes alertes", "oublie les alertes", "plus d alertes", "annule l alerte", "arrete de surveiller", "efface les alertes"] },
     { id: "ackBox", family: "command", exact: ["compris", "recu", "bien recu", "ok", "d accord", "ok je rentre", "je rentre", "box box", "box", "copie", "ca marche", "c est note"] },
@@ -221,6 +222,7 @@ const T: Record<string, Def[]> = {
     { id: "remaining", family: "remaining", idioms: ["how many laps", "laps left", "laps remaining", "time left", "time remaining", "how long left", "how much time"] },
     { id: "battery", family: "battery", idioms: ["battery level", "my battery", "virtual energy", "my energy"], subjects: ["battery", "hybrid", "energy", "deployment"], cues: ["how", "what", "level", "left"] },
     { id: "brakeBias", family: "brakes", idioms: ["brake bias", "brake balance", "bias"] },
+    { id: "brakeWear", family: "brakes", idioms: ["brake pads", "my pads", "pads", "brake wear", "pad wear", "my brakes"] },
     { id: "stayOut", family: "command", idioms: ["i m staying out", "i am staying out", "staying out", "stay out", "negative staying out", "not pitting", "i m not pitting"] },
     { id: "watchCancel", family: "command", idioms: ["cancel the alerts", "cancel alerts", "cancel my alerts", "clear alerts", "stop watching", "forget the alerts"] },
     { id: "ackBox", family: "command", exact: ["copy", "copy that", "understood", "roger", "ok", "okay", "boxing", "box box", "box", "got it", "pitting this lap"] },
@@ -250,6 +252,7 @@ const T: Record<string, Def[]> = {
     { id: "remaining", family: "remaining", idioms: ["cuantas vueltas", "vueltas restantes", "cuanto queda", "tiempo restante", "cuanto tiempo"] },
     { id: "battery", family: "battery", idioms: ["nivel de bateria", "mi bateria", "energia virtual", "mi energia"], subjects: ["bateria", "hibrido", "energia"], cues: ["cuanto", "cuanta", "nivel", "queda"] },
     { id: "brakeBias", family: "brakes", idioms: ["reparto de frenada", "reparto de frenos", "balance de frenos", "reparto"] },
+    { id: "brakeWear", family: "brakes", idioms: ["pastillas", "mis pastillas", "desgaste de frenos", "desgaste de pastillas", "mis frenos"] },
     { id: "stayOut", family: "command", idioms: ["me quedo fuera", "nos quedamos fuera", "sigo en pista", "no entro", "negativo me quedo"] },
     { id: "watchCancel", family: "command", idioms: ["cancela las alertas", "cancela mis alertas", "borra las alertas", "olvida las alertas"] },
     { id: "ackBox", family: "command", exact: ["entendido", "recibido", "ok", "vale", "de acuerdo", "entro", "box box", "box", "copiado"] },
@@ -279,6 +282,7 @@ const T: Record<string, Def[]> = {
     { id: "remaining", family: "remaining", idioms: ["wie viele runden", "runden ubrig", "verbleibende runden", "restzeit", "wie lange noch", "wie viel zeit"] },
     { id: "battery", family: "battery", idioms: ["batteriestand", "meine batterie", "virtuelle energie", "meine energie"], subjects: ["batterie", "hybrid", "energie"], cues: ["wie", "viel", "stand", "noch"] },
     { id: "brakeBias", family: "brakes", idioms: ["bremsbalance", "bremskraftverteilung", "brake bias", "bremsverteilung"] },
+    { id: "brakeWear", family: "brakes", idioms: ["bremsbelage", "bremsbelaege", "belage", "belaege", "bremsverschleiss", "belagverschleiss", "meine bremsen"] },
     { id: "stayOut", family: "command", idioms: ["ich bleibe draussen", "wir bleiben draussen", "ich komme nicht rein", "negativ ich bleibe", "bleibe draussen"] },
     { id: "watchCancel", family: "command", idioms: ["alarme loschen", "alle alarme loschen", "alarme abbrechen", "vergiss die alarme"] },
     { id: "ackBox", family: "command", exact: ["verstanden", "roger", "ok", "okay", "alles klar", "ich komme rein", "box box", "box", "kopiert"] },
@@ -308,6 +312,7 @@ const T: Record<string, Def[]> = {
     { id: "remaining", family: "remaining", idioms: ["quanti giri", "giri rimanenti", "giri mancanti", "quanti giri mancano", "quanto manca", "tempo rimanente", "tempo restante", "quanto tempo", "minuti rimanenti", "quando finisce", "fine gara"] },
     { id: "battery", family: "battery", idioms: ["livello batteria", "livello della batteria", "la mia batteria", "energia virtuale", "la mia energia"], subjects: ["batteria", "ibrido", "energia"], cues: ["quanto", "quanta", "livello", "resta", "rimane"] },
     { id: "brakeBias", family: "brakes", idioms: ["ripartizione", "ripartizione di frenata", "ripartizione frenata", "ripartizione dei freni", "ripartitore", "bilanciamento dei freni", "bilanciamento freni", "brake bias"] },
+    { id: "brakeWear", family: "brakes", idioms: ["pastiglie", "le mie pastiglie", "usura dei freni", "usura freni", "usura pastiglie", "i miei freni"] },
     { id: "stayOut", family: "command", idioms: ["resto fuori", "restiamo fuori", "rimango fuori", "resto in pista", "rimango in pista", "non rientro", "negativo resto fuori", "non mi fermo"] },
     { id: "watchCancel", family: "command", idioms: ["annulla gli avvisi", "annulla i miei avvisi", "cancella gli avvisi", "annulla gli allarmi", "cancella gli allarmi", "dimentica gli avvisi", "annulla l avviso", "smetti di controllare"] },
     { id: "ackBox", family: "command", exact: ["ricevuto", "capito", "ok", "okay", "va bene", "d accordo", "rientro", "box box", "box", "copiato", "chiaro", "perfetto"] },
@@ -440,6 +445,7 @@ export const INTENT_HELP: Partial<Record<AnswerIntent, string>> = {
   remaining: "laps or time remaining",
   battery: "hybrid battery and virtual energy",
   brakeBias: "brake bias",
+  brakeWear: "brake pad wear (game data)",
 };
 
 // ── Routage ──────────────────────────────────────────────────────────────────

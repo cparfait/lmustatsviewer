@@ -73,6 +73,43 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "added",
         items: [
           {
+            featured: true,
+            text: {
+              en: "Data read straight from the game (Le Mans Ultimate's local web interface, read-only: nothing is ever changed in the game). The race engineer, the strategy and the AI Coach now use the game's own weather forecast for the session (preferred over the .wet file when it matches the measured air temperature), the game's fuel / virtual energy estimate from the pit menu table as a safety net (before your consumption is measured, or when a lap is distorted by a stop), and the session length as early as the formation lap. A discreet \"Game API\" dot on the Live page shows whether the game answers and which figures come from it. If the game doesn't answer, everything works as before.",
+              fr: "Données lues directement dans le jeu (interface web locale de Le Mans Ultimate, en lecture seule : rien n'est jamais modifié dans le jeu). L'ingénieur, la stratégie et le Coach IA utilisent désormais la prévision météo du jeu pour la séance (prioritaire sur le fichier .wet quand elle colle à la température d'air mesurée), l'estimation de carburant / d'énergie virtuelle de la table du menu des stands comme garde-fou (avant que ta conso soit mesurée, ou quand un tour est faussé par un arrêt), et la durée de séance dès le tour de formation. Un point discret « API du jeu » sur la page Live indique si le jeu répond et quels chiffres en viennent. Si le jeu ne répond pas, tout fonctionne comme avant.",
+              es: "Datos leídos directamente del juego (interfaz web local de Le Mans Ultimate, solo lectura: nunca se modifica nada en el juego). El ingeniero, la estrategia y el Coach IA usan ahora la previsión meteorológica del propio juego para la sesión (prioritaria sobre el archivo .wet cuando coincide con la temperatura del aire medida), la estimación de combustible / energía virtual de la tabla del menú de boxes como salvaguarda (antes de medir tu consumo, o cuando una vuelta queda falseada por una parada) y la duración de la sesión desde la vuelta de formación. Un punto discreto «API del juego» en la página Live indica si el juego responde y qué cifras proceden de él. Si el juego no responde, todo funciona como antes.",
+              de: "Daten direkt aus dem Spiel gelesen (lokale Web-Oberfläche von Le Mans Ultimate, nur lesend: im Spiel wird nie etwas verändert). Renningenieur, Strategie und KI-Coach nutzen jetzt die Wettervorhersage des Spiels für die Session (Vorrang vor der .wet-Datei, wenn sie zur gemessenen Lufttemperatur passt), die Kraftstoff-/Virtual-Energy-Schätzung aus der Tabelle des Boxenmenüs als Absicherung (bevor dein Verbrauch gemessen ist oder wenn eine Runde durch einen Stopp verfälscht ist) und die Sessiondauer schon ab der Formationsrunde. Ein dezenter Punkt „Spiel-API“ auf der Live-Seite zeigt, ob das Spiel antwortet und welche Werte von dort stammen. Antwortet das Spiel nicht, funktioniert alles wie bisher.",
+              it: "Dati letti direttamente dal gioco (interfaccia web locale di Le Mans Ultimate, in sola lettura: nel gioco non viene mai modificato nulla). L'ingegnere, la strategia e il Coach IA usano ora le previsioni meteo del gioco per la sessione (prioritarie sul file .wet quando corrispondono alla temperatura dell'aria misurata), la stima di carburante / energia virtuale della tabella del menu box come salvaguardia (prima che il tuo consumo sia misurato, o quando un giro è falsato da una sosta) e la durata della sessione già dal giro di formazione. Un punto discreto «API del gioco» nella pagina Live indica se il gioco risponde e quali dati ne provengono. Se il gioco non risponde, tutto funziona come prima.",
+            },
+          },
+          {
+            text: {
+              en: "Brake pad wear (game data, not available until now): the engineer warns at 25% then 10% on the most worn pad, and answers \"brake pads?\" by voice with the front / rear percentages and whether they will last to the end. Damage is now detailed too: which suspension corner is hit, and aero damage.",
+              fr: "Usure des plaquettes de frein (donnée du jeu, indisponible jusqu'ici) : l'ingénieur prévient à 25 % puis à 10 % sur la plus usée, et répond à « plaquettes ? » à la voix avec les pourcentages avant / arrière et si elles tiendront jusqu'au bout. Les dégâts sont aussi détaillés : quelle suspension est touchée, et les dégâts aéro.",
+              es: "Desgaste de las pastillas de freno (dato del juego, hasta ahora no disponible): el ingeniero avisa al 25 % y luego al 10 % en la más gastada, y responde a «¿pastillas?» por voz con los porcentajes delante / detrás y si aguantarán hasta el final. Los daños también se detallan: qué suspensión está dañada y los daños aerodinámicos.",
+              de: "Bremsbelagverschleiß (Spieldaten, bisher nicht verfügbar): Der Ingenieur warnt bei 25 % und dann bei 10 % am am stärksten abgenutzten Belag und beantwortet „Bremsbeläge?“ per Sprache mit den Prozentwerten vorne / hinten und ob sie bis zum Ende halten. Schäden werden jetzt ebenfalls genauer angesagt: welche Aufhängung betroffen ist und Aerodynamikschäden.",
+              it: "Usura delle pastiglie dei freni (dato del gioco, finora non disponibile): l'ingegnere avvisa al 25 % e poi al 10 % sulla più consumata, e risponde a «pastiglie?» a voce con le percentuali anteriori / posteriori e se dureranno fino alla fine. Anche i danni sono ora dettagliati: quale sospensione è colpita e i danni aerodinamici.",
+            },
+          },
+          {
+            text: {
+              en: "Pit-exit prediction (\"where will I rejoin?\", rival stops, undercut): the time lost in the pit lane is now measured separately from the stop itself, and the next stop's duration is read from the game's pit menu (fuel, tyres, repairs) — the estimate follows what you have selected instead of repeating the previous stop. Your manual setting is still used when the game doesn't answer.",
+              fr: "Prédiction de sortie des stands (« où je ressors ? », arrêts des rivaux, undercut) : le temps perdu dans la voie des stands est maintenant mesuré à part de l'arrêt lui-même, et la durée du prochain arrêt est lue dans le menu des stands du jeu (carburant, pneus, réparations) — l'estimation suit ce que tu as sélectionné au lieu de répéter l'arrêt précédent. Ton réglage manuel reste utilisé quand le jeu ne répond pas.",
+              es: "Predicción de salida de boxes («¿dónde salgo?», paradas de rivales, undercut): el tiempo perdido en el pit lane se mide ahora aparte de la parada en sí, y la duración de la próxima parada se lee en el menú de boxes del juego (combustible, neumáticos, reparaciones): la estimación sigue lo que has seleccionado en lugar de repetir la parada anterior. Tu ajuste manual se sigue usando cuando el juego no responde.",
+              de: "Prognose für die Boxenausfahrt („Wo komme ich raus?“, Stopps der Rivalen, Undercut): Die Zeit in der Boxengasse wird jetzt getrennt vom Stopp selbst gemessen, und die Dauer des nächsten Stopps wird aus dem Boxenmenü des Spiels gelesen (Kraftstoff, Reifen, Reparaturen) — die Schätzung folgt deiner Auswahl, statt den letzten Stopp zu wiederholen. Deine manuelle Einstellung gilt weiterhin, wenn das Spiel nicht antwortet.",
+              it: "Previsione di uscita dai box («dove rientro?», soste dei rivali, undercut): il tempo perso nella corsia box ora è misurato separatamente dalla sosta vera e propria, e la durata della prossima sosta viene letta dal menu box del gioco (carburante, gomme, riparazioni): la stima segue ciò che hai selezionato invece di ripetere la sosta precedente. La tua impostazione manuale resta in uso quando il gioco non risponde.",
+            },
+          },
+          {
+            text: {
+              en: "AI Coach: it now receives the game data (brake pads, damage detail, fuel / energy estimate, planned stop duration, class position, pit menu choices, session forecast) and, for setup questions, the adjustment range of every setting of the car loaded in the game, so it never suggests a click outside the limits.",
+              fr: "Coach IA : il reçoit désormais les données du jeu (plaquettes, détail des dégâts, estimation carburant / énergie, durée prévue de l'arrêt, position dans la classe, choix du menu des stands, prévision de la séance) et, pour les questions de réglage, la plage de chaque réglage de la voiture chargée dans le jeu, pour ne jamais proposer un cran hors limites.",
+              es: "Coach IA: ahora recibe los datos del juego (pastillas, detalle de daños, estimación de combustible / energía, duración prevista de la parada, posición en la clase, opciones del menú de boxes, previsión de la sesión) y, para las preguntas de reglaje, el rango de cada ajuste del coche cargado en el juego, para no proponer nunca un clic fuera de los límites.",
+              de: "KI-Coach: Er erhält jetzt die Spieldaten (Bremsbeläge, Schadensdetails, Kraftstoff-/Energieschätzung, geplante Stoppdauer, Klassenposition, Auswahl im Boxenmenü, Vorhersage der Session) und bei Setup-Fragen den Einstellbereich jedes Werts des im Spiel geladenen Autos, damit er nie einen Klick außerhalb der Grenzen vorschlägt.",
+              it: "Coach IA: ora riceve i dati del gioco (pastiglie, dettaglio dei danni, stima carburante / energia, durata prevista della sosta, posizione nella classe, scelte del menu box, previsioni della sessione) e, per le domande di assetto, l'intervallo di ogni regolazione dell'auto caricata nel gioco, così non propone mai un clic fuori dai limiti.",
+            },
+          },
+          {
             text: {
               en: "New setting (Settings → Voice): \"Announce positions within class\". In multi-class sessions, the race engineer now gives your position in your class — place gained/lost, podium, lead, status, gaps to the cars ahead and behind, \"what's my position?\", position after a pit stop. Turn it off to keep overall positions as before.",
               fr: "Nouveau réglage (Configuration → Voix) : « Positions annoncées dans la classe ». En multiclasse, l'ingénieur donne désormais ta place dans ta classe — place gagnée/perdue, podium, prise de tête, statut, écarts devant/derrière, « quelle position ? », position à la sortie des stands. Désactive-le pour garder les positions au général comme avant.",
@@ -95,6 +132,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "improved",
         items: [
+          {
+            text: {
+              en: "Track map (Live page and overlay): the complete outline now comes from the game as soon as cars are on track — no more waiting for a full lap, on every circuit — and wrong points (off-track excursions) are corrected with it. The pit lane is drawn, the start line and the measured sector boundaries are marked, and a sector under yellow flag is highlighted on the Live map.",
+              fr: "Carte du circuit (page Live et overlay) : le tracé complet vient désormais du jeu dès que des voitures roulent — plus besoin d'attendre un tour complet, sur tous les circuits — et les points faux (sorties de piste) sont corrigés grâce à lui. La voie des stands est dessinée, la ligne de départ et les limites de secteurs (mesurées) sont repérées, et un secteur sous drapeau jaune est surligné sur la carte Live.",
+              es: "Mapa del circuito (página Live y overlay): el trazado completo llega ahora del juego en cuanto hay coches en pista —ya no hay que esperar una vuelta completa, en todos los circuitos— y con él se corrigen los puntos erróneos (salidas de pista). Se dibuja el pit lane, se marcan la línea de salida y los límites de sector (medidos), y un sector con bandera amarilla se resalta en el mapa Live.",
+              de: "Streckenkarte (Live-Seite und Overlay): Der vollständige Streckenverlauf kommt jetzt aus dem Spiel, sobald Autos fahren — kein Warten mehr auf eine volle Runde, auf allen Strecken — und falsche Punkte (Ausflüge neben die Strecke) werden damit korrigiert. Die Boxengasse wird gezeichnet, Startlinie und gemessene Sektorgrenzen werden markiert, und ein Sektor unter Gelb wird auf der Live-Karte hervorgehoben.",
+              it: "Mappa del circuito (pagina Live e overlay): il tracciato completo arriva ora dal gioco appena ci sono auto in pista — niente più attesa di un giro completo, su tutti i circuiti — e i punti errati (uscite di pista) vengono corretti grazie a esso. La corsia box è disegnata, la linea di partenza e i limiti dei settori (misurati) sono segnati, e un settore in bandiera gialla è evidenziato sulla mappa Live.",
+            },
+          },
           {
             text: {
               en: "Leaderboards: opening a combo (or a track's all-classes leaderboard) now scrolls its row to the top of the screen, so the detail fills the window instead of spilling off the bottom.",
@@ -127,6 +173,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "Overlay track map: a partial outline could stay frozen for good (the map froze as soon as two frames had the same number of points); it now freezes only once the lap is complete. Gaps in an incomplete outline are no longer joined by straight lines across the infield.",
+              fr: "Carte de l'overlay : un tracé partiel pouvait rester figé pour de bon (la carte se figeait dès que deux trames avaient le même nombre de points) ; elle ne se fige plus qu'une fois le tour complet. Les trous d'un tracé incomplet ne sont plus reliés par des lignes droites à travers l'intérieur du circuit.",
+              es: "Mapa del overlay: un trazado parcial podía quedarse congelado para siempre (el mapa se congelaba en cuanto dos fotogramas tenían el mismo número de puntos); ahora solo se congela cuando la vuelta está completa. Los huecos de un trazado incompleto ya no se unen con líneas rectas a través del interior del circuito.",
+              de: "Overlay-Streckenkarte: Ein unvollständiger Verlauf konnte dauerhaft eingefroren bleiben (die Karte fror ein, sobald zwei Frames gleich viele Punkte hatten); jetzt friert sie erst ein, wenn die Runde vollständig ist. Lücken in einem unvollständigen Verlauf werden nicht mehr durch gerade Linien quer durchs Infield verbunden.",
+              it: "Mappa dell'overlay: un tracciato parziale poteva restare bloccato per sempre (la mappa si bloccava appena due fotogrammi avevano lo stesso numero di punti); ora si blocca solo quando il giro è completo. I buchi di un tracciato incompleto non sono più collegati da linee rette attraverso l'interno del circuito.",
+            },
+          },
           {
             text: {
               en: "Brake temperatures were shown 273 °C too high (the game sends them in Kelvin): the Live page, the tyre overlay, the AI coach and the brake overheating callout now use the real temperature. This is why the overheating alert went off at almost every braking point.",

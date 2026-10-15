@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { gameForecast, restStatus } from "@/lib/lmuRest";
+import { trackPaths, pathOf, sectorPolylines, nearestIndex, type Pt } from "@/lib/trackMapGeom";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -642,6 +644,7 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
 
         <div className="flex items-center gap-5 flex-wrap">
           <FlagPill flag={flag} />
+          <RestBadge data={data} />
           {weather && (
             <div className="flex items-center gap-4 text-sm">
               <span className="flex items-center gap-1.5" title={t("live.wAir")}>
@@ -1352,6 +1355,33 @@ function TireMini({ pos, w }: { pos: string; w?: LiveWheel }) {
 
 // ── Sous-composants ──────────────────────────────────────────────────────────
 
+/**
+ * Indicateur discret du pont REST du jeu : point vert (données du jeu lues) ou
+ * gris (API muette). L'infobulle dit d'où viennent les chiffres corrigés.
+ */
+function RestBadge({ data }: { data: LiveData }) {
+  const { t } = useTranslation();
+  const status = restStatus(data);
+  if (status === "off") return null;
+  const used = data.rest_used;
+  const lines = [t(status === "ok" ? "live.restOk" : "live.restSilent")];
+  if (status === "ok") {
+    if (used?.fuel) lines.push(t(used.fuel === "game" ? "live.restFuelGame" : "live.restFuelMeasured"));
+    if (used?.sessionEnd === "game") lines.push(t("live.restEndGame"));
+    if (data.track_from_game) lines.push(t("live.restTrackGame"));
+    if (data.session && gameForecast(data.rest, data.session.session)) lines.push(t("live.restForecastGame"));
+  }
+  return (
+    <span
+      className="flex items-center gap-1.5 text-micro uppercase tracking-widest text-muted-foreground"
+      title={lines.join("\n")}
+    >
+      <span className={cn("h-2 w-2 rounded-full", status === "ok" ? "bg-emerald-400" : "bg-muted-foreground/50")} />
+      {t("live.restLabel")}
+    </span>
+  );
+}
+
 function Stat({
   label,
   children,
@@ -1777,6 +1807,13 @@ function TrackMap({ data }: { data: LiveData }) {
     minZ = Math.min(minZ, p[1]);
     maxZ = Math.max(maxZ, p[1]);
   }
+  const pitLane = data.pit_lane_points ?? [];
+  for (const p of pitLane) {
+    minX = Math.min(minX, p[0]);
+    maxX = Math.max(maxX, p[0]);
+    minZ = Math.min(minZ, p[1]);
+    maxZ = Math.max(maxZ, p[1]);
+  }
   for (const s of data.standings) {
     if (s.pos_x === 0 && s.pos_z === 0) continue;
     minX = Math.min(minX, s.pos_x);
@@ -1791,10 +1828,22 @@ function TrackMap({ data }: { data: LiveData }) {
     ((x - minX) / w) * (1 - 2 * pad) * 1000 + pad * 1000;
   const mapY = (z: number) =>
     (1 - (z - minZ) / h) * (1 - 2 * pad) * 1000 + pad * 1000;
+  const project = (p: Pt): Pt => [mapX(p[0]), mapY(p[1])];
 
-  const path = pts
-    .map((p) => `${mapX(p[0]).toFixed(1)},${mapY(p[1]).toFixed(1)}`)
-    .join(" ");
+  // Tronçons (un tracé incomplet n'est plus refermé par des cordes).
+  const lapLen = data.session?.track_length ?? 0;
+  const dists = data.track_dists;
+  const paths = trackPaths(pts, dists, lapLen, project);
+  const pitPath = pitLane.length >= 2 ? pathOf(pitLane.map(project), false) : null;
+  // Secteurs : bornes mesurées, secteurs sous jaune colorés
+  // (`sector_flags[i]` = S(i+1), même convention que le widget Drapeaux).
+  const bounds = data.sector_dists ?? [];
+  const sectors = sectorPolylines(pts, dists, bounds);
+  const flags = data.flags?.sector_flags ?? [0, 0, 0];
+  const ticks = bounds
+    .map((b, i) => ({ idx: nearestIndex(dists, b), label: `S${i + 2}` }))
+    .filter((tk) => tk.idx >= 0);
+  const startIdx = dists.length && dists[0] <= 30 ? 0 : -1;
 
   return (
     <div className="w-full h-full flex items-center justify-center">
@@ -1803,22 +1852,74 @@ function TrackMap({ data }: { data: LiveData }) {
         preserveAspectRatio="xMidYMid meet"
         className="w-full h-full"
       >
-        <polygon
-          points={path}
-          fill="none"
-          stroke="#1c2533"
-          strokeWidth={30}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        <polygon
-          points={path}
-          fill="none"
-          stroke="#46597a"
-          strokeWidth={3}
-          strokeDasharray="3 14"
-          strokeLinejoin="round"
-        />
+        {pitPath && (
+          <path
+            d={pitPath}
+            fill="none"
+            stroke="#1a2230"
+            strokeWidth={14}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          >
+            <title>{t("live.mapPitLane")}</title>
+          </path>
+        )}
+        {paths.map((d, i) => (
+          <path
+            key={`base${i}`}
+            d={d}
+            fill="none"
+            stroke="#1c2533"
+            strokeWidth={30}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        ))}
+        {sectors &&
+          sectors.map((sp, i) =>
+            flags[i] > 0 && sp.length >= 2 ? (
+              <path
+                key={`y${i}`}
+                d={pathOf(sp.map(project), false)}
+                fill="none"
+                stroke="#facc15"
+                strokeOpacity={0.55}
+                strokeWidth={22}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            ) : null,
+          )}
+        {paths.map((d, i) => (
+          <path
+            key={`dash${i}`}
+            d={d}
+            fill="none"
+            stroke="#46597a"
+            strokeWidth={3}
+            strokeDasharray="3 14"
+            strokeLinejoin="round"
+          />
+        ))}
+        {startIdx >= 0 && (
+          <circle cx={mapX(pts[startIdx][0])} cy={mapY(pts[startIdx][1])} r={9} fill="#e5e7eb" stroke="#0A0E1A" strokeWidth={3}>
+            <title>{t("live.mapStartLine")}</title>
+          </circle>
+        )}
+        {ticks.map((tk) => (
+          <g key={tk.label}>
+            <circle cx={mapX(pts[tk.idx][0])} cy={mapY(pts[tk.idx][1])} r={7} fill="#94a3b8" stroke="#0A0E1A" strokeWidth={2} />
+            <text
+              x={mapX(pts[tk.idx][0]) + 14}
+              y={mapY(pts[tk.idx][1]) - 10}
+              fontSize={22}
+              fontWeight="bold"
+              fill="#94a3b8"
+            >
+              {tk.label}
+            </text>
+          </g>
+        ))}
         {data.standings.map((s) => {
           if (s.pos_x === 0 && s.pos_z === 0) return null;
           return (

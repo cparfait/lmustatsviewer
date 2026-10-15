@@ -11,7 +11,8 @@
  * trié par classe puis circuit. Renvoie "" si aucun record.
  */
 
-import { records } from "../../api";
+import { live, records } from "../../api";
+import { fresh, garageBoundsText } from "../../lmuRest";
 import { buildLiveContext } from "./live-context";
 import { formatTime } from "../../utils";
 import type { LiveData } from "../../api";
@@ -112,8 +113,22 @@ export async function buildLiveCoachContext(
   data: LiveData,
   question?: string,
 ): Promise<string> {
-  const base = buildLiveContext(data);
+  let base = buildLiveContext(data);
+  // Question de réglage : plages de la voiture lues dans le jeu (pont REST).
+  if (question && isSetupQuestion(question)) {
+    const bounds = await live.garageBounds().catch(() => null);
+    const txt = garageBoundsText(fresh(bounds));
+    if (txt) base = `${base}\n\n${txt}`;
+  }
   if (!question || !isHistoricalQuestion(question)) return base;
   const digest = await buildRecordsDigest();
   return digest ? `${base}\n\n${digest}` : base;
+}
+
+/** Question qui porte sur le réglage de la voiture (5 langues). */
+const SETUP_Q =
+  /(^|[^\p{L}])(setup|r[ée]glage|aileron|appui|r[ée]partition|barre anti|antiroulis|amortiss|ressort|carrossage|pincement|diff[ée]rentiel|wing|downforce|bias|anti.?roll|damper|spring|camber|toe|reglaje|aler[oó]n|reparto|muelle|amortiguador|abstimmung|fl[üu]gel|bremsbalance|stabi|feder|d[äa]mpfer|sturz|assetto|regolazion|alettone|ripartizion|molla|ammortizzator|campanatura|convergenza|(tc|abs)(?!\p{L}))/iu;
+
+export function isSetupQuestion(q: string): boolean {
+  return SETUP_Q.test(q);
 }

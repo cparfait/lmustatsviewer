@@ -110,6 +110,10 @@ interface AppState {
   pitLossSeconds: number;
   /** Pertes au stand **mesurées** par combo `track::car` (T13 #152) — persistées. */
   pitLossByCombo: Record<string, number>;
+  /** Temps de voie mesuré (perte − durée de l'arrêt lue dans le jeu) par combo. */
+  pitLaneLossByCombo: Record<string, number>;
+  /** Temps de voie du combo courant (null = inconnu). */
+  pitLaneLoss: number | null;
   /** Réserve carburant (tours) ajoutée au « carburant pour finir » du spotter (T13 #157). */
   fuelReserveLaps: number;
   /**
@@ -240,7 +244,7 @@ interface AppState {
   setSpotterPttMode: (mode: "hold" | "toggle") => Promise<void>;
   setPitLossSeconds: (v: number) => Promise<void>;
   /** Enregistre une perte au stand mesurée (T13 #152) pour un combo + l'applique. */
-  recordPitLoss: (combo: string, seconds: number) => Promise<void>;
+  recordPitLoss: (combo: string, seconds: number, laneSeconds?: number | null) => Promise<void>;
   /** Applique la perte mesurée d'un combo à `pitLossSeconds` si connue (T13 #152). */
   applyPitLossForCombo: (combo: string) => void;
   setFuelReserveLaps: (v: number) => Promise<void>;
@@ -306,6 +310,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   spotterPttMode: "hold",
   pitLossSeconds: 25,
   pitLossByCombo: {},
+  pitLaneLossByCombo: {},
+  pitLaneLoss: null,
   fuelReserveLaps: 1,
   radioMode: "engineer",
   localAnswers: true,
@@ -496,6 +502,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       pitLossByCombo: ((): Record<string, number> => {
         try {
           const m = JSON.parse(cfg.pit_loss_map || "{}");
+          return m && typeof m === "object" ? (m as Record<string, number>) : {};
+        } catch {
+          return {};
+        }
+      })(),
+      pitLaneLossByCombo: ((): Record<string, number> => {
+        try {
+          const m = JSON.parse(cfg.pit_lane_loss_map || "{}");
           return m && typeof m === "object" ? (m as Record<string, number>) : {};
         } catch {
           return {};
@@ -813,17 +827,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ pitLossSeconds: n });
   },
 
-  recordPitLoss: async (combo, seconds) => {
+  recordPitLoss: async (combo, seconds, laneSeconds) => {
     const n = Math.round(seconds);
     const map = { ...get().pitLossByCombo, [combo]: n };
     await config.set("pit_loss_map", JSON.stringify(map));
     await config.set("pit_loss_seconds", String(n));
     set({ pitLossByCombo: map, pitLossSeconds: n });
+    if (laneSeconds != null && laneSeconds > 0) {
+      const lane = Math.round(laneSeconds * 10) / 10;
+      const lanes = { ...get().pitLaneLossByCombo, [combo]: lane };
+      await config.set("pit_lane_loss_map", JSON.stringify(lanes));
+      set({ pitLaneLossByCombo: lanes, pitLaneLoss: lane });
+    }
   },
 
   applyPitLossForCombo: (combo) => {
     const v = get().pitLossByCombo[combo];
     if (v && v > 0 && v !== get().pitLossSeconds) set({ pitLossSeconds: v });
+    // Temps de voie : propre au combo (jamais celui d'un autre circuit).
+    set({ pitLaneLoss: get().pitLaneLossByCombo[combo] ?? null });
   },
 
   setFuelReserveLaps: async (v) => {

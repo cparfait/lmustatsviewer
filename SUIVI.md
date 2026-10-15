@@ -859,6 +859,48 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-15 — Écoute de l'ingénieur : bouton de volant, micro prêt, mot déclencheur
+
+**Demande** : « micro toujours ouvert et un mot déclenche l'écoute », puis, après la veille
+(le concurrent a **retiré** son mot d'appel le 16/07 au profit d'un push-to-talk sur bouton
+de volant, gardé seulement pour un bot Discord d'équipe), « fais les deux : bouton de
+volant en canal principal, mot déclencheur en option bêta désactivée par défaut ».
+
+- ✅ **Bouton de volant** (Rust `commands/wheel.rs`, `hidapi` + `windows`
+  `Win32_Media_Multimedia`) : `wheel_capture(timeoutMs)` → `WheelBinding` (winmm ≤ 32
+  boutons, sinon HID brut appris **bit à bit** sans analyser le descripteur : ligne de
+  base 300 ms, bits/octets bruyants exclus, front 0→1 tenu 40 ms) ; `wheel_watch(binding)`
+  = fil unique ~100 Hz, événement `ptt-wheel {pressed}` (anti-rebond 20 ms, relâché
+  forcé si débranché, reconnexion toutes les 2 s). Réglage `pttWheel` (`ptt_wheel`, JSON).
+- ✅ **Moteur micro natif** (Rust `commands/voice_input.rs`, `cpal`/WASAPI) : flux mono
+  rééchantillonné 16 kHz, tampon circulaire 1,5 s ; `ptt_begin(autoSend)` amorce la
+  capture avec les **0,5 s précédant l'appui** ; `ptt_end` → dictée Vosk
+  (`stt::recognize_free_samples`) ; bascule : `ptt-silence` après 1,5 s de silence (VAD
+  énergie à plancher adaptatif) ou 8 s sans parole. Réglage `micReady` (`mic_ready`,
+  défaut **actif** ; coupé = capture navigateur à l'appui, historique).
+- ✅ **Mot déclencheur** (bêta, `wakeWordEnabled` défaut off, `wakeWord`, défaut par
+  langue `live.wakeWordDefault`) : Vosk **à grammaire fermée** `[mot, "[unk]"]` (rien
+  d'autre n'est transcrit), 2 lectures partielles consécutives → `wake-word` ; la phrase
+  (tampon compris) est captée jusqu'à 1 s de silence (8 s max) puis dictée, mot retiré
+  (`after_wake`) → `wake-utterance` ; mot seul → attente de la question 6 s
+  (`wake-timeout`). Recherche coupée pendant que l'ingénieur parle
+  (`voice_input_set_muted`, appelé par `voice.ts` à chaque lecture).
+- ✅ Front : `useCoachVoice` refondu — touche, bouton de volant et mot déclencheur
+  passent par le même `answerQuestion` (routeur local, IA pour l'ouvert) ; capture par
+  le moteur si présent, sinon navigateur. Config Audio / Voix : « Bouton du volant »
+  (Capter / Retirer), « Micro prêt en permanence », « Mot déclencheur (bêta) » + champ.
+  i18n 5 langues, changelog 1.0.10 (3 entrées).
+- ✅ Contrôles : `tsc -b`, lint, 428 tests TS, `cargo test` 46 OK (dont 14 volant + 3
+  moteur), clippy sans avertissement sur les nouveaux fichiers, `npm run build` OK ;
+  section Config vérifiée à l'écran (serveur de dev, état forcé).
+- ⚠️ **Rien de testé sur matériel** : ni volant (aucun branché ici), ni micro en jeu.
+  Points à vérifier : lecture du bouton jeu au premier plan, apprentissage HID sur un
+  volant > 32 boutons, premier mot conservé, envoi auto au silence, fausses détections
+  du mot (Discord, coéquipier), consommation CPU du moteur.
+- 📋 **Prochaine étape** : essai en jeu sur la branche `feat/coach-audio` (bouton de
+  volant d'abord, puis mot déclencheur) ; test manuel volant :
+  `cargo test --lib live_capture -- --ignored --nocapture`.
+
 ### 2026-10-15 — Coach audio : lots A à E en une passe (suite de la veille du jour)
 
 **Demande** : « fais tout en une passe » (les 5 lots proposés dans l'entrée suivante).

@@ -121,7 +121,7 @@ fn model_cache() -> &'static Mutex<HashMap<String, &'static Model>> {
 /// Charge (ou récupère du cache) le modèle Vosk de la langue. Le `Model` est
 /// volontairement « fuité » (`Box::leak`) pour obtenir un `&'static` partageable
 /// sans coût : il vit toute la durée de l'application, comme prévu pour un cache.
-fn get_model(app: &tauri::AppHandle, lang: &str) -> AppResult<&'static Model> {
+pub(crate) fn get_model(app: &tauri::AppHandle, lang: &str) -> AppResult<&'static Model> {
     let code = lang.get(0..2).unwrap_or("en").to_lowercase();
     let mut cache = model_cache().lock().unwrap();
     if let Some(m) = cache.get(&code) {
@@ -171,6 +171,29 @@ pub fn stt_recognize(
         .ok_or_else(|| AppError::Internal("Échec d'init du Recognizer Vosk".into()))?;
     rec.set_words(false);
     let _ = rec.accept_waveform(&samples);
+    let text = rec
+        .final_result()
+        .single()
+        .map(|r| r.text.to_string())
+        .unwrap_or_default();
+    Ok(text.trim().to_string())
+}
+
+/// Dictée libre sur des échantillons déjà décodés (16 kHz mono) — partagée par la
+/// commande `stt_recognize_free` et le moteur micro (`voice_input`).
+pub(crate) fn recognize_free_samples(
+    app: &tauri::AppHandle,
+    lang: &str,
+    samples: &[i16],
+) -> AppResult<String> {
+    if samples.is_empty() {
+        return Ok(String::new());
+    }
+    let model = get_model(app, lang)?;
+    let mut rec = Recognizer::new(model, 16_000.0)
+        .ok_or_else(|| AppError::Internal("Échec d'init du Recognizer Vosk".into()))?;
+    rec.set_words(false);
+    let _ = rec.accept_waveform(samples);
     let text = rec
         .final_result()
         .single()

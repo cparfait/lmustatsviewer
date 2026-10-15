@@ -762,6 +762,26 @@ export interface LiveData {
 }
 
 /** Voiture proche, exprimée dans le repère du joueur (`live::NearbyCar`). */
+/**
+ * Bouton de volant du push-to-talk (`wheel_capture` côté Rust). Deux lectures :
+ * l'API joystick Windows (`winmm`, ≤ 32 boutons) ou le HID brut appris bit à bit
+ * (volants dont les boutons échappent à winmm). `label` = texte affichable.
+ */
+export type WheelBinding =
+  | { kind: "winmm"; joy: number; button: number; label: string }
+  | {
+      kind: "hid";
+      path: string;
+      vid: number;
+      pid: number;
+      product: string;
+      reportId: number;
+      byte: number;
+      mask: number;
+      pressedSet: boolean;
+      label: string;
+    };
+
 export interface NearbyCar {
   /** Décalage latéral (m) : + = à droite du joueur. */
   lat: number;

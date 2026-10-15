@@ -44,11 +44,17 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 quick-xml = "0.36"
 walkdir = "2"
 raw-window-handle = "0.6"
-windows = { version = "0.58", features = ["Win32_System_Memory", "Win32_Foundation", "Win32_System_LibraryLoader", "Win32_Security", "Win32_Security_Credentials"] }
+windows = { version = "0.58", features = ["Win32_System_Memory", "Win32_Foundation", "Win32_System_LibraryLoader", "Win32_Security", "Win32_Security_Credentials", "Win32_Media_Multimedia", "Win32_System_Registry"] }
+# Push-to-talk sur un bouton de volant (commands/wheel.rs) : lecture HID brute en
+# arrière-plan pour les volants dont les boutons échappent à winmm (> 32 boutons).
+hidapi = "2"
 # Reconnaissance vocale offline par commandes (spotter Couche 2). FFI vers libvosk.
 # La lib native (resources/stt/lib, fetchée par scripts/fetch-vosk.ps1) est requise
 # à la compilation ; les modèles par langue sont téléchargés à la demande (assets.rs).
 vosk = "0.3"
+# Capture micro native (WASAPI) du moteur d'écoute de l'ingénieur : micro prêt en
+# permanence (début de phrase conservé, envoi au silence, mot déclencheur).
+cpal = "0.15"
 
 [profile.release]
 panic = "abort"      # Strip expensive panic clean-up logic

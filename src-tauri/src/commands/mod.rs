@@ -14,5 +14,7 @@ pub mod telemetry;
 pub mod tts;
 pub mod assets;
 pub mod stt;
+pub mod voice_input;
 pub mod community;
 pub mod community_vault;
+pub mod wheel;

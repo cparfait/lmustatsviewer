@@ -15,10 +15,10 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { emit } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live } from "@/lib/api";
-import { announce, cancelSpeech, repeatLast } from "@/lib/voice";
+import { announce, cancelSpeech, repeatLast, setDriverTalking } from "@/lib/voice";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { pttBeep } from "@/lib/radioFx";
 import { getProvider } from "@/lib/ai/providers";
@@ -112,6 +112,11 @@ export function useCoachVoice() {
   const { t, i18n } = useTranslation();
   const keyCoach = useAppStore((s) => s.spotterKeyCoach);
   const pttMode = useAppStore((s) => s.spotterPttMode);
+  const pttWheel = useAppStore((s) => s.pttWheel);
+  const micReady = useAppStore((s) => s.micReady);
+  const wakeOn = useAppStore((s) => s.wakeWordEnabled);
+  const wakeWord = useAppStore((s) => s.wakeWord);
+  const lang = i18n.language;
   // La touche écoute dès qu'elle est définie. La configuration IA (activation,
   // fournisseur, modèle, clé) est relue au moment d'une question ouverte
   // (`aiReady`) : aucun abonnement nécessaire.
@@ -121,38 +126,57 @@ export function useCoachVoice() {
   tRef.current = t;
   langRef.current = i18n.language;
   const capturing = useRef(false);
+  /** La capture en cours passe par le moteur natif (sinon : capture navigateur). */
+  const viaEngine = useRef(false);
   const busy = useRef(false);
   const lastToggle = useRef(0);
+  const pttModeRef = useRef(pttMode);
+  pttModeRef.current = pttMode;
+
+  // ── Moteur d'écoute natif : micro prêt (pré-enregistrement) et/ou mot ──────
+  useEffect(() => {
+    if (!isTauri()) return;
+    if (!micReady && !wakeOn) {
+      invoke("voice_input_stop").catch(() => {});
+      return;
+    }
+    const word = wakeOn ? wakeWord.trim() || t("live.wakeWordDefault") : null;
+    invoke("voice_input_start", { lang, wakeWord: word }).catch((e) => {
+      // Micro indisponible : la touche retombe sur la capture à l'appui.
+      toast(`${t("config.micEngineError")} ${String(e)}`);
+    });
+  }, [micReady, wakeOn, wakeWord, lang, t]);
+  useEffect(
+    () => () => {
+      if (isTauri()) invoke("voice_input_stop").catch(() => {});
+    },
+    [],
+  );
+
+  // ── Bouton de volant : surveillance en arrière-plan (côté Rust) ────────────
+  useEffect(() => {
+    if (!isTauri()) return;
+    invoke("wheel_watch", { binding: pttWheel }).catch(() => {
+      /* lecture des boutons indisponible : la touche reste utilisable */
+    });
+    return () => {
+      invoke("wheel_watch", { binding: null }).catch(() => {});
+    };
+  }, [pttWheel]);
 
   useEffect(() => {
-    if (!keyCoach || !isTauri()) return;
+    if (!isTauri()) return;
     let disposed = false;
 
-    const onStart = async () => {
-      if (capturing.current || busy.current) return;
-      capturing.current = true;
-      try {
-        await startCapture();
-        if (useAppStore.getState().pttBeeps) pttBeep("open");
-      } catch {
-        capturing.current = false;
-      }
-    };
-
-    const onEnd = async () => {
-      if (!capturing.current) return;
-      capturing.current = false;
+    /**
+     * Une question dictée (touche, bouton de volant ou mot déclencheur) :
+     * routeur local d'abord, l'IA seulement pour une question ouverte.
+     */
+    const answerQuestion = async (question: string) => {
       const tt = tRef.current;
       const lang = langRef.current;
-      const pcm = stopCapture();
-      if (useAppStore.getState().pttBeeps) pttBeep("send");
-      if (pcm.length === 0) return;
       busy.current = true;
       try {
-        const question = await invoke<string>("stt_recognize_free", {
-          pcmBase64: pcmToBase64(pcm),
-          lang,
-        });
         if (!question.trim()) {
           announce(tt("coach.voiceUnclear"), lang);
           return;
@@ -198,9 +222,9 @@ export function useCoachVoice() {
           else cancelSpeech();
           return;
         }
-        // Commandes (accusé, rester dehors, annuler les alertes) : toujours locales,
-        // l'IA ne sait pas les exécuter. Questions factuelles : locales si le
-        // réglage est actif (défaut), sinon l'IA répond comme avant.
+        // Commandes (accusé, rester dehors, annuler les alertes, régimes radio) :
+        // toujours locales, l'IA ne sait pas les exécuter. Questions factuelles :
+        // locales si le réglage est actif (défaut), sinon l'IA répond comme avant.
         const control =
           r.intent === "ackBox" || r.intent === "stayOut" || r.intent === "watchCancel" || (!!r.intent && RADIO_COMMANDS.has(r.intent));
         const st = useAppStore.getState();
@@ -243,7 +267,6 @@ export function useCoachVoice() {
         // contexte → le LLM peut expliquer un callout avec ses chiffres exacts.
         const recent = recentDiagnosticsBlock();
         const ctx = recent ? `${baseCtx}\n\n${recent}` : baseCtx;
-        // Cible IA relue à chaud plus haut (même résolution que la garde `ready`).
         const answer = await askCoachVoice({
           provider: p,
           model,
@@ -269,44 +292,120 @@ export function useCoachVoice() {
       }
     };
 
-    (async () => {
-      const gs = await import("@tauri-apps/plugin-global-shortcut");
+    const onStart = async () => {
+      if (capturing.current || busy.current) return;
+      capturing.current = true;
       try {
-        if (await gs.isRegistered(keyCoach)) await gs.unregister(keyCoach);
-        await gs.register(keyCoach, (e) => {
-          if (disposed) return;
-          if (pttMode === "toggle") {
-            if (e.state === "Pressed") {
-              const now = Date.now();
-              if (now - lastToggle.current < 500) return;
-              lastToggle.current = now;
-              if (capturing.current) void onEnd();
-              else void onStart();
-            }
-          } else {
-            if (e.state === "Pressed") void onStart();
-            else if (e.state === "Released") void onEnd();
-          }
-        });
+        // Moteur natif prêt : la capture reprend les 0,5 s d'avant l'appui
+        // (premier mot jamais coupé) ; sinon capture navigateur, comme avant.
+        viaEngine.current = await invoke<boolean>("ptt_begin", {
+          autoSend: pttModeRef.current === "toggle",
+        }).catch(() => false);
+        if (viaEngine.current) setDriverTalking(true);
+        else await startCapture();
+        if (useAppStore.getState().pttBeeps) pttBeep("open");
       } catch {
-        /* accélérateur invalide / déjà pris */
+        capturing.current = false;
       }
-    })();
+    };
+
+    const onEnd = async () => {
+      if (!capturing.current) return;
+      capturing.current = false;
+      const lang = langRef.current;
+      if (useAppStore.getState().pttBeeps) pttBeep("send");
+      let question: string;
+      try {
+        if (viaEngine.current) {
+          setDriverTalking(false);
+          const text = await invoke<string | null>("ptt_end", { lang });
+          if (text == null) return;
+          question = text;
+        } else {
+          const pcm = stopCapture();
+          if (pcm.length === 0) return;
+          question = await invoke<string>("stt_recognize_free", { pcmBase64: pcmToBase64(pcm), lang });
+        }
+      } catch (e) {
+        announce(friendlyError(e, tRef.current), lang);
+        return;
+      }
+      await answerQuestion(question);
+    };
+
+    /** Appui / relâchement (touche ou bouton de volant), selon le mode. */
+    const onPress = (pressed: boolean) => {
+      if (disposed) return;
+      if (pttModeRef.current === "toggle") {
+        if (!pressed) return;
+        const now = Date.now();
+        if (now - lastToggle.current < 500) return;
+        lastToggle.current = now;
+        if (capturing.current) void onEnd();
+        else void onStart();
+      } else if (pressed) void onStart();
+      else void onEnd();
+    };
+
+    const offs: Promise<() => void>[] = [
+      // Bouton de volant (lu en arrière-plan côté Rust).
+      listen<{ pressed: boolean }>("ptt-wheel", (e) => onPress(!!e.payload?.pressed)),
+      // Mode bascule : la phrase est finie (silence) → envoi automatique.
+      listen("ptt-silence", () => {
+        if (capturing.current && viaEngine.current) void onEnd();
+      }),
+      // Mot déclencheur (bêta) : bip d'ouverture, la radio se tait…
+      listen("wake-word", () => {
+        if (disposed || capturing.current || busy.current) return;
+        setDriverTalking(true);
+        if (useAppStore.getState().pttBeeps) pttBeep("open");
+      }),
+      // … puis la phrase dictée arrive (mot retiré).
+      listen<{ text: string }>("wake-utterance", (e) => {
+        if (disposed) return;
+        setDriverTalking(false);
+        if (busy.current || capturing.current) return;
+        if (useAppStore.getState().pttBeeps) pttBeep("send");
+        void answerQuestion(e.payload?.text ?? "");
+      }),
+      listen("wake-timeout", () => setDriverTalking(false)),
+    ];
+
+    if (keyCoach) {
+      (async () => {
+        const gs = await import("@tauri-apps/plugin-global-shortcut");
+        try {
+          if (await gs.isRegistered(keyCoach)) await gs.unregister(keyCoach);
+          await gs.register(keyCoach, (e) => {
+            if (e.state === "Pressed") onPress(true);
+            else if (e.state === "Released") onPress(false);
+          });
+        } catch {
+          /* accélérateur invalide / déjà pris */
+        }
+      })();
+    }
 
     return () => {
       disposed = true;
+      for (const off of offs) void off.then((f) => f()).catch(() => {});
       if (capturing.current) {
-        stopCapture();
+        if (viaEngine.current) {
+          invoke("ptt_cancel").catch(() => {});
+          setDriverTalking(false);
+        } else stopCapture();
         capturing.current = false;
       }
-      void (async () => {
-        try {
-          const gs = await import("@tauri-apps/plugin-global-shortcut");
-          await gs.unregister(keyCoach);
-        } catch {
-          /* déjà libéré / hors Tauri */
-        }
-      })();
+      if (keyCoach) {
+        void (async () => {
+          try {
+            const gs = await import("@tauri-apps/plugin-global-shortcut");
+            await gs.unregister(keyCoach);
+          } catch {
+            /* déjà libéré / hors Tauri */
+          }
+        })();
+      }
     };
-  }, [keyCoach, pttMode]);
+  }, [keyCoach]);
 }

@@ -81,12 +81,15 @@ import {
   Timer,
   ArrowLeftRight,
   Scale,
+  Mic,
+  AudioLines,
+  Gamepad2,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
 import { useTheme } from "@/stores/theme";
 import { system, config as configApi, indexer, queries } from "@/lib/api";
-import { isTauri } from "@/lib/api";
+import { isTauri, type WheelBinding } from "@/lib/api";
 import { toast, toastSuccess, toastError } from "@/stores/dialogs";
 import {
   applyOrGeneratePhrasebank,
@@ -275,6 +278,8 @@ export function ConfigV2() {
   const voiceLapPrecision = useAppStore((s) => s.voiceLapPrecision);
   const proximitySpotter = useAppStore((s) => s.proximitySpotter);
   const coachRigor = useAppStore((s) => s.coachRigor);
+  const micReady = useAppStore((s) => s.micReady);
+  const wakeWordEnabled = useAppStore((s) => s.wakeWordEnabled);
   const radioStyleSetting = useAppStore((s) => s.radioStyle);
   const pttBeeps = useAppStore((s) => s.pttBeeps);
   const [comparing, setComparing] = useState<"classic" | "pitwall" | null>(null);
@@ -1332,6 +1337,24 @@ export function ConfigV2() {
                     onClear={() => void useAppStore.getState().setSpotterKey("coach", "")}
                   />
                   <p className="text-xs text-muted-foreground/70">{t("config.engineerKeyDesc")}</p>
+                  <WheelButtonRow />
+                  <ToggleRow
+                    icon={<Mic className="h-4 w-4" />}
+                    label={t("config.micReady")}
+                    desc={t("config.micReadyDesc")}
+                    tip={t("config.micReadyTip")}
+                    checked={micReady}
+                    onChange={(v) => void useAppStore.getState().setMicReady(v)}
+                  />
+                  <ToggleRow
+                    icon={<AudioLines className="h-4 w-4" />}
+                    label={t("config.wakeWord")}
+                    desc={t("config.wakeWordDesc")}
+                    tip={t("config.wakeWordTip")}
+                    checked={wakeWordEnabled}
+                    onChange={(v) => void useAppStore.getState().setWakeWordEnabled(v)}
+                  />
+                  {wakeWordEnabled && <WakeWordRow />}
                   <ToggleRow
                     icon={<Zap className="h-4 w-4" />}
                     label={t("config.localAnswers")}
@@ -2731,6 +2754,93 @@ function Disclosure({
       {open && (
         <div className="space-y-2.5 px-2 pb-2 pt-1">{children}</div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Bouton de volant du push-to-talk : « Capter » attend l'appui (10 s) sur
+ * n'importe quel volant / boîtier, lu en arrière-plan (le jeu garde le focus).
+ */
+function WheelButtonRow() {
+  const { t } = useTranslation();
+  const binding = useAppStore((s) => s.pttWheel);
+  const [capturing, setCapturing] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const capture = async () => {
+    setCapturing(true);
+    setFailed(false);
+    try {
+      const b = await invoke<WheelBinding | null>("wheel_capture", { timeoutMs: 10000 });
+      if (b) await useAppStore.getState().setPttWheel(b);
+      else setFailed(true);
+    } catch {
+      setFailed(true);
+    } finally {
+      setCapturing(false);
+    }
+  };
+  return (
+    <div className="flex items-center justify-between py-2 gap-3">
+      <div className="flex items-start gap-2 min-w-0">
+        <Tip content={t("config.wheelButtonTip")} side="right">
+          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+            <Gamepad2 className="h-4 w-4" />
+          </span>
+        </Tip>
+        <div className="min-w-0">
+          <div className="text-sm font-medium leading-tight">{t("config.wheelButton")}</div>
+          <div className="text-xs text-muted-foreground/80 mt-0.5 truncate">
+            {capturing
+              ? t("config.wheelButtonWaiting")
+              : failed
+                ? t("config.wheelButtonNone")
+                : binding?.label || t("config.wheelButtonUnset")}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Button size="sm" variant="outline" disabled={capturing} onClick={() => void capture()}>
+          {capturing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("config.wheelButtonCapture")}
+        </Button>
+        {binding && !capturing && (
+          <Button
+            size="sm"
+            variant="ghost"
+            title={t("config.wheelButtonClear")}
+            onClick={() => void useAppStore.getState().setPttWheel(null)}
+          >
+            <Eraser className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Mot déclencheur (bêta) : vide = mot par défaut de la langue. */
+function WakeWordRow() {
+  const { t } = useTranslation();
+  const saved = useAppStore((s) => s.wakeWord);
+  const [draft, setDraft] = useState(saved);
+  useEffect(() => setDraft(saved), [saved]);
+  const commit = () => {
+    if (draft.trim() !== saved) void useAppStore.getState().setWakeWord(draft);
+  };
+  return (
+    <div className="flex items-center justify-between py-1 pl-6 gap-3">
+      <div className="text-xs text-muted-foreground/80">{t("config.wakeWordPhrase")}</div>
+      <Input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+        }}
+        placeholder={t("live.wakeWordDefault")}
+        maxLength={30}
+        className="h-8 w-36 text-sm shrink-0"
+      />
     </div>
   );
 }

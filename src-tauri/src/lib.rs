@@ -233,6 +233,16 @@ pub fn run() {
             commands::stt::stt_available,
             commands::stt::stt_recognize,
             commands::stt::stt_recognize_free,
+            // Push-to-talk sur un bouton de volant (winmm + HID brut, hors focus)
+            commands::wheel::wheel_capture,
+            commands::wheel::wheel_watch,
+            commands::voice_input::voice_input_start,
+            commands::voice_input::voice_input_stop,
+            commands::voice_input::voice_input_running,
+            commands::voice_input::voice_input_set_muted,
+            commands::voice_input::ptt_begin,
+            commands::voice_input::ptt_end,
+            commands::voice_input::ptt_cancel,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]

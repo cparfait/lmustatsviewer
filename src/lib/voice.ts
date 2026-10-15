@@ -320,6 +320,17 @@ function laneFree(now: number): boolean {
   }
 }
 
+/**
+ * Prévient le moteur d'écoute que l'ingénieur parle (ou a fini) : le mot
+ * déclencheur n'est pas cherché dans sa propre voix. Sans moteur : sans effet.
+ */
+function micMuted(on: boolean) {
+  if (!isTauri()) return;
+  invoke("voice_input_set_muted", { muted: on }).catch(() => {
+    /* moteur absent : rien à faire */
+  });
+}
+
 /** Marque le canal tenu (spotter) à la prise et à la fin de parole. */
 function holdChannel(item: QueueItem) {
   const ms = item.opts?.holdChannelMs;
@@ -377,9 +388,11 @@ function playSpeech(item: QueueItem) {
     if (roger) radioEnd();
     else radioInterrupt();
     holdChannel(item);
+    micMuted(false);
   };
   const pb: Playback = { text: item.text, rank: PRIORITY_RANK[item.priority], end, item };
   holdChannel(item);
+  micMuted(true);
   u.onend = () => {
     end(true);
     item.onEnd?.();
@@ -425,9 +438,11 @@ function playBuffer(ctx: AudioContext, buffer: AudioBuffer, item: QueueItem) {
     if (roger) radioEnd();
     else radioInterrupt();
     holdChannel(item);
+    micMuted(false);
   };
   const pb: Playback = { text: item.text, rank: PRIORITY_RANK[item.priority], end, item };
   holdChannel(item);
+  micMuted(true);
   src.onended = () => {
     end(true);
     item.onEnd?.();

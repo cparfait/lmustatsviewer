@@ -7,7 +7,7 @@
  */
 
 import { create } from "zustand";
-import { config, indexer, queries, ai, system } from "@/lib/api";
+import { config, indexer, queries, ai, system, type WheelBinding } from "@/lib/api";
 import { setAppTimezone } from "@/lib/utils";
 import { preloadStaticData } from "@/lib/staticData";
 import { configureVoice, setSpeechReplay, setTalkSilence } from "@/lib/voice";
@@ -155,6 +155,18 @@ interface AppState {
   coachRigor: boolean;
   /** Spotter de proximité (voiture à gauche / à droite / libre). */
   proximitySpotter: boolean;
+  /** Bouton de volant du push-to-talk « Parler à l'ingénieur » (`null` = aucun). */
+  pttWheel: WheelBinding | null;
+  /**
+   * Micro prêt en permanence (capture native) : le premier mot n'est jamais coupé
+   * et la bascule envoie seule au silence ; `false` = micro ouvert à l'appui
+   * (historique).
+   */
+  micReady: boolean;
+  /** Mot déclencheur (bêta) : le micro écoute le mot pour appeler l'ingénieur. */
+  wakeWordEnabled: boolean;
+  /** Mot déclencheur choisi ("" = mot par défaut de la langue). */
+  wakeWord: string;
 
   // AI Coach
   /** Coach IA activé : si false, le coach disparaît de toutes les pages. */
@@ -278,6 +290,10 @@ interface AppState {
   setRadioDriverName: (v: string) => Promise<void>;
   setCoachRigor: (v: boolean) => Promise<void>;
   setProximitySpotter: (v: boolean) => Promise<void>;
+  setPttWheel: (b: WheelBinding | null) => Promise<void>;
+  setMicReady: (v: boolean) => Promise<void>;
+  setWakeWordEnabled: (v: boolean) => Promise<void>;
+  setWakeWord: (v: string) => Promise<void>;
   setOverlayToggleKey: (accel: string) => Promise<void>;
   setAICoachEnabled: (v: boolean) => Promise<void>;
   setAIProvider: (v: string) => Promise<void>;
@@ -349,6 +365,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   radioDriverName: "",
   coachRigor: true,
   proximitySpotter: false,
+  pttWheel: null,
+  micReady: true,
+  wakeWordEnabled: false,
+  wakeWord: "",
   overlayToggleKey: "",
   aiCoachEnabled: true,
   aiProvider: "google",
@@ -556,6 +576,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       radioDriverName: cfg.voice_driver_name ?? "",
       coachRigor: cfg.coach_rigor !== "false",
       proximitySpotter: cfg.spotter_proximity === "true",
+      pttWheel: ((): WheelBinding | null => {
+        try {
+          const b = JSON.parse(cfg.ptt_wheel || "null");
+          return b && typeof b === "object" && typeof b.kind === "string" ? (b as WheelBinding) : null;
+        } catch {
+          return null;
+        }
+      })(),
+      micReady: cfg.mic_ready !== "false",
+      wakeWordEnabled: cfg.wake_word_enabled === "true",
+      wakeWord: cfg.wake_word ?? "",
       aiCoachEnabled: cfg.ai_coach_enabled !== "false",
       aiProvider: cfg.ai_provider || "google",
       aiProviderList,
@@ -950,6 +981,27 @@ export const useAppStore = create<AppState>((set, get) => ({
   setProximitySpotter: async (v) => {
     await config.set("spotter_proximity", v ? "true" : "false");
     set({ proximitySpotter: v });
+  },
+
+  setPttWheel: async (b) => {
+    await config.set("ptt_wheel", b ? JSON.stringify(b) : "");
+    set({ pttWheel: b });
+  },
+
+  setMicReady: async (v) => {
+    await config.set("mic_ready", v ? "true" : "false");
+    set({ micReady: v });
+  },
+
+  setWakeWordEnabled: async (v) => {
+    await config.set("wake_word_enabled", v ? "true" : "false");
+    set({ wakeWordEnabled: v });
+  },
+
+  setWakeWord: async (v) => {
+    const w = v.trim().slice(0, 30);
+    await config.set("wake_word", w);
+    set({ wakeWord: w });
   },
 
   setOverlayToggleKey: async (accel) => {

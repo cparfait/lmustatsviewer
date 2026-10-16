@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Radio as RadioIcon } from "lucide-react";
+import { RadioReviewModal } from "@/components/RadioReviewModal";
 import { gameForecast, restStatus } from "@/lib/lmuRest";
 import { trackPaths, pathOf, pathOfRuns, sectorPolylines, nearestIndex, type Pt } from "@/lib/trackMapGeom";
 import { isSectorYellow } from "@/lib/sectorFlags";
@@ -647,6 +649,7 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
         <div className="flex items-center gap-5 flex-wrap">
           <FlagPill flag={flag} />
           <RestBadge data={data} />
+          <RadioReviewButton />
           {weather && (
             <div className="flex items-center gap-4 text-sm">
               <span className="flex items-center gap-1.5" title={t("live.wAir")}>
@@ -1361,6 +1364,26 @@ function TireMini({ pos, w }: { pos: string; w?: LiveWheel }) {
  * Indicateur discret du pont REST du jeu : point vert (données du jeu lues) ou
  * gris (API muette). L'infobulle dit d'où viennent les chiffres corrigés.
  */
+/** Ouvre la radio de la séance (annonces à noter). */
+function RadioReviewButton() {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1.5 text-micro uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        title={t("live.rrSubtitle")}
+      >
+        <RadioIcon className="h-3.5 w-3.5" />
+        {t("live.rrOpen")}
+      </button>
+      {open && <RadioReviewModal onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 function RestBadge({ data }: { data: LiveData }) {
   const { t } = useTranslation();
   const status = restStatus(data);

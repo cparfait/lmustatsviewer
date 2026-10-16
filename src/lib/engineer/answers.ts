@@ -499,6 +499,13 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       return t("live.aCoachMe", { list: items.join(". ") });
     }
 
+    // Notes radio : traitées dans `ask.ts` (elles n'ont pas besoin des données live).
+    case "rateUseful":
+    case "rateUseless":
+    case "rateLate":
+    case "rateWrong":
+      return "";
+
     default:
       return buildAnswer(intent, d, t, o.pitLossSec, o.fuelReserveLaps, o.classPositions ?? true);
   }

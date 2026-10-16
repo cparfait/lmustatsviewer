@@ -30,6 +30,7 @@ import {
 } from "@/lib/voice";
 import { inCriticalZone } from "@/lib/driving";
 import { computeStrategy } from "@/lib/strategy";
+import { adjust as adjustRated, radioLog } from "./radioFeedback";
 import { aeroDamage, brakePads, damagedSuspensionsOrNull, effectivePitLoss, WHEELS } from "@/lib/lmuRest";
 import { AlertLatch } from "./alertLatch";
 import { useAppStore } from "@/stores/app";
@@ -1332,12 +1333,14 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       // Qualif : tour lancé (ni stands, ni tour de sortie, la ligne passée de 400 m).
       qualiFlying: sc.session >= 5 && sc.session <= 8 && !inPits && !outLap.current && (playerStanding?.lap_dist ?? 0) > 400,
     };
-    const allowed = engineer.policy.filter(cands, policyCtx);
+    // Notes du pilote : une famille jugée surtout inutile ou fausse se fait plus rare.
+    const allowed = engineer.policy.filter(adjustRated(cands, radioLog.stats), policyCtx);
 
     // ── Arbitrage + diffusion ────────────────────────────────────────────────
     arbiter.current.textRepeatLaps = !full && replay ? TEXT_REPEAT_LAPS : 0;
     const { spoken } = arbiter.current.decide(allowed, nowS, lapNow, full);
     engineer.policy.commit(spoken, policyCtx);
+    radioLog.record(spoken, `${sc.track}|${sc.session}`);
     const repeatPrefix = t("live.vRepeatPrefix");
     const voiceOf = (c: Candidate) => names.current.apply(driverName, c.moment ?? null, c.text, nowS);
     const optsOf = (c: Candidate): SpeakOpts | undefined =>

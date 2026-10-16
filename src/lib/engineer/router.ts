@@ -40,7 +40,12 @@ export type AnswerIntent =
   | "lapPrefEvery"
   | "lapPrefBest"
   | "lapPrefNone"
-  | "lapPrefAuto";
+  | "lapPrefAuto"
+  // Notation de la dernière annonce radio (`radioFeedback.ts`).
+  | "rateUseful"
+  | "rateUseless"
+  | "rateLate"
+  | "rateWrong";
 
 /** Commandes radio : toujours traitées en local (l'IA ne sait pas les exécuter). */
 export const RADIO_COMMANDS = new Set<AnswerIntent>([
@@ -53,6 +58,10 @@ export const RADIO_COMMANDS = new Set<AnswerIntent>([
   "lapPrefBest",
   "lapPrefNone",
   "lapPrefAuto",
+  "rateUseful",
+  "rateUseless",
+  "rateLate",
+  "rateWrong",
 ]);
 
 export interface Entities {
@@ -255,6 +264,10 @@ const T: Record<string, Def[]> = {
     { id: "whereLose", family: "coach", idioms: ["ou je perds", "ou est ce que je perds", "ou je perds du temps", "ou est ce que je perds du temps", "mon point faible", "quel virage je perds"] },
     { id: "repeat", family: "command", exact: ["repete", "tu peux repeter", "redis", "quoi", "pardon", "repete s il te plait"] },
     { id: "mute", family: "command", exact: ["silence", "tais toi", "coupe les annonces", "mute", "chut"] },
+    { id: "rateUseful", family: "rate", exact: ["utile", "c est utile", "tres utile", "bonne info"] },
+    { id: "rateUseless", family: "rate", exact: ["inutile", "pas utile", "ca sert a rien", "sans interet"] },
+    { id: "rateLate", family: "rate", exact: ["trop tard", "c est trop tard", "en retard"] },
+    { id: "rateWrong", family: "rate", exact: ["faux", "c est faux", "c est pas vrai", "erreur"] },
   ],
   en: [
     { id: "status", family: "status", idioms: ["where am i", "give me a summary", "summary", "status", "situation report"] },
@@ -303,6 +316,10 @@ const T: Record<string, Def[]> = {
     { id: "whereLose", family: "coach", idioms: ["where am i losing", "where do i lose", "where am i losing time", "where do i lose time", "my weak spot", "which corner am i losing"] },
     { id: "repeat", family: "command", exact: ["repeat", "say again", "what", "again", "come again", "pardon"] },
     { id: "mute", family: "command", exact: ["mute", "quiet", "shut up", "silence"] },
+    { id: "rateUseful", family: "rate", exact: ["useful", "that was useful", "good call", "helpful"] },
+    { id: "rateUseless", family: "rate", exact: ["useless", "not useful", "pointless"] },
+    { id: "rateLate", family: "rate", exact: ["too late", "that was late", "late call"] },
+    { id: "rateWrong", family: "rate", exact: ["wrong", "that s wrong", "that was wrong", "incorrect"] },
   ],
   es: [
     { id: "status", family: "status", idioms: ["donde estoy", "resumen", "situacion"] },
@@ -351,6 +368,10 @@ const T: Record<string, Def[]> = {
     { id: "whereLose", family: "coach", idioms: ["donde pierdo", "donde pierdo tiempo", "donde estoy perdiendo", "mi punto debil", "en que curva pierdo"] },
     { id: "repeat", family: "command", exact: ["repite", "repitelo", "otra vez", "que", "perdon"] },
     { id: "mute", family: "command", exact: ["silencio", "callate", "calla"] },
+    { id: "rateUseful", family: "rate", exact: ["util", "muy util", "buena info"] },
+    { id: "rateUseless", family: "rate", exact: ["inutil", "no sirve", "no es util"] },
+    { id: "rateLate", family: "rate", exact: ["demasiado tarde", "llega tarde"] },
+    { id: "rateWrong", family: "rate", exact: ["falso", "incorrecto", "eso es falso"] },
   ],
   de: [
     { id: "status", family: "status", idioms: ["wo stehe ich", "zusammenfassung", "lage", "status"] },
@@ -399,6 +420,10 @@ const T: Record<string, Def[]> = {
     { id: "whereLose", family: "coach", idioms: ["wo verliere ich", "wo verliere ich zeit", "meine schwachstelle", "in welcher kurve verliere ich"] },
     { id: "repeat", family: "command", exact: ["wiederhole", "noch mal", "was", "wie bitte", "nochmal"] },
     { id: "mute", family: "command", exact: ["stumm", "ruhe", "halt den mund"] },
+    { id: "rateUseful", family: "rate", exact: ["nutzlich", "hilfreich", "gute info"] },
+    { id: "rateUseless", family: "rate", exact: ["nutzlos", "unnotig", "bringt nichts"] },
+    { id: "rateLate", family: "rate", exact: ["zu spat", "viel zu spat"] },
+    { id: "rateWrong", family: "rate", exact: ["falsch", "stimmt nicht", "das ist falsch"] },
   ],
   it: [
     { id: "status", family: "status", idioms: ["dove sono", "a che punto sono", "fai il punto", "riepilogo", "riassunto", "situazione"] },
@@ -447,6 +472,10 @@ const T: Record<string, Def[]> = {
     { id: "whereLose", family: "coach", idioms: ["dove perdo", "dove perdo tempo", "dove sto perdendo", "il mio punto debole", "in che curva perdo"] },
     { id: "repeat", family: "command", exact: ["ripeti", "puoi ripetere", "ripeti per favore", "come", "cosa", "scusa", "di nuovo", "non ho capito"] },
     { id: "mute", family: "command", exact: ["silenzio", "zitto", "stai zitto", "taci", "muto"] },
+    { id: "rateUseful", family: "rate", exact: ["utile", "molto utile", "buona info"] },
+    { id: "rateUseless", family: "rate", exact: ["inutile", "non serve", "non utile"] },
+    { id: "rateLate", family: "rate", exact: ["troppo tardi", "in ritardo"] },
+    { id: "rateWrong", family: "rate", exact: ["sbagliato", "falso", "non e vero"] },
   ],
 };
 
@@ -585,6 +614,10 @@ export const INTENT_HELP: Partial<Record<AnswerIntent, string>> = {
   lapPrefBest: "radio preference: only my best laps",
   lapPrefNone: "radio preference: no lap times",
   lapPrefAuto: "radio preference: lap times as usual",
+  rateUseful: "the driver rates the last radio call as useful",
+  rateUseless: "the driver rates the last radio call as useless",
+  rateLate: "the driver rates the last radio call as too late",
+  rateWrong: "the driver rates the last radio call as wrong",
   tyreChange: "which tyres to change at the next stop, wets or slicks, tyre warm-up cost",
 };
 

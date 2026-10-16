@@ -2187,17 +2187,30 @@ pub fn is_sim_running() -> Result<bool, AppError> {
     Ok(read_shm(SCORING_MAP, 8).is_some())
 }
 
+/// Dernière trame du flux live si elle est récente (régie tablette).
+pub fn last_frame() -> Option<LiveData> {
+    let g = LAST_FRAME.lock().ok()?;
+    let (at, d) = g.as_ref()?;
+    (at.elapsed() <= LAST_FRAME_MAX_AGE).then(|| d.clone())
+}
+
 #[tauri::command]
 pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), AppError> {
-    // Un consommateur de plus pour CETTE fenêtre. Le thread ne démarre que s'il
-    // n'était pas déjà actif.
+    acquire(&app, window.label())
+}
+
+/// Un consommateur de plus pour `label` (fenêtre, ou « regie » côté Rust) ;
+/// démarre le thread de lecture s'il ne tournait pas. Libéré par
+/// `release_window(label)` ou `stop_live_polling`.
+pub fn acquire(app: &AppHandle, label: &str) -> Result<(), AppError> {
     {
         let mut guard = LIVE_CONSUMERS
             .lock()
             .map_err(|e| AppError::Internal(format!("live consumers lock: {e}")))?;
         let map = guard.get_or_insert_with(HashMap::new);
-        *map.entry(window.label().to_string()).or_insert(0) += 1;
+        *map.entry(label.to_string()).or_insert(0) += 1;
     }
+    let app = app.clone();
     if LIVE_POLLING.swap(true, Ordering::SeqCst) {
         return Ok(());
     }

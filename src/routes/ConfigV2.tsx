@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MENU_MODULE_KEYS } from "@/components/layout/Header";
 import { ReplayBenchPanel } from "@/components/ReplayBenchPanel";
+import { RegieSettings } from "@/components/RegieSettings";
 import {
   FolderOpen,
   RefreshCw,
@@ -74,6 +75,7 @@ import {
   Disc,
   Upload,
   Users,
+  Tablet,
   Trophy,
   Ear,
   Flag,
@@ -195,6 +197,7 @@ type CatId =
   | "voice"
   | "coach"
   | "community"
+  | "regie"
   | "maintenance"
   | "credits";
 
@@ -204,6 +207,7 @@ const SIDEBAR: { id: CatId; icon: typeof User; labelKey: string }[] = [
   { id: "voice", icon: Volume2, labelKey: "config.audioVoice" },
   { id: "coach", icon: Brain, labelKey: "config.aiCoach" },
   { id: "community", icon: Users, labelKey: "config.community" },
+  { id: "regie", icon: Tablet, labelKey: "config.regieNav" },
   { id: "maintenance", icon: Wrench, labelKey: "config.maintenance" },
   { id: "credits", icon: Heart, labelKey: "config.credits" },
 ];
@@ -2586,6 +2590,9 @@ export function ConfigV2() {
 
             {/* ── Communauté (partage des meilleurs tours, opt-in) ── */}
             {cat === "community" && <CommunitySettings />}
+
+            {/* ── Régie tablette (lecture seule, opt-in) ── */}
+            {cat === "regie" && <RegieSettings />}
 
             {/* ── Crédits ── */}
             {cat === "credits" && (

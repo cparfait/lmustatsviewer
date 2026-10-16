@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>LMU Stats Viewer — Régie</title>
+<style>
+  :root { --bg:#0a0e1a; --panel:#121828; --line:#1f2a40; --fg:#e5e7eb; --mute:#8b95a8; --acc:#ffb400; --ok:#34d399; --bad:#f87171; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:15px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; }
+  header { display:flex; align-items:center; gap:12px; padding:8px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header .title { font-weight:700; letter-spacing:.02em; }
+  .meta { color:var(--mute); font-size:13px; }
+  nav { display:flex; gap:6px; margin-left:auto; flex-wrap:wrap; }
+  nav button { background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:14px; }
+  nav button.on { border-color:var(--acc); color:var(--acc); }
+  main { padding:10px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+  .grid { display:grid; gap:10px; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .lbl { color:var(--mute); font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+  .big { font-size:34px; font-weight:800; }
+  .huge { font-size:64px; font-weight:800; line-height:1; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { padding:5px 6px; text-align:left; white-space:nowrap; }
+  th { color:var(--mute); font-weight:600; font-size:12px; text-transform:uppercase; }
+  tr + tr td { border-top:1px solid var(--line); }
+  tr.me td { background:rgba(255,180,0,.12); }
+  .cls { display:inline-block; min-width:52px; text-align:center; border-radius:5px; padding:1px 5px; font-size:12px; font-weight:700; color:#fff; }
+  .pit { color:var(--acc); font-weight:700; font-size:12px; }
+  .r { text-align:right; }
+  svg { width:100%; height:auto; display:block; }
+  #login { max-width:340px; margin:12vh auto; text-align:center; padding:0 12px; }
+  #login input { font-size:32px; letter-spacing:.3em; width:100%; text-align:center; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--fg); }
+  #login button { margin-top:12px; width:100%; padding:12px; font-size:18px; border-radius:10px; border:0; background:var(--acc); color:#000; font-weight:700; }
+  .err { color:var(--bad); min-height:1.4em; margin-top:8px; }
+  .hidden { display:none !important; }
+  .bar { height:8px; border-radius:4px; background:var(--line); overflow:hidden; }
+  .bar > i { display:block; height:100%; background:var(--ok); }
+  .flag { display:inline-block; padding:2px 10px; border-radius:6px; font-weight:800; color:#000; }
+</style>
+</head>
+<body>
+<div id="login" class="hidden">
+  <h2 data-t="title"></h2>
+  <p data-t="enterCode" class="meta"></p>
+  <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*">
+  <button id="go" data-t="connect"></button>
+  <div id="err" class="err"></div>
+</div>
+<div id="app" class="hidden">
+  <header>
+    <span class="title" data-t="title"></span>
+    <span id="hdr" class="meta"></span>
+    <nav id="tabs"></nav>
+  </header>
+  <main id="view"></main>
+</div>
+<script>
+(() => {
+  "use strict";
+  // ── Langues (FR / EN / ES / DE / IT) ─────────────────────────────────────
+  const L = {
+    fr: { title:"Régie", enterCode:"Entrez le code à 6 chiffres affiché dans LMU Stats Viewer (Configuration › Régie tablette).", connect:"Se connecter", badCode:"Code incorrect.", locked:"Trop d'essais : réessayez dans une minute.", offline:"Jeu non connecté.", lost:"Connexion perdue…",
+      t_timing:"Classement", t_engineer:"Ingénieur", t_map:"Carte", t_duel:"Duel", t_tv:"TV",
+      pos:"Pos", cls:"Classe", driver:"Pilote", gap:"Écart", int:"Interv.", last:"Dernier", best:"Meilleur", laps:"Tours", pits:"Arrêts",
+      remaining:"Restant", lap:"Tour", fuel:"Carburant", lapsLeft:"tours", energy:"Énergie virt.", tyres:"Pneus", pads:"Plaquettes", weather:"Météo", air:"Air", track:"Piste", rain:"Pluie", ahead:"Devant", behind:"Derrière", none:"—", inPit:"STAND", leader:"Leaders", noPlayer:"Pas de voiture joueur." },
+    en: { title:"Race control", enterCode:"Enter the 6-digit code shown in LMU Stats Viewer (Settings › Tablet race control).", connect:"Connect", badCode:"Wrong code.", locked:"Too many attempts: try again in a minute.", offline:"Game not connected.", lost:"Connection lost…",
+      t_timing:"Timing", t_engineer:"Engineer", t_map:"Map", t_duel:"Duel", t_tv:"TV",
+      pos:"Pos", cls:"Class", driver:"Driver", gap:"Gap", int:"Int.", last:"Last", best:"Best", laps:"Laps", pits:"Stops",
+      remaining:"Remaining", lap:"Lap", fuel:"Fuel", lapsLeft:"laps", energy:"Virtual energy", tyres:"Tyres", pads:"Pads", weather:"Weather", air:"Air", track:"Track", rain:"Rain", ahead:"Ahead", behind:"Behind", none:"—", inPit:"PIT", leader:"Leaders", noPlayer:"No player car." },
+    es: { title:"Dirección de carrera", enterCode:"Introduce el código de 6 cifras que muestra LMU Stats Viewer (Configuración › Dirección en tableta).", connect:"Conectar", badCode:"Código incorrecto.", locked:"Demasiados intentos: vuelve a probar en un minuto.", offline:"Juego no conectado.", lost:"Conexión perdida…",
+      t_timing:"Clasificación", t_engineer:"Ingeniero", t_map:"Mapa", t_duel:"Duelo", t_tv:"TV",
+      pos:"Pos", cls:"Clase", driver:"Piloto", gap:"Dif.", int:"Interv.", last:"Última", best:"Mejor", laps:"Vueltas", pits:"Paradas",
+      remaining:"Restante", lap:"Vuelta", fuel:"Combustible", lapsLeft:"vueltas", energy:"Energía virtual", tyres:"Neumáticos", pads:"Pastillas", weather:"Meteo", air:"Aire", track:"Pista", rain:"Lluvia", ahead:"Delante", behind:"Detrás", none:"—", inPit:"BOX", leader:"Líderes", noPlayer:"Sin coche del jugador." },
+    de: { title:"Rennleitung", enterCode:"Gib den 6-stelligen Code aus LMU Stats Viewer ein (Einstellungen › Rennleitung auf Tablet).", connect:"Verbinden", badCode:"Falscher Code.", locked:"Zu viele Versuche: in einer Minute erneut versuchen.", offline:"Spiel nicht verbunden.", lost:"Verbindung verloren…",
+      t_timing:"Zeitenliste", t_engineer:"Ingenieur", t_map:"Karte", t_duel:"Duell", t_tv:"TV",
+      pos:"Pos", cls:"Klasse", driver:"Fahrer", gap:"Abstand", int:"Int.", last:"Letzte", best:"Beste", laps:"Runden", pits:"Stopps",
+      remaining:"Verbleibend", lap:"Runde", fuel:"Kraftstoff", lapsLeft:"Runden", energy:"Virtuelle Energie", tyres:"Reifen", pads:"Beläge", weather:"Wetter", air:"Luft", track:"Strecke", rain:"Regen", ahead:"Vorne", behind:"Hinten", none:"—", inPit:"BOX", leader:"Führende", noPlayer:"Kein Spielerauto." },
+    it: { title:"Direzione gara", enterCode:"Inserisci il codice a 6 cifre mostrato in LMU Stats Viewer (Impostazioni › Direzione gara su tablet).", connect:"Connetti", badCode:"Codice errato.", locked:"Troppi tentativi: riprova tra un minuto.", offline:"Gioco non connesso.", lost:"Connessione persa…",
+      t_timing:"Classifica", t_engineer:"Ingegnere", t_map:"Mappa", t_duel:"Duello", t_tv:"TV",
+      pos:"Pos", cls:"Classe", driver:"Pilota", gap:"Distacco", int:"Interv.", last:"Ultimo", best:"Migliore", laps:"Giri", pits:"Soste",
+      remaining:"Rimanente", lap:"Giro", fuel:"Carburante", lapsLeft:"giri", energy:"Energia virtuale", tyres:"Gomme", pads:"Pastiglie", weather:"Meteo", air:"Aria", track:"Pista", rain:"Pioggia", ahead:"Davanti", behind:"Dietro", none:"—", inPit:"BOX", leader:"Leader", noPlayer:"Nessuna auto del giocatore." },
+  };
+  const lang = (navigator.language || "en").slice(0, 2).toLowerCase();
+  const T = L[lang] || L.en;
+  document.documentElement.lang = L[lang] ? lang : "en";
+  document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = T[el.dataset.t]; });
+
+  // ── Utilitaires ──────────────────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  const lapT = (s) => { if (!(s > 0)) return T.none; const m = Math.floor(s / 60); const r = s - m * 60; return `${m}:${r.toFixed(3).padStart(6, "0")}`; };
+  const clock = (s) => { if (!(s >= 0)) return T.none; s = Math.floor(s); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
+  const CLASS = { hyper:"#ef4444", lmp2:"#3b82f6", lmp3:"#a855f7", gt3:"#22c55e", gte:"#f97316" };
+  const classKey = (c) => { const k = String(c || "").toLowerCase(); return k.startsWith("hyper") ? "hyper" : k.includes("lmp2") ? "lmp2" : k.includes("lmp3") ? "lmp3" : k.includes("gt3") ? "gt3" : k.includes("gte") ? "gte" : ""; };
+  const classColor = (c) => CLASS[classKey(c)] || "#64748b";
+  const clsTag = (c) => `<span class="cls" style="background:${classColor(c)}">${esc(String(c || "").replace(/_/g, " "))}</span>`;
+  const gapOf = (s, leader) => s.class_position === 1 || !leader ? T.none : s.laps_behind_leader > leader.laps_behind_leader ? `+${s.laps_behind_leader - leader.laps_behind_leader} ${T.laps.toLowerCase()}` : `+${Math.max(0, s.time_behind_leader - leader.time_behind_leader).toFixed(1)}`;
+
+  // ── Session, jeton, interrogation ────────────────────────────────────────
+  let token = sessionStorage.getItem("regie_token") || "";
+  const TPLS = ["timing", "engineer", "map", "duel", "tv"];
+  let tpl = (location.hash.match(/tpl=(\w+)/) || [])[1] || localStorage.getItem("regie_tpl") || "timing";
+  if (!TPLS.includes(tpl)) tpl = "timing";
+  let track = null, trackAt = 0, last = null, fails = 0, timer = null;
+
+  async function login() {
+    $("err").textContent = "";
+    const r = await fetch("/api/login", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ code: $("code").value.trim() }) }).catch(() => null);
+    if (!r) { $("err").textContent = T.lost; return; }
+    if (r.status === 429) { $("err").textContent = T.locked; return; }
+    if (!r.ok) { $("err").textContent = T.badCode; return; }
+    token = (await r.json()).token; sessionStorage.setItem("regie_token", token); start();
+  }
+  $("go").onclick = login;
+  $("code").addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+
+  async function get(path) {
+    const r = await fetch(path, { headers:{ Authorization: "Bearer " + token }, cache:"no-store" });
+    if (r.status === 401) { token = ""; sessionStorage.removeItem("regie_token"); showLogin(); throw new Error("auth"); }
+    return r.json();
+  }
+  function showLogin() { if (timer) { clearInterval(timer); timer = null; } $("app").classList.add("hidden"); $("login").classList.remove("hidden"); $("code").focus(); }
+
+  function tabs() {
+    $("tabs").innerHTML = TPLS.map((k) => `<button data-k="${k}" class="${k === tpl ? "on" : ""}">${esc(T["t_" + k])}</button>`).join("");
+    $("tabs").querySelectorAll("button").forEach((b) => b.onclick = () => { tpl = b.dataset.k; localStorage.setItem("regie_tpl", tpl); tabs(); render(); });
+  }
+
+  async function tick() {
+    try {
+      last = await get("/api/live");
+      fails = 0;
+      const key = last.session && last.session.track;
+      if (key && (!track || track.track !== key || Date.now() - trackAt > 30000)) { track = await get("/api/track"); trackAt = Date.now(); }
+      render();
+    } catch (e) {
+      if (String(e && e.message) !== "auth" && ++fails > 3) $("hdr").textContent = T.lost;
+    }
+  }
+  function start() { $("login").classList.add("hidden"); $("app").classList.remove("hidden"); tabs(); tick(); if (!timer) timer = setInterval(tick, 1000); }
+
+  // ── Carte : axe principal du tracé à l'horizontale (« plus large que haut ») ──
+  function mapSvg(d, maxH) {
+    const pts = (track && track.track_points) || [];
+    if (pts.length < 8) return `<div class="meta">${T.none}</div>`;
+    let mx = 0, mz = 0; for (const p of pts) { mx += p[0]; mz += p[1]; } mx /= pts.length; mz /= pts.length;
+    let sxx = 0, szz = 0, sxz = 0; for (const p of pts) { const x = p[0] - mx, z = p[1] - mz; sxx += x * x; szz += z * z; sxz += x * z; }
+    const ang = 0.5 * Math.atan2(2 * sxz, sxx - szz);
+    const ca = Math.cos(-ang), sa = Math.sin(-ang);
+    const rot = (p) => { const x = p[0] - mx, z = p[1] - mz; return [x * ca - z * sa, -(x * sa + z * ca)]; };
+    const pit = (track && track.pit_lane_points) || [];
+    const all = pts.map(rot).concat(pit.map(rot));
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const [x, y] of all) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    const W = 1000, H = Math.max(300, Math.round(W * (y1 - y0) / Math.max(1, x1 - x0))), pad = 30;
+    const k = Math.min((W - 2 * pad) / Math.max(1, x1 - x0), (H - 2 * pad) / Math.max(1, y1 - y0));
+    const P = (p) => { const [x, y] = rot(p); return [pad + (x - x0) * k, pad + (y - y0) * k]; };
+    const path = (arr, close) => arr.map((p, i) => { const [x, y] = P(p); return (i ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1); }).join("") + (close ? "Z" : "");
+    const pitSvg = pit.length > 1 ? `<path d="${path(pit, false)}" fill="none" stroke="#1f2a40" stroke-width="8" stroke-dasharray="10 8"/>` : "";
+    const cars = (d.standings || []).filter((s) => s.pos_x || s.pos_z).sort((a, b) => (a.is_player ? 1 : 0) - (b.is_player ? 1 : 0)).map((s) => {
+      const [x, y] = P([s.pos_x, s.pos_z]); const me = s.is_player;
+      return `<g><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${me ? 16 : 11}" fill="${me ? "#ffb400" : classColor(s.vehicle_class)}" stroke="#0a0e1a" stroke-width="3"/>` +
+        `<text x="${x.toFixed(1)}" y="${(y + 5).toFixed(1)}" text-anchor="middle" font-size="${me ? 16 : 12}" font-weight="700" fill="#0a0e1a">${s.class_position || s.position}</text></g>`;
+    }).join("");
+    return `<svg viewBox="0 0 ${W} ${H}" style="max-height:${maxH}">${pitSvg}<path d="${path(pts, true)}" fill="none" stroke="#2b3550" stroke-width="22" stroke-linejoin="round"/>${cars}</svg>`;
+  }
+
+  // ── Gabarits ─────────────────────────────────────────────────────────────
+  const me = (d) => (d.standings || []).find((s) => s.is_player);
+  const classOrder = (d) => { const seen = []; for (const s of d.standings || []) if (!seen.includes(s.vehicle_class)) seen.push(s.vehicle_class); return seen; };
+  const remaining = (d) => { const sc = d.session || {}; return sc.end_et > 0 ? clock(Math.max(0, sc.end_et - sc.session_time)) : sc.max_laps > 0 && sc.max_laps < 1000 ? `${sc.max_laps} ${T.laps.toLowerCase()}` : clock(sc.session_time); };
+  const classMates = (d, p) => (d.standings || []).filter((s) => s.vehicle_class === p.vehicle_class).sort((a, b) => a.class_position - b.class_position);
+
+  function timingTable(d, rows) {
+    const leaders = {}; for (const s of d.standings || []) if (s.class_position === 1) leaders[s.vehicle_class] = s;
+    return `<table class="mono"><tr><th>${T.pos}</th><th>${T.cls}</th><th>${T.driver}</th><th class="r">${T.gap}</th><th class="r">${T.int}</th><th class="r">${T.last}</th><th class="r">${T.best}</th><th class="r">${T.laps}</th><th class="r">${T.pits}</th></tr>` +
+      rows.map((s) => `<tr class="${s.is_player ? "me" : ""}"><td>${s.position}</td><td>${clsTag(s.vehicle_class)} ${s.class_position}</td><td>${esc(s.driver)} ${s.in_pits ? `<span class="pit">${T.inPit}</span>` : ""}</td>` +
+        `<td class="r">${gapOf(s, leaders[s.vehicle_class])}</td><td class="r">${s.position > 1 ? "+" + (s.time_behind_next || 0).toFixed(1) : T.none}</td>` +
+        `<td class="r">${lapT(s.last_lap_time)}</td><td class="r">${lapT(s.best_lap_time)}</td><td class="r">${s.total_laps}</td><td class="r">${s.num_pitstops}</td></tr>`).join("") + `</table>`;
+  }
+
+  // 1. Classement complet (multiclasse, couleurs de classe).
+  const tplTiming = (d) => `<div class="card">${timingTable(d, d.standings || [])}</div>`;
+
+  // 2. Ingénieur : tout ce qui concerne la voiture du joueur.
+  function tplEngineer(d) {
+    const p = me(d); const tel = d.telemetry; const w = d.weather || {}; const x = d.extended || {};
+    if (!p || !tel) return `<div class="card meta">${T.noPlayer}</div>`;
+    const cls = classMates(d, p); const i = cls.indexOf(p); const a = cls[i - 1], b = cls[i + 1];
+    const wheels = (tel.wheels || []).map((wh, k) => `<div><div class="lbl">${["FL","FR","RL","RR"][k]}</div><div class="mono">${Math.round(wh.temp)}°C · ${Math.round(wh.wear)}%</div><div class="bar"><i style="width:${Math.max(0, Math.min(100, wh.wear))}%"></i></div></div>`).join("");
+    const v = d.rest && d.rest.vehicle && d.rest.vehicle.state === "fresh" ? d.rest.vehicle.data : null;
+    const pads = v && v.brake_condition && v.brake_condition.length === 4 ? v.brake_condition.map((q) => Math.round(Math.min(1, q) * 100) + "%").join(" · ") : T.none;
+    return `<div class="grid g3">
+      <div class="card"><div class="lbl">${T.pos}</div><div class="huge mono">P${p.class_position}</div><div class="meta">${clsTag(p.vehicle_class)} · P${p.position}</div></div>
+      <div class="card"><div class="lbl">${T.remaining}</div><div class="big mono">${remaining(d)}</div><div class="meta">${T.lap} ${p.total_laps}</div></div>
+      <div class="card"><div class="lbl">${T.ahead}</div><div class="big mono">${a ? "−" + Math.max(0, p.time_behind_leader - a.time_behind_leader).toFixed(1) : T.none}</div><div class="meta">${a ? esc(a.driver) : ""}</div></div>
+      <div class="card"><div class="lbl">${T.behind}</div><div class="big mono">${b ? "+" + Math.max(0, b.time_behind_leader - p.time_behind_leader).toFixed(1) : T.none}</div><div class="meta">${b ? esc(b.driver) : ""}</div></div>
+      <div class="card"><div class="lbl">${T.fuel}</div><div class="big mono">${(tel.fuel || 0).toFixed(1)} L</div><div class="meta">${tel.fuel_laps_remaining > 0 ? tel.fuel_laps_remaining.toFixed(1) + " " + T.lapsLeft : T.none}</div></div>
+      <div class="card"><div class="lbl">${T.energy}</div><div class="big mono">${x.virtual_energy > 0 ? Math.round(x.virtual_energy * 100) + "%" : T.none}</div><div class="meta">${T.pads} ${pads}</div></div>
+      <div class="card"><div class="lbl">${T.last} / ${T.best}</div><div class="big mono">${lapT(p.last_lap_time)}</div><div class="meta mono">${lapT(p.best_lap_time)}</div></div>
+      <div class="card"><div class="lbl">${T.weather}</div><div class="mono">${T.air} ${Math.round(w.air_temp || 0)}° · ${T.track} ${Math.round(w.track_temp || 0)}°</div><div class="mono">${T.rain} ${Math.round((w.rain || 0) * 100)}%</div></div>
+    </div><div class="card" style="margin-top:10px"><div class="lbl">${T.tyres}</div><div class="grid" style="grid-template-columns:repeat(4,1fr)">${wheels}</div></div>`;
+  }
+
+  // 3. Carte : tracé + voitures colorées par classe, classement de la classe du joueur.
+  function tplMap(d) {
+    const p = me(d); const cls = p ? p.vehicle_class : null;
+    const rows = (d.standings || []).filter((s) => !cls || s.vehicle_class === cls).slice(0, 12);
+    return `<div class="grid g2"><div class="card">${mapSvg(d, "70vh")}</div><div class="card">${timingTable(d, rows)}</div></div>`;
+  }
+
+  // 4. Duel : le joueur face aux voitures devant et derrière dans sa classe.
+  function tplDuel(d) {
+    const p = me(d);
+    if (!p) return `<div class="card meta">${T.noPlayer}</div>`;
+    const cls = classMates(d, p); const i = cls.indexOf(p);
+    const col = (s, title, sign) => !s ? `<div class="card"><div class="lbl">${title}</div><div class="big">${T.none}</div></div>` :
+      `<div class="card"><div class="lbl">${title}</div><div style="font-size:20px;font-weight:700">${esc(s.driver)}</div><div class="meta">${clsTag(s.vehicle_class)} P${s.class_position}</div>
+       <div class="huge mono">${sign}${Math.abs(s.time_behind_leader - p.time_behind_leader).toFixed(1)}</div>
+       <table class="mono"><tr><th></th><th class="r">${T.last}</th><th class="r">${T.best}</th></tr>
+       <tr><td>${esc(s.driver)}</td><td class="r">${lapT(s.last_lap_time)}</td><td class="r">${lapT(s.best_lap_time)}</td></tr>
+       <tr class="me"><td>${esc(p.driver)}</td><td class="r">${lapT(p.last_lap_time)}</td><td class="r">${lapT(p.best_lap_time)}</td></tr></table>
+       <div class="meta mono">S1 ${(s.last_s1 || 0).toFixed(2)} / ${(p.last_s1 || 0).toFixed(2)} · S2 ${(s.last_s2 || 0).toFixed(2)} / ${(p.last_s2 || 0).toFixed(2)} · S3 ${(s.last_s3 || 0).toFixed(2)} / ${(p.last_s3 || 0).toFixed(2)}</div></div>`;
+    return `<div class="grid g2">${col(cls[i - 1], T.ahead, "−")}${col(cls[i + 1], T.behind, "+")}</div>`;
+  }
+
+  // 5. TV : temps restant en grand, leaders de chaque classe, carte.
+  function tplTv(d) {
+    const w = d.weather || {}; const f = d.flags || {};
+    const phase = f.yellow_flag_state > 0 ? `<span class="flag" style="background:#facc15">FCY</span>` : `<span class="flag" style="background:#22c55e">GREEN</span>`;
+    const leaders = classOrder(d).map((c) => (d.standings || []).find((s) => s.vehicle_class === c && s.class_position === 1)).filter(Boolean);
+    return `<div class="grid g2"><div class="card"><div class="lbl">${T.remaining}</div><div class="huge mono">${remaining(d)}</div><div style="margin-top:8px">${phase}</div>
+      <div class="meta" style="margin-top:8px">${T.air} ${Math.round(w.air_temp || 0)}° · ${T.track} ${Math.round(w.track_temp || 0)}° · ${T.rain} ${Math.round((w.rain || 0) * 100)}%</div></div>
+      <div class="card"><div class="lbl">${T.leader}</div>${leaders.map((s) => `<div style="font-size:22px;margin:6px 0">${clsTag(s.vehicle_class)} <b>${esc(s.driver)}</b> <span class="meta">${esc(s.vehicle_name)}</span></div>`).join("")}</div>
+      <div class="card" style="grid-column:1/-1">${mapSvg(d, "55vh")}</div></div>`;
+  }
+
+  function render() {
+    const d = last;
+    if (!d || !d.connected || !d.session) { $("hdr").textContent = T.offline; $("view").innerHTML = ""; return; }
+    $("hdr").textContent = `${d.session.track} · ${remaining(d)}`;
+    const f = { timing: tplTiming, engineer: tplEngineer, map: tplMap, duel: tplDuel, tv: tplTv }[tpl] || tplTiming;
+    $("view").innerHTML = f(d);
+  }
+
+  if (token) start(); else showLogin();
+})();
+</script>
+</body>
+</html>

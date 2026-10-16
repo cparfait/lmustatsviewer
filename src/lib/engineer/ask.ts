@@ -22,6 +22,14 @@ import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, classifyIntent, friendlyError } from "@/lib/ai/coach";
 import { buildStatus } from "@/lib/spotter";
 import { route, INTENT_HELP, extractEntities, normalize, type AnswerIntent } from "@/lib/engineer/router";
+import { radioLog, type Rating } from "@/lib/engineer/radioFeedback";
+
+const RATING_OF: Record<string, Rating> = {
+  rateUseful: "useful",
+  rateUseless: "useless",
+  rateLate: "late",
+  rateWrong: "wrong",
+};
 import { answerIntent, registerWatch } from "@/lib/engineer/answers";
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
@@ -188,6 +196,12 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
       return { text: next ? t("live.spUnmuted") : "", via: "command" };
     }
     if (id === "watch") return say(registerWatch(r.watch, r.entities, r.norm, data, t), "command");
+    if (id.startsWith("rate")) {
+      // Note la dernière annonce radio (≤ 2 min) ; accusé bref, jamais d'IA.
+      const rating = RATING_OF[id];
+      const e = rating ? radioLog.rateLast(rating) : null;
+      return say(e ? t("live.spRated", { what: t(`live.rate_${rating}`) }) : t("live.spRateNothing"), "command");
+    }
     return say(answerIntent(id, data, t, opts), via);
   };
 

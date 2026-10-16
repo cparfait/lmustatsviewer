@@ -32,12 +32,13 @@ import {
   setCloudVoiceKey,
   subscribeCloudVoice,
   updateCloudVoice,
+  type CloudNumbersMode,
   type CloudPrepPlan,
 } from "@/lib/cloudVoice";
-import { cloudPrepKeys, estimateCostUsd } from "@/lib/cloudVoicePrep";
+import { cloudPrepKeys, estimateCostUsd, segmentsWanted } from "@/lib/cloudVoicePrep";
 import { getMessageText } from "@/lib/voiceMessages";
 import { isTauri } from "@/lib/api";
-import { cloudPrepTexts, previewCloudVoice } from "@/lib/voice";
+import { cloudPrepTexts, cloudSegmentPrepTexts, previewCloudVoice } from "@/lib/voice";
 import { useAppStore } from "@/stores/app";
 import { toastError, toastSuccess } from "@/stores/dialogs";
 
@@ -257,6 +258,7 @@ function PrepareVoice() {
   const rate = useAppStore((s) => s.voiceRate);
   const running = prep?.running === true;
   const [plan, setPlan] = useState<CloudPrepPlan | null>(null);
+  const [segmentCount, setSegmentCount] = useState(0);
 
   // Devis recalculé quand la voix (fournisseur, modèle, voix), la langue ou la
   // vitesse change, et après chaque préparation : un devis périmé n'est jamais affiché.
@@ -267,7 +269,10 @@ function PrepareVoice() {
       cloudPrepKeys(settings.alertsLocal).map((k) => getMessageText(lang, k)),
       lang,
     );
-    planCloudPrep(texts, code, r)
+    // Annonces chiffrées : leurs morceaux (nombres, parties fixes) entrent dans le devis.
+    const segments = segmentsWanted(settings.numbers, settings.alertsLocal) ? cloudSegmentPrepTexts(lang) : [];
+    setSegmentCount(segments.length);
+    planCloudPrep([...new Set([...texts, ...segments])], code, r)
       .then((p) => alive && setPlan(p))
       .catch(() => alive && setPlan(null));
     return () => {
@@ -327,6 +332,9 @@ function PrepareVoice() {
           </Button>
         )}
       </Row>
+      {segmentCount > 0 && !running && (
+        <div className="text-xs text-muted-foreground/70">{t("config.cloudVoicePrepSegments", { n: segmentCount })}</div>
+      )}
       {running && prep && prep.total > 0 && (
         <div
           className="h-1.5 w-full overflow-hidden rounded bg-muted"
@@ -428,6 +436,19 @@ export function CloudVoiceSettings() {
               checked={settings.alertsLocal}
               onCheckedChange={(v) => void updateCloudVoice({ alertsLocal: v })}
               className="shrink-0"
+            />
+          </Row>
+          <Row label={t("config.cloudVoiceNumbers")} desc={t("config.cloudVoiceNumbersDesc")}>
+            <Select
+              value={settings.numbers}
+              onValueChange={(v) => void updateCloudVoice({ numbers: v as CloudNumbersMode })}
+              ariaLabel={t("config.cloudVoiceNumbers")}
+              className="h-8 px-2.5"
+              options={[
+                { value: "alerts", label: t("config.cloudVoiceNumbersAlerts") },
+                { value: "all", label: t("config.cloudVoiceNumbersAll") },
+                { value: "off", label: t("config.cloudVoiceNumbersOff") },
+              ]}
             />
           </Row>
           <div className="flex items-center justify-between gap-3">

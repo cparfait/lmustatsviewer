@@ -34,6 +34,8 @@ import { isTauri } from "@/lib/api";
 import {
   cloudAlertsLocal,
   cloudCachedAudio,
+  cloudCachedAudioMany,
+  cloudNumbersMode,
   cloudSynth,
   cloudVoiceOn,
   cloudVoiceReady,
@@ -41,6 +43,16 @@ import {
   noteCloudFallback,
 } from "@/lib/cloudVoice";
 import { cloudModeFor, fixedPhrases, isFixedPhrase, type CloudMode } from "@/lib/cloudVoicePrep";
+import {
+  assembleSegments,
+  buildLexicon,
+  joinPcm,
+  segmentInventory,
+  trimSilence,
+  type SegmentEntry,
+  type SegmentLexicon,
+} from "@/lib/cloudVoiceSegments";
+import { ttsWords } from "@/lib/ttsWords";
 
 export type VoicePriority = "spotter" | "critical" | "normal" | "chatty" | "coach";
 export type VoiceEngine = "piper" | "system";
@@ -205,6 +217,8 @@ export interface SpeakOpts {
 
 interface QueueItem {
   text: string;
+  /** Texte d'origine, avant `normalizeForTts` (reconnaissance des gabarits chiffrés). */
+  raw: string;
   lang: string;
   priority: VoicePriority;
   /** Date limite (ms epoch) au-delà de laquelle l'annonce est périmée. */
@@ -305,6 +319,7 @@ function requeueCut(item: QueueItem) {
   queue.unshift({
     ...item,
     text: `${item.opts.replayPrefix} ${item.text}`,
+    raw: `${item.opts.replayPrefix} ${item.raw}`,
     retried: true,
     expiry: Date.now() + item.ttl,
   });
@@ -353,6 +368,7 @@ function holdChannel(item: QueueItem) {
 }
 /** Dernière annonce émise (callout auto OU spotter) — pour la commande « Répète ». */
 let lastSpokenText = "";
+let lastSpokenRaw = "";
 let lastSpokenLang = "";
 /** Synthèse Piper en cours (fenêtre asynchrone) — bloque un second pump. */
 let busy = false;
@@ -538,7 +554,12 @@ export async function prewarmSpeech(texts: string[], lang: string): Promise<void
     if (!raw) continue;
     const text = normalizeForTts(raw, lang);
     const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, text)}`;
-    if (!isFixedPhrase(text) || synthCache.has(cloudKey)) continue;
+    if (synthCache.has(cloudKey)) continue;
+    if (!isFixedPhrase(text)) {
+      // Annonce chiffrée : ses morceaux passent en mémoire (assemblage instantané ensuite).
+      if (assembleFor("cached")) await assembledBuffer(ctx, code, raw);
+      continue;
+    }
     const buffer = await cloudCachedBuffer(ctx, code, text);
     if (buffer) synthCache.set(cloudKey, buffer);
   }
@@ -586,8 +607,10 @@ export function warmupVoice(lang: string) {
  * `chatty`) et les réponses au pilote en direct ; la sécurité (`critical` :
  * drapeaux, crevaison, box…), le spotter et le coach par virage **seulement
  * préparés** (cache), car leur moment de parole est calculé sur la latence de
- * Piper : jamais d'attente réseau, Piper sinon. « Alertes en voix locale » :
- * ces derniers restent toujours sur Piper (ancien comportement).
+ * Piper : jamais d'attente réseau, Piper sinon. Une phrase chiffrée préparée
+ * l'est par morceaux, recollés à la lecture (réglage « Annonces chiffrées »).
+ * « Alertes en voix locale » : ces derniers restent toujours sur Piper (ancien
+ * comportement).
  */
 function cloudMode(item: QueueItem): CloudMode {
   return cloudModeFor(item.priority, item.opts?.cloudOk === true, cloudAlertsLocal());
@@ -600,6 +623,105 @@ function cloudMode(item: QueueItem): CloudMode {
  */
 export function cloudPrepTexts(templates: string[], lang: string): { code: string; rate: number; texts: string[] } {
   return { code: norm(lang), rate: speechRate, texts: fixedPhrases(templates, (s) => normalizeForTts(s, lang)) };
+}
+
+// ── Annonces chiffrées assemblées (voix en ligne, `cloudVoiceSegments.ts`) ────
+
+/** Gabarits d'annonces de la langue (posé au démarrage, cf. `stores/app.ts`). */
+let segmentSource: ((lang: string) => SegmentEntry[]) | null = null;
+const lexicons = new Map<string, { sig: string; lex: SegmentLexicon }>();
+
+/** Donne la liste des gabarits d'annonces (personnalisés compris) à reconnaître. */
+export function setCloudSegmentSource(source: ((lang: string) => SegmentEntry[]) | null) {
+  segmentSource = source;
+  lexicons.clear();
+}
+
+/** Reconnaissance des gabarits de `code`, recompilée si un texte a été personnalisé. */
+function lexiconFor(code: string): SegmentLexicon | null {
+  const entries = segmentSource?.(code);
+  if (!entries?.length) return null;
+  const sig = entries.map((e) => e.text).join("");
+  const hit = lexicons.get(code);
+  if (hit?.sig === sig) return hit.lex;
+  const lex = buildLexicon(code, entries, (s) => normalizeForTts(s, code));
+  lexicons.set(code, { sig, lex });
+  return lex;
+}
+
+/**
+ * « Préparer la voix » : morceaux à enregistrer pour assembler les annonces
+ * chiffrées de la langue (parties fixes des gabarits, nombres, mots de liaison).
+ */
+export function cloudSegmentPrepTexts(lang: string): string[] {
+  const lex = lexiconFor(norm(lang));
+  return lex ? segmentInventory(lex) : [];
+}
+
+/**
+ * Morceaux décodés et rognés (mono, à la fréquence du contexte audio), gardés en
+ * mémoire : les nombres reviennent sans cesse. Plafond : ~200 morceaux d'une
+ * demi-seconde ≈ 20 Mo.
+ */
+const segmentPcm = new Map<string, Float32Array>();
+const SEGMENT_PCM_MAX = 200;
+
+function rememberSegment(key: string, pcm: Float32Array) {
+  segmentPcm.delete(key);
+  segmentPcm.set(key, pcm);
+  if (segmentPcm.size > SEGMENT_PCM_MAX) segmentPcm.delete(segmentPcm.keys().next().value!);
+}
+
+/** Mono : moyenne des canaux. */
+function monoOf(buf: AudioBuffer): Float32Array {
+  if (buf.numberOfChannels === 1) return buf.getChannelData(0);
+  const out = new Float32Array(buf.length);
+  for (let c = 0; c < buf.numberOfChannels; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < d.length; i++) out[i] += d[i] / buf.numberOfChannels;
+  }
+  return out;
+}
+
+/**
+ * Annonce chiffrée recollée à partir des morceaux préparés (cache mémoire puis
+ * disque, **jamais le réseau**). `matched` : la phrase est assemblable (sinon
+ * l'absence de tampon n'est pas un repli, seulement « pas pour ce mode »).
+ */
+async function assembledBuffer(
+  ctx: AudioContext,
+  code: string,
+  raw: string,
+): Promise<{ buffer: AudioBuffer | null; matched: boolean }> {
+  const lex = lexiconFor(code);
+  const segs = lex ? assembleSegments(raw, lex) : null;
+  if (!segs) return { buffer: null, matched: false };
+  const tag = cloudVoiceTag(code);
+  const keyOf = (text: string) => `${tag}|${synthKey(code, text)}`;
+  const missing = [...new Set(segs.map((s) => s.text))].filter((t) => !segmentPcm.has(keyOf(t)));
+  if (missing.length) {
+    const audio = await cloudCachedAudioMany(missing, code, speechRate);
+    if (!audio) return { buffer: null, matched: true };
+    try {
+      const decoded = await Promise.all(audio.map((a) => ctx.decodeAudioData(a)));
+      decoded.forEach((b, i) => rememberSegment(keyOf(missing[i]), trimSilence(monoOf(b), ctx.sampleRate)));
+    } catch {
+      return { buffer: null, matched: true };
+    }
+  }
+  const chunks = segs.map((s) => segmentPcm.get(keyOf(s.text)));
+  if (chunks.some((c) => !c)) return { buffer: null, matched: true }; // évincé entre-temps
+  const pcm = joinPcm(chunks as Float32Array[], segs.map((s) => s.pauseMs), ctx.sampleRate);
+  if (pcm.length === 0) return { buffer: null, matched: true };
+  const buffer = ctx.createBuffer(1, pcm.length, ctx.sampleRate);
+  buffer.copyToChannel(pcm, 0);
+  return { buffer, matched: true };
+}
+
+/** Le réglage « Annonces chiffrées » autorise-t-il l'assemblage pour ce mode ? */
+function assembleFor(mode: CloudMode): boolean {
+  const numbers = cloudNumbersMode();
+  return numbers === "all" || (numbers === "alerts" && mode === "cached");
 }
 
 /** Synthèse en ligne → `AudioBuffer` décodé, ou `null` (Piper prend le relais). */
@@ -633,7 +755,12 @@ async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
   const g = generation;
   let raw: AudioBuffer | null = null;
   const mode = cloudMode(item);
-  if (mode === "live" && cloudVoiceReady()) {
+  if (mode === "live" && cloudVoiceOn() && !isFixedPhrase(item.text) && assembleFor(mode)) {
+    // Réglage « tout assemblé » : l'information chiffrée prête se lit sans requête.
+    raw = (await assembledBuffer(ctx, code, item.raw)).buffer;
+    if (g !== generation) return true;
+  }
+  if (!raw && mode === "live" && cloudVoiceReady()) {
     const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, item.text)}`;
     raw = synthCache.get(cloudKey) ?? null;
     if (!raw) {
@@ -650,6 +777,11 @@ async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
       raw = await cloudCachedBuffer(ctx, code, item.text);
       if (raw) rememberPhrase(cloudKey, raw);
       else noteCloudFallback(); // phrase fixe non préparée : Piper la dit
+    } else if (!raw && assembleFor(mode)) {
+      // Phrase chiffrée : recollée à partir des morceaux préparés, sinon Piper.
+      const res = await assembledBuffer(ctx, code, item.raw);
+      raw = res.buffer;
+      if (!raw && res.matched) noteCloudFallback();
     }
     if (g !== generation) return true;
   }
@@ -715,18 +847,6 @@ async function pump() {
  * cours de priorité inférieure. Les doublons (même texte déjà en file ou en
  * cours) sont ignorés pour éviter le bégaiement.
  */
-/** Mots de liaison pour la normalisation TTS, par langue. */
-const TTS_WORDS: Record<
-  string,
-  { decimal: string; seconds: string; kmh: string; plus: string; minus: string; degrees: string }
-> = {
-  fr: { decimal: "virgule", seconds: "secondes", kmh: "kilomètres heure", plus: "plus", minus: "moins", degrees: "degrés" },
-  en: { decimal: "point", seconds: "seconds", kmh: "kilometers per hour", plus: "plus", minus: "minus", degrees: "degrees" },
-  es: { decimal: "coma", seconds: "segundos", kmh: "kilómetros por hora", plus: "más", minus: "menos", degrees: "grados" },
-  de: { decimal: "Komma", seconds: "Sekunden", kmh: "Kilometer pro Stunde", plus: "plus", minus: "minus", degrees: "Grad" },
-  it: { decimal: "virgola", seconds: "secondi", kmh: "chilometri orari", plus: "più", minus: "meno", degrees: "gradi" },
-};
-
 /**
  * Normalise le jargon course pour la synthèse — Piper lit les formes écrites
  * telles quelles : « P13 » devient un mot déformé, « 1:42.123 » est lu avec
@@ -735,7 +855,7 @@ const TTS_WORDS: Record<
  * (spotter, coach, test IA) — les textes affichés ne sont pas touchés.
  */
 function normalizeForTts(text: string, lang: string): string {
-  const w = TTS_WORDS[norm(lang)] ?? TTS_WORDS.en;
+  const w = ttsWords(lang);
   let s = text;
   // « P13 » / « T4 » collés → « P 13 » (épelé lettre puis nombre).
   s = s.replace(/\b([PT])(\d{1,2})\b/g, "$1 $2");
@@ -779,13 +899,15 @@ export function speak(
   opts?: SpeakOpts,
 ) {
   if (!text || (!speechSupported() && !isTauri())) return;
+  const raw = text;
   text = normalizeForTts(text, lang);
   lastSpokenText = text;
+  lastSpokenRaw = raw;
   lastSpokenLang = lang;
   if (current?.text === text) return;
   if (queue.some((it) => it.text === text)) return;
   const ttl = ttlMs !== undefined && ttlMs > 0 ? ttlMs : TTL[priority];
-  queue.push({ text, lang, priority, expiry: Date.now() + ttl, ttl, opts });
+  queue.push({ text, raw, lang, priority, expiry: Date.now() + ttl, ttl, opts });
   if (current && PRIORITY_RANK[priority] > current.rank) {
     // Interrompt l'annonce en cours, moins prioritaire ; elle sera redite une
     // fois après (« Je répète… ») si elle le prévoit et reste fraîche.
@@ -821,12 +943,15 @@ export function announce(text: string, lang: string, onEnd?: () => void, opts?: 
     onEnd?.();
     return;
   }
+  const raw = text;
   text = normalizeForTts(text, lang);
   lastSpokenText = text;
+  lastSpokenRaw = raw;
   lastSpokenLang = lang;
   cancelSpeech();
   queue.push({
     text,
+    raw,
     lang,
     priority: "critical",
     expiry: Date.now() + TTL.critical,
@@ -864,6 +989,7 @@ export async function previewCloudVoice(text: string, lang: string): Promise<num
   cancelSpeech();
   const item: QueueItem = {
     text,
+    raw: text,
     lang,
     priority: "normal",
     expiry: Date.now() + TTL.normal,
@@ -880,7 +1006,8 @@ export async function previewCloudVoice(text: string, lang: string): Promise<num
  */
 export function repeatLast(): boolean {
   if (!lastSpokenText) return false;
-  announce(lastSpokenText, lastSpokenLang);
+  // Texte d'origine : la normalisation est idempotente, et l'annonce chiffrée reste reconnaissable.
+  announce(lastSpokenRaw || lastSpokenText, lastSpokenLang);
   return true;
 }
 

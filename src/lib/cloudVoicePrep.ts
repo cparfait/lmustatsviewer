@@ -9,6 +9,9 @@
  *    ne les dit **que préparées** (lecture instantanée du cache), sinon Piper —
  *    une alerte n'attend jamais le réseau. Réglage « Alertes en voix locale » :
  *    elles restent toutes sur Piper (ancien comportement), rien à préparer.
+ *
+ * Les annonces chiffrées s'y ajoutent par morceaux (nombres, parties fixes des
+ * gabarits : `cloudVoiceSegments.ts`), recollés à la lecture.
  */
 
 import { splitVariants } from "@/lib/engineer/variants";
@@ -92,6 +95,15 @@ export const CLOUD_PREP_ALERT_KEYS: readonly string[] = [
 /** Gabarits à préparer : l'information, plus les phrases urgentes sauf « alertes en voix locale ». */
 export function cloudPrepKeys(alertsLocal: boolean): string[] {
   return alertsLocal ? [...CLOUD_PREP_KEYS] : [...CLOUD_PREP_KEYS, ...CLOUD_PREP_ALERT_KEYS];
+}
+
+/**
+ * Morceaux des annonces chiffrées à préparer ? Oui si le réglage « Annonces
+ * chiffrées » les lit pour l'information (`all`) ou pour les alertes (`alerts`,
+ * sauf « Alertes en voix locale » : elles restent alors sur Piper).
+ */
+export function segmentsWanted(numbers: "alerts" | "all" | "off", alertsLocal: boolean): boolean {
+  return numbers === "all" || (numbers === "alerts" && !alertsLocal);
 }
 
 /**

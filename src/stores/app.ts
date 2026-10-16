@@ -10,9 +10,9 @@ import { create } from "zustand";
 import { config, indexer, queries, ai, system, type WheelBinding } from "@/lib/api";
 import { setAppTimezone } from "@/lib/utils";
 import { preloadStaticData } from "@/lib/staticData";
-import { configureVoice, setSpeechReplay, setTalkSilence } from "@/lib/voice";
+import { configureVoice, setCloudSegmentSource, setSpeechReplay, setTalkSilence } from "@/lib/voice";
 import { initCloudVoice } from "@/lib/cloudVoice";
-import { initVoiceOverrides } from "@/lib/voiceMessages";
+import { initVoiceOverrides, segmentTemplates } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled, setRadioStyle, MAX_VOICE_VOLUME } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
@@ -533,6 +533,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     setSpeechReplay(cfg.voice_replay !== "false");
     setTalkSilence(cfg.voice_quiet_zones !== "false");
     initVoiceOverrides(cfg.voice_overrides);
+    // Annonces chiffrées de la voix en ligne : reconnues parmi les gabarits effectifs.
+    setCloudSegmentSource(segmentTemplates);
     // Voix en ligne (option, désactivée par défaut) : réglages + clé du fournisseur.
     await initCloudVoice(cfg.voice_cloud, cfg.voice_cloud_usage).catch(() => {});
     initCommandOverrides(cfg.spotter_commands);

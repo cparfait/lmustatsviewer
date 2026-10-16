@@ -83,6 +83,9 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
     items: [
       { key: "vWheelDetached", vars: [] },
       { key: "vBrakeOverheat", vars: [] },
+      { key: "vBrakePads", vars: ["pct"], sample: { pct: 22 } },
+      { key: "vSuspensionDamage", vars: ["wheels"], sample: { wheels: "FL" } },
+      { key: "vAeroDamage", vars: ["pct"], sample: { pct: 15 } },
       { key: "vEngineTemp", vars: [] },
       { key: "vBatteryCritical", vars: ["soc"], sample: { soc: 12 } },
       { key: "vBatteryDeficit", vars: ["d"], sample: { d: 9 } },

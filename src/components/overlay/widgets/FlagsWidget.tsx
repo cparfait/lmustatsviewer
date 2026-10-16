@@ -3,6 +3,7 @@
 import { Flag } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
 import type { WidgetProps } from "./types";
+import { isSectorYellow } from "@/lib/sectorFlags";
 
 export function FlagsWidget({ data, content, accent, t }: WidgetProps) {
   const f = data.flags;
@@ -37,8 +38,8 @@ export function FlagsWidget({ data, content, accent, t }: WidgetProps) {
                 key={i}
                 className="flex-1 rounded py-1 text-center text-[10px] font-semibold"
                 style={{
-                  background: sf > 0 ? "#facc15" : "rgba(255,255,255,0.08)",
-                  color: sf > 0 ? "#000" : "rgba(255,255,255,0.5)",
+                  background: isSectorYellow(sf) ? "#facc15" : "rgba(255,255,255,0.08)",
+                  color: isSectorYellow(sf) ? "#000" : "rgba(255,255,255,0.5)",
                 }}
               >
                 S{i + 1}

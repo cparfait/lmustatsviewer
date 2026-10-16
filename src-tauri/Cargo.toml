@@ -34,7 +34,8 @@ chrono = { version = "0.4", features = ["serde"] }
 # Proxy HTTP de l'AI Coach : les appels aux fournisseurs d'IA passent par le
 # backend (contourne CORS, sort la clé API des logs réseau de la WebView).
 # `rustls-tls` évite toute dépendance à OpenSSL/native-tls sur Windows.
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+# `blocking` : pont REST LMU en lecture seule (thread dédié, `commands/lmu_rest.rs`).
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream", "blocking"] }
 # Itération asynchrone du flux de réponse IA (streaming SSE/NDJSON).
 futures-util = "0.3"
 # Chiffrement local de la clé API IA (AES-256-GCM, clé dérivée de la machine).

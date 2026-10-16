@@ -12,6 +12,7 @@ import { run as runEngineer } from "./suites/engineer.suite";
 import { run as runOhne } from "./suites/ohne.suite";
 import { run as runFeedback } from "./suites/feedback.suite";
 import { run as runRadio } from "./suites/radio.suite";
+import { run as runRest } from "./suites/rest.suite";
 
 runPure();
 runCoach();
@@ -20,4 +21,5 @@ runEngineer();
 runOhne();
 runFeedback();
 runRadio();
+runRest();
 report();

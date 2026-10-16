@@ -17,6 +17,7 @@ import { emit } from "@tauri-apps/api/event";
 import type { TFunction } from "i18next";
 import { useAppStore } from "@/stores/app";
 import { live } from "@/lib/api";
+import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, announceAnswer, cancelSpeech, repeatLast } from "@/lib/voice";
 import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, classifyIntent, friendlyError } from "@/lib/ai/coach";
@@ -162,7 +163,7 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   const r = route(free, lang);
   const norm = r.norm || normalize(strict, lang);
   const opts = {
-    pitLossSec: st0.pitLossSeconds,
+    pitLossSec: effectivePitLoss(data, st0.pitLossSeconds, st0.pitLaneLoss),
     fuelReserveLaps: st0.fuelReserveLaps,
     classPositions: st0.classPositions,
     entities: r.norm ? r.entities : extractEntities(norm, lang),

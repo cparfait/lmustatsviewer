@@ -12,6 +12,7 @@ import { computeStrategy, strategyToText } from "../../strategy";
 import { buildTyreInsights } from "../insights";
 import { playerClassPosition, gapBetween } from "../../livePosition";
 import type { LiveData, LiveStanding } from "../../api";
+import { restContextLines } from "../../lmuRest";
 
 function sessionTypeLabel(s: number): string {
   if (s === 0) return "Test";
@@ -195,6 +196,14 @@ export function buildLiveContext(data: LiveData): string {
     lines.push("");
     lines.push("## Weather");
     lines.push(`Air ${n(w.air_temp)}°C · track ${n(w.track_temp)}°C · rain ${n(w.rain * 100)}% · wind ${n(w.wind_speed, 1, " m/s")}`);
+  }
+
+  // Données lues dans le jeu (pont REST) : seulement si fraîches.
+  const rest = restContextLines(data);
+  if (rest.length) {
+    lines.push("");
+    lines.push("## Game data (official, from the game itself)");
+    lines.push(...rest);
   }
 
   return lines.join("\n");

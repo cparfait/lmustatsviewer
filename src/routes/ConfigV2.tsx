@@ -84,6 +84,7 @@ import {
   Mic,
   AudioLines,
   Gamepad2,
+  Film,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
@@ -109,6 +110,7 @@ import {
   listVoicesForLang,
   isNaturalVoice,
   previewVoice,
+  announceAnswer,
   speechSupported,
   announce,
   compareRadioStyles,
@@ -126,6 +128,8 @@ import { systemPrompt } from "@/lib/ai/prompts/system";
 import type { ModelInfo } from "@/lib/ai/types";
 import { AiModelPicker } from "@/components/AiModelPicker";
 import { AiProvidersPanel } from "@/components/AiProvidersPanel";
+import { CloudVoiceSettings } from "@/components/CloudVoiceSettings";
+import { EngineerTester } from "@/components/EngineerTester";
 import { VoiceCoachConfig } from "@/components/VoiceCoachConfig";
 import { AiCoachHelpModal } from "@/components/AiCoachHelpModal";
 import { CommunitySettings } from "@/components/CommunitySettings";
@@ -217,6 +221,7 @@ export function ConfigV2() {
   const autoIndex = useAppStore((s) => s.autoIndex);
   const systemTray = useAppStore((s) => s.systemTray);
   const autoUpdate = useAppStore((s) => s.autoUpdate);
+  const launchIntro = useAppStore((s) => s.launchIntro);
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
   const overlayTargetTier = useAppStore((s) => s.overlayTargetTier);
   const menuModules = useAppStore((s) => s.menuModules);
@@ -269,6 +274,7 @@ export function ConfigV2() {
   const spotterKeyCoach = useAppStore((s) => s.spotterKeyCoach);
   const radioMode = useAppStore((s) => s.radioMode);
   const localAnswers = useAppStore((s) => s.localAnswers);
+  const pttRecognition = useAppStore((s) => s.pttRecognition);
   const announceEverywhere = useAppStore((s) => s.announceEverywhere);
   const classPositions = useAppStore((s) => s.classPositions);
   const radioQuietZones = useAppStore((s) => s.radioQuietZones);
@@ -329,8 +335,8 @@ export function ConfigV2() {
   const [voiceIntroOpen, setVoiceIntroOpen] = useState(false);
   const [spotterCmdModalOpen, setSpotterCmdModalOpen] = useState(false);
   const [aiHelpOpen, setAiHelpOpen] = useState(false);
-  const [spotterOpen, setSpotterOpen] = useState(false);
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  /** Sous-onglet d'« Audio / Voix » (remplace le dépliant « Réglages des annonces »). */
+  const [voiceTab, setVoiceTab] = useState<"voice" | "announces" | "radio" | "coach">("voice");
 
   const [aiModels, setAiModels] = useState<ModelInfo[]>([]);
   const [aiModelsLoading, setAiModelsLoading] = useState(false);
@@ -1151,6 +1157,15 @@ export function ConfigV2() {
                     checked={systemTray}
                     onChange={(v) => useAppStore.getState().setSystemTray(v)}
                   />
+                  <Separator />
+                  <ToggleRow
+                    icon={<Film className="h-4 w-4" />}
+                    label={t("config.launchIntro")}
+                    desc={t("config.launchIntroDesc")}
+                    tip={t("config.launchIntroTip")}
+                    checked={launchIntro}
+                    onChange={(v) => useAppStore.getState().setLaunchIntro(v)}
+                  />
                 </div>
               </div>
             )}
@@ -1183,431 +1198,45 @@ export function ConfigV2() {
                     onInstalled={() => setAssetsVersion((v) => v + 1)}
                   />
                 )}
-                {/* Débit des annonces : ingénieur (arbitré) ou complet (historique).
-                    Mêmes annonces dans les deux modes — seul le filtrage change. */}
-                {voiceAnnouncements && (
-                  <div className="flex items-center justify-between py-2 gap-3">
-                    <div className="flex items-start gap-2 min-w-0">
-                      <Tip content={t("config.radioModeTip")} side="right">
-                        <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
-                          <Radio className="h-4 w-4" />
-                        </span>
-                      </Tip>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium leading-tight">
-                          {t("config.radioMode")}
-                        </div>
-                        <div className="text-xs text-muted-foreground/80 mt-0.5">
-                          {radioMode === "engineer"
-                            ? t("config.radioModeEngineerDesc")
-                            : t("config.radioModeFullDesc")}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex rounded-md border border-input overflow-hidden shrink-0">
-                      {(["engineer", "full"] as const).map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => void useAppStore.getState().setRadioMode(m)}
-                          className={cn(
-                            "px-2.5 py-1 text-xs transition-colors",
-                            radioMode === m
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-transparent hover:bg-accent",
-                          )}
-                        >
-                          {t(m === "engineer" ? "config.radioModeEngineer" : "config.radioModeFull")}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {voiceAnnouncements && (
-                  <ToggleRow
-                    icon={<Monitor className="h-4 w-4" />}
-                    label={t("config.announceEverywhere")}
-                    desc={t("config.announceEverywhereDesc")}
-                    tip={t("config.announceEverywhereTip")}
-                    checked={announceEverywhere}
-                    onChange={(v) => void useAppStore.getState().setAnnounceEverywhere(v)}
-                  />
-                )}
-                {voiceAnnouncements && (
-                  <ToggleRow
-                    icon={<Trophy className="h-4 w-4" />}
-                    label={t("config.classPositions")}
-                    desc={t("config.classPositionsDesc")}
-                    tip={t("config.classPositionsTip")}
-                    checked={classPositions}
-                    onChange={(v) => void useAppStore.getState().setClassPositions(v)}
-                  />
-                )}
-                {/* Diffusion de la radio : chaque réglage garde l'ancien
-                    comportement accessible (décoché = comme avant). */}
-                {voiceAnnouncements && (
-                  <>
-                    <ToggleRow
-                      icon={<Ear className="h-4 w-4" />}
-                      label={t("config.radioQuietZones")}
-                      desc={t("config.radioQuietZonesDesc")}
-                      tip={t("config.radioQuietZonesTip")}
-                      checked={radioQuietZones}
-                      onChange={(v) => void useAppStore.getState().setRadioQuietZones(v)}
-                    />
-                    <ToggleRow
-                      icon={<Flag className="h-4 w-4" />}
-                      label={t("config.radioPhases")}
-                      desc={t("config.radioPhasesDesc")}
-                      tip={t("config.radioPhasesTip")}
-                      checked={radioPhases}
-                      onChange={(v) => void useAppStore.getState().setRadioPhases(v)}
-                      disabled={radioMode === "full"}
-                    />
-                    <ToggleRow
-                      icon={<Gauge className="h-4 w-4" />}
-                      label={t("config.radioBudgets")}
-                      desc={t("config.radioBudgetsDesc")}
-                      tip={t("config.radioBudgetsTip")}
-                      checked={radioBudgets}
-                      onChange={(v) => void useAppStore.getState().setRadioBudgets(v)}
-                      disabled={radioMode === "full"}
-                    />
-                    <ToggleRow
-                      icon={<Repeat className="h-4 w-4" />}
-                      label={t("config.radioReplay")}
-                      desc={t("config.radioReplayDesc")}
-                      tip={t("config.radioReplayTip")}
-                      checked={radioReplay}
-                      onChange={(v) => void useAppStore.getState().setRadioReplay(v)}
-                    />
-                    <div className="flex items-center justify-between py-2 gap-3">
-                      <div className="flex items-start gap-2 min-w-0">
-                        <Tip content={t("config.voiceLapPrecisionTip")} side="right">
-                          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
-                            <Timer className="h-4 w-4" />
-                          </span>
-                        </Tip>
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium leading-tight">
-                            {t("config.voiceLapPrecision")}
-                          </div>
-                          <div className="text-xs text-muted-foreground/80 mt-0.5">
-                            {t("config.voiceLapPrecisionDesc")}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex rounded-md border border-input overflow-hidden shrink-0">
-                        {(["tenth", "ms"] as const).map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            onClick={() => void useAppStore.getState().setVoiceLapPrecision(m)}
-                            className={cn(
-                              "px-2.5 py-1 text-xs transition-colors",
-                              voiceLapPrecision === m
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-transparent hover:bg-accent",
-                            )}
-                          >
-                            {t(m === "tenth" ? "config.voiceLapTenth" : "config.voiceLapMs")}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <DriverNameRow />
-                    <ToggleRow
-                      icon={<ArrowLeftRight className="h-4 w-4" />}
-                      label={t("config.proximitySpotter")}
-                      desc={t("config.proximitySpotterDesc")}
-                      tip={t("config.proximitySpotterTip")}
-                      checked={proximitySpotter}
-                      onChange={(v) => void useAppStore.getState().setProximitySpotter(v)}
-                    />
-                  </>
-                )}
-                {/* « Parler à l'ingénieur » : push-to-talk indépendant de l'IA
-                    (commandes radio, questions de course, « coach-moi » en local ;
-                    l'IA ne reçoit que les questions ouvertes). */}
-                <div className="py-2 space-y-1.5">
-                  <ShortcutCapture
-                    label={t("config.engineerKey")}
-                    value={spotterKeyCoach}
-                    onChange={(accel) => void useAppStore.getState().setSpotterKey("coach", accel)}
-                    onClear={() => void useAppStore.getState().setSpotterKey("coach", "")}
-                  />
-                  <p className="text-xs text-muted-foreground/70">{t("config.engineerKeyDesc")}</p>
-                  <WheelButtonRow />
-                  <ToggleRow
-                    icon={<Mic className="h-4 w-4" />}
-                    label={t("config.micReady")}
-                    desc={t("config.micReadyDesc")}
-                    tip={t("config.micReadyTip")}
-                    checked={micReady}
-                    onChange={(v) => void useAppStore.getState().setMicReady(v)}
-                  />
-                  <ToggleRow
-                    icon={<AudioLines className="h-4 w-4" />}
-                    label={t("config.wakeWord")}
-                    desc={t("config.wakeWordDesc")}
-                    tip={t("config.wakeWordTip")}
-                    checked={wakeWordEnabled}
-                    onChange={(v) => void useAppStore.getState().setWakeWordEnabled(v)}
-                  />
-                  {wakeWordEnabled && <WakeWordRow />}
-                  <ToggleRow
-                    icon={<Zap className="h-4 w-4" />}
-                    label={t("config.localAnswers")}
-                    desc={t("config.localAnswersDesc")}
-                    tip={t("config.localAnswersTip")}
-                    checked={localAnswers}
-                    onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
-                  />
-                </div>
-                {/* Coach par virage — modes avancés (mêmes réglages que Config V1,
-                    gated sur les annonces vocales). Intertitre pour distinguer ce
-                    coach déterministe du Coach IA (onglet dédié, LLM). */}
-                {voiceAnnouncements && (
-                  <>
-                    <div className="mt-3 border-t border-border/50 pt-3">
-                      <div className="text-sm font-semibold">
-                        {t("config.coachSectionTitle")}
-                      </div>
-                      <p className="mt-0.5 mb-1 text-xs text-muted-foreground/80">
-                        {t("config.coachSectionDesc")}
-                      </p>
-                    </div>
-                    <ToggleRow
-                      icon={<Scale className="h-4 w-4" />}
-                      label={t("config.coachRigor")}
-                      desc={t("config.coachRigorDesc")}
-                      tip={t("config.coachRigorTip")}
-                      checked={coachRigor}
-                      onChange={(v) => void useAppStore.getState().setCoachRigor(v)}
-                    />
-                    <ToggleRow
-                      icon={<Target className="h-4 w-4" />}
-                      label={t("config.coachDrill")}
-                      desc={t("config.coachDrillDesc")}
-                      tip={t("config.coachDrillTip")}
-                      checked={coachDrill}
-                      onChange={(v) => void useAppStore.getState().setCoachDrill(v)}
-                    />
-                    <ToggleRow
-                      icon={<Fuel className="h-4 w-4" />}
-                      label={t("config.coachStint")}
-                      desc={t("config.coachStintDesc")}
-                      tip={t("config.coachStintTip")}
-                      checked={coachStint}
-                      onChange={(v) => void useAppStore.getState().setCoachStint(v)}
-                    />
-                    <ToggleRow
-                      icon={<ShieldAlert className="h-4 w-4" />}
-                      label={t("config.coachRisk")}
-                      desc={t("config.coachRiskDesc")}
-                      tip={t("config.coachRiskTip")}
-                      checked={coachRisk}
-                      onChange={(v) => void useAppStore.getState().setCoachRisk(v)}
-                    />
-                    <ToggleRow
-                      icon={<MessagesSquare className="h-4 w-4" />}
-                      label={t("config.coachPhrasebank")}
-                      desc={t("config.coachPhrasebankDesc")}
-                      tip={t("config.coachPhrasebankTip")}
-                      checked={coachPhrasebank}
-                      onChange={(v) =>
-                        void useAppStore.getState().setCoachPhrasebank(v)
-                      }
-                    />
-                    {coachPhrasebank && (
-                      <div className="ml-2 flex flex-wrap items-center gap-2 border-l border-primary/10 pl-3 py-1">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={pbBusy}
-                          onClick={async () => {
-                            setPbBusy(true);
-                            try {
-                              const r = await applyOrGeneratePhrasebank(
-                                i18n.language,
-                                { force: true },
-                              );
-                              if (r === "generated")
-                                toastSuccess(t("config.phrasebankGenOk"));
-                              else if (r === "no-combo")
-                                toast(t("config.phrasebankNoCombo"));
-                              else toastError(t("config.phrasebankGenErr"));
-                            } finally {
-                              setPbBusy(false);
-                            }
-                          }}
-                        >
-                          {pbBusy ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-3.5 w-3.5" />
-                          )}
-                          {t("config.phrasebankGenerate")}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          disabled={pbBusy}
-                          onClick={async () => {
-                            await clearPhrasebankForCurrentCombo();
-                            toast(t("config.phrasebankCleared"));
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          {t("config.phrasebankClear")}
-                        </Button>
-                      </div>
-                    )}
-                    {/* Import d'un ghost (.duckdb / .ld MoTeC) pour le combo actif. */}
-                    <div className="flex items-center justify-between gap-3 py-2">
-                      <div className="flex min-w-0 items-start gap-2">
-                        <Tip content={t("config.coachGhostTip")} side="right">
-                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
-                            <Upload className="h-4 w-4" />
-                          </span>
-                        </Tip>
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium leading-tight">
-                            {t("config.coachGhost")}
-                          </div>
-                          <div className="mt-0.5 text-xs text-muted-foreground/80">
-                            {t("config.coachGhostDesc")}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={ghostBusy}
-                        onClick={async () => {
-                          const combo = coachComboInfo();
-                          if (!combo.track || !combo.carModel) {
-                            toast(t("config.ghostNoCombo"));
-                            return;
-                          }
-                          const { open } = await import(
-                            "@tauri-apps/plugin-dialog"
-                          );
-                          const sel = await open({
-                            multiple: false,
-                            filters: [
-                              { name: "Ghost lap", extensions: ["duckdb", "ld"] },
-                            ],
-                          });
-                          if (!sel || typeof sel !== "string") return;
-                          setGhostBusy(true);
-                          try {
-                            const r = await importGhost(sel, {
-                              track: combo.track,
-                              carModel: combo.carModel,
-                              carClass: combo.carClass,
-                            });
-                            toastSuccess(
-                              t("config.ghostImportOk", {
-                                corners: r.corners,
-                                time: r.lapTime.toFixed(1),
-                              }),
-                            );
-                          } catch {
-                            toastError(t("config.ghostImportErr"));
-                          } finally {
-                            setGhostBusy(false);
-                          }
-                        }}
-                      >
-                        {ghostBusy ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Upload className="h-3.5 w-3.5" />
-                        )}
-                        {t("config.ghostImport")}
-                      </Button>
-                    </div>
-                    {/* Enregistrement d'un corpus réel (§14.1) — outil de
-                        diagnostic : rejouable ensuite dans le moteur pur pour
-                        valider les seuils du coach sur de vraies données. */}
-                    <div className="flex items-center justify-between gap-3 py-2">
-                      <div className="flex min-w-0 items-start gap-2">
-                        <Tip content={t("config.coachRecordTip")} side="right">
-                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
-                            <Disc className="h-4 w-4" />
-                          </span>
-                        </Tip>
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium leading-tight">
-                            {t("config.coachRecord")}
-                          </div>
-                          <div className="mt-0.5 text-xs text-muted-foreground/80">
-                            {recBusy
-                              ? t("config.coachRecordRunning", { n: recFrames })
-                              : t("config.coachRecordDesc")}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={recBusy ? "destructive" : "outline"}
-                        onClick={async () => {
-                          if (recBusy) {
-                            const combo = coachComboInfo();
-                            const label =
-                              `${combo.track || "session"}-${combo.carModel || ""}`.trim();
-                            try {
-                              const path = await stopCorpusRecording(label);
-                              setRecBusy(false);
-                              setRecFrames(0);
-                              if (path) toastSuccess(t("config.coachRecordSaved", { path }));
-                              else toast(t("config.coachRecordEmpty"));
-                            } catch (e) {
-                              setRecBusy(false);
-                              setRecFrames(0);
-                              toastError(String(e));
-                            }
-                            return;
-                          }
-                          await startCorpusRecording();
-                          setRecBusy(true);
-                        }}
-                      >
-                        {recBusy ? (
-                          <Square className="h-3.5 w-3.5" />
-                        ) : (
-                          <Disc className="h-3.5 w-3.5" />
-                        )}
-                        {recBusy
-                          ? t("config.coachRecordStop")
-                          : t("config.coachRecordStart")}
-                      </Button>
-                    </div>
-                  </>
-                )}
-                {voiceAnnouncements && speechSupported() && (
-                  <div className="ml-2 border-l border-primary/10 pl-3">
+                {/* Sous-onglets d'« Audio / Voix » (la page était devenue trop longue). */}
+                <div className="flex flex-wrap gap-1 border-b border-border/50 pb-2 pt-1" role="tablist">
+                  {(
+                    [
+                      ["voice", "config.voiceTabVoice"],
+                      ["announces", "config.voiceTabAnnounces"],
+                      ["radio", "config.voiceTabRadio"],
+                      ["coach", "config.voiceTabCoach"],
+                    ] as const
+                  ).map(([id, key]) => (
                     <button
+                      key={id}
                       type="button"
-                      onClick={() => setVoiceOpen((o) => !o)}
-                      className="flex w-full items-center gap-1.5 py-1 text-xs font-medium text-orange-500 hover:text-orange-400 transition-colors"
+                      role="tab"
+                      aria-selected={voiceTab === id}
+                      onClick={() => setVoiceTab(id)}
+                      className={cn(
+                        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                        voiceTab === id
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                      )}
                     >
-                      <ChevronDown
-                        className={cn(
-                          "h-3.5 w-3.5 transition-transform",
-                          voiceOpen ? "" : "-rotate-90",
-                        )}
-                      />
-                      {t("config.voiceSettings")}
-                      {voiceEngine === "piper" && (
+                      {t(key)}
+                    </button>
+                  ))}
+                </div>
+                {!voiceAnnouncements && (voiceTab === "voice" || voiceTab === "announces" || voiceTab === "coach") && (
+                  <p className="py-2 text-xs text-muted-foreground/80">{t("config.voiceTabNeedsVoice")}</p>
+                )}
+                {/* Onglet « Voix » : moteur, voix IA en ligne, voix, vitesse, volume,
+                    effet radio, bips, téléchargements, personnalisation. */}
+                {voiceTab === "voice" && voiceAnnouncements && speechSupported() && (
+                  <div>
+                    {voiceEngine === "piper" && (
+                      <div className="flex justify-end">
                         <span
                           className={cn(
-                            "ml-auto text-mini font-normal",
+                            "text-mini",
                             piperOk === false ? "text-amber-500" : "text-success",
                           )}
                         >
@@ -1617,9 +1246,9 @@ export function ConfigV2() {
                               ? t("config.voiceEngineActive")
                               : t("config.voiceEngineFallback")}
                         </span>
-                      )}
-                    </button>
-                    {voiceOpen && (
+                      </div>
+                    )}
+                    {(
                       <div className="pr-1 pb-1 pt-1 space-y-3">
                         <div className="flex items-center justify-between gap-3 pt-1">
                           <div className="min-w-0">
@@ -1645,6 +1274,8 @@ export function ConfigV2() {
                             ]}
                           />
                         </div>
+                        {/* Voix en ligne avec la clé de l'utilisateur (bêta, désactivée par défaut). */}
+                        {voiceEngine === "piper" && isTauri() && <CloudVoiceSettings />}
                         <div className="flex items-center justify-between gap-3 pt-1">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
@@ -1884,227 +1515,605 @@ export function ConfigV2() {
                     )}
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* ── Spotter (fusionné sous « Audio / Voix ») ── */}
-            {cat === "voice" && (
-              <div className="mt-3 border-t border-border/50 pt-3">
-                <ToggleRow
-                  icon={<Radio className="h-4 w-4" />}
-                  label={t("config.spotter")}
-                  desc={
-                    voiceAnnouncements
-                      ? t("config.spotterDesc")
-                      : t("config.spotterNeedsVoice")
-                  }
-                  tip={t("config.spotterTip")}
-                  checked={spotterEnabled}
-                  onChange={(v) => useAppStore.getState().setSpotterEnabled(v)}
-                  disabled={!voiceAnnouncements}
-                />
-                {/* Bandeau bien visible tant que le modèle de reconnaissance
-                    vocale (push-to-talk) n'est pas téléchargé. */}
-                {spotterEnabled && voiceAnnouncements && (
-                  <VoiceDownloads
-                    kind="stt"
-                    variant="banner"
-                    onInstalled={() => setAssetsVersion((v) => v + 1)}
+                {/* Débit des annonces : ingénieur (arbitré) ou complet (historique).
+                    Mêmes annonces dans les deux modes — seul le filtrage change. */}
+                {voiceTab === "announces" && voiceAnnouncements && (
+                  <div className="flex items-center justify-between py-2 gap-3">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <Tip content={t("config.radioModeTip")} side="right">
+                        <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+                          <Radio className="h-4 w-4" />
+                        </span>
+                      </Tip>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium leading-tight">
+                          {t("config.radioMode")}
+                        </div>
+                        <div className="text-xs text-muted-foreground/80 mt-0.5">
+                          {radioMode === "engineer"
+                            ? t("config.radioModeEngineerDesc")
+                            : t("config.radioModeFullDesc")}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex rounded-md border border-input overflow-hidden shrink-0">
+                      {(["engineer", "full"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => void useAppStore.getState().setRadioMode(m)}
+                          className={cn(
+                            "px-2.5 py-1 text-xs transition-colors",
+                            radioMode === m
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-transparent hover:bg-accent",
+                          )}
+                        >
+                          {t(m === "engineer" ? "config.radioModeEngineer" : "config.radioModeFull")}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {voiceTab === "announces" && voiceAnnouncements && (
+                  <ToggleRow
+                    icon={<Monitor className="h-4 w-4" />}
+                    label={t("config.announceEverywhere")}
+                    desc={t("config.announceEverywhereDesc")}
+                    tip={t("config.announceEverywhereTip")}
+                    checked={announceEverywhere}
+                    onChange={(v) => void useAppStore.getState().setAnnounceEverywhere(v)}
                   />
                 )}
-                {spotterEnabled && voiceAnnouncements && (
-                  <div className="ml-2 border-l border-primary/10 pl-3">
-                    <button
-                      type="button"
-                      onClick={() => setSpotterOpen((o) => !o)}
-                      className="flex w-full items-center gap-1.5 py-1 text-xs font-medium text-orange-500 hover:text-orange-400 transition-colors"
-                    >
-                      <ChevronDown
-                        className={cn(
-                          "h-3.5 w-3.5 transition-transform",
-                          spotterOpen ? "" : "-rotate-90",
-                        )}
+                {voiceTab === "announces" && voiceAnnouncements && (
+                  <ToggleRow
+                    icon={<Trophy className="h-4 w-4" />}
+                    label={t("config.classPositions")}
+                    desc={t("config.classPositionsDesc")}
+                    tip={t("config.classPositionsTip")}
+                    checked={classPositions}
+                    onChange={(v) => void useAppStore.getState().setClassPositions(v)}
+                  />
+                )}
+                {/* Diffusion de la radio : chaque réglage garde l'ancien
+                    comportement accessible (décoché = comme avant). */}
+                {voiceTab === "announces" && voiceAnnouncements && (
+                  <>
+                    <ToggleRow
+                      icon={<Ear className="h-4 w-4" />}
+                      label={t("config.radioQuietZones")}
+                      desc={t("config.radioQuietZonesDesc")}
+                      tip={t("config.radioQuietZonesTip")}
+                      checked={radioQuietZones}
+                      onChange={(v) => void useAppStore.getState().setRadioQuietZones(v)}
+                    />
+                    <ToggleRow
+                      icon={<Flag className="h-4 w-4" />}
+                      label={t("config.radioPhases")}
+                      desc={t("config.radioPhasesDesc")}
+                      tip={t("config.radioPhasesTip")}
+                      checked={radioPhases}
+                      onChange={(v) => void useAppStore.getState().setRadioPhases(v)}
+                      disabled={radioMode === "full"}
+                    />
+                    <ToggleRow
+                      icon={<Gauge className="h-4 w-4" />}
+                      label={t("config.radioBudgets")}
+                      desc={t("config.radioBudgetsDesc")}
+                      tip={t("config.radioBudgetsTip")}
+                      checked={radioBudgets}
+                      onChange={(v) => void useAppStore.getState().setRadioBudgets(v)}
+                      disabled={radioMode === "full"}
+                    />
+                    <ToggleRow
+                      icon={<Repeat className="h-4 w-4" />}
+                      label={t("config.radioReplay")}
+                      desc={t("config.radioReplayDesc")}
+                      tip={t("config.radioReplayTip")}
+                      checked={radioReplay}
+                      onChange={(v) => void useAppStore.getState().setRadioReplay(v)}
+                    />
+                    <div className="flex items-center justify-between py-2 gap-3">
+                      <div className="flex items-start gap-2 min-w-0">
+                        <Tip content={t("config.voiceLapPrecisionTip")} side="right">
+                          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+                            <Timer className="h-4 w-4" />
+                          </span>
+                        </Tip>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium leading-tight">
+                            {t("config.voiceLapPrecision")}
+                          </div>
+                          <div className="text-xs text-muted-foreground/80 mt-0.5">
+                            {t("config.voiceLapPrecisionDesc")}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex rounded-md border border-input overflow-hidden shrink-0">
+                        {(["tenth", "ms"] as const).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => void useAppStore.getState().setVoiceLapPrecision(m)}
+                            className={cn(
+                              "px-2.5 py-1 text-xs transition-colors",
+                              voiceLapPrecision === m
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-transparent hover:bg-accent",
+                            )}
+                          >
+                            {t(m === "tenth" ? "config.voiceLapTenth" : "config.voiceLapMs")}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <DriverNameRow />
+                    <ToggleRow
+                      icon={<ArrowLeftRight className="h-4 w-4" />}
+                      label={t("config.proximitySpotter")}
+                      desc={t("config.proximitySpotterDesc")}
+                      tip={t("config.proximitySpotterTip")}
+                      checked={proximitySpotter}
+                      onChange={(v) => void useAppStore.getState().setProximitySpotter(v)}
+                    />
+                  </>
+                )}
+                {/* « Parler à l'ingénieur » : push-to-talk indépendant de l'IA
+                    (commandes radio, questions de course, « coach-moi » en local ;
+                    l'IA ne reçoit que les questions ouvertes). */}
+                {/* Onglet « Parler à l'ingénieur » (fusion ingénieur + spotter) :
+                    une seule logique de réponse (`askEngineer`), une liste de
+                    commandes commune, des raccourcis directs sans parler. */}
+                {voiceTab === "radio" && (
+                  <div className="space-y-5 py-2">
+                    {/* 1. Parler */}
+                    <section className="space-y-1.5">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("config.radioSecTalk")}
+                      </div>
+                      <p className="text-xs text-muted-foreground/70">{t("config.engineerKeyDesc")}</p>
+                      <ShortcutCapture
+                        label={t("config.engineerKey")}
+                        value={spotterKeyCoach}
+                        onChange={(accel) => void useAppStore.getState().setSpotterKey("coach", accel)}
+                        onClear={() => void useAppStore.getState().setSpotterKey("coach", "")}
                       />
-                      {t("config.spotterSettings")}
-                      <span
-                        className={cn(
-                          "ml-auto text-mini font-normal",
-                          sttOk === false ? "text-amber-500" : "text-success",
-                        )}
+                      <ShortcutCapture
+                        label={t("config.engineerKey2")}
+                        value={spotterKeyTalk}
+                        onChange={(a) => useAppStore.getState().setSpotterKey("talk", a)}
+                        onClear={() => useAppStore.getState().setSpotterKey("talk", "")}
+                      />
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs text-muted-foreground/80">{t("config.spotterPttMode")}</div>
+                        <div className="flex rounded-md border border-input overflow-hidden shrink-0">
+                          {(["hold", "toggle"] as const).map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => useAppStore.getState().setSpotterPttMode(m)}
+                              className={cn(
+                                "px-2.5 py-1 text-xs transition-colors",
+                                spotterPttMode === m
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-transparent hover:bg-accent",
+                              )}
+                            >
+                              {t(`config.spotterPtt${m === "hold" ? "Hold" : "Toggle"}`)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-mini text-muted-foreground/60 -mt-1">
+                        {spotterPttMode === "hold" ? t("config.spotterPttHoldDesc") : t("config.spotterPttToggleDesc")}
+                      </p>
+                      <WheelButtonRow />
+                      <ToggleRow
+                        icon={<Mic className="h-4 w-4" />}
+                        label={t("config.micReady")}
+                        desc={t("config.micReadyDesc")}
+                        tip={t("config.micReadyTip")}
+                        checked={micReady}
+                        onChange={(v) => void useAppStore.getState().setMicReady(v)}
+                      />
+                      <ToggleRow
+                        icon={<AudioLines className="h-4 w-4" />}
+                        label={t("config.wakeWord")}
+                        desc={t("config.wakeWordDesc")}
+                        tip={t("config.wakeWordTip")}
+                        checked={wakeWordEnabled}
+                        onChange={(v) => void useAppStore.getState().setWakeWordEnabled(v)}
+                      />
+                      {wakeWordEnabled && <WakeWordRow />}
+                      <ToggleRow
+                        icon={<Zap className="h-4 w-4" />}
+                        label={t("config.localAnswers")}
+                        desc={t("config.localAnswersDesc")}
+                        tip={t("config.localAnswersTip")}
+                        checked={localAnswers}
+                        onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
+                      />
+                      <div className="flex items-center justify-between gap-3 py-1">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium leading-tight">{t("config.pttRecognition")}</div>
+                          <div className="text-xs text-muted-foreground/80 mt-0.5">
+                            {pttRecognition === "dual"
+                              ? t("config.pttRecognitionDualDesc")
+                              : t("config.pttRecognitionStrictDesc")}
+                          </div>
+                        </div>
+                        <div className="flex rounded-md border border-input overflow-hidden shrink-0">
+                          {(["dual", "strict"] as const).map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => void useAppStore.getState().setPttRecognition(m)}
+                              className={cn(
+                                "px-2.5 py-1 text-xs transition-colors",
+                                pttRecognition === m
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-transparent hover:bg-accent",
+                              )}
+                            >
+                              {t(m === "dual" ? "config.pttRecognitionDual" : "config.pttRecognitionStrict")}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* 2. Tester (avec / sans IA) */}
+                    <section className="space-y-1.5 border-t border-border/50 pt-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("config.radioSecTest")}
+                      </div>
+                      <EngineerTester />
+                    </section>
+
+                    {/* 3. Raccourcis sans parler (Statut / Mute / Répète) */}
+                    <section className="space-y-1.5 border-t border-border/50 pt-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("config.radioSecDirect")}
+                      </div>
+                      <ToggleRow
+                        icon={<Radio className="h-4 w-4" />}
+                        label={t("config.directKeys")}
+                        desc={voiceAnnouncements ? t("config.directKeysDesc") : t("config.spotterNeedsVoice")}
+                        tip={t("config.spotterTip")}
+                        checked={spotterEnabled}
+                        onChange={(v) => useAppStore.getState().setSpotterEnabled(v)}
+                        disabled={!voiceAnnouncements}
+                      />
+                      {spotterEnabled && voiceAnnouncements && (
+                        <div className="space-y-2 pl-6">
+                          <p className="text-xs text-muted-foreground/80">{t("config.spotterKeyHint")}</p>
+                          <ShortcutCapture
+                            label={t("config.spotterKeyStatus")}
+                            value={spotterKeyStatus}
+                            onChange={(a) => useAppStore.getState().setSpotterKey("status", a)}
+                            onClear={() => useAppStore.getState().setSpotterKey("status", "")}
+                          />
+                          <ShortcutCapture
+                            label={t("config.spotterKeyMute")}
+                            value={spotterKeyMute}
+                            onChange={(a) => useAppStore.getState().setSpotterKey("mute", a)}
+                            onClear={() => useAppStore.getState().setSpotterKey("mute", "")}
+                          />
+                          <ShortcutCapture
+                            label={t("config.spotterKeyRepeat")}
+                            value={spotterKeyRepeat}
+                            onChange={(a) => useAppStore.getState().setSpotterKey("repeat", a)}
+                            onClear={() => useAppStore.getState().setSpotterKey("repeat", "")}
+                          />
+                        </div>
+                      )}
+                    </section>
+
+                    {/* 4. Commandes reconnues (liste commune, modifiable) */}
+                    <section className="space-y-1.5 border-t border-border/50 pt-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("config.radioSecCommands")}
+                      </div>
+                      <p className="text-xs text-muted-foreground/80">{t("config.radioSecCommandsDesc")}</p>
+                      <div className="flex flex-wrap gap-x-1 gap-y-1 cursor-default">
+                        {INTENTS.map((intent, idx) => (
+                          <span key={intent} className="text-xs text-muted-foreground">
+                            {t(`config.spotterCmd${cap(intent)}`).split(" (")[0]}
+                            {idx < INTENTS.length - 1 && <span className="text-muted-foreground/40"> · </span>}
+                          </span>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5"
+                        onClick={() => setSpotterCmdModalOpen(true)}
                       >
-                        {sttOk === null
-                          ? "…"
-                          : sttOk
-                            ? t("config.spotterTalkActive")
-                            : t("config.spotterTalkFallback")}
-                      </span>
-                    </button>
-                    {spotterOpen && (
-                      <div className="pr-1 pb-1 pt-1 space-y-2">
-                        <p className="text-xs text-muted-foreground/80">
-                          {t("config.spotterKeyHint")}
-                        </p>
-                        <ShortcutCapture
-                          label={t("config.spotterKeyStatus")}
-                          value={spotterKeyStatus}
-                          onChange={(a) =>
-                            useAppStore.getState().setSpotterKey("status", a)
-                          }
-                          onClear={() =>
-                            useAppStore.getState().setSpotterKey("status", "")
-                          }
-                        />
-                        <ShortcutCapture
-                          label={t("config.spotterKeyMute")}
-                          value={spotterKeyMute}
-                          onChange={(a) =>
-                            useAppStore.getState().setSpotterKey("mute", a)
-                          }
-                          onClear={() =>
-                            useAppStore.getState().setSpotterKey("mute", "")
-                          }
-                        />
-                        <ShortcutCapture
-                          label={t("config.spotterKeyRepeat")}
-                          value={spotterKeyRepeat}
-                          onChange={(a) =>
-                            useAppStore.getState().setSpotterKey("repeat", a)
-                          }
-                          onClear={() =>
-                            useAppStore.getState().setSpotterKey("repeat", "")
-                          }
-                        />
-                        <Separator className="my-1" />
-                        <p className="text-xs text-muted-foreground/80">
-                          {t("config.spotterTalkHint")}
-                        </p>
-                        <ShortcutCapture
-                          label={t("config.spotterKeyTalk")}
-                          value={spotterKeyTalk}
-                          onChange={(a) =>
-                            useAppStore.getState().setSpotterKey("talk", a)
-                          }
-                          onClear={() =>
-                            useAppStore.getState().setSpotterKey("talk", "")
-                          }
-                        />
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="text-xs text-muted-foreground/80">
-                            {t("config.spotterPttMode")}
-                          </div>
-                          <div className="flex rounded-md border border-input overflow-hidden shrink-0">
-                            {(["hold", "toggle"] as const).map((m) => (
-                              <button
-                                key={m}
-                                type="button"
-                                onClick={() =>
-                                  useAppStore.getState().setSpotterPttMode(m)
-                                }
-                                className={cn(
-                                  "px-2.5 py-1 text-xs transition-colors",
-                                  spotterPttMode === m
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-transparent hover:bg-accent",
-                                )}
-                              >
-                                {t(
-                                  `config.spotterPtt${m === "hold" ? "Hold" : "Toggle"}`,
-                                )}
-                              </button>
-                            ))}
-                          </div>
+                        <Radio className="h-3.5 w-3.5" />
+                        {t("config.spotterCmdOpen")}
+                      </Button>
+                    </section>
+
+                    {/* 5. Calculs utilisés par les réponses */}
+                    <section className="space-y-2 border-t border-border/50 pt-3">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("config.radioSecCalc")}
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-xs text-muted-foreground/80">{t("config.pitLoss")}</div>
+                          <p className="text-mini text-muted-foreground/60">{t("config.pitLossDesc")}</p>
                         </div>
-                        <p className="text-mini text-muted-foreground/60 -mt-1">
-                          {spotterPttMode === "hold"
-                            ? t("config.spotterPttHoldDesc")
-                            : t("config.spotterPttToggleDesc")}
-                        </p>
-                        {/* Perte au stand (s) — base de la prédiction « position à la sortie ». */}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-xs text-muted-foreground/80">
-                              {t("config.pitLoss")}
-                            </div>
-                            <p className="text-mini text-muted-foreground/60">
-                              {t("config.pitLossDesc")}
-                            </p>
-                          </div>
-                          <input
-                            type="number"
-                            min={1}
-                            max={120}
-                            step={1}
-                            value={pitLossSeconds}
-                            onChange={(e) =>
-                              void useAppStore
-                                .getState()
-                                .setPitLossSeconds(Number(e.target.value))
-                            }
-                            className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
-                          />
-                        </div>
-                        {/* Réserve carburant (tours) — commande vocale « Carburant ». */}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-xs text-muted-foreground/80">
-                              {t("config.fuelReserve")}
-                            </div>
-                            <p className="text-mini text-muted-foreground/60">
-                              {t("config.fuelReserveDesc")}
-                            </p>
-                          </div>
-                          <input
-                            type="number"
-                            min={0}
-                            max={5}
-                            step={0.5}
-                            value={fuelReserveLaps}
-                            onChange={(e) =>
-                              void useAppStore
-                                .getState()
-                                .setFuelReserveLaps(Number(e.target.value))
-                            }
-                            className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
-                          />
-                        </div>
-                        <div className="pt-0.5">
-                          <div className="text-xs text-muted-foreground/80 mb-1.5">
-                            {t("config.spotterCmdAvailable")}
-                          </div>
-                          <div className="flex flex-wrap gap-x-1 gap-y-1 cursor-default">
-                            {INTENTS.map((intent, idx) => (
-                              <span
-                                key={intent}
-                                className="text-xs text-muted-foreground"
-                              >
-                                {t(`config.spotterCmd${cap(intent)}`).split(" (")[0]}
-                                {idx < INTENTS.length - 1 && (
-                                  <span className="text-muted-foreground/40">
-                                    {" "}
-                                    ·{" "}
-                                  </span>
-                                )}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1.5"
-                          onClick={() => setSpotterCmdModalOpen(true)}
-                        >
-                          <Radio className="h-3.5 w-3.5" />
-                          {t("config.spotterCmdOpen")}
-                        </Button>
-                        <Separator className="my-1" />
-                        <VoiceDownloads
-                          kind="stt"
-                          onInstalled={() => setAssetsVersion((v) => v + 1)}
+                        <input
+                          type="number"
+                          min={1}
+                          max={120}
+                          step={1}
+                          value={pitLossSeconds}
+                          onChange={(e) => void useAppStore.getState().setPitLossSeconds(Number(e.target.value))}
+                          className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
                         />
                       </div>
-                    )}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-xs text-muted-foreground/80">{t("config.fuelReserve")}</div>
+                          <p className="text-mini text-muted-foreground/60">{t("config.fuelReserveDesc")}</p>
+                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          max={5}
+                          step={0.5}
+                          value={fuelReserveLaps}
+                          onChange={(e) => void useAppStore.getState().setFuelReserveLaps(Number(e.target.value))}
+                          className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
+                        />
+                      </div>
+                    </section>
+
+                    {/* 6. Modèle de reconnaissance vocale */}
+                    <section className="space-y-1.5 border-t border-border/50 pt-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {t("config.radioSecStt")}
+                        </div>
+                        <span className={cn("text-mini", sttOk === false ? "text-amber-500" : "text-success")}>
+                          {sttOk === null
+                            ? "…"
+                            : sttOk
+                              ? t("config.spotterTalkActive")
+                              : t("config.spotterTalkFallback")}
+                        </span>
+                      </div>
+                      <VoiceDownloads kind="stt" onInstalled={() => setAssetsVersion((v) => v + 1)} />
+                    </section>
                   </div>
+                )}
+                {/* Coach par virage — modes avancés (mêmes réglages que Config V1,
+                    gated sur les annonces vocales). Intertitre pour distinguer ce
+                    coach déterministe du Coach IA (onglet dédié, LLM). */}
+                {voiceTab === "coach" && voiceAnnouncements && (
+                  <>
+                    <div className="mt-3 border-t border-border/50 pt-3">
+                      <div className="text-sm font-semibold">
+                        {t("config.coachSectionTitle")}
+                      </div>
+                      <p className="mt-0.5 mb-1 text-xs text-muted-foreground/80">
+                        {t("config.coachSectionDesc")}
+                      </p>
+                    </div>
+                    <ToggleRow
+                      icon={<Scale className="h-4 w-4" />}
+                      label={t("config.coachRigor")}
+                      desc={t("config.coachRigorDesc")}
+                      tip={t("config.coachRigorTip")}
+                      checked={coachRigor}
+                      onChange={(v) => void useAppStore.getState().setCoachRigor(v)}
+                    />
+                    <ToggleRow
+                      icon={<Target className="h-4 w-4" />}
+                      label={t("config.coachDrill")}
+                      desc={t("config.coachDrillDesc")}
+                      tip={t("config.coachDrillTip")}
+                      checked={coachDrill}
+                      onChange={(v) => void useAppStore.getState().setCoachDrill(v)}
+                    />
+                    <ToggleRow
+                      icon={<Fuel className="h-4 w-4" />}
+                      label={t("config.coachStint")}
+                      desc={t("config.coachStintDesc")}
+                      tip={t("config.coachStintTip")}
+                      checked={coachStint}
+                      onChange={(v) => void useAppStore.getState().setCoachStint(v)}
+                    />
+                    <ToggleRow
+                      icon={<ShieldAlert className="h-4 w-4" />}
+                      label={t("config.coachRisk")}
+                      desc={t("config.coachRiskDesc")}
+                      tip={t("config.coachRiskTip")}
+                      checked={coachRisk}
+                      onChange={(v) => void useAppStore.getState().setCoachRisk(v)}
+                    />
+                    <ToggleRow
+                      icon={<MessagesSquare className="h-4 w-4" />}
+                      label={t("config.coachPhrasebank")}
+                      desc={t("config.coachPhrasebankDesc")}
+                      tip={t("config.coachPhrasebankTip")}
+                      checked={coachPhrasebank}
+                      onChange={(v) =>
+                        void useAppStore.getState().setCoachPhrasebank(v)
+                      }
+                    />
+                    {coachPhrasebank && (
+                      <div className="ml-2 flex flex-wrap items-center gap-2 border-l border-primary/10 pl-3 py-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={pbBusy}
+                          onClick={async () => {
+                            setPbBusy(true);
+                            try {
+                              const r = await applyOrGeneratePhrasebank(
+                                i18n.language,
+                                { force: true },
+                              );
+                              if (r === "generated")
+                                toastSuccess(t("config.phrasebankGenOk"));
+                              else if (r === "no-combo")
+                                toast(t("config.phrasebankNoCombo"));
+                              else toastError(t("config.phrasebankGenErr"));
+                            } finally {
+                              setPbBusy(false);
+                            }
+                          }}
+                        >
+                          {pbBusy ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          )}
+                          {t("config.phrasebankGenerate")}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          disabled={pbBusy}
+                          onClick={async () => {
+                            await clearPhrasebankForCurrentCombo();
+                            toast(t("config.phrasebankCleared"));
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {t("config.phrasebankClear")}
+                        </Button>
+                      </div>
+                    )}
+                    {/* Import d'un ghost (.duckdb / .ld MoTeC) pour le combo actif. */}
+                    <div className="flex items-center justify-between gap-3 py-2">
+                      <div className="flex min-w-0 items-start gap-2">
+                        <Tip content={t("config.coachGhostTip")} side="right">
+                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
+                            <Upload className="h-4 w-4" />
+                          </span>
+                        </Tip>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium leading-tight">
+                            {t("config.coachGhost")}
+                          </div>
+                          <div className="mt-0.5 text-xs text-muted-foreground/80">
+                            {t("config.coachGhostDesc")}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={ghostBusy}
+                        onClick={async () => {
+                          const combo = coachComboInfo();
+                          if (!combo.track || !combo.carModel) {
+                            toast(t("config.ghostNoCombo"));
+                            return;
+                          }
+                          const { open } = await import(
+                            "@tauri-apps/plugin-dialog"
+                          );
+                          const sel = await open({
+                            multiple: false,
+                            filters: [
+                              { name: "Ghost lap", extensions: ["duckdb", "ld"] },
+                            ],
+                          });
+                          if (!sel || typeof sel !== "string") return;
+                          setGhostBusy(true);
+                          try {
+                            const r = await importGhost(sel, {
+                              track: combo.track,
+                              carModel: combo.carModel,
+                              carClass: combo.carClass,
+                            });
+                            toastSuccess(
+                              t("config.ghostImportOk", {
+                                corners: r.corners,
+                                time: r.lapTime.toFixed(1),
+                              }),
+                            );
+                          } catch {
+                            toastError(t("config.ghostImportErr"));
+                          } finally {
+                            setGhostBusy(false);
+                          }
+                        }}
+                      >
+                        {ghostBusy ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5" />
+                        )}
+                        {t("config.ghostImport")}
+                      </Button>
+                    </div>
+                    {/* Enregistrement d'un corpus réel (§14.1) — outil de
+                        diagnostic : rejouable ensuite dans le moteur pur pour
+                        valider les seuils du coach sur de vraies données. */}
+                    <div className="flex items-center justify-between gap-3 py-2">
+                      <div className="flex min-w-0 items-start gap-2">
+                        <Tip content={t("config.coachRecordTip")} side="right">
+                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
+                            <Disc className="h-4 w-4" />
+                          </span>
+                        </Tip>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium leading-tight">
+                            {t("config.coachRecord")}
+                          </div>
+                          <div className="mt-0.5 text-xs text-muted-foreground/80">
+                            {recBusy
+                              ? t("config.coachRecordRunning", { n: recFrames })
+                              : t("config.coachRecordDesc")}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={recBusy ? "destructive" : "outline"}
+                        onClick={async () => {
+                          if (recBusy) {
+                            const combo = coachComboInfo();
+                            const label =
+                              `${combo.track || "session"}-${combo.carModel || ""}`.trim();
+                            try {
+                              const path = await stopCorpusRecording(label);
+                              setRecBusy(false);
+                              setRecFrames(0);
+                              if (path) toastSuccess(t("config.coachRecordSaved", { path }));
+                              else toast(t("config.coachRecordEmpty"));
+                            } catch (e) {
+                              setRecBusy(false);
+                              setRecFrames(0);
+                              toastError(String(e));
+                            }
+                            return;
+                          }
+                          await startCorpusRecording();
+                          setRecBusy(true);
+                        }}
+                      >
+                        {recBusy ? (
+                          <Square className="h-3.5 w-3.5" />
+                        ) : (
+                          <Disc className="h-3.5 w-3.5" />
+                        )}
+                        {recBusy
+                          ? t("config.coachRecordStop")
+                          : t("config.coachRecordStart")}
+                      </Button>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -2850,7 +2859,7 @@ function WakeWordRow() {
  * record). Vide = jamais. Enregistré à la sortie du champ.
  */
 function DriverNameRow() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const saved = useAppStore((s) => s.radioDriverName);
   const [draft, setDraft] = useState(saved);
   useEffect(() => setDraft(saved), [saved]);
@@ -2870,17 +2879,33 @@ function DriverNameRow() {
           <div className="text-xs text-muted-foreground/80 mt-0.5">{t("config.radioDriverNameDesc")}</div>
         </div>
       </div>
-      <Input
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") commit();
-        }}
-        placeholder={t("config.radioDriverNamePlaceholder")}
-        maxLength={40}
-        className="h-8 w-36 text-sm shrink-0"
-      />
+      <div className="flex items-center gap-2 shrink-0">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+          }}
+          placeholder={t("config.radioDriverNamePlaceholder")}
+          maxLength={40}
+          className="h-8 w-36 text-sm"
+        />
+        {/* Écoute : le prénom tel que l'ingénieur le dit (« Cris, … »), avec la voix
+            des annonces d'information (voix IA en ligne si elle est active). */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8"
+          disabled={!draft.trim()}
+          onClick={() => {
+            commit();
+            announceAnswer(t("config.radioDriverNameTestPhrase", { name: draft.trim() }), i18n.language);
+          }}
+        >
+          {t("config.voiceTest")}
+        </Button>
+      </div>
     </div>
   );
 }

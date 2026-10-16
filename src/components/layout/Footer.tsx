@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { Coffee, Github, Heart, ScrollText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { APP_VERSION } from "@/lib/changelog";
 import { DiscordIcon } from "@/components/DiscordIcon";
 import { DISCORD_URL } from "@/lib/links";
+import { IntroVideo } from "@/components/IntroVideo";
 
 export function Footer() {
   const { t } = useTranslation();
+  // Easter egg : un clic sur le pilote rejoue l'animation complète.
+  const [easterEgg, setEasterEgg] = useState(false);
   return (
     <footer className="mt-12 border-t border-border/60 bg-background/60">
       <div className="mx-auto max-w-[1800px] px-4 py-6 flex items-center justify-between flex-wrap gap-4">
@@ -32,6 +36,15 @@ export function Footer() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setEasterEgg(true)}
+            aria-label={t("footer.easterEggLabel")}
+            className="h-8 w-8 overflow-hidden rounded-full ring-2 ring-primary/70 shadow-sm transition-transform hover:scale-110 hover:rotate-[-6deg] focus-visible:outline-none focus-visible:ring-ring"
+          >
+            <img src="/logos/avatar.png" alt="" className="h-full w-full object-cover" />
+          </button>
+
           <a
             href={DISCORD_URL}
             target="_blank"
@@ -64,6 +77,7 @@ export function Footer() {
           </a>
         </div>
       </div>
+      {easterEgg && <IntroVideo src="/easter/lmu-splash.mp4" onClose={() => setEasterEgg(false)} />}
     </footer>
   );
 }

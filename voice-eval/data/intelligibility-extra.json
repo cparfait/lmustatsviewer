@@ -1,0 +1,362 @@
+[
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 0,
+  "ref": "Box, box. Arrêt aux stands demandé",
+  "hyp": "Dux box. Arrête au centre demandé.",
+  "wer": 0.667,
+  "cer": 0.37
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 1,
+  "ref": "Drapeau jaune, attention",
+  "hyp": "drapeau jaune, attention !",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 2,
+  "ref": "Drapeau bleu, laisse passer",
+  "hyp": "Drapeau bleu, laisse passer.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 3,
+  "ref": "Crevaison !",
+  "hyp": "Au revoir.",
+  "wer": 2.0,
+  "cer": 0.667
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 4,
+  "ref": "Carburant : environ 3 tours restants",
+  "hyp": "Calorant, environ trois tours restant.",
+  "wer": 0.4,
+  "cer": 0.133
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 5,
+  "ref": "Moins d'une seconde sur le pilote devant",
+  "hyp": "moins d'une seconde sur le pilote devant.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 6,
+  "ref": "Virage 4 : freine 10 mètres plus tôt",
+  "hyp": "virage 4 freins de 10 mètres plus tôt.",
+  "wer": 0.286,
+  "cer": 0.071
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 7,
+  "ref": "Voilà, c'est ça : 2 dixièmes repris au 7",
+  "hyp": "Voilà, c'est ça. Deux dixième repris au 7.",
+  "wer": 0.111,
+  "cer": 0.034
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 8,
+  "ref": "Virage 3 : ta vitesse de passage baisse, les pneus fatiguent",
+  "hyp": "Virage 3, à vitesse de passage baisse, les pneus fatiques.",
+  "wer": 0.2,
+  "cer": 0.104
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium",
+  "idx": 9,
+  "ref": "Virage 9 : oublie mon conseil, reviens à ce que tu faisais",
+  "hyp": "Virage meuf, oublie mon conseil, reviens à ce que tu faisais.",
+  "wer": 0.091,
+  "cer": 0.089
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 0,
+  "ref": "Box, box. Parada en boxes solicitada",
+  "hyp": "Boxbox, parada en box solicitado.",
+  "wer": 0.667,
+  "cer": 0.103
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 0,
+  "ref": "Box, box. Parada en boxes solicitada",
+  "hyp": "Boxbox, parada en boxe solicitada.",
+  "wer": 0.5,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 0,
+  "ref": "Box, box. Parada en boxes solicitada",
+  "hyp": "box box parada en box solicitada",
+  "wer": 0.167,
+  "cer": 0.069
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 1,
+  "ref": "Bandera amarilla, precaución",
+  "hyp": "Panera amarilla, precaución.",
+  "wer": 0.333,
+  "cer": 0.08
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 1,
+  "ref": "Bandera amarilla, precaución",
+  "hyp": "bandera amarilla precaución.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 1,
+  "ref": "Bandera amarilla, precaución",
+  "hyp": "BANDERA MARÍA PRECAUSIÓN",
+  "wer": 0.667,
+  "cer": 0.2
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 2,
+  "ref": "Bandera azul, deja pasar",
+  "hyp": "Pandera Azul, deja pasar.",
+  "wer": 0.25,
+  "cer": 0.05
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 2,
+  "ref": "Bandera azul, deja pasar",
+  "hyp": "bandera azul deja pasar.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 2,
+  "ref": "Bandera azul, deja pasar",
+  "hyp": "¿Dónde era el sol?  Deja placer",
+  "wer": 1.25,
+  "cer": 0.5
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 3,
+  "ref": "¡Pinchazo!",
+  "hyp": "¡Pinchazo!",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 3,
+  "ref": "¡Pinchazo!",
+  "hyp": "¡Pinchazo!",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 3,
+  "ref": "¡Pinchazo!",
+  "hyp": "¡Pichazo!",
+  "wer": 1.0,
+  "cer": 0.125
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 4,
+  "ref": "Combustible: quedan unas 3 vueltas",
+  "hyp": "combustibles que dan unas tres vueltas.",
+  "wer": 0.6,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 4,
+  "ref": "Combustible: quedan unas 3 vueltas",
+  "hyp": "combustible, quedan unas tres vueltas.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 4,
+  "ref": "Combustible: quedan unas 3 vueltas",
+  "hyp": "combustible, quedan unas tres vueltas.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 5,
+  "ref": "Menos de un segundo con el piloto de delante",
+  "hyp": "menos de un segundo con el biloto de adelante.",
+  "wer": 0.222,
+  "cer": 0.056
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 5,
+  "ref": "Menos de un segundo con el piloto de delante",
+  "hyp": "menos de un segundo con el piloto de delante.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 5,
+  "ref": "Menos de un segundo con el piloto de delante",
+  "hyp": "Menos de un segundo con el piloto de delante",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metros antes",
+  "hyp": "Cura 4, frena 10 metros antes.",
+  "wer": 0.167,
+  "cer": 0.042
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metros antes",
+  "hyp": "Curva 4, tren a 10 metros antes.",
+  "wer": 0.333,
+  "cer": 0.042
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metros antes",
+  "hyp": "curva 4, frena 10 metros antes",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 7,
+  "ref": "Eso es: 2 décimas recuperadas en la 7",
+  "hyp": "Eso es, dos décimas recuperadas en las siete.",
+  "wer": 0.125,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 7,
+  "ref": "Eso es: 2 décimas recuperadas en la 7",
+  "hyp": "Eso es 2 décimas recuperadas en la 7.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 7,
+  "ref": "Eso es: 2 décimas recuperadas en la 7",
+  "hyp": "eso es dos décimas recuperadas en las siete",
+  "wer": 0.125,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 8,
+  "ref": "Curva 3: tu velocidad de paso baja, los neumáticos se degradan",
+  "hyp": "Cura 3. Tu velocidad de paso baja. Los neumáticos se deradan.",
+  "wer": 0.182,
+  "cer": 0.04
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 8,
+  "ref": "Curva 3: tu velocidad de paso baja, los neumáticos se degradan",
+  "hyp": "Curva 3, tu velocidad de paso baja, los neumáticos se degradan.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 8,
+  "ref": "Curva 3: tu velocidad de paso baja, los neumáticos se degradan",
+  "hyp": "Curva 3, tu velocidad de paso baja, los neumáticos se degradan.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_AR-daniela-high",
+  "idx": 9,
+  "ref": "Curva 9: olvida mi consejo, vuelve a lo que hacías",
+  "hyp": "Cura nueve. Volví a mi consejo. Vuelve a lo que hacías.",
+  "wer": 0.3,
+  "cer": 0.103
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium",
+  "idx": 9,
+  "ref": "Curva 9: olvida mi consejo, vuelve a lo que hacías",
+  "hyp": "Curva 9, olvida mi consejo, vuelve a locacias.",
+  "wer": 0.3,
+  "cer": 0.128
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-ald-medium",
+  "idx": 9,
+  "ref": "Curva 9: olvida mi consejo, vuelve a lo que hacías",
+  "hyp": "Curva 9, olvida mi consejo, vuelve a lo que hacías",
+  "wer": 0.0,
+  "cer": 0.0
+ }
+]

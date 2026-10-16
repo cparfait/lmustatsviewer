@@ -226,6 +226,10 @@ pub fn run() {
             commands::tts::tts_warmup,
             commands::tts::tts_available,
             commands::tts::tts_list_voices,
+            commands::tts_cloud::tts_cloud_synthesize,
+            commands::tts_cloud::tts_cloud_cache_clear,
+            commands::tts_cloud::tts_cloud_cache_missing,
+            commands::tts_cloud::tts_cloud_get_json,
             // Téléchargement à la demande des modèles vocaux (voix Piper, Vosk)
             commands::assets::assets_catalog,
             commands::assets::asset_download,
@@ -242,6 +246,7 @@ pub fn run() {
             commands::voice_input::voice_input_set_muted,
             commands::voice_input::ptt_begin,
             commands::voice_input::ptt_end,
+            commands::voice_input::ptt_end_dual,
             commands::voice_input::ptt_cancel,
         ])
         .setup(|app| {

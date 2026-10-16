@@ -56,6 +56,10 @@ h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); letter-spacing: -.028em; }
 .nav { display: flex; gap: 22px; font-size: .92rem; }
 .nav a { color: var(--muted); text-decoration: none; position: relative; }
 .nav a:hover { color: var(--text); }
+/* Page en cours (Classements, Nouveautés) ou section visible de la vitrine. */
+.nav a[aria-current="page"], .nav a[aria-current="true"] { color: var(--text); font-weight: 600; }
+.nav a[aria-current="page"]::after, .nav a[aria-current="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px; border-radius: 2px; background: var(--amber); }
+.icon-btn.burger { display: none; }
 .header-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 .icon-btn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
 [data-theme="dark"] .i-moon, [data-theme="light"] .i-sun { display: none; }
@@ -65,12 +69,31 @@ h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); letter-spacing: -.028em; }
 .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
 .footer-links a { text-decoration: none; }
 .footer-links a:hover { color: var(--text); }
+.footer-brand { display: flex; align-items: center; gap: 12px; }
+.footer-brand img { border-radius: 6px; }
+.footer-brand strong { display: block; color: var(--text); font-size: .95rem; }
+.footer-brand span { font-size: .85rem; }
+.footer-legal { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
+.footer-legal p { margin: 0 0 4px; font-size: .8rem; }
+.footer-legal p:last-child { margin-bottom: 0; }
+/* Le mot du développeur : plus personnel que les mentions légales, traité à part. */
+.footer-legal .footer-solo { display: flex; gap: 11px; max-width: 76ch; margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 10px; background: var(--bg-3); font-size: .86rem; line-height: 1.6; }
+.footer-solo::before { content: "🏁"; flex: none; font-size: 1rem; line-height: 1.4; }
 .notice { padding: 14px 18px; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--border)); background: color-mix(in srgb, var(--amber) 8%, transparent); font-size: .92rem; }
 .empty { text-align: center; padding: 48px 20px; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--muted); }
 .empty b { display: block; color: var(--text); font-size: 1.1rem; margin-bottom: 6px; }
 .skeleton { color: transparent !important; background: linear-gradient(90deg, var(--bg-3), var(--surface), var(--bg-3)); background-size: 200% 100%; animation: sk 1.2s infinite; border-radius: 6px; }
 @keyframes sk { to { background-position: -200% 0; } }
-@media (max-width: 860px) { .nav { display: none; } }
+/* En-tête unique (vitrine + classements) : la recherche passe en loupe, puis la navigation
+   en menu ; les seuils tiennent compte des libellés allemands et espagnols, plus longs. */
+@media (max-width: 1100px) {
+  .icon-btn.burger { display: grid; }
+  .nav { position: absolute; top: 64px; left: 0; right: 0; z-index: 55; display: none; flex-direction: column; gap: 2px; padding: 10px 20px 16px; background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .nav.open { display: flex; }
+  .nav a { padding: 10px 12px; border-radius: 8px; font-size: 1rem; }
+  .nav a:hover { background: var(--bg-3); }
+  .nav a[aria-current="page"]::after, .nav a[aria-current="true"]::after { display: none; }
+}
 
 /* ── Composants (issus des maquettes validées) ── */
 :root { --c-hyper: #f87171; --c-lmp2: #60a5fa; --c-lmp3: #c084fc; --c-gt3: #4ade80; --c-gte: #fb923c; --purple-best: #b388ff; }
@@ -270,7 +293,7 @@ a.pill { text-decoration: none; }
 .dsearch-list { position: absolute; right: 0; top: 42px; width: 320px; max-height: 360px; overflow: auto; z-index: 60; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 6px; }
 .dsearch-list a, .dsearch-list > span { display: flex; justify-content: space-between; gap: 10px; padding: 9px 10px; border-radius: 8px; text-decoration: none; font-size: .9rem; }
 .dsearch-list a:hover { background: var(--bg-3); }
-@media (max-width: 700px) { .dsearch { display: none; } }
+@media (max-width: 1360px) { .dsearch { display: none; } }
 /* Tracé inconnu : grand drapeau + mention */
 .map-fallback { display: grid; place-items: center; gap: 10px; color: var(--muted); font-size: .8rem; text-align: center; }
 .map-fallback img { width: 96px; height: 64px; object-fit: cover; border-radius: 8px; box-shadow: 0 0 0 1px rgba(0,0,0,.3); opacity: .85; }
@@ -464,7 +487,9 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 #how { padding-bottom: clamp(40px, 5vw, 72px); }
 
 /* Mobile : en-tête sur une ligne (le lien « L'app » reste dans le pied de page). */
-@media (max-width: 560px) { .brand-sub, .header-actions .btn-ghost { display: none; } .header-inner { gap: 12px; } .header-actions { gap: 6px; } }
+@media (max-width: 560px) { .brand-sub, .header-actions .dl-btn { display: none; } .header-inner { gap: 12px; } .header-actions { gap: 6px; } }
+/* Très petits écrans : le logo seul, les boutons de l'en-tête gardent leur place. */
+@media (max-width: 420px) { .brand > span { display: none; } }
 
 .results-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .results-head b { font-size: 1.05rem; }
@@ -729,10 +754,10 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 /* ══ Mobile (≤ 760 px) : lisible sans zoom ni défilement horizontal ══ */
 .dsearch-btn, .ftoggle { display: none; }
 @media (max-width: 960px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 700px) {
-  /* Recherche de pilote : loupe dans l'en-tête, champ pleine largeur dessous. */
+@media (max-width: 1360px) {
+  /* Recherche de pilote : loupe dans l'en-tête, champ dessous (pleine largeur sur mobile). */
   .dsearch-btn { display: grid; }
-  .site-header.search-open .dsearch { display: block; position: absolute; left: 16px; right: 16px; top: 68px; z-index: 60; }
+  .site-header.search-open .dsearch { display: block; position: absolute; left: auto; right: 16px; top: 68px; width: min(420px, calc(100% - 32px)); z-index: 60; }
   .site-header.search-open .dsearch .search { width: 100%; min-width: 0; height: 42px; font-size: 16px; box-shadow: var(--shadow); }
   .site-header.search-open .dsearch-list { left: 0; right: 0; width: auto; top: 48px; }
   .site-header.search-open .dsearch-btn { border-color: var(--amber); color: var(--amber-ink); }

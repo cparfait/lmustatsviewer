@@ -1,0 +1,182 @@
+[
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 0,
+  "ref": "Box, box. Arrêt aux stands demandé",
+  "hyp": "Bucks, Bucks, arrêt au stand demandé.",
+  "wer": 0.667,
+  "cer": 0.37
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 1,
+  "ref": "Drapeau jaune, attention",
+  "hyp": "drapeau jaune. Attention !",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 2,
+  "ref": "Drapeau bleu, laisse passer",
+  "hyp": "drapeau bleu, laisse passer.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 3,
+  "ref": "Crevaison !",
+  "hyp": "Provaison",
+  "wer": 1.0,
+  "cer": 0.222
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 4,
+  "ref": "Carburant : environ 3 tours restants",
+  "hyp": "carburant environ trois tours restants.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 5,
+  "ref": "Moins d'une seconde sur le pilote devant",
+  "hyp": "moins d'une seconde sur le pilote devant.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 6,
+  "ref": "Virage 4 : freine 10 mètres plus tôt",
+  "hyp": "Virage 4 freines 10 mètres plus tôt.",
+  "wer": 0.143,
+  "cer": 0.036
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 7,
+  "ref": "Voilà, c'est ça : 2 dixièmes repris au 7",
+  "hyp": "Voilà, c'est ça. Deux-dixième repris au 7.",
+  "wer": 0.111,
+  "cer": 0.034
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 8,
+  "ref": "Virage 3 : ta vitesse de passage baisse, les pneus fatiguent",
+  "hyp": "Virage 3, ta vitesse de passage baisse, les pneus satigues.",
+  "wer": 0.1,
+  "cer": 0.062
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-upmc-medium-spk1",
+  "idx": 9,
+  "ref": "Virage 9 : oublie mon conseil, reviens à ce que tu faisais",
+  "hyp": "Virage 9, oublie mon conseil, reviens à ce que tu faisais.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 0,
+  "ref": "Box, box. Parada en boxes solicitada",
+  "hyp": "Box Box, parada en boxes solicitada.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 1,
+  "ref": "Bandera amarilla, precaución",
+  "hyp": "VANDERA AMADILLA PRECAUCIÓN",
+  "wer": 0.667,
+  "cer": 0.08
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 2,
+  "ref": "Bandera azul, deja pasar",
+  "hyp": "bandera azul deja pasar.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 3,
+  "ref": "¡Pinchazo!",
+  "hyp": "pinchazo",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 4,
+  "ref": "Combustible: quedan unas 3 vueltas",
+  "hyp": "combustible quedan unas tres vueltas.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 5,
+  "ref": "Menos de un segundo con el piloto de delante",
+  "hyp": "menos de un segundo con el piloto de delante.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metros antes",
+  "hyp": "Curva 4, frena 10 metros antes.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 7,
+  "ref": "Eso es: 2 décimas recuperadas en la 7",
+  "hyp": "Eso de dos décimas recuperadas en las siete.",
+  "wer": 0.25,
+  "cer": 0.103
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 8,
+  "ref": "Curva 3: tu velocidad de paso baja, los neumáticos se degradan",
+  "hyp": "Curva 3, tu velocidad de paso baja, los neumáticos se degradan.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_ES-sharvard-medium-spk1",
+  "idx": 9,
+  "ref": "Curva 9: olvida mi consejo, vuelve a lo que hacías",
+  "hyp": "Curva 9, olvídame consejo, vuelve a lo que hacías.",
+  "wer": 0.2,
+  "cer": 0.051
+ }
+]

@@ -29,7 +29,7 @@ chrome();
     return;
   }
   if (!p) {
-    $("notice").innerHTML = `<div class="empty"><b>${esc(t("profile.none"))}</b><a href="/">${esc(t("back"))}</a></div>`;
+    $("notice").innerHTML = `<div class="empty"><b>${esc(t("profile.none"))}</b><a href="/classements.html">${esc(t("back"))}</a></div>`;
     return;
   }
   document.title = `${p.name} — LMU Stats Viewer`;

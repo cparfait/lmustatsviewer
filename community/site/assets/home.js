@@ -120,7 +120,7 @@ syncSegs();
       if (value === "all" || (Array.isArray(value) && !value.length)) value = "";
       else if (Array.isArray(value)) value = value.join(",");
       const next = new URLSearchParams(Object.entries({ ...hq, [key]: value }).filter(([, v]) => v));
-      location.href = `/?${next}#tracks`;
+      location.href = `/classements.html?${next}#tracks`;
       return;
     }
     if (key === "class") classFilter = value || null;

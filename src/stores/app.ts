@@ -11,6 +11,7 @@ import { config, indexer, queries, ai, system, type WheelBinding } from "@/lib/a
 import { setAppTimezone } from "@/lib/utils";
 import { preloadStaticData } from "@/lib/staticData";
 import { configureVoice, setSpeechReplay, setTalkSilence } from "@/lib/voice";
+import { initCloudVoice } from "@/lib/cloudVoice";
 import { initVoiceOverrides } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled, setRadioStyle, MAX_VOICE_VOLUME } from "@/lib/radioFx";
@@ -62,6 +63,8 @@ interface AppState {
   autoUpdate: boolean;
   /** Afficher les tiers ohne_speed dans Sessions, SessionDetail et LapChartModal. */
   showOhneSpeed: boolean;
+  /** Courte animation (volet + titre) au lancement de l'app. */
+  launchIntro: boolean;
   /** Rythme cible de l'overlay live (clé tier ohne_speed : alien/competitive/good/midpack). */
   overlayTargetTier: string;
   /** Modules du menu activés (clé nav → bool). Absent/true = visible. */
@@ -120,6 +123,12 @@ interface AppState {
   radioMode: "full" | "engineer";
   /** Push-to-talk du coach : questions factuelles répondues en local (sans IA). */
   localAnswers: boolean;
+  /**
+   * Reconnaissance de la touche « Parler à l'ingénieur » : `dual` = dictée libre
+   * + liste des commandes en secours (défaut) ; `strict` = liste des commandes
+   * seule, comme l'ancienne touche « Parler » du spotter.
+   */
+  pttRecognition: "dual" | "strict";
   /**
    * Annonces live sur toutes les pages (même app réduite) ; `false` = seulement
    * quand la page Live est affichée (comportement historique).
@@ -250,6 +259,7 @@ interface AppState {
   setSystemTray: (v: boolean) => Promise<void>;
   setAutoUpdate: (v: boolean) => Promise<void>;
   setShowOhneSpeed: (v: boolean) => Promise<void>;
+  setLaunchIntro: (v: boolean) => Promise<void>;
   setOverlayTargetTier: (v: string) => Promise<void>;
   setMenuModule: (key: string, value: boolean) => Promise<void>;
   setVoiceAnnouncements: (v: boolean) => Promise<void>;
@@ -278,6 +288,7 @@ interface AppState {
   setFuelReserveLaps: (v: number) => Promise<void>;
   setRadioMode: (m: "full" | "engineer") => Promise<void>;
   setLocalAnswers: (v: boolean) => Promise<void>;
+  setPttRecognition: (v: "dual" | "strict") => Promise<void>;
   setAnnounceEverywhere: (v: boolean) => Promise<void>;
   setClassPositions: (v: boolean) => Promise<void>;
   setRadioStyleSetting: (s: "classic" | "pitwall") => Promise<void>;
@@ -327,6 +338,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   systemTray: true,
   autoUpdate: true,
   showOhneSpeed: true,
+  launchIntro: true,
   overlayTargetTier: "competitive",
   menuModules: {},
   voiceAnnouncements: false,
@@ -353,6 +365,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   fuelReserveLaps: 1,
   radioMode: "engineer",
   localAnswers: true,
+  pttRecognition: "dual",
   announceEverywhere: true,
   classPositions: true,
   radioStyle: "pitwall",
@@ -514,6 +527,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     setSpeechReplay(cfg.voice_replay !== "false");
     setTalkSilence(cfg.voice_quiet_zones !== "false");
     initVoiceOverrides(cfg.voice_overrides);
+    // Voix en ligne (option, désactivée par défaut) : réglages + clé du fournisseur.
+    await initCloudVoice(cfg.voice_cloud, cfg.voice_cloud_usage).catch(() => {});
     initCommandOverrides(cfg.spotter_commands);
     setAppTimezone(timezone);
     set({
@@ -528,6 +543,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       systemTray: cfg.system_tray !== "false",
       autoUpdate: cfg.auto_update !== "false",
       showOhneSpeed: cfg.show_ohne_speed !== "false",
+      launchIntro: cfg.launch_intro !== "false",
       overlayTargetTier: cfg.overlay_target_tier || "competitive",
       menuModules,
       voiceAnnouncements: cfg.voice_announcements === "true",
@@ -564,6 +580,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         : 1,
       radioMode: cfg.radio_mode === "full" ? "full" : "engineer",
       localAnswers: cfg.engineer_local_answers !== "false",
+      pttRecognition: cfg.ptt_recognition === "strict" ? "strict" : "dual",
       announceEverywhere: cfg.voice_everywhere !== "false",
       classPositions: cfg.voice_class_positions !== "false",
       radioStyle,
@@ -759,6 +776,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ showOhneSpeed: v });
   },
 
+  setLaunchIntro: async (v) => {
+    await config.set("launch_intro", v ? "true" : "false");
+    set({ launchIntro: v });
+  },
+
   setOverlayTargetTier: async (v) => {
     await config.set("overlay_target_tier", v);
     set({ overlayTargetTier: v });
@@ -917,6 +939,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLocalAnswers: async (v) => {
     await config.set("engineer_local_answers", v ? "true" : "false");
     set({ localAnswers: v });
+  },
+
+  setPttRecognition: async (v) => {
+    await config.set("ptt_recognition", v);
+    set({ pttRecognition: v });
   },
 
   setAnnounceEverywhere: async (v) => {

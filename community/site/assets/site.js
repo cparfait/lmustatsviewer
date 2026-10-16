@@ -1,4 +1,4 @@
-// Site communautaire lmu.cparfait.ovh — socle commun (i18n, thème, API, rendu).
+// Site lmu.cparfait.ovh (vitrine + classements) — socle commun (i18n, thème, en-tête, API, rendu).
 // Toute donnée venant des joueurs passe par esc() avant d'entrer dans le DOM.
 /* global TRACK_PATHS */
 "use strict";
@@ -9,7 +9,7 @@ const I18N = {
     "home.me": "Ma fiche pilote", "home.board": "Tous les classements", "home.count": "{n} classements", "home.count1": "1 classement",
     "view.grid": "Par circuit", "view.list": "Liste", "sort.popular": "Plus roulés", "sort.az": "A → Z",
     "mx.legend": "Fréquentation : nombre de pilotes, comparé au classement le plus roulé de la même classe. Un classement est provisoire tant qu'il compte moins de 20 pilotes.", "col.recordCar": "Voiture", "col.recordDriver": "Pilote du record", "col.pop": "Fréquentation", "home.pending": "Provisoire : {n} / 20 pilotes", "home.open": "Classement",
-    "nav.tracks": "Circuits", "nav.how": "Contribuer", "nav.app": "L'app", "nav.share": "Partager mes tours",
+    "nav.share": "Partager mes tours",
     "stat.drivers": "Pilotes", "stat.sessions": "Sessions partagées", "stat.layouts": "Circuits et tracés", "stat.ranked": "Classements",
     "stat.week": "+{n} cette semaine", "stat.rankedSub": "dont {n} à 20 pilotes ou plus", "stat.live": "Mis à jour en direct",
     "drivers": "pilotes", "driver1": "pilote",
@@ -22,8 +22,8 @@ const I18N = {
     "privacy": "Rien ne part sans votre accord. Vous apparaissez sous votre nom de pilote LMU, avec votre pays et votre avatar Steam, ou restez anonyme, au choix. Un clic dans l'app efface toutes vos données du serveur.",
     "empty.title": "Les classements s'ouvrent", "empty.text": "Aucun tour partagé pour l'instant. Installez l'app et activez le partage pour être parmi les premiers.",
     "offline": "Le service ne répond pas pour l'instant. Réessayez dans quelques minutes.",
-    "maint.title": "Mise à jour en cours", "maint.text": "Le site peut être indisponible quelques instants. Les tours partagés depuis l'app sont conservés et renvoyés automatiquement.", "footer.tagline": "Fait pour la communauté Le Mans Ultimate.", "footer.app": "L'application", "footer.privacy": "Confidentialité",
-    "footer.legal": "LMU Stats Viewer n'est pas affilié à Studio 397 ni à Le Mans Ultimate.",
+    "maint.title": "Mise à jour en cours", "maint.text": "Le site peut être indisponible quelques instants. Les tours partagés depuis l'app sont conservés et renvoyés automatiquement.", "footer.tagline": "Fait pour la communauté Le Mans Ultimate.", 
+    "footer.legal": "Licence MIT · LMU Stats Viewer n'est pas affilié à Studio 397 ni à Le Mans Ultimate. Les temps de référence proviennent d'OhneSpeed, affichés avec crédit.",
     "crumbs": "Classements", "provisional": "Classement provisoire : {n} / 20 pilotes. Les chiffres se stabilisent avec les partages.",
     "kpi.drivers": "Pilotes", "kpi.best": "Meilleur tour", "kpi.p10": "Top 10 %", "kpi.median": "Médiane", "kpi.laps": "Tours valides",
     "hist.title": "Où se situent les pilotes", "hist.sub": "Chaque barre compte les pilotes dont le meilleur tour tombe dans cette tranche de 0,5 s. À gauche les plus rapides, à droite les plus lents.", "hist.fast": "← plus rapide", "hist.slow": "plus lent →", "hist.axisY": "pilotes", "hist.top10": "Top 10 %", "hist.median": "Médiane", "hist.p90": "90 %", "hist.bar": "{n} pilote(s) entre {a} et {b}", "hist.you": "Vous", "me.btn": "Ma position", "me.title": "Votre position", "me.none": "Vous n'avez pas encore de temps sur ce combo avec ces filtres.", "me.unknown": "Ouvrez ce classement depuis l'app (Classements → Voir sur le site), ou cliquez « C'est moi » sur votre fiche pilote.", "me.set": "C'est moi", "me.pickPh": "Votre nom de pilote LMU…", "me.pickNone": "Aucun pilote de ce nom sur ce classement (un pilote anonyme n'est pas trouvable par son nom).", "me.saved": "Enregistré : votre ligne sera épinglée en haut des classements.", "me.clear": "Oublier", "me.jump": "Voir dans le tableau", "me.where": "Où vous êtes", "coffee": "Offrir un café",
@@ -40,13 +40,14 @@ const I18N = {
     "f.toggle": "Filtres", "search.open": "Rechercher un pilote", "f.circuit": "Circuit", "f.layout": "Tracé", "f.class": "Classe", "f.car": "Voiture", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aides", "f.all": "Tous", "f.allF": "Toutes", "f.allClasses": "Toutes les classes", "home.allClasses": "Classement du circuit, toutes classes", "f.race": "Course", "f.qualify": "Qualif", "f.practice": "Essais", "f.online": "En ligne", "f.offline": "Hors ligne", "f.latest": "Dernière", "f.several": "Plusieurs",
     "anon": "Pilote {tag}", "notFound": "Ce combo n'a encore aucun tour partagé.", "back": "Retour aux circuits", "latest": "actuelle",
     "cmp.tip": "Comparer avec ce pilote", "cmp.title": "Comparaison de pilotes", "cmp.close": "Fermer", "cmp.gap": "Écart", "cmp.sectors": "Où se fait l'écart", "cmp.detail": "Meilleur tour", "cmp.behind": "{name} perd <b>{gap} s</b> au tour, dont <b>{part} s en {sector}</b>.", "cmp.behindOnly": "{name} perd <b>{gap} s</b> au tour.", "cmp.gains": "En {sector}, c'est l'inverse : <b>{gain} s</b> de mieux.", "cmp.tie": "Même temps au tour.", "cmp.optimal": "Tour idéal (meilleurs secteurs)", "cmp.median": "Rythme médian", "cmp.spread": "Régularité (médian − meilleur)", "cmp.vmax": "Vitesse de pointe", "cmp.tyres": "Pneus", "cmp.session": "Session", "cmp.sessions": "Sessions sur ce combo", "cmp.laps": "Tours valides sur ce combo", "cmp.diffClass": "Classes différentes : écart indicatif.", "cmp.diffVersion": "Versions du jeu différentes ({a} / {b}) : l'équilibrage a pu changer.", "cmp.context": "Contexte", "cmp.alone": "Seul pilote de ce classement : personne à qui se comparer.", "cmp.you": "vous",
+    "nav.features": "Fonctionnalités", "nav.community": "Classements", "nav.screenshots": "Captures", "nav.install": "Installation", "nav.faq": "FAQ", "nav.changelog": "Nouveautés", "nav.download": "Télécharger", "footer.solo": "Un passionné, seul, le soir après le boulot — et pas développeur de métier. Autant dire qu'il reste des bugs : considérez l'application en tour de rodage. Si vous en croisez un, signalez-le, c'est le plus sûr moyen de le voir disparaître.", "footer.noCookie": "Ce site ne dépose aucun cookie et ne collecte aucune donnée personnelle sur ses visiteurs.", "footer.releases": "Versions", "footer.issues": "Signaler un bug",
   },
   en: {
     "home.title": "Community leaderboards", "home.lead": "The best laps of LMU Stats Viewer drivers, by track and class. Click a lap time to open the full leaderboard.", "home.trust": "Times read from the game's own files: nothing is typed in by hand.",
     "home.me": "My driver page", "home.board": "All leaderboards", "home.count": "{n} leaderboards", "home.count1": "1 leaderboard",
     "view.grid": "By track", "view.list": "List", "sort.popular": "Most driven", "sort.az": "A → Z",
     "mx.legend": "Popularity: number of drivers, compared with the most driven leaderboard of the same class. A leaderboard stays provisional until it has 20 drivers.", "col.recordCar": "Car", "col.recordDriver": "Record holder", "col.pop": "Popularity", "home.pending": "Provisional: {n} / 20 drivers", "home.open": "Leaderboard",
-    "nav.tracks": "Tracks", "nav.how": "Contribute", "nav.app": "The app", "nav.share": "Share my laps",
+    "nav.share": "Share my laps",
     "stat.drivers": "Drivers", "stat.sessions": "Sessions shared", "stat.layouts": "Tracks and layouts", "stat.ranked": "Leaderboards",
     "stat.week": "+{n} this week", "stat.rankedSub": "{n} with 20+ drivers", "stat.live": "Updated live",
     "drivers": "drivers", "driver1": "driver",
@@ -59,8 +60,8 @@ const I18N = {
     "privacy": "Nothing leaves without your consent. You appear under your LMU driver name, with your country and Steam avatar, or stay anonymous, your choice. One click in the app deletes all your data from the server.",
     "empty.title": "The leaderboards are opening", "empty.text": "No laps shared yet. Install the app and turn sharing on to be among the first.",
     "offline": "The service is not responding right now. Please try again in a few minutes.",
-    "maint.title": "Update in progress", "maint.text": "The site may be unavailable for a few moments. Laps shared from the app are kept and sent again automatically.", "footer.tagline": "Made for the Le Mans Ultimate community.", "footer.app": "The app", "footer.privacy": "Privacy",
-    "footer.legal": "LMU Stats Viewer is not affiliated with Studio 397 or Le Mans Ultimate.",
+    "maint.title": "Update in progress", "maint.text": "The site may be unavailable for a few moments. Laps shared from the app are kept and sent again automatically.", "footer.tagline": "Made for the Le Mans Ultimate community.", 
+    "footer.legal": "MIT licence · LMU Stats Viewer is not affiliated with Studio 397 or Le Mans Ultimate. Reference times come from OhneSpeed and are shown with credit.",
     "crumbs": "Leaderboards", "provisional": "Provisional ranking: {n} / 20 drivers. Figures settle as more laps are shared.",
     "kpi.drivers": "Drivers", "kpi.best": "Best lap", "kpi.p10": "Top 10%", "kpi.median": "Median", "kpi.laps": "Valid laps",
     "hist.title": "Where drivers stand", "hist.sub": "Each bar counts the drivers whose best lap falls in that 0.5 s slice. Fastest on the left, slowest on the right.", "hist.fast": "← faster", "hist.slow": "slower →", "hist.axisY": "drivers", "hist.top10": "Top 10%", "hist.median": "Median", "hist.p90": "90%", "hist.bar": "{n} driver(s) between {a} and {b}", "hist.you": "You", "me.btn": "My position", "me.title": "Your position", "me.none": "You have no time on this combo with these filters yet.", "me.unknown": "Open this leaderboard from the app (Leaderboards → View on the site), or click “This is me” on your driver profile.", "me.set": "This is me", "me.pickPh": "Your LMU driver name…", "me.pickNone": "No driver by that name in this leaderboard (anonymous drivers cannot be found by name).", "me.saved": "Saved: your row will be pinned at the top of leaderboards.", "me.clear": "Forget", "me.jump": "Show in the table", "me.where": "Where you stand", "coffee": "Buy me a coffee",
@@ -77,13 +78,14 @@ const I18N = {
     "f.toggle": "Filters", "search.open": "Search a driver", "f.circuit": "Track", "f.layout": "Layout", "f.class": "Class", "f.car": "Car", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aids", "f.all": "All", "f.allF": "All", "f.allClasses": "All classes", "home.allClasses": "Track leaderboard, all classes", "f.race": "Race", "f.qualify": "Qualifying", "f.practice": "Practice", "f.online": "Online", "f.offline": "Offline", "f.latest": "Latest", "f.several": "Several",
     "anon": "Driver {tag}", "notFound": "No lap has been shared on this combo yet.", "back": "Back to tracks", "latest": "current",
     "cmp.tip": "Compare with this driver", "cmp.title": "Driver comparison", "cmp.close": "Close", "cmp.gap": "Gap", "cmp.sectors": "Where the gap is made", "cmp.detail": "Best lap", "cmp.behind": "{name} loses <b>{gap} s</b> per lap, <b>{part} s of it in {sector}</b>.", "cmp.behindOnly": "{name} loses <b>{gap} s</b> per lap.", "cmp.gains": "In {sector} it's the other way round: <b>{gain} s</b> faster.", "cmp.tie": "Same lap time.", "cmp.optimal": "Ideal lap (best sectors)", "cmp.median": "Median pace", "cmp.spread": "Consistency (median − best)", "cmp.vmax": "Top speed", "cmp.tyres": "Tyres", "cmp.session": "Session", "cmp.sessions": "Sessions on this combo", "cmp.laps": "Valid laps on this combo", "cmp.diffClass": "Different classes: the gap is only indicative.", "cmp.diffVersion": "Different game versions ({a} / {b}): the balance may have changed.", "cmp.context": "Context", "cmp.alone": "Only driver on this leaderboard: nobody to compare with.", "cmp.you": "you",
+    "nav.features": "Features", "nav.community": "Leaderboards", "nav.screenshots": "Screenshots", "nav.install": "Install", "nav.faq": "FAQ", "nav.changelog": "What's new", "nav.download": "Download", "footer.solo": "One enthusiast, on his own, in the evenings after work — and not a developer by trade. Which is to say there are bugs left: consider the app on its shakedown lap. Run into one? Report it, that is the surest way to see it gone.", "footer.noCookie": "This site sets no cookies and collects no personal data about its visitors.", "footer.releases": "Releases", "footer.issues": "Report a bug",
   },
   es: {
     "home.title": "Clasificaciones de la comunidad", "home.lead": "Las mejores vueltas de los pilotos de LMU Stats Viewer, por circuito y por clase. Haz clic en un tiempo para abrir la clasificación completa.", "home.trust": "Tiempos leídos de los archivos del juego: nada se introduce a mano.",
     "home.me": "Mi ficha de piloto", "home.board": "Todas las clasificaciones", "home.count": "{n} clasificaciones", "home.count1": "1 clasificación",
     "view.grid": "Por circuito", "view.list": "Lista", "sort.popular": "Más rodados", "sort.az": "A → Z",
     "mx.legend": "Participación: número de pilotos, comparado con la clasificación más rodada de la misma clase. Una clasificación es provisional mientras tenga menos de 20 pilotos.", "col.recordCar": "Coche", "col.recordDriver": "Piloto del récord", "col.pop": "Participación", "home.pending": "Provisional: {n} / 20 pilotos", "home.open": "Clasificación",
-    "nav.tracks": "Circuitos", "nav.how": "Contribuir", "nav.app": "La app", "nav.share": "Compartir mis vueltas",
+    "nav.share": "Compartir mis vueltas",
     "stat.drivers": "Pilotos", "stat.sessions": "Sesiones compartidas", "stat.layouts": "Circuitos y trazados", "stat.ranked": "Clasificaciones",
     "stat.week": "+{n} esta semana", "stat.rankedSub": "{n} con 20+ pilotos", "stat.live": "Actualizado en directo",
     "drivers": "pilotos", "driver1": "piloto",
@@ -96,8 +98,8 @@ const I18N = {
     "privacy": "Nada sale sin tu consentimiento. Apareces con tu nombre de piloto de LMU, tu país y tu avatar de Steam, o permaneces anónimo, tú eliges. Un clic en la app borra todos tus datos del servidor.",
     "empty.title": "Las clasificaciones se abren", "empty.text": "Todavía no hay vueltas compartidas. Instala la app y activa el uso compartido para estar entre los primeros.",
     "offline": "El servicio no responde por ahora. Inténtalo de nuevo en unos minutos.",
-    "maint.title": "Actualización en curso", "maint.text": "El sitio puede no estar disponible durante unos instantes. Las vueltas compartidas desde la app se conservan y se reenvían automáticamente.", "footer.tagline": "Hecho para la comunidad de Le Mans Ultimate.", "footer.app": "La aplicación", "footer.privacy": "Privacidad",
-    "footer.legal": "LMU Stats Viewer no está afiliado a Studio 397 ni a Le Mans Ultimate.",
+    "maint.title": "Actualización en curso", "maint.text": "El sitio puede no estar disponible durante unos instantes. Las vueltas compartidas desde la app se conservan y se reenvían automáticamente.", "footer.tagline": "Hecho para la comunidad de Le Mans Ultimate.", 
+    "footer.legal": "Licencia MIT · LMU Stats Viewer no está afiliado a Studio 397 ni a Le Mans Ultimate. Los tiempos de referencia proceden de OhneSpeed y se muestran con su crédito.",
     "crumbs": "Clasificaciones", "provisional": "Clasificación provisional: {n} / 20 pilotos. Las cifras se estabilizan con más vueltas compartidas.",
     "kpi.drivers": "Pilotos", "kpi.best": "Mejor vuelta", "kpi.p10": "Top 10 %", "kpi.median": "Mediana", "kpi.laps": "Vueltas válidas",
     "hist.title": "Dónde están los pilotos", "hist.sub": "Cada barra cuenta los pilotos cuya mejor vuelta cae en esa franja de 0,5 s. A la izquierda los más rápidos, a la derecha los más lentos.", "hist.fast": "← más rápido", "hist.slow": "más lento →", "hist.axisY": "pilotos", "hist.top10": "Top 10 %", "hist.median": "Mediana", "hist.p90": "90 %", "hist.bar": "{n} piloto(s) entre {a} y {b}", "hist.you": "Tú", "me.btn": "Mi posición", "me.title": "Tu posición", "me.none": "Aún no tienes tiempo en este combo con estos filtros.", "me.unknown": "Abre esta clasificación desde la app (Clasificaciones → Ver en el sitio), o pulsa «Soy yo» en tu ficha de piloto.", "me.set": "Soy yo", "me.pickPh": "Tu nombre de piloto LMU…", "me.pickNone": "Ningún piloto con ese nombre en esta clasificación (un piloto anónimo no se puede buscar por nombre).", "me.saved": "Guardado: tu fila quedará fijada arriba de las clasificaciones.", "me.clear": "Olvidar", "me.jump": "Ver en la tabla", "me.where": "Dónde estás", "coffee": "Invítame a un café",
@@ -114,13 +116,14 @@ const I18N = {
     "f.toggle": "Filtros", "search.open": "Buscar un piloto", "f.circuit": "Circuito", "f.layout": "Trazado", "f.class": "Clase", "f.car": "Coche", "f.session": "Sesión", "f.mode": "Modo", "f.version": "Versión", "f.conditions": "Condiciones", "f.aids": "Ayudas", "f.all": "Todos", "f.allF": "Todas", "f.allClasses": "Todas las clases", "home.allClasses": "Clasificación del circuito, todas las clases", "f.race": "Carrera", "f.qualify": "Clasificación", "f.practice": "Libres", "f.online": "En línea", "f.offline": "Sin conexión", "f.latest": "Última", "f.several": "Varias",
     "anon": "Piloto {tag}", "notFound": "Nadie ha compartido todavía una vuelta en este combo.", "back": "Volver a los circuitos", "latest": "actual",
     "cmp.tip": "Comparar con este piloto", "cmp.title": "Comparación de pilotos", "cmp.close": "Cerrar", "cmp.gap": "Diferencia", "cmp.sectors": "Dónde se hace la diferencia", "cmp.detail": "Mejor vuelta", "cmp.behind": "{name} pierde <b>{gap} s</b> por vuelta, <b>{part} s de ellos en {sector}</b>.", "cmp.behindOnly": "{name} pierde <b>{gap} s</b> por vuelta.", "cmp.gains": "En {sector} es al revés: <b>{gain} s</b> más rápido.", "cmp.tie": "Mismo tiempo por vuelta.", "cmp.optimal": "Vuelta ideal (mejores sectores)", "cmp.median": "Ritmo mediano", "cmp.spread": "Regularidad (mediana − mejor)", "cmp.vmax": "Velocidad punta", "cmp.tyres": "Neumáticos", "cmp.session": "Sesión", "cmp.sessions": "Sesiones en este combo", "cmp.laps": "Vueltas válidas en este combo", "cmp.diffClass": "Clases distintas: la diferencia es orientativa.", "cmp.diffVersion": "Versiones del juego distintas ({a} / {b}): el equilibrio puede haber cambiado.", "cmp.context": "Contexto", "cmp.alone": "Único piloto de esta clasificación: nadie con quien compararse.", "cmp.you": "tú",
+    "nav.features": "Funciones", "nav.community": "Clasificaciones", "nav.screenshots": "Capturas", "nav.install": "Instalación", "nav.faq": "Preguntas", "nav.changelog": "Novedades", "nav.download": "Descargar", "footer.solo": "Un aficionado, solo, por las noches después del trabajo — y que no es programador de profesión. O sea que quedan bugs: considera que la aplicación está en vuelta de reconocimiento. Si te encuentras con uno, avísame: es la forma más segura de que desaparezca.", "footer.noCookie": "Este sitio no instala cookies ni recoge datos personales de sus visitantes.", "footer.releases": "Versiones", "footer.issues": "Informar de un fallo",
   },
   de: {
     "home.title": "Community-Ranglisten", "home.lead": "Die besten Runden der LMU-Stats-Viewer-Fahrer, nach Strecke und Klasse. Klicke auf eine Zeit, um die ganze Rangliste zu öffnen.", "home.trust": "Rundenzeiten aus den Dateien des Spiels: nichts wird von Hand eingetragen.",
     "home.me": "Meine Fahrerseite", "home.board": "Alle Ranglisten", "home.count": "{n} Ranglisten", "home.count1": "1 Rangliste",
     "view.grid": "Nach Strecke", "view.list": "Liste", "sort.popular": "Meistgefahren", "sort.az": "A → Z",
     "mx.legend": "Beteiligung: Anzahl der Fahrer, verglichen mit der meistgefahrenen Rangliste derselben Klasse. Eine Rangliste bleibt vorläufig, bis sie 20 Fahrer hat.", "col.recordCar": "Auto", "col.recordDriver": "Rekordhalter", "col.pop": "Beteiligung", "home.pending": "Vorläufig: {n} / 20 Fahrer", "home.open": "Rangliste",
-    "nav.tracks": "Strecken", "nav.how": "Mitmachen", "nav.app": "Die App", "nav.share": "Meine Runden teilen",
+    "nav.share": "Meine Runden teilen",
     "stat.drivers": "Fahrer", "stat.sessions": "Geteilte Sessions", "stat.layouts": "Strecken und Varianten", "stat.ranked": "Ranglisten",
     "stat.week": "+{n} diese Woche", "stat.rankedSub": "davon {n} mit 20+ Fahrern", "stat.live": "Live aktualisiert",
     "drivers": "Fahrer", "driver1": "Fahrer",
@@ -133,8 +136,8 @@ const I18N = {
     "privacy": "Ohne deine Zustimmung wird nichts gesendet. Du erscheinst mit deinem LMU-Fahrernamen, deinem Land und deinem Steam-Avatar oder bleibst anonym, ganz wie du willst. Ein Klick in der App löscht alle deine Daten vom Server.",
     "empty.title": "Die Ranglisten öffnen", "empty.text": "Noch keine geteilten Runden. Installiere die App und aktiviere das Teilen, um zu den Ersten zu gehören.",
     "offline": "Der Dienst antwortet gerade nicht. Bitte versuche es in ein paar Minuten erneut.",
-    "maint.title": "Aktualisierung läuft", "maint.text": "Die Website ist möglicherweise kurz nicht erreichbar. Aus der App geteilte Runden bleiben erhalten und werden automatisch erneut gesendet.", "footer.tagline": "Gemacht für die Le-Mans-Ultimate-Community.", "footer.app": "Die App", "footer.privacy": "Datenschutz",
-    "footer.legal": "LMU Stats Viewer ist nicht mit Studio 397 oder Le Mans Ultimate verbunden.",
+    "maint.title": "Aktualisierung läuft", "maint.text": "Die Website ist möglicherweise kurz nicht erreichbar. Aus der App geteilte Runden bleiben erhalten und werden automatisch erneut gesendet.", "footer.tagline": "Gemacht für die Le-Mans-Ultimate-Community.", 
+    "footer.legal": "MIT-Lizenz · LMU Stats Viewer steht in keiner Verbindung zu Studio 397 oder Le Mans Ultimate. Die Referenzzeiten stammen von OhneSpeed und werden mit Quellenangabe gezeigt.",
     "crumbs": "Ranglisten", "provisional": "Vorläufige Wertung: {n} / 20 Fahrer. Die Werte stabilisieren sich mit weiteren geteilten Runden.",
     "kpi.drivers": "Fahrer", "kpi.best": "Beste Runde", "kpi.p10": "Top 10 %", "kpi.median": "Median", "kpi.laps": "Gültige Runden",
     "hist.title": "Wo die Fahrer stehen", "hist.sub": "Jeder Balken zählt die Fahrer, deren beste Runde in diesem 0,5-s-Bereich liegt. Links die Schnellsten, rechts die Langsamsten.", "hist.fast": "← schneller", "hist.slow": "langsamer →", "hist.axisY": "Fahrer", "hist.top10": "Top 10 %", "hist.median": "Median", "hist.p90": "90 %", "hist.bar": "{n} Fahrer zwischen {a} und {b}", "hist.you": "Du", "me.btn": "Meine Position", "me.title": "Deine Position", "me.none": "Du hast mit diesen Filtern noch keine Zeit auf dieser Kombination.", "me.unknown": "Öffne diese Rangliste aus der App (Ranglisten → Auf der Website ansehen) oder klicke auf deinem Fahrerprofil auf „Das bin ich“.", "me.set": "Das bin ich", "me.pickPh": "Dein LMU-Fahrername…", "me.pickNone": "Kein Fahrer mit diesem Namen in dieser Rangliste (anonyme Fahrer sind nicht per Name auffindbar).", "me.saved": "Gespeichert: deine Zeile wird oben in den Ranglisten angeheftet.", "me.clear": "Vergessen", "me.jump": "In der Tabelle zeigen", "me.where": "Wo du stehst", "coffee": "Spendier mir einen Kaffee",
@@ -151,13 +154,14 @@ const I18N = {
     "f.toggle": "Filter", "search.open": "Fahrer suchen", "f.circuit": "Strecke", "f.layout": "Variante", "f.class": "Klasse", "f.car": "Auto", "f.session": "Session", "f.mode": "Modus", "f.version": "Version", "f.conditions": "Bedingungen", "f.aids": "Hilfen", "f.all": "Alle", "f.allF": "Alle", "f.allClasses": "Alle Klassen", "home.allClasses": "Rangliste der Strecke, alle Klassen", "f.race": "Rennen", "f.qualify": "Qualifying", "f.practice": "Training", "f.online": "Online", "f.offline": "Offline", "f.latest": "Neueste", "f.several": "Mehrere",
     "anon": "Fahrer {tag}", "notFound": "Auf dieser Kombo wurde noch keine Runde geteilt.", "back": "Zurück zu den Strecken", "latest": "aktuell",
     "cmp.tip": "Mit diesem Fahrer vergleichen", "cmp.title": "Fahrervergleich", "cmp.close": "Schließen", "cmp.gap": "Abstand", "cmp.sectors": "Wo der Abstand entsteht", "cmp.detail": "Beste Runde", "cmp.behind": "{name} verliert <b>{gap} s</b> pro Runde, davon <b>{part} s in {sector}</b>.", "cmp.behindOnly": "{name} verliert <b>{gap} s</b> pro Runde.", "cmp.gains": "In {sector} ist es umgekehrt: <b>{gain} s</b> schneller.", "cmp.tie": "Gleiche Rundenzeit.", "cmp.optimal": "Ideale Runde (beste Sektoren)", "cmp.median": "Median-Tempo", "cmp.spread": "Konstanz (Median − Bestzeit)", "cmp.vmax": "Höchstgeschwindigkeit", "cmp.tyres": "Reifen", "cmp.session": "Session", "cmp.sessions": "Sessions auf dieser Kombination", "cmp.laps": "Gültige Runden auf dieser Kombination", "cmp.diffClass": "Unterschiedliche Klassen: Abstand nur als Richtwert.", "cmp.diffVersion": "Unterschiedliche Spielversionen ({a} / {b}): die Balance kann sich geändert haben.", "cmp.context": "Kontext", "cmp.alone": "Einziger Fahrer in dieser Rangliste: niemand zum Vergleichen.", "cmp.you": "du",
+    "nav.features": "Funktionen", "nav.community": "Ranglisten", "nav.screenshots": "Screenshots", "nav.install": "Installation", "nav.faq": "FAQ", "nav.changelog": "Neuerungen", "nav.download": "Herunterladen", "footer.solo": "Ein Enthusiast, allein, abends nach Feierabend — und von Beruf kein Entwickler. Heißt: Es sind noch Bugs drin. Betrachte die App als in der Einrollrunde. Wenn dir einer begegnet, meld ihn — so verschwindet er am schnellsten.", "footer.noCookie": "Diese Website setzt keine Cookies und erhebt keine personenbezogenen Daten über ihre Besucher.", "footer.releases": "Versionen", "footer.issues": "Fehler melden",
   },
   it: {
     "home.title": "Classifiche della community", "home.lead": "I giri migliori dei piloti di LMU Stats Viewer, per circuito e per classe. Clicca su un tempo per aprire la classifica completa.", "home.trust": "Tempi letti dai file del gioco: nulla viene inserito a mano.",
     "home.me": "La mia scheda pilota", "home.board": "Tutte le classifiche", "home.count": "{n} classifiche", "home.count1": "1 classifica",
     "view.grid": "Per circuito", "view.list": "Elenco", "sort.popular": "Più frequentati", "sort.az": "A → Z",
     "mx.legend": "Partecipazione: numero di piloti, rispetto alla classifica più frequentata della stessa classe. Una classifica resta provvisoria finché conta meno di 20 piloti.", "col.recordCar": "Vettura", "col.recordDriver": "Detentore del record", "col.pop": "Partecipazione", "home.pending": "Provvisoria: {n} / 20 piloti", "home.open": "Classifica",
-    "nav.tracks": "Circuiti", "nav.how": "Partecipa", "nav.app": "L'app", "nav.share": "Condividi i miei giri",
+    "nav.share": "Condividi i miei giri",
     "stat.drivers": "Piloti", "stat.sessions": "Sessioni condivise", "stat.layouts": "Circuiti e tracciati", "stat.ranked": "Classifiche",
     "stat.week": "+{n} questa settimana", "stat.rankedSub": "di cui {n} con 20+ piloti", "stat.live": "Aggiornato in tempo reale",
     "drivers": "piloti", "driver1": "pilota",
@@ -170,8 +174,8 @@ const I18N = {
     "privacy": "Nulla viene inviato senza il tuo consenso. Appari con il tuo nome pilota di LMU, il tuo paese e il tuo avatar Steam, oppure resti anonimo, a tua scelta. Un clic nell'app cancella tutti i tuoi dati dal server.",
     "empty.title": "Le classifiche aprono", "empty.text": "Ancora nessun giro condiviso. Installa l'app e attiva la condivisione per essere tra i primi.",
     "offline": "Il servizio non risponde al momento. Riprova tra qualche minuto.",
-    "maint.title": "Aggiornamento in corso", "maint.text": "Il sito potrebbe non essere disponibile per qualche istante. I giri condivisi dall'app vengono conservati e reinviati automaticamente.", "footer.tagline": "Fatto per la community di Le Mans Ultimate.", "footer.app": "L'applicazione", "footer.privacy": "Privacy",
-    "footer.legal": "LMU Stats Viewer non è affiliato a Studio 397 né a Le Mans Ultimate.",
+    "maint.title": "Aggiornamento in corso", "maint.text": "Il sito potrebbe non essere disponibile per qualche istante. I giri condivisi dall'app vengono conservati e reinviati automaticamente.", "footer.tagline": "Fatto per la community di Le Mans Ultimate.", 
+    "footer.legal": "Licenza MIT · LMU Stats Viewer non è affiliato a Studio 397 né a Le Mans Ultimate. I tempi di riferimento provengono da OhneSpeed e sono mostrati citandone la fonte.",
     "crumbs": "Classifiche", "provisional": "Classifica provvisoria: {n} / 20 piloti. I valori si stabilizzano con più giri condivisi.",
     "kpi.drivers": "Piloti", "kpi.best": "Miglior giro", "kpi.p10": "Top 10 %", "kpi.median": "Mediana", "kpi.laps": "Giri validi",
     "hist.title": "Dove si collocano i piloti", "hist.sub": "Ogni barra conta i piloti il cui miglior giro cade in quella fascia di 0,5 s. A sinistra i più veloci, a destra i più lenti.", "hist.fast": "← più veloce", "hist.slow": "più lento →", "hist.axisY": "piloti", "hist.top10": "Top 10 %", "hist.median": "Mediana", "hist.p90": "90 %", "hist.bar": "{n} pilota/i tra {a} e {b}", "hist.you": "Tu", "me.btn": "La mia posizione", "me.title": "La tua posizione", "me.none": "Non hai ancora un tempo su questa combo con questi filtri.", "me.unknown": "Apri questa classifica dall'app (Classifiche → Vedi sul sito), oppure clicca «Sono io» sulla tua scheda pilota.", "me.set": "Sono io", "me.pickPh": "Il tuo nome pilota LMU…", "me.pickNone": "Nessun pilota con questo nome in questa classifica (un pilota anonimo non si può trovare per nome).", "me.saved": "Salvato: la tua riga sarà fissata in cima alle classifiche.", "me.clear": "Dimentica", "me.jump": "Mostra nella tabella", "me.where": "Dove ti trovi", "coffee": "Offrimi un caffè",
@@ -188,13 +192,15 @@ const I18N = {
     "f.toggle": "Filtri", "search.open": "Cerca un pilota", "f.circuit": "Circuito", "f.layout": "Tracciato", "f.class": "Classe", "f.car": "Vettura", "f.session": "Sessione", "f.mode": "Modo", "f.version": "Versione", "f.conditions": "Condizioni", "f.aids": "Aiuti", "f.all": "Tutti", "f.allF": "Tutte", "f.allClasses": "Tutte le classi", "home.allClasses": "Classifica del circuito, tutte le classi", "f.race": "Gara", "f.qualify": "Qualifica", "f.practice": "Prove libere", "f.online": "Online", "f.offline": "Offline", "f.latest": "Ultima", "f.several": "Diverse",
     "anon": "Pilota {tag}", "notFound": "Nessuno ha ancora condiviso un giro su questa combo.", "back": "Torna ai circuiti", "latest": "attuale",
     "cmp.tip": "Confronta con questo pilota", "cmp.title": "Confronto piloti", "cmp.close": "Chiudi", "cmp.gap": "Distacco", "cmp.sectors": "Dove nasce il distacco", "cmp.detail": "Miglior giro", "cmp.behind": "{name} perde <b>{gap} s</b> al giro, di cui <b>{part} s in {sector}</b>.", "cmp.behindOnly": "{name} perde <b>{gap} s</b> al giro.", "cmp.gains": "In {sector} è il contrario: <b>{gain} s</b> più veloce.", "cmp.tie": "Stesso tempo sul giro.", "cmp.optimal": "Giro ideale (migliori settori)", "cmp.median": "Passo mediano", "cmp.spread": "Costanza (mediano − migliore)", "cmp.vmax": "Velocità massima", "cmp.tyres": "Gomme", "cmp.session": "Sessione", "cmp.sessions": "Sessioni su questa combo", "cmp.laps": "Giri validi su questa combo", "cmp.diffClass": "Classi diverse: il distacco è solo indicativo.", "cmp.diffVersion": "Versioni del gioco diverse ({a} / {b}): il bilanciamento può essere cambiato.", "cmp.context": "Contesto", "cmp.alone": "Unico pilota in questa classifica: nessuno con cui confrontarsi.", "cmp.you": "tu",
+    "nav.features": "Funzionalità", "nav.community": "Classifiche", "nav.screenshots": "Screenshot", "nav.install": "Installazione", "nav.faq": "FAQ", "nav.changelog": "Novità", "nav.download": "Scarica", "footer.solo": "Un appassionato, da solo, la sera dopo il lavoro — e non sviluppatore di professione. Vale a dire che qualche bug c'è ancora: considera l'app nel suo giro di rodaggio. Se ne incontri uno, segnalalo: è il modo più sicuro per vederlo sparire.", "footer.noCookie": "Questo sito non usa cookie e non raccoglie dati personali sui suoi visitatori.", "footer.releases": "Versioni", "footer.issues": "Segnala un bug",
   },
 };
 
 // Italien : « combo » au féminin (usage courant chez les simracers italiens) ; « Modo »
 // plutôt que « Modalità » pour s'accorder avec « Tutti » (f.all, partagé avec le circuit).
 const LANGS = ["fr", "en", "es", "de", "it"];
-let LANG = localStorage.getItem("lmu-lang") || (navigator.language || "fr").slice(0, 2);
+// Langue posée par boot.js avant le rendu (?lang=, choix mémorisé, navigateur, anglais).
+let LANG = document.documentElement.dataset.lang || localStorage.getItem("lmu-lang") || (navigator.language || "fr").slice(0, 2);
 if (!LANGS.includes(LANG)) LANG = "en";
 
 function t(key, vars = {}) {
@@ -338,17 +344,38 @@ function setMe(tag) {
   else localStorage.removeItem("lmu-me");
 }
 
+/** Liens de l'en-tête : la vitrine (ancres de la page d'accueil), les classements, les nouveautés. */
+const NAV = [
+  ["/#features", "nav.features"],
+  ["/#gallery", "nav.screenshots"],
+  ["/classements.html", "nav.community"],
+  ["/#install", "nav.install"],
+  ["/#faq", "nav.faq"],
+  ["/changelog.html", "nav.changelog"],
+];
+const BURGER_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
+
+/**
+ * En-tête et pied de page communs à tout le site (vitrine et classements), langue et thème.
+ * Les pages de la vitrine traduisent elles-mêmes leur contenu (`js/app.js`, dictionnaire de la
+ * vitrine) : ici, seuls les `data-i18n` des pages de classements sont traduits.
+ */
 function chrome() {
   // Repère transmis par l'app (`?me=`) : mémorisé quelle que soit la page d'arrivée.
   getMe();
-  const theme = localStorage.getItem("lmu-theme") || "light";
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.lang = LANG;
+  const root = document.documentElement;
+  // Thème posé par boot.js avant le rendu (clair par défaut) ; repli s'il n'a pas tourné.
+  if (!root.dataset.theme) root.dataset.theme = localStorage.getItem("lmu-theme") === "dark" ? "dark" : "light";
+  root.lang = LANG;
+  const path = location.pathname;
+  const onBoards = /\/(classements|combo|pilote)\.html$/.test(path);
+  const current = (href) =>
+    (href === "/classements.html" && onBoards) || (href === "/changelog.html" && path.endsWith("/changelog.html"));
   const header = document.querySelector("header.site-header");
   header.innerHTML = `
     <div class="wrap header-inner">
-      <a class="brand" href="/"><img class="brand-logo" src="/assets/icon-32.png?v=1" alt=""><span>LMU Stats Viewer <span class="brand-sub">${esc(t("crumbs"))}</span></span></a>
-      <nav class="nav"><a href="/#tracks">${t("nav.tracks")}</a><a href="/#how">${t("nav.how")}</a></nav>
+      <a class="brand" href="/"><img class="brand-logo" src="/assets/icon-32.png?v=1" alt=""><span>LMU Stats Viewer</span></a>
+      <nav class="nav" id="nav">${NAV.map(([href, k]) => `<a href="${href}"${current(href) ? ' aria-current="page"' : ""}>${esc(t(k))}</a>`).join("")}</nav>
       <div class="header-actions">
         <div class="dsearch"><input class="search" id="driverSearch" placeholder="${esc(t("search.ph"))}" autocomplete="off"><div class="dsearch-list" id="driverResults" hidden></div></div>
         <button class="icon-btn dsearch-btn" id="searchBtn" aria-label="${esc(t("search.open"))}" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
@@ -357,14 +384,27 @@ function chrome() {
           <svg class="i-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
           <svg class="i-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
         </button>
-        <a class="btn btn-ghost btn-sm" href="https://lmustatsviewer.cparfait.ovh/">${t("nav.app")}</a>
+        <a class="btn btn-primary btn-sm dl-btn" data-dl="entete" href="https://github.com/cparfait/lmustatsviewer/releases/latest">${esc(t("nav.download"))}</a>
+        <button class="icon-btn burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="nav">${BURGER_SVG}</button>
       </div>
     </div>`;
   header.querySelector("#themeBtn").addEventListener("click", () => {
-    const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-    document.documentElement.dataset.theme = next;
+    const next = root.dataset.theme === "light" ? "dark" : "light";
+    root.dataset.theme = next;
     localStorage.setItem("lmu-theme", next);
+    // La vitrine change ses captures d'écran (variantes claire et sombre).
+    document.dispatchEvent(new CustomEvent("lmu:theme", { detail: next }));
   });
+  // Menu des petits écrans : la navigation s'ouvre sous l'en-tête.
+  const nav = header.querySelector("#nav");
+  const burger = header.querySelector("#burger");
+  const closeNav = () => {
+    nav.classList.remove("open");
+    burger.setAttribute("aria-expanded", "false");
+  };
+  burger.addEventListener("click", () => burger.setAttribute("aria-expanded", String(nav.classList.toggle("open"))));
+  nav.addEventListener("click", (e) => { if (e.target.closest("a")) closeNav(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeNav(); });
   // Recherche de pilote (les anonymes ne sont jamais trouvables).
   const input = header.querySelector("#driverSearch");
   const list = header.querySelector("#driverResults");
@@ -390,6 +430,7 @@ function chrome() {
     }, 250);
   });
   document.addEventListener("click", (e) => {
+    if (!e.target.closest("#nav, #burger")) closeNav();
     if (e.target.closest(".dsearch, #searchBtn")) return;
     list.hidden = true;
     header.classList.remove("search-open");
@@ -401,15 +442,24 @@ function chrome() {
   });
   document.querySelector("footer.site-footer").innerHTML = `
     <div class="wrap footer-inner">
-      <div><strong>LMU Stats Viewer</strong> — ${t("footer.tagline")}<br><span style="font-size:.8rem">${t("footer.legal")}</span></div>
+      <div class="footer-brand"><img src="/assets/icon-32.png?v=1" width="24" height="24" alt=""><div><strong>LMU Stats Viewer</strong><span>${esc(t("footer.tagline"))}</span></div></div>
       <nav class="footer-links">
-        <a href="https://lmustatsviewer.cparfait.ovh/">${t("footer.app")}</a>
+        <a href="/changelog.html">${esc(t("nav.changelog"))}</a>
+        <a href="/classements.html">${esc(t("nav.community"))}</a>
         <a href="https://github.com/cparfait/lmustatsviewer">GitHub</a>
+        <a href="https://github.com/cparfait/lmustatsviewer/releases">${esc(t("footer.releases"))}</a>
+        <a href="https://github.com/cparfait/lmustatsviewer/issues">${esc(t("footer.issues"))}</a>
         <a href="https://discord.gg/G9ng9GdvSU">Discord</a>
         <a class="btn btn-sm btn-coffee" href="https://buymeacoffee.com/cristof" target="_blank" rel="noopener noreferrer">${COFFEE_SVG}<span>${esc(t("coffee"))}</span></a>
       </nav>
+    </div>
+    <div class="wrap footer-legal">
+      <p class="footer-solo">${esc(t("footer.solo"))}</p>
+      <p>${esc(t("footer.legal"))}</p>
+      <p>${esc(t("footer.noCookie"))}</p>
     </div>`;
-  document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  // Pages de la vitrine : leur script les traduit avec le dictionnaire de la vitrine.
+  if (!window.VITRINE_I18N) document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   watchMaintenance();
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
 }

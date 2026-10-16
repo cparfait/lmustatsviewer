@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="cl.metaTitle">Notes de version — LMU Stats Viewer</title>
+<meta name="description" data-i18n-attr="content" data-i18n="cl.metaDescription" content="Toutes les versions de LMU Stats Viewer et ce qu'elles apportent, tenues à jour automatiquement depuis GitHub.">
+<meta name="theme-color" content="#D93B00">
+<link rel="icon" href="assets/img/32x32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/img/128x128@2x.png">
+<meta property="og:type" content="website">
+<meta property="og:title" data-i18n-attr="content" data-i18n="cl.metaTitle" content="Notes de version — LMU Stats Viewer">
+<meta property="og:description" data-i18n-attr="content" data-i18n="cl.metaDescription" content="">
+<meta property="og:image" content="assets/img/shots/changelog-dark.png">
+<link rel="stylesheet" href="/assets/site.css?v=51">
+<link rel="stylesheet" href="/assets/css/vitrine.css?v=51">
+
+<!-- Thème et langue posés avant le premier rendu (fichier commun à tout le site). -->
+<script src="/assets/boot.js?v=51"></script>
+</head>
+<body>
+
+<a class="skip-link" href="#main" data-i18n="a11y.skip">Aller au contenu</a>
+
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <g id="i-arrow-up"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></g>
+
+    <!-- Drapeaux du sélecteur de langue — identiques à ceux d'index.html. -->
+    <clipPath id="flagClip"><rect width="16" height="12" rx="1"/></clipPath>
+    <g id="flag-fr">
+      <rect width="16" height="12" fill="#F5F5F5"/>
+      <rect width="5.34" height="12" fill="#002654"/>
+      <rect x="10.66" width="5.34" height="12" fill="#CE1126"/>
+    </g>
+    <g id="flag-es">
+      <rect width="16" height="12" fill="#C60B1E"/>
+      <rect y="3" width="16" height="6" fill="#FFC400"/>
+    </g>
+    <g id="flag-de">
+      <rect width="16" height="12" fill="#141414"/>
+      <rect y="4" width="16" height="4" fill="#DD0000"/>
+      <rect y="8" width="16" height="4" fill="#FFCE00"/>
+    </g>
+    <g id="flag-it">
+      <rect width="16" height="12" fill="#F5F5F5"/>
+      <rect width="5.34" height="12" fill="#009246"/>
+      <rect x="10.66" width="5.34" height="12" fill="#CE2B37"/>
+    </g>
+    <g id="flag-en" clip-path="url(#flagClip)">
+      <rect width="16" height="12" fill="#012169"/>
+      <path d="M0 0l16 12M16 0L0 12" stroke="#F5F5F5" stroke-width="2.6"/>
+      <path d="M0 0l16 12M16 0L0 12" stroke="#C8102E" stroke-width="1.3"/>
+      <path d="M8 0v12M0 6h16" stroke="#F5F5F5" stroke-width="4"/>
+      <path d="M8 0v12M0 6h16" stroke="#C8102E" stroke-width="2.2"/>
+    </g>
+  </defs>
+</svg>
+
+<header class="site-header"></header>
+
+<main id="main">
+  <section class="section cl-head">
+    <div class="wrap narrow">
+      <p class="kicker" data-i18n="cl.kicker">Notes de version</p>
+      <h1 data-i18n="cl.title">Ce qui a changé, version après version</h1>
+      <p class="section-lead" data-i18n="cl.lead">Cette page est construite à partir des publications GitHub du projet : elle reflète toujours l'état réel des versions, sans intervention.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" data-dl="page-versions" href="https://github.com/cparfait/lmustatsviewer/releases" data-i18n="cl.cta">Télécharger la dernière version</a>
+        <a class="btn btn-ghost" href="https://github.com/cparfait/lmustatsviewer/releases" data-i18n="cl.ctaGh">Voir sur GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt">
+    <div class="wrap narrow">
+      <div id="clList" class="cl-list" aria-live="polite" aria-busy="true">
+        <p class="cl-state" data-i18n="cl.loading">Chargement des versions…</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"></footer>
+
+<button class="to-top" id="toTop" type="button" aria-label="Haut de page" hidden>
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><use href="#i-arrow-up"/></svg>
+</button>
+
+<script src="/assets/site.js?v=51"></script>
+<script src="/assets/js/i18n.js?v=51"></script>
+<script src="/assets/js/app.js?v=51"></script>
+<script src="/assets/js/changelog.js?v=51"></script>
+<script src="/assets/js/analytics.js?v=51"></script>
+</body>
+</html>

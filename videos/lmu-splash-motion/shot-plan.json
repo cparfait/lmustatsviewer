@@ -1,0 +1,20 @@
+{
+  "category": "logo-reveal",
+  "duration_s": 9.2,
+  "fps": 30,
+  "canvas": { "w": 1920, "h": 1080, "aspect": "16:9" },
+  "style": "Cartoon flat 2D, contours épais, ciel matinal des Ardennes ; personnage du logo (sticker détouré) + hypercar SVG chibi ; fin sur fond nuit de l'app",
+  "palette": ["#12151d", "#f7f8fa", "#3fa9e6", "#e2412b", "#D93B00", "#0b101f"],
+  "font": "Montserrat",
+  "beats": [0.45, 2.05, 2.55, 3.35, 6.0, 6.3, 7.75],
+  "export": "mp4",
+  "asset_needs": [
+    { "role": "pilot", "kind": "logo", "source": "src-tauri/icons/icon.png", "treatment": "cutout" },
+    { "role": "badge", "kind": "logo", "source": "src-tauri/icons/icon.png", "treatment": "none" }
+  ],
+  "content": {
+    "logo": "assets/logo.png",
+    "tagline": "",
+    "story": "Iris d'ouverture -> le pilote tombe du ciel -> salto dans le cockpit -> démarrage (phares, pétarade, VROOM) -> départ, descente vers Eau Rouge, montée du Raidillon, saut à la crête -> volet vibreur -> titre LMU Stats Viewer + mini-voiture qui trace le soulignement -> pause lisible >= 1 s"
+  }
+}

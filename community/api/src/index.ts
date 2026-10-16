@@ -52,7 +52,10 @@ const tick = () => refreshAvatars(db, avatars).catch((e) => console.log(JSON.str
 setInterval(tick, 3_600_000).unref();
 setTimeout(tick, 60_000).unref();
 
-const server = serve({ fetch: createApp(db, { siteDir, publicDir, stateDir, publicUrl, requireSteam, steamAvatars: avatars }).fetch, port: PORT, hostname: "0.0.0.0" }, (info) =>
+// Anciennes adresses redirigées vers PUBLIC_URL (défaut : l'ancienne vitrine).
+const redirectHosts = process.env.REDIRECT_HOSTS?.split(",").map((h) => h.trim()).filter(Boolean);
+
+const server = serve({ fetch: createApp(db, { siteDir, publicDir, stateDir, publicUrl, redirectHosts, requireSteam, steamAvatars: avatars }).fetch, port: PORT, hostname: "0.0.0.0" }, (info) =>
   console.log(JSON.stringify({ t: new Date().toISOString(), listening: info.port })),
 );
 

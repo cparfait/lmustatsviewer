@@ -64,6 +64,12 @@ export interface Route {
   watch: WatchSpec | null;
   /** Texte normalisé (debug / résolution de nom de pilote). */
   norm: string;
+  /**
+   * Meilleure supposition, **même sous le seuil** ou pour une question de jugement
+   * laissée à l'IA : sert seulement quand aucune IA n'est utilisable (mieux vaut
+   * une réponse locale probable que « choisis un modèle »). `null` = aucun indice.
+   */
+  guess: AnswerIntent | null;
 }
 
 export const THRESHOLD = 60;
@@ -514,7 +520,7 @@ const JUDGMENT =
 export function route(text: string, lang: string): Route {
   const norm = normalize(text, lang);
   const entities = extractEntities(norm, lang);
-  const empty: Route = { intent: null, ambiguous: false, candidates: [], entities, watch: null, norm };
+  const empty: Route = { intent: null, ambiguous: false, candidates: [], entities, watch: null, norm, guess: null };
   if (!norm) return empty;
 
   if (isWatchRequest(norm, lang)) {
@@ -522,10 +528,10 @@ export function route(text: string, lang: string): Route {
   }
 
   const toks = tokenSet(norm);
-  const scored = (T[lng(lang)] ?? T.en)
+  const all = (T[lng(lang)] ?? T.en)
     .map((d) => ({ d, s: score(d, norm, toks) }))
-    .filter((x) => x.s >= THRESHOLD)
     .sort((a, b) => b.s - a.s);
+  const scored = all.filter((x) => x.s >= THRESHOLD);
 
   // Questions à entité : « qui est P6 en LMP2 », « où est la 14 ».
   const n = ` ${norm} `;
@@ -535,12 +541,12 @@ export function route(text: string, lang: string): Route {
     scored.unshift({ d: { id: "positionOf", family: "identity" }, s: 150 });
   }
 
-  if (!scored.length) return empty;
+  if (!scored.length) return { ...empty, guess: all[0] && all[0].s > 0 ? all[0].d.id : null };
   const best = scored[0];
   // Question de jugement sans locution précise (au plus 2 mots) → l'IA, qui a le contexte.
-  if (best.s <= 120 && JUDGMENT.test(n)) return empty;
+  if (best.s <= 120 && JUDGMENT.test(n)) return { ...empty, guess: best.d.id };
   const rival = scored.find((x) => x !== best && !benign(x.d.family, best.d.family));
   const ambiguous = !!rival && best.s - rival.s < MARGIN && best.s < 200;
   const candidates = [...new Set(scored.map((x) => x.d.id))];
-  return { ...empty, intent: ambiguous ? null : best.d.id, ambiguous, candidates };
+  return { ...empty, intent: ambiguous ? null : best.d.id, ambiguous, candidates, guess: best.d.id };
 }

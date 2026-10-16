@@ -161,16 +161,26 @@ pub fn stt_recognize(
         .chunks_exact(2)
         .map(|c| i16::from_le_bytes([c[0], c[1]]))
         .collect();
-    if samples.is_empty() {
+    recognize_grammar_samples(&app, &lang, &samples, &grammar)
+}
+
+/// Reconnaissance **stricte** (grammaire fermée) sur des échantillons déjà décodés
+/// (16 kHz mono) — partagée par `stt_recognize` et le moteur micro (`ptt_end_dual`).
+pub(crate) fn recognize_grammar_samples(
+    app: &tauri::AppHandle,
+    lang: &str,
+    samples: &[i16],
+    grammar: &[String],
+) -> AppResult<String> {
+    if samples.is_empty() || grammar.is_empty() {
         return Ok(String::new());
     }
-
-    let model = get_model(&app, &lang)?;
+    let model = get_model(app, lang)?;
     let grammar_refs: Vec<&str> = grammar.iter().map(|s| s.as_str()).collect();
     let mut rec = Recognizer::new_with_grammar(model, 16_000.0, &grammar_refs)
         .ok_or_else(|| AppError::Internal("Échec d'init du Recognizer Vosk".into()))?;
     rec.set_words(false);
-    let _ = rec.accept_waveform(&samples);
+    let _ = rec.accept_waveform(samples);
     let text = rec
         .final_result()
         .single()

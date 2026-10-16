@@ -1,0 +1,2252 @@
+[
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 0,
+  "ref": "Box, box. Arrêt aux stands demandé",
+  "hyp": "Boxbox arrêt au stand demandé",
+  "wer": 0.667,
+  "cer": 0.074
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 0,
+  "ref": "Box, box. Arrêt aux stands demandé",
+  "hyp": "Box, box, arrêt au stand demandé.",
+  "wer": 0.333,
+  "cer": 0.074
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 0,
+  "ref": "Box, box. Arrêt aux stands demandé",
+  "hyp": "Au revoir, au revoir, au revoir, au revoir, au revoir.",
+  "wer": 1.667,
+  "cer": 1.222
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 0,
+  "ref": "Box, box. Arrêt aux stands demandé",
+  "hyp": "Box, box. Arrêt aux stands demandés.",
+  "wer": 0.167,
+  "cer": 0.037
+ },
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 1,
+  "ref": "Drapeau jaune, attention",
+  "hyp": "Drapeau jaune, attention.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 1,
+  "ref": "Drapeau jaune, attention",
+  "hyp": "Drapeau jaune, attention !",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 1,
+  "ref": "Drapeau jaune, attention",
+  "hyp": "j'ai failli aller, j'ai failli aller, j'ai failli aller, j'ai failli aller...",
+  "wer": 5.333,
+  "cer": 2.286
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 1,
+  "ref": "Drapeau jaune, attention",
+  "hyp": "Drapeau jaune, attention.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 2,
+  "ref": "Drapeau bleu, laisse passer",
+  "hyp": "Drapeau bleu l'est passé.",
+  "wer": 0.75,
+  "cer": 0.261
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 2,
+  "ref": "Drapeau bleu, laisse passer",
+  "hyp": "Drapeau bleu, laisse passer.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 2,
+  "ref": "Drapeau bleu, laisse passer",
+  "hyp": "Au revoir, au revoir, au revoir.",
+  "wer": 1.5,
+  "cer": 0.87
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 2,
+  "ref": "Drapeau bleu, laisse passer",
+  "hyp": "Drapeau bleu, laisse passer.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 3,
+  "ref": "Crevaison !",
+  "hyp": "Crevaison",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 3,
+  "ref": "Crevaison !",
+  "hyp": "crevésum.",
+  "wer": 1.0,
+  "cer": 0.444
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 3,
+  "ref": "Crevaison !",
+  "hyp": "Ah, c'est ça, c'est ça.",
+  "wer": 7.0,
+  "cer": 1.222
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 3,
+  "ref": "Crevaison !",
+  "hyp": "CREVÉZON",
+  "wer": 1.0,
+  "cer": 0.333
+ },
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 4,
+  "ref": "Carburant : environ 3 tours restants",
+  "hyp": "carburant environ trois tours restants",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 4,
+  "ref": "Carburant : environ 3 tours restants",
+  "hyp": "carburant environ trois tours restants.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 4,
+  "ref": "Carburant : environ 3 tours restants",
+  "hyp": "Carburent environ trois tours restants.",
+  "wer": 0.2,
+  "cer": 0.033
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 4,
+  "ref": "Carburant : environ 3 tours restants",
+  "hyp": "carburant environ trois taux restants.",
+  "wer": 0.2,
+  "cer": 0.1
+ },
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 5,
+  "ref": "Moins d'une seconde sur le pilote devant",
+  "hyp": "Moins d'une seconde sur le pilote de vent.",
+  "wer": 0.25,
+  "cer": 0.03
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 5,
+  "ref": "Moins d'une seconde sur le pilote devant",
+  "hyp": "moins d'une seconde sur le pilote devant.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 5,
+  "ref": "Moins d'une seconde sur le pilote devant",
+  "hyp": "avant d'une seconde sur le pilote de veuve.",
+  "wer": 0.375,
+  "cer": 0.242
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 5,
+  "ref": "Moins d'une seconde sur le pilote devant",
+  "hyp": "Moins d'une seconde sur le pilote devant.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 6,
+  "ref": "Virage 4 : freine 10 mètres plus tôt",
+  "hyp": "Virage 4, frein 10 mètres plus tôt.",
+  "wer": 0.143,
+  "cer": 0.036
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 6,
+  "ref": "Virage 4 : freine 10 mètres plus tôt",
+  "hyp": "Virage 4, frein de 10 mètres plus tôt.",
+  "wer": 0.286,
+  "cer": 0.036
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 6,
+  "ref": "Virage 4 : freine 10 mètres plus tôt",
+  "hyp": "20 à 24 mètres plus.",
+  "wer": 0.714,
+  "cer": 0.607
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 6,
+  "ref": "Virage 4 : freine 10 mètres plus tôt",
+  "hyp": "Virage 4. Freine 10 mètres plus tôt.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 7,
+  "ref": "Voilà, c'est ça : 2 dixièmes repris au 7",
+  "hyp": "Voilà, c'est ça, 2e repris au 7.",
+  "wer": 0.222,
+  "cer": 0.241
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 7,
+  "ref": "Voilà, c'est ça : 2 dixièmes repris au 7",
+  "hyp": "Voilà, c'est ça. Deux-dixième repris au sept.",
+  "wer": 0.111,
+  "cer": 0.034
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 7,
+  "ref": "Voilà, c'est ça : 2 dixièmes repris au 7",
+  "hyp": "c'est ça, les deux diziers m'ont repris vos cèvres.",
+  "wer": 0.778,
+  "cer": 0.828
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 7,
+  "ref": "Voilà, c'est ça : 2 dixièmes repris au 7",
+  "hyp": "Voilà, c'est ça. Deuxième repris au 7.",
+  "wer": 0.222,
+  "cer": 0.138
+ },
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 8,
+  "ref": "Virage 3 : ta vitesse de passage baisse, les pneus fatiguent",
+  "hyp": "Virage 3. Ta vitesse de passage baisse, les pneus fatigues.",
+  "wer": 0.1,
+  "cer": 0.042
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 8,
+  "ref": "Virage 3 : ta vitesse de passage baisse, les pneus fatiguent",
+  "hyp": "Virage 3. Ta vitesse de passage baisse, les pneus fatigués.",
+  "wer": 0.1,
+  "cer": 0.062
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 8,
+  "ref": "Virage 3 : ta vitesse de passage baisse, les pneus fatiguent",
+  "hyp": "Érage, trouis, ta vitesse de passage. Baisse les teneux. Fati.",
+  "wer": 0.4,
+  "cer": 0.333
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 8,
+  "ref": "Virage 3 : ta vitesse de passage baisse, les pneus fatiguent",
+  "hyp": "Virage 3. Ta vitesse de passage baisse. Les pneus fatigues.",
+  "wer": 0.1,
+  "cer": 0.042
+ },
+ {
+  "lang": "fr",
+  "voice": "kokoro-ff_siwis",
+  "idx": 9,
+  "ref": "Virage 9 : oublie mon conseil, reviens à ce que tu faisais",
+  "hyp": "Virage 9, oublie mon conseil, reviens à ce que tu faisais.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr",
+  "idx": 9,
+  "ref": "Virage 9 : oublie mon conseil, reviens à ce que tu faisais",
+  "hyp": "Virage 9, oublie mon conseil, reviens à ce que tu faisais.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-mls-medium",
+  "idx": 9,
+  "ref": "Virage 9 : oublie mon conseil, reviens à ce que tu faisais",
+  "hyp": "le virage ne faut oublie, mon conseil revient à ce que tu faisais.",
+  "wer": 0.364,
+  "cer": 0.2
+ },
+ {
+  "lang": "fr",
+  "voice": "piper-fr_FR-siwis-medium",
+  "idx": 9,
+  "ref": "Virage 9 : oublie mon conseil, reviens à ce que tu faisais",
+  "hyp": "Virage neuf, oublie mon conseil, reviens ce que tu faisais.",
+  "wer": 0.091,
+  "cer": 0.022
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 0,
+  "ref": "Box, box. Pit stop requested",
+  "hyp": "Box Box Pit Stop Requested",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 0,
+  "ref": "Box, box. Pit stop requested",
+  "hyp": "Box Box Pit Stop Requested",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 0,
+  "ref": "Box, box. Pit stop requested",
+  "hyp": "Box box pit stop requested",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 0,
+  "ref": "Box, box. Pit stop requested",
+  "hyp": "Box box, pit stop requested.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 0,
+  "ref": "Box, box. Pit stop requested",
+  "hyp": "Box Box  Pit Stop Requested",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 0,
+  "ref": "Box, box. Pit stop requested",
+  "hyp": "box, box, pit stop requested.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 0,
+  "ref": "Box, box. Pit stop requested",
+  "hyp": "Box, box. Fifth stop requested.",
+  "wer": 0.2,
+  "cer": 0.136
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 1,
+  "ref": "Yellow flag, caution",
+  "hyp": "Yellow flag caution.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 1,
+  "ref": "Yellow flag, caution",
+  "hyp": "Yellow flag caution.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 1,
+  "ref": "Yellow flag, caution",
+  "hyp": "Yellow Flag Caution",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 1,
+  "ref": "Yellow flag, caution",
+  "hyp": "Yellow flag, caution.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 1,
+  "ref": "Yellow flag, caution",
+  "hyp": "Yellow flag caution.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 1,
+  "ref": "Yellow flag, caution",
+  "hyp": "yellow flag caution.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 1,
+  "ref": "Yellow flag, caution",
+  "hyp": "Yellow flag. Caution.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 2,
+  "ref": "Blue flag, let them by",
+  "hyp": "Blue flag, let them by.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 2,
+  "ref": "Blue flag, let them by",
+  "hyp": "Blue flag, let them by.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 2,
+  "ref": "Blue flag, let them by",
+  "hyp": "Blue flag, let them by.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 2,
+  "ref": "Blue flag, let them by",
+  "hyp": "Blue flag, let them by.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 2,
+  "ref": "Blue flag, let them by",
+  "hyp": "Blue flag, let them by.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 2,
+  "ref": "Blue flag, let them by",
+  "hyp": "blue flag, let them by.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 2,
+  "ref": "Blue flag, let them by",
+  "hyp": "Boo flag. Let them by.",
+  "wer": 0.2,
+  "cer": 0.176
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 3,
+  "ref": "Puncture!",
+  "hyp": "puncture",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 3,
+  "ref": "Puncture!",
+  "hyp": "Puncture",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 3,
+  "ref": "Puncture!",
+  "hyp": "Puncture!",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 3,
+  "ref": "Puncture!",
+  "hyp": "puncture",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 3,
+  "ref": "Puncture!",
+  "hyp": "Puncture",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 3,
+  "ref": "Puncture!",
+  "hyp": "puncture",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 3,
+  "ref": "Puncture!",
+  "hyp": "puncture",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 4,
+  "ref": "Fuel: about 3 laps remaining",
+  "hyp": "Fuel about three laps remaining.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 4,
+  "ref": "Fuel: about 3 laps remaining",
+  "hyp": "Fuel about three laps remaining.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 4,
+  "ref": "Fuel: about 3 laps remaining",
+  "hyp": "Fuel about three laps remaining.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 4,
+  "ref": "Fuel: about 3 laps remaining",
+  "hyp": "Fuel about three laps remaining.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 4,
+  "ref": "Fuel: about 3 laps remaining",
+  "hyp": "Fuel, about three laps remaining.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 4,
+  "ref": "Fuel: about 3 laps remaining",
+  "hyp": "fuel about three laps remaining.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 4,
+  "ref": "Fuel: about 3 laps remaining",
+  "hyp": "Fuel about three laps remaining.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 5,
+  "ref": "Less than a second to the car ahead",
+  "hyp": "Less than a second to the car ahead.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 5,
+  "ref": "Less than a second to the car ahead",
+  "hyp": "less than a second to the car ahead.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 5,
+  "ref": "Less than a second to the car ahead",
+  "hyp": "less than a second to the car ahead.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 5,
+  "ref": "Less than a second to the car ahead",
+  "hyp": "Less than a second to the car ahead.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 5,
+  "ref": "Less than a second to the car ahead",
+  "hyp": "less than a second to the car ahead.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 5,
+  "ref": "Less than a second to the car ahead",
+  "hyp": "less than a second to the car ahead.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 5,
+  "ref": "Less than a second to the car ahead",
+  "hyp": "less than a second to the car ahead.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 6,
+  "ref": "Turn 4: brake 10 metres earlier",
+  "hyp": "Turn 4, break 10 meters earlier.",
+  "wer": 0.333,
+  "cer": 0.16
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 6,
+  "ref": "Turn 4: brake 10 metres earlier",
+  "hyp": "Turn 4. Break 10 meters earlier.",
+  "wer": 0.333,
+  "cer": 0.16
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 6,
+  "ref": "Turn 4: brake 10 metres earlier",
+  "hyp": "Turn 4, break 10 meters earlier.",
+  "wer": 0.333,
+  "cer": 0.16
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 6,
+  "ref": "Turn 4: brake 10 metres earlier",
+  "hyp": "Turn 4, break 10 meters earlier.",
+  "wer": 0.333,
+  "cer": 0.16
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 6,
+  "ref": "Turn 4: brake 10 metres earlier",
+  "hyp": "Return 4, break 10 meters earlier.",
+  "wer": 0.5,
+  "cer": 0.24
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 6,
+  "ref": "Turn 4: brake 10 metres earlier",
+  "hyp": "Turn 4, break 10 meters earlier.",
+  "wer": 0.333,
+  "cer": 0.16
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 6,
+  "ref": "Turn 4: brake 10 metres earlier",
+  "hyp": "Turn 4 brake 10 meters earlier.",
+  "wer": 0.167,
+  "cer": 0.08
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 7,
+  "ref": "That's it — 2 tenths back at turn 7",
+  "hyp": "That's it, two tenths back at turn seven.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 7,
+  "ref": "That's it — 2 tenths back at turn 7",
+  "hyp": "That's it, 2 tenths back at turn 7.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 7,
+  "ref": "That's it — 2 tenths back at turn 7",
+  "hyp": "That's it, two tenths back at turn seven.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 7,
+  "ref": "That's it — 2 tenths back at turn 7",
+  "hyp": "That's it, two tenths back at turn seven.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 7,
+  "ref": "That's it — 2 tenths back at turn 7",
+  "hyp": "That's it, two tenths back at turn seven.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 7,
+  "ref": "That's it — 2 tenths back at turn 7",
+  "hyp": "That's it, two tenths back at turn seven.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 7,
+  "ref": "That's it — 2 tenths back at turn 7",
+  "hyp": "That's it, two tenths back at turn seven.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 8,
+  "ref": "Turn 3: your minimum speed is dropping, tyres are fading",
+  "hyp": "Turn three. Your minimum speed is dropping. Tires are fading.",
+  "wer": 0.1,
+  "cer": 0.022
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 8,
+  "ref": "Turn 3: your minimum speed is dropping, tyres are fading",
+  "hyp": "Turn three. Your minimum speed is dropping tires are fading",
+  "wer": 0.1,
+  "cer": 0.022
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 8,
+  "ref": "Turn 3: your minimum speed is dropping, tyres are fading",
+  "hyp": "Turn three. Your minimum speed is dropping. Tires are fading.",
+  "wer": 0.1,
+  "cer": 0.022
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 8,
+  "ref": "Turn 3: your minimum speed is dropping, tyres are fading",
+  "hyp": "Turn 3. Your minimum speed is dropping. Tires are fading.",
+  "wer": 0.1,
+  "cer": 0.022
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 8,
+  "ref": "Turn 3: your minimum speed is dropping, tyres are fading",
+  "hyp": "Turn three, your minimum speed is dropping, tires are fading.",
+  "wer": 0.1,
+  "cer": 0.022
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 8,
+  "ref": "Turn 3: your minimum speed is dropping, tyres are fading",
+  "hyp": "Turn 3, your minimum speed is dropping, tyres are fading.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 8,
+  "ref": "Turn 3: your minimum speed is dropping, tyres are fading",
+  "hyp": "Turn 3, your minimum speed is dropping.  Tires are fading.",
+  "wer": 0.1,
+  "cer": 0.022
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-af_heart",
+  "idx": 9,
+  "ref": "Turn 9: forget my advice, go back to what you were doing",
+  "hyp": "Turn 9. Forget my advice. Go back to what you were doing.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-am_michael",
+  "idx": 9,
+  "ref": "Turn 9: forget my advice, go back to what you were doing",
+  "hyp": "Turn 9. Forget my advice, go back to what you were doing.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_george",
+  "idx": 9,
+  "ref": "Turn 9: forget my advice, go back to what you were doing",
+  "hyp": "Turn 9, forget my advice, go back to what you were doing.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "kokoro-bm_lewis",
+  "idx": 9,
+  "ref": "Turn 9: forget my advice, go back to what you were doing",
+  "hyp": "Turn 9. Forget my advice. Go back to what you were doing.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en",
+  "idx": 9,
+  "ref": "Turn 9: forget my advice, go back to what you were doing",
+  "hyp": "Turn 9, forget my advice, go back to what you were doing.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-alan-medium",
+  "idx": 9,
+  "ref": "Turn 9: forget my advice, go back to what you were doing",
+  "hyp": "Turn 9, forget my advice, go back to what you were doing.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "en",
+  "voice": "piper-en_GB-cori-high",
+  "idx": 9,
+  "ref": "Turn 9: forget my advice, go back to what you were doing",
+  "hyp": "Turn nine and forget my advice.  Go back to what you would...",
+  "wer": 0.25,
+  "cer": 0.233
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 0,
+  "ref": "Box, box. Parada en boxes solicitada",
+  "hyp": "Boxbox parada en boxe solicitada.",
+  "wer": 0.5,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 0,
+  "ref": "Box, box. Parada en boxes solicitada",
+  "hyp": "Boxbox parada en boxe solicitada.",
+  "wer": 0.5,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 0,
+  "ref": "Box, box. Parada en boxes solicitada",
+  "hyp": "Voxbox, parada en voxes solicitada.",
+  "wer": 0.5,
+  "cer": 0.069
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 0,
+  "ref": "Box, box. Parada en boxes solicitada",
+  "hyp": "DOXBOX, parada en boxe solicitada.",
+  "wer": 0.5,
+  "cer": 0.069
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 1,
+  "ref": "Bandera amarilla, precaución",
+  "hyp": "Pandera amarilla precaución.",
+  "wer": 0.333,
+  "cer": 0.04
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 1,
+  "ref": "Bandera amarilla, precaución",
+  "hyp": "Pandera amarilla precaución.",
+  "wer": 0.333,
+  "cer": 0.04
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 1,
+  "ref": "Bandera amarilla, precaución",
+  "hyp": "¡Prendera amarilla! Precaución.",
+  "wer": 0.333,
+  "cer": 0.12
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 1,
+  "ref": "Bandera amarilla, precaución",
+  "hyp": "bandera amarilla, precaución.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 2,
+  "ref": "Bandera azul, deja pasar",
+  "hyp": "Pandera Azul, deja pasar.",
+  "wer": 0.25,
+  "cer": 0.05
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 2,
+  "ref": "Bandera azul, deja pasar",
+  "hyp": "Pandera Azul deja pasar.",
+  "wer": 0.25,
+  "cer": 0.05
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 2,
+  "ref": "Bandera azul, deja pasar",
+  "hyp": "grande rafur, deja pasar.",
+  "wer": 0.5,
+  "cer": 0.25
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 2,
+  "ref": "Bandera azul, deja pasar",
+  "hyp": "bandera azul deja pasar",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 3,
+  "ref": "¡Pinchazo!",
+  "hyp": "¡Pinchazo!",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 3,
+  "ref": "¡Pinchazo!",
+  "hyp": "Pinchazo.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 3,
+  "ref": "¡Pinchazo!",
+  "hyp": "Pintazo",
+  "wer": 1.0,
+  "cer": 0.25
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 3,
+  "ref": "¡Pinchazo!",
+  "hyp": "Pincheso",
+  "wer": 1.0,
+  "cer": 0.25
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 4,
+  "ref": "Combustible: quedan unas 3 vueltas",
+  "hyp": "Combustible, quedan unas tres vueltas.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 4,
+  "ref": "Combustible: quedan unas 3 vueltas",
+  "hyp": "Combustible, quedan unas tres vueltas.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 4,
+  "ref": "Combustible: quedan unas 3 vueltas",
+  "hyp": "combustible, quedan unas tres vueltas.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 4,
+  "ref": "Combustible: quedan unas 3 vueltas",
+  "hyp": "combustible, quedan unas tres vueltas.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 5,
+  "ref": "Menos de un segundo con el piloto de delante",
+  "hyp": "Menos de un segundo con el piloto de delante.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 5,
+  "ref": "Menos de un segundo con el piloto de delante",
+  "hyp": "menos de un segundo con el piloto de delante.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 5,
+  "ref": "Menos de un segundo con el piloto de delante",
+  "hyp": "menos de un segundo con el piloto de delante.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 5,
+  "ref": "Menos de un segundo con el piloto de delante",
+  "hyp": "menos de un segundo con el piloto de delante.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metros antes",
+  "hyp": "Curva 4, frena 10 metros antes.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metros antes",
+  "hyp": "Curva 4, frena 10 metros antes.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metros antes",
+  "hyp": "Ulva 4, frena 10 metros antes.",
+  "wer": 0.167,
+  "cer": 0.083
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metros antes",
+  "hyp": "Curva 4, frena 10 metros antes.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 7,
+  "ref": "Eso es: 2 décimas recuperadas en la 7",
+  "hyp": "Eso es, dos décimas recuperadas en las siete.",
+  "wer": 0.125,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 7,
+  "ref": "Eso es: 2 décimas recuperadas en la 7",
+  "hyp": "Eso es dos décimas recuperadas en las siete.",
+  "wer": 0.125,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 7,
+  "ref": "Eso es: 2 décimas recuperadas en la 7",
+  "hyp": "Eso es, dos décimas recuperadas en las siete.",
+  "wer": 0.125,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 7,
+  "ref": "Eso es: 2 décimas recuperadas en la 7",
+  "hyp": "Eso es, dos décimas recuperadas en las siete.",
+  "wer": 0.125,
+  "cer": 0.034
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 8,
+  "ref": "Curva 3: tu velocidad de paso baja, los neumáticos se degradan",
+  "hyp": "Curva 3, tu velocidad de paso baja, los neumáticos se degradan.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 8,
+  "ref": "Curva 3: tu velocidad de paso baja, los neumáticos se degradan",
+  "hyp": "Curva 3, tu velocidad de paso baja, los neumáticos se degradan.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 8,
+  "ref": "Curva 3: tu velocidad de paso baja, los neumáticos se degradan",
+  "hyp": "1V3, tu velocidad de paso baja, los nomáticos se degradan",
+  "wer": 0.273,
+  "cer": 0.12
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 8,
+  "ref": "Curva 3: tu velocidad de paso baja, los neumáticos se degradan",
+  "hyp": "Curva 3, tu velocidad de paso baja, los neumáticos se degradan.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-ef_dora",
+  "idx": 9,
+  "ref": "Curva 9: olvida mi consejo, vuelve a lo que hacías",
+  "hyp": "Curva 9, olvida mi consejo, vuelve a lo que hacías.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "kokoro-em_alex",
+  "idx": 9,
+  "ref": "Curva 9: olvida mi consejo, vuelve a lo que hacías",
+  "hyp": "Curva 9. Olvida mi consejo. Vuelve a lo que hacías.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es",
+  "idx": 9,
+  "ref": "Curva 9: olvida mi consejo, vuelve a lo que hacías",
+  "hyp": "Curva el mueve, olvida mi consejo, vuelve a lo que hacías.",
+  "wer": 0.2,
+  "cer": 0.179
+ },
+ {
+  "lang": "es",
+  "voice": "piper-es_MX-claude-high",
+  "idx": 9,
+  "ref": "Curva 9: olvida mi consejo, vuelve a lo que hacías",
+  "hyp": "Curvan 9. Olvida mi consejo. Vuelve a lo que hacías.",
+  "wer": 0.1,
+  "cer": 0.026
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 0,
+  "ref": "Box, Box. Boxenstopp angefordert",
+  "hyp": "Box, Box, Boxenstopp angefordert.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 0,
+  "ref": "Box, Box. Boxenstopp angefordert",
+  "hyp": "Box, Box, Boxenstock angefordert.",
+  "wer": 0.25,
+  "cer": 0.074
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 0,
+  "ref": "Box, Box. Boxenstopp angefordert",
+  "hyp": "Box, Box, Boxen stopp angefordert.",
+  "wer": 0.5,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 0,
+  "ref": "Box, Box. Boxenstopp angefordert",
+  "hyp": "Boxbox, Boxens Top, angefordert!",
+  "wer": 0.75,
+  "cer": 0.037
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 1,
+  "ref": "Gelbe Flagge, Vorsicht",
+  "hyp": "Gelbe Flage, Vorsicht!",
+  "wer": 0.333,
+  "cer": 0.053
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 1,
+  "ref": "Gelbe Flagge, Vorsicht",
+  "hyp": "Gelbe Flage, Vorsicht!",
+  "wer": 0.333,
+  "cer": 0.053
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 1,
+  "ref": "Gelbe Flagge, Vorsicht",
+  "hyp": "Gelbe Flagge, Vorsicht.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 1,
+  "ref": "Gelbe Flagge, Vorsicht",
+  "hyp": "Dellbeflagge vor sich.",
+  "wer": 1.0,
+  "cer": 0.158
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 2,
+  "ref": "Blaue Flagge, vorbeilassen",
+  "hyp": "Blau Flagge vorbei lassen.",
+  "wer": 1.0,
+  "cer": 0.043
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 2,
+  "ref": "Blaue Flagge, vorbeilassen",
+  "hyp": "Die lauere Flagge. Vorbeilassen.",
+  "wer": 0.667,
+  "cer": 0.217
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 2,
+  "ref": "Blaue Flagge, vorbeilassen",
+  "hyp": "blaue Flagge vorbeilassen.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 2,
+  "ref": "Blaue Flagge, vorbeilassen",
+  "hyp": "Lauflagge vorbeilassen.",
+  "wer": 0.667,
+  "cer": 0.087
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 3,
+  "ref": "Reifenschaden!",
+  "hyp": "Reifenschaden.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 3,
+  "ref": "Reifenschaden!",
+  "hyp": "Haifenschaden",
+  "wer": 1.0,
+  "cer": 0.154
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 3,
+  "ref": "Reifenschaden!",
+  "hyp": "Reifen schaden.",
+  "wer": 2.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 3,
+  "ref": "Reifenschaden!",
+  "hyp": "Reifenschaden",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 4,
+  "ref": "Kraftstoff: noch etwa 3 Runden",
+  "hyp": "Kraftstoff noch etwa drei Runden.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 4,
+  "ref": "Kraftstoff: noch etwa 3 Runden",
+  "hyp": "Kraftstuf. Noch etwa drei Runden.",
+  "wer": 0.2,
+  "cer": 0.08
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 4,
+  "ref": "Kraftstoff: noch etwa 3 Runden",
+  "hyp": "Kraftstoff noch etwa drei Runden.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 4,
+  "ref": "Kraftstoff: noch etwa 3 Runden",
+  "hyp": "Kraftstoff noch etwa drei Runden.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 5,
+  "ref": "Weniger als eine Sekunde auf den Vordermann",
+  "hyp": "Weniger als eine Sekunde auf den Vordermann.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 5,
+  "ref": "Weniger als eine Sekunde auf den Vordermann",
+  "hyp": "weniger als eine Sekunde auf den Vordermann.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 5,
+  "ref": "Weniger als eine Sekunde auf den Vordermann",
+  "hyp": "weniger als eine Sekunde auf den Vordermann.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 5,
+  "ref": "Weniger als eine Sekunde auf den Vordermann",
+  "hyp": "weniger als eine Sekunde auf den Vordermann.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 6,
+  "ref": "Kurve 4: bremse 10 Meter früher",
+  "hyp": "Kurve 4, Bremse 10 mit der Früh.",
+  "wer": 0.5,
+  "cer": 0.16
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 6,
+  "ref": "Kurve 4: bremse 10 Meter früher",
+  "hyp": "Kurve 4, Bremse 10 Meter früher.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 6,
+  "ref": "Kurve 4: bremse 10 Meter früher",
+  "hyp": "Kurve 4, Bremse 10 Meter frühen.",
+  "wer": 0.167,
+  "cer": 0.04
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 6,
+  "ref": "Kurve 4: bremse 10 Meter früher",
+  "hyp": "Kurve 4, bremse 10 Meter früher.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 7,
+  "ref": "Genau so: 2 Zehntel gut in Kurve 7",
+  "hyp": "Genauso 2 Zentelgut in Kurve 7.",
+  "wer": 0.5,
+  "cer": 0.038
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 7,
+  "ref": "Genau so: 2 Zehntel gut in Kurve 7",
+  "hyp": "Genauso, zwei Zehntel gut in Kurve sieben.",
+  "wer": 0.25,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 7,
+  "ref": "Genau so: 2 Zehntel gut in Kurve 7",
+  "hyp": "Genauso, zwei Zähnkegut in Kurve 7.",
+  "wer": 0.5,
+  "cer": 0.115
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 7,
+  "ref": "Genau so: 2 Zehntel gut in Kurve 7",
+  "hyp": "Genau so. Zwei Zinthelgut in Kurve 7.",
+  "wer": 0.25,
+  "cer": 0.115
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 8,
+  "ref": "Kurve 3: deine Kurvengeschwindigkeit sinkt, die Reifen bauen ab",
+  "hyp": "Kurve 3 bei einer Kurvengeschwindigkeit sinkt die Reifenbauen ab.",
+  "wer": 0.444,
+  "cer": 0.075
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 8,
+  "ref": "Kurve 3: deine Kurvengeschwindigkeit sinkt, die Reifen bauen ab",
+  "hyp": "Kurve 3. Deine Kurvengeschwindigkeit sinkt, die Reifen bauen ab.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 8,
+  "ref": "Kurve 3: deine Kurvengeschwindigkeit sinkt, die Reifen bauen ab",
+  "hyp": "Kurve 3, deine Kurvengeschwindigkeit sinkt die Reifenbauen ab.",
+  "wer": 0.222,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 8,
+  "ref": "Kurve 3: deine Kurvengeschwindigkeit sinkt, die Reifen bauen ab",
+  "hyp": "Deine Kurve 3. Deine Kurvengeschwindigkeit sinkt, die Reifen bauen ab.",
+  "wer": 0.111,
+  "cer": 0.094
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de",
+  "idx": 9,
+  "ref": "Kurve 9: vergiss meinen Tipp, mach es wieder wie vorher",
+  "hyp": "Kurve 9, vergiss meinen Tipp, mach es wieder wie vorher.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-eva_k-x_low",
+  "idx": 9,
+  "ref": "Kurve 9: vergiss meinen Tipp, mach es wieder wie vorher",
+  "hyp": "Kurve neun. Vergiss meinen Tipp. Mach es wieder wie vorher.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten-high",
+  "idx": 9,
+  "ref": "Kurve 9: vergiss meinen Tipp, mach es wieder wie vorher",
+  "hyp": "Kurve 9, vergiss meinen Tipp, mach es wieder wie vorher.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "de",
+  "voice": "piper-de_DE-thorsten_emotional-medium",
+  "idx": 9,
+  "ref": "Kurve 9: vergiss meinen Tipp, mach es wieder wie vorher",
+  "hyp": "Kurve neuen. Fertigst meinen Tipp. Mach es wir wie vorher.",
+  "wer": 0.3,
+  "cer": 0.273
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 0,
+  "ref": "Box, box. Sosta richiesta",
+  "hyp": "Bocs Bocs Sostari Chieste",
+  "wer": 1.0,
+  "cer": 0.25
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 0,
+  "ref": "Box, box. Sosta richiesta",
+  "hyp": "Boxbox o sta richiesta.",
+  "wer": 0.75,
+  "cer": 0.05
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 0,
+  "ref": "Box, box. Sosta richiesta",
+  "hyp": "Boss, Boss, so staricchio sta.",
+  "wer": 1.25,
+  "cer": 0.3
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 0,
+  "ref": "Box, box. Sosta richiesta",
+  "hyp": "Voxbog, c'ho stari chieste.",
+  "wer": 1.25,
+  "cer": 0.25
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 0,
+  "ref": "Box, box. Sosta richiesta",
+  "hyp": "box box. Sosta richiesta.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 0,
+  "ref": "Box, box. Sosta richiesta",
+  "hyp": "Box Box. Sosta richiesta.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 1,
+  "ref": "Bandiera gialla, attenzione",
+  "hyp": "Bandiera gialla, attenzione!",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 1,
+  "ref": "Bandiera gialla, attenzione",
+  "hyp": "Bandiera gialla, attenzione",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 1,
+  "ref": "Bandiera gialla, attenzione",
+  "hyp": "Bandira gialla, attenzione!",
+  "wer": 0.333,
+  "cer": 0.042
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 1,
+  "ref": "Bandiera gialla, attenzione",
+  "hyp": "Bandiera gialla, attenzione",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 1,
+  "ref": "Bandiera gialla, attenzione",
+  "hyp": "Bandiera gialla, attenzione",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 1,
+  "ref": "Bandiera gialla, attenzione",
+  "hyp": "Bandiera gialla, attenzione!",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 2,
+  "ref": "Bandiera blu, lascia passare",
+  "hyp": "Bandiera blu lascia passare.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 2,
+  "ref": "Bandiera blu, lascia passare",
+  "hyp": "Bandiera blu lascia passare.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 2,
+  "ref": "Bandiera blu, lascia passare",
+  "hyp": "bandiera blu lascia passare",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 2,
+  "ref": "Bandiera blu, lascia passare",
+  "hyp": "bandiera blu, lascia passare",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 2,
+  "ref": "Bandiera blu, lascia passare",
+  "hyp": "Bandiera Blue. Lascia passare.",
+  "wer": 0.25,
+  "cer": 0.042
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 2,
+  "ref": "Bandiera blu, lascia passare",
+  "hyp": "Bandiera blu, lascia passare.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 3,
+  "ref": "Foratura!",
+  "hyp": "Foratura",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 3,
+  "ref": "Foratura!",
+  "hyp": "Foratura",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 3,
+  "ref": "Foratura!",
+  "hyp": "Foratura",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 3,
+  "ref": "Foratura!",
+  "hyp": "Toratura",
+  "wer": 1.0,
+  "cer": 0.125
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 3,
+  "ref": "Foratura!",
+  "hyp": "Foratura",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 3,
+  "ref": "Foratura!",
+  "hyp": "Foratura",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 4,
+  "ref": "Carburante: circa 3 giri rimanenti",
+  "hyp": "carburante circa tre giri rimanenti",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 4,
+  "ref": "Carburante: circa 3 giri rimanenti",
+  "hyp": "carburante circa tre giri rimanenti.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 4,
+  "ref": "Carburante: circa 3 giri rimanenti",
+  "hyp": "carburante, cerca 3 giri rimanenti.",
+  "wer": 0.2,
+  "cer": 0.034
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 4,
+  "ref": "Carburante: circa 3 giri rimanenti",
+  "hyp": "carburante circa tre giri rimanenti",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 4,
+  "ref": "Carburante: circa 3 giri rimanenti",
+  "hyp": "Carburante. Circa tre giri rimanenti.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 4,
+  "ref": "Carburante: circa 3 giri rimanenti",
+  "hyp": "carburante, circa tre giri rimanenti",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 5,
+  "ref": "Meno di un secondo dalla vettura davanti",
+  "hyp": "meno di un secondo dalla vettura davanti",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 5,
+  "ref": "Meno di un secondo dalla vettura davanti",
+  "hyp": "meno di un secondo dalla vettura davanti",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 5,
+  "ref": "Meno di un secondo dalla vettura davanti",
+  "hyp": "meno di un secondo dalla vettura davanti.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 5,
+  "ref": "Meno di un secondo dalla vettura davanti",
+  "hyp": "meno di un secondo dalla vettura davanti.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 5,
+  "ref": "Meno di un secondo dalla vettura davanti",
+  "hyp": "meno di un secondo dalla vettura davanti.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 5,
+  "ref": "Meno di un secondo dalla vettura davanti",
+  "hyp": "meno di un secondo dalla vettura davanti.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metri prima",
+  "hyp": "Curva 4, frena 10 metri prima",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metri prima",
+  "hyp": "Curva 4, frena 10 metri prima",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metri prima",
+  "hyp": "Curva 4, frena 10 metri prima.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metri prima",
+  "hyp": "Curve 4, frena 10 metri prima.",
+  "wer": 0.167,
+  "cer": 0.043
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metri prima",
+  "hyp": "Cuova 4, frena 10 metri prima.",
+  "wer": 0.167,
+  "cer": 0.043
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 6,
+  "ref": "Curva 4: frena 10 metri prima",
+  "hyp": "Curva 4, frena 10 metri prima.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 7,
+  "ref": "Ecco, così: 2 decimi recuperati alla 7",
+  "hyp": "Ecco così i 2 decimi recuperati alla 7.",
+  "wer": 0.143,
+  "cer": 0.033
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 7,
+  "ref": "Ecco, così: 2 decimi recuperati alla 7",
+  "hyp": "Ecco così i 2 decimi recuperati alla 7",
+  "wer": 0.143,
+  "cer": 0.033
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 7,
+  "ref": "Ecco, così: 2 decimi recuperati alla 7",
+  "hyp": "Ecco, così, 2 decimi recuperati alla 7.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 7,
+  "ref": "Ecco, così: 2 decimi recuperati alla 7",
+  "hyp": "Ecco così, due decimi recuperati all'assettere.",
+  "wer": 0.286,
+  "cer": 0.267
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 7,
+  "ref": "Ecco, così: 2 decimi recuperati alla 7",
+  "hyp": "Ecco, così, due decimi recuperati alla 7",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 7,
+  "ref": "Ecco, così: 2 decimi recuperati alla 7",
+  "hyp": "Ecco, così, 2 decimi recuperati alla 7.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 8,
+  "ref": "Curva 3: la tua velocità minima sta calando, le gomme si stanno degradando",
+  "hyp": "Curva 3 La tua velocità minima sta calando, le gomme si stanno degradando.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 8,
+  "ref": "Curva 3: la tua velocità minima sta calando, le gomme si stanno degradando",
+  "hyp": "Curva 3, la tua velocità minima sta calando, le gomme si stanno degradando.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 8,
+  "ref": "Curva 3: la tua velocità minima sta calando, le gomme si stanno degradando",
+  "hyp": "Curva 3, la tua velocità minima sta calando, le gomme si stanno degradando.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 8,
+  "ref": "Curva 3: la tua velocità minima sta calando, le gomme si stanno degradando",
+  "hyp": "Curva 3. La tua velocità minima sta calando, le gomme si stanno degradando.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 8,
+  "ref": "Curva 3: la tua velocità minima sta calando, le gomme si stanno degradando",
+  "hyp": "Curva 3. La tua velocità minima sta calando, le gomme si stanno degradando.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 8,
+  "ref": "Curva 3: la tua velocità minima sta calando, le gomme si stanno degradando",
+  "hyp": "Culva 3. La tua velocità minima sta calando, le gomme si stanno degradando.",
+  "wer": 0.077,
+  "cer": 0.017
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-if_sara",
+  "idx": 9,
+  "ref": "Curva 9: dimentica il mio consiglio, torna a come facevi prima",
+  "hyp": "Curva 9 dimentica il mio consiglio, torna come facevi prima.",
+  "wer": 0.091,
+  "cer": 0.02
+ },
+ {
+  "lang": "it",
+  "voice": "kokoro-im_nicola",
+  "idx": 9,
+  "ref": "Curva 9: dimentica il mio consiglio, torna a come facevi prima",
+  "hyp": "Curva 9 dimentica il mio consiglio, torna come facevi prima",
+  "wer": 0.091,
+  "cer": 0.02
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-paola-medium",
+  "idx": 9,
+  "ref": "Curva 9: dimentica il mio consiglio, torna a come facevi prima",
+  "hyp": "Curva 9, dimenticare il mio consiglio, torna come facevi prima.",
+  "wer": 0.182,
+  "cer": 0.06
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-riccardo-x_low",
+  "idx": 9,
+  "ref": "Curva 9: dimentica il mio consiglio, torna a come facevi prima",
+  "hyp": "Curva 9, dimentica il mio consiglio, torna a come facevi prima.",
+  "wer": 0.0,
+  "cer": 0.0
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-high-patched",
+  "idx": 9,
+  "ref": "Curva 9: dimentica il mio consiglio, torna a come facevi prima",
+  "hyp": "Curva 9, dimentica il mio consiglio, torna come facevi prima.",
+  "wer": 0.091,
+  "cer": 0.02
+ },
+ {
+  "lang": "it",
+  "voice": "piper-it_IT-serena-medium-patched",
+  "idx": 9,
+  "ref": "Curva 9: dimentica il mio consiglio, torna a come facevi prima",
+  "hyp": "Curva 9, dimentica il mio consiglio, torna come facevi prima.",
+  "wer": 0.091,
+  "cer": 0.02
+ }
+]

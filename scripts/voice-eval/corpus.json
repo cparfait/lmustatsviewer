@@ -1,0 +1,212 @@
+{
+  "fr": [
+    {
+      "key": "vPitRequest",
+      "text": "Box, box. Arrêt aux stands demandé"
+    },
+    {
+      "key": "vFlagYellow",
+      "text": "Drapeau jaune, attention"
+    },
+    {
+      "key": "vBlueFlag",
+      "text": "Drapeau bleu, laisse passer"
+    },
+    {
+      "key": "vPuncture",
+      "text": "Crevaison !"
+    },
+    {
+      "key": "vFuelLaps",
+      "text": "Carburant : environ 3 tours restants"
+    },
+    {
+      "key": "vGapAhead",
+      "text": "Moins d'une seconde sur le pilote devant"
+    },
+    {
+      "key": "vCornerBrakeEarly",
+      "text": "Virage 4 : freine 10 mètres plus tôt"
+    },
+    {
+      "key": "vCornerResolved",
+      "text": "Voilà, c'est ça : 2 dixièmes repris au 7"
+    },
+    {
+      "key": "vStintTireFade",
+      "text": "Virage 3 : ta vitesse de passage baisse, les pneus fatiguent"
+    },
+    {
+      "key": "vCornerWorse",
+      "text": "Virage 9 : oublie mon conseil, reviens à ce que tu faisais"
+    }
+  ],
+  "en": [
+    {
+      "key": "vPitRequest",
+      "text": "Box, box. Pit stop requested"
+    },
+    {
+      "key": "vFlagYellow",
+      "text": "Yellow flag, caution"
+    },
+    {
+      "key": "vBlueFlag",
+      "text": "Blue flag, let them by"
+    },
+    {
+      "key": "vPuncture",
+      "text": "Puncture!"
+    },
+    {
+      "key": "vFuelLaps",
+      "text": "Fuel: about 3 laps remaining"
+    },
+    {
+      "key": "vGapAhead",
+      "text": "Less than a second to the car ahead"
+    },
+    {
+      "key": "vCornerBrakeEarly",
+      "text": "Turn 4: brake 10 metres earlier"
+    },
+    {
+      "key": "vCornerResolved",
+      "text": "That's it — 2 tenths back at turn 7"
+    },
+    {
+      "key": "vStintTireFade",
+      "text": "Turn 3: your minimum speed is dropping, tyres are fading"
+    },
+    {
+      "key": "vCornerWorse",
+      "text": "Turn 9: forget my advice, go back to what you were doing"
+    }
+  ],
+  "es": [
+    {
+      "key": "vPitRequest",
+      "text": "Box, box. Parada en boxes solicitada"
+    },
+    {
+      "key": "vFlagYellow",
+      "text": "Bandera amarilla, precaución"
+    },
+    {
+      "key": "vBlueFlag",
+      "text": "Bandera azul, deja pasar"
+    },
+    {
+      "key": "vPuncture",
+      "text": "¡Pinchazo!"
+    },
+    {
+      "key": "vFuelLaps",
+      "text": "Combustible: quedan unas 3 vueltas"
+    },
+    {
+      "key": "vGapAhead",
+      "text": "Menos de un segundo con el piloto de delante"
+    },
+    {
+      "key": "vCornerBrakeEarly",
+      "text": "Curva 4: frena 10 metros antes"
+    },
+    {
+      "key": "vCornerResolved",
+      "text": "Eso es: 2 décimas recuperadas en la 7"
+    },
+    {
+      "key": "vStintTireFade",
+      "text": "Curva 3: tu velocidad de paso baja, los neumáticos se degradan"
+    },
+    {
+      "key": "vCornerWorse",
+      "text": "Curva 9: olvida mi consejo, vuelve a lo que hacías"
+    }
+  ],
+  "de": [
+    {
+      "key": "vPitRequest",
+      "text": "Box, Box. Boxenstopp angefordert"
+    },
+    {
+      "key": "vFlagYellow",
+      "text": "Gelbe Flagge, Vorsicht"
+    },
+    {
+      "key": "vBlueFlag",
+      "text": "Blaue Flagge, vorbeilassen"
+    },
+    {
+      "key": "vPuncture",
+      "text": "Reifenschaden!"
+    },
+    {
+      "key": "vFuelLaps",
+      "text": "Kraftstoff: noch etwa 3 Runden"
+    },
+    {
+      "key": "vGapAhead",
+      "text": "Weniger als eine Sekunde auf den Vordermann"
+    },
+    {
+      "key": "vCornerBrakeEarly",
+      "text": "Kurve 4: bremse 10 Meter früher"
+    },
+    {
+      "key": "vCornerResolved",
+      "text": "Genau so: 2 Zehntel gut in Kurve 7"
+    },
+    {
+      "key": "vStintTireFade",
+      "text": "Kurve 3: deine Kurvengeschwindigkeit sinkt, die Reifen bauen ab"
+    },
+    {
+      "key": "vCornerWorse",
+      "text": "Kurve 9: vergiss meinen Tipp, mach es wieder wie vorher"
+    }
+  ],
+  "it": [
+    {
+      "key": "vPitRequest",
+      "text": "Box, box. Sosta richiesta"
+    },
+    {
+      "key": "vFlagYellow",
+      "text": "Bandiera gialla, attenzione"
+    },
+    {
+      "key": "vBlueFlag",
+      "text": "Bandiera blu, lascia passare"
+    },
+    {
+      "key": "vPuncture",
+      "text": "Foratura!"
+    },
+    {
+      "key": "vFuelLaps",
+      "text": "Carburante: circa 3 giri rimanenti"
+    },
+    {
+      "key": "vGapAhead",
+      "text": "Meno di un secondo dalla vettura davanti"
+    },
+    {
+      "key": "vCornerBrakeEarly",
+      "text": "Curva 4: frena 10 metri prima"
+    },
+    {
+      "key": "vCornerResolved",
+      "text": "Ecco, così: 2 decimi recuperati alla 7"
+    },
+    {
+      "key": "vStintTireFade",
+      "text": "Curva 3: la tua velocità minima sta calando, le gomme si stanno degradando"
+    },
+    {
+      "key": "vCornerWorse",
+      "text": "Curva 9: dimentica il mio consiglio, torna a come facevi prima"
+    }
+  ]
+}

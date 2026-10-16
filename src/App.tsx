@@ -27,6 +27,7 @@ import { Profile } from "@/routes/Profile";
 import { NotFound } from "@/routes/NotFound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DialogHost } from "@/components/DialogHost";
+import { LaunchIntro } from "@/components/LaunchIntro";
 import { useAppStore } from "@/stores/app";
 import { fetchBenchmarks } from "@/lib/ohne_speed";
 import { useSpotter } from "@/lib/useSpotter";
@@ -119,6 +120,8 @@ export default function App() {
       {/* Ingénieur de course : annonces live actives sur toutes les pages. */}
       <RaceEngineerHost />
       <DialogHost />
+      {/* Animation de lancement (désactivable dans Configuration → Préférences). */}
+      {!isLive && <LaunchIntro />}
       {!isLive && !needsOnboarding && <Header />}
       {!isLive && !needsOnboarding && <UpdateBanner />}
       {showSetupReminder && <SetupReminderBanner />}

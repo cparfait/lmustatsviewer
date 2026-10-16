@@ -107,7 +107,7 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
   });
 
   if (!detail) {
-    $("notice").innerHTML = `<div class="empty"><b>${esc(t("notFound"))}</b><a href="/">${esc(t("back"))}</a></div>`;
+    $("notice").innerHTML = `<div class="empty"><b>${esc(t("notFound"))}</b><a href="/classements.html">${esc(t("back"))}</a></div>`;
     $("lbBody").innerHTML = "";
     return;
   }

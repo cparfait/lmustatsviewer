@@ -21,6 +21,9 @@ use tauri::{Emitter, Manager};
 /// Dépôt des voix Piper, figé sur un commit pour des URLs immuables.
 const HF_BASE: &str = "https://huggingface.co/rhasspy/piper-voices/resolve";
 const HF_COMMIT: &str = "e21c7de8d4eab79b902f0d61e662b3f21664b8d2";
+/// Commit plus récent du même dépôt (2026-09) : voix ajoutées après le premier
+/// catalogue (Serena, Sharvard). Les anciennes voix restent sur `HF_COMMIT`.
+const HF_COMMIT_2026: &str = "c10ece1aade47bb51c153c893d14e5bf8e5b7117";
 /// Modèles Vosk « small » (archives zip avec un dossier racine à aplatir).
 const VOSK_BASE: &str = "https://alphacephei.com/vosk/models";
 
@@ -30,6 +33,8 @@ struct TtsVoice {
     lang: &'static str,
     label: &'static str,
     hf_path: &'static str,
+    /// Commit HuggingFace des fichiers (URLs immuables).
+    commit: &'static str,
     size: u64,
     sha256: &'static str,
 }
@@ -37,17 +42,21 @@ struct TtsVoice {
 /// Même catalogue que l'ancien bundle (cf. `scripts/fetch-piper.ps1`) :
 /// `<langue>.onnx` = voix par défaut de la langue, le reste = alternatives.
 const TTS_VOICES: &[TtsVoice] = &[
-    TtsVoice { id: "fr", lang: "fr", label: "Tom", hf_path: "fr/fr_FR/tom/medium/fr_FR-tom-medium", size: 63_511_038, sha256: "bf65074ccdeeeeaa832e75edb1c0a513c01c9a972bdf085ff8a6e71ea234fd41" },
-    TtsVoice { id: "fr_FR-siwis-medium", lang: "fr", label: "Siwis", hf_path: "fr/fr_FR/siwis/medium/fr_FR-siwis-medium", size: 63_201_294, sha256: "641d1ab097da2b81128c076810edb052b385decc8be3381814802a64a73baf99" },
-    TtsVoice { id: "fr_FR-upmc-medium", lang: "fr", label: "UPMC", hf_path: "fr/fr_FR/upmc/medium/fr_FR-upmc-medium", size: 76_733_615, sha256: "9abb3800c199148897a9ed64e100d224f3de83579f100044174ad19418f1786f" },
-    TtsVoice { id: "en", lang: "en", label: "Ryan", hf_path: "en/en_US/ryan/medium/en_US-ryan-medium", size: 63_201_294, sha256: "abf4c274862564ed647ba0d2c47f8ee7c9b717d27bdad9219100eb310db4047a" },
-    TtsVoice { id: "en_GB-alan-medium", lang: "en", label: "Alan", hf_path: "en/en_GB/alan/medium/en_GB-alan-medium", size: 63_201_294, sha256: "0a309668932205e762801f1efc2736cd4b0120329622adf62be09e56339d3330" },
-    TtsVoice { id: "es", lang: "es", label: "DaveFX", hf_path: "es/es_ES/davefx/medium/es_ES-davefx-medium", size: 63_201_294, sha256: "6658b03b1a6c316ee4c265a9896abc1393353c2d9e1bca7d66c2c442e222a917" },
-    TtsVoice { id: "es_MX-claude-high", lang: "es", label: "Claude", hf_path: "es/es_MX/claude/high/es_MX-claude-high", size: 63_122_309, sha256: "3ef40a71ea63852cd8ab7e6fa7d2ecdcfa67a0b47c9c48e3f10e02ee02083ea0" },
-    TtsVoice { id: "de", lang: "de", label: "Thorsten", hf_path: "de/de_DE/thorsten/medium/de_DE-thorsten-medium", size: 63_201_294, sha256: "7e64762d8e5118bb578f2eea6207e1a35a8e0c30595010b666f983fc87bb7819" },
-    TtsVoice { id: "de_DE-eva_k-x_low", lang: "de", label: "Eva K", hf_path: "de/de_DE/eva_k/x_low/de_DE-eva_k-x_low", size: 20_628_813, sha256: "e88cf290fbfb768bf111330d2e8a46e376b0d85e3423a28bfebbc863a260dad8" },
-    TtsVoice { id: "it", lang: "it", label: "Paola", hf_path: "it/it_IT/paola/medium/it_IT-paola-medium", size: 63_511_038, sha256: "6fc918b5a0ea6137382833dddfa567bffbe6a5060c02043c87192ee59c04210c" },
-    TtsVoice { id: "it_IT-riccardo-x_low", lang: "it", label: "Riccardo", hf_path: "it/it_IT/riccardo/x_low/it_IT-riccardo-x_low", size: 28_130_791, sha256: "1368de15f123275a7ef951c9e5e30be0f58a032daa14a0da44037443c1d1d21b" },
+    TtsVoice { id: "fr", lang: "fr", label: "Tom", hf_path: "fr/fr_FR/tom/medium/fr_FR-tom-medium", commit: HF_COMMIT, size: 63_511_038, sha256: "bf65074ccdeeeeaa832e75edb1c0a513c01c9a972bdf085ff8a6e71ea234fd41" },
+    TtsVoice { id: "fr_FR-siwis-medium", lang: "fr", label: "Siwis", hf_path: "fr/fr_FR/siwis/medium/fr_FR-siwis-medium", commit: HF_COMMIT, size: 63_201_294, sha256: "641d1ab097da2b81128c076810edb052b385decc8be3381814802a64a73baf99" },
+    TtsVoice { id: "fr_FR-upmc-medium", lang: "fr", label: "UPMC", hf_path: "fr/fr_FR/upmc/medium/fr_FR-upmc-medium", commit: HF_COMMIT, size: 76_733_615, sha256: "9abb3800c199148897a9ed64e100d224f3de83579f100044174ad19418f1786f" },
+    TtsVoice { id: "en", lang: "en", label: "Ryan", hf_path: "en/en_US/ryan/medium/en_US-ryan-medium", commit: HF_COMMIT, size: 63_201_294, sha256: "abf4c274862564ed647ba0d2c47f8ee7c9b717d27bdad9219100eb310db4047a" },
+    TtsVoice { id: "en_GB-alan-medium", lang: "en", label: "Alan", hf_path: "en/en_GB/alan/medium/en_GB-alan-medium", commit: HF_COMMIT, size: 63_201_294, sha256: "0a309668932205e762801f1efc2736cd4b0120329622adf62be09e56339d3330" },
+    TtsVoice { id: "es", lang: "es", label: "DaveFX", hf_path: "es/es_ES/davefx/medium/es_ES-davefx-medium", commit: HF_COMMIT, size: 63_201_294, sha256: "6658b03b1a6c316ee4c265a9896abc1393353c2d9e1bca7d66c2c442e222a917" },
+    TtsVoice { id: "es_MX-claude-high", lang: "es", label: "Claude", hf_path: "es/es_MX/claude/high/es_MX-claude-high", commit: HF_COMMIT, size: 63_122_309, sha256: "3ef40a71ea63852cd8ab7e6fa7d2ecdcfa67a0b47c9c48e3f10e02ee02083ea0" },
+    TtsVoice { id: "de", lang: "de", label: "Thorsten", hf_path: "de/de_DE/thorsten/medium/de_DE-thorsten-medium", commit: HF_COMMIT, size: 63_201_294, sha256: "7e64762d8e5118bb578f2eea6207e1a35a8e0c30595010b666f983fc87bb7819" },
+    TtsVoice { id: "de_DE-eva_k-x_low", lang: "de", label: "Eva K", hf_path: "de/de_DE/eva_k/x_low/de_DE-eva_k-x_low", commit: HF_COMMIT, size: 20_628_813, sha256: "e88cf290fbfb768bf111330d2e8a46e376b0d85e3423a28bfebbc863a260dad8" },
+    TtsVoice { id: "it", lang: "it", label: "Paola", hf_path: "it/it_IT/paola/medium/it_IT-paola-medium", commit: HF_COMMIT, size: 63_511_038, sha256: "6fc918b5a0ea6137382833dddfa567bffbe6a5060c02043c87192ee59c04210c" },
+    // Évaluation 2026-10-15 (voice-eval/) : erreurs de transcription 2,0 % (Sharvard)
+    // contre 11,1 % pour DaveFX ; 0,4 % (Serena) contre 4,4 % pour Paola, même latence.
+    TtsVoice { id: "es_ES-sharvard-medium", lang: "es", label: "Sharvard", hf_path: "es/es_ES/sharvard/medium/es_ES-sharvard-medium", commit: HF_COMMIT_2026, size: 76_733_615, sha256: "40febfb1679c69a4505ff311dc136e121e3419a13a290ef264fdf43ddedd0fb1" },
+    TtsVoice { id: "it_IT-serena-medium", lang: "it", label: "Serena", hf_path: "it/it_IT/serena/medium/it_IT-serena-medium", commit: HF_COMMIT_2026, size: 63_516_051, sha256: "fe4e26b2c1236e2a44d2e295cad564d94a0d8b0a9fca1ccdfd70dd4af3116eb5" },
+    TtsVoice { id: "it_IT-riccardo-x_low", lang: "it", label: "Riccardo", hf_path: "it/it_IT/riccardo/x_low/it_IT-riccardo-x_low", commit: HF_COMMIT, size: 28_130_791, sha256: "1368de15f123275a7ef951c9e5e30be0f58a032daa14a0da44037443c1d1d21b" },
 ];
 
 struct SttModel {
@@ -249,6 +258,37 @@ async fn download_file(
     Ok(())
 }
 
+/// Retire de `phoneme_id_map` les entrées de plus d'un caractère.
+///
+/// Les voix entraînées avec Piper ≥ 1.5 (ex. Serena) y déclarent des diphtongues
+/// (`"aɪ"`, `"oʊ"`…) que notre `piper.exe` (2023) refuse : il s'arrête sur
+/// « is not a single codepoint » sans rien synthétiser. Ces diphtongues ne sortent
+/// pas de la phonétisation espeak-ng de nos langues ; les retirer rend la voix
+/// utilisable (vérifié à l'écoute et par transcription, cf. `voice-eval/`).
+/// Sans effet sur les voix plus anciennes (aucune entrée concernée).
+fn sanitize_voice_json(path: &Path) -> AppResult<()> {
+    let txt = std::fs::read_to_string(path)?;
+    if let Some(fixed) = strip_multi_codepoint_phonemes(&txt)? {
+        std::fs::write(path, fixed)?;
+    }
+    Ok(())
+}
+
+/// `Some(json corrigé)` si des entrées ont été retirées, `None` sinon.
+fn strip_multi_codepoint_phonemes(txt: &str) -> AppResult<Option<String>> {
+    let mut v: serde_json::Value = serde_json::from_str(txt)
+        .map_err(|e| AppError::Parse(format!("métadonnées de voix invalides: {e}")))?;
+    let Some(map) = v.get_mut("phoneme_id_map").and_then(|m| m.as_object_mut()) else {
+        return Ok(None);
+    };
+    let before = map.len();
+    map.retain(|k, _| k.chars().count() == 1);
+    if map.len() == before {
+        return Ok(None);
+    }
+    Ok(Some(serde_json::to_string_pretty(&v).map_err(|e| AppError::Internal(e.to_string()))?))
+}
+
 /// Extrait une archive zip dans `dest` en **aplatissant le dossier racine**
 /// (les archives Vosk contiennent un unique dossier `vosk-model-…/`).
 /// `enclosed_name()` neutralise toute tentative de path traversal.
@@ -316,9 +356,11 @@ pub async fn asset_download(
             };
             // Métadonnées d'abord (8 Ko) : le `.onnx` seul serait ignoré par
             // `tts.rs::read_meta` en cas d'interruption entre les deux fichiers.
-            let json_url = format!("{HF_BASE}/{HF_COMMIT}/{}.onnx.json", voice.hf_path);
-            download_file(&app, &client, &json_url, &dir.join(format!("{id}.onnx.json")), None, &progress).await?;
-            let onnx_url = format!("{HF_BASE}/{HF_COMMIT}/{}.onnx", voice.hf_path);
+            let json_url = format!("{HF_BASE}/{}/{}.onnx.json", voice.commit, voice.hf_path);
+            let json_path = dir.join(format!("{id}.onnx.json"));
+            download_file(&app, &client, &json_url, &json_path, None, &progress).await?;
+            sanitize_voice_json(&json_path)?;
+            let onnx_url = format!("{HF_BASE}/{}/{}.onnx", voice.commit, voice.hf_path);
             download_file(&app, &client, &onnx_url, &dir.join(format!("{id}.onnx")), Some(voice.sha256), &progress).await?;
             let _ = app.emit("asset-progress", AssetProgress { downloaded: voice.size, ..progress });
         }
@@ -357,4 +399,35 @@ pub async fn asset_download(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn strips_only_multi_codepoint_phonemes() {
+        let src = r#"{"phoneme_id_map":{"a":[14],"ɪ":[74],"aɪ":[161],"oʊ":[165]},"num_speakers":1}"#;
+        let out = strip_multi_codepoint_phonemes(src).unwrap().expect("corrigé");
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+        let map = v["phoneme_id_map"].as_object().unwrap();
+        assert_eq!(map.len(), 2);
+        assert!(map.contains_key("a") && map.contains_key("ɪ"));
+        assert_eq!(v["num_speakers"], 1);
+    }
+
+    #[test]
+    fn leaves_classic_voices_untouched() {
+        let src = r#"{"phoneme_id_map":{"a":[14],"ɪ":[74]}}"#;
+        assert!(strip_multi_codepoint_phonemes(src).unwrap().is_none());
+    }
+
+    #[test]
+    fn catalog_has_one_default_per_language() {
+        for lang in ["fr", "en", "es", "de", "it"] {
+            assert_eq!(TTS_VOICES.iter().filter(|v| v.lang == lang && v.id == lang).count(), 1, "{lang}");
+        }
+        let ids: HashSet<_> = TTS_VOICES.iter().map(|v| v.id).collect();
+        assert_eq!(ids.len(), TTS_VOICES.len(), "ids uniques");
+    }
 }

@@ -890,6 +890,51 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Veille TrackMind, 4ᵉ passe REA : acquisition de la télémétrie (aucun code modifié)
+
+**Demande** : « en utilisant REA regarde comment trackmind gère la télémétrie ». Lecture statique du
+pack OTA actif (`%LOCALAPPDATA%\SLM Engineer\maj\pack_278`, v0.8.27 build 278, `.py` en clair) :
+`commun/sources/*`, `lmu_data.py`, `lmu_rest.py`, `lecture_course.py`, `telemetrie_lmu_disque.py`.
+App Python → aucun outil REA natif utile ; cible jamais exécutée. Idées seulement, rien de repris.
+
+- ✅ **Architecture** : interface `SourceTelemetrie` (une par simu : LMU, iRacing, ACC/R3E en bêta
+  derrière variable d'env.) → le « cerveau » ne voit que des dicts `(session, joueur, voitures)`.
+  Auto-détection du simu qui écrit vraiment. **Cadences séparées** : passe complète 1 Hz, duel/spotter
+  ~4 Hz, drapeaux seuls ~4 Hz (lecture de quelques octets), fil haute fréquence dédié.
+- ✅ **4 canaux LMU, chacun dans son fil, tous « bonus » sauf le 1er** :
+  1. mémoire partagée du plugin rF2 (`$rFactor2SMMP_*$`, plugin 3.7.15.1 — son DMA ne s'arme jamais
+     sur LMU, donc Message Center muet) ;
+  2. fil « équilibre » qui suit **`mVersionUpdateEnd`** et traite chaque trame une seule fois (pas de
+     cadence fixe) : sous-virage/survirage, vibreurs roue par roue (`mSurfaceType`, garde au sol,
+     débattement), tête-à-queue, TC/ABS/patinage déduits ; `SimInfo` propre au fil ;
+  3. `LMU_Data` à **50 Hz** pour le seul **`scoringStream`** (64 Ko, lignes XML éphémères) :
+     pénalités avec **type et cause** (`Penalty="Stop/Go" Reason="Speeding In Pitlane"`), purge,
+     décisions limites de piste (`Resolution` 2 = pénalité, 5 = tour annulé, 7 = sans suite).
+     Calage du bloc scoring sur le chemin `CustomPluginVariables.JSON` ; ouverture seule, jamais de
+     création, jamais le verrou du jeu, relecture jusqu'à 2 lectures identiques ;
+  4. REST `127.0.0.1:6397` en worker 2 s, TTL 8 s, recul 60 s, GET seul (allowlist), 5 états.
+- ✅ **Fiabilité de lecture** : `lire_coherent` = lecture seulement si `mVersionUpdateBegin ==
+  mVersionUpdateEnd`, re-vérifiée après extraction (anti « torn read », surtout en ligne).
+  Liaison `absent / fige / vivant` : « vivant » seulement après avoir **vu les compteurs avancer**
+  (jamais d'analyse sur la mémoire figée d'une course précédente). Fermeture déterministe des vues
+  (sinon handles orphelins qui gardent `$rFactor2SMMP_*$` en vie après fermeture de LMU).
+- ✅ **REST coupé au garage** : identité REST = mémoire partagée ; joueur `mInGarageStall` → plus de
+  polling (plantages LMU 1.4130 observés dans les **écrans d'interface/setup**, jamais en piste) ;
+  liaison perdue → polling coupé dans `etat_liaison()` (sinon il continuait dans les menus).
+- ✅ **DuckDB en séance** : le `.duckdb` du jeu se **déverrouille à chaque retour au stand** (12 Ko
+  verrouillé en piste → ~10 Mo lisible à l'arrêt) → débrief châssis au stand, toujours **sur une
+  copie**. Canaux annoncés mais jamais écrits : `FrontDownForce`, `Drag`, `Yaw Rate`, `Steered Angle`…
+- ✅ **Comparaison V3** : déjà présents — 3 cartes rF2 + `LMU_Data` (maps électroniques, seuils
+  limites de piste), REST (timeout 1,2 s, TTL 8 s, recul 60 s, `sessionInfo` d'abord), gel par
+  `mCurrentET` figé 2 s, DuckDB post-séance, `OpenFileMappingW` sans création.
+  **Écarts** : (a) `m_version_update_begin/end` déclarés dans `live.rs` mais **jamais utilisés**
+  → pas de protection torn read ; (b) REST non coupé quand le joueur est **au garage**
+  (`m_in_garage_stall` déjà lu) ; (c) `scoringStream` non lu → pas de pénalité avec cause ;
+  (d) DuckDB lu seulement après séance ; échantillonnage live à cadence fixe 20 Hz.
+- 📋 **Prochaine étape** : (b) en premier (risque de plantage, coût minime : suspendre les routes
+  `garage/*` quand `m_in_garage_stall`), puis (a) lecture cohérente dans `read_shm`/scoring, puis
+  étudier (c) pour le coach/spotter (pénalités annoncées avec leur motif).
+
 ### 2026-10-16 — Intro de lancement : seulement le plan du titre
 
 **Demande** : « à l'ouverture de l'app, il ne faut que les 3 dernières secondes de l'animation », puis

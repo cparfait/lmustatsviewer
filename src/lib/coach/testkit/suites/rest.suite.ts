@@ -23,6 +23,7 @@ import {
 import { fromGameNodes, pickForecast } from "@/lib/engineer/forecast";
 import { AlertLatch } from "@/lib/engineer/alertLatch";
 import { route } from "@/lib/engineer/router";
+import { defaultPhrases, matchIntent } from "@/lib/spotterCommands";
 import { coverage, mapComplete, nearestIndex, pathOfRuns, sectorOf, sectorPolylines, splitRuns } from "@/lib/trackMapGeom";
 import { isSetupQuestion } from "@/lib/ai/context/records-context";
 import type { LiveData, LmuRestLive, RestField, RestPitScreen, RestSessionInfo, RestVehicle, RestWeekendWeather } from "@/lib/api";
@@ -212,6 +213,15 @@ export function run(): void {
     eq(route(q, lang).intent, "brakeWear", `« ${q} » (${lang})`);
   }
   ok(route("température des freins", "fr").intent !== "brakeWear", "température des freins ≠ usure");
+  // Push-to-talk (grammaire fermée) : chaque phrase « plaquettes » doit aussi
+  // être comprise par le routeur, et ne pas capter la température des freins.
+  for (const lang of ["fr", "en", "es", "de", "it"]) {
+    for (const ph of defaultPhrases(lang, "brakeWear")) {
+      eq(route(ph, lang).intent, "brakeWear", `grammaire « ${ph} » (${lang}) → routeur`);
+      eq(matchIntent(ph, lang), "brakeWear", `grammaire « ${ph} » (${lang}) → commande`);
+    }
+  }
+  ok(matchIntent("température des freins", "fr") !== "brakeWear", "push-to-talk : température des freins ≠ usure");
 
   section("lmuRest.perte au stand");
   {

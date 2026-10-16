@@ -76,6 +76,8 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vTyreWear", vars: [] },
       { key: "vPuncture", vars: [] },
       { key: "vTyreOverheat", vars: [] },
+      { key: "vTyresToWets", vars: [] },
+      { key: "vTyresToSlicks", vars: [] },
     ],
   },
   {

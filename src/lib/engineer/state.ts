@@ -14,6 +14,7 @@ import { BrakeMap, type DriverSnapshot } from "./focus";
 import type { WetData } from "./forecast";
 import { PadWearTracker } from "@/lib/lmuRest";
 import { StintRegistry } from "./rivalStints";
+import { TyreWearTracker, WarmupTracker, WetnessTrend } from "./tyres";
 
 export interface ForecastState {
   data: WetData;
@@ -28,6 +29,14 @@ class EngineerState {
   pit = new PitWindowTracker();
   /** Arrêts et relais de tout le plateau (registre des arrêts adverses). */
   stints = new StintRegistry();
+  /** Usure des pneus du joueur par roue et par tour. */
+  tyreWear = new TyreWearTracker();
+  /** Humidité de la trajectoire (tendance) : pluie ou slicks. */
+  wetness = new WetnessTrend();
+  /** Coût de chauffe des pneus mesuré sur tout le plateau. */
+  warmup = new WarmupTracker();
+  /** Coûts de chauffe mémorisés (`circuit::classe` → s), chargés au démarrage. */
+  warmupPrior: Record<string, number> = {};
   watches = new WatchList();
   /** Fichier `.wet` retenu pour le circuit courant (non validé). */
   forecast: ForecastState | null = null;
@@ -53,6 +62,9 @@ class EngineerState {
     this.pads.reset();
     this.pit.reset();
     this.stints.reset();
+    this.tyreWear.reset();
+    this.wetness.reset();
+    this.warmup.reset();
     this.watches.clear();
     this.forecastValid = false;
     this.lastPitCallLap = -99;

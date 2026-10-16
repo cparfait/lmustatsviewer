@@ -215,5 +215,17 @@ export function buildLiveContext(data: LiveData): string {
     lines.push(...stints);
   }
 
+  // Pneus mesurés : usure par roue et par tour, chauffe après un arrêt.
+  const per = engineer.tyreWear.perLap();
+  const myCls = data.standings.find((s) => s.is_player)?.vehicle_class;
+  const warm = myCls ? (engineer.warmup.median(myCls) ?? engineer.warmupPrior[`${data.session?.track}::${myCls}`]) : null;
+  if (per.some((x) => x != null) || warm != null) {
+    lines.push("");
+    lines.push("## Tyre strategy (measured)");
+    if (per.some((x) => x != null))
+      lines.push(`Wear per lap (% of rubber, FL/FR/RL/RR): ${per.map((x) => (x == null ? "?" : x.toFixed(2))).join(" / ")}`);
+    if (warm != null) lines.push(`Cold-tyre warm-up cost after a stop (this class, measured): ~${warm.toFixed(1)} s`);
+  }
+
   return lines.join("\n");
 }

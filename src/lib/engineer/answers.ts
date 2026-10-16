@@ -22,6 +22,7 @@ import { brakePads, gameForecast, guardPerLap, officialEnergyPerLap } from "@/li
 import { normalize, type AnswerIntent, type Entities, type WatchSpec } from "./router";
 import type { WatchCond } from "./watches";
 import { coachCornerLosses } from "@/lib/coach/service";
+import { isWetCompound, tyreChangePlan, wheelWear, type WheelId } from "./tyres";
 
 /** Fenêtre de température « de travail » des pneus (°C, générique). */
 export const TYRE_WINDOW: [number, number] = [75, 105];
@@ -116,6 +117,16 @@ function energyLaps(d: LiveData): number | null {
   const ve = d.extended?.virtual_energy ?? 0;
   const per = energyPerLap(d);
   return ve > 0 && per ? ve / per : null;
+}
+
+/** Longueur d'un relais à plein (tours) : énergie virtuelle ou réservoir. */
+function nextStintLaps(d: LiveData, energy: boolean): number | null {
+  const tel = d.telemetry;
+  if (energy) {
+    const per = energyPerLap(d);
+    return per ? 1 / per : null;
+  }
+  return tel && tel.fuel_consumption > 0 && tel.fuel_capacity > 0 ? tel.fuel_capacity / tel.fuel_consumption : null;
 }
 
 /** Fenêtre d'arrêt courante (carburant + énergie virtuelle). */
@@ -341,16 +352,7 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
     case "stops": {
       const { strat, info } = currentPitWindow(d);
       if (!info || strat?.sessionLapsLeft == null) return noData;
-      const tel = d.telemetry;
-      const perStint =
-        info.limitedBy === "energy"
-          ? (() => {
-              const per = energyPerLap(d);
-              return per ? 1 / per : null;
-            })()
-          : tel && tel.fuel_consumption > 0 && tel.fuel_capacity > 0
-            ? tel.fuel_capacity / tel.fuel_consumption
-            : null;
+      const perStint = nextStintLaps(d, info.limitedBy === "energy");
       const n = stopsNeeded(strat.sessionLapsLeft, info.rangeLaps, perStint);
       if (n == null) return noData;
       return n === 0 ? t("live.spNoStopNeeded") : t("live.spStops", { count: n });
@@ -379,6 +381,36 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       parts.push(t(est.fromClass ? "live.spRStintClass" : "live.spRStint", { n: stint }));
       if (est.lapsToNext != null) parts.push(est.lapsToNext <= 0 ? t("live.spRDue") : t("live.spRNext", { when: whenLaps(t, est.lapsToNext) }));
       if (est.stopsLeft != null) parts.push(est.stopsLeft === 0 ? t("live.spRLeftNone") : t("live.spRLeft", { count: est.stopsLeft }));
+      return parts.join(", ");
+    }
+
+    case "tyreChange": {
+      const tel = d.telemetry;
+      const wear = wheelWear(tel?.wheels);
+      if (!tel || !wear) return noData;
+      const parts: string[] = [];
+      const onWets = isWetCompound(tel.front_compound) || isWetCompound(tel.rear_compound);
+      const call = engineer.wetness.call(onWets, d.weather?.rain ?? 0);
+      if (call) parts.push(t(call === "toWets" ? "live.spTyresToWets" : "live.spTyresToSlicks"));
+      else {
+        const per = engineer.tyreWear.perLap();
+        if (per.every((x) => x == null)) parts.push(t("live.spTyreChangeUnknown"));
+        else {
+          const { strat, info } = currentPitWindow(d);
+          const stint = nextStintLaps(d, info?.limitedBy === "energy") ?? info?.rangeLaps ?? null;
+          if (stint == null) return noData;
+          const plan = tyreChangePlan(wear, per, stint, strat?.sessionLapsLeft ?? null);
+          const wheel = (id: WheelId) => t(`live.spWheel${id[0].toUpperCase()}${id[1]}`);
+          if (!plan.change.length) parts.push(t(plan.toFinish ? "live.spTyreChangeFinish" : "live.spTyreChangeNone"));
+          else if (plan.change.length === 4) parts.push(t("live.spTyreChangeAll"));
+          else parts.push(t("live.spTyreChangeSome", { list: plan.change.map(wheel).join(t("live.spAnd")) }));
+          if (!plan.change.length) return parts.join(". ");
+        }
+      }
+      const me2 = meOf(d);
+      const cls = me2?.vehicle_class ?? "";
+      const warm = engineer.warmup.median(cls) ?? engineer.warmupPrior[`${d.session!.track}::${cls}`] ?? null;
+      if (warm != null && warm >= 1) parts.push(t("live.spTyreWarmup", { s: Math.round(warm) }));
       return parts.join(", ");
     }
 

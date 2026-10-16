@@ -11,6 +11,7 @@ import { StintRegistry, stintsOf, lapsLeftFor } from "@/lib/engineer/rivalStints
 import { route } from "@/lib/engineer/router";
 import { answerIntent } from "@/lib/engineer/answers";
 import { engineer } from "@/lib/engineer/state";
+import { TyreWearTracker, tyreChangePlan, WetnessTrend, WarmupTracker, isWetCompound } from "@/lib/engineer/tyres";
 
 export const st = (o: Partial<LiveStanding>): LiveStanding =>
   ({
@@ -108,6 +109,50 @@ export function run(): void {
     eq(stintsOf({ driver: "x", cls: "GT3", stopLaps: [20, 21, 41], fromStart: true }), [20, 20], "relais < 3 tours ignoré");
   }
 
+  section("strategy.tyres");
+  {
+    const w = new TyreWearTracker();
+    for (let lap = 0; lap < 5; lap++) w.push([90 - lap * 3, 90 - lap * 2, 90 - lap, 90 - lap]);
+    const per = w.perLap();
+    ok(Math.abs(per[0]! - 3) < 1e-9 && Math.abs(per[1]! - 2) < 1e-9, "usure par tour par roue");
+    w.push([99, 99, 99, 99]);
+    eq(w.perLap(), [null, null, null, null], "pneus changés : pente réinitialisée");
+
+    // 20 tours de relais : AVG 70 − 3×20 = 10 (falaise), AVD 70 − 40 = 30 (tient).
+    const plan = tyreChangePlan([70, 70, 80, 85], [3, 2, 1, 1], 20, null);
+    eq(plan.change, ["fl"], "seul l'avant gauche passe sous la falaise");
+    eq(tyreChangePlan([70, 70, 80, 85], [3, 2, 1, 1], 20, 8), { change: [], toFinish: true }, "fin de course proche : rien à changer");
+    eq(tyreChangePlan([30, 30, 30, 30], [1, 1, 1, 1], 20, null).change.length, 4, "quatre pneus usés");
+
+    const wt = new WetnessTrend();
+    wt.push(0, 0.05);
+    wt.push(60, 0.13);
+    eq(wt.call(false, 0.3), "toWets", "piste qui se mouille + pluie : pneus pluie");
+    eq(wt.call(true, 0.3), null, "déjà en pneus pluie");
+    const dry = new WetnessTrend();
+    dry.push(0, 0.4);
+    dry.push(100, 0.1);
+    eq(dry.call(true, 0), "toSlicks", "piste qui sèche : slicks");
+    eq(dry.call(false, 0), null, "déjà en slicks");
+    ok(isWetCompound("Wet") && !isWetCompound("Medium"), "gomme pluie reconnue");
+  }
+  {
+    // Chauffe : meilleurs S2/S3 vus = 30,5/30,2 (le 1er instantané ne boucle aucun tour) ;
+    // tour de sortie S2/S3 = 33/31 (+3,3 s), tour suivant 101 vs 100 (+1 s).
+    const wu = new WarmupTracker();
+    const frame = (laps: number, stops: number, s2: number, s3: number, last: number, inPits = false) =>
+      data([st({ driver: "A", vehicle_class: "GT3", total_laps: laps, num_pitstops: stops, last_s2: s2, last_s3: s3, last_lap_time: last, best_lap_time: 100, in_pits: inPits })]);
+    wu.push(frame(5, 0, 30, 30, 100), true);
+    wu.push(frame(6, 0, 30.5, 30.2, 100.7), true);
+    wu.push(frame(7, 0, 31, 40, 110), true); // tour d'entrée
+    wu.push(frame(7, 1, 31, 40, 110, true), true); // arrêt compté
+    wu.push(frame(8, 1, 33, 31, 125), true); // tour de sortie
+    const got = wu.push(frame(9, 1, 30.5, 30.5, 101), true);
+    eq(got.length, 1, "une mesure de chauffe");
+    ok(Math.abs(got[0].seconds - 4.3) < 1e-9, `chauffe = 3,3 s (sortie) + 1 s (tour suivant) — ${got[0]?.seconds}`);
+    eq(wu.median("GT3"), null, "médiane : 2 mesures minimum");
+  }
+
   section("strategy.voice");
   {
     eq(route("quand s'arrête le leader ?", "fr").intent, "rivalStops", "FR : quand s'arrête le leader");
@@ -117,6 +162,11 @@ export function run(): void {
     eq(route("cuando para el lider", "es").intent, "rivalStops", "ES");
     eq(route("wann stoppt der führende", "de").intent, "rivalStops", "DE");
     eq(route("quando si ferma il leader", "it").intent, "rivalStops", "IT");
+    eq(route("quels pneus je change ?", "fr").intent, "tyreChange", "FR : quels pneus");
+    eq(route("pneus pluie ou slicks", "fr").intent, "tyreChange", "FR : pluie ou slicks");
+    eq(route("mes pneus", "fr").intent, "tyres", "FR : « mes pneus » reste l'état des pneus");
+    eq(route("which tyres to change", "en").intent, "tyreChange", "EN : tyres");
+    eq(route("wie viele reifen", "de").intent, "tyreChange", "DE : reifen");
 
     engineer.resetSession();
     race(engineer.stints, 45);

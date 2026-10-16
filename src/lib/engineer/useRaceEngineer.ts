@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { live as liveApi, type LiveData } from "@/lib/api";
+import { config, live as liveApi, type LiveData } from "@/lib/api";
 import type { Tr } from "@/i18n";
 import {
   speak as rawSpeak,
@@ -47,6 +47,7 @@ import { VigieTracker } from "./vigie";
 import { BOX_CRITICAL_LAPS } from "./pitWindow";
 import { consistentWithLive, parseWet, pickWetFile, wetSession } from "./forecast";
 import { engineer } from "./state";
+import { isWetCompound, wheelWear } from "./tyres";
 import { radioClass, radioName } from "./text";
 import { scopedPosition } from "@/lib/livePosition";
 import {
@@ -101,6 +102,25 @@ const BLUE_AFTER_PREVIEW_S = 30;
  * du seuil, puis se tait pendant `cooldownMs`. Évite le spam sur les pics
  * transitoires (ex. freins chauds à chaque gros freinage).
  */
+/**
+ * Coût de chauffe mesuré : mémorisé par circuit × classe (`tyre_warmup_map`)
+ * pour servir dès la séance suivante (réponses « quels pneus changer »).
+ */
+function saveWarmup(track: string, cls: string, seconds: number): void {
+  if (!track || !cls) return;
+  void (async () => {
+    try {
+      const raw = (await config.get("tyre_warmup_map")) || "{}";
+      const map = JSON.parse(raw) as Record<string, number>;
+      map[`${track}::${cls}`] = Math.round(seconds * 10) / 10;
+      engineer.warmupPrior = map;
+      await config.set("tyre_warmup_map", JSON.stringify(map));
+    } catch {
+      /* persistance best-effort */
+    }
+  })();
+}
+
 function sustainedAlert(
   s: { since: number; last: number },
   over: boolean,
@@ -259,6 +279,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   // Usure : état « sous le seuil tenu » (filtre les frames de télémétrie
   // corrompues au lancement → fausse « usure pneus critique »).
   const tyreLow = useRef({ since: 0, last: 0 });
+  const crossoverHold = useRef({ since: 0, last: 0 });
+  const crossoverSaid = useRef<"toWets" | "toSlicks" | null>(null);
   const engineTempWarned = useRef(false);
   const rainHeavy = useRef(false);
   const blueWarned = useRef(false);
@@ -321,6 +343,17 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     const keys = proximity ? [...PREWARM_KEYS, ...Object.values(SPOT_KEYS)] : PREWARM_KEYS;
     void prewarmSpeech(keys.map((k) => t(k)), lang);
   }, [enabled, proximity, lang, t]);
+
+  // Coûts de chauffe mémorisés (séances précédentes) : chargés une fois.
+  useEffect(() => {
+    if (!enabled) return;
+    void config
+      .get("tyre_warmup_map")
+      .then((raw) => {
+        engineer.warmupPrior = JSON.parse(raw || "{}") as Record<string, number>;
+      })
+      .catch(() => {});
+  }, [enabled]);
 
   // Spotter de proximité : à chaque trame, hors arbitre (sa priorité passe avant
   // tout et tient le canal quelques secondes).
@@ -433,6 +466,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       tone.current.reset();
       sectors.current.reset();
       rivalPits.current.reset();
+      crossoverSaid.current = null;
       battery.current.reset();
       vigie.current.reset();
       engineer.resetSession();
@@ -734,7 +768,23 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         engineer.energy.push(data.extended?.virtual_energy ?? 0);
         const pads = brakePads(data.rest);
         engineer.pads.push(pads ? Math.min(...pads) : null);
+        const wear = wheelWear(tel?.wheels);
+        if (wear) engineer.tyreWear.push(wear);
       }
+
+      // ── Pneus : chauffe mesurée sur tout le plateau, pluie ou slicks ─────
+      const green = sc.game_phase === 5;
+      for (const m of engineer.warmup.push(data, green)) {
+        if (m.cls === playerStanding?.vehicle_class) saveWarmup(sc.track, m.cls, engineer.warmup.median(m.cls) ?? m.seconds);
+      }
+      if (data.weather) engineer.wetness.push(sc.session_time, data.weather.path_wetness_avg);
+      const onWets = isWetCompound(tel?.front_compound) || isWetCompound(tel?.rear_compound);
+      const call = tel && warmedUp && !inPits ? engineer.wetness.call(onWets, data.weather?.rain ?? 0) : null;
+      if (sustainedAlert(crossoverHold.current, call != null, now, 30000, 0) && call && crossoverSaid.current !== call) {
+        crossoverSaid.current = call;
+        say(`tyres:crossover:${call}`, t(call === "toWets" ? "live.vTyresToWets" : "live.vTyresToSlicks"), "normal", { score: 60, retryS: 30 });
+      }
+      if (!call) crossoverSaid.current = null;
       if (!inPits && lapDone && player.last_lap_time > 0) {
         const best = player.best_lap_time;
         const isPb = best > 0 && (prevBest.current <= 0 || best < prevBest.current - 0.001);

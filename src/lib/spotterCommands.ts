@@ -38,6 +38,7 @@ export type Intent =
   | "brakeBias"
   | "brakeWear"
   | "rivalStops"
+  | "tyreChange"
   | "battery"
   | "sessionBest"
   | "pitWindow"
@@ -71,6 +72,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     brakeBias: ["répartition", "répartition de freinage"],
     brakeWear: ["plaquettes", "usure des freins"],
     rivalStops: ["arrêts du leader", "arrêts des rivaux", "relais du leader"],
+    tyreChange: ["quels pneus changer", "pneus pluie ou slicks"],
     battery: ["batterie", "énergie", "hybride"],
     sessionBest: ["meilleur tour de la session", "meilleur temps de la session"],
     pitWindow: ["quand m'arrêter", "quand je m'arrête", "fenêtre d'arrêt", "jusqu'à quand"],
@@ -102,6 +104,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     brakeBias: ["brake bias", "brake balance"],
     brakeWear: ["brake pads", "brake wear"],
     rivalStops: ["leader stops", "rival stops", "leader stint"],
+    tyreChange: ["which tyres", "wets or slicks"],
     battery: ["battery", "energy", "hybrid"],
     sessionBest: ["session best", "fastest lap", "best lap of the session"],
     pitWindow: ["when do i pit", "pit window", "when should i pit"],
@@ -133,6 +136,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     brakeBias: ["reparto de frenada", "reparto de frenos"],
     brakeWear: ["pastillas", "desgaste de frenos"],
     rivalStops: ["paradas del líder", "paradas de los rivales"],
+    tyreChange: ["qué neumáticos cambio", "lluvia o slicks"],
     battery: ["batería", "energía", "híbrido"],
     sessionBest: ["mejor vuelta de la sesión", "vuelta rápida"],
     pitWindow: ["cuándo paro", "ventana de parada", "cuándo entro"],
@@ -164,6 +168,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     brakeBias: ["bremsbalance", "bremsverteilung"],
     brakeWear: ["bremsbeläge", "bremsverschleiß"],
     rivalStops: ["stopps des führenden", "stopps der gegner"],
+    tyreChange: ["welche reifen", "regen oder slicks"],
     battery: ["batterie", "energie", "hybrid"],
     sessionBest: ["schnellste runde", "bestzeit der session"],
     pitWindow: ["wann komme ich rein", "boxenfenster", "wann muss ich rein"],
@@ -198,6 +203,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     brakeBias: ["ripartizione", "ripartizione di frenata", "bilanciamento freni"],
     brakeWear: ["pastiglie", "usura freni"],
     rivalStops: ["soste del leader", "soste degli avversari"],
+    tyreChange: ["quali gomme cambio", "pioggia o slick"],
     battery: ["batteria", "energia", "ibrido"],
     sessionBest: ["miglior giro della sessione", "giro più veloce", "miglior tempo della sessione"],
     pitWindow: ["quando devo rientrare", "quando rientro", "quando mi fermo", "finestra di sosta", "fino a quando"],
@@ -218,6 +224,7 @@ const INTENT_ORDER: Intent[] = [
   "sessionBest",
   "pitWindow",
   "rivalStops",
+  "tyreChange",
   "stops",
   "tyreTemp",
   "forecast",
@@ -267,6 +274,7 @@ export const INTENTS: Intent[] = [
   "brakeBias",
   "brakeWear",
   "rivalStops",
+  "tyreChange",
   "battery",
   "sessionBest",
   "ackBox",

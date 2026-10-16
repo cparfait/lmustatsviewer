@@ -885,6 +885,18 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   familles radio situation + stratégie (gel de fin de course). Intention vocale `rivalStops`
   (« quand s'arrête le leader ? », « arrêts de la voiture devant ? », voiture citée), grammaire Vosk
   5 langues ; contexte Coach IA (« Rival pit stops in my class »). Suite `strategy.suite.ts`.
+- ✅ **㉒ + ㉓ Pneus** (`engineer/tyres.ts`, pur) :
+  - usure par roue et par tour (6 tours, remise à zéro quand la gomme remonte de 10 points) ;
+    **pneus à changer** = roues qui passeraient sous 25 % au bout du relais suivant (relais à
+    plein carburant ou énergie, borné par la fin de course), la plus usée d'abord ;
+  - **pluie / slicks** : humidité de trajectoire + tendance sur 2 min, hystérésis (pluie si
+    ≥ 0,40, ou ≥ 0,12 en hausse avec pluie ; slicks si ≤ 0,06, ou ≤ 0,12 en baisse sans pluie) ;
+    annonce `tyres:crossover:*` tenue 30 s ;
+  - **chauffe mesurée** (㉓) : sur toutes les voitures, surcoût S2 + S3 du tour de sortie vs
+    leurs meilleurs secteurs + tour suivant vs leur meilleur tour (0,2-25 s), médiane par classe,
+    mémorisée par circuit × classe (`tyre_warmup_map`). Le « temps de service appris » n'est pas
+    refait : la durée d'arrêt du jeu (`pitStopLength`, pont REST) le donne déjà.
+  - intention `tyreChange` 5 langues ; contexte Coach IA « Tyre strategy (measured) ».
 
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 

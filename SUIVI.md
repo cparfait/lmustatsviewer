@@ -890,6 +890,22 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Toutes les branches ouvertes fusionnées dans `main`
+
+**Demande** : « je veux que tout soit merge sur main ».
+
+- ✅ `main` ← `feat/coach-audio` (avance rapide, 97f4518 : coach audio + pont REST et validations) ←
+  `claude/integration-veille` (509f9ff : idées ㉑–㉞, menu des stands du jeu en opt-in, `brakeTemp`,
+  « pas compris ») ← `claude/wizardly-maxwell-b41068` (11d7d08, aucun fichier changé). `distracted-franklin`
+  (3f2c2da) et `determined-shirley` étaient déjà inclus. **`v1-legacy` volontairement exclue** (V1 PHP
+  abandonnée, la V3 fait foi).
+- ✅ Conflits (run.ts, ask.ts, router.ts, changelog.ts, SUIVI.md) : deux côtés gardés, entrées en double
+  (pont REST intégré séparément des deux côtés) gardées une seule fois.
+- ✅ Vérifié sur le résultat : `tsc -b`, `eslint .`, `npm test` 832, `cargo test --lib` 77.
+- ⏳ Rien n'est poussé sur `origin`. Le Rust a changé : relancer `tauri dev` depuis une copie à jour.
+- 📋 Prochaine étape : pousser `main` (sur accord), puis la course de validation des 4 points restants
+  du pont REST (session dédiée) et une release 1.0.10.
+
 ### 2026-10-16 — Idées de veille ⑰–㉞ enchaînées (branche `claude/integration-veille`)
 
 **Demande** : « enchaîne tout » (les idées ⑰–⑲ et ㉑–㉞ de la veille), puis « pas de Discord » (㉙

@@ -949,6 +949,8 @@ sources officielles vérifiées ; rotation automatique + réglage « nord en hau
   rôle des deux séries d'emplacements des stands). Liste complète : **`VALIDATION-EN-JEU.md`**.
 - ⚠️ Incident : deux agents de recherche ont ouvert des PDF officiels dans le navigateur intégré,
   ce qui a déclenché des boîtes « Enregistrer sous » chez l'utilisateur (rien enregistré).
+- ✅ **Plan** : ⑫ (calendrier Special Events) et ⑬ (programme d'entraînement pré-rempli par
+  l'historique) **retirés du plan** à la demande du mainteneur.
 - 📋 **Prochaine étape** : dérouler `VALIDATION-EN-JEU.md` en roulant (garage → piste → course).
   Ensuite : calibrage par circuit de la détection des virages (Long Beach), noms des emplacements
   de box une fois leur rôle confirmé, duel par mini-secteurs dans le gabarit Duel de la régie.
@@ -3279,7 +3281,8 @@ nouveau profil **avec les bips radio**, on garde aussi l'ancien, et on le renomm
   « 1 changement → 1 verdict » ⑦ planificateur de course + briefing vocal
   (références tirées de notre base) ⑧ quota de pneus ⑨ arrêts adverses /
   undercut ⑩ réglage auto du menu des stands (étude) ⑪ régie sur 2e écran via le
-  serveur HTTP prévu pour OpenKneeboard ⑫ calendrier Special Events.
+  serveur HTTP prévu pour OpenKneeboard ~~⑫ calendrier Special Events~~ (retiré du plan,
+  mainteneur, 2026-10-16).
   **Écartés** : écurie en ligne (comptes, serveur), clips « Moments » (vidéo +
   cloud), visualiseur 3D.
 - 📋 **Prochaine étape** : choix utilisateur parmi ①–⑫ ; recommandation de départ
@@ -3328,8 +3331,9 @@ nouveau profil **avec les bips radio**, on garde aussi l'ancien, et on le renomm
   par circuit (7 dernières vs 7 d'avant), graphe grille→arrivée par course,
   répartition par circuit. Fiche saison PNG = 6 chiffres. Le testeur de la vidéo
   réclame un filtre en ligne/hors ligne (nos filtres Type l'ont déjà).
-- 📋 **Nouvelles idées** : ⑬ programme d'entraînement **pré-rempli par l'historique**
-  (références déjà connues cochées d'office, seules les manquantes demandées)
+- 📋 **Nouvelles idées** : ~~⑬ programme d'entraînement **pré-rempli par l'historique**
+  (références déjà connues cochées d'office, seules les manquantes demandées)~~ (retiré du
+  plan, mainteneur, 2026-10-16)
   ⑭ un seul PTT + routage hybride (dictée → routeur local → LLM limité au choix
   d'intention → réponse `spotter.ts`) ⑮ élargir les intentions vocales (liste
   ci-dessus) ⑯ réglages de diction (vitesse, décimales, prénom).

@@ -21,6 +21,7 @@ import { useAppStore } from "@/stores/app";
 import { isTauri } from "@/lib/api";
 import { speak, prewarmSpeech, clearSpeechCache } from "@/lib/voice";
 import { getSharedTone, PUSH_SUFFIXES } from "@/lib/engineer/tone";
+import { VariantPicker, splitVariants } from "@/lib/engineer/variants";
 import {
   startCoachService,
   stopCoachService,
@@ -66,10 +67,17 @@ export function useCornerCoach() {
   const langRef = useRef(i18n.language);
   tRef.current = t;
   langRef.current = i18n.language;
+  // Formulations « A | B | C » : une variante par annonce, jamais deux fois de
+  // suite la même pour un même message (comme l'ingénieur).
+  const variantsRef = useRef(new VariantPicker());
 
   useEffect(() => {
     if (!enabled || !isTauri()) return;
     let disposed = false;
+    const picker = variantsRef.current;
+    picker.reset();
+    const say = (suffix: string, vars?: Record<string, unknown>) =>
+      picker.pick(suffix, tRef.current(`live.${suffix}`, vars));
 
     // Abonnement synchrone (avant le démarrage async du service) → aucun message
     // manqué entre `startCoachService()` et l'installation du listener.
@@ -83,11 +91,11 @@ export function useCornerCoach() {
       // Banque de phrases LLM à slots (§10, P4.3) : variante pré-générée (slots
       // remplis en code) si le mode est actif et couvre ce (virage, diagnostic) ;
       // sinon repli sur le gabarit déterministe i18n.
-      const base = resolveCoachPhrase(msg) ?? tRef.current(`live.${msg.suffix}`, msg.vars);
+      const base = resolveCoachPhrase(msg) ?? say(msg.suffix, msg.vars);
       if (!base) return;
       // Coach rigoureux : la 1ʳᵉ fois qu'un conseil est dit, on annonce qu'on va
       // vérifier son effet sur les prochains passages.
-      const text = msg.follow ? `${base} ${tRef.current("live.vCornerWatching")}` : base;
+      const text = msg.follow ? `${base} ${say("vCornerWatching")}` : base;
       speak(text, langRef.current, "coach");
       // Miroir visuel (P2.3) : le widget overlay `cornercoach` affiche le même
       // conseil + le détail chiffré exact que la voix n'énonce pas (§1.2). Porte
@@ -100,7 +108,7 @@ export function useCornerCoach() {
     const offPredict = onCoachPredict((msg) => {
       if (disposed) return;
       if (!useAppStore.getState().voiceAnnouncements) return;
-      const text = tRef.current(`live.${msg.suffix}`, msg.vars);
+      const text = say(msg.suffix, msg.vars);
       if (!text) return;
       speak(text, langRef.current, "coach");
       // Miroir widget : code `predict` (styling « repère à venir » côté overlay).
@@ -120,7 +128,8 @@ export function useCornerCoach() {
     // combo (§8) : le callout jouera ensuite dans sa fenêtre « ≥ 2 s avant ».
     const offTargets = onPredictTargets((targets) => {
       if (disposed) return;
-      const texts = targets.map((tg) => tRef.current(`live.${tg.suffix}`, tg.vars));
+      // Chaque variante est pré-synthétisée : le callout dira l'une d'elles.
+      const texts = targets.flatMap((tg) => splitVariants(tRef.current(`live.${tg.suffix}`, tg.vars)));
       void prewarmSpeech(texts, langRef.current);
     });
 
@@ -131,7 +140,7 @@ export function useCornerCoach() {
       if (disposed) return;
       if (!useAppStore.getState().voiceAnnouncements) return;
       const texts = report.lines
-        .map((l) => tRef.current(`live.${l.suffix}`, l.vars))
+        .map((l) => say(l.suffix, l.vars))
         .filter(Boolean);
       if (!texts.length) return;
       speak(texts.join(" "), langRef.current, "coach", REPORT_TTL_MS);
@@ -157,7 +166,7 @@ export function useCornerCoach() {
       // (§10) ; verdict propre (`clean`) → gabarit i18n dédié (« validé »).
       const text =
         resolveCoachPhrase({ kind: msg.code, corner_uid: msg.corner_uid, sign: msg.sign, vars: msg.vars }) ??
-        tRef.current(`live.${msg.suffix}`, msg.vars);
+        say(msg.suffix, msg.vars);
       if (!text) return;
       speak(text, langRef.current, "coach");
       const ev: CoachCornerEvent = {
@@ -178,7 +187,7 @@ export function useCornerCoach() {
     const offStint = onCoachStint((adv) => {
       if (disposed) return;
       if (!useAppStore.getState().voiceAnnouncements) return;
-      const text = tRef.current(`live.${adv.suffix}`, adv.vars);
+      const text = say(adv.suffix, adv.vars);
       if (!text) return;
       speak(text, langRef.current, "coach");
       const ev: CoachCornerEvent = {
@@ -200,7 +209,7 @@ export function useCornerCoach() {
       if (!useAppStore.getState().voiceAnnouncements) return;
       // Arbitre de ton : pas de « vise là » quand une contrainte impose de gérer.
       if (PUSH_SUFFIXES.has(adv.suffix) && getSharedTone() === "prudent") return;
-      const text = tRef.current(`live.${adv.suffix}`, adv.vars);
+      const text = say(adv.suffix, adv.vars);
       if (!text) return;
       speak(text, langRef.current, "coach");
       const ev: CoachCornerEvent = {
@@ -220,7 +229,7 @@ export function useCornerCoach() {
     const offRecall = onCoachRecall((line) => {
       if (disposed) return;
       if (!useAppStore.getState().voiceAnnouncements) return;
-      const text = tRef.current(`live.${line.suffix}`, line.vars);
+      const text = say(line.suffix, line.vars);
       if (!text) return;
       speak(text, langRef.current, "coach");
       const ev: CoachCornerEvent = {

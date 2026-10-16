@@ -214,6 +214,38 @@ function variantsSuite() {
   eq(n.apply("", "formation", "Briefing", 9999, always), "Briefing", "sans prénom : jamais");
 }
 
+// Gabarits livrés à variantes : chaque formulation garde les mêmes {{variables}}
+// (sinon une annonce sur trois perd son chiffre), dans les 5 langues ; les
+// réflexes (spotter, drapeaux jaune/rouge/FCY) restent une phrase unique.
+function variantTemplatesSuite() {
+  section("radio — gabarits à variantes (5 langues)");
+  const bundles = { fr, en, es, de, it } as unknown as Record<string, { live: Record<string, unknown> }>;
+  const varsOf = (s: string) => [...new Set([...s.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1]))].sort().join(",");
+  const reflex = (k: string) => k.startsWith("vSpot") || ["vFlagYellow", "vFlagFcy", "vFlagStopped"].includes(k);
+  const withVariants: Record<string, Set<string>> = {};
+  for (const [lang, b] of Object.entries(bundles)) {
+    const keys = new Set<string>();
+    for (const [key, text] of Object.entries(b.live)) {
+      if (!/^v[A-Z]/.test(key) || typeof text !== "string") continue;
+      const v = splitVariants(text);
+      if (v.length < 2) continue;
+      keys.add(key);
+      const ref = varsOf(v[0]);
+      const odd = v.filter((x) => varsOf(x) !== ref);
+      eq(odd, [], `${lang} ${key} : mêmes variables dans chaque variante (${ref || "aucune"})`);
+      ok(v.length <= 3, `${lang} ${key} : au plus 3 variantes`);
+      ok(!reflex(key), `${lang} ${key} : réflexe sans variante`);
+    }
+    for (const k of ["vBoxBox", "vPuncture"]) ok(splitVariants(String(b.live[k])).length <= 2, `${lang} ${k} : 2 variantes au plus`);
+    ok(keys.size >= 40, `${lang} : au moins 40 gabarits à variantes (${keys.size})`);
+    withVariants[lang] = keys;
+  }
+  const ref = [...withVariants.fr].sort().join(",");
+  for (const lang of ["en", "es", "de", "it"]) {
+    eq([...withVariants[lang]].sort().join(","), ref, `${lang} : mêmes gabarits à variantes qu'en français`);
+  }
+}
+
 function proximitySuite() {
   section("radio — spotter de proximité");
   const none = { left: false, right: false };
@@ -636,6 +668,7 @@ export function run() {
   policySuite();
   arbiterSuite();
   variantsSuite();
+  variantTemplatesSuite();
   proximitySuite();
   rigorSuite();
   commandsSuite();

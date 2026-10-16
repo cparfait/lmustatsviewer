@@ -895,6 +895,18 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Tout fusionné dans `main` ; on ne travaille plus que sur `main`
+
+**Demande** : « fusionne tout et ne travaille que sur main ».
+
+- ✅ `main` avancée sur `feat/coach-audio` (`3434d59`), dossier principal passé sur `main`, puis
+  fusion des variantes (`claude/reverent-jackson-5325c8`, `872b014`) ; conflit du journal : toutes
+  les entrées gardées. Seule `v1-legacy` reste à part (voulu).
+- ✅ **Décision** : désormais, tout le travail se fait directement sur `main` dans le dossier
+  principal (plus de branche `feat/*` ni de worktree, sauf demande explicite).
+- 📋 **Prochaine étape** : relancer « Préparer la voix » (nouvelles variantes à générer), écouter en
+  jeu le coach par virage et les annonces fréquentes.
+
 ### 2026-10-16 — « Préparer la voix » : plus d'arrêt sur « error decoding response body »
 
 **Signalé** : Cartesia (sonic-3.6), 434 phrases dont 376 morceaux ; la préparation s'arrête au bout
@@ -967,6 +979,35 @@ IA ? » (banc : alertes en « Piper — pas encore préparée », toast « Rien 
   (`championships`). Changelog 1.0.10 (entrée Saison, pas encore sortie) raccourcie, 5 langues.
 - ✅ `Footer.tsx` : avatar (easter egg) sans anneau orange ni ombre ; anneau seulement au focus clavier.
 - 📋 **Prochaine étape** : vérifier le Profil et le pied de page dans l'app.
+
+### 2026-10-16 — Annonces moins rébarbatives : variantes « A | B | C » sur 38 gabarits
+
+**Demande** (mainteneur) : « il faudrait plusieurs variantes pour certains messages pour éviter que ce
+soit rebarbatif ».
+
+- ✅ 38 gabarits `live.v*` passent à 2–3 formulations dans les 5 langues (la 1ʳᵉ = l'ancien texte) :
+  coach par virage (`vCornerBrakeEarly/Late`, `OverSlow`, `LateThrottle`, `EntryFast`, `GripUnused`,
+  `NoTrail`, `Lockup`, `Wheelspin`, `Clean`, `Resolved`, `Consistency`, `vDrillClean/Streak`), delta,
+  secteur perdu, écarts (`vClosing*`, `vPullingAway`, `vDroppingBehind`, `vFasterBehind`, `vGapLeader`),
+  carburant, temps restant, pneus, freins, pluie, drapeau bleu, mi-course, dernière minute, demande
+  d'arrêt, ravitaillement ; `vBoxBox` / `vPuncture` : 2 formulations très proches. Inchangés (réflexe =
+  même phrase) : `vSpot*`, `vFlagYellow`, `vFlagFcy`, `vFlagStopped`.
+- ✅ **Bug trouvé** : le coach par virage (`useCornerCoach.ts`) ne tirait aucune variante — un gabarit
+  « A | B » (personnalisé par l'utilisateur) était lu avec ses `|`. Il a maintenant son `VariantPicker`
+  (remis à zéro à chaque démarrage du service) sur tous ses chemins (conseil, drill, débrief, stint,
+  risque, rappel) ; les callouts prédictifs pré-synthétisent chaque variante. Idem : préchauffage Piper
+  des alertes (`PREWARM_KEYS`, une entrée par variante) et réponse « coach-moi » (`answers.ts`, 1ʳᵉ
+  formulation).
+- ✅ « Préparer la voix » et l'assemblage des phrases chiffrées passaient déjà par `splitVariants` :
+  chaque formulation est préparée / assemblable (test de couverture existant vert). Inventaire des
+  morceaux ≈ 420 / ≤ 6 900 caractères par langue (plafonds du test : 700 / 10 000).
+- ✅ Test `variantTemplatesSuite` (suite radio) : mêmes `{{variables}}` dans chaque variante, ≤ 3
+  variantes, réflexes sans variante, ≤ 2 pour box box / crevaison, ≥ 40 gabarits à variantes et la même
+  liste dans les 5 langues. `npm test` 3694 OK, tsc, eslint. Changelog 1.0.10 (« improved »).
+- 📋 **Prochaine étape** : écouter en jeu (Piper puis voix IA après « Préparer la voix ») une séance
+  de coach par virage et une course : vérifier que l'alternance s'entend et qu'aucune formulation ne
+  sonne faux (surtout DE/ES/IT, rédigées sans relecture native) ; ajuster les formulations dans les
+  fichiers i18n si besoin.
 
 ### 2026-10-16 — Tout fusionné : veille commitée, `feat/coach-audio` = `main`
 

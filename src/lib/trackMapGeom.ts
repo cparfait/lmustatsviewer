@@ -134,3 +134,119 @@ export function mapComplete(dists: number[], lapLen: number): boolean {
   if (coverage(dists, lapLen) < 0.95) return false;
   return splitRuns(dists, lapLen).closed;
 }
+
+// ── Orientation commune des cartes (Live, overlay, régie, télémétrie) ─────────
+
+/** `auto` : axe principal du tracé à l'horizontale ; `north` : repère brut (+z en haut). */
+export type MapOrientation = "auto" | "north";
+
+/** Angle (rad) de l'axe principal (analyse en composantes principales) d'un nuage. */
+export function principalAngle(pts: Pt[]): number {
+  if (pts.length < 2) return 0;
+  let mx = 0;
+  let my = 0;
+  for (const [x, y] of pts) {
+    mx += x;
+    my += y;
+  }
+  mx /= pts.length;
+  my /= pts.length;
+  let sxx = 0;
+  let syy = 0;
+  let sxy = 0;
+  for (const [x, y] of pts) {
+    const dx = x - mx;
+    const dy = y - my;
+    sxx += dx * dx;
+    syy += dy * dy;
+    sxy += dx * dy;
+  }
+  return 0.5 * Math.atan2(2 * sxy, sxx - syy);
+}
+
+export interface MapTransform {
+  project: (p: Pt) => Pt;
+  width: number;
+  height: number;
+}
+
+/**
+ * Projection monde (x, z) → écran, commune à toutes les cartes : axe vertical
+ * inversé (+z en haut), échelle **identique sur les deux axes**, centrage.
+ * `auto` tourne le tracé pour l'aligner à l'horizontale (plus large que haut),
+ * ligne de départ (`shape[0]`) en bas ; `north` garde le repère brut.
+ * `shape` fixe l'orientation (le tracé) ; `extent` doit tenir dans le cadre
+ * (tracé + stands + voitures). Hauteur libre → déduite des proportions.
+ */
+export function fitTransform(
+  shape: Pt[],
+  extent: Pt[],
+  o: { mode: MapOrientation; width: number; height?: number; pad?: number },
+): MapTransform {
+  const pad = o.pad ?? 0.06;
+  // Repère « nord en haut » : x à droite, +z vers le haut de l'écran (comme
+  // l'ancienne carte Live et l'overlay).
+  const up = (p: Pt): Pt => [p[0], p[1]];
+  let angle = 0;
+  if (o.mode === "auto" && shape.length >= 8) {
+    angle = -principalAngle(shape.map(up));
+  }
+  const rot = (a: number) => {
+    const c = Math.cos(a);
+    const sn = Math.sin(a);
+    return (p: Pt): Pt => {
+      const [x, y] = up(p);
+      return [x * c - y * sn, x * sn + y * c];
+    };
+  };
+  let r = rot(angle);
+  if (o.mode === "auto" && shape.length >= 8) {
+    // Deux orientations possibles (à 180°) : ligne de départ en bas de l'écran.
+    const ys = shape.map((p) => -r(p)[1]);
+    const mid = (Math.min(...ys) + Math.max(...ys)) / 2;
+    if (-r(shape[0])[1] < mid) {
+      angle += Math.PI;
+      r = rot(angle);
+    }
+  }
+  const pts = (extent.length ? extent : shape).map(r);
+  let x0 = Infinity;
+  let x1 = -Infinity;
+  let y0 = Infinity;
+  let y1 = -Infinity;
+  for (const [x, y] of pts) {
+    x0 = Math.min(x0, x);
+    x1 = Math.max(x1, x);
+    y0 = Math.min(y0, y);
+    y1 = Math.max(y1, y);
+  }
+  const w = Math.max(1, x1 - x0);
+  const h = Math.max(1, y1 - y0);
+  const width = o.width;
+  const height = o.height ?? Math.round(Math.min(1.2, Math.max(0.4, h / w)) * width);
+  const k = Math.min((width * (1 - 2 * pad)) / w, (height * (1 - 2 * pad)) / h);
+  const ox = (width - w * k) / 2;
+  const oy = (height - h * k) / 2;
+  return {
+    width,
+    height,
+    // Écran : y vers le bas → on inverse le y « nord en haut ».
+    project: (p: Pt) => {
+      const [x, y] = r(p);
+      return [ox + (x - x0) * k, oy + (y1 - y) * k];
+    },
+  };
+}
+
+/** Segments colorés (heatmap) : pour chaque point i, segment i → i+1 s'ils sont jointifs. */
+export function heatSegments(dists: number[], lapLen: number, gap = GAP_M): [number, number][] {
+  const out: [number, number][] = [];
+  const n = dists.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const step = j === 0 ? dists[0] + lapLen - dists[i] : dists[j] - dists[i];
+    if (j === 0 && !(lapLen > 0)) continue;
+    if (step > 0 && step <= gap) out.push([i, j]);
+  }
+  return out;
+}

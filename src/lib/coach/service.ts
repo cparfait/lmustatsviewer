@@ -148,6 +148,12 @@ type RiskListener = (adv: RiskAdvisory) => void;
 let state: CoachEngineState = createCoachState();
 let unlisten: (() => void) | null = null;
 let started = false;
+/**
+ * Démarrage en cours : l'abonnement au flux live est asynchrone. Un arrêt puis
+ * un redémarrage pendant l'attente (StrictMode du build de dev, Mute aller-retour)
+ * laissaient deux abonnements actifs, chaque trame traitée deux fois.
+ */
+let startToken = 0;
 const listeners = new Set<Listener>();
 const refListeners = new Set<RefListener>();
 const diagListeners = new Set<DiagListener>();
@@ -920,6 +926,7 @@ function onLive(data: LiveData): void {
 export async function startCoachService(): Promise<void> {
   if (started) return;
   started = true;
+  const token = ++startToken;
   state = createCoachState();
   diag = createDiagState();
   voice = createCoachVoiceState();
@@ -961,7 +968,13 @@ export async function startCoachService(): Promise<void> {
     .catch(() => {
       /* hors-ligne / parsing → on garde le niveau par défaut */
     });
-  unlisten = await live.onData(onLive);
+  const off = await live.onData(onLive);
+  // Arrêté (ou arrêté puis relancé) pendant l'abonnement : celui-ci est de trop.
+  if (!started || token !== startToken) {
+    off();
+    return;
+  }
+  unlisten = off;
 }
 
 /** Arrête le service et libère l'abonnement. */

@@ -140,6 +140,9 @@ pub fn run() {
             commands::queries::get_sessions_list,
             commands::queries::get_sessions_overview,
             commands::queries::get_race_activity,
+            commands::queries::get_career_races,
+            commands::queries::get_class_results,
+            commands::queries::save_image_file,
             // Détail d'une session + graphe de tours
             commands::session_detail::get_session_detail,
             commands::session_detail::get_lap_chart_data,
@@ -212,6 +215,13 @@ pub fn run() {
             commands::live::start_live_polling,
             commands::live::stop_live_polling,
             commands::lmu_rest::get_lmu_garage_bounds,
+            commands::regie::regie_start,
+            commands::regie::regie_stop,
+            commands::regie::regie_status,
+            commands::lmu_rest_write::get_pit_menu,
+            commands::lmu_rest_write::set_pit_menu_item,
+            commands::queries::save_text_file,
+            commands::lmu_rest::get_lmu_vehicle_condition,
             // Overlays in-game (fenêtre transparente always-on-top)
             commands::overlay::open_overlay_window,
             commands::overlay::close_overlay_window,
@@ -272,6 +282,15 @@ pub fn run() {
             if tray_enabled {
                 build_tray(app.handle())?;
             }
+
+            // Pont REST : interroger aussi le jeu hors piste (garage, pause,
+            // menus) ? Défaut : non (plantages de LMU relevés sur ses écrans).
+            commands::lmu_rest::set_poll_off_track(
+                db::config_get(app.state::<DbState>().inner(), commands::lmu_rest::CONFIG_POLL_OFF_TRACK)
+                    .ok()
+                    .flatten()
+                    .is_some_and(|v| v == "true"),
+            );
 
             Ok(())
         })

@@ -34,10 +34,12 @@ import {
   SlidersHorizontal,
   Ruler,
   StickyNote,
+  FlaskConical,
 } from "lucide-react";
 import { cn, formatTime, formatDateTime } from "@/lib/utils";
 import { usePageState } from "@/lib/usePageState";
 import { paramLabel } from "@/lib/setupParams";
+import { SetupAssistantPanel } from "@/components/SetupAssistantPanel";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 
 // ── Onglets de l'éditeur (regroupement logique des sections SVM) ─────────────
@@ -48,6 +50,7 @@ type TabId =
   | "suspension"
   | "dampers"
   | "chassis"
+  | "assistant"
   | "meta";
 
 const TABS: { id: TabId; icon: typeof Cog; labelKey: string }[] = [
@@ -56,6 +59,7 @@ const TABS: { id: TabId; icon: typeof Cog; labelKey: string }[] = [
   { id: "suspension", icon: ArrowUpDown, labelKey: "setupDetail.tabSuspension" },
   { id: "dampers", icon: SlidersHorizontal, labelKey: "setupDetail.tabDampers" },
   { id: "chassis", icon: Ruler, labelKey: "setupDetail.tabChassis" },
+  { id: "assistant", icon: FlaskConical, labelKey: "setupDetail.tabAssistant" },
   { id: "meta", icon: StickyNote, labelKey: "setupDetail.tabMeta" },
 ];
 
@@ -294,7 +298,7 @@ export function SetupDetail() {
 
   // Sections (avec leurs paramètres) appartenant à l'onglet actif.
   const tabSections = useMemo(() => {
-    if (activeTab === "meta") return [];
+    if (activeTab === "meta" || activeTab === "assistant") return [];
     return sections
       .map((s) => ({
         name: s.name,
@@ -447,7 +451,14 @@ export function SetupDetail() {
           {/* Panneau — padding réduit V1 + scroll vertical interne (le body
               parent est `overflow-hidden` pour épingler header/footer). */}
           <div className="flex-1 p-4 min-w-0 overflow-y-auto">
-            {activeTab === "meta" ? (
+            {activeTab === "assistant" ? (
+              <SetupAssistantPanel
+                entry={entry}
+                svm={svm}
+                notes={notesParam ? unquote(notesParam.value) : null}
+                onNotes={() => loadSetup(entry.id)}
+              />
+            ) : activeTab === "meta" ? (
               <MetaPanel
                 entry={entry}
                 notesValue={notesParam ? unquote(notesParam.value) : null}

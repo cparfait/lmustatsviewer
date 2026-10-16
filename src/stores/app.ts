@@ -10,9 +10,9 @@ import { create } from "zustand";
 import { config, indexer, queries, ai, system, type WheelBinding } from "@/lib/api";
 import { setAppTimezone } from "@/lib/utils";
 import { preloadStaticData } from "@/lib/staticData";
-import { configureVoice, setSpeechReplay, setTalkSilence } from "@/lib/voice";
+import { configureVoice, setCloudSegmentSource, setSpeechReplay, setTalkSilence } from "@/lib/voice";
 import { initCloudVoice } from "@/lib/cloudVoice";
-import { initVoiceOverrides } from "@/lib/voiceMessages";
+import { initVoiceOverrides, segmentTemplates } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled, setRadioStyle, MAX_VOICE_VOLUME } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
@@ -27,6 +27,10 @@ import type {
   FilterOptions,
   IndexReport,
 } from "@/lib/api";
+
+// Annonces chiffrées de la voix en ligne : reconnues parmi les gabarits effectifs
+// (personnalisations comprises, relues à chaque annonce).
+setCloudSegmentSource(segmentTemplates);
 
 /**
  * Version de la logique d'indexation. À **incrémenter** dès que le parser ou
@@ -63,8 +67,19 @@ interface AppState {
   autoUpdate: boolean;
   /** Afficher les tiers ohne_speed dans Sessions, SessionDetail et LapChartModal. */
   showOhneSpeed: boolean;
+  /** Carte Live : mes incidents passés sur ce circuit (chocs, coupures, sorties). */
+  mapIncidents: boolean;
+  /** Cartes « nord en haut » (repère brut) au lieu de la rotation automatique. */
+  mapNorthUp: boolean;
+  /** L'app peut écrire dans le jeu (menu des stands) — expérimental, coupé par défaut. */
+  gameWrites: boolean;
+  /** Réglage automatique de l'énergie au menu des stands (exige `gameWrites`). */
+  pitAutoEnergy: boolean;
   /** Courte animation (volet + titre) au lancement de l'app. */
   launchIntro: boolean;
+  /** Pont REST : interroger aussi les écrans du jeu au garage, en pause et aux
+   *  menus (ancien comportement ; off par défaut, LMU y plante parfois). */
+  restPollOffTrack: boolean;
   /** Rythme cible de l'overlay live (clé tier ohne_speed : alien/competitive/good/midpack). */
   overlayTargetTier: string;
   /** Modules du menu activés (clé nav → bool). Absent/true = visible. */
@@ -158,6 +173,8 @@ interface AppState {
   radioPhases: boolean;
   /** Budgets par tour (situation, confort, par rival) en course. */
   radioBudgets: boolean;
+  /** L'ingénieur pose une fois par type de séance la question des chronos voulus. */
+  radioAskPrefs: boolean;
   /** Annonce coupée redite une fois, annonce importante perdue retentée, anti-redite. */
   radioReplay: boolean;
   /** Chronos dits au dixième (`tenth`) ou au millième (`ms`, historique). */
@@ -263,7 +280,12 @@ interface AppState {
   setSystemTray: (v: boolean) => Promise<void>;
   setAutoUpdate: (v: boolean) => Promise<void>;
   setShowOhneSpeed: (v: boolean) => Promise<void>;
+  setMapIncidents: (v: boolean) => Promise<void>;
+  setMapNorthUp: (v: boolean) => Promise<void>;
+  setGameWrites: (v: boolean) => Promise<void>;
+  setPitAutoEnergy: (v: boolean) => Promise<void>;
   setLaunchIntro: (v: boolean) => Promise<void>;
+  setRestPollOffTrack: (v: boolean) => Promise<void>;
   setOverlayTargetTier: (v: string) => Promise<void>;
   setMenuModule: (key: string, value: boolean) => Promise<void>;
   setVoiceAnnouncements: (v: boolean) => Promise<void>;
@@ -299,6 +321,7 @@ interface AppState {
   setPttBeeps: (v: boolean) => Promise<void>;
   setRadioQuietZones: (v: boolean) => Promise<void>;
   setRadioPhases: (v: boolean) => Promise<void>;
+  setRadioAskPrefs: (v: boolean) => Promise<void>;
   setRadioBudgets: (v: boolean) => Promise<void>;
   setRadioReplay: (v: boolean) => Promise<void>;
   setVoiceLapPrecision: (v: "tenth" | "ms") => Promise<void>;
@@ -342,7 +365,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   systemTray: true,
   autoUpdate: true,
   showOhneSpeed: true,
+  mapIncidents: true,
+  mapNorthUp: false,
+  gameWrites: false,
+  pitAutoEnergy: false,
   launchIntro: true,
+  restPollOffTrack: false,
   overlayTargetTier: "competitive",
   menuModules: {},
   voiceAnnouncements: false,
@@ -379,6 +407,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   radioQuietZones: true,
   radioPhases: true,
   radioBudgets: true,
+  radioAskPrefs: true,
   radioReplay: true,
   voiceLapPrecision: "tenth",
   radioDriverName: "",
@@ -549,7 +578,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       systemTray: cfg.system_tray !== "false",
       autoUpdate: cfg.auto_update !== "false",
       showOhneSpeed: cfg.show_ohne_speed !== "false",
+      mapIncidents: cfg.map_incidents !== "false",
+      mapNorthUp: cfg.map_north_up === "true",
+      gameWrites: cfg.game_writes === "true",
+      pitAutoEnergy: cfg.pit_auto_energy === "true",
       launchIntro: cfg.launch_intro !== "false",
+      restPollOffTrack: cfg.rest_poll_off_track === "true",
       overlayTargetTier: cfg.overlay_target_tier || "competitive",
       menuModules,
       voiceAnnouncements: cfg.voice_announcements === "true",
@@ -602,6 +636,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       radioQuietZones: cfg.voice_quiet_zones !== "false",
       radioPhases: cfg.voice_race_phases !== "false",
       radioBudgets: cfg.voice_budgets !== "false",
+      radioAskPrefs: cfg.voice_ask_prefs !== "false",
       radioReplay: cfg.voice_replay !== "false",
       voiceLapPrecision: cfg.voice_lap_precision === "ms" ? "ms" : "tenth",
       radioDriverName: cfg.voice_driver_name ?? "",
@@ -785,6 +820,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ autoUpdate: v });
   },
 
+  setGameWrites: async (v) => {
+    await config.set("game_writes", v ? "true" : "false");
+    set({ gameWrites: v });
+  },
+
+  setPitAutoEnergy: async (v) => {
+    await config.set("pit_auto_energy", v ? "true" : "false");
+    set({ pitAutoEnergy: v });
+  },
+
+  setMapNorthUp: async (v) => {
+    await config.set("map_north_up", v ? "true" : "false");
+    set({ mapNorthUp: v });
+  },
+
+  setMapIncidents: async (v) => {
+    await config.set("map_incidents", v ? "true" : "false");
+    set({ mapIncidents: v });
+  },
+
   setShowOhneSpeed: async (v) => {
     await config.set("show_ohne_speed", v ? "true" : "false");
     set({ showOhneSpeed: v });
@@ -793,6 +848,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLaunchIntro: async (v) => {
     await config.set("launch_intro", v ? "true" : "false");
     set({ launchIntro: v });
+  },
+
+  setRestPollOffTrack: async (v) => {
+    // Appliqué à chaud côté Rust par `set_config`.
+    await config.set("rest_poll_off_track", v ? "true" : "false");
+    set({ restPollOffTrack: v });
   },
 
   setOverlayTargetTier: async (v) => {
@@ -998,6 +1059,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setRadioPhases: async (v) => {
     await config.set("voice_race_phases", v ? "true" : "false");
     set({ radioPhases: v });
+  },
+
+  setRadioAskPrefs: async (v) => {
+    await config.set("voice_ask_prefs", v ? "true" : "false");
+    set({ radioAskPrefs: v });
   },
 
   setRadioBudgets: async (v) => {

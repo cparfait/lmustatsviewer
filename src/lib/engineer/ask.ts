@@ -16,18 +16,28 @@
 import { emit } from "@tauri-apps/api/event";
 import type { TFunction } from "i18next";
 import { useAppStore } from "@/stores/app";
-import { live } from "@/lib/api";
+import { live, type LiveData } from "@/lib/api";
 import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, announceAnswer, cancelSpeech, repeatLast } from "@/lib/voice";
 import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, classifyIntent, friendlyError } from "@/lib/ai/coach";
 import { buildStatus } from "@/lib/spotter";
 import { route, INTENT_HELP, extractEntities, normalize, type AnswerIntent } from "@/lib/engineer/router";
+import { radioLog, type Rating } from "@/lib/engineer/radioFeedback";
+
+const RATING_OF: Record<string, Rating> = {
+  rateUseful: "useful",
+  rateUseless: "useless",
+  rateLate: "late",
+  rateWrong: "wrong",
+};
 import { answerIntent, registerWatch } from "@/lib/engineer/answers";
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
 import { toast, toastSuccess } from "@/stores/dialogs";
+import { factsBlock } from "@/lib/ai/facts";
+import { radioCard } from "@/lib/ai/knowledge/engineering-cards";
 
 /**
  * Fournisseur / modèle / clé réellement utilisés par le coach **vocal**.
@@ -126,6 +136,22 @@ function commandLabel(t: TFunction, id: string): string {
   return label === key ? id : label.split(" (")[0];
 }
 
+/** La question peut porter sur les plaquettes (intention, supposition ou candidate). */
+function aboutPads(r: ReturnType<typeof route>): boolean {
+  return r.intent === "brakeWear" || r.guess === "brakeWear" || r.candidates.includes("brakeWear");
+}
+
+/**
+ * Au garage, le pont REST ne lit plus l'état de la voiture en continu (LMU peut
+ * planter sur ses écrans) : pour « plaquettes ? », lecture ponctuelle (côté Rust :
+ * joueur dans son box, au plus une toutes les 30 s). Sinon, `data` inchangé.
+ */
+async function withGamePads(data: LiveData | null): Promise<LiveData | null> {
+  if (!data?.rest || data.rest.vehicle.state === "fresh") return data;
+  const vehicle = await live.vehicleCondition().catch(() => null);
+  return vehicle ? { ...data, rest: { ...data.rest, vehicle } } : data;
+}
+
 /**
  * Répond à `question` (dictée libre) : parle, affiche, et renvoie la réponse.
  * Mode « stricte seule » (réglage) : seule la reconnaissance stricte compte,
@@ -158,11 +184,13 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   // La question reconnue s'affiche (l'utilisateur voit si la dictée a mal compris).
   toast(`🎤 ${heard}`);
   void emit("coach-voice", { question: heard, answer: null });
-  const data = await live.getData().catch(() => null);
-
   const r = route(free, lang);
+  let data = await live.getData().catch(() => null);
+  if (aboutPads(r)) data = await withGamePads(data);
+
   const norm = r.norm || normalize(strict, lang);
   const opts = {
+    // Perte au stand : temps de voie mesuré + durée de l'arrêt lue dans le jeu (pont REST).
     pitLossSec: effectivePitLoss(data, st0.pitLossSeconds, st0.pitLaneLoss),
     fuelReserveLaps: st0.fuelReserveLaps,
     classPositions: st0.classPositions,
@@ -185,6 +213,12 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
       return { text: next ? t("live.spUnmuted") : "", via: "command" };
     }
     if (id === "watch") return say(registerWatch(r.watch, r.entities, r.norm, data, t), "command");
+    if (id.startsWith("rate")) {
+      // Note la dernière annonce radio (≤ 2 min) ; accusé bref, jamais d'IA.
+      const rating = RATING_OF[id];
+      const e = rating ? radioLog.rateLast(rating) : null;
+      return say(e ? t("live.spRated", { what: t(`live.rate_${rating}`) }) : t("live.spRateNothing"), "command");
+    }
     return say(answerIntent(id, data, t, opts), via);
   };
 
@@ -212,6 +246,10 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   // ── 3. Sans IA : toujours une réponse locale ───────────────────────────────
   if (!aiReady || !p) {
     toast(t(st0.aiCoachEnabled && !configured ? "coach.voiceNotConfigured" : "coach.voiceNoAi"));
+    // Question de pilotage ouverte : une fiche de savoir sûre (sous-virage, pluie,
+    // pneus froids…) ; les fiches incertaines ne sont jamais dites.
+    const card = r.intent ? null : radioCard(norm, lang);
+    if (card) return say(card, "local");
     const guess = r.ambiguous && r.candidates.length ? r.candidates[0] : r.guess;
     if (guess && !isAction(guess)) return runIntent(guess, "local");
     return say(`${t("coach.voiceLocalFallback")} ${buildStatus(data, t, st0.classPositions)}`, "fallback");
@@ -232,7 +270,10 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     // Sans données live, l'appel échoue comme avant (message d'erreur lisible).
     const baseCtx = await buildLiveCoachContext(data ?? (await live.getData()), free);
     const recent = recentDiagnosticsBlock();
-    const ctx = recent ? `${baseCtx}\n\n${recent}` : baseCtx;
+    // Faits calculés par l'app : seule source des chiffres de la réponse (les
+    // fiches de savoir sont déjà jointes par `buildLiveCoachContext`).
+    const facts = factsBlock(r.candidates, data, t, opts);
+    const ctx = [baseCtx, facts, recent].filter(Boolean).join("\n\n");
     const answer = await askCoachVoice({
       provider: p,
       model,

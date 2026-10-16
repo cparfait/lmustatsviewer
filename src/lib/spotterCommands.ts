@@ -36,7 +36,10 @@ export type Intent =
   | "forecast"
   | "tyreTemp"
   | "brakeBias"
+  | "brakeTemp"
   | "brakeWear"
+  | "rivalStops"
+  | "tyreChange"
   | "battery"
   | "sessionBest"
   | "pitWindow"
@@ -68,7 +71,10 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["prévisions", "prévision météo", "va-t-il pleuvoir"],
     tyreTemp: ["température des pneus", "température pneus"],
     brakeBias: ["répartition", "répartition de freinage"],
+    brakeTemp: ["température des freins", "freins chauds", "freins froids"],
     brakeWear: ["plaquettes", "mes plaquettes", "usure des plaquettes", "état des plaquettes", "usure des freins", "état des freins"],
+    rivalStops: ["arrêts du leader", "arrêts des rivaux", "relais du leader"],
+    tyreChange: ["quels pneus changer", "pneus pluie ou slicks"],
     battery: ["batterie", "énergie", "hybride"],
     sessionBest: ["meilleur tour de la session", "meilleur temps de la session"],
     pitWindow: ["quand m'arrêter", "quand je m'arrête", "fenêtre d'arrêt", "jusqu'à quand"],
@@ -98,7 +104,10 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["forecast", "weather forecast", "will it rain"],
     tyreTemp: ["tyre temperature", "tire temperature", "tyre temps"],
     brakeBias: ["brake bias", "brake balance"],
+    brakeTemp: ["brake temperature", "brake temps", "brakes hot"],
     brakeWear: ["brake pads", "my pads", "pad wear", "brake wear"],
+    rivalStops: ["leader stops", "rival stops", "leader stint"],
+    tyreChange: ["which tyres", "wets or slicks"],
     battery: ["battery", "energy", "hybrid"],
     sessionBest: ["session best", "fastest lap", "best lap of the session"],
     pitWindow: ["when do i pit", "pit window", "when should i pit"],
@@ -128,7 +137,10 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["pronóstico", "va a llover", "previsión"],
     tyreTemp: ["temperatura de neumáticos", "temperatura neumáticos"],
     brakeBias: ["reparto de frenada", "reparto de frenos"],
+    brakeTemp: ["temperatura de frenos", "frenos calientes"],
     brakeWear: ["pastillas", "mis pastillas", "desgaste de pastillas", "desgaste de frenos"],
+    rivalStops: ["paradas del líder", "paradas de los rivales"],
+    tyreChange: ["qué neumáticos cambio", "lluvia o slicks"],
     battery: ["batería", "energía", "híbrido"],
     sessionBest: ["mejor vuelta de la sesión", "vuelta rápida"],
     pitWindow: ["cuándo paro", "ventana de parada", "cuándo entro"],
@@ -158,7 +170,10 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["vorhersage", "wettervorhersage", "wird es regnen"],
     tyreTemp: ["reifentemperatur", "temperatur der reifen"],
     brakeBias: ["bremsbalance", "bremsverteilung"],
+    brakeTemp: ["bremstemperatur", "bremsen heiß"],
     brakeWear: ["bremsbeläge", "beläge", "belagverschleiß", "bremsverschleiß"],
+    rivalStops: ["stopps des führenden", "stopps der gegner"],
+    tyreChange: ["welche reifen", "regen oder slicks"],
     battery: ["batterie", "energie", "hybrid"],
     sessionBest: ["schnellste runde", "bestzeit der session"],
     pitWindow: ["wann komme ich rein", "boxenfenster", "wann muss ich rein"],
@@ -191,7 +206,10 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["previsioni", "previsioni meteo", "pioverà"],
     tyreTemp: ["temperatura gomme", "temperatura delle gomme", "temperatura pneumatici"],
     brakeBias: ["ripartizione", "ripartizione di frenata", "bilanciamento freni"],
+    brakeTemp: ["temperatura dei freni", "freni caldi"],
     brakeWear: ["pastiglie", "le mie pastiglie", "usura pastiglie", "usura dei freni", "usura freni"],
+    rivalStops: ["soste del leader", "soste degli avversari"],
+    tyreChange: ["quali gomme cambio", "pioggia o slick"],
     battery: ["batteria", "energia", "ibrido"],
     sessionBest: ["miglior giro della sessione", "giro più veloce", "miglior tempo della sessione"],
     pitWindow: ["quando devo rientrare", "quando rientro", "quando mi fermo", "finestra di sosta", "fino a quando"],
@@ -211,6 +229,8 @@ const INTENT_ORDER: Intent[] = [
   "ackBox",
   "sessionBest",
   "pitWindow",
+  "rivalStops",
+  "tyreChange",
   "stops",
   "tyreTemp",
   "forecast",
@@ -218,6 +238,7 @@ const INTENT_ORDER: Intent[] = [
   "closing",
   "traffic",
   "battery",
+  "brakeTemp",
   "brakeWear",
   "brakeBias",
   "ahead",
@@ -258,7 +279,10 @@ export const INTENTS: Intent[] = [
   "forecast",
   "tyreTemp",
   "brakeBias",
+  "brakeTemp",
   "brakeWear",
+  "rivalStops",
+  "tyreChange",
   "battery",
   "sessionBest",
   "ackBox",

@@ -13,7 +13,29 @@ import { VariantPicker, NameDoser, splitVariants, NAME_GAP_S } from "@/lib/engin
 import { ProximitySpotter, occupiedSides } from "@/lib/engineer/proximity";
 import { route } from "@/lib/engineer/router";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
-import { CLOUD_PREP_KEYS, estimateCostUsd, fixedPhrases, isFixedPhrase } from "@/lib/cloudVoicePrep";
+import {
+  CLOUD_PREP_ALERT_KEYS,
+  CLOUD_PREP_KEYS,
+  cloudModeFor,
+  cloudPrepKeys,
+  estimateCostUsd,
+  fixedPhrases,
+  isFixedPhrase,
+  segmentsWanted,
+} from "@/lib/cloudVoicePrep";
+import {
+  assembleSegments,
+  buildLexicon,
+  formBefore,
+  isSegmentTemplateKey,
+  joinPcm,
+  numberSegments,
+  segmentInventory,
+  trimSilence,
+  valueSegments,
+  type SegmentEntry,
+} from "@/lib/cloudVoiceSegments";
+import { benchFamilies, benchRoute, benchText, type BenchFacts } from "@/lib/cloudVoiceBench";
 import fr from "@/i18n/fr";
 import en from "@/i18n/en";
 import es from "@/i18n/es";
@@ -347,8 +369,33 @@ function cloudPrepSuite() {
     if (cloudOnly(k)) ok(CLOUD_PREP_KEYS.includes(k), `${k} (normal/chatty, sans variable) est préparé`);
   }
   for (const k of ["vFlagYellow", "vPuncture", "vBoxBox", "vPenalty", "vSpotLeft", "vCornerWatching"]) {
-    ok(!CLOUD_PREP_KEYS.includes(k), `${k} (sécurité, spotter ou coach) n'est pas préparé`);
+    ok(!CLOUD_PREP_KEYS.includes(k), `${k} (sécurité, spotter ou coach) hors de la liste « information »`);
   }
+
+  // Phrases urgentes : chaque gabarit critique/spotter sans variable est préparé
+  // (la voix en ligne ne les dit que depuis le cache), et seulement eux.
+  for (const [k, ps] of prios) {
+    if ([...ps].some((p) => p === "critical" || p === "spotter")) {
+      ok(CLOUD_PREP_ALERT_KEYS.includes(k), `${k} (urgent, sans variable) est dans les phrases urgentes`);
+    }
+  }
+  for (const m of src.matchAll(/"live\.(vSpot\w+)"/g)) {
+    ok(CLOUD_PREP_ALERT_KEYS.includes(m[1]), `spotter ${m[1]} préparé`);
+  }
+  ok(CLOUD_PREP_ALERT_KEYS.every((k) => !CLOUD_PREP_KEYS.includes(k)), "aucune clé dans les deux listes");
+  eq(cloudPrepKeys(true), [...CLOUD_PREP_KEYS], "alertes en voix locale : seulement l'information");
+  eq(cloudPrepKeys(false).length, CLOUD_PREP_KEYS.length + CLOUD_PREP_ALERT_KEYS.length, "sinon : information + urgentes");
+
+  // Voix en ligne : en direct pour l'information et les réponses, depuis le cache
+  // pour l'urgent, jamais pour l'urgent avec « alertes en voix locale ».
+  eq(cloudModeFor("normal", false, false), "live", "information : en direct");
+  eq(cloudModeFor("chatty", false, true), "live", "bavard : en direct, même alertes locales");
+  eq(cloudModeFor("critical", true, true), "live", "réponse au pilote : en direct");
+  for (const p of ["critical", "spotter", "coach"] as const) {
+    eq(cloudModeFor(p, false, false), "cached", `${p} : seulement préparé`);
+    eq(cloudModeFor(p, false, true), "off", `${p} : Piper (alertes en voix locale)`);
+  }
+  eq(cloudModeFor("spotter", true, false), "cached", "le spotter n'attend jamais le réseau");
 
   // Toutes les variantes, sans doublon ; jamais un gabarit à variable ni un chiffre.
   eq(
@@ -364,11 +411,224 @@ function cloudPrepSuite() {
     const phrases = fixedPhrases(tpls, (s) => s);
     ok(phrases.length >= CLOUD_PREP_KEYS.length, `${lang} : au moins une phrase par gabarit (${phrases.length})`);
     ok(phrases.every((p) => isFixedPhrase(p) && !p.includes("|")), `${lang} : phrases fixes, une variante chacune`);
+    const alerts = CLOUD_PREP_ALERT_KEYS.map((k) => b.live[k]);
+    ok(alerts.every((x) => typeof x === "string" && x.length > 0 && !x.includes("{{")), `${lang} : chaque gabarit urgent existe, sans variable`);
+    const alertPhrases = fixedPhrases(alerts, (s) => s);
+    ok(alertPhrases.length >= CLOUD_PREP_ALERT_KEYS.length, `${lang} : au moins une phrase urgente par gabarit (${alertPhrases.length})`);
   }
 
   approx(estimateCostUsd("openai", "gpt-4o-mini-tts", 1_000_000), 15, 1e-9, "OpenAI ≈ 15 $/M caractères");
   approx(estimateCostUsd("openai", "tts-1-hd", 1_000_000), 30, 1e-9, "tts-1-hd plus cher");
   approx(estimateCostUsd("inconnu", "", 2_000), 0.1, 1e-9, "fournisseur inconnu : tarif prudent");
+}
+
+// ── Annonces chiffrées assemblées (voix en ligne) ───────────────────────────
+
+function cloudSegmentsSuite() {
+  section("radio — annonces chiffrées assemblées");
+  const n = (v: number, lang: string, form?: "plain" | "masc" | "fem") => numberSegments(v, lang, form);
+
+  // Nombres en toutes lettres, accords compris.
+  eq(n(1, "fr", "fem"), ["une"], "FR : une minute");
+  eq(n(21, "fr", "fem"), ["vingt-et-une"], "FR : vingt-et-une");
+  eq(n(71, "fr"), ["soixante-et-onze"], "FR : soixante-et-onze");
+  eq(n(80, "fr"), ["quatre-vingts"], "FR : quatre-vingts");
+  eq(n(81, "fr", "fem"), ["quatre-vingt-une"], "FR : quatre-vingt-une");
+  eq(n(99, "fr"), ["quatre-vingt-dix-neuf"], "FR : quatre-vingt-dix-neuf");
+  eq(n(200, "fr"), ["deux cents"], "FR : deux cents");
+  eq(n(201, "fr"), ["deux cent", "un"], "FR : deux cent un");
+  eq(n(42, "en"), ["forty-two"], "EN : forty-two");
+  eq(n(105, "en"), ["one hundred and", "five"], "EN : one hundred and five");
+  eq(n(1, "es", "masc"), ["un"], "ES : un segundo");
+  eq(n(21, "es", "fem"), ["veintiuna"], "ES : veintiuna vueltas");
+  eq(n(35, "es"), ["treinta y cinco"], "ES : treinta y cinco");
+  eq(n(100, "es"), ["cien"], "ES : cien");
+  eq(n(101, "es"), ["ciento", "uno"], "ES : ciento uno");
+  eq(n(200, "es", "fem"), ["doscientas"], "ES : doscientas vueltas");
+  eq(n(1, "de"), ["eins"], "DE : eins");
+  eq(n(1, "de", "fem"), ["eine"], "DE : eine Runde");
+  eq(n(21, "de"), ["einundzwanzig"], "DE : einundzwanzig");
+  eq(n(97, "de"), ["siebenundneunzig"], "DE : siebenundneunzig");
+  eq(n(21, "it"), ["ventuno"], "IT : ventuno");
+  eq(n(28, "it"), ["ventotto"], "IT : ventotto");
+  eq(n(23, "it"), ["ventitré"], "IT : ventitré");
+  eq(n(1, "it", "masc"), ["un"], "IT : un giro");
+  eq(n(1000, "fr"), null, "au-delà de 999 : pas assemblable");
+  eq(formBefore(" tours restants", "fr"), "plain", "FR : tours → un");
+  eq(formBefore(" minutes restantes", "fr"), "fem", "FR : minutes → une");
+  eq(formBefore(" vueltas", "es"), "fem", "ES : vueltas → una");
+  eq(formBefore(" segundos", "es"), "masc", "ES : segundos → un");
+  eq(formBefore(" Runden", "de"), "fem", "DE : Runden → eine");
+  eq(formBefore(", place", "fr"), "plain", "ponctuation : nombre seul");
+
+  // Valeurs chiffrées : décimaux, signes, secondes, chronos.
+  const texts = (v: string, lang: string) => valueSegments(v, lang)?.map((x) => x.text) ?? null;
+  eq(texts("0.4", "fr"), ["zéro virgule quatre"], "écart court d'un seul morceau");
+  eq(texts("12.3", "fr"), ["douze", "virgule", "trois"], "décimal composé");
+  eq(texts("23.456", "en"), ["twenty-three", "point", "four", "five", "six"], "EN : décimales chiffre par chiffre");
+  eq(texts("23.456", "fr"), ["vingt-trois", "virgule", "quatre cent", "cinquante-six"], "FR : décimales en nombre");
+  eq(texts("0.05", "it"), ["zero", "virgola", "zero", "cinque"], "zéro de tête conservé");
+  eq(texts("+1.2s", "fr"), ["plus", "un virgule deux", "secondes"], "signe et secondes");
+  eq(texts("1:42.881", "fr"), ["une", "quarante-deux", "huit cent", "quatre-vingt-un"], "chrono : une, 42, 881");
+  eq(texts("Hypercar", "fr"), null, "texte libre : pas un nombre");
+
+  // Reconnaissance des annonces (gabarits réels, FR) et découpe.
+  const entries = (b: { live: Record<string, unknown> }): SegmentEntry[] =>
+    Object.keys(b.live)
+      .filter((k) => typeof b.live[k] === "string" && isSegmentTemplateKey(k))
+      .map((key) => ({ key, text: b.live[key] as string }));
+  const frLex = buildLexicon("fr", entries(fr as never), (s) => s);
+  const say = (text: string) => assembleSegments(text, frLex)?.map((x) => x.text) ?? null;
+  eq(say("Carburant : environ 2 tours restants"), ["Carburant : environ", "deux", "tours restants"], "carburant");
+  eq(say("Bien joué, tu passes P21"), ["Bien joué, tu passes P", "vingt-et-un"], "position (variante)");
+  eq(say("P3, place gagnée"), ["P", "trois", "place gagnée"], "position (1re variante)");
+  eq(say("Tu gagnes 0.4"), ["Tu gagnes", "zéro virgule quatre"], "écart au tour");
+  eq(say("12 tours restants"), ["douze", "tours restants"], "tours restants (réponse)");
+  eq(say("1 tour restant"), ["un", "tour restant"], "tours restants (singulier)");
+  eq(
+    say("Écart au leader : une minute 23.4"),
+    ["Écart au leader", "une", "minute", "vingt-trois", "virgule", "quatre"],
+    "chrono imbriqué (vLapTime dans vGapLeader)",
+  );
+  eq(
+    say("Pluie probable, 40 pour cent, dans environ 5 minutes"),
+    ["Pluie probable", "quarante", "pour cent", "dans environ", "cinq", "minutes"],
+    "délai imbriqué (inMinutes)",
+  );
+  eq(
+    say("Je répète : P3, place gagnée, Tu gagnes 0.4"),
+    ["Je répète", "P", "trois", "place gagnée", "Tu gagnes", "zéro virgule quatre"],
+    "annonce fusionnée, reprise après coupure",
+  );
+  eq(say("Tu reprends 0.4 au tour sur Dupont, sur lui dans environ 3 tours"), null, "nom propre : Piper");
+  eq(say("Drapeau jaune, attention"), null, "phrase sans chiffre : chemin des phrases fixes");
+  eq(say("Il fait 3 fois rien"), null, "phrase inconnue : Piper");
+  const pauses = assembleSegments("P3, place gagnée", frLex)!.map((x) => x.pauseMs);
+  ok(pauses[0] === 0 && pauses[2] > pauses[1], `silence plus long à la virgule (${pauses.join(",")})`);
+
+  // Gabarit personnalisé : reconnu tel que l'utilisateur l'a écrit ; ordinal collé refusé.
+  const custom = buildLexicon(
+    "fr",
+    [
+      { key: "vFuelLaps", text: "Essence : {{n}} tours" },
+      { key: "vX", text: "Rapport {{gear}}ᵉ" },
+    ],
+    (s) => s,
+  );
+  eq(assembleSegments("Essence : 2 tours", custom)?.map((x) => x.text) ?? null, ["Essence", "deux", "tours"], "gabarit personnalisé");
+  eq(assembleSegments("Rapport 3ᵉ", custom), null, "ordinal collé : pas assemblable");
+
+  // Couverture, 5 langues : chaque gabarit chiffré sans nom propre se dit avec
+  // des morceaux tous présents dans l'inventaire à préparer.
+  const bundles = { fr, en, es, de, it } as unknown as Record<string, { live: Record<string, string> }>;
+  const sample: Record<string, string> = { d: "0.4", time: "12.3", sec: "23.456" };
+  const freeVar = /\{\{\s*(name|driver|cls|what|wheels|marker|sector|car|no)\s*\}\}/;
+  for (const [lang, b] of Object.entries(bundles)) {
+    const list = entries(b);
+    const lex = buildLexicon(lang, list, (s) => s);
+    const inv = new Set(segmentInventory(lex));
+    ok(inv.size > 200 && inv.size < 700, `${lang} : inventaire raisonnable (${inv.size} morceaux)`);
+    const chars = [...inv].reduce((k, x) => k + x.length, 0);
+    ok(chars < 10_000, `${lang} : préparation bon marché (${chars} caractères)`);
+    ok([...inv].every((x) => x && !/\d/.test(x) && !x.includes("{{") && !x.includes("|")), `${lang} : morceaux sans chiffre ni variable`);
+    const when = b.live.inLaps.replace(/\{\{\s*n\s*\}\}/, "2");
+    let covered = 0;
+    const keys = new Set<string>();
+    for (const { key, text } of list) {
+      for (const variant of splitVariants(text)) {
+        if (!variant.includes("{{") || freeVar.test(variant)) continue;
+        if (/\}\}\p{L}/u.test(variant)) continue; // ordinal collé
+        const filled = variant.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, v: string) => (v === "when" ? when : (sample[v] ?? "3")));
+        const segs = assembleSegments(filled, lex);
+        ok(segs !== null, `${lang} ${key} : « ${filled} » assemblable`);
+        if (!segs) continue;
+        const absent = segs.map((x) => x.text).filter((x) => !inv.has(x) && !lex.known.has(x));
+        eq(absent, [], `${lang} ${key} : morceaux tous préparés`);
+        covered++;
+        keys.add(key);
+      }
+    }
+    ok(covered >= 60, `${lang} : au moins 60 formulations chiffrées couvertes (${covered})`);
+    const must = ["vFuelLaps", "vPosGain", "vPosLoss", "vPodium", "vDeltaGain", "vDeltaLoss", "vGapLeader", "vSectorLost"];
+    for (const k of [...must, "vTimeRemaining", "spLapsLeft_other", "vCornerBrakeEarly"]) {
+      ok(keys.has(k), `${lang} : ${k} couvert`);
+    }
+  }
+
+  // Réglage : morceaux à préparer selon « Annonces chiffrées » et « Alertes en voix locale ».
+  eq(segmentsWanted("alerts", false), true, "alertes assemblées : morceaux préparés");
+  eq(segmentsWanted("alerts", true), false, "alertes en voix locale : rien à assembler");
+  eq(segmentsWanted("all", true), true, "tout assemblé : l'information en a besoin");
+  eq(segmentsWanted("off", false), false, "ancien comportement : rien à préparer");
+
+  // Recollage : silence rogné, pause insérée, fondu aux bords.
+  const sr = 1000;
+  const tone = new Float32Array(300);
+  for (let i = 100; i < 200; i++) tone[i] = 0.5;
+  eq(trimSilence(tone, sr, 0.01, 10).length, 120, "silence rogné, marge gardée");
+  const joined = joinPcm([new Float32Array(50).fill(1), new Float32Array(50).fill(1)], [0, 30], sr, 5);
+  eq(joined.length, 130, "pause de 30 ms entre deux morceaux");
+  ok(joined[0] === 0 && joined[49] === 0 && joined[25] === 1, "fondu aux bords, plein au milieu");
+  ok(joined.slice(50, 80).every((x) => x === 0), "silence au raccord");
+}
+
+// ── Banc d'écoute de la voix en ligne ───────────────────────────────────────
+
+function cloudBenchSuite() {
+  section("radio — banc d'écoute de la voix IA");
+  const base: BenchFacts = {
+    cloudOn: true,
+    mode: "cached",
+    fixed: true,
+    wholeCached: true,
+    segments: null,
+    missing: [],
+    numbers: "alerts",
+  };
+  const r = (o: Partial<BenchFacts>) => benchRoute({ ...base, ...o });
+  eq(r({}), { engine: "cloud", reason: "cached" }, "alerte préparée : voix IA du cache");
+  eq(r({ cloudOn: false }), { engine: "piper", reason: "cloudOff" }, "voix IA coupée : Piper");
+  eq(r({ mode: "off" }), { engine: "piper", reason: "alertsLocal" }, "alertes en voix locale : Piper");
+  eq(r({ wholeCached: false }), { engine: "piper", reason: "notPrepared" }, "alerte non préparée : Piper");
+  eq(r({ mode: "live", wholeCached: false }), { engine: "piper", reason: "liveOnly" }, "information non préparée : réseau, donc Piper");
+  const num = { fixed: false, wholeCached: false, segments: ["deux", "tours"] };
+  eq(r(num), { engine: "assembled", reason: "assembled" }, "chiffrée, morceaux prêts : assemblée");
+  eq(r({ ...num, missing: ["deux"] }), { engine: "piper", reason: "segmentsMissing" }, "morceau manquant : Piper");
+  eq(r({ ...num, numbers: "off" }), { engine: "piper", reason: "numbersOff" }, "annonces chiffrées sur Piper");
+  eq(r({ ...num, mode: "live" }), { engine: "piper", reason: "liveOnly" }, "information chiffrée en réglage alertes : en direct");
+  eq(r({ ...num, mode: "live", numbers: "all" }), { engine: "assembled", reason: "assembled" }, "tout assemblé : l'information aussi");
+  eq(r({ ...num, segments: null }), { engine: "piper", reason: "notAssemblable" }, "nom propre : pas assemblable");
+  eq(r({ ...num, mode: "off", numbers: "all" }), { engine: "piper", reason: "alertsLocal" }, "alertes en voix locale l'emportent");
+
+  eq(benchText("Box | Rentre", {}), "Box", "1re formulation");
+  eq(benchText("Carburant : {{n}} tours", { n: "3" }), "Carburant : 3 tours", "variables remplacées");
+  eq(benchText("Écart {{d}}", {}), "Écart {{d}}", "variable sans valeur laissée visible");
+
+  // Familles : chaque phrase existe dans les 5 langues ; les exemples chiffrés s'assemblent partout.
+  const fams = benchFamilies();
+  eq(fams.map((f) => f.family), ["info", "safety", "spotter", "coach", "numbers"], "5 familles");
+  ok(fams.every((f) => f.phrases.length > 0), "aucune famille vide");
+  eq(fams.find((f) => f.family === "spotter")!.phrases.every((p) => p.priority === "spotter"), true, "spotter en priorité spotter");
+  const bundles = { fr, en, es, de, it } as unknown as Record<string, { live: Record<string, string> }>;
+  for (const [lang, b] of Object.entries(bundles)) {
+    const lex = buildLexicon(
+      lang,
+      Object.keys(b.live)
+        .filter((k) => typeof b.live[k] === "string" && isSegmentTemplateKey(k))
+        .map((key) => ({ key, text: b.live[key] })),
+      (s) => s,
+    );
+    for (const f of fams) {
+      for (const p of f.phrases) {
+        const tpl = b.live[p.key];
+        ok(typeof tpl === "string" && tpl.length > 0, `${lang} ${p.key} existe`);
+        if (f.family !== "numbers" || typeof tpl !== "string") continue;
+        const text = benchText(tpl, p.vars);
+        ok(!text.includes("{{"), `${lang} ${p.key} : toutes les variables ont un exemple`);
+        ok(assembleSegments(text, lex) !== null, `${lang} ${p.key} : « ${text} » assemblable`);
+      }
+    }
+  }
 }
 
 export function run() {
@@ -380,4 +640,6 @@ export function run() {
   rigorSuite();
   commandsSuite();
   cloudPrepSuite();
+  cloudSegmentsSuite();
+  cloudBenchSuite();
 }

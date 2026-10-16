@@ -22,6 +22,9 @@ import { brakePads, gameForecast, guardPerLap, officialEnergyPerLap } from "@/li
 import { normalize, type AnswerIntent, type Entities, type WatchSpec } from "./router";
 import type { WatchCond } from "./watches";
 import { coachCornerLosses } from "@/lib/coach/service";
+import { isWetCompound, tyreChangePlan, wheelWear, type WheelId } from "./tyres";
+import { sessionKind, type LapPref } from "./prefs";
+import { BRAKE_COLD_C, brakeAvgLimits } from "./brakes";
 
 /** Fenêtre de température « de travail » des pneus (°C, générique). */
 export const TYRE_WINDOW: [number, number] = [75, 105];
@@ -118,6 +121,16 @@ function energyLaps(d: LiveData): number | null {
   return ve > 0 && per ? ve / per : null;
 }
 
+/** Longueur d'un relais à plein (tours) : énergie virtuelle ou réservoir. */
+function nextStintLaps(d: LiveData, energy: boolean): number | null {
+  const tel = d.telemetry;
+  if (energy) {
+    const per = energyPerLap(d);
+    return per ? 1 / per : null;
+  }
+  return tel && tel.fuel_consumption > 0 && tel.fuel_capacity > 0 ? tel.fuel_capacity / tel.fuel_consumption : null;
+}
+
 /** Fenêtre d'arrêt courante (carburant + énergie virtuelle). */
 export function currentPitWindow(d: LiveData) {
   const p = d.player!;
@@ -179,6 +192,10 @@ export function whenLaps(t: Tr, laps: number): string {
 export function rankGap(myCls: string) {
   return (cls: string) => Math.max(1, classRank(cls) - classRank(myCls));
 }
+
+/** Cible « voiture devant / derrière » dans une question (texte normalisé). */
+const AHEAD_RX = / (devant|ahead|in front|delante|vordermann|vorne|davanti) /;
+const BEHIND_RX = / (derriere|behind|detras|hintermann|hinten|dietro) /;
 
 /** Perte moyenne en deçà de laquelle un virage n'est pas cité (s). */
 const LOSS_MIN_S = 0.05;
@@ -294,6 +311,25 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       return t("live.spBrakeBias", { f: ((1 - rear) * 100).toFixed(1) });
     }
 
+    case "brakeTemp": {
+      const w = d.telemetry?.wheels;
+      const ok = (x: number) => x > 0 && x < 2000; // -1 = donnée non significative
+      const front = (w ?? []).slice(0, 2).map((x) => x.brake_temp).filter(ok);
+      const rear = (w ?? []).slice(2, 4).map((x) => x.brake_temp).filter(ok);
+      if (!front.length && !rear.length) return t("live.spBrakeTempNone");
+      const f = front.length ? Math.round(Math.max(...front)) : 0;
+      const r = rear.length ? Math.round(Math.max(...rear)) : 0;
+      const hi = brakeAvgLimits(me?.vehicle_class ?? "").hot;
+      const max = Math.max(f, r);
+      const verdict =
+        max < BRAKE_COLD_C
+          ? t("live.spBrakeTempCold", { lo: BRAKE_COLD_C })
+          : max > hi
+            ? t("live.spBrakeTempHot", { hi })
+            : t("live.spBrakeTempOk");
+      return `${t("live.spBrakeTemp", { f, r })}, ${verdict}`;
+    }
+
     case "brakeWear": {
       const pads = brakePads(d.rest);
       if (!pads) return t("live.spBrakePadsNone");
@@ -337,19 +373,78 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
     case "stops": {
       const { strat, info } = currentPitWindow(d);
       if (!info || strat?.sessionLapsLeft == null) return noData;
-      const tel = d.telemetry;
-      const perStint =
-        info.limitedBy === "energy"
-          ? (() => {
-              const per = energyPerLap(d);
-              return per ? 1 / per : null;
-            })()
-          : tel && tel.fuel_consumption > 0 && tel.fuel_capacity > 0
-            ? tel.fuel_capacity / tel.fuel_consumption
-            : null;
+      const perStint = nextStintLaps(d, info.limitedBy === "energy");
       const n = stopsNeeded(strat.sessionLapsLeft, info.rangeLaps, perStint);
       if (n == null) return noData;
       return n === 0 ? t("live.spNoStopNeeded") : t("live.spStops", { count: n });
+    }
+
+    case "rivalStops": {
+      if (!me) return noData;
+      const n = ` ${o.norm ?? ""} `;
+      const cls = me.vehicle_class;
+      const car =
+        e?.carNo || e?.pos
+          ? (findCited(d, e, o.norm) ?? (e.pos ? findAtPosition(d, e.pos, targetClass(d, me, e)) : null))
+          : AHEAD_RX.test(n)
+            ? classNeighbor(d, me, -1)
+            : BEHIND_RX.test(n)
+              ? classNeighbor(d, me, 1)
+              : me.class_position === 1
+                ? classNeighbor(d, me, 1)
+                : findAtPosition(d, 1, cls);
+      if (!car || car.is_player) return noData;
+      const name = radioName(car.driver);
+      const est = engineer.stints.estimate(d, car);
+      const parts = [car.num_pitstops > 0 ? t("live.spRStops", { name, count: car.num_pitstops }) : t("live.spRStopsNone", { name })];
+      if (est.stintLaps == null) return `${parts[0]}, ${t("live.spRUnknown")}`;
+      const stint = Math.round(est.stintLaps);
+      parts.push(t(est.fromClass ? "live.spRStintClass" : "live.spRStint", { n: stint }));
+      if (est.lapsToNext != null) parts.push(est.lapsToNext <= 0 ? t("live.spRDue") : t("live.spRNext", { when: whenLaps(t, est.lapsToNext) }));
+      if (est.stopsLeft != null) parts.push(est.stopsLeft === 0 ? t("live.spRLeftNone") : t("live.spRLeft", { count: est.stopsLeft }));
+      return parts.join(", ");
+    }
+
+    case "lapPrefEvery":
+    case "lapPrefBest":
+    case "lapPrefNone":
+    case "lapPrefAuto": {
+      const pref = intent.slice("lapPref".length).toLowerCase() as LapPref;
+      const kind = sessionKind(d.session!.session);
+      engineer.setLapPref(kind, pref);
+      const what = t(`live.lapPref${intent.slice("lapPref".length)}`);
+      const k = t(`live.spKind${kind[0].toUpperCase()}${kind.slice(1)}`);
+      return t("live.spLapPrefSet", { what, kind: k });
+    }
+
+    case "tyreChange": {
+      const tel = d.telemetry;
+      const wear = wheelWear(tel?.wheels);
+      if (!tel || !wear) return noData;
+      const parts: string[] = [];
+      const onWets = isWetCompound(tel.front_compound) || isWetCompound(tel.rear_compound);
+      const call = engineer.wetness.call(onWets, d.weather?.rain ?? 0);
+      if (call) parts.push(t(call === "toWets" ? "live.spTyresToWets" : "live.spTyresToSlicks"));
+      else {
+        const per = engineer.tyreWear.perLap();
+        if (per.every((x) => x == null)) parts.push(t("live.spTyreChangeUnknown"));
+        else {
+          const { strat, info } = currentPitWindow(d);
+          const stint = nextStintLaps(d, info?.limitedBy === "energy") ?? info?.rangeLaps ?? null;
+          if (stint == null) return noData;
+          const plan = tyreChangePlan(wear, per, stint, strat?.sessionLapsLeft ?? null);
+          const wheel = (id: WheelId) => t(`live.spWheel${id[0].toUpperCase()}${id[1]}`);
+          if (!plan.change.length) parts.push(t(plan.toFinish ? "live.spTyreChangeFinish" : "live.spTyreChangeNone"));
+          else if (plan.change.length === 4) parts.push(t("live.spTyreChangeAll"));
+          else parts.push(t("live.spTyreChangeSome", { list: plan.change.map(wheel).join(t("live.spAnd")) }));
+          if (!plan.change.length) return parts.join(". ");
+        }
+      }
+      const me2 = meOf(d);
+      const cls = me2?.vehicle_class ?? "";
+      const warm = engineer.warmup.median(cls) ?? engineer.warmupPrior[`${d.session!.track}::${cls}`] ?? null;
+      if (warm != null && warm >= 1) parts.push(t("live.spTyreWarmup", { s: Math.round(warm) }));
+      return parts.join(", ");
     }
 
     case "ackBox":
@@ -403,6 +498,13 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       );
       return t("live.aCoachMe", { list: items.join(". ") });
     }
+
+    // Notes radio : traitées dans `ask.ts` (elles n'ont pas besoin des données live).
+    case "rateUseful":
+    case "rateUseless":
+    case "rateLate":
+    case "rateWrong":
+      return "";
 
     default:
       return buildAnswer(intent, d, t, o.pitLossSec, o.fuelReserveLaps, o.classPositions ?? true);

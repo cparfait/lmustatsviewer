@@ -13,6 +13,7 @@
 
 import i18n from "@/i18n";
 import { config } from "@/lib/api";
+import { isSegmentTemplateKey, type SegmentEntry } from "@/lib/cloudVoiceSegments";
 import fr from "@/i18n/fr";
 import en from "@/i18n/en";
 import es from "@/i18n/es";
@@ -76,6 +77,8 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vTyreWear", vars: [] },
       { key: "vPuncture", vars: [] },
       { key: "vTyreOverheat", vars: [] },
+      { key: "vTyresToWets", vars: [] },
+      { key: "vTyresToSlicks", vars: [] },
     ],
   },
   {
@@ -124,6 +127,8 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vRivalPitAheadFront", vars: ["name"], sample: { name: "Martin" } },
       { key: "vRivalPitAheadClose", vars: ["name"], sample: { name: "Martin" } },
       { key: "vRivalPitBehind", vars: ["name"], sample: { name: "Martin" } },
+      { key: "vLeaderPit", vars: ["name"], sample: { name: "Martin" } },
+      { key: "vLeaderPitStint", vars: ["name", "n"], sample: { name: "Martin", n: 24 } },
     ],
   },
   {
@@ -301,6 +306,18 @@ export function initVoiceOverrides(raw?: string | null) {
       i18n.addResource(lng, NS, fullKey(suffix), text);
     }
   }
+}
+
+/**
+ * Gabarits d'annonces de la langue (texte effectif, personnalisé compris) que la
+ * voix en ligne sait assembler par morceaux (`cloudVoiceSegments.ts`).
+ */
+export function segmentTemplates(lang: string): SegmentEntry[] {
+  const live = (SOURCES[norm(lang)] ?? SOURCES.fr).live;
+  return Object.keys(live)
+    .filter((k) => typeof live[k] === "string" && isSegmentTemplateKey(k))
+    .map((key) => ({ key, text: getMessageText(lang, key) }))
+    .filter((e) => typeof e.text === "string" && e.text !== "");
 }
 
 /** Texte courant (personnalisé si présent, sinon défaut). */

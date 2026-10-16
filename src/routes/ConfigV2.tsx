@@ -31,6 +31,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MENU_MODULE_KEYS } from "@/components/layout/Header";
+import { ReplayBenchPanel } from "@/components/ReplayBenchPanel";
+import { RegieSettings } from "@/components/RegieSettings";
 import {
   FolderOpen,
   RefreshCw,
@@ -73,6 +75,7 @@ import {
   Disc,
   Upload,
   Users,
+  Tablet,
   Trophy,
   Ear,
   Flag,
@@ -84,6 +87,10 @@ import {
   Mic,
   AudioLines,
   Gamepad2,
+  MessageCircleQuestion,
+  MapPin,
+  PenLine,
+  BatteryCharging,
   Film,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
@@ -190,6 +197,7 @@ type CatId =
   | "voice"
   | "coach"
   | "community"
+  | "regie"
   | "maintenance"
   | "credits";
 
@@ -199,6 +207,7 @@ const SIDEBAR: { id: CatId; icon: typeof User; labelKey: string }[] = [
   { id: "voice", icon: Volume2, labelKey: "config.audioVoice" },
   { id: "coach", icon: Brain, labelKey: "config.aiCoach" },
   { id: "community", icon: Users, labelKey: "config.community" },
+  { id: "regie", icon: Tablet, labelKey: "config.regieNav" },
   { id: "maintenance", icon: Wrench, labelKey: "config.maintenance" },
   { id: "credits", icon: Heart, labelKey: "config.credits" },
 ];
@@ -219,10 +228,15 @@ export function ConfigV2() {
   const telemetryDir = useAppStore((s) => s.telemetryDir);
   const timezone = useAppStore((s) => s.timezone);
   const autoIndex = useAppStore((s) => s.autoIndex);
+  const restPollOffTrack = useAppStore((s) => s.restPollOffTrack);
   const systemTray = useAppStore((s) => s.systemTray);
   const autoUpdate = useAppStore((s) => s.autoUpdate);
   const launchIntro = useAppStore((s) => s.launchIntro);
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
+  const mapIncidents = useAppStore((s) => s.mapIncidents);
+  const mapNorthUp = useAppStore((s) => s.mapNorthUp);
+  const gameWrites = useAppStore((s) => s.gameWrites);
+  const pitAutoEnergy = useAppStore((s) => s.pitAutoEnergy);
   const overlayTargetTier = useAppStore((s) => s.overlayTargetTier);
   const menuModules = useAppStore((s) => s.menuModules);
   const overlayToggleKey = useAppStore((s) => s.overlayToggleKey);
@@ -283,6 +297,7 @@ export function ConfigV2() {
   const radioQuietZones = useAppStore((s) => s.radioQuietZones);
   const radioPhases = useAppStore((s) => s.radioPhases);
   const radioBudgets = useAppStore((s) => s.radioBudgets);
+  const radioAskPrefs = useAppStore((s) => s.radioAskPrefs);
   const radioReplay = useAppStore((s) => s.radioReplay);
   const voiceLapPrecision = useAppStore((s) => s.voiceLapPrecision);
   const proximitySpotter = useAppStore((s) => s.proximitySpotter);
@@ -992,6 +1007,39 @@ export function ConfigV2() {
                           </SettingRow>
                         </Disclosure>
                       )}
+                      {key === "live" && (
+                        <Disclosure title={t("config.moduleOptions")}>
+                          <ToggleRow
+                            icon={<MapPin className="h-4 w-4" />}
+                            label={t("config.mapIncidents")}
+                            tip={t("config.mapIncidentsTip")}
+                            checked={mapIncidents}
+                            onChange={(v) => void useAppStore.getState().setMapIncidents(v)}
+                          />
+                          <ToggleRow
+                            icon={<MapPin className="h-4 w-4" />}
+                            label={t("config.mapNorthUp")}
+                            tip={t("config.mapNorthUpTip")}
+                            checked={mapNorthUp}
+                            onChange={(v) => void useAppStore.getState().setMapNorthUp(v)}
+                          />
+                          <ToggleRow
+                            icon={<PenLine className="h-4 w-4" />}
+                            label={t("config.gameWrites")}
+                            tip={t("config.gameWritesTip")}
+                            checked={gameWrites}
+                            onChange={(v) => void useAppStore.getState().setGameWrites(v)}
+                          />
+                          <ToggleRow
+                            icon={<BatteryCharging className="h-4 w-4" />}
+                            label={t("config.pitAutoEnergy")}
+                            tip={t("config.pitAutoEnergyTip")}
+                            checked={pitAutoEnergy}
+                            disabled={!gameWrites}
+                            onChange={(v) => void useAppStore.getState().setPitAutoEnergy(v)}
+                          />
+                        </Disclosure>
+                      )}
                       {key === "sessions" && (
                         <>
                           <Separator />
@@ -1332,6 +1380,7 @@ export function ConfigV2() {
                                 previewVoice(
                                   t("config.voiceTestPhrase"),
                                   i18n.language,
+                                  { localOnly: true },
                                 )
                               }
                             >
@@ -1606,6 +1655,15 @@ export function ConfigV2() {
                       tip={t("config.radioBudgetsTip")}
                       checked={radioBudgets}
                       onChange={(v) => void useAppStore.getState().setRadioBudgets(v)}
+                      disabled={radioMode === "full"}
+                    />
+                    <ToggleRow
+                      icon={<MessageCircleQuestion className="h-4 w-4" />}
+                      label={t("config.radioAskPrefs")}
+                      desc={t("config.radioAskPrefsDesc")}
+                      tip={t("config.radioAskPrefsTip")}
+                      checked={radioAskPrefs}
+                      onChange={(v) => void useAppStore.getState().setRadioAskPrefs(v)}
                       disabled={radioMode === "full"}
                     />
                     <ToggleRow
@@ -2362,6 +2420,8 @@ export function ConfigV2() {
             {/* ── Maintenance (+ version / mises à jour) ── */}
             {cat === "maintenance" && (
               <div className="space-y-1">
+                <ReplayBenchPanel />
+                <Separator />
                 <ToggleRow
                   icon={<Zap className="h-4 w-4" />}
                   label={t("config.autoIndex")}
@@ -2369,6 +2429,15 @@ export function ConfigV2() {
                   tip={t("config.autoIndexTip")}
                   checked={autoIndex}
                   onChange={(v) => useAppStore.getState().setAutoIndex(v)}
+                />
+                <Separator />
+                <ToggleRow
+                  icon={<Radio className="h-4 w-4" />}
+                  label={t("config.restPollOffTrack")}
+                  desc={t("config.restPollOffTrackDesc")}
+                  tip={t("config.restPollOffTrackTip")}
+                  checked={restPollOffTrack}
+                  onChange={(v) => useAppStore.getState().setRestPollOffTrack(v)}
                 />
                 <Separator />
                 <ActionRow
@@ -2540,6 +2609,9 @@ export function ConfigV2() {
 
             {/* ── Communauté (partage des meilleurs tours, opt-in) ── */}
             {cat === "community" && <CommunitySettings />}
+
+            {/* ── Régie tablette (lecture seule, opt-in) ── */}
+            {cat === "regie" && <RegieSettings />}
 
             {/* ── Crédits ── */}
             {cat === "credits" && (

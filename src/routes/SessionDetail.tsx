@@ -1,3 +1,4 @@
+import { SessionMoments } from "@/components/SessionMoments";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -864,6 +865,12 @@ function SessionView({ data }: { data: SessionDetailData }) {
         </TabsContent>
 
         <TabsContent value="incidents">
+          <SessionMoments
+            track={session.track}
+            timestamp={session.timestamp}
+            durationS={session.session_minutes > 0 ? session.session_minutes * 60 : 3 * 3600}
+            isRace={isRace}
+          />
           <EventListTab
             events={incidentEvents}
             empty={t("sessionDetail.noIncidents")}

@@ -1,7 +1,8 @@
 /**
  * Point d'entrée des tests coach (COACH-LIVE-SPEC.md §14). Exécuté par
  * `scripts/run-coach-tests.mjs` (esbuild + node). Ajouter une suite = l'importer
- * ici et appeler son `run()` avant `report()`.
+ * ici et appeler son `run()` avant `report()`. Les suites asynchrones (faux
+ * environnement Tauri) passent en dernier.
  */
 
 import { report } from "./assert";
@@ -13,6 +14,10 @@ import { run as runOhne } from "./suites/ohne.suite";
 import { run as runFeedback } from "./suites/feedback.suite";
 import { run as runRadio } from "./suites/radio.suite";
 import { run as runRest } from "./suites/rest.suite";
+import { run as runMaps } from "./suites/maps.suite";
+import { run as runStrategy } from "./suites/strategy.suite";
+import { run as runPlan } from "./suites/plan.suite";
+import { run as runVoice } from "./suites/voice.suite";
 
 runPure();
 runCoach();
@@ -22,4 +27,12 @@ runOhne();
 runFeedback();
 runRadio();
 runRest();
-report();
+runMaps();
+runStrategy();
+runPlan();
+void (async () => {
+  await runVoice();
+  report();
+  // Minuteries de fond des modules (compteur de la voix en ligne) : inutile d'attendre.
+  process.exit(0);
+})();

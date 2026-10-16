@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live, type LiveData } from "@/lib/api";
 import { PitLossTracker } from "@/lib/pitLoss";
+import { laneLossFrom, plannedStopSeconds } from "@/lib/lmuRest";
 import { toast } from "@/stores/dialogs";
 
 export function usePitLoss() {
@@ -29,6 +30,10 @@ export function usePitLoss() {
     const tracker = new PitLossTracker();
     let lastCombo = "";
     let off: (() => void) | null = null;
+    // Durée de l'arrêt prévue par le jeu, relevée en entrant aux stands (le
+    // menu ne bouge plus une fois arrêté) : sépare temps de voie et arrêt.
+    let wasInPits = false;
+    let stopAtEntry: number | null = null;
 
     void (async () => {
       off = await live.onData((data: LiveData) => {
@@ -48,6 +53,13 @@ export function usePitLoss() {
           tracker.reset();
         }
 
+        if (me.in_pits && !wasInPits) stopAtEntry = null;
+        if (me.in_pits) {
+          const planned = plannedStopSeconds(data.rest);
+          if (planned != null && planned > 0) stopAtEntry = planned;
+        }
+        wasInPits = me.in_pits;
+
         const loss = tracker.push({
           inPits: me.in_pits,
           totalLaps: p.total_laps,
@@ -58,7 +70,7 @@ export function usePitLoss() {
         });
 
         if (loss != null && combo) {
-          void useAppStore.getState().recordPitLoss(combo, loss);
+          void useAppStore.getState().recordPitLoss(combo, loss, laneLossFrom(loss, stopAtEntry));
           toast(tRef.current("live.pitLossMeasured", { s: Math.round(loss) }));
         }
       });

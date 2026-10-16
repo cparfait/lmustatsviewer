@@ -30,6 +30,8 @@ import {
 } from "@/lib/voice";
 import { inCriticalZone } from "@/lib/driving";
 import { computeStrategy } from "@/lib/strategy";
+import { aeroDamage, brakePads, damagedSuspensionsOrNull, effectivePitLoss, WHEELS } from "@/lib/lmuRest";
+import { AlertLatch } from "./alertLatch";
 import { useAppStore } from "@/stores/app";
 import { RadioArbiter, TEXT_REPEAT_LAPS, type Candidate } from "./arbiter";
 import { classOf, type PolicyCtx } from "./policy";
@@ -216,6 +218,17 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const prevFlag = useRef<FlagKind>("none");
   const fuelBucket = useRef<number>(99);
   const tyreWarned = useRef(false);
+  /** Plaquettes : 0 = rien dit, 1 = alerte 25 % dite, 2 = alerte 10 % dite. */
+  const padsLevel = useRef(0);
+  // Alertes de dégâts : annoncées une fois, réarmées après un vrai retour à la
+  // normale (cf. alertLatch.ts — rafales sur le bas-côté, 2026-10-16).
+  const dmgLatch = useRef({
+    damage: new AlertLatch(),
+    puncture: new AlertLatch(),
+    detached: new AlertLatch(),
+    aero: new AlertLatch(),
+    susp: [0, 1, 2, 3].map(() => new AlertLatch()),
+  });
   const tyreSeenFresh = useRef(false);
   const coldWarned = useRef(false);
   const prevPos = useRef<number>(0);
@@ -237,8 +250,6 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const gapAheadWarned = useRef(false);
   const underAttackWarned = useRef(false);
   const prevPitstops = useRef(0);
-  const punctureWarned = useRef(false);
-  const detachedWarned = useRef(false);
   // Surchauffes : état « seuil tenu » (since = début au-dessus du seuil, last = dernière annonce).
   const tyreHot = useRef({ since: 0, last: 0 });
   const brakeHot = useRef({ since: 0, last: 0 });
@@ -400,8 +411,10 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       tyreSeenFresh.current = false;
       tyreWarned.current = false;
       coldWarned.current = false;
-      punctureWarned.current = false;
-      detachedWarned.current = false;
+      {
+        const l = dmgLatch.current;
+        [l.damage, l.puncture, l.detached, l.aero, ...l.susp].forEach((x) => x.rearm());
+      }
       tyreHot.current = { since: 0, last: 0 };
       brakeHot.current = { since: 0, last: 0 };
       brakeAvg.current = newBrakeAvg();
@@ -518,6 +531,39 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (sustainedAlert(tyreLow.current, wearLow, now, 4000, 0) && !tyreWarned.current) {
       say("tyres:wear", t("live.vTyreWear"), "normal", { score: 55, retryS: 20 });
       tyreWarned.current = true;
+    }
+
+    // ── Plaquettes (donnée du jeu, absente de la mémoire partagée) — alerte à
+    // 25 % puis 10 % de la plus usée ; réarmée quand elles sont changées.
+    const pads = brakePads(data.rest);
+    if (pads) {
+      const minPad = Math.min(...pads);
+      if (minPad >= 0.6) padsLevel.current = 0;
+      const level = minPad < 0.1 ? 2 : minPad < 0.25 ? 1 : 0;
+      if (warmedUp && level > padsLevel.current) {
+        say(`brakes:pads${level}`, t("live.vBrakePads", { pct: Math.round(minPad * 100) }), "normal", {
+          score: level === 2 ? 65 : 50,
+          retryS: 30,
+        });
+        padsLevel.current = level;
+      }
+    }
+
+    // ── Dégâts détaillés (donnée du jeu) : quelle suspension, aéro ────────────
+    // Donnée inconnue (REST muet un instant) : ne réarme rien.
+    const susp = damagedSuspensionsOrNull(data.rest);
+    const newSusp = [0, 1, 2, 3].filter((i) =>
+      dmgLatch.current.susp[i].update(susp == null ? null : susp.includes(i), now),
+    );
+    if (warmedUp && newSusp.length) {
+      const wheels = newSusp.map((i) => t(`live.wheelVoice.${WHEELS[i].toLowerCase()}`)).join(", ");
+      say("mech:suspension", t("live.vSuspensionDamage", { wheels }), "normal", { score: 60, retryS: 20 });
+    }
+    const aero = aeroDamage(data.rest);
+    // Hystérésis : annonce ≥ 10 %, réarmement < 2 %, entre les deux inchangé.
+    const aeroActive = aero == null ? null : aero >= 0.1 ? true : aero < 0.02 ? false : null;
+    if (dmgLatch.current.aero.update(aeroActive, now) && warmedUp && aero != null) {
+      say("mech:aero", t("live.vAeroDamage", { pct: Math.round(aero * 100) }), "normal", { score: 50, retryS: 20 });
     }
 
     const inPits = playerStanding?.in_pits ?? false;
@@ -686,6 +732,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (lapDone) {
         lapsSinceLapCallout.current++;
         engineer.energy.push(data.extended?.virtual_energy ?? 0);
+        const pads = brakePads(data.rest);
+        engineer.pads.push(pads ? Math.min(...pads) : null);
       }
       if (!inPits && lapDone && player.last_lap_time > 0) {
         const best = player.best_lap_time;
@@ -896,7 +944,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
       // ── Arrêts des rivaux directs (classe) ───────────────────────────────
       if (warmedUp && isRace) {
-        const loss = useAppStore.getState().pitLossSeconds;
+        const st = useAppStore.getState();
+        const loss = effectivePitLoss(data, st.pitLossSeconds, st.pitLaneLoss);
         for (const ev of rivalPits.current.push(data, loss)) {
           const name = radioName(ev.driver);
           const key =
@@ -1027,7 +1076,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
     // ── Dégâts importants — bond soudain (> 10 points) ───────────────────────
     const dmg = tel?.damage_total ?? 0;
-    if (warmedUp && dmg - prevDamage.current > 10) {
+    if (dmgLatch.current.damage.update(dmg - prevDamage.current > 10, now) && warmedUp) {
       say("mech:damage", t("live.vDamage"), "critical");
       lastDamageAt.current = now;
       engineer.policy.noteCrash(nowS); // calme de sécurité après le choc
@@ -1039,19 +1088,13 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (tel && warmedUp) {
       // Crevaison.
       const flat = tel.wheels.some((w) => w.flat);
-      if (flat && !punctureWarned.current) {
+      if (dmgLatch.current.puncture.update(flat, now)) {
         say("mech:puncture", t("live.vPuncture"), "critical");
-        punctureWarned.current = true;
-      } else if (!flat) {
-        punctureWarned.current = false;
       }
       // Roue arrachée.
       const detached = tel.wheels.some((w) => w.detached);
-      if (detached && !detachedWarned.current) {
+      if (dmgLatch.current.detached.update(detached, now)) {
         say("mech:detached", t("live.vWheelDetached"), "critical");
-        detachedWarned.current = true;
-      } else if (!detached) {
-        detachedWarned.current = false;
       }
       // Pneus en surchauffe : seuil tenu ≥ 10 s, puis silence 2 min (anti-spam).
       const tyreTemps = tel.wheels.map((w) => w.temp).filter((x) => x > 0 && x < 250);
@@ -1100,16 +1143,17 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         rainHeavy.current = false;
       }
 
-      // Prévision `.wet` : validée une fois contre la température d'air mesurée,
-      // puis annoncée à ≤ 20 min de la pluie probable et rappelée à ≤ 5 min.
+      // Prévision : celle du jeu (pont REST) si fraîche et cohérente avec l'air
+      // mesuré, sinon le `.wet` validé une fois contre la mesure. Annoncée à
+      // ≤ 20 min de la pluie probable et rappelée à ≤ 5 min.
       const f = engineer.forecast;
       const key = wetSession(sc.session);
-      if (f && key && f.data[key] && sc.end_et > 0 && warmedUp) {
-        if (!engineer.forecastValid) {
+      if (sc.end_et > 0 && warmedUp) {
+        if (f && key && f.data[key] && !engineer.forecastValid) {
           const frac = Math.min(1, sc.session_time / sc.end_et);
           engineer.forecastValid = consistentWithLive(f.data[key]!, frac, weather.air_temp);
         }
-        const fc = engineer.forecastValid ? currentForecast(data) : null;
+        const fc = currentForecast(data);
         if (fc?.rain) {
           const { inS, chance } = fc.rain;
           const txt = t("live.vRainForecast", { pct: chance, when: whenMinutes(t, inS) });

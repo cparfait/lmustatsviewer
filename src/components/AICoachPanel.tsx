@@ -275,6 +275,34 @@ export function CoachPanel({
   const needsKey = provider?.needsKey ?? true;
   const ready = !!provider && !!aiModel && (!needsKey || !!aiApiKey);
 
+  // Fournisseur local sans clé (Ollama…) : « configuré » ne prouve pas qu'il
+  // tourne. On interroge sa liste de modèles pour dire tout de suite s'il est
+  // éteint/absent ou si le modèle choisi n'y est pas installé.
+  const [reach, setReach] = useState<"ok" | "checking" | "down" | "noModel">("ok");
+  const [reachTry, setReachTry] = useState(0);
+  useEffect(() => {
+    const p = getProvider(aiProvider);
+    if (!p || p.needsKey || !aiModel) {
+      setReach("ok");
+      return;
+    }
+    let alive = true;
+    setReach("checking");
+    ai.listModels(p.modelsUrl(""), p.buildHeaders(""))
+      .then((raw) => {
+        if (!alive) return;
+        const ids = p.parseModels(raw).map((m) => m.id);
+        const has = ids.length === 0 || ids.some((id) => id === aiModel || id === `${aiModel}:latest`);
+        setReach(has ? "ok" : "noModel");
+      })
+      .catch(() => {
+        if (alive) setReach("down");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [aiProvider, aiModel, reachTry]);
+
   const [open, setOpen] = useState(false);
   const [showContext, setShowContext] = useState(false);
   const [previewText, setPreviewText] = useState("");
@@ -585,7 +613,7 @@ export function CoachPanel({
         <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
           <p>{t("coach.notConfigured")}</p>
           <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">
-            <Link to="/config">
+            <Link to="/config?cat=coach">
               {t("coach.goConfig")}
               <ChevronRight className="h-3.5 w-3.5" />
             </Link>
@@ -593,6 +621,26 @@ export function CoachPanel({
         </div>
       ) : (
         <div className="space-y-2">
+          {(reach === "down" || reach === "noModel") && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400">
+              <p>
+                {reach === "down"
+                  ? t("coach.providerDown", { name: provider?.name ?? aiProvider })
+                  : t("coach.modelMissing", { name: provider?.name ?? aiProvider, model: aiModel })}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => setReachTry((n) => n + 1)}>
+                  {t("coach.recheck")}
+                </Button>
+                <Button asChild variant="outline" size="sm" className="gap-1.5">
+                  <Link to="/config?cat=coach">
+                    {t("coach.goConfig")}
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" className="gap-1.5" disabled={busy} onClick={() => void analyze("quick")}>
               <Sparkles className="h-3.5 w-3.5" />
@@ -635,7 +683,15 @@ export function CoachPanel({
               <Send className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {!needsKey && (
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  reach === "ok" ? "bg-emerald-500" : reach === "checking" ? "bg-muted-foreground/50" : "bg-amber-500",
+                )}
+              />
+            )}
             {provider?.name} · {aiModel}
           </div>
         </div>

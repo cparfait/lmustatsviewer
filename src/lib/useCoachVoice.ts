@@ -18,6 +18,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live } from "@/lib/api";
+import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, cancelSpeech, repeatLast, setDriverTalking } from "@/lib/voice";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { pttBeep } from "@/lib/radioFx";
@@ -195,7 +196,7 @@ export function useCoachVoice() {
         const st0 = useAppStore.getState();
         const r = route(q, lang);
         const opts = {
-          pitLossSec: st0.pitLossSeconds,
+          pitLossSec: effectivePitLoss(data, st0.pitLossSeconds, st0.pitLaneLoss),
           fuelReserveLaps: st0.fuelReserveLaps,
           classPositions: st0.classPositions,
           entities: r.entities,

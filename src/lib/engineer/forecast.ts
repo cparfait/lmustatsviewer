@@ -12,9 +12,14 @@
  * (il n'est pas réécrit à chaque session), on ne s'en sert que s'il est
  * **cohérent avec la mesure** : température annoncée pour l'instant présent à
  * ± `TEMP_TOLERANCE_C` de la température d'air relevée. Sinon : silence.
+ *
+ * Prévision du jeu (pont REST, `lmu_rest`) : mêmes 5 nœuds répartis sur la
+ * séance (START, 25 %, 50 %, 75 %, FINISH). Elle est **prioritaire** sur le
+ * `.wet` quand elle est fraîche et cohérente avec la mesure (même contrôle de
+ * température) ; sinon on retombe sur le `.wet`, puis sur le silence.
  */
 
-import type { WetFile } from "@/lib/api";
+import type { RestForecastNode, WetFile } from "@/lib/api";
 
 export interface WetNode {
   Humidity: number;
@@ -144,5 +149,31 @@ export function nextRain(
     const n = interp(nodes, f);
     if (n.RainChance >= threshold) return { inS: (f - fracNow) * durationS, chance: Math.round(n.RainChance) };
   }
+  return null;
+}
+
+/** Nœuds de prévision du jeu (REST) → nœuds `.wet` (mêmes unités : %, °C). */
+export function fromGameNodes(nodes: RestForecastNode[]): WetNode[] {
+  return nodes.map((n) => ({
+    Humidity: n.humidity,
+    RainChance: n.rain_chance,
+    Sky: n.sky,
+    Temperature: n.temperature,
+  }));
+}
+
+/**
+ * Prévision à utiliser : celle du jeu si cohérente avec l'air mesuré, sinon le
+ * `.wet` déjà validé, sinon null.
+ */
+export function pickForecast(
+  game: WetNode[] | null,
+  wet: WetNode[] | null,
+  wetValid: boolean,
+  frac: number,
+  airTempC: number,
+): { nodes: WetNode[]; source: "game" | "wet" } | null {
+  if (game && game.length >= 2 && consistentWithLive(game, frac, airTempC)) return { nodes: game, source: "game" };
+  if (wet && wetValid) return { nodes: wet, source: "wet" };
   return null;
 }

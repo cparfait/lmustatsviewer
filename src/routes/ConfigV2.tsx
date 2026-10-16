@@ -263,6 +263,9 @@ export function ConfigV2() {
   const aiProvider = useAppStore((s) => s.aiProvider);
   const aiProviderList = useAppStore((s) => s.aiProviderList);
   const aiCustomProviders = useAppStore((s) => s.aiCustomProviders);
+  // Aucun fournisseur ajouté : on n'affiche ni fournisseur actif ni modèle
+  // (l'ancienne valeur par défaut « Google » laissait croire que c'était prêt).
+  const noAiProvider = aiProviderList.length === 0 && aiCustomProviders.length === 0;
   const aiActiveKey = useAppStore((s) => s.aiProviderKeys[s.aiProvider] ?? "");
   const aiModel = useAppStore((s) => s.aiModel);
   const aiSystemPromptByLang = useAppStore((s) => s.aiSystemPromptByLang);
@@ -2141,14 +2144,16 @@ export function ConfigV2() {
                     <Separator />
                     <SettingRow icon={<Globe className="h-4 w-4" />} label={t("config.aiProviderActive")} tip={t("config.aiProviderTip")}>
                       <Select
-                        value={aiProvider}
+                        value={noAiProvider ? "" : aiProvider}
                         onValueChange={(v) => void useAppStore.getState().setAIProvider(v)}
                         ariaLabel={t("config.aiProviderActive")}
+                        placeholder={t("config.aiNoProvider")}
                         className="h-8 max-w-[200px] px-2.5"
                         // Seuls les fournisseurs CONFIGURÉS sont sélectionnables. La
                         // valeur active hors liste (état hérité) reste affichée.
                         options={[
                           ...(aiProvider &&
+                          !noAiProvider &&
                           !aiProviderList.includes(aiProvider) &&
                           !aiCustomProviders.some((d) => d.id === aiProvider)
                             ? [
@@ -2170,6 +2175,14 @@ export function ConfigV2() {
                       />
                     </SettingRow>
 
+                    {noAiProvider && (
+                      <>
+                        <Separator />
+                        <p className="py-2 text-xs text-muted-foreground">{t("config.aiNoProviderHint")}</p>
+                      </>
+                    )}
+                    {!noAiProvider && (
+                    <>
                     <Separator />
                     <SettingRow icon={<Cpu className="h-4 w-4" />} label={t("config.aiModel")} tip={t("config.aiModelTip")}>
                       <AiModelPicker
@@ -2183,6 +2196,8 @@ export function ConfigV2() {
                     </SettingRow>
 
                     <VoiceCoachConfig />
+                    </>
+                    )}
 
                     <Separator />
                     <div className="py-2">

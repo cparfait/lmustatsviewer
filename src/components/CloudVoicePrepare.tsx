@@ -92,7 +92,10 @@ export function PrepareVoice() {
     }).format(usd);
 
   let desc = t("config.cloudVoicePrepDesc");
-  if (running && prep) desc = t("config.cloudVoicePrepProgress", { done: prep.done, total: prep.total });
+  if (running && prep)
+    desc = prep.ready
+      ? t("config.cloudVoicePrepProgressResume", { done: prep.done, total: prep.total, ready: prep.ready })
+      : t("config.cloudVoicePrepProgress", { done: prep.done, total: prep.total });
   else if (plan && plan.missing.length === 0) desc = t("config.cloudVoicePrepReady", { total: plan.total });
   else if (plan)
     desc = t("config.cloudVoicePrepPlan", {

@@ -474,7 +474,10 @@ export interface CloudPrepState {
   running: boolean;
   tag: string;
   done: number;
+  /** Phrases à générer (absentes du cache) : seules celles-ci sont envoyées. */
   total: number;
+  /** Déjà dans le cache au lancement : jamais renvoyées (reprise d'une préparation). */
+  ready: number;
   failed: number;
   outcome: CloudPrepOutcome | null;
 }
@@ -526,7 +529,15 @@ export function cancelCloudPrep() {
 export async function runCloudPrep(plan: CloudPrepPlan): Promise<CloudPrepOutcome> {
   if (prep?.running) return "cancelled";
   prepCancel = false;
-  let state: CloudPrepState = { running: true, tag: plan.tag, done: 0, total: plan.missing.length, failed: 0, outcome: null };
+  let state: CloudPrepState = {
+    running: true,
+    tag: plan.tag,
+    done: 0,
+    total: plan.missing.length,
+    ready: plan.total - plan.missing.length,
+    failed: 0,
+    outcome: null,
+  };
   setPrep(state);
   let outcome: CloudPrepOutcome = "done";
   let next = 0;

@@ -1872,6 +1872,7 @@ export default {
     cloudVoicePrepPlan: "{{n}} von {{total}} Sätzen zu erzeugen · {{chars}} Zeichen · geschätzte Kosten ≈ {{cost}} (Listenpreis, ohne Abo)",
     cloudVoicePrepReady: "Alle {{total}} festen Sätze sind für diese Stimme bereit.",
     cloudVoicePrepProgress: "Vorbereitung… {{done}}/{{total}}",
+    cloudVoicePrepProgressResume: "Vorbereitung… {{done}}/{{total}} (Fortsetzung: {{ready}} bereits fertig, nicht erneut gesendet)",
     cloudVoicePrepCancel: "Abbrechen",
     cloudVoicePrepDone: "Stimme bereit: {{n}} Sätze erzeugt.",
     cloudVoicePrepFailed: "{{n}} Sätze konnten nicht erzeugt werden: „Stimme vorbereiten“ erneut klicken, um es nochmal zu versuchen.",

@@ -1867,6 +1867,7 @@ export default {
     cloudVoicePrepPlan: "{{n}} frasi da generare su {{total}} · {{chars}} caratteri · costo stimato ≈ {{cost}} (prezzo di listino, abbonamenti esclusi)",
     cloudVoicePrepReady: "Tutte le {{total}} frasi fisse sono pronte per questa voce.",
     cloudVoicePrepProgress: "Preparazione… {{done}}/{{total}}",
+    cloudVoicePrepProgressResume: "Preparazione… {{done}}/{{total}} (ripresa: {{ready}} già pronte, non rinviate)",
     cloudVoicePrepCancel: "Annulla",
     cloudVoicePrepDone: "Voce pronta: {{n}} frasi generate.",
     cloudVoicePrepFailed: "{{n}} frasi non sono state generate: clicca di nuovo «Prepara la voce» per riprovare.",

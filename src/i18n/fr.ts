@@ -1873,6 +1873,7 @@ export default {
     cloudVoicePrepPlan: "{{n}} phrases à générer sur {{total}} · {{chars}} caractères · coût estimé ≈ {{cost}} (tarif public, hors forfait)",
     cloudVoicePrepReady: "Les {{total}} phrases fixes sont prêtes pour cette voix.",
     cloudVoicePrepProgress: "Préparation… {{done}}/{{total}}",
+    cloudVoicePrepProgressResume: "Préparation… {{done}}/{{total}} (reprise : {{ready}} déjà prêtes, pas renvoyées)",
     cloudVoicePrepCancel: "Annuler",
     cloudVoicePrepDone: "Voix prête : {{n}} phrases générées.",
     cloudVoicePrepFailed: "{{n}} phrases n'ont pas pu être générées : relance « Préparer la voix » pour réessayer.",

@@ -910,6 +910,9 @@ d'un moment (« Internal error: voix en ligne: error decoding response body »),
   `prep`) ; arrêt seulement après 2 phrases ratées d'affilée malgré le nouvel essai.
 - ✅ npm, tsc, eslint ; cargo dans un dossier target séparé (l'app ouverte verrouille le principal).
   Changelog 1.0.10.
+- ✅ Question « il devrait reprendre là où il manque des choses ? » : c'était déjà le cas (`planCloudPrep`
+  n'envoie que les clés absentes du cache), mais la barre repartait de 0/N. `CloudPrepState.ready` +
+  texte « reprise : N déjà prêtes, pas renvoyées » (5 langues).
 - 📋 **Prochaine étape** : relancer « Préparer la voix » (reprend les 320 restantes) avec l'app
   relancée (le changement Rust demande une recompilation).
 

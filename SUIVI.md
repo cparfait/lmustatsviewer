@@ -913,6 +913,8 @@ d'un moment (« Internal error: voix en ligne: error decoding response body »),
 - ✅ Question « il devrait reprendre là où il manque des choses ? » : c'était déjà le cas (`planCloudPrep`
   n'envoie que les clés absentes du cache), mais la barre repartait de 0/N. `CloudPrepState.ready` +
   texte « reprise : N déjà prêtes, pas renvoyées » (5 langues).
+- ✅ « Pourquoi je ne peux pas préparer ? » (434/434 prêtes, bouton grisé) : repère vert « Voix prête »
+  (icône coche) à la place du bouton, info-bulle « rien à générer… » (`CloudVoicePrepare.tsx`, 5 langues).
 - 📋 **Prochaine étape** : relancer « Préparer la voix » (reprend les 320 restantes) avec l'app
   relancée (le changement Rust demande une recompilation).
 

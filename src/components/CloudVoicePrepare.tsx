@@ -6,6 +6,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   cancelCloudPrep,
@@ -105,10 +106,22 @@ export function PrepareVoice() {
       cost: money(estimateCostUsd(settings.provider, effectiveModel(), plan.chars)),
     });
 
+  // Tout est déjà dans le cache : un repère vert « Voix prête » à la place d'un
+  // bouton grisé (qui laissait croire à un blocage).
+  const allReady = !running && !!plan && plan.missing.length === 0;
+
   return (
     <div className="space-y-1.5">
       <Row label={t("config.cloudVoicePrep")} desc={desc}>
-        {running ? (
+        {allReady ? (
+          <span
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+            title={t("config.cloudVoicePrepReadyHint")}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {t("config.cloudVoicePrepReadyBadge")}
+          </span>
+        ) : running ? (
           <Button variant="outline" size="sm" className="h-8" onClick={cancelCloudPrep}>
             {t("config.cloudVoicePrepCancel")}
           </Button>

@@ -1871,6 +1871,8 @@ export default {
     cloudVoicePrepHintLocal: "Vor diesem Klick wird nichts gesendet. Sicherheitswarnungen, Spotter und Kurven-Coach bleiben bei der lokalen Stimme und werden nicht erzeugt.",
     cloudVoicePrepPlan: "{{n}} von {{total}} Sätzen zu erzeugen · {{chars}} Zeichen · geschätzte Kosten ≈ {{cost}} (Listenpreis, ohne Abo)",
     cloudVoicePrepReady: "Alle {{total}} festen Sätze sind für diese Stimme bereit.",
+    cloudVoicePrepReadyBadge: "Stimme bereit",
+    cloudVoicePrepReadyHint: "Nichts zu erzeugen: Alles ist bereits zwischengespeichert. Ein Wechsel von Stimme, Modell oder Tempo erfordert eine neue Vorbereitung.",
     cloudVoicePrepProgress: "Vorbereitung… {{done}}/{{total}}",
     cloudVoicePrepProgressResume: "Vorbereitung… {{done}}/{{total}} (Fortsetzung: {{ready}} bereits fertig, nicht erneut gesendet)",
     cloudVoicePrepCancel: "Abbrechen",

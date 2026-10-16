@@ -1866,6 +1866,8 @@ export default {
     cloudVoicePrepHintLocal: "Nulla viene inviato prima di questo clic. Avvisi di sicurezza, spotter e coach per curva restano sulla voce locale: non vengono generati.",
     cloudVoicePrepPlan: "{{n}} frasi da generare su {{total}} · {{chars}} caratteri · costo stimato ≈ {{cost}} (prezzo di listino, abbonamenti esclusi)",
     cloudVoicePrepReady: "Tutte le {{total}} frasi fisse sono pronte per questa voce.",
+    cloudVoicePrepReadyBadge: "Voce pronta",
+    cloudVoicePrepReadyHint: "Niente da generare: è già tutto in cache. Cambiare voce, modello o velocità richiederà una nuova preparazione.",
     cloudVoicePrepProgress: "Preparazione… {{done}}/{{total}}",
     cloudVoicePrepProgressResume: "Preparazione… {{done}}/{{total}} (ripresa: {{ready}} già pronte, non rinviate)",
     cloudVoicePrepCancel: "Annulla",

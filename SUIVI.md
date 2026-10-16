@@ -895,6 +895,24 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — « Préparer la voix » : plus d'arrêt sur « error decoding response body »
+
+**Signalé** : Cartesia (sonic-3.6), 434 phrases dont 376 morceaux ; la préparation s'arrête au bout
+d'un moment (« Internal error: voix en ligne: error decoding response body »), 320 restantes.
+
+- ✅ Cause : reqwest annonce un **délai dépassé pendant la lecture du corps** par ce message. 3 requêtes
+  en parallèle + délai 15 s : dès que le fournisseur ralentit (limite de débit), deux échecs et la pause
+  de 60 s coupaient la préparation.
+- ✅ `tts_cloud.rs` : `net_error` (délai → « délai dépassé (le fournisseur répond trop lentement) »,
+  sinon cause d'origine ajoutée) ; `synth_timeout` borné à 1-60 s (test `synth_timeout_bounds`).
+- ✅ `cloudVoice.ts` : préparation à 30 s par phrase ; échec → nouvel essai après 3 s et passage à une
+  seule requête à la fois ; ses échecs ne déclenchent plus la pause de la voix en course (option
+  `prep`) ; arrêt seulement après 2 phrases ratées d'affilée malgré le nouvel essai.
+- ✅ npm, tsc, eslint ; cargo dans un dossier target séparé (l'app ouverte verrouille le principal).
+  Changelog 1.0.10.
+- 📋 **Prochaine étape** : relancer « Préparer la voix » (reprend les 320 restantes) avec l'app
+  relancée (le changement Rust demande une recompilation).
+
 ### 2026-10-16 — « Tester l'IA » et le point de course lus par la voix IA
 
 **Demande** : « comment tester avec la voix IA car là ça utilise Piper » (bouton « Tester l'IA » du Coach IA).

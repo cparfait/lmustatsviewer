@@ -332,14 +332,16 @@ function shortError(e: unknown): string {
  * ou `null` en cas d'échec — l'appelant parle alors avec Piper.
  * `cacheable` : phrase fixe → cache disque (gratuite et instantanée ensuite).
  * `test` : bouton « Tester » (délai long, ignore la pause, remonte l'erreur).
+ * `prep` : « Préparer la voix » — ses échecs ne mettent pas la voix en pause
+ * (la préparation compte les siens et s'arrête elle-même).
  */
 export async function cloudSynth(
   text: string,
   lang: string,
   rate: number,
-  opts: { cacheable: boolean; test?: boolean; timeoutMs?: number },
+  opts: { cacheable: boolean; test?: boolean; prep?: boolean; timeoutMs?: number },
 ): Promise<ArrayBuffer | null> {
-  if (!opts.test && !cloudVoiceReady()) return null;
+  if (!opts.test && !(opts.prep ? cloudVoiceOn() : cloudVoiceReady())) return null;
   const provider = getCloudVoiceProvider(settings.provider);
   const model = effectiveModel();
   const voice = effectiveVoice(lang);
@@ -364,8 +366,8 @@ export async function cloudSynth(
     return provider.decodeAudio ? provider.decodeAudio(bytes) : bytes;
   } catch (e) {
     lastError = shortError(e);
-    failures += 1;
-    if (!opts.test && failures >= FAIL_LIMIT) {
+    if (!opts.prep) failures += 1;
+    if (!opts.test && !opts.prep && failures >= FAIL_LIMIT) {
       pausedUntil = Date.now() + PAUSE_MS;
       failures = 0;
     }
@@ -478,9 +480,11 @@ export interface CloudPrepState {
 }
 
 /** Délai d'une phrase pendant la préparation (hors course : on peut attendre). */
-const PREP_TIMEOUT_MS = 15000;
+const PREP_TIMEOUT_MS = 30000;
 /** Requêtes simultanées pendant la préparation (reste sous les limites de débit courantes). */
 const PREP_CONCURRENCY = 3;
+/** Attente avant de retenter une phrase ratée pendant la préparation. */
+const PREP_RETRY_MS = 3000;
 
 function setPrep(next: CloudPrepState | null) {
   prep = next;
@@ -526,24 +530,39 @@ export async function runCloudPrep(plan: CloudPrepPlan): Promise<CloudPrepOutcom
   setPrep(state);
   let outcome: CloudPrepOutcome = "done";
   let next = 0;
+  // Au premier échec (fournisseur lent ou limite de débit), on repasse à une seule
+  // requête à la fois et chaque phrase ratée est retentée une fois après 3 s :
+  // un ralentissement passager n'arrête plus la préparation.
+  let slow = false;
+  let streak = 0;
   // Quelques requêtes en parallèle : les morceaux des annonces chiffrées se comptent
   // par centaines, une à une la préparation durerait plusieurs minutes.
-  const worker = async () => {
+  const worker = async (index: number) => {
     while (next < plan.missing.length) {
+      if (slow && index > 0) return;
       if (prepCancel) outcome = "cancelled";
       else if (cloudPrepTag(plan.lang, plan.rate) !== plan.tag) outcome = "changed";
-      else if (Date.now() < pausedUntil) outcome = "paused";
-      else if (!cloudVoiceReady()) outcome = "cancelled"; // désactivée ou clé retirée en route
+      else if (!cloudVoiceOn()) outcome = "cancelled"; // désactivée ou clé retirée en route
       if (outcome !== "done") return;
       const text = plan.missing[next++];
-      const audio = await cloudSynth(text, plan.lang, plan.rate, { cacheable: true, timeoutMs: PREP_TIMEOUT_MS });
+      const synth = () =>
+        cloudSynth(text, plan.lang, plan.rate, { cacheable: true, prep: true, timeoutMs: PREP_TIMEOUT_MS });
+      let audio = await synth();
+      if (!audio && !prepCancel) {
+        slow = true;
+        await new Promise((r) => setTimeout(r, PREP_RETRY_MS));
+        audio = await synth();
+      }
+      // Deux phrases ratées d'affilée malgré le nouvel essai : réseau coupé ou
+      // quota épuisé, inutile d'insister (relancer reprend où on s'est arrêté).
+      streak = audio ? 0 : streak + 1;
+      if (streak >= FAIL_LIMIT) outcome = "paused";
       state = { ...state, done: state.done + 1, failed: state.failed + (audio ? 0 : 1) };
       setPrep(state);
     }
   };
-  await Promise.all(Array.from({ length: PREP_CONCURRENCY }, worker));
-  // Pause déclenchée par le dernier échec : à signaler, même en fin de liste.
-  if (outcome === "done" && state.failed > 0 && Date.now() < pausedUntil) outcome = "paused";
+  await Promise.all(Array.from({ length: PREP_CONCURRENCY }, (_, i) => worker(i)));
+
   setPrep({ ...state, running: false, outcome });
   return outcome;
 }

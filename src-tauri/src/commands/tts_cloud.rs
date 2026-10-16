@@ -61,8 +61,31 @@ pub struct CloudAudio {
     cached: bool,
 }
 
+/// Message d'erreur réseau lisible, sans URL. reqwest signale un délai dépassé
+/// **pendant la lecture du corps** par « error decoding response body » : on le
+/// dit tel quel (fournisseur trop lent), sinon on ajoute la cause d'origine.
+fn net_error(e: reqwest::Error) -> AppError {
+    let e = e.without_url();
+    if e.is_timeout() {
+        return AppError::Internal("voix en ligne : délai dépassé (le fournisseur répond trop lentement)".into());
+    }
+    let mut msg = format!("voix en ligne: {e}");
+    let mut src = std::error::Error::source(&e);
+    while let Some(s) = src {
+        msg.push_str(&format!(" ({s})"));
+        src = s.source();
+    }
+    AppError::Internal(msg)
+}
+
+/// Délai total d'une requête de synthèse : 4 s par défaut, borné à 1-60 s (60 s
+/// seulement pour « Préparer la voix », hors course).
+fn synth_timeout(timeout_ms: Option<u64>) -> std::time::Duration {
+    std::time::Duration::from_millis(timeout_ms.unwrap_or(4000).clamp(1000, 60_000))
+}
+
 /// Synthèse en ligne. `cache_key` (facultatif) : lecture/écriture dans le cache
-/// disque. `timeout_ms` : délai total de la requête (borné à 1-15 s).
+/// disque. `timeout_ms` : délai total de la requête (cf. `synth_timeout`).
 #[tauri::command]
 pub async fn tts_cloud_synthesize(
     app: tauri::AppHandle,
@@ -85,9 +108,8 @@ pub async fn tts_cloud_synthesize(
     }
 
     check_url(&url)?;
-    let timeout = std::time::Duration::from_millis(timeout_ms.unwrap_or(4000).clamp(1000, 15000));
     let client = reqwest::Client::builder()
-        .timeout(timeout)
+        .timeout(synth_timeout(timeout_ms))
         .build()
         .map_err(|e| AppError::Internal(format!("client HTTP voix: {e}")))?;
     let resp = client
@@ -96,13 +118,10 @@ pub async fn tts_cloud_synthesize(
         .json(&body)
         .send()
         .await
-        // `without_url` : rien de la requête ne doit finir dans un message affiché.
-        .map_err(|e| AppError::Internal(format!("voix en ligne: {}", e.without_url())))?;
+        // Rien de la requête (URL, en-têtes) ne doit finir dans un message affiché.
+        .map_err(net_error)?;
     let status = resp.status();
-    let bytes = resp
-        .bytes()
-        .await
-        .map_err(|e| AppError::Internal(format!("voix en ligne: {}", e.without_url())))?;
+    let bytes = resp.bytes().await.map_err(net_error)?;
     if !status.is_success() {
         let text = String::from_utf8_lossy(&bytes);
         return Err(AppError::Internal(format!(
@@ -190,6 +209,15 @@ pub fn tts_cloud_cache_clear(app: tauri::AppHandle) -> AppResult<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn synth_timeout_bounds() {
+        use std::time::Duration;
+        assert_eq!(synth_timeout(None), Duration::from_secs(4));
+        assert_eq!(synth_timeout(Some(10)), Duration::from_secs(1));
+        assert_eq!(synth_timeout(Some(30_000)), Duration::from_secs(30));
+        assert_eq!(synth_timeout(Some(600_000)), Duration::from_secs(60));
+    }
 
     #[test]
     fn only_whitelisted_https_hosts() {

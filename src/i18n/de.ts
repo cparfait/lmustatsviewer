@@ -1542,7 +1542,7 @@ export default {
     ohneSpeed: "ohne_speed Temponiveaus",
     ohneSpeedDesc: "Alien / Wettbewerb / Regulär-Stufen in allen Tabellen und Diagrammen",
     ohneSpeedOffline: "ohne_speed nicht verfügbar (offline oder fehlende Daten)",
-    aiCoach: "KI-Coach / Stimme",
+    aiCoach: "KI-Coach",
     community: "Community",
     aiCoachDesc: "Freie Fragen an ein echtes LLM (Chat + Push-to-talk), mit deinem eigenen API-Schlüssel. Unabhängig vom automatischen Fahr-Coach im Tab Audio / Stimme.",
     aiCoachEnable: "KI-Coach aktivieren",

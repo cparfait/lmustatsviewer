@@ -895,6 +895,16 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Config : section « Coach IA » (sans « Voix IA »)
+
+**Demande** : « il ne faut pas mettre coach IA / voix IA car les réglages de la voix IA sont dans voix ».
+
+- ✅ Libellé `config.aiCoach` : « Coach IA » / « AI Coach » / « Coach IA » / « KI-Coach » / « Coach IA »
+  (avant : « Coach / Voix IA »…). La voix IA en ligne reste dans Audio / Voix. Entrée changelog 1.0.10
+  du renommage précédent corrigée (version pas encore sortie).
+- 📋 **Prochaine étape** : compiler l'app depuis `main` et valider en jeu la voix IA (préparer, banc
+  d'écoute, une alerte, un message chiffré).
+
 ### 2026-10-16 — Toutes les branches fusionnées dans `main` (2ᵉ passe)
 
 **Demande** : « merge toutes les branches ».

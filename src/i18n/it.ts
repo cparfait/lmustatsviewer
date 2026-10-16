@@ -1541,7 +1541,7 @@ export default {
     ohneSpeed: "Livelli di passo ohne_speed",
     ohneSpeedDesc: "Fasce Alien / Competitivo / Regolare in tutte le tabelle e i grafici",
     ohneSpeedOffline: "ohne_speed non disponibile (offline o dati mancanti)",
-    aiCoach: "Coach / Voce IA",
+    aiCoach: "Coach IA",
     community: "Community",
     aiCoachDesc: "Domande libere a un vero LLM (chat + push-to-talk), con la tua chiave API. Indipendente dal coach di guida automatico della scheda Audio / Voce.",
     aiCoachEnable: "Attiva il Coach IA",

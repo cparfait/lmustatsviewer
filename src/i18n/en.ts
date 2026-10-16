@@ -1541,7 +1541,7 @@ export default {
     ohneSpeed: "ohne_speed pace levels",
     ohneSpeedDesc: "Alien / Competitive / Regular tiers across all tables and charts",
     ohneSpeedOffline: "ohne_speed unavailable (offline or missing data)",
-    aiCoach: "AI Coach / Voice",
+    aiCoach: "AI Coach",
     community: "Community",
     aiCoachDesc: "Free-form questions to a real LLM (chat + push-to-talk), with your own API key. Independent from the automatic driving coach in the Audio / Voice tab.",
     aiCoachEnable: "Enable AI Coach",

@@ -1543,7 +1543,7 @@ export default {
     ohneSpeed: "Niveaux de rythme ohne_speed",
     ohneSpeedDesc: "Tiers Alien / Compétitif / Régulier dans les tableaux et graphes",
     ohneSpeedOffline: "ohne_speed indisponible (hors ligne ou données manquantes)",
-    aiCoach: "Coach / Voix IA",
+    aiCoach: "Coach IA",
     community: "Communauté",
     aiCoachDesc: "Questions libres à un vrai LLM (chat + push-to-talk), avec ta propre clé API. Indépendant du coach de pilotage automatique de l'onglet Audio / Voix.",
     aiCoachEnable: "Activer le Coach IA",

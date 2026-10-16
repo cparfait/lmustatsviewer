@@ -14,6 +14,7 @@ import {
   gameForecast,
   garageBoundsText,
   guardPerLap,
+  keepPlannedStop,
   laneLossFrom,
   PadWearTracker,
   restSessionEnd,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/lmuRest";
 import { fromGameNodes, pickForecast } from "@/lib/engineer/forecast";
 import { AlertLatch } from "@/lib/engineer/alertLatch";
+import { route } from "@/lib/engineer/router";
 import { coverage, mapComplete, nearestIndex, pathOfRuns, sectorOf, sectorPolylines, splitRuns } from "@/lib/trackMapGeom";
 import { isSetupQuestion } from "@/lib/ai/context/records-context";
 import type { LiveData, LmuRestLive, RestField, RestPitScreen, RestSessionInfo, RestVehicle, RestWeekendWeather } from "@/lib/api";
@@ -198,10 +200,26 @@ export function run(): void {
     eq(pathOfRuns([[0, 0], [20, 0]], id), "M0.0,0.0 L20.0,0.0", "tronçon continu");
   }
 
+  section("router : question « plaquettes ? » (5 langues)");
+  for (const [q, lang] of [
+    ["plaquettes ?", "fr"],
+    ["usure des plaquettes", "fr"],
+    ["brake pads?", "en"],
+    ["pastillas", "es"],
+    ["Bremsbeläge", "de"],
+    ["pastiglie", "it"],
+  ] as const) {
+    eq(route(q, lang).intent, "brakeWear", `« ${q} » (${lang})`);
+  }
+  ok(route("température des freins", "fr").intent !== "brakeWear", "température des freins ≠ usure");
+
   section("lmuRest.perte au stand");
   {
     eq(laneLossFrom(55, 30), 25, "temps de voie = perte − arrêt");
     eq(laneLossFrom(55, null), null, "durée d'arrêt inconnue");
+    let st: number | null = null;
+    for (const v of [null, 31.5, 31.5, 20, 8, 0, null]) st = keepPlannedStop(st, v);
+    eq(st, 31.5, "décompte pendant le service : on garde la durée prévue en entrant");
     const d = live({ rest: rest({ pit: field(pit({ pit_stop_length_s: 41 })) }) });
     eq(effectivePitLoss(d, 50, 25), 66, "voie mesurée + arrêt prévu par le menu");
     eq(effectivePitLoss(d, 50, null), 50, "voie inconnue : perte enregistrée");

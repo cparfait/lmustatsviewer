@@ -198,6 +198,17 @@ export function effectivePitLoss(
   return storedLoss;
 }
 
+/**
+ * Durée d'arrêt retenue pendant un passage aux stands : la plus haute vue. Le
+ * jeu recalcule `pitStopLength` en direct (relevé 2026-10-16 : ~2 s menu vide,
+ * 186,6 s avec « Tout réparer ») ; s'il la décompte pendant le service, garder
+ * la dernière valeur sous-estimerait l'arrêt et gonflerait le temps de voie.
+ */
+export function keepPlannedStop(prev: number | null, planned: number | null): number | null {
+  if (planned == null || !(planned > 0)) return prev;
+  return prev == null ? planned : Math.max(prev, planned);
+}
+
 /** Temps de voie d'un arrêt mesuré, si sa durée à l'arrêt est connue. */
 export function laneLossFrom(totalLoss: number, stopSeconds: number | null): number | null {
   if (stopSeconds == null) return null;

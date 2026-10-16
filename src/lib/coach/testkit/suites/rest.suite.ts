@@ -21,7 +21,7 @@ import {
 } from "@/lib/lmuRest";
 import { fromGameNodes, pickForecast } from "@/lib/engineer/forecast";
 import { AlertLatch } from "@/lib/engineer/alertLatch";
-import { coverage, mapComplete, nearestIndex, sectorOf, sectorPolylines, splitRuns } from "@/lib/trackMapGeom";
+import { coverage, mapComplete, nearestIndex, pathOfRuns, sectorOf, sectorPolylines, splitRuns } from "@/lib/trackMapGeom";
 import { isSetupQuestion } from "@/lib/ai/context/records-context";
 import type { LiveData, LmuRestLive, RestField, RestPitScreen, RestSessionInfo, RestVehicle, RestWeekendWeather } from "@/lib/api";
 
@@ -188,6 +188,14 @@ export function run(): void {
     eq(l.update(true, 70_000), true, "vrai retour à la normale puis nouveau dégât");
     l.rearm();
     eq(l.update(true, 71_000), false, "réarmement de séance : l'écart minimal tient");
+  }
+
+  section("trackMapGeom.pathOfRuns (voie des stands en deux tronçons)");
+  {
+    const id = (p: [number, number]): [number, number] => p;
+    const d = pathOfRuns([[0, 0], [20, 0], [40, 0], [580, 0], [600, 0]], id);
+    eq((d.match(/M/g) ?? []).length, 2, "saut de 540 m : deux tronçons, pas de corde");
+    eq(pathOfRuns([[0, 0], [20, 0]], id), "M0.0,0.0 L20.0,0.0", "tronçon continu");
   }
 
   section("lmuRest.perte au stand");

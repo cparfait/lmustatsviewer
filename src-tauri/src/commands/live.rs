@@ -10,7 +10,7 @@ use std::mem::{offset_of, size_of};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Mutex;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
@@ -1800,6 +1800,16 @@ static LIVE_POLLING: AtomicBool = AtomicBool::new(false);
 static LIVE_CONSUMERS: Mutex<Option<HashMap<String, usize>>> = Mutex::new(None);
 static POLL_STATE: Mutex<Option<PollState>> = Mutex::new(None);
 
+/// Dernière trame émise par le flux live, avec son heure. `get_live_data`
+/// (questions à la demande : spotter, coach vocal, Coach IA) la renvoie quand le
+/// flux tourne, pour voir **les mêmes** données que la page Live : son propre
+/// `PollState` ne relit pas le tracé sauvegardé (carte du jeu, bornes de
+/// secteurs) et ré-apprenait tout de zéro (relevé 2026-10-16 : borne S2 à
+/// 2 590 m au lieu de 2 540, carte de 3 points après un redémarrage).
+static LAST_FRAME: Mutex<Option<(Instant, LiveData)>> = Mutex::new(None);
+/// Âge maximal de la dernière trame pour la réutiliser.
+const LAST_FRAME_MAX_AGE: Duration = Duration::from_millis(1500);
+
 /// Génération du thread de polling. Incrémentée à chaque démarrage : un thread
 /// d'une génération périmée s'arrête de lui-même. Évite la course
 /// `stop` → `start` rapide, où l'ancien thread (encore dans son `sleep`)
@@ -1900,6 +1910,13 @@ pub fn list_weather_files(lmu_path: String) -> Result<Vec<WetFile>, AppError> {
 
 #[tauri::command]
 pub fn get_live_data() -> Result<LiveData, AppError> {
+    if let Ok(g) = LAST_FRAME.lock() {
+        if let Some((at, d)) = g.as_ref() {
+            if at.elapsed() <= LAST_FRAME_MAX_AGE {
+                return Ok(d.clone());
+            }
+        }
+    }
     let mut guard = POLL_STATE
         .lock()
         .map_err(|e| AppError::Internal(format!("live state lock: {e}")))?;
@@ -1957,6 +1974,9 @@ pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), A
             in_session = data.session.is_some() || (data.paused && in_session);
             lmu_rest::set_sim_present(data.connected && in_session);
             data.rest = lmu_rest::live_view();
+            if let Ok(mut g) = LAST_FRAME.lock() {
+                *g = Some((Instant::now(), data.clone()));
+            }
             if app.emit("live-data", &data).is_err() {
                 // Plus personne à qui émettre : on ne coupe le drapeau que si
                 // aucune génération plus récente n'a démarré entre-temps.

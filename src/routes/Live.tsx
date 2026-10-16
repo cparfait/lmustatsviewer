@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { gameForecast, restStatus } from "@/lib/lmuRest";
-import { trackPaths, pathOf, sectorPolylines, nearestIndex, type Pt } from "@/lib/trackMapGeom";
+import { trackPaths, pathOf, pathOfRuns, sectorPolylines, nearestIndex, type Pt } from "@/lib/trackMapGeom";
 import { isSectorYellow } from "@/lib/sectorFlags";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -1849,7 +1849,7 @@ function TrackMap({ data }: { data: LiveData }) {
   const lapLen = data.session?.track_length ?? 0;
   const dists = data.track_dists;
   const paths = trackPaths(pts, dists, lapLen, project);
-  const pitPath = pitLane.length >= 2 ? pathOf(pitLane.map(project), false) : null;
+  const pitPath = pitLane.length >= 2 ? pathOfRuns(pitLane, project) : null;
   // Secteurs : bornes mesurées, secteurs sous jaune colorés
   // (`sector_flags[i]` = S(i+1), même convention que le widget Drapeaux).
   const bounds = data.sector_dists ?? [];

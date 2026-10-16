@@ -65,6 +65,26 @@ export function pathOf(screen: Pt[], close: boolean): string {
   return screen.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ") + (close ? " Z" : "");
 }
 
+/** Saut (m, coordonnées du monde) au-delà duquel une polyligne ouverte est coupée. */
+export const OPEN_GAP_M = 60;
+
+/**
+ * Chemin SVG d'une polyligne ouverte coupée à chaque saut > `gap` (un « M » par
+ * tronçon). Relevé réel (Road Atlanta, 2026-10-16) : la voie des stands du jeu
+ * arrive en deux tronçons séparés de 540 m, impossibles à recoller (bouts les
+ * plus proches à 261 m) ; reliés, ils dessinaient une corde en travers du circuit.
+ */
+export function pathOfRuns(world: Pt[], project: (p: Pt) => Pt, gap = OPEN_GAP_M): string {
+  return world
+    .map((p, i) => {
+      const q = world[i - 1];
+      const jump = i === 0 || Math.hypot(p[0] - q[0], p[1] - q[1]) > gap;
+      const [x, y] = project(p);
+      return `${jump ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+
 /** Secteur (0 = S1, 1 = S2, 2 = S3) d'une distance-tour selon les bornes connues. */
 export function sectorOf(d: number, bounds: number[]): 0 | 1 | 2 {
   if (bounds.length >= 1 && d < bounds[0]) return 0;

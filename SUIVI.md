@@ -954,6 +954,16 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   classe, classement de tous les pilotes de la classe (WEC ou top 10, abandon = 0 pt), « ce qu'il
   me faut » (mène / titre acquis / à X points sur N manches / hors de portée). Vérifié à l'écran
   (données simulées injectées). ㉙ Discord : **abandonné** (demande utilisateur).
+- ✅ **㉘ + ㉝ Incidents et temps forts** : la carte Live traçait déjà toutes les voitures. Nouveau
+  `lib/liveEvents.ts` (pur) : contact (nouvel impact ≥ 1 500, 3 s), limites de piste (compteur du
+  jeu), sortie (≥ 2 roues herbe/terre/gravier 0,5 s), et en course dépassement / place perdue
+  (position de classe, les deux en piste), roue dans roue (`nearby` latéral 1,2-4 m, ≤ 5 m, 4 trames,
+  60 s), départ (≥ 3 places au tour 1). `useLiveEvents` (App) : `live_events` en config (1 500 max,
+  écriture différée 2 s). Carte Live : `IncidentDots` (300 derniers incidents du circuit, placés par
+  distance-tour ; une ligne ajoutée dans `Live.tsx`), réglage `mapIncidents` (Affichage › options
+  Live). Fiche session, onglet Incidents : `SessionMoments` (même circuit, même type de séance, début
+  à durée + 15 min de l'horodatage du fichier). ⚠️ Non vérifié en jeu (seuils d'impact et surfaces à
+  confirmer sur une vraie séance).
 
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 

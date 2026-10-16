@@ -85,6 +85,7 @@ import {
   AudioLines,
   Gamepad2,
   MessageCircleQuestion,
+  MapPin,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
@@ -219,6 +220,7 @@ export function ConfigV2() {
   const systemTray = useAppStore((s) => s.systemTray);
   const autoUpdate = useAppStore((s) => s.autoUpdate);
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
+  const mapIncidents = useAppStore((s) => s.mapIncidents);
   const overlayTargetTier = useAppStore((s) => s.overlayTargetTier);
   const menuModules = useAppStore((s) => s.menuModules);
   const overlayToggleKey = useAppStore((s) => s.overlayToggleKey);
@@ -986,6 +988,17 @@ export function ConfigV2() {
                               }
                             />
                           </SettingRow>
+                        </Disclosure>
+                      )}
+                      {key === "live" && (
+                        <Disclosure title={t("config.moduleOptions")}>
+                          <ToggleRow
+                            icon={<MapPin className="h-4 w-4" />}
+                            label={t("config.mapIncidents")}
+                            tip={t("config.mapIncidentsTip")}
+                            checked={mapIncidents}
+                            onChange={(v) => void useAppStore.getState().setMapIncidents(v)}
+                          />
                         </Disclosure>
                       )}
                       {key === "sessions" && (

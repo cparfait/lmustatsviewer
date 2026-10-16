@@ -60,6 +60,7 @@ import { computeStrategy, type StrategySnapshot } from "@/lib/strategy";
 import { playerClassPosition } from "@/lib/livePosition";
 import { flagFromPhase, type FlagKind } from "@/lib/engineer/useRaceEngineer";
 import type { Tr } from "@/i18n";
+import { IncidentDots } from "@/components/IncidentDots";
 
 /**
  * Estimation « carburant pour finir » :
@@ -1920,6 +1921,7 @@ function TrackMap({ data }: { data: LiveData }) {
             </text>
           </g>
         ))}
+        <IncidentDots track={data.session?.track ?? ""} pts={pts} dists={dists} project={project} />
         {data.standings.map((s) => {
           if (s.pos_x === 0 && s.pos_z === 0) return null;
           return (

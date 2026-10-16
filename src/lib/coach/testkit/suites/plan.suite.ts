@@ -6,6 +6,7 @@
 
 import { section, ok, eq, approx } from "../assert";
 import type { CareerRace, LiveData, SvmFile } from "@/lib/api";
+import { EventDetector, eventsForSession } from "@/lib/liveEvents";
 import { filterRaces, highlights, matchRounds, recurring, standings, summarize, titleMath, type Championship } from "@/lib/career";
 import { recommend, applyStep, nextVersionName } from "@/lib/setupAssistant";
 import { trackSun, trackGeo, isNight } from "@/lib/racePlan/sun";
@@ -122,6 +123,46 @@ export function run(): void {
     eq(rows.map((x) => [x.driver, x.points]), [["Max", 25], ["Me", 18], ["Bob", 0]], "barème WEC, abandon sans points");
     eq(titleMath(rows, 1, "wec"), { kind: "chasing", leader: "Max", gap: 7, remaining: 1 }, "ce qu'il me faut");
     eq(titleMath(rows, 0, "wec")?.kind, "out", "plus de manche : titre hors de portée");
+  }
+
+  section("live.events");
+  {
+    const det = new EventDetector();
+    const surf = (n: number) => [0, 1, 2, 3].map((i) => ({ surface: i < n ? 2 : 0 }));
+    const frame = (o: { impact?: number; limits?: number; off?: number; cls?: number; laps?: number; phase?: number; near?: { lat: number; lon: number }[] }) =>
+      ({
+        connected: true,
+        paused: false,
+        session: { track: "Spa", session: 10, session_time: 100, end_et: 3600, max_laps: 0, num_vehicles: 3, track_length: 7000, game_phase: o.phase ?? 5 },
+        player: { total_laps: o.laps ?? 2 },
+        telemetry: { last_impact_magnitude: o.impact ?? 0, wheels: surf(o.off ?? 0) },
+        extended: { track_limits: o.limits ?? 0 },
+        nearby: o.near ?? [],
+        standings: [
+          { driver: "Me", is_player: true, in_pits: false, vehicle_class: "GT3", class_position: o.cls ?? 3, total_laps: o.laps ?? 2, lap_dist: 1234 },
+          { driver: "Bob", is_player: false, in_pits: false, vehicle_class: "GT3", class_position: (o.cls ?? 3) === 2 ? 3 : 2, total_laps: 2, lap_dist: 1200 },
+          { driver: "Ann", is_player: false, in_pits: false, vehicle_class: "GT3", class_position: (o.cls ?? 3) === 3 ? 4 : 1, total_laps: 2, lap_dist: 1100 },
+        ],
+      }) as unknown as LiveData;
+    eq(det.push(frame({}), 0).length, 0, "première trame : rien");
+    eq(det.push(frame({ impact: 2500 }), 100).map((e) => [e.kind, e.lapDist]), [["contact", 1234]], "contact placé sur le tour");
+    eq(det.push(frame({ impact: 2500, limits: 1 }), 200).map((e) => e.kind), ["trackLimits"], "limites de piste");
+    eq(det.push(frame({ off: 2 }), 300).length, 0, "sortie : pas avant 0,5 s");
+    eq(det.push(frame({ off: 2 }), 900).map((e) => e.kind), ["offTrack"], "sortie confirmée");
+    const ov = det.push(frame({ cls: 2 }), 1000);
+    eq(ov.map((e) => [e.kind, e.detail]), [["overtake", "Bob"]], "dépassement sur la voiture désormais derrière");
+    for (let i = 0; i < 4; i++) det.push(frame({ cls: 2, near: [{ lat: 2, lon: 1 }] }), 2000 + i * 100);
+    ok(det.push(frame({ cls: 2, near: [{ lat: 2, lon: 1 }] }), 2600).length === 0, "roue dans roue : une seule annonce");
+
+    const st2 = new EventDetector();
+    st2.push(frame({ cls: 6, laps: 0, phase: 3 }), 0);
+    const s1 = st2.push(frame({ cls: 2, laps: 1 }), 1000);
+    ok(s1.some((e) => e.kind === "start" && e.value === 4), "départ : 4 places gagnées");
+
+    const evs = [{ kind: "contact", t: 0, track: "Spa", sessionStart: 1000, session: 10, lap: 3, lapDist: 10 }] as const;
+    eq(eventsForSession([...evs], "Spa-Francorchamps", 1500, 3600, true).length, 1, "rattachement par circuit (inclusion)");
+    eq(eventsForSession([...evs], "Spa", 9000, 3600, true).length, 0, "trop loin dans le temps");
+    eq(eventsForSession([...evs], "Spa", 1500, 3600, false).length, 0, "autre type de séance");
   }
 
   section("plan.prep");

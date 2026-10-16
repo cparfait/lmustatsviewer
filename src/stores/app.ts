@@ -62,6 +62,8 @@ interface AppState {
   autoUpdate: boolean;
   /** Afficher les tiers ohne_speed dans Sessions, SessionDetail et LapChartModal. */
   showOhneSpeed: boolean;
+  /** Carte Live : mes incidents passés sur ce circuit (chocs, coupures, sorties). */
+  mapIncidents: boolean;
   /** Rythme cible de l'overlay live (clé tier ohne_speed : alien/competitive/good/midpack). */
   overlayTargetTier: string;
   /** Modules du menu activés (clé nav → bool). Absent/true = visible. */
@@ -256,6 +258,7 @@ interface AppState {
   setSystemTray: (v: boolean) => Promise<void>;
   setAutoUpdate: (v: boolean) => Promise<void>;
   setShowOhneSpeed: (v: boolean) => Promise<void>;
+  setMapIncidents: (v: boolean) => Promise<void>;
   setOverlayTargetTier: (v: string) => Promise<void>;
   setMenuModule: (key: string, value: boolean) => Promise<void>;
   setVoiceAnnouncements: (v: boolean) => Promise<void>;
@@ -334,6 +337,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   systemTray: true,
   autoUpdate: true,
   showOhneSpeed: true,
+  mapIncidents: true,
   overlayTargetTier: "competitive",
   menuModules: {},
   voiceAnnouncements: false,
@@ -538,6 +542,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       systemTray: cfg.system_tray !== "false",
       autoUpdate: cfg.auto_update !== "false",
       showOhneSpeed: cfg.show_ohne_speed !== "false",
+      mapIncidents: cfg.map_incidents !== "false",
       overlayTargetTier: cfg.overlay_target_tier || "competitive",
       menuModules,
       voiceAnnouncements: cfg.voice_announcements === "true",
@@ -771,6 +776,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAutoUpdate: async (v) => {
     await config.set("auto_update", v ? "true" : "false");
     set({ autoUpdate: v });
+  },
+
+  setMapIncidents: async (v) => {
+    await config.set("map_incidents", v ? "true" : "false");
+    set({ mapIncidents: v });
   },
 
   setShowOhneSpeed: async (v) => {

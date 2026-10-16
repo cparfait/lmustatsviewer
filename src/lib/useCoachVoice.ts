@@ -27,6 +27,8 @@ import { askCoachVoice, classifyIntent, friendlyError } from "@/lib/ai/coach";
 import { buildStatus } from "@/lib/spotter";
 import { route, INTENT_HELP, RADIO_COMMANDS, type AnswerIntent } from "@/lib/engineer/router";
 import { answerIntent, registerWatch } from "@/lib/engineer/answers";
+import { factsBlock } from "@/lib/ai/facts";
+import { radioCard } from "@/lib/ai/knowledge/engineering-cards";
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
 import { toast, toastSuccess } from "@/stores/dialogs";
@@ -243,7 +245,14 @@ export function useCoachVoice() {
             sayLocal(answerIntent(r.candidates[0], data, tt, opts));
             return;
           }
-          // Question ouverte : seul le Coach IA saurait y répondre.
+          // Question ouverte : une fiche de savoir sûre suffit parfois (sous-virage,
+          // pluie, pneus froids…) ; les fiches incertaines ne sont jamais dites.
+          const card = radioCard(r.norm, lang);
+          if (card) {
+            sayLocal(card);
+            return;
+          }
+          // Sinon : seul le Coach IA saurait y répondre.
           const configured = !!p && !!model && (!p.needsKey || !!apiKey);
           announce(tt(st.aiCoachEnabled && !configured ? "coach.voiceNotConfigured" : "coach.voiceNoAi"), lang);
           return;
@@ -267,7 +276,10 @@ export function useCoachVoice() {
         // « Pourquoi ? » (§12) : joint les derniers diagnostics par virage au
         // contexte → le LLM peut expliquer un callout avec ses chiffres exacts.
         const recent = recentDiagnosticsBlock();
-        const ctx = recent ? `${baseCtx}\n\n${recent}` : baseCtx;
+        // Faits calculés par l'app : seule source des chiffres de la réponse (les
+        // fiches de savoir sont déjà jointes par `buildLiveCoachContext`).
+        const facts = factsBlock(r.candidates, data, tt, opts);
+        const ctx = [baseCtx, facts, recent].filter(Boolean).join("\n\n");
         const answer = await askCoachVoice({
           provider: p,
           model,

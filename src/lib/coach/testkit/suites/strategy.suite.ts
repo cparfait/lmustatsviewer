@@ -8,7 +8,9 @@ import { section, ok, eq } from "../assert";
 import type { LiveData, LiveStanding } from "@/lib/api";
 import type { Tr } from "@/i18n";
 import { StintRegistry, stintsOf, lapsLeftFor } from "@/lib/engineer/rivalStints";
-import { route } from "@/lib/engineer/router";
+import { route, normalize } from "@/lib/engineer/router";
+import { matchCards, radioCard, cardsContextText } from "@/lib/ai/knowledge/engineering-cards";
+import { factsBlock } from "@/lib/ai/facts";
 import { answerIntent } from "@/lib/engineer/answers";
 import { engineer } from "@/lib/engineer/state";
 import { RadioPolicy, type PolicyCtx } from "@/lib/engineer/policy";
@@ -210,6 +212,23 @@ export function run(): void {
     ok(persisted === 1 && txt.startsWith("live.spLapPrefSet"), "persistée et confirmée");
     engineer.onPrefsChanged = null;
     engineer.lapPrefs = saved;
+  }
+
+  section("ai.knowledge");
+  {
+    eq(matchCards(normalize("j'ai du sous-virage à l'entrée", "fr"))[0]?.id, "understeer_entry", "FR : sous-virage");
+    eq(matchCards(normalize("ich habe Untersteuern", "de"))[0]?.id, "understeer_entry", "DE : préfixe de mot");
+    ok(radioCard(normalize("comment piloter sous la pluie", "fr"), "fr")?.startsWith("Sous la pluie") ?? false, "fiche sûre dite à la radio");
+    eq(radioCard(normalize("quelle pression de pneus", "fr"), "fr"), null, "fiche peu sûre jamais dite");
+    eq(radioCard(normalize("répartition de freinage", "fr"), "fr"), null, "fiche moyenne : IA seulement");
+    const txt = cardsContextText(matchCards(normalize("tyre pressure", "en")));
+    ok(txt.includes("confidence low"), "confiance transmise à l'IA");
+    eq(cardsContextText([]), "", "aucune fiche : rien");
+
+    const d = data([st({ driver: "Me", is_player: true, class_position: 3 })]);
+    const f = factsBlock(["fuel", "ackBox", "lapPrefNone", "tyreChange"], d, t, { pitLossSec: 60, fuelReserveLaps: 1 });
+    ok(f.includes("- status:") && f.includes("- fuel:") && f.includes("- tyreChange: UNKNOWN"), `faits calculés + inconnus — ${f}`);
+    ok(!f.includes("ackBox") && !f.includes("lapPrefNone"), "aucune commande exécutée");
   }
 
   section("strategy.voice");

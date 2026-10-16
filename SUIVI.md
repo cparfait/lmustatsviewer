@@ -907,6 +907,15 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   `exact` séparées des locutions car `score` ignore les locutions d'une entrée `exact`) ; question
   unique par type de séance au 2ᵉ tour (`prefs:ask`, famille confort), réglage `radioAskPrefs`
   (`voice_ask_prefs`, défaut actif) dans Audio / Voix.
+- ✅ **⑰ Fiches de savoir** (`ai/knowledge/engineering-cards.ts`, contenu maison) : 11 fiches
+  (sous-virage d'entrée, survirage de sortie, instabilité au freinage, écart de température, pluie,
+  économie, pneus froids, trafic multiclasse — `high` ; répartition, undercut/overcut — `medium` ;
+  pressions — `low`), mots-clés 5 langues (préfixe de mot pour les mots seuls). Jointes au contexte
+  de `buildLiveCoachContext` (panneau Coach IA + voix) avec la confiance ; sans IA, seule une fiche
+  `high` est dite à la radio (`radioCard`).
+- ✅ **㉜ Dossier de faits typé** (`ai/facts.ts`) : avant l'appel IA d'une question vocale, `status`
+  + jusqu'à 3 intentions candidates du routeur répondues par le code (commandes jamais exécutées),
+  faits absents marqués `UNKNOWN`, consigne « seule source des chiffres ».
 
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 

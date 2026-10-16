@@ -303,6 +303,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   - ❌ **`mSectorFlag` (mémoire partagée) n'indique pas les jaunes locaux** dans LMU : essais **sans aucun incident** = `[1,11,1]` constant ; course : `[11,1,11]`, `[11,11,1]`, `[1,11,11]` (> 3 min en vert, `yellow_flag_state` 0), `[1,11,3]`, `[1,2,2]` (phase 8). Ni « > 0 » ni « === 1 » ne tiennent → `isSectorYellow` renvoie **faux** (carte, widget Drapeaux, coach) en attendant une source fiable. Le `sectorFlag` REST (`UNKNOWN`/`YELLOW` sur les 3 secteurs à la fois) ne colle pas non plus.
   - ✅ `mSector` des voitures : 1 = S1, 2 = S2, **0 = S3** (frontière S2/S3 ≈ 2 535 m à Atlanta). Sur la **grille**, les voitures passent de 2 à 0 **sur place** vers 3 999 m → bornes mesurées seulement en phase 5/6 et si la voiture avance.
   - 🔴 **LMU plante au lancement si on interroge `garage/*` pendant son initialisation** (2/2 le 2026-10-16, à 14,9 s, rapport BugSplat ; 2/2 lancements sans interrogation OK) : serveur REST ouvert à 13,7 s pendant `Game::Setup`, `sessionInfo` répond vide, `getVehicleCondition` reste pendante, le jeu meurt. La mémoire partagée existe dès 9,4 s → pont actif **seulement en séance chargée** (`data.session`), 5 s de délai, `sessionInfo` d'abord, `garage/*` et `watch/trackmap` seulement après une séance confirmée (44757c0). Pendant le chargement d'un circuit, `sessionInfo` ne répond pas (curl en délai dépassé).
+  - 🔴 **Écrans d'interface aussi** (veille 2026-10-16) : LMU 1.4130 plante quand on l'interroge au garage / sur les écrans de réglage, jamais en piste. → `garage/*` et `watch/trackmap` **seulement joueur en piste** (`PlayerSpot::Driving` : ni `mInGarageStall`, ni horloge figée, ni joueur absent du scoring) ; `sessionInfo` et `sessions/weather` libres. Bornes de setup au garage : lecture ponctuelle (≤ 1 / 30 s) quand le coach en a besoin. Réglage `rest_poll_off_track` (Config → Maintenance) = ancien comportement. ⏳ À valider en jeu (garage ↔ piste, pause, retour aux menus).
   - ✅ Conso « jeu » au 1er tour **sans** énergie virtuelle (LMP2) : 1,98 L/tour, `rest_used.fuel` = « game », 37,8 tours (menu « 75l/37 laps »).
   - ✅ Bornes S1/S2 apprises = transitions observées (588 / 2 540 m à Atlanta). ⚠️ `get_live_data` (spotter, coach vocal, Coach IA à la demande) avait un **2e `PollState`** sans tracé sauvegardé → valeurs différentes de la page Live ; renvoie désormais la dernière trame du flux.
   - ✅ Voie des stands du jeu (`watch/trackmap` type 1) en **deux tronçons** séparés de 540 m (bouts les plus proches à 261 m) → tracée coupée aux sauts > 60 m (plus de corde).
@@ -889,6 +890,35 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-16 — Pont REST : écrans du jeu interrogés seulement en piste
+
+**Contexte** : veille du 2026-10-16 (4ᵉ passe REA) — un outil du marché coupe l'interrogation REST de
+LMU quand le pilote est au garage, car LMU 1.4130 plante si on le sollicite pendant ses écrans
+d'interface / de réglage, jamais en piste. Le pont V3 interrogeait `garage/*` toutes les 2-5 s dès la
+séance confirmée, garage compris.
+
+- ✅ `lmu_rest.rs` : `PlayerSpot` (Absent / Frozen / GarageStall / Driving) signalé par la boucle live
+  à chaque trame (`set_player_spot` ; `paused` → Frozen, pas de joueur → Absent, `mInGarageStall` →
+  GarageStall). Décision pure `route_allowed(route, session_ready, spot, poll_off_track)` :
+  `sessionInfo` toujours, `sessions/weather` après séance confirmée, `garage/*` + `watch/trackmap`
+  (`reads_game_screens`) seulement en piste. Hors piste, échéance repoussée de 2 s (reprise dès le
+  départ du box). Le tracé du jeu arrive donc au premier départ du box, plus pendant le garage.
+- ✅ Seul consommateur des bornes (`get_lmu_garage_bounds`) : le coach vocal sur une question de
+  réglage (`records-context.ts`), qui exige une valeur fraîche — souvent posée au garage. → lecture
+  **ponctuelle** dans la commande (`on_demand_due` : valeur pas fraîche, séance confirmée, joueur dans
+  son box, ≤ 1 lecture / 30 s), commande passée en `async` + `spawn_blocking` (client bloquant hors
+  runtime, pas de gel du fil principal). Risque résiduel : une requête isolée au garage.
+- ✅ Pas de perte de fonctionnalité : réglage **« Interroger le jeu hors piste »** (Config →
+  Maintenance, clé `rest_poll_off_track`, défaut non) = ancien comportement à l'identique ; appliqué au
+  démarrage (`lib.rs`) et à chaud par `set_config`. i18n 5 langues.
+- ✅ Hors piste, état véhicule / menu des stands deviennent « périmés » après 8 s : le front retombe sur
+  ses replis habituels (mémoire partagée, conso mesurée…), comme quand le jeu ne répond pas.
+- ✅ Tests : cargo (`game_screens_only_polled_while_driving`, `garage_bounds_read_on_demand_in_the_box_only`),
+  npm 652, tsc, eslint. Changelog 1.0.10 (corrigé, 5 langues). Branche `feat/rest-garage-gate`.
+- 📋 **Prochaine étape** : valider en jeu — garage à l'ouverture de séance (aucune requête `garage/*`
+  dans les journaux du jeu), départ du box (reprise < 2 s, tracé lu), pause Échap, retour aux menus,
+  question de réglage posée au garage (une seule lecture des bornes).
 
 ### 2026-10-16 — Intro de lancement : seulement le plan du titre
 

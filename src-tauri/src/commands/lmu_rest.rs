@@ -12,6 +12,9 @@
 //!   quand le jeu ne répond pas.
 //! - Un thread dédié interroge l'API ; la boucle live (`live.rs`) **ne fait
 //!   jamais de réseau** : elle copie le dernier instantané (`live_view`).
+//! - `sessionInfo` seul tant que le jeu n'a pas confirmé une séance ; les
+//!   écrans du jeu (`garage/*`, `watch/trackmap`) seulement quand le joueur
+//!   roule — jamais au garage, en pause ni aux menus (`route_allowed`).
 //! - Chaque valeur porte un état de fraîcheur : absent / vide / invalide /
 //!   périmé (> 8 s) / frais. Le front ne se sert que des valeurs fraîches et
 //!   retombe sinon sur son comportement d'avant (mémoire partagée, `.wet`…).
@@ -22,7 +25,7 @@
 //! erreur de toute la route.
 
 use std::io::Read;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -736,6 +739,13 @@ static SIM_PRESENT: AtomicBool = AtomicBool::new(false);
 /// Incrémenté à chaque nouveau tracé de circuit lu (évite de copier le tracé à
 /// chaque trame : la boucle live ne le relit que quand ce numéro change).
 static TRACK_MAP_GEN: AtomicU64 = AtomicU64::new(0);
+/// Où se trouve le joueur selon la mémoire partagée (cf. `set_player_spot`).
+static PLAYER_SPOT: AtomicU8 = AtomicU8::new(PlayerSpot::Absent as u8);
+/// Réglage « Interroger le jeu hors piste » : ancien comportement (garage,
+/// pause et menus interrogés comme en piste). Défaut : non.
+static POLL_OFF_TRACK: AtomicBool = AtomicBool::new(false);
+/// Dernière lecture ponctuelle des bornes de setup (`get_lmu_garage_bounds`).
+static LAST_ON_DEMAND: Mutex<Option<Instant>> = Mutex::new(None);
 
 fn with_store<R>(f: impl FnOnce(&mut Store) -> R) -> Option<R> {
     let mut g = STORE.lock().ok()?;
@@ -767,6 +777,90 @@ pub fn track_map() -> Option<GameTrackMap> {
 /// La mémoire partagée existe dès 9,4 s : ce n'est donc pas un signal suffisant.
 pub fn set_sim_present(present: bool) {
     SIM_PRESENT.store(present, Ordering::Relaxed);
+}
+
+/// Position du joueur vue de la mémoire partagée (bloc Scoring).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum PlayerSpot {
+    /// Pas de voiture joueur dans le scoring (retour aux menus, spectateur).
+    Absent = 0,
+    /// Liaison figée : horloge de séance arrêtée (pause, écran du jeu).
+    Frozen = 1,
+    /// Voiture dans son box de garage (`mInGarageStall`) : écrans setup/garage.
+    GarageStall = 2,
+    /// En piste ou dans la voie des stands.
+    Driving = 3,
+}
+
+impl PlayerSpot {
+    fn from_u8(v: u8) -> Self {
+        match v {
+            1 => PlayerSpot::Frozen,
+            2 => PlayerSpot::GarageStall,
+            3 => PlayerSpot::Driving,
+            _ => PlayerSpot::Absent,
+        }
+    }
+}
+
+/// Signalé par la boucle live à chaque trame.
+///
+/// ⚠️ Veille du 2026-10-16 : LMU 1.4130 plante quand on l'interroge pendant ses
+/// écrans d'interface (garage, réglages), jamais en piste. Les routes qui lisent
+/// ces écrans attendent donc que le joueur roule (cf. `route_allowed`).
+pub fn set_player_spot(spot: PlayerSpot) {
+    PLAYER_SPOT.store(spot as u8, Ordering::Relaxed);
+}
+
+fn player_spot() -> PlayerSpot {
+    PlayerSpot::from_u8(PLAYER_SPOT.load(Ordering::Relaxed))
+}
+
+/// Clé de config du réglage « Interroger le jeu hors piste » (`"true"` / `"false"`).
+pub const CONFIG_POLL_OFF_TRACK: &str = "rest_poll_off_track";
+
+/// Appliqué au démarrage (config) et à chaque bascule du réglage (`set_config`).
+pub fn set_poll_off_track(enabled: bool) {
+    POLL_OFF_TRACK.store(enabled, Ordering::Relaxed);
+}
+
+/// Route qui lit les écrans du jeu (`garage/*`) ou son tracé (`watch/trackmap`) :
+/// suspendue tant que le joueur ne roule pas.
+pub fn reads_game_screens(route: &str) -> bool {
+    route.starts_with("/rest/garage/") || route == ROUTE_TRACKMAP
+}
+
+/// La route peut-elle être interrogée maintenant ? `sessionInfo` toujours ;
+/// les autres après une séance confirmée ; celles des écrans du jeu seulement
+/// en piste (ou partout si le réglage « hors piste » est activé).
+pub fn route_allowed(route: &str, session_ready: bool, spot: PlayerSpot, poll_off_track: bool) -> bool {
+    if !needs_session(route) {
+        return true;
+    }
+    if !session_ready {
+        return false;
+    }
+    !reads_game_screens(route) || poll_off_track || spot == PlayerSpot::Driving
+}
+
+/// Intervalle minimal entre deux lectures ponctuelles des bornes de setup.
+pub const ON_DEMAND_MIN_GAP: Duration = Duration::from_secs(30);
+
+/// Lecture ponctuelle des bornes, faute de polling au garage : seulement si la
+/// valeur n'est plus fraîche, la séance confirmée, le joueur dans son box (pas
+/// en pause ni aux menus) et la dernière lecture ponctuelle assez ancienne.
+pub fn on_demand_due(
+    fresh: bool,
+    session_ready: bool,
+    spot: PlayerSpot,
+    last: Option<Instant>,
+    now: Instant,
+) -> bool {
+    !fresh
+        && session_ready
+        && spot == PlayerSpot::GarageStall
+        && last.map_or(true, |t| now.saturating_duration_since(t) >= ON_DEMAND_MIN_GAP)
 }
 
 /// Prochaine échéance de chaque route.
@@ -875,9 +969,11 @@ fn poll_due(client: &reqwest::blocking::Client, base: &str, sched: &mut Schedule
         if now < sched.due[i] {
             continue;
         }
-        if needs_session(route) && !session_ready() {
-            // Pas de séance confirmée : on ne touche pas au garage (risque de
-            // plantage du jeu en cours d'initialisation), on réessaie bientôt.
+        let poll_off_track = POLL_OFF_TRACK.load(Ordering::Relaxed);
+        if !route_allowed(route, session_ready(), player_spot(), poll_off_track) {
+            // Pas de séance confirmée, ou joueur hors piste (garage, pause,
+            // menus) : on ne touche pas aux écrans du jeu (plantages relevés au
+            // lancement et pendant les écrans d'interface), on réessaie bientôt.
             sched.due[i] = now + EVERY_FAST;
             continue;
         }
@@ -961,12 +1057,39 @@ pub fn ensure_worker(keep_running: fn() -> bool) {
     });
 }
 
-/// Bornes des réglages du setup (`getPlayerGarageData`, lu toutes les ~5 s).
-/// Valeurs figées par le jeu au chargement de la voiture : pas des valeurs live.
-#[tauri::command]
-pub fn get_lmu_garage_bounds() -> Result<RestField<Vec<SettingBound>>, AppError> {
-    with_store(|s| s.garage.view(Instant::now()))
-        .ok_or_else(|| AppError::Internal("lmu rest store lock".into()))
+/// Lit une fois `getPlayerGarageData` si `on_demand_due` l'autorise (joueur
+/// dans son box, polling suspendu). Réseau hors verrou, comme `poll_due`.
+fn garage_bounds_on_demand() {
+    if !SIM_PRESENT.load(Ordering::Relaxed) {
+        return;
+    }
+    let now = Instant::now();
+    let fresh = with_store(|s| s.garage.freshness(now) == Freshness::Fresh).unwrap_or(true);
+    {
+        let Ok(mut last) = LAST_ON_DEMAND.lock() else { return };
+        if !on_demand_due(fresh, session_ready(), player_spot(), *last, now) {
+            return;
+        }
+        *last = Some(now);
+    }
+    let Some(client) = build_client() else { return };
+    let res = fetch_json(&client, &loopback_base(LMU_REST_PORT), ROUTE_GARAGE);
+    with_store(|s| record(s, ROUTE_GARAGE, res, Instant::now()));
+}
+
+/// Bornes des réglages du setup (`getPlayerGarageData`, lu toutes les ~5 s en
+/// piste). Valeurs figées par le jeu au chargement de la voiture : pas des
+/// valeurs live. Au garage, le polling est suspendu : une lecture ponctuelle
+/// (au plus une toutes les 30 s) la remplace quand on en a besoin.
+#[tauri::command(async)]
+pub async fn get_lmu_garage_bounds() -> Result<RestField<Vec<SettingBound>>, AppError> {
+    tauri::async_runtime::spawn_blocking(|| {
+        garage_bounds_on_demand();
+        with_store(|s| s.garage.view(Instant::now()))
+            .ok_or_else(|| AppError::Internal("lmu rest store lock".into()))
+    })
+    .await
+    .map_err(|e| AppError::Internal(format!("get_lmu_garage_bounds: {e}")))?
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1139,6 +1262,54 @@ mod tests {
         assert_eq!(s.freshness(t0 + Duration::from_secs(3)), Freshness::Fresh);
         assert_eq!(s.freshness(t0 + Duration::from_secs(9)), Freshness::Empty);
         assert_eq!(s.view(t0 + Duration::from_secs(9)).data, Some(1));
+    }
+
+    #[test]
+    fn game_screens_only_polled_while_driving() {
+        // Veille 2026-10-16 : LMU plante quand on l'interroge sur ses écrans
+        // d'interface (garage, pause, menus), jamais en piste.
+        use PlayerSpot::*;
+        for r in [ROUTE_VEHICLE, ROUTE_PIT, ROUTE_GARAGE, ROUTE_TRACKMAP] {
+            assert!(reads_game_screens(r), "{r}");
+            assert!(route_allowed(r, true, Driving, false), "{r} en piste");
+            for spot in [GarageStall, Frozen, Absent] {
+                assert!(!route_allowed(r, true, spot, false), "{r} {spot:?}");
+                // Réglage « hors piste » : ancien comportement à l'identique.
+                assert!(route_allowed(r, true, spot, true), "{r} {spot:?} réglage");
+            }
+            // Le réglage ne lève jamais la garde du lancement.
+            assert!(!route_allowed(r, false, Driving, true), "{r} sans séance");
+        }
+        // sessionInfo reste libre ; la météo du week-end ne lit pas d'écran.
+        assert!(!reads_game_screens(ROUTE_SESSION));
+        assert!(!reads_game_screens(ROUTE_WEATHER));
+        for spot in [Driving, GarageStall, Frozen, Absent] {
+            assert!(route_allowed(ROUTE_SESSION, false, spot, false), "{spot:?}");
+            assert!(route_allowed(ROUTE_WEATHER, true, spot, false), "{spot:?}");
+            assert!(!route_allowed(ROUTE_WEATHER, false, spot, false), "{spot:?}");
+        }
+        for spot in [Absent, Frozen, GarageStall, Driving] {
+            assert_eq!(PlayerSpot::from_u8(spot as u8), spot);
+        }
+        assert_eq!(PlayerSpot::from_u8(42), Absent);
+    }
+
+    #[test]
+    fn garage_bounds_read_on_demand_in_the_box_only() {
+        use PlayerSpot::*;
+        let t0 = Instant::now();
+        assert!(on_demand_due(false, true, GarageStall, None, t0));
+        // Valeur encore fraîche, séance non confirmée, pause, menus, en piste
+        // (le polling s'en charge) : pas de lecture ponctuelle.
+        assert!(!on_demand_due(true, true, GarageStall, None, t0));
+        assert!(!on_demand_due(false, false, GarageStall, None, t0));
+        for spot in [Frozen, Absent, Driving] {
+            assert!(!on_demand_due(false, true, spot, None, t0), "{spot:?}");
+        }
+        // Au plus une lecture toutes les 30 s.
+        let later = t0 + ON_DEMAND_MIN_GAP;
+        assert!(!on_demand_due(false, true, GarageStall, Some(t0), later - Duration::from_secs(1)));
+        assert!(on_demand_due(false, true, GarageStall, Some(t0), later));
     }
 
     #[test]

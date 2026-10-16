@@ -23,7 +23,12 @@ pub fn get_config(key: String, db: State<'_, DbState>) -> Result<Option<String>,
 
 #[tauri::command]
 pub fn set_config(key: String, value: String, db: State<'_, DbState>) -> Result<(), AppError> {
-    db::config_set(&db, &key, &value)
+    db::config_set(&db, &key, &value)?;
+    // Réglage lu par le thread du pont REST : appliqué à chaud.
+    if key == crate::commands::lmu_rest::CONFIG_POLL_OFF_TRACK {
+        crate::commands::lmu_rest::set_poll_off_track(value == "true");
+    }
+    Ok(())
 }
 
 /// Renvoie toute la configuration sous forme de dictionnaire.

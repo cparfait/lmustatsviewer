@@ -698,7 +698,10 @@ pub struct LiveData {
     /// Dernier instantané du pont REST du jeu (`lmu_rest.rs`), copié sans
     /// attendre le réseau. `None` hors flux live.
     #[serde(default, skip_deserializing)]
-    pub rest: Option<lmu_rest::LmuRestLive>,
+    pub rest: Option<lmu_rest::LmuRestLive>,    /// Voiture du joueur dans son box de garage (`mInGarageStall`). Interne :
+    /// sert seulement à suspendre le pont REST hors piste (`set_player_spot`).
+    #[serde(skip)]
+    pub player_in_garage_stall: bool,
 }
 
 impl Default for LiveData {
@@ -722,6 +725,7 @@ impl Default for LiveData {
             sector_dists: Vec::new(),
             track_from_game: false,
             rest: None,
+            player_in_garage_stall: false,
         }
     }
 }
@@ -2026,6 +2030,7 @@ fn extract(state: &mut PollState) -> LiveData {
         sector_dists: state.sector_dists(),
         track_from_game: state.game_filled,
         rest: None,
+        player_in_garage_stall: player_scor.is_some_and(|p| p.m_in_garage_stall != 0),
     }
 }
 
@@ -2222,6 +2227,17 @@ pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), A
             // pas) — jamais les menus ni le lancement du jeu (plantage relevé).
             in_session = data.session.is_some() || (data.paused && in_session);
             lmu_rest::set_sim_present(data.connected && in_session);
+            // Écrans du jeu (garage/*, tracé) interrogés seulement en piste :
+            // LMU plante quand on le sollicite au garage, en pause ou aux menus.
+            lmu_rest::set_player_spot(if data.paused {
+                lmu_rest::PlayerSpot::Frozen
+            } else if data.player.is_none() {
+                lmu_rest::PlayerSpot::Absent
+            } else if data.player_in_garage_stall {
+                lmu_rest::PlayerSpot::GarageStall
+            } else {
+                lmu_rest::PlayerSpot::Driving
+            });
             data.rest = lmu_rest::live_view();
             if let Ok(mut g) = LAST_FRAME.lock() {
                 *g = Some((Instant::now(), data.clone()));

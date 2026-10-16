@@ -37,7 +37,7 @@ import { useAppStore } from "@/stores/app";
 import { RadioArbiter, TEXT_REPEAT_LAPS, type Candidate } from "./arbiter";
 import { classOf, type PolicyCtx } from "./policy";
 import { driverBusy } from "./focus";
-import { NameDoser, VariantPicker } from "./variants";
+import { NameDoser, VariantPicker, splitVariants } from "./variants";
 import { ProximitySpotter, type SpotCall } from "./proximity";
 import { ToneArbiter, setSharedTone, BATTLE_GAP_S } from "./tone";
 import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY, FLYING_FACTOR } from "./lapPolicy";
@@ -334,7 +334,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (!enabled) return;
     warmupVoice(lang);
     const keys = proximity ? [...PREWARM_KEYS, ...Object.values(SPOT_KEYS)] : PREWARM_KEYS;
-    void prewarmSpeech(keys.map((k) => t(k)), lang);
+    // Chaque variante « A | B » : l'alerte dira l'une ou l'autre.
+    void prewarmSpeech(keys.flatMap((k) => splitVariants(t(k))), lang);
   }, [enabled, proximity, lang, t]);
 
   // Coûts de chauffe et préférences radio mémorisés : chargés une fois ; les

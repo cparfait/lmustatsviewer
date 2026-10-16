@@ -895,6 +895,35 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Annonces moins rébarbatives : variantes « A | B | C » sur 38 gabarits
+
+**Demande** (mainteneur) : « il faudrait plusieurs variantes pour certains messages pour éviter que ce
+soit rebarbatif ».
+
+- ✅ 38 gabarits `live.v*` passent à 2–3 formulations dans les 5 langues (la 1ʳᵉ = l'ancien texte) :
+  coach par virage (`vCornerBrakeEarly/Late`, `OverSlow`, `LateThrottle`, `EntryFast`, `GripUnused`,
+  `NoTrail`, `Lockup`, `Wheelspin`, `Clean`, `Resolved`, `Consistency`, `vDrillClean/Streak`), delta,
+  secteur perdu, écarts (`vClosing*`, `vPullingAway`, `vDroppingBehind`, `vFasterBehind`, `vGapLeader`),
+  carburant, temps restant, pneus, freins, pluie, drapeau bleu, mi-course, dernière minute, demande
+  d'arrêt, ravitaillement ; `vBoxBox` / `vPuncture` : 2 formulations très proches. Inchangés (réflexe =
+  même phrase) : `vSpot*`, `vFlagYellow`, `vFlagFcy`, `vFlagStopped`.
+- ✅ **Bug trouvé** : le coach par virage (`useCornerCoach.ts`) ne tirait aucune variante — un gabarit
+  « A | B » (personnalisé par l'utilisateur) était lu avec ses `|`. Il a maintenant son `VariantPicker`
+  (remis à zéro à chaque démarrage du service) sur tous ses chemins (conseil, drill, débrief, stint,
+  risque, rappel) ; les callouts prédictifs pré-synthétisent chaque variante. Idem : préchauffage Piper
+  des alertes (`PREWARM_KEYS`, une entrée par variante) et réponse « coach-moi » (`answers.ts`, 1ʳᵉ
+  formulation).
+- ✅ « Préparer la voix » et l'assemblage des phrases chiffrées passaient déjà par `splitVariants` :
+  chaque formulation est préparée / assemblable (test de couverture existant vert). Inventaire des
+  morceaux ≈ 420 / ≤ 6 900 caractères par langue (plafonds du test : 700 / 10 000).
+- ✅ Test `variantTemplatesSuite` (suite radio) : mêmes `{{variables}}` dans chaque variante, ≤ 3
+  variantes, réflexes sans variante, ≤ 2 pour box box / crevaison, ≥ 40 gabarits à variantes et la même
+  liste dans les 5 langues. `npm test` 3694 OK, tsc, eslint. Changelog 1.0.10 (« improved »).
+- 📋 **Prochaine étape** : écouter en jeu (Piper puis voix IA après « Préparer la voix ») une séance
+  de coach par virage et une course : vérifier que l'alternance s'entend et qu'aucune formulation ne
+  sonne faux (surtout DE/ES/IT, rédigées sans relecture native) ; ajuster les formulations dans les
+  fichiers i18n si besoin.
+
 ### 2026-10-16 — Tout fusionné : veille commitée, `feat/coach-audio` = `main`
 
 **Demande** : « merge et commit tout ».

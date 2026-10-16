@@ -25,6 +25,7 @@ import { coachCornerLosses } from "@/lib/coach/service";
 import { isWetCompound, tyreChangePlan, wheelWear, type WheelId } from "./tyres";
 import { sessionKind, type LapPref } from "./prefs";
 import { BRAKE_COLD_C, brakeAvgLimits } from "./brakes";
+import { splitVariants } from "./variants";
 
 /** Fenêtre de température « de travail » des pneus (°C, générique). */
 export const TYRE_WINDOW: [number, number] = [75, 105];
@@ -493,7 +494,11 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       }
       const items = losses.slice(0, 2).map((l) =>
         l.tip
-          ? t("live.aCoachMeTip", { tip: t(`live.${l.tip.suffix}`, l.tip.vars), d: tenths(l.meanDt) })
+          ? t("live.aCoachMeTip", {
+              // Gabarit à variantes « A | B » : la 1re formulation suffit dans une réponse.
+              tip: splitVariants(t(`live.${l.tip.suffix}`, l.tip.vars))[0] ?? "",
+              d: tenths(l.meanDt),
+            })
           : t("live.aCoachMeItem", { n: l.n, d: tenths(l.meanDt) }),
       );
       return t("live.aCoachMe", { list: items.join(". ") });

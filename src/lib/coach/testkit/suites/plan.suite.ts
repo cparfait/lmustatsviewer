@@ -5,7 +5,8 @@
  */
 
 import { section, ok, eq } from "../assert";
-import type { LiveData } from "@/lib/api";
+import type { LiveData, SvmFile } from "@/lib/api";
+import { recommend, applyStep, nextVersionName } from "@/lib/setupAssistant";
 import { trackSun, trackGeo, isNight } from "@/lib/racePlan/sun";
 import { planStints, clock, hm, type PlanInput } from "@/lib/racePlan/stintPlan";
 import { PrepTracker, emptyPrep, ready, isDone, type PrepState } from "@/lib/racePlan/prep";
@@ -59,6 +60,35 @@ export function run(): void {
     eq(planStints({ ...base, lapS: 0 }), null, "saisie incomplète : pas de plan");
     eq(clock(23.5, 3600), "00:30", "horloge qui passe minuit");
     eq(hm(7380), "2:03", "durée h:mm");
+  }
+
+  section("setup.assistant");
+  {
+    const p = (key: string, value: string, comment: string | null = null) => ({ key, value, comment });
+    const svm: SvmFile = {
+      header: { vehicle_class: "GT3", upgrade_setting: "", veh_path: null },
+      sections: [
+        { name: "SUSPENSION", params: [p("FrontAntiSwaySetting", "4", "120 N/mm"), p("RearAntiSwaySetting", "0", "Detached"), p("FrontWingSetting", "2", "N/A")] },
+        { name: "CONTROLS", params: [p("RearBrakeSetting", "30", "53.0:47.0")] },
+        { name: "DRIVELINE", params: [p("DiffCoastSetting", "5")] },
+        { name: "FRONTLEFT", params: [p("SpringSetting", "7")] },
+        { name: "FRONTRIGHT", params: [p("SpringSetting", "7")] },
+      ],
+    };
+    const r = recommend(svm, "understeer", "entry", "slow");
+    eq(r.map((x) => [x.lever, x.dir]), [["frontArb", -1], ["diffCoast", -1], ["rearBrake", 1]], "sous-virage entrée lent : chaîne ordonnée, 3 au plus");
+    eq(recommend(svm, "understeer", "entry", "fast").map((x) => x.lever).includes("frontWing"), false, "aileron figé (N/A) écarté");
+    const ov = recommend(svm, "oversteer", "mid", "slow");
+    ok(ov[ov.length - 1].lever === "rearArb" && ov[ov.length - 1].atLimit, "barre AR déjà à 0 : en butée, rangée en dernier");
+    const withBounds = recommend(svm, "understeer", "mid", "slow", [{ key: "VM_FRONT_ANTISWAY", value: 4, min: 0, max: 8, text: "120 N/mm" }]);
+    eq(withBounds[0].max, 8, "borne du jeu reprise (pont REST)");
+    const springs = recommend(svm, "understeer", "entry", "slow", null, 4).find((x) => x.lever === "frontSprings")!;
+    eq(applyStep(svm, springs), [
+      { name: "FRONTLEFT", params: [{ key: "SpringSetting", value: "6", comment: null }] },
+      { name: "FRONTRIGHT", params: [{ key: "SpringSetting", value: "6", comment: null }] },
+    ], "un cran sur les deux roues de l'essieu");
+    eq(nextVersionName("Spa course V3"), "Spa course V4", "version suivante");
+    eq(nextVersionName("Spa course"), "Spa course V2", "première version");
   }
 
   section("plan.prep");

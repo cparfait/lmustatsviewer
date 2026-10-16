@@ -930,6 +930,18 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   - Vérifié dans le navigateur (serveur de dev sur 5176, état forcé par import du store) : Le Mans
     16/10 → lever 08:18, coucher 19:11 ; 6 h / 3:28,5 / 14 tours / 2 pilotes → 7 arrêts, 2 relais de
     nuit, volant max 2:30 dépassé signalé. Suite `plan.suite.ts`.
+- ✅ **㉕ Assistant setup** (`lib/setupAssistant.ts` pur + `components/SetupAssistantPanel.tsx`, onglet
+  « Assistant » de `SetupDetail`) : table maison symptôme (7) × phase (entrée/milieu/sortie, pour
+  sous/survirage) × type de virage (lent = mécanique, rapide = aéro) → chaîne ordonnée de 13 leviers
+  `.svm` (sens : index ↑ = raideur, incidence, blocage, hauteur, aide ; `RearBrakeSetting` ↑ =
+  arrière), 3 au plus, réglages « N/A / fixed » écartés (« Detached » = cran 0, réglable), butée basse
+  = index 0, butée haute via `getPlayerGarageData` (clé REST rapprochée par fragment). « Essayer » =
+  `duplicate` + `update` d'un cran (deux roues pour ressorts/hauteurs) + lignée dans les notes
+  (`<nom> V<n+1> ← #id : levier ±1 (symptôme)`), l'original jamais modifié. Verdict : ressenti noté +
+  meilleur tour/secteurs des sessions liées (version précédente vs celle-ci), checklist de
+  comparabilité (± 3 L, pneus de même âge, 3 tours propres, même piste). Le A-B-A et le verdict par
+  virage restent à faire (il faudrait relier les tours de télémétrie à une version de setup).
+  ⚠️ Non vérifié à l'écran : la fiche setup exige le backend Tauri (tests purs seulement).
 
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 

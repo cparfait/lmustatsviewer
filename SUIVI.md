@@ -897,6 +897,16 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
     mémorisée par circuit × classe (`tyre_warmup_map`). Le « temps de service appris » n'est pas
     refait : la durée d'arrêt du jeu (`pitStopLength`, pont REST) le donne déjà.
   - intention `tyreChange` 5 langues ; contexte Coach IA « Tyre strategy (measured) ».
+- ✅ **㉚ Radio concise** (`policy.ts`, couche « Phases de course ») : épisode d'incident = 60 s après
+  un choc, au plus 2 annonces `mech:`/`vigie:` non critiques (constat + bilan) ; qualif : tour lancé
+  (ni stands, ni tour de sortie, > 400 m après la ligne) → situation et confort muets. **Noms
+  courts** : rien à faire, la radio ne lit jamais la livrée ni le nom officiel du circuit (pseudo
+  nettoyé par `radioName`, voiture citée par son numéro).
+- ✅ **㉛ Préférences apprises** (`engineer/prefs.ts`) : chronos `auto / every / best / none` par
+  type de séance (`radio_lap_prefs`), posés à la voix (4 commandes locales, 5 langues ; entrées
+  `exact` séparées des locutions car `score` ignore les locutions d'une entrée `exact`) ; question
+  unique par type de séance au 2ᵉ tour (`prefs:ask`, famille confort), réglage `radioAskPrefs`
+  (`voice_ask_prefs`, défaut actif) dans Audio / Voix.
 
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 

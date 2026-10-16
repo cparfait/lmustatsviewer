@@ -11,6 +11,9 @@ import { StintRegistry, stintsOf, lapsLeftFor } from "@/lib/engineer/rivalStints
 import { route } from "@/lib/engineer/router";
 import { answerIntent } from "@/lib/engineer/answers";
 import { engineer } from "@/lib/engineer/state";
+import { RadioPolicy, type PolicyCtx } from "@/lib/engineer/policy";
+import type { Candidate } from "@/lib/engineer/arbiter";
+import { applyLapPref, parseLapPrefs, questionDue, sessionKind } from "@/lib/engineer/prefs";
 import { TyreWearTracker, tyreChangePlan, WetnessTrend, WarmupTracker, isWetCompound } from "@/lib/engineer/tyres";
 
 export const st = (o: Partial<LiveStanding>): LiveStanding =>
@@ -151,6 +154,62 @@ export function run(): void {
     eq(got.length, 1, "une mesure de chauffe");
     ok(Math.abs(got[0].seconds - 4.3) < 1e-9, `chauffe = 3,3 s (sortie) + 1 s (tour suivant) — ${got[0]?.seconds}`);
     eq(wu.median("GT3"), null, "médiane : 2 mesures minimum");
+  }
+
+  section("radio.concise");
+  {
+    const ctx = (nowS: number, o: Partial<PolicyCtx> = {}): PolicyCtx => ({
+      nowS, lap: 10, isRace: true, racing: true, inPits: false, finished: false, remainingS: 3600, lapsLeft: null,
+      pitstops: 0, nearestGapS: 10, phases: true, budgets: false, ...o,
+    });
+    const cand = (key: string, prio: Candidate["prio"] = "normal"): Candidate => ({ key, text: key, prio });
+    const pol = new RadioPolicy();
+    pol.noteCrash(100);
+    const a = [cand("mech:damage"), cand("mech:aero")];
+    eq(pol.filter(a, ctx(101)).length, 2, "constat + bilan passent");
+    pol.commit(a, ctx(101));
+    eq(pol.filter([cand("mech:suspension")], ctx(120)).length, 0, "3e annonce d'incident coupée");
+    eq(pol.filter([cand("mech:puncture", "critical")], ctx(120)).length, 1, "une crevaison (critique) passe toujours");
+    eq(pol.filter([cand("mech:suspension")], ctx(170)).length, 1, "épisode fini après 60 s");
+    eq(pol.filter([cand("mech:suspension")], ctx(120, { phases: false })).length, 1, "couche phases coupée : ancien comportement");
+
+    const q = new RadioPolicy();
+    const qc = (o: Partial<PolicyCtx>) => ctx(500, { isRace: false, ...o });
+    eq(q.filter([cand("gap:ahead"), cand("lap:time")], qc({ qualiFlying: true })).length, 0, "tour lancé de qualif : silence situation/confort");
+    eq(q.filter([cand("flag:yellow")], qc({ qualiFlying: true })).length, 1, "la sécurité passe");
+    eq(q.filter([cand("lap:time")], qc({ qualiFlying: false })).length, 1, "hors tour lancé : chrono dit");
+  }
+
+  section("radio.prefs");
+  {
+    eq(applyLapPref(undefined, null, false, true), null, "auto : décision habituelle");
+    eq(applyLapPref("every", null, false, true), "last", "chaque tour lancé");
+    eq(applyLapPref("every", null, false, false), null, "pas un tour lancé");
+    eq(applyLapPref("best", "last", false, true), null, "seulement les meilleurs");
+    eq(applyLapPref("best", null, true, true), "pb", "meilleur tour dit");
+    eq(applyLapPref("none", "pb", true, true), null, "aucun chrono");
+    eq(sessionKind(3), "practice", "essais");
+    eq(sessionKind(6), "quali", "qualif");
+    eq(sessionKind(10), "race", "course");
+    const p = parseLapPrefs('{"prefs":{"race":"best"},"asked":["race"]}');
+    ok(!questionDue(p, "race") && questionDue(p, "quali"), "question due seulement pour un type jamais demandé");
+    eq(parseLapPrefs("pas du json").asked, [], "JSON illisible : préférences vides");
+    eq(route("seulement mes meilleurs tours", "fr").intent, "lapPrefBest", "FR : meilleurs tours");
+    eq(route("aucun", "fr").intent, "lapPrefNone", "FR : réponse « aucun »");
+    eq(route("chaque tour", "fr").intent, "lapPrefEvery", "FR : réponse « chaque tour »");
+    eq(route("every lap", "en").intent, "lapPrefEvery", "EN : every lap");
+    eq(route("keine rundenzeiten", "de").intent, "lapPrefNone", "DE : keine");
+
+    engineer.resetSession();
+    const saved = engineer.lapPrefs;
+    let persisted = 0;
+    engineer.onPrefsChanged = () => persisted++;
+    const d = data([st({ driver: "Me", is_player: true, class_position: 1 })]);
+    const txt = answerIntent("lapPrefNone", d, t, { pitLossSec: 60, fuelReserveLaps: 1 });
+    eq(engineer.lapPrefs.prefs.race, "none", "préférence posée pour la course");
+    ok(persisted === 1 && txt.startsWith("live.spLapPrefSet"), "persistée et confirmée");
+    engineer.onPrefsChanged = null;
+    engineer.lapPrefs = saved;
   }
 
   section("strategy.voice");

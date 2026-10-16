@@ -35,10 +35,25 @@ export type AnswerIntent =
   | "radioNormal"
   // Coaching de pilotage, répondu depuis les mesures du coach par virage.
   | "coachMe"
-  | "whereLose";
+  | "whereLose"
+  // Préférences radio apprises (chronos), commandes locales.
+  | "lapPrefEvery"
+  | "lapPrefBest"
+  | "lapPrefNone"
+  | "lapPrefAuto";
 
 /** Commandes radio : toujours traitées en local (l'IA ne sait pas les exécuter). */
-export const RADIO_COMMANDS = new Set<AnswerIntent>(["radioBattle", "radioHome", "radioEssential", "radioQuiet", "radioNormal"]);
+export const RADIO_COMMANDS = new Set<AnswerIntent>([
+  "radioBattle",
+  "radioHome",
+  "radioEssential",
+  "radioQuiet",
+  "radioNormal",
+  "lapPrefEvery",
+  "lapPrefBest",
+  "lapPrefNone",
+  "lapPrefAuto",
+]);
 
 export interface Entities {
   /** Classe citée (clé radio : Hypercar / LMP2 / LMP3 / GT3 / GTE). */
@@ -221,6 +236,14 @@ const T: Record<string, Def[]> = {
     { id: "radioEssential", family: "radio", idioms: ["juste l essentiel", "que l essentiel", "seulement l essentiel", "parle moins", "moins d annonces", "moins de messages"] },
     { id: "radioQuiet", family: "radio", idioms: ["silence radio", "tais toi jusqu au tour", "silence jusqu au tour", "ne me parle plus", "laisse moi tranquille", "plus d annonces"] },
     { id: "radioNormal", family: "radio", idioms: ["tu peux reparler", "reprends les annonces", "parle moi a nouveau", "annonces normales", "fin de la bagarre", "c est fini la bagarre", "retour a la normale"] },
+    { id: "lapPrefEvery", family: "lapPref", idioms: ["mes chronos a chaque tour", "chrono a chaque tour", "chronos a chaque tour", "dis moi chaque chrono", "donne moi chaque tour", "tous mes chronos"] },
+    { id: "lapPrefEvery", family: "lapPref", exact: ["chaque tour", "a chaque tour"] },
+    { id: "lapPrefBest", family: "lapPref", idioms: ["seulement mes meilleurs tours", "que les meilleurs tours", "juste les meilleurs tours", "seulement mes records", "que mes meilleurs tours"] },
+    { id: "lapPrefBest", family: "lapPref", exact: ["les meilleurs", "seulement les meilleurs"] },
+    { id: "lapPrefNone", family: "lapPref", idioms: ["pas de chronos", "plus de chronos", "aucun chrono", "ne me dis plus mes chronos", "arrete les chronos", "sans chronos"] },
+    { id: "lapPrefNone", family: "lapPref", exact: ["aucun"] },
+    { id: "lapPrefAuto", family: "lapPref", idioms: ["chronos comme avant", "chronos comme d habitude", "chronos normaux"] },
+    { id: "lapPrefAuto", family: "lapPref", exact: ["comme maintenant", "comme avant"] },
     { id: "coachMe", family: "coach", idioms: ["coach moi", "coache moi", "fais moi progresser", "aide moi a progresser", "donne moi un conseil de pilotage", "comment aller plus vite"] },
     { id: "whereLose", family: "coach", idioms: ["ou je perds", "ou est ce que je perds", "ou je perds du temps", "ou est ce que je perds du temps", "mon point faible", "quel virage je perds"] },
     { id: "repeat", family: "command", exact: ["repete", "tu peux repeter", "redis", "quoi", "pardon", "repete s il te plait"] },
@@ -260,6 +283,14 @@ const T: Record<string, Def[]> = {
     { id: "radioEssential", family: "radio", idioms: ["just the essentials", "essentials only", "only the essentials", "talk less", "less talking", "fewer calls"] },
     { id: "radioQuiet", family: "radio", idioms: ["radio silence", "quiet until lap", "be quiet until", "stop talking", "leave me alone", "no more calls"] },
     { id: "radioNormal", family: "radio", idioms: ["you can talk again", "resume calls", "talk to me again", "back to normal", "normal calls", "battle is over"] },
+    { id: "lapPrefEvery", family: "lapPref", idioms: ["lap times every lap", "every lap time", "tell me every lap", "each lap time", "all my lap times"] },
+    { id: "lapPrefEvery", family: "lapPref", exact: ["every lap", "each lap"] },
+    { id: "lapPrefBest", family: "lapPref", idioms: ["only my best laps", "just my best laps", "only best laps", "only personal bests"] },
+    { id: "lapPrefBest", family: "lapPref", exact: ["best laps", "only the best", "just the best"] },
+    { id: "lapPrefNone", family: "lapPref", idioms: ["no lap times", "stop the lap times", "no more lap times", "don t tell me lap times"] },
+    { id: "lapPrefNone", family: "lapPref", exact: ["none"] },
+    { id: "lapPrefAuto", family: "lapPref", idioms: ["lap times as before", "lap times as usual", "normal lap times"] },
+    { id: "lapPrefAuto", family: "lapPref", exact: ["as before", "as usual", "like now"] },
     { id: "coachMe", family: "coach", idioms: ["coach me", "help me improve", "make me faster", "give me driving advice", "driving tip", "how to go faster"] },
     { id: "whereLose", family: "coach", idioms: ["where am i losing", "where do i lose", "where am i losing time", "where do i lose time", "my weak spot", "which corner am i losing"] },
     { id: "repeat", family: "command", exact: ["repeat", "say again", "what", "again", "come again", "pardon"] },
@@ -299,6 +330,14 @@ const T: Record<string, Def[]> = {
     { id: "radioEssential", family: "radio", idioms: ["solo lo esencial", "lo esencial", "habla menos", "menos mensajes"] },
     { id: "radioQuiet", family: "radio", idioms: ["silencio de radio", "silencio hasta la vuelta", "callate hasta la vuelta", "no me hables", "dejame tranquilo"] },
     { id: "radioNormal", family: "radio", idioms: ["puedes volver a hablar", "vuelve a hablar", "mensajes normales", "vuelta a la normalidad", "se acabo la pelea"] },
+    { id: "lapPrefEvery", family: "lapPref", idioms: ["tiempos en cada vuelta", "dime cada tiempo", "todos mis tiempos"] },
+    { id: "lapPrefEvery", family: "lapPref", exact: ["cada vuelta", "en cada vuelta"] },
+    { id: "lapPrefBest", family: "lapPref", idioms: ["solo mis mejores vueltas", "solo las mejores vueltas", "solo mis records"] },
+    { id: "lapPrefBest", family: "lapPref", exact: ["las mejores", "solo las mejores"] },
+    { id: "lapPrefNone", family: "lapPref", idioms: ["sin tiempos", "no mas tiempos", "ningun tiempo"] },
+    { id: "lapPrefNone", family: "lapPref", exact: ["ninguno"] },
+    { id: "lapPrefAuto", family: "lapPref", idioms: ["tiempos como antes", "tiempos normales"] },
+    { id: "lapPrefAuto", family: "lapPref", exact: ["como antes", "como ahora"] },
     { id: "coachMe", family: "coach", idioms: ["entrename", "ayudame a mejorar", "hazme mas rapido", "dame un consejo de pilotaje", "como ir mas rapido"] },
     { id: "whereLose", family: "coach", idioms: ["donde pierdo", "donde pierdo tiempo", "donde estoy perdiendo", "mi punto debil", "en que curva pierdo"] },
     { id: "repeat", family: "command", exact: ["repite", "repitelo", "otra vez", "que", "perdon"] },
@@ -338,6 +377,14 @@ const T: Record<string, Def[]> = {
     { id: "radioEssential", family: "radio", idioms: ["nur das wesentliche", "nur das notigste", "weniger funk", "rede weniger"] },
     { id: "radioQuiet", family: "radio", idioms: ["funkstille", "ruhe bis runde", "still bis runde", "lass mich in ruhe", "keine ansagen mehr"] },
     { id: "radioNormal", family: "radio", idioms: ["du kannst wieder reden", "ansagen wieder an", "zuruck zum normalen", "der kampf ist vorbei"] },
+    { id: "lapPrefEvery", family: "lapPref", idioms: ["rundenzeiten jede runde", "sag mir jede rundenzeit", "alle rundenzeiten"] },
+    { id: "lapPrefEvery", family: "lapPref", exact: ["jede runde"] },
+    { id: "lapPrefBest", family: "lapPref", idioms: ["nur meine besten runden", "nur die besten runden", "nur bestzeiten"] },
+    { id: "lapPrefBest", family: "lapPref", exact: ["nur die besten"] },
+    { id: "lapPrefNone", family: "lapPref", idioms: ["keine rundenzeiten", "keine zeiten mehr", "schluss mit rundenzeiten"] },
+    { id: "lapPrefNone", family: "lapPref", exact: ["keine"] },
+    { id: "lapPrefAuto", family: "lapPref", idioms: ["rundenzeiten wie vorher", "rundenzeiten wie immer", "normale rundenzeiten"] },
+    { id: "lapPrefAuto", family: "lapPref", exact: ["wie vorher", "wie immer"] },
     { id: "coachMe", family: "coach", idioms: ["coache mich", "hilf mir besser zu werden", "mach mich schneller", "gib mir einen fahrtipp", "wie werde ich schneller"] },
     { id: "whereLose", family: "coach", idioms: ["wo verliere ich", "wo verliere ich zeit", "meine schwachstelle", "in welcher kurve verliere ich"] },
     { id: "repeat", family: "command", exact: ["wiederhole", "noch mal", "was", "wie bitte", "nochmal"] },
@@ -377,6 +424,14 @@ const T: Record<string, Def[]> = {
     { id: "radioEssential", family: "radio", idioms: ["solo l essenziale", "l essenziale", "parla meno", "meno messaggi"] },
     { id: "radioQuiet", family: "radio", idioms: ["silenzio radio", "zitto fino al giro", "silenzio fino al giro", "non parlarmi", "lasciami in pace"] },
     { id: "radioNormal", family: "radio", idioms: ["puoi riparlare", "riprendi gli annunci", "torna a parlare", "annunci normali", "la battaglia e finita"] },
+    { id: "lapPrefEvery", family: "lapPref", idioms: ["tempi a ogni giro", "dimmi ogni tempo", "tutti i miei tempi"] },
+    { id: "lapPrefEvery", family: "lapPref", exact: ["ogni giro", "a ogni giro"] },
+    { id: "lapPrefBest", family: "lapPref", idioms: ["solo i miei giri migliori", "solo i migliori giri", "solo i record"] },
+    { id: "lapPrefBest", family: "lapPref", exact: ["i migliori", "solo i migliori"] },
+    { id: "lapPrefNone", family: "lapPref", idioms: ["niente tempi", "basta tempi", "nessun tempo"] },
+    { id: "lapPrefNone", family: "lapPref", exact: ["nessuno"] },
+    { id: "lapPrefAuto", family: "lapPref", idioms: ["tempi come prima", "tempi normali"] },
+    { id: "lapPrefAuto", family: "lapPref", exact: ["come prima", "come ora"] },
     { id: "coachMe", family: "coach", idioms: ["allenami", "aiutami a migliorare", "fammi andare piu veloce", "dammi un consiglio di guida", "come andare piu veloce"] },
     { id: "whereLose", family: "coach", idioms: ["dove perdo", "dove perdo tempo", "dove sto perdendo", "il mio punto debole", "in che curva perdo"] },
     { id: "repeat", family: "command", exact: ["ripeti", "puoi ripetere", "ripeti per favore", "come", "cosa", "scusa", "di nuovo", "non ho capito"] },
@@ -514,6 +569,10 @@ export const INTENT_HELP: Partial<Record<AnswerIntent, string>> = {
   whereLose: "where on the lap I lose the most time",
   brakeWear: "brake pad wear (game data)",
   rivalStops: "pit stops of the class leader or of a given rival: stops made, stint length, next stop, stops left",
+  lapPrefEvery: "radio preference: say my lap time every lap",
+  lapPrefBest: "radio preference: only my best laps",
+  lapPrefNone: "radio preference: no lap times",
+  lapPrefAuto: "radio preference: lap times as usual",
   tyreChange: "which tyres to change at the next stop, wets or slicks, tyre warm-up cost",
 };
 

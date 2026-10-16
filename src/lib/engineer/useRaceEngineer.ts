@@ -39,7 +39,8 @@ import { driverBusy } from "./focus";
 import { NameDoser, VariantPicker } from "./variants";
 import { ProximitySpotter, type SpotCall } from "./proximity";
 import { ToneArbiter, setSharedTone, BATTLE_GAP_S } from "./tone";
-import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY } from "./lapPolicy";
+import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY, FLYING_FACTOR } from "./lapPolicy";
+import { applyLapPref, parseLapPrefs, questionDue, sessionKind } from "./prefs";
 import { onTrack, slowerPackAhead, fasterBehind } from "./traffic";
 import { RivalPitWatcher } from "./rivalPits";
 import { BatteryWatcher, CRITICAL_PCT } from "./battery";
@@ -281,6 +282,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const tyreLow = useRef({ since: 0, last: 0 });
   const crossoverHold = useRef({ since: 0, last: 0 });
   const crossoverSaid = useRef<"toWets" | "toSlicks" | null>(null);
+  /** Tour de sortie des stands en cours (qualif : ce n'est pas un tour lancé). */
+  const outLap = useRef(true);
+  const outLapPrevPits = useRef(false);
   const engineTempWarned = useRef(false);
   const rainHeavy = useRef(false);
   const blueWarned = useRef(false);
@@ -328,6 +332,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   // Réglages de diffusion (chacun garde l'ancien comportement accessible).
   const quietZones = useAppStore((s) => s.radioQuietZones);
   const phases = useAppStore((s) => s.radioPhases);
+  const askPrefs = useAppStore((s) => s.radioAskPrefs);
   const budgets = useAppStore((s) => s.radioBudgets);
   const replay = useAppStore((s) => s.radioReplay);
   const tenth = useAppStore((s) => s.voiceLapPrecision) === "tenth";
@@ -344,7 +349,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     void prewarmSpeech(keys.map((k) => t(k)), lang);
   }, [enabled, proximity, lang, t]);
 
-  // Coûts de chauffe mémorisés (séances précédentes) : chargés une fois.
+  // Coûts de chauffe et préférences radio mémorisés : chargés une fois ; les
+  // préférences changées à la voix sont réécrites aussitôt.
   useEffect(() => {
     if (!enabled) return;
     void config
@@ -353,6 +359,16 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         engineer.warmupPrior = JSON.parse(raw || "{}") as Record<string, number>;
       })
       .catch(() => {});
+    void config
+      .get("radio_lap_prefs")
+      .then((raw) => {
+        engineer.lapPrefs = parseLapPrefs(raw);
+      })
+      .catch(() => {});
+    engineer.onPrefsChanged = () => void config.set("radio_lap_prefs", JSON.stringify(engineer.lapPrefs)).catch(() => {});
+    return () => {
+      engineer.onPrefsChanged = null;
+    };
   }, [enabled]);
 
   // Spotter de proximité : à chaque trame, hors arbitre (sa priorité passe avant
@@ -467,6 +483,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       sectors.current.reset();
       rivalPits.current.reset();
       crossoverSaid.current = null;
+      outLap.current = true;
       battery.current.reset();
       vigie.current.reset();
       engineer.resetSession();
@@ -601,6 +618,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     }
 
     const inPits = playerStanding?.in_pits ?? false;
+    // Tour de sortie : de la sortie des stands jusqu'à la ligne suivante.
+    if (outLapPrevPits.current && !inPits) outLap.current = true;
+    outLapPrevPits.current = inPits;
 
     if (player) {
       // Réinitialisation des suivis joueur/positions sur (re)démarrage de
@@ -765,6 +785,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       // ── Passage de la ligne : point de tour, secteurs, rapprochement ─────
       if (lapDone) {
         lapsSinceLapCallout.current++;
+        outLap.current = false;
         engineer.energy.push(data.extended?.virtual_energy ?? 0);
         const pads = brakePads(data.rest);
         engineer.pads.push(pads ? Math.min(...pads) : null);
@@ -789,7 +810,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         const best = player.best_lap_time;
         const isPb = best > 0 && (prevBest.current <= 0 || best < prevBest.current - 0.001);
         const lapVoice = fmtLapVoice(player.last_lap_time, t, tenth);
-        const decision = full ? (isPb ? "pb" : "last") : decideLapCallout({
+        const autoDecision = full ? (isPb ? "pb" : "last") : decideLapCallout({
           isRace,
           lapTime: player.last_lap_time,
           prevBest: prevBest.current,
@@ -797,6 +818,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
           lastAnnouncedPb: lastAnnouncedPb.current,
           lapsSinceLapCallout: lapsSinceLapCallout.current,
         });
+        // Préférence posée à la voix pour ce type de séance (sinon : politique habituelle).
+        const flyingLap = isPb || (prevBest.current > 0 && player.last_lap_time <= prevBest.current * FLYING_FACTOR);
+        const decision = applyLapPref(engineer.lapPrefs.prefs[sessionKind(sc.session)], autoDecision, isPb, flyingLap);
         if (decision && lapVoice) {
           say(
             "lap:time",
@@ -835,6 +859,13 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
           }
         }
         prevPurple.current = purple;
+
+        // Question unique par type de séance : comment le pilote veut ses chronos.
+        const kind = sessionKind(sc.session);
+        if (askPrefs && !full && warmedUp && player.total_laps >= 2 && questionDue(engineer.lapPrefs, kind)) {
+          say("prefs:ask", t("live.vAskLapPref"), "chatty", { score: 15, retryS: 60 });
+          engineer.markAsked(kind);
+        }
 
         // Débrief de secteur : secteur chroniquement faible (moyenne 4 tours
         // propres) de préférence, sinon le pire secteur du tour. Silencieux sur
@@ -1311,6 +1342,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       nearestGapS: nearestGap,
       phases: !full && phases,
       budgets: !full && budgets,
+      // Qualif : tour lancé (ni stands, ni tour de sortie, la ligne passée de 400 m).
+      qualiFlying: sc.session >= 5 && sc.session <= 8 && !inPits && !outLap.current && (playerStanding?.lap_dist ?? 0) > 400,
     };
     const allowed = engineer.policy.filter(cands, policyCtx);
 
@@ -1350,5 +1383,5 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (c.prio === "critical" || !critical) rawSpeak(text, lang, c.prio, c.ttlMs, optsOf(c));
       else deferred.current.push({ text, prio: c.prio, ttl: c.ttlMs, at: now, opts: optsOf(c) });
     }
-  }, [data, enabled, lang, t, full, classPositions, quietZones, phases, budgets, replay, tenth, driverName]);
+  }, [data, enabled, lang, t, full, classPositions, quietZones, phases, budgets, replay, tenth, driverName, askPrefs]);
 }

@@ -149,6 +149,8 @@ interface AppState {
   radioPhases: boolean;
   /** Budgets par tour (situation, confort, par rival) en course. */
   radioBudgets: boolean;
+  /** L'ingénieur pose une fois par type de séance la question des chronos voulus. */
+  radioAskPrefs: boolean;
   /** Annonce coupée redite une fois, annonce importante perdue retentée, anti-redite. */
   radioReplay: boolean;
   /** Chronos dits au dixième (`tenth`) ou au millième (`ms`, historique). */
@@ -288,6 +290,7 @@ interface AppState {
   setPttBeeps: (v: boolean) => Promise<void>;
   setRadioQuietZones: (v: boolean) => Promise<void>;
   setRadioPhases: (v: boolean) => Promise<void>;
+  setRadioAskPrefs: (v: boolean) => Promise<void>;
   setRadioBudgets: (v: boolean) => Promise<void>;
   setRadioReplay: (v: boolean) => Promise<void>;
   setVoiceLapPrecision: (v: "tenth" | "ms") => Promise<void>;
@@ -366,6 +369,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   radioQuietZones: true,
   radioPhases: true,
   radioBudgets: true,
+  radioAskPrefs: true,
   radioReplay: true,
   voiceLapPrecision: "tenth",
   radioDriverName: "",
@@ -585,6 +589,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       radioQuietZones: cfg.voice_quiet_zones !== "false",
       radioPhases: cfg.voice_race_phases !== "false",
       radioBudgets: cfg.voice_budgets !== "false",
+      radioAskPrefs: cfg.voice_ask_prefs !== "false",
       radioReplay: cfg.voice_replay !== "false",
       voiceLapPrecision: cfg.voice_lap_precision === "ms" ? "ms" : "tenth",
       radioDriverName: cfg.voice_driver_name ?? "",
@@ -971,6 +976,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setRadioPhases: async (v) => {
     await config.set("voice_race_phases", v ? "true" : "false");
     set({ radioPhases: v });
+  },
+
+  setRadioAskPrefs: async (v) => {
+    await config.set("voice_ask_prefs", v ? "true" : "false");
+    set({ radioAskPrefs: v });
   },
 
   setRadioBudgets: async (v) => {

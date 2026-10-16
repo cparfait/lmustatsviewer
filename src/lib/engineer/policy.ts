@@ -63,12 +63,14 @@ export interface PolicyCtx {
   phases: boolean;
   /** Couche « budgets par tour » active. */
   budgets: boolean;
+  /** Qualif, tour lancé en cours (ni tour de sortie, ni stands) : on se tait. */
+  qualiFlying?: boolean;
 }
 
 /** Préfixes de clé → famille. Toute clé inconnue est une « décision » (jamais bridée). */
 const SAFETY = ["flag:", "mech:", "vigie:", "traffic:", "faster:", "blue", "fuel:laps", "pit:box", "penalty"];
 const SITUATION = ["pos:", "gap:", "closing:", "opening:", "leaderpit:"];
-const COMFORT = ["lap:", "group:lap", "sector:", "fastest", "delta", "race:half", "battery:saturated"];
+const COMFORT = ["prefs:", "lap:", "group:lap", "sector:", "fastest", "delta", "race:half", "battery:saturated"];
 /** Stratégie gelée en fin de course (le box critique, lui, reste). */
 const STRATEGY = ["pit:open", "pit:closing", "rivalpit:", "leaderpit:", "posture:", "fuel:refuel"];
 /** Messages de piste tolérés dans la voie des stands. */
@@ -97,6 +99,13 @@ export const END_FREEZE_S = 20 * 60;
 export const END_FREEZE_LAPS = 2;
 /** Calme après un gros choc (s) : sécurité seule. */
 export const CRASH_CALM_S = 30;
+/** Épisode d'incident : fenêtre après un gros choc (s)… */
+export const INCIDENT_EPISODE_S = 60;
+/** … pendant laquelle les annonces d'incident non critiques sont limitées (constat + bilan). */
+export const INCIDENT_MAX = 2;
+/** Clés d'annonces liées à un incident (dégâts, retour en piste). */
+const INCIDENT_KEYS = ["mech:", "vigie:"];
+
 /** Calme après un appel au box (s) : décisions et sécurité seules. */
 export const BOX_CALM_S = 20;
 /** Bagarre : se lève quand les voisins sont à plus de N s… */
@@ -118,6 +127,8 @@ export class RadioPolicy {
   regime: RegimeState = { kind: "normal", sinceLap: 0, stopsAtSet: 0 };
   private lap1DoneAt: number | null = null;
   private crashAt = -Infinity;
+  /** Annonces d'incident dites depuis le dernier choc. */
+  private incidentSaid = 0;
   private boxAt = -Infinity;
   private battleClearSince: number | null = null;
   /** Dernier tour où une famille a parlé. */
@@ -131,6 +142,7 @@ export class RadioPolicy {
     this.regime = { kind: "normal", sinceLap: 0, stopsAtSet: 0 };
     this.lap1DoneAt = null;
     this.crashAt = -Infinity;
+    this.incidentSaid = 0;
     this.boxAt = -Infinity;
     this.battleClearSince = null;
     this.lastByClass.clear();
@@ -146,7 +158,13 @@ export class RadioPolicy {
 
   /** Signale un gros choc (dégâts soudains) : calme de sécurité. */
   noteCrash(nowS: number): void {
+    // Un nouveau choc pendant l'épisode le prolonge sans rouvrir le budget.
+    if (nowS - this.crashAt >= INCIDENT_EPISODE_S) this.incidentSaid = 0;
     this.crashAt = nowS;
+  }
+
+  private inIncident(c: Candidate, nowS: number): boolean {
+    return nowS - this.crashAt < INCIDENT_EPISODE_S && c.prio !== "critical" && starts(c.key, INCIDENT_KEYS);
   }
 
   /** Lève les régimes arrivés à échéance. Renvoie le régime courant. */
@@ -178,6 +196,8 @@ export class RadioPolicy {
 
   private allowed(c: Candidate, ctx: PolicyCtx, regime: RadioRegime): boolean {
     const cls = classOf(c);
+    // Un incident = un constat + un bilan : au-delà, ses annonces non critiques se taisent.
+    if (ctx.phases && this.inIncident(c, ctx.nowS) && this.incidentSaid >= INCIDENT_MAX) return false;
     if (cls === "safety") return true;
 
     // 1. Régime choisi par le pilote.
@@ -190,6 +210,8 @@ export class RadioPolicy {
       if (ctx.nowS - this.crashAt < CRASH_CALM_S) return false;
       if (ctx.nowS - this.boxAt < BOX_CALM_S && cls !== "decision") return false;
       if (ctx.inPits && !starts(c.key, PIT_LANE_OK)) return false;
+      // Tour lancé de qualif : ni point de situation ni confort, le pilote est concentré.
+      if (ctx.qualiFlying && (cls === "situation" || cls === "comfort")) return false;
       if (ctx.isRace && ctx.racing) {
         const startCalm = this.lap1DoneAt == null || ctx.nowS - this.lap1DoneAt < START_CALM_S;
         if (startCalm && !c.key.startsWith("formation")) return false;
@@ -225,6 +247,7 @@ export class RadioPolicy {
     }
     for (const c of spoken) {
       if (c.key === "pit:box") this.boxAt = ctx.nowS;
+      if (this.inIncident(c, ctx.nowS)) this.incidentSaid++;
       const cls = classOf(c);
       if (cls === "situation" || cls === "comfort") this.lastByClass.set(cls, ctx.lap);
       const rival = rivalOf(c.key);

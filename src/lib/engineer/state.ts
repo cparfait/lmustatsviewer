@@ -15,6 +15,7 @@ import type { WetData } from "./forecast";
 import { PadWearTracker } from "@/lib/lmuRest";
 import { StintRegistry } from "./rivalStints";
 import { TyreWearTracker, WarmupTracker, WetnessTrend } from "./tyres";
+import type { LapPref, LapPrefs, SessionKind } from "./prefs";
 
 export interface ForecastState {
   data: WetData;
@@ -37,6 +38,21 @@ class EngineerState {
   warmup = new WarmupTracker();
   /** Coûts de chauffe mémorisés (`circuit::classe` → s), chargés au démarrage. */
   warmupPrior: Record<string, number> = {};
+  /** Préférences radio apprises (chronos par type de séance), persistées. */
+  lapPrefs: LapPrefs = { prefs: {}, asked: [] };
+  /** Branché par la boucle de l'ingénieur : persiste `lapPrefs` après un changement. */
+  onPrefsChanged: (() => void) | null = null;
+
+  setLapPref(kind: SessionKind, pref: LapPref): void {
+    this.lapPrefs = { ...this.lapPrefs, prefs: { ...this.lapPrefs.prefs, [kind]: pref } };
+    this.onPrefsChanged?.();
+  }
+
+  markAsked(kind: SessionKind): void {
+    if (this.lapPrefs.asked.includes(kind)) return;
+    this.lapPrefs = { ...this.lapPrefs, asked: [...this.lapPrefs.asked, kind] };
+    this.onPrefsChanged?.();
+  }
   watches = new WatchList();
   /** Fichier `.wet` retenu pour le circuit courant (non validé). */
   forecast: ForecastState | null = null;

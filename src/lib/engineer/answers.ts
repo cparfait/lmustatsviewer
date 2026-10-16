@@ -23,6 +23,7 @@ import { normalize, type AnswerIntent, type Entities, type WatchSpec } from "./r
 import type { WatchCond } from "./watches";
 import { coachCornerLosses } from "@/lib/coach/service";
 import { isWetCompound, tyreChangePlan, wheelWear, type WheelId } from "./tyres";
+import { sessionKind, type LapPref } from "./prefs";
 
 /** Fenêtre de température « de travail » des pneus (°C, générique). */
 export const TYRE_WINDOW: [number, number] = [75, 105];
@@ -382,6 +383,18 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       if (est.lapsToNext != null) parts.push(est.lapsToNext <= 0 ? t("live.spRDue") : t("live.spRNext", { when: whenLaps(t, est.lapsToNext) }));
       if (est.stopsLeft != null) parts.push(est.stopsLeft === 0 ? t("live.spRLeftNone") : t("live.spRLeft", { count: est.stopsLeft }));
       return parts.join(", ");
+    }
+
+    case "lapPrefEvery":
+    case "lapPrefBest":
+    case "lapPrefNone":
+    case "lapPrefAuto": {
+      const pref = intent.slice("lapPref".length).toLowerCase() as LapPref;
+      const kind = sessionKind(d.session!.session);
+      engineer.setLapPref(kind, pref);
+      const what = t(`live.lapPref${intent.slice("lapPref".length)}`);
+      const k = t(`live.spKind${kind[0].toUpperCase()}${kind.slice(1)}`);
+      return t("live.spLapPrefSet", { what, kind: k });
     }
 
     case "tyreChange": {

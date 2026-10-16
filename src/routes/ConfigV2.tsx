@@ -84,6 +84,7 @@ import {
   Mic,
   AudioLines,
   Gamepad2,
+  MessageCircleQuestion,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
@@ -277,6 +278,7 @@ export function ConfigV2() {
   const radioQuietZones = useAppStore((s) => s.radioQuietZones);
   const radioPhases = useAppStore((s) => s.radioPhases);
   const radioBudgets = useAppStore((s) => s.radioBudgets);
+  const radioAskPrefs = useAppStore((s) => s.radioAskPrefs);
   const radioReplay = useAppStore((s) => s.radioReplay);
   const voiceLapPrecision = useAppStore((s) => s.voiceLapPrecision);
   const proximitySpotter = useAppStore((s) => s.proximitySpotter);
@@ -1274,6 +1276,15 @@ export function ConfigV2() {
                       tip={t("config.radioBudgetsTip")}
                       checked={radioBudgets}
                       onChange={(v) => void useAppStore.getState().setRadioBudgets(v)}
+                      disabled={radioMode === "full"}
+                    />
+                    <ToggleRow
+                      icon={<MessageCircleQuestion className="h-4 w-4" />}
+                      label={t("config.radioAskPrefs")}
+                      desc={t("config.radioAskPrefsDesc")}
+                      tip={t("config.radioAskPrefsTip")}
+                      checked={radioAskPrefs}
+                      onChange={(v) => void useAppStore.getState().setRadioAskPrefs(v)}
                       disabled={radioMode === "full"}
                     />
                     <ToggleRow

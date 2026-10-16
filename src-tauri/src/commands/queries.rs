@@ -916,7 +916,7 @@ pub fn get_race_activity(db: State<'_, DbState>) -> Result<Vec<RaceActivityRow>,
 
 // ─── Carrière / saison ───────────────────────────────────────────────────────
 
-/// Une course du joueur pour la page Carrière (bilan, championnats, carte récap).
+/// Une course du joueur pour la section Saison du Profil (temps forts, championnats, carte récap).
 #[derive(Debug, Serialize)]
 pub struct CareerRace {
     pub session_id: i64,

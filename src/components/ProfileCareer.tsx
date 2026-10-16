@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Award, Flag, ImageDown, Plus, Trash2, Trophy } from "lucide-react";
+import { Award, CalendarRange, Flag, ImageDown, Plus, Trash2, Trophy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,10 +28,12 @@ const CHAMP_KEY = "championships";
 const fmtDate = (ts: number, lang: string) => new Date(ts * 1000).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
 
 /**
- * Carrière : bilan d'une saison (filtres en ligne / classe / année), temps
- * forts, défaut récurrent, carte récap à partager, championnats suivis.
+ * Section « Saison » de la page Profil (ex-page Carrière) : ce que le bilan du
+ * Profil ne montre pas — temps forts, défaut récurrent, progression (5 premières
+ * courses contre 5 dernières), carte récap à partager et championnats suivis.
+ * Les filtres année / en ligne / classe cadrent les temps forts et la carte récap.
  */
-export function Career() {
+export function ProfileCareer() {
   const { t, i18n } = useTranslation();
   const [races, setRaces] = useState<CareerRace[] | null>(null);
   const [online, setOnline] = usePageState<OnlineFilter>("career.online", "all");
@@ -61,13 +63,16 @@ export function Career() {
   const lang = i18n.language;
   const pct = (x: number) => `${Math.round(x * 100)} %`;
 
+  if (races == null) return null;
+
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="mr-auto">
-          <h1 className="text-2xl font-bold tracking-tight">{t("career.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("career.subtitle")}</p>
-        </div>
+    <section className="flex flex-col gap-3">
+      <div className="bg-primary text-primary-foreground rounded-md px-4 py-1 flex items-center gap-2">
+        <CalendarRange className="h-4 w-4 opacity-90" />
+        <h2 className="text-sm font-bold tracking-tight">{t("career.title")}</h2>
+        <span className="text-mini opacity-80 truncate hidden sm:inline">{t("career.subtitle")}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
         <Select
           value={year}
           onValueChange={setYear}
@@ -88,35 +93,18 @@ export function Career() {
         <Select value={cls} onValueChange={setCls} className="w-36" options={[{ value: "", label: t("career.allClasses") }, ...classes.map((c) => ({ value: c, label: c }))]} />
       </div>
 
-      {races == null ? null : list.length === 0 ? (
+      {list.length === 0 ? (
         <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">{t("career.empty")}</CardContent>
+          <CardContent className="p-4 text-sm text-muted-foreground">{t("career.empty")}</CardContent>
         </Card>
       ) : (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Stat label={t("career.races")} value={String(sum.races)} sub={t("career.tracks", { count: sum.tracks })} />
-            <Stat label={t("career.winsPodiums")} value={`${sum.wins} / ${sum.podiums}`} />
-            <Stat label={t("career.best")} value={sum.best ? `P${sum.best.class_position}` : "—"} sub={sum.best ? `${sum.best.track} · ${sum.best.car_class}` : undefined} />
-            <Stat label={t("career.finishRate")} value={pct(sum.finishRate)} />
-            <Stat
-              label={t("career.gained")}
-              value={sum.gainedPerRace == null ? "—" : `${sum.gainedPerRace > 0 ? "+" : ""}${sum.gainedPerRace.toFixed(1)}`}
-              sub={t("career.gainedSub")}
-            />
-            <Stat
-              label={t("career.progress")}
-              value={sum.progress ? `${sum.progress.after < sum.progress.before ? "↗" : sum.progress.after > sum.progress.before ? "↘" : "→"}` : "—"}
-              sub={sum.progress ? t("career.progressSub", { before: pct(1 - sum.progress.before), after: pct(1 - sum.progress.after) }) : t("career.progressNeed")}
-            />
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
           <Card>
             <CardContent className="p-4 flex flex-col gap-2">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
+              <h3 className="text-base font-semibold flex items-center gap-2">
                 <Award className="h-5 w-5 text-primary" />
                 {t("career.highlights")}
-              </h2>
+              </h3>
               {hl.length === 0 && <p className="text-sm text-muted-foreground">{t("career.noHighlights")}</p>}
               {hl.map((h) => (
                 <p key={`${h.kind}-${h.race.session_id}`} className="text-sm">
@@ -130,32 +118,34 @@ export function Career() {
                   })}
                 </p>
               ))}
+              <p className="text-sm mt-2">
+                <span className="font-medium">{t("career.progress")} </span>
+                {sum.progress ? (
+                  <>
+                    <span className="tabular-nums">
+                      {sum.progress.after < sum.progress.before ? "↗" : sum.progress.after > sum.progress.before ? "↘" : "→"}
+                    </span>{" "}
+                    <span className="text-muted-foreground">
+                      {t("career.progressSub", { before: pct(1 - sum.progress.before), after: pct(1 - sum.progress.after) })}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">{t("career.progressNeed")}</span>
+                )}
+              </p>
               {rec && (
-                <p className="text-sm text-amber-600 mt-2">
+                <p className="text-sm text-amber-600">
                   {t(`career.rec.${rec.kind}`, { pct: pct(rec.share) })}
                 </p>
               )}
             </CardContent>
           </Card>
-
           <WrappedCard summary={sum} year={year} list={list} />
-        </>
+        </div>
       )}
 
-      <Championships races={races ?? []} />
-    </div>
-  );
-}
-
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-        <div className="text-2xl font-bold tabular-nums">{value}</div>
-        {sub && <div className="text-xs text-muted-foreground truncate">{sub}</div>}
-      </CardContent>
-    </Card>
+      <Championships races={races} />
+    </section>
   );
 }
 
@@ -208,7 +198,7 @@ function WrappedCard({ summary, year, list }: { summary: ReturnType<typeof summa
       <CardContent className="p-4 flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <ImageDown className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">{t("career.wrapped")}</h2>
+          <h3 className="text-base font-semibold">{t("career.wrapped")}</h3>
           <Button size="sm" variant="outline" className="ml-auto" onClick={() => void save()} disabled={summary.races < 3}>
             {t("career.saveImage")}
           </Button>
@@ -271,7 +261,7 @@ function Championships({ races }: { races: CareerRace[] }) {
       <CardContent className="p-4 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Trophy className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold mr-auto">{t("career.champs")}</h2>
+          <h3 className="text-base font-semibold mr-auto">{t("career.champs")}</h3>
           {champs.length > 0 && (
             <Select value={c?.id ?? ""} onValueChange={setOpen} className="w-56" options={champs.map((x) => ({ value: x.id, label: x.name }))} />
           )}

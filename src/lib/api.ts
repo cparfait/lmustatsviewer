@@ -205,7 +205,7 @@ export interface PitMenuItem {
   options: string[];
 }
 
-/** Course du joueur pour la page Carrière (`queries::CareerRace`). */
+/** Course du joueur pour la section Saison du Profil (`queries::CareerRace`). */
 export interface CareerRace {
   session_id: number;
   timestamp: number;
@@ -1333,7 +1333,7 @@ export const queries = {
   getSessionsOverview: () =>
     invoke<SessionsOverview>("get_sessions_overview"),
   getRaceActivity: () => invoke<RaceActivityRow[]>("get_race_activity"),
-  /** Courses du joueur pour la page Carrière (plus ancienne d'abord). */
+  /** Courses du joueur pour la section Saison du Profil (plus ancienne d'abord). */
   getCareerRaces: () => invoke<CareerRace[]>("get_career_races"),
   /** Résultats de tous les pilotes d'une classe sur une liste de courses (championnats). */
   getClassResults: (sessionIds: number[], carClass: string) =>

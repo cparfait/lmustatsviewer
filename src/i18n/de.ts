@@ -3,7 +3,6 @@ export default {
     dashboard: "Dashboard",
     profile: "Profil",
     sessions: "Sitzungen",
-    career: "Karriere",
     records: "Rekorde",
     setups: "Setups",
     live: "Live",
@@ -141,8 +140,8 @@ export default {
     },
   },
   career: {
-    title: "Karriere",
-    subtitle: "Deine Saison in Zahlen, deine Highlights und deine Meisterschaften.",
+    title: "Saison",
+    subtitle: "Highlights, Fortschritt, Rückblick-Karte und Meisterschaften.",
     year: "Jahr",
     allTime: "Gesamt",
     all: "Alle Rennen",

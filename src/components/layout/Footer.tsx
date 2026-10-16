@@ -40,7 +40,7 @@ export function Footer() {
             type="button"
             onClick={() => setEasterEgg(true)}
             aria-label={t("footer.easterEggLabel")}
-            className="h-8 w-8 overflow-hidden rounded-full ring-2 ring-primary/70 shadow-sm transition-transform hover:scale-110 hover:rotate-[-6deg] focus-visible:outline-none focus-visible:ring-ring"
+            className="h-8 w-8 overflow-hidden rounded-full transition-transform hover:scale-110 hover:rotate-[-6deg] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <img src="/logos/avatar.png" alt="" className="h-full w-full object-cover" />
           </button>

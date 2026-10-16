@@ -895,6 +895,17 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Profil : sans carte récap ni championnats ; avatar du pied de page sans cercle
+
+**Demande** : « n'entoure pas le logo et supprime Championnats et Carte récap du profil ».
+
+- ✅ `ProfileCareer.tsx` : la section Saison garde temps forts, progression et défaut récurrent
+  (pleine largeur) ; `WrappedCard` et `Championships` retirés. Logique conservée (`lib/career.ts`,
+  `lib/wrappedCard.ts`, tests `plan.suite.ts`) ; les championnats déjà saisis restent dans la config
+  (`championships`). Changelog 1.0.10 (entrée Saison, pas encore sortie) raccourcie, 5 langues.
+- ✅ `Footer.tsx` : avatar (easter egg) sans anneau orange ni ombre ; anneau seulement au focus clavier.
+- 📋 **Prochaine étape** : vérifier le Profil et le pied de page dans l'app.
+
 ### 2026-10-16 — Tout fusionné : veille commitée, `feat/coach-audio` = `main`
 
 **Demande** : « merge et commit tout ».

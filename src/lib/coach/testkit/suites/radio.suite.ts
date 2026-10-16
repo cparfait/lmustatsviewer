@@ -13,7 +13,15 @@ import { VariantPicker, NameDoser, splitVariants, NAME_GAP_S } from "@/lib/engin
 import { ProximitySpotter, occupiedSides } from "@/lib/engineer/proximity";
 import { route } from "@/lib/engineer/router";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
-import { CLOUD_PREP_KEYS, estimateCostUsd, fixedPhrases, isFixedPhrase } from "@/lib/cloudVoicePrep";
+import {
+  CLOUD_PREP_ALERT_KEYS,
+  CLOUD_PREP_KEYS,
+  cloudModeFor,
+  cloudPrepKeys,
+  estimateCostUsd,
+  fixedPhrases,
+  isFixedPhrase,
+} from "@/lib/cloudVoicePrep";
 import fr from "@/i18n/fr";
 import en from "@/i18n/en";
 import es from "@/i18n/es";
@@ -347,8 +355,33 @@ function cloudPrepSuite() {
     if (cloudOnly(k)) ok(CLOUD_PREP_KEYS.includes(k), `${k} (normal/chatty, sans variable) est préparé`);
   }
   for (const k of ["vFlagYellow", "vPuncture", "vBoxBox", "vPenalty", "vSpotLeft", "vCornerWatching"]) {
-    ok(!CLOUD_PREP_KEYS.includes(k), `${k} (sécurité, spotter ou coach) n'est pas préparé`);
+    ok(!CLOUD_PREP_KEYS.includes(k), `${k} (sécurité, spotter ou coach) hors de la liste « information »`);
   }
+
+  // Phrases urgentes : chaque gabarit critique/spotter sans variable est préparé
+  // (la voix en ligne ne les dit que depuis le cache), et seulement eux.
+  for (const [k, ps] of prios) {
+    if ([...ps].some((p) => p === "critical" || p === "spotter")) {
+      ok(CLOUD_PREP_ALERT_KEYS.includes(k), `${k} (urgent, sans variable) est dans les phrases urgentes`);
+    }
+  }
+  for (const m of src.matchAll(/"live\.(vSpot\w+)"/g)) {
+    ok(CLOUD_PREP_ALERT_KEYS.includes(m[1]), `spotter ${m[1]} préparé`);
+  }
+  ok(CLOUD_PREP_ALERT_KEYS.every((k) => !CLOUD_PREP_KEYS.includes(k)), "aucune clé dans les deux listes");
+  eq(cloudPrepKeys(true), [...CLOUD_PREP_KEYS], "alertes en voix locale : seulement l'information");
+  eq(cloudPrepKeys(false).length, CLOUD_PREP_KEYS.length + CLOUD_PREP_ALERT_KEYS.length, "sinon : information + urgentes");
+
+  // Voix en ligne : en direct pour l'information et les réponses, depuis le cache
+  // pour l'urgent, jamais pour l'urgent avec « alertes en voix locale ».
+  eq(cloudModeFor("normal", false, false), "live", "information : en direct");
+  eq(cloudModeFor("chatty", false, true), "live", "bavard : en direct, même alertes locales");
+  eq(cloudModeFor("critical", true, true), "live", "réponse au pilote : en direct");
+  for (const p of ["critical", "spotter", "coach"] as const) {
+    eq(cloudModeFor(p, false, false), "cached", `${p} : seulement préparé`);
+    eq(cloudModeFor(p, false, true), "off", `${p} : Piper (alertes en voix locale)`);
+  }
+  eq(cloudModeFor("spotter", true, false), "cached", "le spotter n'attend jamais le réseau");
 
   // Toutes les variantes, sans doublon ; jamais un gabarit à variable ni un chiffre.
   eq(
@@ -364,6 +397,10 @@ function cloudPrepSuite() {
     const phrases = fixedPhrases(tpls, (s) => s);
     ok(phrases.length >= CLOUD_PREP_KEYS.length, `${lang} : au moins une phrase par gabarit (${phrases.length})`);
     ok(phrases.every((p) => isFixedPhrase(p) && !p.includes("|")), `${lang} : phrases fixes, une variante chacune`);
+    const alerts = CLOUD_PREP_ALERT_KEYS.map((k) => b.live[k]);
+    ok(alerts.every((x) => typeof x === "string" && x.length > 0 && !x.includes("{{")), `${lang} : chaque gabarit urgent existe, sans variable`);
+    const alertPhrases = fixedPhrases(alerts, (s) => s);
+    ok(alertPhrases.length >= CLOUD_PREP_ALERT_KEYS.length, `${lang} : au moins une phrase urgente par gabarit (${alertPhrases.length})`);
   }
 
   approx(estimateCostUsd("openai", "gpt-4o-mini-tts", 1_000_000), 15, 1e-9, "OpenAI ≈ 15 $/M caractères");

@@ -3,13 +3,31 @@
  * l'ingénieur à générer d'avance et estimation du coût. Module pur (testé par
  * `radio.suite.ts`) ; la génération elle-même est dans `cloudVoice.ts`.
  *
- * Seules comptent les annonces que la voix en ligne peut dire : celles que
- * l'ingénieur émet en priorité `normal` ou `chatty` (cf. `voice.ts::cloudEligible`).
- * Les alertes `critical` (drapeaux jaunes, crevaison, box…), le spotter et le
- * coach par virage restent sur Piper : les préparer serait payer pour rien.
+ * Deux familles :
+ *  - l'information (`normal`, `chatty`) : dite en direct si elle n'est pas prête ;
+ *  - les phrases urgentes (sécurité `critical`, spotter, coach) : la voix en ligne
+ *    ne les dit **que préparées** (lecture instantanée du cache), sinon Piper —
+ *    une alerte n'attend jamais le réseau. Réglage « Alertes en voix locale » :
+ *    elles restent toutes sur Piper (ancien comportement), rien à préparer.
  */
 
 import { splitVariants } from "@/lib/engineer/variants";
+import type { VoicePriority } from "@/lib/voice";
+
+/**
+ * Comment la voix en ligne traite une annonce :
+ *  - `live` : en direct (requête au fournisseur si la phrase n'est pas en cache) ;
+ *  - `cached` : seulement si la phrase est déjà prête (cache mémoire ou disque) ;
+ *  - `off` : jamais (Piper).
+ * Les réponses au pilote (`cloudOk`) passent en direct malgré leur priorité critique.
+ */
+export type CloudMode = "live" | "cached" | "off";
+
+export function cloudModeFor(priority: VoicePriority, cloudOk: boolean, alertsLocal: boolean): CloudMode {
+  if (priority === "normal" || priority === "chatty") return "live";
+  if (priority === "critical" && cloudOk) return "live";
+  return alertsLocal ? "off" : "cached";
+}
 
 /**
  * Gabarits `live.*` dits par `useRaceEngineer.ts` en priorité `normal`/`chatty`
@@ -40,6 +58,41 @@ export const CLOUD_PREP_KEYS: readonly string[] = [
   "vRainHeavier",
   "vRefuelNeeded",
 ];
+
+/**
+ * Gabarits urgents sans variable : sécurité (`critical` dans `useRaceEngineer.ts`),
+ * spotter (`SPOT_KEYS`) et conseils fixes du coach de relais (`coach/stint.ts`).
+ * Préparés pour que la voix en ligne les dise sans délai ; le test « préparation
+ * de la voix » vérifie que chaque gabarit critique sans variable y figure.
+ */
+export const CLOUD_PREP_ALERT_KEYS: readonly string[] = [
+  "vFlagYellow",
+  "vFlagFcy",
+  "vFlagStopped",
+  "vBoxBox",
+  "vPuncture",
+  "vWheelDetached",
+  "vPenalty",
+  "vDamage",
+  "vOverheat",
+  "vBrakeOverheat",
+  "vPitLaneLimiter",
+  "vLimiterForgotten",
+  "vSpotLeft",
+  "vSpotRight",
+  "vSpotThree",
+  "vSpotClear",
+  "vSpotClearLeft",
+  "vSpotClearRight",
+  "vSpotStill",
+  "vStintLiftCoast",
+  "vStintOutLap",
+];
+
+/** Gabarits à préparer : l'information, plus les phrases urgentes sauf « alertes en voix locale ». */
+export function cloudPrepKeys(alertsLocal: boolean): string[] {
+  return alertsLocal ? [...CLOUD_PREP_KEYS] : [...CLOUD_PREP_KEYS, ...CLOUD_PREP_ALERT_KEYS];
+}
 
 /**
  * Phrase fixe : courte et sans chiffre, elle revient mot pour mot → cache

@@ -31,8 +31,16 @@ import {
 } from "@/lib/radioFx";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@/lib/api";
-import { cloudSynth, cloudVoiceReady, cloudVoiceTag, noteCloudFallback } from "@/lib/cloudVoice";
-import { fixedPhrases, isFixedPhrase } from "@/lib/cloudVoicePrep";
+import {
+  cloudAlertsLocal,
+  cloudCachedAudio,
+  cloudSynth,
+  cloudVoiceOn,
+  cloudVoiceReady,
+  cloudVoiceTag,
+  noteCloudFallback,
+} from "@/lib/cloudVoice";
+import { cloudModeFor, fixedPhrases, isFixedPhrase, type CloudMode } from "@/lib/cloudVoicePrep";
 
 export type VoicePriority = "spotter" | "critical" | "normal" | "chatty" | "coach";
 export type VoiceEngine = "piper" | "system";
@@ -189,8 +197,8 @@ export interface SpeakOpts {
    */
   holdChannelMs?: number;
   /**
-   * Réponse au pilote (question posée, lecture d'une analyse) : peut passer par
-   * la voix en ligne malgré sa priorité critique. Jamais pour une alerte.
+   * Réponse au pilote (question posée, lecture d'une analyse) : voix en ligne en
+   * direct malgré sa priorité critique (une alerte, elle, n'y passe que préparée).
    */
   cloudOk?: boolean;
 }
@@ -510,10 +518,9 @@ async function synthBuffer(
 export async function prewarmSpeech(texts: string[], lang: string): Promise<void> {
   if (engine !== "piper" || !isTauri()) return;
   const code = norm(lang);
-  if (piperUnavailable.has(code)) return;
   const ctx = audioContext();
   if (!ctx) return;
-  for (const raw of texts) {
+  for (const raw of piperUnavailable.has(code) ? [] : texts) {
     if (!raw) continue;
     // Même normalisation que `speak` : sinon la clé ne correspond jamais au
     // texte réellement dit dès qu'il contient un chiffre ou une unité.
@@ -522,7 +529,18 @@ export async function prewarmSpeech(texts: string[], lang: string): Promise<void
     if (synthCache.has(key)) continue;
     const buffer = await synthBuffer(ctx, code, text);
     if (buffer) synthCache.set(key, buffer);
-    else if (piperUnavailable.has(code)) return; // Piper indisponible → inutile d'insister
+    else if (piperUnavailable.has(code)) break; // Piper indisponible → inutile d'insister
+  }
+  // Voix en ligne : les phrases déjà préparées passent en mémoire (lecture
+  // instantanée au moment critique). Cache disque seulement, aucune requête.
+  if (!cloudVoiceOn() || cloudAlertsLocal()) return;
+  for (const raw of texts) {
+    if (!raw) continue;
+    const text = normalizeForTts(raw, lang);
+    const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, text)}`;
+    if (!isFixedPhrase(text) || synthCache.has(cloudKey)) continue;
+    const buffer = await cloudCachedBuffer(ctx, code, text);
+    if (buffer) synthCache.set(cloudKey, buffer);
   }
 }
 
@@ -564,14 +582,15 @@ export function warmupVoice(lang: string) {
 }
 
 /**
- * Voix en ligne (option, cf. `cloudVoice.ts`) : seulement pour l'information
- * (`normal`, `chatty`) et les réponses au pilote. **Jamais** pour la sécurité
- * (`critical` : drapeaux, crevaison, box…), le spotter ni le coach par virage,
- * dont le moment de parole est calculé sur la latence de Piper.
+ * Voix en ligne (option, cf. `cloudVoice.ts`) : l'information (`normal`,
+ * `chatty`) et les réponses au pilote en direct ; la sécurité (`critical` :
+ * drapeaux, crevaison, box…), le spotter et le coach par virage **seulement
+ * préparés** (cache), car leur moment de parole est calculé sur la latence de
+ * Piper : jamais d'attente réseau, Piper sinon. « Alertes en voix locale » :
+ * ces derniers restent toujours sur Piper (ancien comportement).
  */
-function cloudEligible(item: QueueItem): boolean {
-  if (item.priority === "normal" || item.priority === "chatty") return true;
-  return item.priority === "critical" && item.opts?.cloudOk === true;
+function cloudMode(item: QueueItem): CloudMode {
+  return cloudModeFor(item.priority, item.opts?.cloudOk === true, cloudAlertsLocal());
 }
 
 /**
@@ -594,6 +613,17 @@ async function cloudBuffer(ctx: AudioContext, code: string, text: string): Promi
   }
 }
 
+/** Phrase préparée (cache disque) → `AudioBuffer`, sans requête ; `null` sinon. */
+async function cloudCachedBuffer(ctx: AudioContext, code: string, text: string): Promise<AudioBuffer | null> {
+  const bytes = await cloudCachedAudio(text, code, speechRate);
+  if (!bytes) return null;
+  try {
+    return await ctx.decodeAudioData(bytes);
+  } catch {
+    return null;
+  }
+}
+
 /** Tente la synthèse Piper + lecture. Renvoie false si indisponible/échec. */
 async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
   if (engine !== "piper" || !isTauri()) return false;
@@ -602,7 +632,8 @@ async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
   if (!ctx) return false;
   const g = generation;
   let raw: AudioBuffer | null = null;
-  if (cloudVoiceReady() && cloudEligible(item)) {
+  const mode = cloudMode(item);
+  if (mode === "live" && cloudVoiceReady()) {
     const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, item.text)}`;
     raw = synthCache.get(cloudKey) ?? null;
     if (!raw) {
@@ -611,6 +642,16 @@ async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
       if (!raw) noteCloudFallback();
     }
     if (g !== generation) return true; // annulé pendant la requête
+  } else if (mode === "cached" && cloudVoiceOn()) {
+    // Phrase urgente : mémoire (pré-chargée) puis cache disque, jamais le réseau.
+    const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, item.text)}`;
+    raw = synthCache.get(cloudKey) ?? null;
+    if (!raw && isFixedPhrase(item.text)) {
+      raw = await cloudCachedBuffer(ctx, code, item.text);
+      if (raw) rememberPhrase(cloudKey, raw);
+      else noteCloudFallback(); // phrase fixe non préparée : Piper la dit
+    }
+    if (g !== generation) return true;
   }
   if (!raw && piperUnavailable.has(code)) return false;
   // Callout pré-synthétisé (P3.3) ou phrase fixe déjà dite → lecture immédiate,

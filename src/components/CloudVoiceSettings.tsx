@@ -34,7 +34,7 @@ import {
   updateCloudVoice,
   type CloudPrepPlan,
 } from "@/lib/cloudVoice";
-import { CLOUD_PREP_KEYS, estimateCostUsd } from "@/lib/cloudVoicePrep";
+import { cloudPrepKeys, estimateCostUsd } from "@/lib/cloudVoicePrep";
 import { getMessageText } from "@/lib/voiceMessages";
 import { isTauri } from "@/lib/api";
 import { cloudPrepTexts, previewCloudVoice } from "@/lib/voice";
@@ -264,7 +264,7 @@ function PrepareVoice() {
     if (!isTauri() || !hasKey || running) return;
     let alive = true;
     const { code, rate: r, texts } = cloudPrepTexts(
-      CLOUD_PREP_KEYS.map((k) => getMessageText(lang, k)),
+      cloudPrepKeys(settings.alertsLocal).map((k) => getMessageText(lang, k)),
       lang,
     );
     planCloudPrep(texts, code, r)
@@ -320,7 +320,7 @@ function PrepareVoice() {
             size="sm"
             className="h-8"
             disabled={!plan || plan.missing.length === 0 || !effectiveVoice()}
-            title={t("config.cloudVoicePrepHint")}
+            title={t(settings.alertsLocal ? "config.cloudVoicePrepHintLocal" : "config.cloudVoicePrepHint")}
             onClick={() => void start()}
           >
             {t("config.cloudVoicePrep")}
@@ -423,6 +423,13 @@ export function CloudVoiceSettings() {
             </Row>
           )}
           <VoicePicker />
+          <Row label={t("config.cloudVoiceAlertsLocal")} desc={t("config.cloudVoiceAlertsLocalDesc")}>
+            <Switch
+              checked={settings.alertsLocal}
+              onCheckedChange={(v) => void updateCloudVoice({ alertsLocal: v })}
+              className="shrink-0"
+            />
+          </Row>
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs text-muted-foreground/80">
               {t("config.cloudVoiceUsage", {
@@ -455,7 +462,9 @@ export function CloudVoiceSettings() {
               {t("config.cloudVoiceLastError", { error: lastError })}
             </div>
           )}
-          <div className="text-xs text-muted-foreground/70">{t("config.cloudVoiceSafety")}</div>
+          <div className="text-xs text-muted-foreground/70">
+            {t(settings.alertsLocal ? "config.cloudVoiceSafetyLocal" : "config.cloudVoiceSafety")}
+          </div>
         </>
       )}
     </div>

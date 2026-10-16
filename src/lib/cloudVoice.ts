@@ -1,10 +1,11 @@
 /**
  * Voix en ligne avec la clé de l'utilisateur — **option désactivée par défaut**.
  *
- * Piper reste le moteur de référence : la voix en ligne n'est essayée que pour
- * les annonces d'information et les réponses au pilote (jamais pour la sécurité :
- * drapeaux, crevaison, spotter — cf. `voice.ts`), et toute erreur ou lenteur
- * repasse sur Piper pour la phrase concernée. Après deux échecs d'affilée, la
+ * Piper reste le moteur de secours : la voix en ligne dit l'information et les
+ * réponses au pilote en direct, et les phrases urgentes (drapeaux, crevaison,
+ * spotter, coach) **seulement préparées** — lues dans le cache, jamais en attente
+ * du réseau (cf. `cloudModeFor`, réglage « Alertes en voix locale » pour l'ancien
+ * comportement). Toute erreur ou lenteur repasse sur Piper pour la phrase concernée. Après deux échecs d'affilée, la
  * voix en ligne est mise en pause une minute (réseau coupé, quota épuisé…) pour
  * ne pas ajouter un délai à chaque annonce.
  *
@@ -32,6 +33,8 @@ export interface CloudVoiceSettings {
   voice: string;
   /** Voix choisie par langue (code 2 lettres), prioritaire sur `voice`. */
   voiceByLang: Record<string, string>;
+  /** Alertes, spotter et coach toujours dits par Piper (ancien comportement). */
+  alertsLocal: boolean;
 }
 
 export interface CloudVoiceUsage {
@@ -56,7 +59,14 @@ export interface CloudVoiceSnapshot {
   prep: CloudPrepState | null;
 }
 
-const DEFAULTS: CloudVoiceSettings = { enabled: false, provider: "openai", model: "", voice: "", voiceByLang: {} };
+const DEFAULTS: CloudVoiceSettings = {
+  enabled: false,
+  provider: "openai",
+  model: "",
+  voice: "",
+  voiceByLang: {},
+  alertsLocal: false,
+};
 /** Délai d'une annonce en course : au-delà, Piper parle à la place. */
 const RADIO_TIMEOUT_MS = 3000;
 const FAIL_LIMIT = 2;
@@ -114,6 +124,7 @@ export async function initCloudVoice(raw?: string | null, rawUsage?: string | nu
                 ),
               )
             : {},
+        alertsLocal: parsed.alertsLocal === true,
       };
     }
   } catch {
@@ -224,6 +235,19 @@ export function cloudVoiceReady(): boolean {
   );
 }
 
+/**
+ * Voix en ligne utilisable **depuis le cache** (activée et configurée), même en
+ * pause après des échecs réseau : une phrase préparée se lit sans réseau.
+ */
+export function cloudVoiceOn(): boolean {
+  return settings.enabled && apiKey !== "" && effectiveVoice() !== "" && isTauri();
+}
+
+/** Réglage « Alertes en voix locale » : alertes, spotter et coach restent sur Piper. */
+export function cloudAlertsLocal(): boolean {
+  return settings.alertsLocal;
+}
+
 /** Identité du rendu (cache mémoire de `voice.ts`) : change avec le fournisseur, le modèle ou la voix. */
 export function cloudVoiceTag(lang?: string): string {
   return `cloud:${settings.provider}:${effectiveModel()}:${effectiveVoice(lang)}`;
@@ -329,6 +353,36 @@ export async function cloudSynth(
     }
     emit();
     if (opts.test) throw new Error(lastError);
+    return null;
+  }
+}
+
+/**
+ * Phrase déjà prête dans le cache disque (« Préparer la voix » ou déjà dite) :
+ * fichier audio, ou `null` si absente. **Aucune requête** au fournisseur — sert
+ * aux phrases urgentes, qui ne doivent jamais attendre le réseau.
+ */
+export async function cloudCachedAudio(text: string, lang: string, rate: number): Promise<ArrayBuffer | null> {
+  if (!cloudVoiceOn()) return null;
+  try {
+    const cacheKey = await cacheKeyFor(text, lang, rate);
+    const missing = await invoke<string[]>("tts_cloud_cache_missing", { keys: [cacheKey] });
+    if (missing.length) return null;
+    const provider = getCloudVoiceProvider(settings.provider);
+    const req = provider.build({ text, lang, model: effectiveModel(), voice: effectiveVoice(lang), rate, key: apiKey });
+    // Présente dans le cache : le Rust la relit sans toucher au réseau.
+    const res = await invoke<{ audio: string; cached: boolean }>("tts_cloud_synthesize", {
+      url: req.url,
+      headers: req.headers,
+      body: req.body,
+      cacheKey,
+      timeoutMs: RADIO_TIMEOUT_MS,
+    });
+    if (!res.cached) bumpUsage({ chars: text.length, requests: 1 }); // effacée entre-temps
+    else bumpUsage({ cacheHits: 1 });
+    const bytes = base64ToArrayBuffer(res.audio);
+    return provider.decodeAudio ? provider.decodeAudio(bytes) : bytes;
+  } catch {
     return null;
   }
 }

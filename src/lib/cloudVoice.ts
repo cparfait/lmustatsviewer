@@ -395,28 +395,50 @@ async function readCached(text: string, lang: string, rate: number, cacheKey: st
  * fichier audio, ou `null` si absente. **Aucune requête** au fournisseur — sert
  * aux phrases urgentes, qui ne doivent jamais attendre le réseau.
  */
-export async function cloudCachedAudio(text: string, lang: string, rate: number): Promise<ArrayBuffer | null> {
-  const all = await cloudCachedAudioMany([text], lang, rate);
+export async function cloudCachedAudio(
+  text: string,
+  lang: string,
+  rate: number,
+  opts?: { count?: boolean },
+): Promise<ArrayBuffer | null> {
+  const all = await cloudCachedAudioMany([text], lang, rate, opts);
   return all ? all[0] : null;
 }
 
 /**
  * Plusieurs phrases du cache disque d'un coup (morceaux d'une annonce chiffrée) :
  * toutes, dans l'ordre, ou `null` s'il en manque une — vérifié **avant** de rien
- * relire, et sans jamais interroger le fournisseur. Compte un seul « servi par le cache ».
+ * relire, et sans jamais interroger le fournisseur. Compte un seul « servi par le
+ * cache » (`count: false` : écoute du banc, hors consommation de course).
  */
-export async function cloudCachedAudioMany(texts: string[], lang: string, rate: number): Promise<ArrayBuffer[] | null> {
+export async function cloudCachedAudioMany(
+  texts: string[],
+  lang: string,
+  rate: number,
+  opts?: { count?: boolean },
+): Promise<ArrayBuffer[] | null> {
   if (!cloudVoiceOn() || texts.length === 0) return null;
   try {
     const keys = await Promise.all(texts.map((t) => cacheKeyFor(t, lang, rate)));
     const missing = await invoke<string[]>("tts_cloud_cache_missing", { keys });
     if (missing.length) return null;
     const audio = await Promise.all(texts.map((t, i) => readCached(t, lang, rate, keys[i])));
-    bumpUsage({ cacheHits: 1 });
+    if (opts?.count !== false) bumpUsage({ cacheHits: 1 });
     return audio;
   } catch {
     return null;
   }
+}
+
+/**
+ * Phrases absentes du cache disque de la voix en ligne actuelle (banc d'écoute) :
+ * toutes hors application de bureau. Local uniquement, aucune requête.
+ */
+export async function cloudCacheMissing(texts: string[], lang: string, rate: number): Promise<string[]> {
+  if (!isTauri() || texts.length === 0) return [...texts];
+  const keys = await Promise.all(texts.map((t) => cacheKeyFor(t, lang, rate)));
+  const absent = new Set(await invoke<string[]>("tts_cloud_cache_missing", { keys }));
+  return texts.filter((_, i) => absent.has(keys[i]));
 }
 
 /** Vide le cache disque des phrases fixes. Renvoie le nombre de fichiers supprimés. */

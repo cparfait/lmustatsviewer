@@ -35,6 +35,7 @@ import {
   valueSegments,
   type SegmentEntry,
 } from "@/lib/cloudVoiceSegments";
+import { benchFamilies, benchRoute, benchText, type BenchFacts } from "@/lib/cloudVoiceBench";
 import fr from "@/i18n/fr";
 import en from "@/i18n/en";
 import es from "@/i18n/es";
@@ -571,6 +572,65 @@ function cloudSegmentsSuite() {
   ok(joined.slice(50, 80).every((x) => x === 0), "silence au raccord");
 }
 
+// ── Banc d'écoute de la voix en ligne ───────────────────────────────────────
+
+function cloudBenchSuite() {
+  section("radio — banc d'écoute de la voix IA");
+  const base: BenchFacts = {
+    cloudOn: true,
+    mode: "cached",
+    fixed: true,
+    wholeCached: true,
+    segments: null,
+    missing: [],
+    numbers: "alerts",
+  };
+  const r = (o: Partial<BenchFacts>) => benchRoute({ ...base, ...o });
+  eq(r({}), { engine: "cloud", reason: "cached" }, "alerte préparée : voix IA du cache");
+  eq(r({ cloudOn: false }), { engine: "piper", reason: "cloudOff" }, "voix IA coupée : Piper");
+  eq(r({ mode: "off" }), { engine: "piper", reason: "alertsLocal" }, "alertes en voix locale : Piper");
+  eq(r({ wholeCached: false }), { engine: "piper", reason: "notPrepared" }, "alerte non préparée : Piper");
+  eq(r({ mode: "live", wholeCached: false }), { engine: "piper", reason: "liveOnly" }, "information non préparée : réseau, donc Piper");
+  const num = { fixed: false, wholeCached: false, segments: ["deux", "tours"] };
+  eq(r(num), { engine: "assembled", reason: "assembled" }, "chiffrée, morceaux prêts : assemblée");
+  eq(r({ ...num, missing: ["deux"] }), { engine: "piper", reason: "segmentsMissing" }, "morceau manquant : Piper");
+  eq(r({ ...num, numbers: "off" }), { engine: "piper", reason: "numbersOff" }, "annonces chiffrées sur Piper");
+  eq(r({ ...num, mode: "live" }), { engine: "piper", reason: "liveOnly" }, "information chiffrée en réglage alertes : en direct");
+  eq(r({ ...num, mode: "live", numbers: "all" }), { engine: "assembled", reason: "assembled" }, "tout assemblé : l'information aussi");
+  eq(r({ ...num, segments: null }), { engine: "piper", reason: "notAssemblable" }, "nom propre : pas assemblable");
+  eq(r({ ...num, mode: "off", numbers: "all" }), { engine: "piper", reason: "alertsLocal" }, "alertes en voix locale l'emportent");
+
+  eq(benchText("Box | Rentre", {}), "Box", "1re formulation");
+  eq(benchText("Carburant : {{n}} tours", { n: "3" }), "Carburant : 3 tours", "variables remplacées");
+  eq(benchText("Écart {{d}}", {}), "Écart {{d}}", "variable sans valeur laissée visible");
+
+  // Familles : chaque phrase existe dans les 5 langues ; les exemples chiffrés s'assemblent partout.
+  const fams = benchFamilies();
+  eq(fams.map((f) => f.family), ["info", "safety", "spotter", "coach", "numbers"], "5 familles");
+  ok(fams.every((f) => f.phrases.length > 0), "aucune famille vide");
+  eq(fams.find((f) => f.family === "spotter")!.phrases.every((p) => p.priority === "spotter"), true, "spotter en priorité spotter");
+  const bundles = { fr, en, es, de, it } as unknown as Record<string, { live: Record<string, string> }>;
+  for (const [lang, b] of Object.entries(bundles)) {
+    const lex = buildLexicon(
+      lang,
+      Object.keys(b.live)
+        .filter((k) => typeof b.live[k] === "string" && isSegmentTemplateKey(k))
+        .map((key) => ({ key, text: b.live[key] })),
+      (s) => s,
+    );
+    for (const f of fams) {
+      for (const p of f.phrases) {
+        const tpl = b.live[p.key];
+        ok(typeof tpl === "string" && tpl.length > 0, `${lang} ${p.key} existe`);
+        if (f.family !== "numbers" || typeof tpl !== "string") continue;
+        const text = benchText(tpl, p.vars);
+        ok(!text.includes("{{"), `${lang} ${p.key} : toutes les variables ont un exemple`);
+        ok(assembleSegments(text, lex) !== null, `${lang} ${p.key} : « ${text} » assemblable`);
+      }
+    }
+  }
+}
+
 export function run() {
   focusSuite();
   policySuite();
@@ -581,4 +641,5 @@ export function run() {
   commandsSuite();
   cloudPrepSuite();
   cloudSegmentsSuite();
+  cloudBenchSuite();
 }

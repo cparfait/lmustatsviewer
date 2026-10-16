@@ -33,6 +33,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@/lib/api";
 import {
   cloudAlertsLocal,
+  cloudCacheMissing,
   cloudCachedAudio,
   cloudCachedAudioMany,
   cloudNumbersMode,
@@ -42,7 +43,7 @@ import {
   cloudVoiceTag,
   noteCloudFallback,
 } from "@/lib/cloudVoice";
-import { cloudModeFor, fixedPhrases, isFixedPhrase, type CloudMode } from "@/lib/cloudVoicePrep";
+import { assembleAllowed, cloudModeFor, fixedPhrases, isFixedPhrase, type CloudMode } from "@/lib/cloudVoicePrep";
 import {
   assembleSegments,
   buildLexicon,
@@ -53,6 +54,7 @@ import {
   type SegmentLexicon,
 } from "@/lib/cloudVoiceSegments";
 import { ttsWords } from "@/lib/ttsWords";
+import type { BenchEngine, BenchFacts } from "@/lib/cloudVoiceBench";
 
 export type VoicePriority = "spotter" | "critical" | "normal" | "chatty" | "coach";
 export type VoiceEngine = "piper" | "system";
@@ -692,6 +694,7 @@ async function assembledBuffer(
   ctx: AudioContext,
   code: string,
   raw: string,
+  count = true,
 ): Promise<{ buffer: AudioBuffer | null; matched: boolean }> {
   const lex = lexiconFor(code);
   const segs = lex ? assembleSegments(raw, lex) : null;
@@ -700,7 +703,7 @@ async function assembledBuffer(
   const keyOf = (text: string) => `${tag}|${synthKey(code, text)}`;
   const missing = [...new Set(segs.map((s) => s.text))].filter((t) => !segmentPcm.has(keyOf(t)));
   if (missing.length) {
-    const audio = await cloudCachedAudioMany(missing, code, speechRate);
+    const audio = await cloudCachedAudioMany(missing, code, speechRate, { count });
     if (!audio) return { buffer: null, matched: true };
     try {
       const decoded = await Promise.all(audio.map((a) => ctx.decodeAudioData(a)));
@@ -720,8 +723,7 @@ async function assembledBuffer(
 
 /** Le réglage « Annonces chiffrées » autorise-t-il l'assemblage pour ce mode ? */
 function assembleFor(mode: CloudMode): boolean {
-  const numbers = cloudNumbersMode();
-  return numbers === "all" || (numbers === "alerts" && mode === "cached");
+  return assembleAllowed(mode, cloudNumbersMode());
 }
 
 /** Synthèse en ligne → `AudioBuffer` décodé, ou `null` (Piper prend le relais). */
@@ -736,14 +738,75 @@ async function cloudBuffer(ctx: AudioContext, code: string, text: string): Promi
 }
 
 /** Phrase préparée (cache disque) → `AudioBuffer`, sans requête ; `null` sinon. */
-async function cloudCachedBuffer(ctx: AudioContext, code: string, text: string): Promise<AudioBuffer | null> {
-  const bytes = await cloudCachedAudio(text, code, speechRate);
+async function cloudCachedBuffer(ctx: AudioContext, code: string, text: string, count = true): Promise<AudioBuffer | null> {
+  const bytes = await cloudCachedAudio(text, code, speechRate, { count });
   if (!bytes) return null;
   try {
     return await ctx.decodeAudioData(bytes);
   } catch {
     return null;
   }
+}
+
+// ── Banc d'écoute (Config → Voix IA en ligne) : jamais de requête au fournisseur ──
+
+/**
+ * Ce que la course ferait de `raw` sans réseau (cf. `benchRoute`) : mode de la
+ * voix en ligne, présence dans le cache disque, morceaux de l'assemblage.
+ */
+export async function probeCloudPlayback(
+  raw: string,
+  lang: string,
+  priority: VoicePriority,
+  cloudOk = false,
+): Promise<BenchFacts & { text: string }> {
+  const code = norm(lang);
+  const text = normalizeForTts(raw, lang);
+  const fixed = isFixedPhrase(text);
+  const lex = lexiconFor(code);
+  const segs = !fixed && lex ? assembleSegments(raw, lex) : null;
+  const segments = segs ? [...new Set(segs.map((s) => s.text))] : null;
+  const cloudOn = cloudVoiceOn();
+  let wholeCached = false;
+  let missing: string[] = segments ?? [];
+  try {
+    if (fixed) wholeCached = (await cloudCacheMissing([text], code, speechRate)).length === 0;
+    if (segments) missing = await cloudCacheMissing(segments, code, speechRate);
+  } catch {
+    /* cache illisible : tout est considéré absent */
+  }
+  return {
+    text,
+    cloudOn,
+    mode: cloudModeFor(priority, cloudOk, cloudAlertsLocal()),
+    fixed,
+    wholeCached,
+    segments,
+    missing,
+    numbers: cloudNumbersMode(),
+  };
+}
+
+/**
+ * Banc d'écoute : joue `raw` par un seul chemin, **sans réseau** — `cloud`
+ * (phrase entière du cache), `assembled` (morceaux du cache) ou `piper`.
+ * Renvoie `false` si ce chemin n'a rien à jouer (phrase absente du cache…).
+ * Hors consommation de course (compteur « servies par le cache » inchangé).
+ */
+export async function playBench(raw: string, lang: string, how: BenchEngine): Promise<boolean> {
+  const ctx = audioContext();
+  if (!ctx || !isTauri()) return false;
+  const code = norm(lang);
+  const text = normalizeForTts(raw, lang);
+  let buf: AudioBuffer | null = null;
+  if (how === "cloud") buf = await cloudCachedBuffer(ctx, code, text, false);
+  else if (how === "assembled") buf = (await assembledBuffer(ctx, code, raw, false)).buffer;
+  else buf = await synthBuffer(ctx, code, text);
+  if (!buf) return false;
+  cancelSpeech();
+  const item: QueueItem = { text, raw, lang, priority: "normal", expiry: Date.now() + TTL.normal, ttl: TTL.normal };
+  playBuffer(ctx, await styleVoiceBuffer(ctx, buf), item);
+  return true;
 }
 
 /** Tente la synthèse Piper + lecture. Renvoie false si indisponible/échec. */

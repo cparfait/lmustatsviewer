@@ -16,6 +16,7 @@
 
 import { splitVariants } from "@/lib/engineer/variants";
 import type { VoicePriority } from "@/lib/voice";
+import type { CloudNumbersMode } from "@/lib/cloudVoice";
 
 /**
  * Comment la voix en ligne traite une annonce :
@@ -102,8 +103,16 @@ export function cloudPrepKeys(alertsLocal: boolean): string[] {
  * chiffrées » les lit pour l'information (`all`) ou pour les alertes (`alerts`,
  * sauf « Alertes en voix locale » : elles restent alors sur Piper).
  */
-export function segmentsWanted(numbers: "alerts" | "all" | "off", alertsLocal: boolean): boolean {
+export function segmentsWanted(numbers: CloudNumbersMode, alertsLocal: boolean): boolean {
   return numbers === "all" || (numbers === "alerts" && !alertsLocal);
+}
+
+/**
+ * Une phrase chiffrée peut-elle être assemblée dans ce mode ? Urgent (`cached`)
+ * sauf réglage `off` ; information (`live`) seulement avec « tout assemblé ».
+ */
+export function assembleAllowed(mode: CloudMode, numbers: CloudNumbersMode): boolean {
+  return numbers === "all" || (numbers === "alerts" && mode === "cached");
 }
 
 /**

@@ -890,6 +890,31 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Voix IA en ligne : banc d'écoute
+
+**Demande** (mainteneur, via la session parente) : « il faudrait avoir une page pour tester et voir ce
+que ça donne en local ».
+
+- ✅ `cloudVoiceBench.ts` (pur) : familles du banc (information = `CLOUD_PREP_KEYS`, sécurité / spotter /
+  coach = `CLOUD_PREP_ALERT_KEYS`, 8 exemples chiffrés à valeurs modifiables), `benchText`,
+  `benchRoute(faits)` → moteur (`cloud` / `assembled` / `piper`) + motif (`cached`, `assembled`,
+  `cloudOff`, `alertsLocal`, `notPrepared`, `liveOnly`, `numbersOff`, `notAssemblable`,
+  `segmentsMissing`) = ce que `trySynthAndPlay` ferait **réseau coupé**. `assembleAllowed` sorti dans
+  `cloudVoicePrep.ts`, partagé avec `voice.ts`.
+- ✅ `voice.ts` : `probeCloudPlayback` (mode, présence en cache via `cloudCacheMissing`, morceaux) et
+  `playBench(raw, lang, cloud|assembled|piper)` — aucune requête, hors compteur « servies par le cache »
+  (`count: false`).
+- ✅ `CloudVoiceBench.tsx` : bouton « Banc d'écoute » dans le bloc Voix IA ; phrase libre + priorité,
+  familles, badges moteur + motif (morceaux manquants listés), ▶ IA / ▶ Assemblé / ▶ Piper ; seul envoi
+  possible : `PrepareVoice` (sorti avec `Row` dans `CloudVoicePrepare.tsx`). Source des gabarits posée
+  au chargement du module `stores/app.ts` (et non plus dans le chargement de la config).
+- ✅ i18n 5 langues ; changelog 1.0.10 ; tests npm 2212 (verdicts, textes, familles × 5 langues,
+  exemples chiffrés assemblables), tsc, eslint. Rendu vérifié dans le navigateur (Tauri simulé, sans
+  clé : verdicts « voix IA désactivée »).
+- 📋 **Prochaine étape** : dans l'app compilée depuis cette branche, avec une clé : « Préparer la voix »
+  depuis le banc, puis ▶ Assemblé sur « Carburant : environ 3 tours restants » et une phrase libre ;
+  ajuster `PAUSE_*_MS` / `trimSilence` à l'oreille.
+
 ### 2026-10-16 — Voix IA en ligne : annonces chiffrées assemblées par morceaux
 
 **Demande** (via la session « voix IA dit tout ») : « enregistrer la voix pour servir des choses en

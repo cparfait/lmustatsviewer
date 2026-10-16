@@ -28,6 +28,10 @@ import type {
   IndexReport,
 } from "@/lib/api";
 
+// Annonces chiffrées de la voix en ligne : reconnues parmi les gabarits effectifs
+// (personnalisations comprises, relues à chaque annonce).
+setCloudSegmentSource(segmentTemplates);
+
 /**
  * Version de la logique d'indexation. À **incrémenter** dès que le parser ou
  * l'indexeur change de comportement : au démarrage, si la base a été indexée
@@ -533,8 +537,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     setSpeechReplay(cfg.voice_replay !== "false");
     setTalkSilence(cfg.voice_quiet_zones !== "false");
     initVoiceOverrides(cfg.voice_overrides);
-    // Annonces chiffrées de la voix en ligne : reconnues parmi les gabarits effectifs.
-    setCloudSegmentSource(segmentTemplates);
     // Voix en ligne (option, désactivée par défaut) : réglages + clé du fournisseur.
     await initCloudVoice(cfg.voice_cloud, cfg.voice_cloud_usage).catch(() => {});
     initCommandOverrides(cfg.spotter_commands);

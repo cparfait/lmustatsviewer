@@ -287,9 +287,14 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   - ✅ **Tour de formation** (course de 10 min, 2026-10-16) : phase 3, `startEventTime` = **0**, `maxTime` = 600, `timeRemainingInGamePhase` = −1 ; au vert (phase 5, 105 s) `startEventTime` = 104,9. Avant le vert, fin = maintenant + `maxTime` (`restSessionEnd`). En vert, `mEndET` (mémoire partagée) = 705 = départ + `maxTime` ✅.
   - ✅ `pitStopLength.timeInSeconds` suit le menu en direct : ~2 s (rien de sélectionné), **186,6 s** avec « Tout réparer » après un choc. Avec carburant + pneus seuls : ⏳ non relevé.
   - ✅ Dégâts : `getVehicleCondition.vehicleDamage` = `wearables.body.aero` = **1,89** après un gros choc (suspension AR D à 1, pneu AR D à 0) → **l'échelle dépasse 1**, bornée à 100 % côté app. `suspensionDamage` = 1 sur la roue cassée.
-  - ⚠️ **`mSectorFlag` (mémoire partagée)** vaut **11** hors jaune ; vus aussi 1, 2, 3 (`[1,11,11]` > 3 min en vert, `yellow_flag_state` 0 ; `[1,2,2]` en phase 8). Lu « jaune » seulement si **=== 1** (`lib/sectorFlags.ts`), **non prouvé** ; l'ordre des index (S(i+1) ou 0 = S3 comme `mSector`) **non confirmé**. Le `sectorFlag` REST (`UNKNOWN`/`YELLOW` ×3) ne colle pas à la mémoire partagée → inutilisable.
+  - ❌ **`mSectorFlag` (mémoire partagée) n'indique pas les jaunes locaux** dans LMU : essais **sans aucun incident** = `[1,11,1]` constant ; course : `[11,1,11]`, `[11,11,1]`, `[1,11,11]` (> 3 min en vert, `yellow_flag_state` 0), `[1,11,3]`, `[1,2,2]` (phase 8). Ni « > 0 » ni « === 1 » ne tiennent → `isSectorYellow` renvoie **faux** (carte, widget Drapeaux, coach) en attendant une source fiable. Le `sectorFlag` REST (`UNKNOWN`/`YELLOW` sur les 3 secteurs à la fois) ne colle pas non plus.
   - ✅ `mSector` des voitures : 1 = S1, 2 = S2, **0 = S3** (frontière S2/S3 ≈ 2 535 m à Atlanta). Sur la **grille**, les voitures passent de 2 à 0 **sur place** vers 3 999 m → bornes mesurées seulement en phase 5/6 et si la voiture avance.
-  - ⏳ Non vérifié : conso « jeu » au 1er tour d'une voiture **sans** énergie virtuelle (essais faits en Hypercar), `pitStopLength` carburant + pneus et `pit_lane_loss_map`, alertes plaquettes + question « plaquettes ? », chance de pluie ≠ 0, carte complète dès la sortie des stands (corde vue sur la voie des stands).
+  - 🔴 **LMU plante au lancement si on interroge `garage/*` pendant son initialisation** (2/2 le 2026-10-16, à 14,9 s, rapport BugSplat ; 2/2 lancements sans interrogation OK) : serveur REST ouvert à 13,7 s pendant `Game::Setup`, `sessionInfo` répond vide, `getVehicleCondition` reste pendante, le jeu meurt. La mémoire partagée existe dès 9,4 s → pont actif **seulement en séance chargée** (`data.session`), 5 s de délai, `sessionInfo` d'abord, `garage/*` et `watch/trackmap` seulement après une séance confirmée (44757c0). Pendant le chargement d'un circuit, `sessionInfo` ne répond pas (curl en délai dépassé).
+  - ✅ Conso « jeu » au 1er tour **sans** énergie virtuelle (LMP2) : 1,98 L/tour, `rest_used.fuel` = « game », 37,8 tours (menu « 75l/37 laps »).
+  - ✅ Bornes S1/S2 apprises = transitions observées (588 / 2 540 m à Atlanta). ⚠️ `get_live_data` (spotter, coach vocal, Coach IA à la demande) avait un **2e `PollState`** sans tracé sauvegardé → valeurs différentes de la page Live ; renvoie désormais la dernière trame du flux.
+  - ✅ Voie des stands du jeu (`watch/trackmap` type 1) en **deux tronçons** séparés de 540 m (bouts les plus proches à 261 m) → tracée coupée aux sauts > 60 m (plus de corde).
+  - ⚠️ La version **installée** et la version de dev partagent `{appdata}/tracks/` (écrasements croisés) et le profil WebView2 : fermer l'une pour tester l'autre.
+  - ⏳ Non vérifié : `pitStopLength` avec carburant + pneus, `pit_lane_loss_map` (arrêt réel), alertes plaquettes + question « plaquettes ? » (STT absent du build de dev), formation avec le correctif (`rest_used.sessionEnd` = « game »), chance de pluie ≠ 0, carte dès la sortie des stands en roulant.
 - Live : plugin shared memory rF2 (`$rFactor2SMMP_Telemetry$` / `$rFactor2SMMP_Scoring$`) — l'utilisateur doit l'installer dans `<LMU>/Plugins/`.
 - ~~**À faire — badge Online/Solo**~~ : **abandonné** (2026-06-03). Redondant : la distinction est déjà visible via le type de réglage « En ligne » (Multiplayer) vs « Week-end de course » (Race Weekend) affiché dans les tableaux.
 - **Idée future — plugin SimHub** (pour les fans de SimHub) : proposer un **plugin SimHub** apportant les annonces vocales « ingénieur de course » (et/ou des propriétés de données) dans l'écosystème SimHub. ⚠️ Sous-projet **séparé en C#** (SimHub Plugin SDK / `IDataPlugin`), distinct du code Tauri/Rust : la logique de callouts (`useVoiceCallouts`) serait **réimplémentée** côté C# à partir de la télémétrie que SimHub fournit déjà. Indépendant de l'app principale. À planifier plus tard. Alternative plus légère côté app : fenêtre **overlay transparente always-on-top** (Tauri) au lieu d'un vrai plugin SimHub.
@@ -871,6 +876,28 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-16 — Validation en jeu du pont REST (2e séance) : plantage au lancement corrigé
+
+**Contexte** : le mainteneur peut lancer le jeu mais pas rouler ; LMP2 en essais avec IA, voiture
+arrêtée. Au 1er essai, **LMU plante au lancement** deux fois de suite.
+
+- ✅ **Cause** (traces `UserData/Log` + horodatage de la sonde) : requête `garage/getVehicleCondition`
+  envoyée 0,5 s après l'ouverture du serveur REST du jeu, pendant `Game::Setup` → plantage 1,2 s plus
+  tard. Le pont faisait pareil dès la mémoire partagée présente. Correctif `44757c0` (séance chargée,
+  délai 5 s, `sessionInfo` d'abord, garage seulement après séance confirmée) ; relancé avec l'app
+  active pendant le chargement : plus de plantage. Session « intégration » prévenue (sa branche n'a
+  que `0600c92`).
+- ✅ Conso « jeu » sans énergie virtuelle validée ; bornes S1/S2 validées (588 / 2 540 m).
+- ✅ `get_live_data` = trame du flux (2e état sans tracé → écarts S2 2 590 m, carte de 3 points).
+- ✅ Jaunes par secteur **désactivés** (`[1,11,1]` en essais sans incident ; capture du mainteneur :
+  S3 + S1 en jaune). Changelog 1.0.10 corrigé.
+- ✅ Voie des stands en deux tronçons → plus de corde (`pathOfRuns`, Live + overlay).
+- ✅ Tests : npm 386, cargo 45, tsc, eslint. Commits `44757c0`, `60941ea`.
+- 📋 **Prochaine étape** : la course de test se fait sur `claude/integration-veille` (session
+  principale) — y intégrer `44757c0` + `60941ea` **avant** ; y observer `pitStopLength` carburant +
+  4 pneus, formation (`rest_used.sessionEnd` = « game »), « plaquettes ? », arrêt réel →
+  `pit_lane_loss_map`.
 
 ### 2026-10-16 — Validation en jeu du pont REST (1re séance) + Coach / Voix IA
 

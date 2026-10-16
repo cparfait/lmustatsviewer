@@ -890,13 +890,28 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Intro de lancement : seulement le plan du titre
+
+**Demande** : « à l'ouverture de l'app, il ne faut que les 3 dernières secondes de l'animation », puis
+« à partir de ce plan là » (capture du titre figé) → l'intro démarre au plan du titre.
+
+- ✅ `public/easter/lmu-intro.mp4` recoupé dans le rendu 1080p (`videos/lmu-splash-motion/renders/video.mp4`,
+  10,4 s) : **7,8 → 10,4 s** (2,6 s) au lieu de 7,0 → 10,0 s. 7,8 s = 1re image sans le volet vibreur
+  (relevé image par image) : logo qui apparaît → texte → mini-voiture qui trace le soulignement → titre
+  figé (~8,9 s → fin). Plus de Raidillon ni de volet. 1280×720, 30 i/s, 78 images, H.264 + AAC, fondu
+  audio 0,08 s à l'entrée (pas de clic à la coupe) et 0,5 s en sortie, `faststart`, 0,13 Mo.
+- ✅ Projet HyperFrames non modifié (seulement relu). Code inchangé (`LaunchIntro` lit toujours ce
+  fichier) ; changelog 1.0.10 ajusté (« le plan du titre, environ 2,5 s », 5 langues).
+- 📋 Prochaine étape : vérifier l'intro dans la WebView Tauri (`npm run tauri dev`, son au démarrage).
+
 ### 2026-10-16 — Animation intégrée à l'app : intro au lancement + easter egg du pilote
 
 **Demande** : icône du perso dans le pied de page + vidéo en easter egg au clic ; au lancement,
 jouer seulement la fin de l'animation (7 → 10 s).
 
 - ✅ `public/easter/lmu-splash.mp4` (vidéo complète, 720p, 1,35 Mo) et `public/easter/lmu-intro.mp4`
-  (7,0 → 10,0 s, fondu audio final, 0,28 Mo), tirés de `videos/lmu-splash-motion/renders/video.mp4`.
+  (plan du titre : 7,8 → 10,4 s, fondu audio d'entrée et final, 0,13 Mo — recoupé le 2026-10-16 ;
+  l'ancienne coupe 7,0 → 10,0 s montrait le Raidillon et ratait la fin du titre figé), tirés de `videos/lmu-splash-motion/renders/video.mp4`.
 - ✅ `components/IntroVideo.tsx` : vidéo plein écran (portail), lecture avec son puis repli muet si
   bloquée, fermeture à la fin / Échap / clic / croix, fondu de sortie.
 - ✅ `components/LaunchIntro.tsx` : une fois par lancement (pas aux changements de page), monté dans

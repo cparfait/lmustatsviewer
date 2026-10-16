@@ -64,6 +64,10 @@ interface AppState {
   showOhneSpeed: boolean;
   /** Carte Live : mes incidents passés sur ce circuit (chocs, coupures, sorties). */
   mapIncidents: boolean;
+  /** L'app peut écrire dans le jeu (menu des stands) — expérimental, coupé par défaut. */
+  gameWrites: boolean;
+  /** Réglage automatique de l'énergie au menu des stands (exige `gameWrites`). */
+  pitAutoEnergy: boolean;
   /** Rythme cible de l'overlay live (clé tier ohne_speed : alien/competitive/good/midpack). */
   overlayTargetTier: string;
   /** Modules du menu activés (clé nav → bool). Absent/true = visible. */
@@ -259,6 +263,8 @@ interface AppState {
   setAutoUpdate: (v: boolean) => Promise<void>;
   setShowOhneSpeed: (v: boolean) => Promise<void>;
   setMapIncidents: (v: boolean) => Promise<void>;
+  setGameWrites: (v: boolean) => Promise<void>;
+  setPitAutoEnergy: (v: boolean) => Promise<void>;
   setOverlayTargetTier: (v: string) => Promise<void>;
   setMenuModule: (key: string, value: boolean) => Promise<void>;
   setVoiceAnnouncements: (v: boolean) => Promise<void>;
@@ -338,6 +344,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   autoUpdate: true,
   showOhneSpeed: true,
   mapIncidents: true,
+  gameWrites: false,
+  pitAutoEnergy: false,
   overlayTargetTier: "competitive",
   menuModules: {},
   voiceAnnouncements: false,
@@ -543,6 +551,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       autoUpdate: cfg.auto_update !== "false",
       showOhneSpeed: cfg.show_ohne_speed !== "false",
       mapIncidents: cfg.map_incidents !== "false",
+      gameWrites: cfg.game_writes === "true",
+      pitAutoEnergy: cfg.pit_auto_energy === "true",
       overlayTargetTier: cfg.overlay_target_tier || "competitive",
       menuModules,
       voiceAnnouncements: cfg.voice_announcements === "true",
@@ -776,6 +786,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAutoUpdate: async (v) => {
     await config.set("auto_update", v ? "true" : "false");
     set({ autoUpdate: v });
+  },
+
+  setGameWrites: async (v) => {
+    await config.set("game_writes", v ? "true" : "false");
+    set({ gameWrites: v });
+  },
+
+  setPitAutoEnergy: async (v) => {
+    await config.set("pit_auto_energy", v ? "true" : "false");
+    set({ pitAutoEnergy: v });
   },
 
   setMapIncidents: async (v) => {

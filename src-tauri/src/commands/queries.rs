@@ -1042,3 +1042,18 @@ pub fn save_image_file(path: String, bytes: Vec<u8>) -> Result<(), AppError> {
     std::fs::write(&path, bytes)?;
     Ok(())
 }
+
+/// Enregistre un fichier texte choisi par l'utilisateur (enregistrement de séance
+/// pour le banc de rejeu). Extensions `.jsonl` / `.json` seulement, 200 Mo au plus.
+#[tauri::command]
+pub fn save_text_file(path: String, content: String) -> Result<(), AppError> {
+    let lower = path.to_lowercase();
+    if !(lower.ends_with(".jsonl") || lower.ends_with(".json")) {
+        return Err(AppError::Unsupported("Extension attendue : .jsonl ou .json.".to_string()));
+    }
+    if content.len() > 200 * 1024 * 1024 {
+        return Err(AppError::Unsupported("Fichier trop lourd.".to_string()));
+    }
+    std::fs::write(&path, content)?;
+    Ok(())
+}

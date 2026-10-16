@@ -964,6 +964,34 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   Live). Fiche session, onglet Incidents : `SessionMoments` (même circuit, même type de séance, début
   à durée + 15 min de l'horodatage du fichier). ⚠️ Non vérifié en jeu (seuils d'impact et surfaces à
   confirmer sur une vraie séance).
+- ✅ **⑲ + ㉞ Écritures dans le jeu (opt-in)** : module Rust séparé `lmu_rest_write.rs` (le pont reste
+  GET seul) : `get_pit_menu` (`PitMenu/receivePitMenu`, tableau nu ou sous `pitMenu`), et
+  `set_pit_menu_item(name, index)` = lecture → copie avec `currentSetting` changé (index borné) →
+  POST `PitMenu/loadPitMenu` → **relecture** (renvoie si le jeu a pris la valeur). Réglages
+  `gameWrites` (`game_writes`, défaut **off**) et `pitAutoEnergy` (`pit_auto_energy`, off, exige le
+  premier), dans Affichage › options Live. Page Stratégie : carte « Menu des stands du jeu » (lecture
+  en direct, sélecteurs si écritures autorisées). `usePitAutoEnergy` (App) : en course, une fois par
+  tour, si autonomie ≤ 6 tours et arrêt nécessaire → besoin = (tours restants après l'arrêt + ½) ×
+  conso, plafonné au plein → plus petite option qui couvre (`lib/pitMenu.ts`) ; réglage manuel du
+  pilote détecté → plus rien jusqu'au prochain arrêt. **Setup chargé/sauvé par l'API : non fait**
+  (sémantique des routes `garage/setup` non confirmée ; à relever en jeu avant de l'écrire).
+  ⚠️ Écritures jamais testées contre le vrai jeu (format POST déduit des lectures).
+- ✅ **⑱ Banc de rejeu** : `lib/replay/format.ts` (pur), `recorder.ts` (2 Hz, trames allégées sans
+  tracé/REST, 8 h max) + `ReplayBenchPanel` (Config › Maintenance : Enregistrer / Arrêter /
+  Enregistrer le fichier…, commande Rust `save_text_file` `.jsonl`/`.json` ≤ 200 Mo) ; `bench.ts`
+  rejoue dans `EventDetector`, `StintRegistry`, `WarmupTracker`, `WetnessTrend`, `TyreWearTracker` ;
+  `npm run replay -- seance.jsonl` (esbuild → node). Vérifié sur un fichier synthétique.
+- ✅ **Contrôles** : `tsc -b` ✅, `eslint src` ✅, `npm test` **633** ✅ (nouvelles suites
+  `strategy.suite.ts`, `plan.suite.ts`), `cargo test --lib` ✅. Pages Stratégie et Carrière vérifiées
+  dans le navigateur (serveur de dev 5176, état simulé). Commits `7d11b25` → dernier lot, branche
+  `claude/integration-veille` (worktree `.claude/worktrees/integration-veille`), **non fusionnée**
+  dans `feat/coach-audio` ni poussée.
+- 📋 **Prochaine étape** : course de test en jeu sur cette branche (`npm run tauri dev` depuis le
+  worktree) — vérifier dans l'ordre : « le leader rentre » + « quand s'arrête le leader ? », « quels
+  pneus changer ? », silence en tour lancé de qualif, question des chronos au 2ᵉ tour, préparation
+  qui se coche, points d'incidents sur la carte Live, puis (écritures autorisées) le menu des stands
+  modifié depuis la page Stratégie et relu dans le jeu. Enregistrer la séance au banc de rejeu pour
+  rejouer les seuils hors piste.
 
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 

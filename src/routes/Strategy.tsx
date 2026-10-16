@@ -1,11 +1,12 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, Circle, ClipboardCheck, Moon, RotateCcw, Users, Wrench } from "lucide-react";
+import { CheckCircle2, Circle, ClipboardCheck, Fuel, Moon, RotateCcw, Users, Wrench } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { isTauri, live } from "@/lib/api";
+import { isTauri, live, type PitMenuItem } from "@/lib/api";
+import { toastError, toastSuccess } from "@/stores/dialogs";
 import { useAppStore } from "@/stores/app";
 import { usePageState } from "@/lib/usePageState";
 import { GOALS, OPTIONAL, REQUIRED, emptyPrep, isDone, ready, type PrepTask } from "@/lib/racePlan/prep";
@@ -50,7 +51,86 @@ export function Strategy() {
       </div>
       <PrepCard />
       <StintSheet />
+      <PitMenuCard />
     </div>
+  );
+}
+
+/**
+ * Menu des stands du jeu, lu en direct ; modifiable seulement si les écritures
+ * dans le jeu sont autorisées (Config). Chaque changement est relu dans le jeu.
+ */
+function PitMenuCard() {
+  const { t } = useTranslation();
+  const gameWrites = useAppStore((s) => s.gameWrites);
+  const [menu, setMenu] = useState<PitMenuItem[] | null>(null);
+  const [error, setError] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const read = async () => {
+    if (!isTauri()) return;
+    try {
+      setMenu(await live.pitMenu());
+      setError(false);
+    } catch {
+      setMenu(null);
+      setError(true);
+    }
+  };
+  useEffect(() => {
+    void read();
+  }, []);
+
+  const change = async (item: PitMenuItem, index: number) => {
+    setBusy(true);
+    try {
+      const ok = await live.setPitMenuItem(item.name, index);
+      if (ok) toastSuccess(t("strategy.pitSet", { name: item.name.replace(/:$/, ""), value: item.options[index] }));
+      else toastError(t("live.pitEnergyNotConfirmed"));
+    } catch (e) {
+      toastError(String(e));
+    } finally {
+      setBusy(false);
+      void read();
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <Fuel className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold">{t("strategy.pitTitle")}</h2>
+          <Button size="sm" variant="outline" className="ml-auto" onClick={() => void read()} disabled={busy}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1" />
+            {t("strategy.pitRead")}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{t(gameWrites ? "strategy.pitDescWrite" : "strategy.pitDescRead")}</p>
+        {error || !menu ? (
+          <p className="text-sm text-muted-foreground">{t("strategy.pitNone")}</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {menu.map((m) => (
+              <div key={m.name} className="flex items-center gap-3 text-sm">
+                <span className="w-44 shrink-0 text-muted-foreground truncate">{m.name.replace(/:$/, "")}</span>
+                {gameWrites && m.options.length > 1 ? (
+                  <Select
+                    value={String(m.current)}
+                    disabled={busy}
+                    onValueChange={(v) => void change(m, Number(v))}
+                    className="flex-1"
+                    options={m.options.map((o, i) => ({ value: String(i), label: o || "—" }))}
+                  />
+                ) : (
+                  <span className="font-medium">{m.options[m.current] ?? "—"}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

@@ -35,6 +35,7 @@ import { useSpotter } from "@/lib/useSpotter";
 import { usePitLoss } from "@/lib/usePitLoss";
 import { useRacePrep } from "@/lib/racePlan/useRacePrep";
 import { useLiveEvents } from "@/lib/useLiveEvents";
+import { usePitAutoEnergy } from "@/lib/usePitAutoEnergy";
 import { useCoachVoice } from "@/lib/useCoachVoice";
 import { useCornerCoach } from "@/lib/useCornerCoach";
 import { RaceEngineerHost } from "@/components/RaceEngineerHost";
@@ -67,6 +68,8 @@ export default function App() {
   useRacePrep();
   // Événements de piste (incidents sur la carte, temps forts des sessions).
   useLiveEvents();
+  // Énergie au menu des stands réglée toute seule (opt-in, écritures dans le jeu).
+  usePitAutoEnergy();
   // Coach IA vocal : raccourci global push-to-talk → question libre → réponse parlée.
   useCoachVoice();
   // Coach par virage : conseils vocaux automatiques en roulage (fenêtre de délivrance).

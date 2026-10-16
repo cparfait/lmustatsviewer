@@ -215,6 +215,9 @@ pub fn run() {
             commands::live::start_live_polling,
             commands::live::stop_live_polling,
             commands::lmu_rest::get_lmu_garage_bounds,
+            commands::lmu_rest_write::get_pit_menu,
+            commands::lmu_rest_write::set_pit_menu_item,
+            commands::queries::save_text_file,
             // Overlays in-game (fenêtre transparente always-on-top)
             commands::overlay::open_overlay_window,
             commands::overlay::close_overlay_window,

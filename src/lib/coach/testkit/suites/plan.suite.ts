@@ -7,6 +7,9 @@
 import { section, ok, eq, approx } from "../assert";
 import type { CareerRace, LiveData, SvmFile } from "@/lib/api";
 import { EventDetector, eventsForSession } from "@/lib/liveEvents";
+import { chooseEnergy, energyItem, energyNeed, energyOptions } from "@/lib/pitMenu";
+import { parseJsonl, slimFrame, toJsonl, type RecordedFrame } from "@/lib/replay/format";
+import { mmss, runBench } from "@/lib/replay/bench";
 import { filterRaces, highlights, matchRounds, recurring, standings, summarize, titleMath, type Championship } from "@/lib/career";
 import { recommend, applyStep, nextVersionName } from "@/lib/setupAssistant";
 import { trackSun, trackGeo, isNight } from "@/lib/racePlan/sun";
@@ -163,6 +166,46 @@ export function run(): void {
     eq(eventsForSession([...evs], "Spa-Francorchamps", 1500, 3600, true).length, 1, "rattachement par circuit (inclusion)");
     eq(eventsForSession([...evs], "Spa", 9000, 3600, true).length, 0, "trop loin dans le temps");
     eq(eventsForSession([...evs], "Spa", 1500, 3600, false).length, 0, "autre type de séance");
+  }
+
+  section("pit.menu");
+  {
+    const menu = [
+      { name: "VIRTUAL ENERGY:", current: 0, options: ["No Change", "40% 8.1 laps", "50% 10.1 laps", "60% (12.1 laps)", "100% 20.2 laps"] },
+      { name: "TIRES:", current: 0, options: ["No Change", "Medium"] },
+    ];
+    const item = energyItem(menu)!;
+    eq(energyOptions(item).map((o) => [o.index, o.frac]), [[1, 0.4], [2, 0.5], [3, 0.6], [4, 1]], "options lues au pourcentage");
+    approx(energyNeed(9, 0.05)!, 0.475, 1e-9, "besoin : 9 tours + ½ à 5 %/tour");
+    eq(chooseEnergy(energyOptions(item), 0.475)?.index, 2, "plus petite option qui couvre (50 %)");
+    eq(chooseEnergy(energyOptions(item), 1)?.index, 4, "plein");
+    eq(energyNeed(30, 0.05), 1, "plus d'un relais : le plein");
+    eq(energyItem([menu[1]]), null, "voiture sans énergie virtuelle");
+  }
+
+  section("replay.bench");
+  {
+    const fr = (t: number, laps: number, impact: number) =>
+      ({
+        t,
+        d: {
+          connected: true, paused: false,
+          session: { track: "Spa", session: 10, session_time: t / 1000, end_et: 3600, max_laps: 0, num_vehicles: 1, track_length: 7000, game_phase: 5 },
+          player: { total_laps: laps },
+          telemetry: { last_impact_magnitude: impact, wheels: [], front_compound: "Medium", rear_compound: "Medium" },
+          extended: { track_limits: 0 },
+          weather: { path_wetness_avg: 0, rain: 0 },
+          standings: [{ driver: "Me", is_player: true, in_pits: false, vehicle_class: "GT3", class_position: 2, total_laps: laps, lap_dist: 800, num_pitstops: 0 }],
+        },
+      }) as unknown as RecordedFrame;
+    const frames = [fr(0, 1, 0), fr(500, 1, 0), fr(1000, 1, 3000), fr(1500, 2, 3000)];
+    const text = toJsonl(frames);
+    eq(parseJsonl(text).length, 4, "aller-retour JSON Lines");
+    const r = runBench(parseJsonl(text));
+    ok(r.lines.some((l) => l.source === "events" && l.text.startsWith("contact")), `contact retrouvé au rejeu — ${JSON.stringify(r.lines)}`);
+    eq(r.durationMs, 1500, "durée couverte");
+    eq(mmss(61000), "01:01", "horodatage mm:ss");
+    eq(slimFrame({ track_points: [[1, 2]], track_dists: [1], rest: {} } as unknown as LiveData).track_points, [], "trame allégée");
   }
 
   section("plan.prep");

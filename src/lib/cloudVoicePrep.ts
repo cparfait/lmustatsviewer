@@ -3,10 +3,10 @@
  * l'ingénieur à générer d'avance et estimation du coût. Module pur (testé par
  * `radio.suite.ts`) ; la génération elle-même est dans `cloudVoice.ts`.
  *
- * Seules comptent les annonces que la voix en ligne peut dire : celles que
- * l'ingénieur émet en priorité `normal` ou `chatty` (cf. `voice.ts::cloudEligible`).
- * Les alertes `critical` (drapeaux jaunes, crevaison, box…), le spotter et le
- * coach par virage restent sur Piper : les préparer serait payer pour rien.
+ * Seules comptent les annonces que la voix en ligne peut dire (cf. `voiceRoute.ts`) :
+ * celles que l'ingénieur émet en priorité `normal` ou `chatty` et, en portée
+ * « toutes les annonces », les alertes fixes et le spotter. En portée « infos »,
+ * alertes et spotter restent sur Piper : les préparer serait payer pour rien.
  */
 
 import { splitVariants } from "@/lib/engineer/variants";
@@ -40,6 +40,32 @@ export const CLOUD_PREP_KEYS: readonly string[] = [
   "vRainHeavier",
   "vRefuelNeeded",
   "vAskLapPref",
+];
+
+/**
+ * Portée « toutes les annonces » (une seule voix, cf. `voiceRoute.ts`) : en plus,
+ * les alertes `critical` sans variable et les phrases du spotter. Préparées, elles
+ * sont dites dans la voix en ligne sans attendre le réseau (le spotter n'attend
+ * jamais : sans audio prêt, Piper la dit cette fois). Contrôlé par le même test.
+ */
+export const CLOUD_PREP_SAFETY_KEYS: readonly string[] = [
+  "vFlagYellow",
+  "vFlagFcy",
+  "vFlagStopped",
+  "vPenalty",
+  "vBoxBox",
+  "vOverheat",
+  "vDamage",
+  "vPuncture",
+  "vWheelDetached",
+  "vBrakeOverheat",
+  "vSpotLeft",
+  "vSpotRight",
+  "vSpotThree",
+  "vSpotClear",
+  "vSpotClearLeft",
+  "vSpotClearRight",
+  "vSpotStill",
 ];
 
 /**

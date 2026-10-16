@@ -55,7 +55,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Aides de pilotage publiques** | **Décidé (2026-10-08)** — les aides (TC, aide au freinage/direction, boîte auto) sont envoyées au serveur mais **jamais publiées pilote par pilote** (classements, comparaison `combos/compare`, fiche pilote). Elles ne servent qu'aux filtres et agrégats (ex. « Sans aide au freinage »). |
 | **Mémoire des filtres** | **Décidé (2026-09-30)** — filtres, tris, page et vue de chaque page conservés **le temps que l'app tourne** (`usePageState`, en mémoire) ; remis à zéro au redémarrage. Un lien profond (`?track=…`) impose ses filtres. |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
-| **Moteurs de voix** | **Décidé (2026-10-15)** — **Piper reste le moteur par défaut et le repli**. La **voix en ligne** (clé de l'utilisateur : OpenAI, ElevenLabs, Cartesia) est un réglage **désactivé par défaut**. Elle n'est **jamais** utilisée pour la sécurité (`critical` : drapeaux, crevaison, box…), le spotter, le coach par virage ni « Répète ». Piper reprend la phrase en cas d'erreur ou au-delà de 3 s. Le relais Rust n'accepte que les hôtes de la liste blanche. « Préparer la voix » ne génère que les phrases fixes que la voix en ligne peut dire, sur clic, après affichage du coût estimé. **Kokoro-82M écarté** pour l'instant (pas d'allemand, 4 à 8 fois plus lent que Piper, 325 Mo) ; détail dans `voice-eval/README.md`. |
+| **Moteurs de voix** | **Décidé (2026-10-15)** — **Piper reste le moteur par défaut et le repli**. La **voix en ligne** (clé de l'utilisateur : OpenAI, ElevenLabs, Cartesia) est un réglage **désactivé par défaut**. **Révisé le 2026-10-16** (retour « deux voix ») : portée réglable, **« Toutes (une seule voix) » par défaut** — alertes, coach par virage et « Répète » attendent le service au plus 1,5 s, le spotter **jamais** (audio pré-synthétisé, sinon Piper cette fois) ; « Infos et réponses seulement » garde la règle d'origine (jamais pour la sécurité, le spotter, le coach ni « Répète »). Piper reprend la phrase en cas d'erreur ou au-delà du délai (3 s pour une info). Le relais Rust n'accepte que les hôtes de la liste blanche. « Préparer la voix » ne génère que les phrases fixes que la voix en ligne peut dire (alertes fixes et spotter compris en portée « toutes »), sur clic, après affichage du coût estimé. **Kokoro-82M écarté** pour l'instant (pas d'allemand, 4 à 8 fois plus lent que Piper, 325 Mo) ; détail dans `voice-eval/README.md`. |
 
 ---
 
@@ -889,6 +889,42 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-16 — Voix IA en ligne : une seule voix, plus d'annonce en double
+
+**Retour mainteneur** (séance de validation du pont REST, build de dev 4214da0 + 8db5f5b) : « quand
+j'active le coach IA », deux voix différentes (Piper et une autre) et certains messages dits en double.
+
+- ✅ **Diagnostic** (config locale lue en lecture seule) : `voice_cloud` activé (Cartesia, 0 repli
+  noté), aucun fournisseur d'IA configuré → le « coach IA » du retour est la **voix IA en ligne**. Les
+  deux voix étaient le routage voulu de la bêta : en ligne pour `normal`/`chatty` et les réponses,
+  Piper pour `critical` (drapeaux, box, « Répète », accusés « Reçu, je regarde »), spotter et coach.
+- ✅ **Doublons** : la phrase en cours de synthèse n'était ni en file ni `current` → l'anti-doublon de
+  `speak` ne la voyait pas ; ce trou durait ~0,2 s avec Piper, jusqu'à 3 s avec la voix en ligne.
+  Même trou : une alerte attendait la fin d'une requête en ligne (le spotter y périmait),
+  `announce` restait bloquée jusqu'à l'annonce suivante après un `cancelSpeech` en vol, et un repli
+  voix Windows pouvait jouer une annonce annulée. En plus, `startCoachService` laissait deux
+  abonnements `live-data` sur arrêt/redémarrage pendant l'`await` (StrictMode du build de dev).
+- ✅ **Correctif** :
+  - `voice.ts` : `busy`/`generation` → `inflight` (annonce en synthèse) ; anti-doublon dessus ;
+    préemption par une annonce plus urgente (l'autre reprend telle quelle, audio et requête en ligne
+    réutilisés, sans « Je répète ») ; `cancelSpeech` libère la file ; jamais de repli pour une
+    annonce annulée ; prise de parole du pilote = synthèse non critique remise en file.
+  - Nouveau `voiceRoute.ts` (pur) + réglage `voice_cloud.scope` : « Toutes (une seule voix) » par
+    défaut (alertes et coach : attente ≤ 1,5 s ; spotter : jamais de réseau, audio pré-synthétisé ou
+    rempli en arrière-plan, Piper cette fois-là) ; « Infos et réponses seulement » = ancien
+    fonctionnement. `prewarmSpeech` prépare aussi la version en ligne en portée « toutes » ;
+    « Préparer la voix » ajoute alertes fixes + spotter (`CLOUD_PREP_SAFETY_KEYS`). Bouton
+    « Tester » de la voix locale : `localOnly`, reste en Piper.
+  - `coach/service.ts` : jeton de démarrage, abonnement de trop libéré.
+- ✅ Tests : nouvelle suite `voice.suite.ts` (file réelle, faux Tauri + faux Web Audio ; 12 échecs sur
+  l'ancien code : 2 lectures au lieu d'1, voix mélangées, alerte bloquée, 2 abonnements), contrôle
+  des clés préparées dans `radio.suite.ts`. `npm test` 922, `tsc -b`, `eslint .`, `cargo test --lib`.
+  Changelog 1.0.10 (correctif + deux entrées voix en ligne mises à jour, 5 langues).
+- ⏳ Non vérifié en jeu. Pas de requête à 127.0.0.1:6397 pour ce travail.
+- 📋 **Prochaine étape** : une sortie de 10 min avec voix en ligne en portée « toutes » (Config →
+  Audio / Voix), d'abord « Préparer la voix » : vérifier une seule voix (drapeaux, accusé, coach) et
+  aucune phrase en double ; le compteur de replis de la Config dit combien de phrases Piper a dû dire.
 
 ### 2026-10-16 — Toutes les branches ouvertes fusionnées dans `main`
 

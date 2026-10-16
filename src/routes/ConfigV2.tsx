@@ -1367,6 +1367,7 @@ export function ConfigV2() {
                                 previewVoice(
                                   t("config.voiceTestPhrase"),
                                   i18n.language,
+                                  { localOnly: true },
                                 )
                               }
                             >

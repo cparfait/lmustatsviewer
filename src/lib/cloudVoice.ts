@@ -1,10 +1,10 @@
 /**
  * Voix en ligne avec la clé de l'utilisateur — **option désactivée par défaut**.
  *
- * Piper reste le moteur de référence : la voix en ligne n'est essayée que pour
- * les annonces d'information et les réponses au pilote (jamais pour la sécurité :
- * drapeaux, crevaison, spotter — cf. `voice.ts`), et toute erreur ou lenteur
- * repasse sur Piper pour la phrase concernée. Après deux échecs d'affilée, la
+ * Piper reste le moteur de secours : toute erreur ou lenteur repasse sur Piper
+ * pour la phrase concernée. Ce que la voix en ligne dit dépend de sa portée
+ * (`scope`, cf. `voiceRoute.ts`) : toute la radio (une seule voix, défaut) ou
+ * seulement les infos et les réponses au pilote. Après deux échecs d'affilée, la
  * voix en ligne est mise en pause une minute (réseau coupé, quota épuisé…) pour
  * ne pas ajouter un délai à chaque annonce.
  *
@@ -22,6 +22,7 @@ import {
   type CloudVoiceOption,
   type CloudVoiceProviderId,
 } from "@/lib/cloudVoiceProviders";
+import type { CloudScope } from "@/lib/voiceRoute";
 
 export interface CloudVoiceSettings {
   enabled: boolean;
@@ -32,6 +33,8 @@ export interface CloudVoiceSettings {
   voice: string;
   /** Voix choisie par langue (code 2 lettres), prioritaire sur `voice`. */
   voiceByLang: Record<string, string>;
+  /** Annonces confiées à la voix en ligne : toutes (une seule voix) ou les infos seulement. */
+  scope: CloudScope;
 }
 
 export interface CloudVoiceUsage {
@@ -56,7 +59,14 @@ export interface CloudVoiceSnapshot {
   prep: CloudPrepState | null;
 }
 
-const DEFAULTS: CloudVoiceSettings = { enabled: false, provider: "openai", model: "", voice: "", voiceByLang: {} };
+const DEFAULTS: CloudVoiceSettings = {
+  enabled: false,
+  provider: "openai",
+  model: "",
+  voice: "",
+  voiceByLang: {},
+  scope: "all",
+};
 /** Délai d'une annonce en course : au-delà, Piper parle à la place. */
 const RADIO_TIMEOUT_MS = 3000;
 const FAIL_LIMIT = 2;
@@ -114,6 +124,8 @@ export async function initCloudVoice(raw?: string | null, rawUsage?: string | nu
                 ),
               )
             : {},
+        // Réglage absent (avant 1.0.10) : une seule voix, comme demandé au retour 2026-10-16.
+        scope: parsed.scope === "info" ? "info" : "all",
       };
     }
   } catch {
@@ -222,6 +234,11 @@ export function cloudVoiceReady(): boolean {
   return (
     settings.enabled && apiKey !== "" && effectiveVoice() !== "" && isTauri() && Date.now() >= pausedUntil
   );
+}
+
+/** Portée de la voix en ligne (cf. `voiceRoute.ts`). */
+export function cloudVoiceScope(): CloudScope {
+  return settings.scope;
 }
 
 /** Identité du rendu (cache mémoire de `voice.ts`) : change avec le fournisseur, le modèle ou la voix. */

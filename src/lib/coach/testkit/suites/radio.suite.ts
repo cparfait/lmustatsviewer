@@ -13,7 +13,7 @@ import { VariantPicker, NameDoser, splitVariants, NAME_GAP_S } from "@/lib/engin
 import { ProximitySpotter, occupiedSides } from "@/lib/engineer/proximity";
 import { route } from "@/lib/engineer/router";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
-import { CLOUD_PREP_KEYS, estimateCostUsd, fixedPhrases, isFixedPhrase } from "@/lib/cloudVoicePrep";
+import { CLOUD_PREP_KEYS, CLOUD_PREP_SAFETY_KEYS, estimateCostUsd, fixedPhrases, isFixedPhrase } from "@/lib/cloudVoicePrep";
 import fr from "@/i18n/fr";
 import en from "@/i18n/en";
 import es from "@/i18n/es";
@@ -349,6 +349,18 @@ function cloudPrepSuite() {
   for (const k of ["vFlagYellow", "vPuncture", "vBoxBox", "vPenalty", "vSpotLeft", "vCornerWatching"]) {
     ok(!CLOUD_PREP_KEYS.includes(k), `${k} (sécurité, spotter ou coach) n'est pas préparé`);
   }
+  // Portée « toutes les annonces » (une seule voix) : alertes fixes + spotter.
+  const spotKeys = new Set([...src.matchAll(/"live\.(vSpot\w+)"/g)].map((m) => m[1]));
+  const criticalOnly = (k: string) => [...(prios.get(k) ?? [])].every((p) => p === "critical");
+  for (const k of CLOUD_PREP_SAFETY_KEYS) {
+    ok(spotKeys.has(k) || (prios.has(k) && criticalOnly(k)), `${k} : alerte critique ou phrase du spotter`);
+    ok(!CLOUD_PREP_KEYS.includes(k), `${k} : pas en double avec les infos`);
+  }
+  for (const [k] of prios) {
+    if (criticalOnly(k)) ok(CLOUD_PREP_SAFETY_KEYS.includes(k), `${k} (critique, sans variable) est préparé en portée « toutes »`);
+  }
+  for (const k of spotKeys) ok(CLOUD_PREP_SAFETY_KEYS.includes(k), `${k} (spotter) est préparé en portée « toutes »`);
+  ok(!CLOUD_PREP_SAFETY_KEYS.includes("vCornerWatching"), "le coach par virage (chiffré) n'est pas préparé");
 
   // Toutes les variantes, sans doublon ; jamais un gabarit à variable ni un chiffre.
   eq(
@@ -359,6 +371,9 @@ function cloudPrepSuite() {
   eq(fixedPhrases(["a | b"], (s) => s.toUpperCase()), ["A", "B"], "normalisation appliquée à chaque variante");
   const bundles = { fr, en, es, de, it } as unknown as Record<string, { live: Record<string, string> }>;
   for (const [lang, b] of Object.entries(bundles)) {
+    const safety = CLOUD_PREP_SAFETY_KEYS.map((k) => b.live[k]);
+    ok(safety.every((x) => typeof x === "string" && x.length > 0), `${lang} : chaque alerte / phrase du spotter existe`);
+    ok(fixedPhrases(safety, (s) => s).every((p) => isFixedPhrase(p)), `${lang} : alertes et spotter en phrases fixes`);
     const tpls = CLOUD_PREP_KEYS.map((k) => b.live[k]);
     ok(tpls.every((x) => typeof x === "string" && x.length > 0), `${lang} : chaque gabarit existe`);
     const phrases = fixedPhrases(tpls, (s) => s);

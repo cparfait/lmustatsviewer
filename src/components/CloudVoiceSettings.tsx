@@ -1,7 +1,8 @@
 /**
  * Config → Audio / Voix : **voix en ligne avec ta propre clé** (bêta, désactivée
- * par défaut). Piper reste la voix de référence et le repli ; les alertes de
- * sécurité ne passent jamais par le réseau (cf. `lib/cloudVoice.ts`).
+ * par défaut). Piper reste le repli. Portée au choix : toute la radio dans une
+ * seule voix (défaut) ou les infos seulement, alertes en voix locale
+ * (cf. `lib/voiceRoute.ts`).
  */
 
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -34,7 +35,8 @@ import {
   updateCloudVoice,
   type CloudPrepPlan,
 } from "@/lib/cloudVoice";
-import { CLOUD_PREP_KEYS, estimateCostUsd } from "@/lib/cloudVoicePrep";
+import { CLOUD_PREP_KEYS, CLOUD_PREP_SAFETY_KEYS, estimateCostUsd } from "@/lib/cloudVoicePrep";
+import type { CloudScope } from "@/lib/voiceRoute";
 import { getMessageText } from "@/lib/voiceMessages";
 import { isTauri } from "@/lib/api";
 import { cloudPrepTexts, previewCloudVoice } from "@/lib/voice";
@@ -263,8 +265,9 @@ function PrepareVoice() {
   useEffect(() => {
     if (!isTauri() || !hasKey || running) return;
     let alive = true;
+    const keys = settings.scope === "all" ? [...CLOUD_PREP_KEYS, ...CLOUD_PREP_SAFETY_KEYS] : CLOUD_PREP_KEYS;
     const { code, rate: r, texts } = cloudPrepTexts(
-      CLOUD_PREP_KEYS.map((k) => getMessageText(lang, k)),
+      keys.map((k) => getMessageText(lang, k)),
       lang,
     );
     planCloudPrep(texts, code, r)
@@ -320,7 +323,7 @@ function PrepareVoice() {
             size="sm"
             className="h-8"
             disabled={!plan || plan.missing.length === 0 || !effectiveVoice()}
-            title={t("config.cloudVoicePrepHint")}
+            title={t(settings.scope === "all" ? "config.cloudVoicePrepHintAll" : "config.cloudVoicePrepHint")}
             onClick={() => void start()}
           >
             {t("config.cloudVoicePrep")}
@@ -423,6 +426,18 @@ export function CloudVoiceSettings() {
             </Row>
           )}
           <VoicePicker />
+          <Row label={t("config.cloudVoiceScope")} desc={t("config.cloudVoiceScopeDesc")}>
+            <Select
+              value={settings.scope}
+              onValueChange={(v) => void updateCloudVoice({ scope: v as CloudScope })}
+              ariaLabel={t("config.cloudVoiceScope")}
+              className="h-8 px-2.5"
+              options={[
+                { value: "all", label: t("config.cloudVoiceScopeAll") },
+                { value: "info", label: t("config.cloudVoiceScopeInfo") },
+              ]}
+            />
+          </Row>
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs text-muted-foreground/80">
               {t("config.cloudVoiceUsage", {
@@ -455,7 +470,9 @@ export function CloudVoiceSettings() {
               {t("config.cloudVoiceLastError", { error: lastError })}
             </div>
           )}
-          <div className="text-xs text-muted-foreground/70">{t("config.cloudVoiceSafety")}</div>
+          <div className="text-xs text-muted-foreground/70">
+            {t(settings.scope === "all" ? "config.cloudVoiceSafetyAll" : "config.cloudVoiceSafety")}
+          </div>
         </>
       )}
     </div>

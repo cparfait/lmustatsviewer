@@ -903,6 +903,8 @@ citait encore carte récap et championnats) ; « mets le logo plutôt à gauche 
 - ✅ `ProfileCareer.tsx` : filtres année / en ligne / classe sans largeur fixe (comme les filtres de
   Records), libellés accessibles ; sous-titre `career.subtitle` mis à jour (5 langues).
 - ✅ `Footer.tsx` : avatar (easter egg) déplacé devant « LMU Stats Viewer · vX ».
+  Puis, à la demande (« entre GitHub et Buy me a coffee, pas plus haut que le Buy me ») : placé entre
+  les deux liens, `h-7` (hauteur du bouton jaune), plus de grossissement au survol (rotation seule).
 - 📋 **Prochaine étape** : coup d'œil dans l'app (Profil → Saison, pied de page).
 
 ### 2026-10-16 — Voix IA : voix choisie visible, banc d'écoute plus clair

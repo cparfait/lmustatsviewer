@@ -22,7 +22,8 @@ import type { Tr } from "@/i18n";
 import { speak as rawSpeak, cancelSpeech, type VoicePriority } from "@/lib/voice";
 import { inCriticalZone } from "@/lib/driving";
 import { computeStrategy } from "@/lib/strategy";
-import { aeroDamage, brakePads, damagedSuspensions, effectivePitLoss, WHEELS } from "@/lib/lmuRest";
+import { aeroDamage, brakePads, damagedSuspensionsOrNull, effectivePitLoss, WHEELS } from "@/lib/lmuRest";
+import { AlertLatch } from "./alertLatch";
 import { useAppStore } from "@/stores/app";
 import { RadioArbiter, type Candidate } from "./arbiter";
 import { ToneArbiter, setSharedTone, BATTLE_GAP_S } from "./tone";
@@ -176,9 +177,15 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const tyreWarned = useRef(false);
   /** Plaquettes : 0 = rien dit, 1 = alerte 25 % dite, 2 = alerte 10 % dite. */
   const padsLevel = useRef(0);
-  /** Roues dont la suspension touchée a déjà été annoncée. */
-  const suspSaid = useRef<Set<number>>(new Set());
-  const aeroSaid = useRef(false);
+  // Alertes de dégâts : annoncées une fois, réarmées après un vrai retour à la
+  // normale (cf. alertLatch.ts — rafales sur le bas-côté, 2026-10-16).
+  const dmgLatch = useRef({
+    damage: new AlertLatch(),
+    puncture: new AlertLatch(),
+    detached: new AlertLatch(),
+    aero: new AlertLatch(),
+    susp: [0, 1, 2, 3].map(() => new AlertLatch()),
+  });
   const tyreSeenFresh = useRef(false);
   const coldWarned = useRef(false);
   const prevPos = useRef<number>(0);
@@ -200,8 +207,6 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const gapAheadWarned = useRef(false);
   const underAttackWarned = useRef(false);
   const prevPitstops = useRef(0);
-  const punctureWarned = useRef(false);
-  const detachedWarned = useRef(false);
   // Surchauffes : état « seuil tenu » (since = début au-dessus du seuil, last = dernière annonce).
   const tyreHot = useRef({ since: 0, last: 0 });
   const brakeHot = useRef({ since: 0, last: 0 });
@@ -311,8 +316,10 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       tyreSeenFresh.current = false;
       tyreWarned.current = false;
       coldWarned.current = false;
-      punctureWarned.current = false;
-      detachedWarned.current = false;
+      {
+        const l = dmgLatch.current;
+        [l.damage, l.puncture, l.detached, l.aero, ...l.susp].forEach((x) => x.rearm());
+      }
       tyreHot.current = { since: 0, last: 0 };
       brakeHot.current = { since: 0, last: 0 };
       brakeAvg.current = newBrakeAvg();
@@ -432,19 +439,20 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     }
 
     // ── Dégâts détaillés (donnée du jeu) : quelle suspension, aéro ────────────
-    const susp = damagedSuspensions(data.rest);
-    if (susp.length === 0) suspSaid.current.clear();
-    const newSusp = susp.filter((i) => !suspSaid.current.has(i));
+    // Donnée inconnue (REST muet un instant) : ne réarme rien.
+    const susp = damagedSuspensionsOrNull(data.rest);
+    const newSusp = [0, 1, 2, 3].filter((i) =>
+      dmgLatch.current.susp[i].update(susp == null ? null : susp.includes(i), now),
+    );
     if (warmedUp && newSusp.length) {
       const wheels = newSusp.map((i) => t(`live.wheelVoice.${WHEELS[i].toLowerCase()}`)).join(", ");
       say("mech:suspension", t("live.vSuspensionDamage", { wheels }), "normal", { score: 60, retryS: 20 });
-      newSusp.forEach((i) => suspSaid.current.add(i));
     }
     const aero = aeroDamage(data.rest);
-    if (aero != null && aero < 0.02) aeroSaid.current = false;
-    if (warmedUp && aero != null && aero >= 0.1 && !aeroSaid.current) {
+    // Hystérésis : annonce ≥ 10 %, réarmement < 2 %, entre les deux inchangé.
+    const aeroActive = aero == null ? null : aero >= 0.1 ? true : aero < 0.02 ? false : null;
+    if (dmgLatch.current.aero.update(aeroActive, now) && warmedUp && aero != null) {
       say("mech:aero", t("live.vAeroDamage", { pct: Math.round(aero * 100) }), "normal", { score: 50, retryS: 20 });
-      aeroSaid.current = true;
     }
 
     const inPits = playerStanding?.in_pits ?? false;
@@ -956,7 +964,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
     // ── Dégâts importants — bond soudain (> 10 points) ───────────────────────
     const dmg = tel?.damage_total ?? 0;
-    if (warmedUp && dmg - prevDamage.current > 10) {
+    if (dmgLatch.current.damage.update(dmg - prevDamage.current > 10, now) && warmedUp) {
       say("mech:damage", t("live.vDamage"), "critical");
       lastDamageAt.current = now;
     }
@@ -967,19 +975,13 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (tel && warmedUp) {
       // Crevaison.
       const flat = tel.wheels.some((w) => w.flat);
-      if (flat && !punctureWarned.current) {
+      if (dmgLatch.current.puncture.update(flat, now)) {
         say("mech:puncture", t("live.vPuncture"), "critical");
-        punctureWarned.current = true;
-      } else if (!flat) {
-        punctureWarned.current = false;
       }
       // Roue arrachée.
       const detached = tel.wheels.some((w) => w.detached);
-      if (detached && !detachedWarned.current) {
+      if (dmgLatch.current.detached.update(detached, now)) {
         say("mech:detached", t("live.vWheelDetached"), "critical");
-        detachedWarned.current = true;
-      } else if (!detached) {
-        detachedWarned.current = false;
       }
       // Pneus en surchauffe : seuil tenu ≥ 10 s, puis silence 2 min (anti-spam).
       const tyreTemps = tel.wheels.map((w) => w.temp).filter((x) => x > 0 && x < 250);

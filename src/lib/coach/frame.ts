@@ -15,6 +15,7 @@
  */
 
 import type { LiveData } from "@/lib/api";
+import { isSectorYellow } from "@/lib/sectorFlags";
 
 /** Une trame de pilotage prête pour le moteur (unités homogènes). */
 export interface CoachFrame {
@@ -125,7 +126,7 @@ export function frameFromLive(data: LiveData | null): CoachFrame | null {
   // Jaune = FCY global ou drapeau local sur un secteur (§3.2).
   const yellow =
     (flags?.yellow_flag_state ?? 0) > 0 ||
-    (flags?.sector_flags?.some((s) => s > 0) ?? false);
+    (flags?.sector_flags?.some(isSectorYellow) ?? false);
 
   // Pneus en fenêtre : carcasse mini des 4 roues ≥ seuil. Heuristique conservatrice
   // (attrape l'out-lap froid, tolère le chaud) en attendant des fenêtres par gomme (P3).

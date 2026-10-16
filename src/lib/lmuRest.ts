@@ -73,13 +73,20 @@ export function officialEnergyPerLap(rest: LmuRestLive | null | undefined): numb
  * la fin est `startEventTime + maxTime` (recoupé par `currentEventTime +
  * timeRemainingInGamePhase` en vert). Null si l'info est périmée, si la séance
  * est au tour, ou si l'horloge REST ne colle pas à celle de la mémoire partagée.
+ *
+ * Avant le départ (phase < 5 : grille, formation, compte à rebours), relevé en
+ * course le 2026-10-16 : `startEventTime` = 0 et `timeRemainingInGamePhase` = -1,
+ * puis `startEventTime` passe à l'heure du vert (105 s après 1 min 45 de
+ * formation). Le chrono de course ne tourne pas encore : il reste toute la
+ * durée, donc fin = maintenant + `maxTime`.
  */
 export function restSessionEnd(rest: LmuRestLive | null | undefined, sessionTime: number): number | null {
   const s = fresh(rest?.session);
   if (!s || s.max_time == null || !(s.max_time > 0 && s.max_time < 200_000)) return null;
   if (s.maximum_laps != null && s.maximum_laps > 0 && s.maximum_laps < 100_000) return null;
   if (s.current_event_time != null && Math.abs(s.current_event_time - sessionTime) > CLOCK_TOLERANCE_S) return null;
-  const end = (s.start_event_time ?? 0) + s.max_time;
+  const beforeGreen = s.game_phase != null && s.game_phase >= 0 && s.game_phase < 5;
+  const end = beforeGreen ? (s.current_event_time ?? sessionTime) + s.max_time : (s.start_event_time ?? 0) + s.max_time;
   return end > (s.current_event_time ?? sessionTime) + 1 ? end : null;
 }
 
@@ -144,18 +151,30 @@ export function brakePads(rest: LmuRestLive | null | undefined): number[] | null
 
 export const WHEELS = ["FL", "FR", "RL", "RR"] as const;
 
-/** Roues dont la suspension est touchée (dégât > seuil), d'après le jeu. */
-export function damagedSuspensions(rest: LmuRestLive | null | undefined, threshold = 0.05): number[] {
+/**
+ * Roues dont la suspension est touchée (dégât > seuil), d'après le jeu ; null
+ * si le jeu ne dit rien en ce moment (à ne pas confondre avec « rien de touché »).
+ */
+export function damagedSuspensionsOrNull(rest: LmuRestLive | null | undefined, threshold = 0.05): number[] | null {
   const v = fresh(rest?.vehicle)?.suspension_damage;
   const s = v && v.length === 4 ? v : (pitScreen(rest)?.suspension_wear ?? []);
-  if (s.length !== 4) return [];
+  if (s.length !== 4) return null;
   return s.map((x, i) => (x > threshold ? i : -1)).filter((i) => i >= 0);
 }
 
-/** Dégâts aéro (0-1) d'après l'écran des stands, ou null. */
+/** Roues dont la suspension est touchée (dégât > seuil), d'après le jeu. */
+export function damagedSuspensions(rest: LmuRestLive | null | undefined, threshold = 0.05): number[] {
+  return damagedSuspensionsOrNull(rest, threshold) ?? [];
+}
+
+/**
+ * Dégâts aéro (0-1) d'après l'écran des stands, ou null. Relevé réel
+ * (2026-10-16, Road Atlanta) : la valeur dépasse 1 après un gros choc (1,89,
+ * suspension AR D cassée) → bornée à 1 pour ne jamais annoncer « 189 % ».
+ */
 export function aeroDamage(rest: LmuRestLive | null | undefined): number | null {
   const a = pitScreen(rest)?.aero_damage;
-  return a != null && isFinite(a) && a >= 0 ? a : null;
+  return a != null && isFinite(a) && a >= 0 ? Math.min(1, a) : null;
 }
 
 /** Durée prévue du prochain arrêt avec le menu actuel (s), ou null. */

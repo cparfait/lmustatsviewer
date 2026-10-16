@@ -92,6 +92,11 @@ export function VoiceCoachConfig() {
             <div className="text-xs text-muted-foreground/70">
               {t("config.aiVoiceModelHint")}
             </div>
+            {same && (
+              <div className="text-xs text-muted-foreground">
+                {getProvider(aiProvider)?.name ?? aiProvider} · {aiModel || "—"}
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

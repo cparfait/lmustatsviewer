@@ -820,10 +820,13 @@ struct PollState {
     /// Voie des stands du jeu (allégée), pour le circuit courant.
     pit_lane: Vec<[f64; 2]>,
     // ── Bornes de secteurs ───────────────────────────────────────────────
-    /// Dernier secteur vu par voiture (`mID` → `mSector`).
-    last_sector: HashMap<i32, u8>,
+    /// Dernier secteur vu par voiture (`mID` → (`mSector`, lap_dist)).
+    last_sector: HashMap<i32, (u8, f64)>,
     /// Fins de S1 / S2 : (moyenne lap_dist, nombre de mesures).
     sector_bounds: [(f64, u32); 2],
+    /// Mesures rejetées mais concordantes entre elles (moyenne, nombre) : une
+    /// borne fausse (déjà sauvegardée) est remplacée quand elles s'accumulent.
+    sector_challengers: [(f64, u32); 2],
     /// Mesures de secteurs déjà écrites sur disque.
     sectors_saved: u32,
 }
@@ -857,6 +860,7 @@ impl PollState {
             pit_lane: Vec::new(),
             last_sector: HashMap::new(),
             sector_bounds: [(0.0, 0); 2],
+            sector_challengers: [(0.0, 0); 2],
             sectors_saved: 0,
         }
     }
@@ -874,22 +878,52 @@ impl PollState {
 
     /// Une voiture change de secteur à `lap_dist` (mSector : 1 = S1, 2 = S2,
     /// 0 = S3). 1→2 = fin de S1, 2→0 = fin de S2. Moyenne glissante bornée,
-    /// mesures aberrantes (> 100 m de la moyenne) ignorées.
-    fn record_sector(&mut self, id: i32, sector: u8, lap_dist: f64) {
-        let prev = self.last_sector.insert(id, sector);
-        let slot = match (prev, sector) {
-            (Some(1), 2) => 0,
-            (Some(2), 0) => 1,
+    /// mesures aberrantes (> 100 m de la moyenne) écartées.
+    ///
+    /// Relevé réel (2026-10-16, course à Road Atlanta) : sur la grille, les
+    /// voitures passent de 2 à 0 sans bouger, vers 3 999 m (≈ 50 fausses fins
+    /// de S2). On ne compte donc qu'en piste (`green` : phases 5/6) et que si
+    /// la voiture a réellement avancé depuis la trame précédente.
+    fn record_sector(&mut self, id: i32, sector: u8, lap_dist: f64, green: bool) {
+        let prev = self.last_sector.insert(id, (sector, lap_dist));
+        if !green {
+            return;
+        }
+        let slot = match prev {
+            Some((1, d)) if sector == 2 && moved_forward(d, lap_dist) => 0,
+            Some((2, d)) if sector == 0 && moved_forward(d, lap_dist) => 1,
             _ => return,
         };
         let (mean, n) = &mut self.sector_bounds[slot];
         if *n >= 3 && (lap_dist - *mean).abs() > 100.0 {
+            // Borne contestée : si 5 mesures rejetées concordent, elles la
+            // remplacent (borne fausse héritée d'une ancienne version).
+            let (cm, cn) = &mut self.sector_challengers[slot];
+            if *cn == 0 || (lap_dist - *cm).abs() > 100.0 {
+                *cm = lap_dist;
+                *cn = 1;
+            } else {
+                *cm = (*cm * *cn as f64 + lap_dist) / (*cn as f64 + 1.0);
+                *cn += 1;
+            }
+            if *cn >= 5 {
+                self.sector_bounds[slot] = (*cm, *cn);
+                self.sector_challengers[slot] = (0.0, 0);
+            }
             return;
         }
+        self.sector_challengers[slot] = (0.0, 0);
         let k = (*n).min(19) as f64;
         *mean = (*mean * k + lap_dist) / (k + 1.0);
         *n = (*n + 1).min(1000);
     }
+}
+
+/// La voiture a avancé normalement entre deux trames (ni arrêt, ni saut,
+/// ni téléportation au garage).
+fn moved_forward(prev: f64, now: f64) -> bool {
+    let d = now - prev;
+    d > 0.5 && d < 150.0
 }
 
 /// Écart (m) au-delà duquel un bucket appris est jugé aberrant face au tracé du
@@ -1440,6 +1474,7 @@ fn extract(state: &mut PollState) -> LiveData {
             None => [(0.0, 0); 2],
         };
         state.last_sector.clear();
+        state.sector_challengers = [(0.0, 0); 2];
         state.sectors_saved = state.sector_bounds[0].1 + state.sector_bounds[1].1;
         // Tracé du jeu : réexaminé pour ce circuit.
         state.game_map_gen = 0;
@@ -1474,6 +1509,8 @@ fn extract(state: &mut PollState) -> LiveData {
     let mut standings: Vec<LiveStanding> = Vec::new();
     let (mut min_x, mut max_x, mut min_z, mut max_z) =
         (f64::INFINITY, f64::NEG_INFINITY, f64::INFINITY, f64::NEG_INFINITY);
+    // Bornes de secteurs : seulement drapeau vert / FCY (pas grille ni formation).
+    let green = matches!(scor_info.m_game_phase, 5 | 6);
 
     for i in 0..n {
         let v = match veh_scor(i) {
@@ -1500,7 +1537,7 @@ fn extract(state: &mut PollState) -> LiveData {
         // Accumulation du tracé (résolution 20 m, hors stands, moyenne 2 passages).
         let lap_dist = v.m_lap_dist;
         if lap_dist > 0.0 && v.m_in_pits == 0 {
-            state.record_sector(v.m_id, v.m_sector, lap_dist);
+            state.record_sector(v.m_id, v.m_sector, lap_dist, green);
             // Échantillons de recalage du tracé du jeu (espacés d'au moins 50 m).
             if state.game_poly.is_some()
                 && state.align_samples.len() < 40
@@ -1949,4 +1986,53 @@ pub fn stop_live_polling(window: tauri::Window) -> Result<(), AppError> {
         LIVE_POLLING.store(false, Ordering::SeqCst);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Une voiture qui roule de `from` à `to` (pas de 10 m), en changeant de
+    /// secteur à `at`.
+    fn drive(st: &mut PollState, id: i32, from: f64, to: f64, at: f64, s_before: u8, s_after: u8) {
+        let mut d = from;
+        while d <= to {
+            st.record_sector(id, if d < at { s_before } else { s_after }, d, true);
+            d += 10.0;
+        }
+    }
+
+    #[test]
+    fn grid_flip_is_not_a_sector_bound() {
+        // Relevé réel (Road Atlanta, 2026-10-16) : sur la grille, 2 → 0 sur
+        // place vers 3 999 m, puis en formation (phase 3).
+        let mut st = PollState::new();
+        for id in 0..50 {
+            st.record_sector(id, 2, 3999.0, false);
+            st.record_sector(id, 0, 3999.0, false);
+            st.record_sector(id, 2, 3999.0, true);
+            st.record_sector(id, 0, 3999.0, true); // même vert : pas bougé
+        }
+        assert_eq!(st.sector_bounds[1].1, 0);
+        for id in 0..3 {
+            drive(&mut st, id, 2400.0, 2700.0, 2535.0, 2, 0);
+        }
+        let s2 = st.sector_bounds[1];
+        assert_eq!(s2.1, 3);
+        assert!((s2.0 - 2535.0).abs() < 10.0, "{s2:?}");
+    }
+
+    #[test]
+    fn wrong_saved_bound_heals() {
+        let mut st = PollState::new();
+        st.sector_bounds = [(589.0, 51), (3999.0, 84)]; // borne fausse sauvegardée
+        for id in 0..4 {
+            drive(&mut st, id, 2400.0, 2700.0, 2535.0, 2, 0);
+        }
+        assert!((st.sector_bounds[1].0 - 3999.0).abs() < 1.0, "4 mesures : pas encore");
+        drive(&mut st, 9, 2400.0, 2700.0, 2535.0, 2, 0);
+        let s2 = st.sector_bounds[1];
+        assert!((s2.0 - 2535.0).abs() < 10.0, "{s2:?}");
+        assert_eq!(st.sector_dists().len(), 2);
+    }
 }

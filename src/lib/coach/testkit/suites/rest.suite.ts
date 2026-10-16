@@ -7,6 +7,7 @@
 
 import { section, ok, eq, approx } from "../assert";
 import {
+  aeroDamage,
   brakePads,
   effectivePitLoss,
   enrichLive,
@@ -19,6 +20,7 @@ import {
   restStatus,
 } from "@/lib/lmuRest";
 import { fromGameNodes, pickForecast } from "@/lib/engineer/forecast";
+import { AlertLatch } from "@/lib/engineer/alertLatch";
 import { coverage, mapComplete, nearestIndex, sectorOf, sectorPolylines, splitRuns } from "@/lib/trackMapGeom";
 import { isSetupQuestion } from "@/lib/ai/context/records-context";
 import type { LiveData, LmuRestLive, RestField, RestPitScreen, RestSessionInfo, RestVehicle, RestWeekendWeather } from "@/lib/api";
@@ -116,6 +118,16 @@ export function run(): void {
   eq(restSessionEnd(rest(), 500), null, "horloges divergentes (autre séance) : ignoré");
   eq(restSessionEnd(rest({ session: field(sessionInfo, "stale") }), 12), null, "périmé : ignoré");
   eq(restSessionEnd(rest({ session: field({ ...sessionInfo, maximum_laps: 20 }) }), 12), null, "course au tour : ignoré");
+  {
+    // Relevé réel 2026-10-16, course de 10 min : formation puis vert à 105 s.
+    const race = { ...sessionInfo, session: "RACE1", max_time: 600, start_event_time: 0, time_remaining_in_phase: -1 };
+    eq(restSessionEnd(rest({ session: field({ ...race, game_phase: 3, current_event_time: 78 }) }), 78), 678, "formation : toute la durée reste (pas 0 + maxTime)");
+    eq(
+      restSessionEnd(rest({ session: field({ ...race, game_phase: 5, current_event_time: 164, start_event_time: 104.9 }) }), 164),
+      704.9,
+      "après le vert : départ + maxTime",
+    );
+  }
 
   section("lmuRest.enrichLive");
   {
@@ -154,6 +166,28 @@ export function run(): void {
     approx(tr.lapsTo(0.94)!, 42, 1e-6, "tours avant 10 %");
     tr.push(1);
     eq(tr.perLap(), null, "plaquettes changées : repart de zéro");
+    // Relevé réel 2026-10-16 : 1,89 après un gros choc.
+    eq(aeroDamage(rest({ pit: field(pit({ aero_damage: 1.888 })) })), 1, "dégâts aéro > 1 bornés à 100 %");
+    eq(aeroDamage(rest({ pit: field(pit({ aero_damage: 0.25 })) })), 0.25, "dégâts aéro normaux");
+  }
+
+  section("AlertLatch (dégâts : pas de rafale sur le bas-côté)");
+  {
+    const l = new AlertLatch(5_000, 60_000);
+    eq(l.update(true, 0), true, "1re annonce");
+    eq(l.update(true, 1_000), false, "toujours actif : silence");
+    eq(l.update(false, 2_000), false, "trame saine isolée");
+    eq(l.update(true, 2_100), false, "clignotement : pas de réannonce");
+    eq(l.update(null, 3_000), false, "donnée inconnue : rien");
+    eq(l.update(true, 3_100), false, "inconnu ne réarme pas");
+    l.update(false, 10_000);
+    l.update(false, 16_000);
+    eq(l.update(true, 30_000), false, "réarmé mais < 60 s depuis la dernière annonce");
+    l.update(false, 61_000);
+    l.update(false, 67_000);
+    eq(l.update(true, 70_000), true, "vrai retour à la normale puis nouveau dégât");
+    l.rearm();
+    eq(l.update(true, 71_000), false, "réarmement de séance : l'écart minimal tient");
   }
 
   section("lmuRest.perte au stand");

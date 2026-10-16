@@ -284,7 +284,12 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   - Table du menu des stands : `"99% 39 laps"`, `"3% 1 tour"` (mots mélangés, tours **tronqués** ; `getPlayerGarageData.VM_VIRTUAL_ENERGY.lastSavedStringValue` donne `"100% (39.8 laps)"`). Pente par moindres carrés + ½ tour → erreur < 1 %.
   - `getVehicleCondition.brakeCondition` ≈ 1 sur plaquettes neuves (fraction restante) ; `RepairAndRefuel.wearables.brakes` ≈ 0,038 = **autre grandeur** (épaisseur ?), non utilisée.
   - `watch/trackmap` : points typés — 0 = boucle de course (816 pts, 4 038 m à Atlanta), 1 = voie des stands, 2..53 / 106..159 = paires de points de box. **Même repère monde que `mPos`** (écart médian 5,7 m après recalage sur le tracé appris, test `align_real_road_atlanta`).
-  - Non vérifié en jeu (séance fermée avant) : `endEventTime`/`maxTime` pendant un **tour de formation**, `pitStopLength` avec ravitaillement/pneus sélectionnés, chance de pluie ≠ 0, sens des index `sector_flags`.
+  - ✅ **Tour de formation** (course de 10 min, 2026-10-16) : phase 3, `startEventTime` = **0**, `maxTime` = 600, `timeRemainingInGamePhase` = −1 ; au vert (phase 5, 105 s) `startEventTime` = 104,9. Avant le vert, fin = maintenant + `maxTime` (`restSessionEnd`). En vert, `mEndET` (mémoire partagée) = 705 = départ + `maxTime` ✅.
+  - ✅ `pitStopLength.timeInSeconds` suit le menu en direct : ~2 s (rien de sélectionné), **186,6 s** avec « Tout réparer » après un choc. Avec carburant + pneus seuls : ⏳ non relevé.
+  - ✅ Dégâts : `getVehicleCondition.vehicleDamage` = `wearables.body.aero` = **1,89** après un gros choc (suspension AR D à 1, pneu AR D à 0) → **l'échelle dépasse 1**, bornée à 100 % côté app. `suspensionDamage` = 1 sur la roue cassée.
+  - ⚠️ **`mSectorFlag` (mémoire partagée)** vaut **11** hors jaune ; vus aussi 1, 2, 3 (`[1,11,11]` > 3 min en vert, `yellow_flag_state` 0 ; `[1,2,2]` en phase 8). Lu « jaune » seulement si **=== 1** (`lib/sectorFlags.ts`), **non prouvé** ; l'ordre des index (S(i+1) ou 0 = S3 comme `mSector`) **non confirmé**. Le `sectorFlag` REST (`UNKNOWN`/`YELLOW` ×3) ne colle pas à la mémoire partagée → inutilisable.
+  - ✅ `mSector` des voitures : 1 = S1, 2 = S2, **0 = S3** (frontière S2/S3 ≈ 2 535 m à Atlanta). Sur la **grille**, les voitures passent de 2 à 0 **sur place** vers 3 999 m → bornes mesurées seulement en phase 5/6 et si la voiture avance.
+  - ⏳ Non vérifié : conso « jeu » au 1er tour d'une voiture **sans** énergie virtuelle (essais faits en Hypercar), `pitStopLength` carburant + pneus et `pit_lane_loss_map`, alertes plaquettes + question « plaquettes ? », chance de pluie ≠ 0, carte complète dès la sortie des stands (corde vue sur la voie des stands).
 - Live : plugin shared memory rF2 (`$rFactor2SMMP_Telemetry$` / `$rFactor2SMMP_Scoring$`) — l'utilisateur doit l'installer dans `<LMU>/Plugins/`.
 - ~~**À faire — badge Online/Solo**~~ : **abandonné** (2026-06-03). Redondant : la distinction est déjà visible via le type de réglage « En ligne » (Multiplayer) vs « Week-end de course » (Race Weekend) affiché dans les tableaux.
 - **Idée future — plugin SimHub** (pour les fans de SimHub) : proposer un **plugin SimHub** apportant les annonces vocales « ingénieur de course » (et/ou des propriétés de données) dans l'écosystème SimHub. ⚠️ Sous-projet **séparé en C#** (SimHub Plugin SDK / `IDataPlugin`), distinct du code Tauri/Rust : la logique de callouts (`useVoiceCallouts`) serait **réimplémentée** côté C# à partir de la télémétrie que SimHub fournit déjà. Indépendant de l'app principale. À planifier plus tard. Alternative plus légère côté app : fenêtre **overlay transparente always-on-top** (Tauri) au lieu d'un vrai plugin SimHub.
@@ -866,6 +871,68 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-16 — Validation en jeu du pont REST (1re séance) + Coach / Voix IA
+
+**Demande** (session lancée par « Pont REST LMU ») : valider 3f2c2da en conditions réelles (7 points)
+et corriger ; puis, en direct, retours du mainteneur sur le Coach IA et les annonces de dégâts.
+Séance : Road Atlanta, Hypercar, essais puis course de 10 min ; le mainteneur roule au clavier
+(débutant), accident dans le 1er tour, voiture bloquée en S1 jusqu'à la fin. Méthode : app en
+`tauri dev` avec port de débogage WebView2 (lecture de `live.getData()` sans toucher à la fenêtre)
++ sonde REST GET une route à la fois ; journaux hors dépôt (`live_2026-10-16/` du dossier de notes).
+
+- ✅ Point 1 : pont joignable, données fraîches (météo « périmé » = normal, lue toutes les 60 s) ;
+  point « API du jeu » vert (capture du mainteneur).
+- ✅ Point 4 corrigé : avant le vert `startEventTime` = 0 → l'app aurait sous-estimé le temps restant
+  de toute la formation. `restSessionEnd` : phase < 5 → maintenant + `maxTime` (test sur relevé).
+- ✅ Bornes de secteurs (point 2) : fausse fin de S2 à 3 999 m apprise sur la grille, puis protégée par
+  le rejet des aberrants. `record_sector` : phase 5/6 seulement, voiture qui avance (0,5–150 m) ;
+  5 mesures concordantes remplacent une borne fausse (2 tests Rust).
+- ✅ Point 7 (partiel) : `sector_flags` = 11 hors jaune, le test `> 0` allumait tout (widget Drapeaux,
+  coach `frame.ts` : tous les tours « sous jaune », carte Live). Règle unique `isSectorYellow` (=== 1).
+- ✅ Point 6 (partiel) : dégâts aéro 1,89 → bornés à 100 % ; **annonces de dégâts en boucle** sur le
+  bas-côté (retour mainteneur) → `engineer/alertLatch.ts` : une annonce, réarmement après 5 s de
+  retour à la normale continu, 60 s mini entre deux ; donnée REST manquante = inconnue.
+- ✅ **Coach / Voix IA** (retours mainteneur) : section renommée « Coach / Voix IA » ; « Ouvrir la
+  Config » → `/config?cat=coach` ; sans fournisseur ajouté, plus de « Google / Gemini » fantôme
+  (ancienne valeur par défaut) ni de modèle, ligne d'aide à la place ; réglage vocal « Fournisseur et
+  modèle vocal » + ce qu'il utilise ; fournisseur local sans clé (Ollama) interrogé à l'ouverture
+  (éteint / modèle absent → bandeau, voyant dans le pied).
+- ✅ Tests : `npm test` 384, `cargo test --lib` 44, `tsc -b`, eslint. Changelog 1.0.10 (5 langues).
+  Commit `0600c92`.
+- 📋 **Prochaine étape** : 2e séance (LMP2 sans énergie virtuelle, course 15 min avec formation) :
+  conso « jeu » au 1er tour, formation avec le correctif (`rest_used.sessionEnd` = « game »), carte
+  dès la sortie des stands + corde de la voie des stands, arrêt carburant + 4 pneus (`pitStopLength`,
+  `pit_lane_loss_map`), « plaquettes ? », jaune local situé pour l'ordre des index.
+
+### 2026-10-16 — Carte Live : route asphalte, secteurs lisibles, jaune corrigé
+
+**Demande** : la route de la carte Live est « olive, pas beau » ; les secteurs se voient mal, S1
+absent ; faut-il supprimer l'ancien répertoire de tracés locaux maintenant que le jeu fournit le tracé ?
+
+- ✅ **Cause de l'olive** : ce n'était pas la couleur de la route mais le surlignage « secteur sous
+  jaune » (`#facc15` à 55 % sur `#1c2533`), allumé sur les 3 secteurs : `sector_flags` = `[1, 11, 3]`
+  relu en mémoire partagée (Road Atlanta, phase 8, `yellow_flag_state` 0) et test `> 0`. Carte :
+  `showSectorYellow` = `isSectorYellow` (helper `lib/sectorFlags.ts` de la session de validation)
+  **et** phase 5/6 (en fin de séance le jeu laisse des 1). Surlignage plus net (90 %, 14 u).
+  Sonde de la session de validation en course : 11 presque tout le temps, `[1,11,11]` > 3 min en
+  vert sans jaune global → « 1 = jaune » reste la meilleure lecture, non prouvée (ordre des index aussi).
+- ✅ **Couleurs** (`Live.tsx::TrackMap`, classes Tailwind `dark:` → suivent le thème sans prop) :
+  bord `#374151`/`#4b5565`, asphalte `#6b7280`/`#2b3240` (clair/sombre), ligne médiane blanche
+  50 %/25 %, voie des stands `#9ca3af`/`#3a4250` (12 u).
+- ✅ **Secteurs** : barre blanche cerclée de noir en travers de la route + pastille noire « S2/S3 »
+  posée côté extérieur ; **S1** sur la ligne de départ (barre en damier) — remplace le point blanc.
+- ✅ Vérifié dans l'app (`tauri dev` du worktree, HMR) en thème clair et sombre ; `tsc -b`, `eslint`
+  OK. Changelog 1.0.10 (5 langues).
+- ✅ **Répertoires de tracés — à garder** : `src-tauri/src/data/tracks/` (2 JSON, 16 Ko, embarqués
+  par `include_str!`) = base hors API et fixture du test `track_align` ; `{appdata}/tracks/` = tracé
+  recalé persistant + seul stockage des bornes S1/S2 mesurées ; `community/site/assets/tracks.js`
+  sert le site. L'API REST ne répond qu'en séance (rien au chargement, dans les menus, ni sans
+  voitures en piste pour le recalage).
+- ⏳ Vu sur la carte : la voie des stands du jeu a une **corde** (segment droit de la sortie des
+  stands vers la piste) — donnée `pit_lane_points`, pas la couleur.
+- 📋 Prochaine étape : en séance verte, confirmer le surlignage sous un vrai jaune local (valeur 1,
+  ordre des index) ; puis traiter la corde de la voie des stands (`trackMapGeom`/`live.rs`).
 
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 

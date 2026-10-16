@@ -16,7 +16,9 @@
  * - Circuit Paul Ricard : numérotation du circuit non séquentielle sur le tracé
  *   du jeu (T8/T9 sautés), variante « V2 » ambiguë.
  * Partiels (numéro seul quand le rattachement numéro → nom n'est pas officiel) :
- * Sebring, Interlagos, Imola (carte du circuit : 21 virages, ≠ F1 : 19). Numéros seuls (aucun nom officiel) : Lusail,
+ * Sebring, Interlagos, Imola (carte du circuit : 21 virages, ≠ F1 : 19),
+ * Daytona (numéros NASCAR.com, propriétaire du circuit ; seul nom IMSA gardé).
+ * Long Beach : numéros seuls (noms de sponsors annuels). Numéros seuls (aucun nom officiel) : Lusail,
  * Road Atlanta, Barcelone (noms de sponsors sans source officielle).
  */
 
@@ -257,5 +259,45 @@ export const CORNER_TABLE: CornerTable[] = [
     lengthKm: 4.657,
     corners: seq(Array.from({ length: 14 }, () => null)),
     sources: ["https://www.circuitcat.com/en/news/formula-1/the-formula-1-aws-gran-premio-de-espana-2023-changes-its-track-configuration/"],
+  },
+  {
+    // Site du circuit : « Officially Turns 8 and 8A » ; Corkscrew renommé le 4/09/2026.
+    match: ["lagunaseca", "laguna"],
+    lengthKm: 3.602,
+    corners: [
+      { n: "1", name: null },
+      { n: "2", name: "Andretti Hairpin" },
+      { n: "3", name: null },
+      { n: "4", name: null },
+      { n: "5", name: null },
+      { n: "6", name: null },
+      { n: "7", name: null },
+      { n: "8", name: "Zanardi Corkscrew" },
+      { n: "8A", name: "Zanardi Corkscrew" },
+      { n: "9", name: "Rainey Curve" },
+      { n: "10", name: null },
+      { n: "11", name: null },
+    ],
+    sources: [
+      "https://weathertechraceway.com/pages/track-information",
+      "https://weathertechraceway.com/blogs/news/the-zanardi-corkscrew-officially-dedicated-at-weathertech-raceway-laguna-seca",
+    ],
+  },
+  {
+    // Carte officielle GPLB : 1 à 11 (noms de sponsors non retenus).
+    match: ["longbeach"],
+    lengthKm: 3.167,
+    corners: seq(Array.from({ length: 11 }, () => null)),
+    sources: ["https://gplb.com/circuit-map"],
+  },
+  {
+    // Tracé IMSA 1 à 12 (NASCAR.com) ; « Le Mans Chicane » (IMSA, 2022) = 9-10.
+    match: ["daytona"],
+    lengthKm: 5.729,
+    corners: seq([null, null, null, null, null, null, null, null, "Le Mans Chicane", "Le Mans Chicane", null, null]),
+    sources: [
+      "https://www.nascar.com/news-media/2020/08/12/daytona-road-course-turn-by-turn-analysis/",
+      "https://www.imsa.com/news/2022/01/28/chicanes-at-daytona-le-mans-renamed-in-symbol-of-unity/",
+    ],
   },
 ];

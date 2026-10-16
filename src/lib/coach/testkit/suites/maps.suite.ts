@@ -12,6 +12,7 @@ import { adjust, addRating, familyOf, penalized, RadioLog } from "@/lib/engineer
 import { classSolidColor } from "@/lib/staticData";
 import { route } from "@/lib/engineer/router";
 import atlanta from "../../../../../src-tauri/src/data/tracks/michelin_raceway_road_atlanta.json";
+import longBeach from "../../../../../src-tauri/src/data/tracks/grand_prix_of_long_beach.json";
 
 /** Tracé embarqué (bucket → point) → points + distances, dans l'ordre. */
 function bundled(map: Record<string, [number, number]>): { pts: Pt[]; dists: number[] } {
@@ -84,6 +85,11 @@ export function run(): void {
     const labels = officialCornerLabels("Michelin Raceway Road Atlanta", pts, dists);
     eq(labels.map((l) => l.n).join(" "), "1 2 3 4 5 6 7 8 9 10A 10B 11 12", "numéros officiels posés");
     eq(officialCornerLabels("Circuit inconnu", pts, dists), [], "circuit sans fiche : rien");
+    const lb = bundled(longBeach as unknown as Record<string, [number, number]>);
+    const lbFound = detectTrackCorners(lb.pts, lb.dists).length;
+    console.log(`  · Long Beach : ${lbFound} virages détectés (carte officielle : 11)`);
+    const lbLabels = officialCornerLabels("Grand Prix of Long Beach", lb.pts, lb.dists);
+    ok(lbLabels.length === 0 || lbLabels.length === 11, "Long Beach : tout ou rien");
     eq(cornerTableFor("Autodromo Nazionale Monza")?.corners.length, 11, "Monza : 11");
     eq(cornerTableFor("Circuit de la Sarthe"), null, "Le Mans écarté (pas de numérotation officielle)");
     ok(CORNER_TABLE.every((c) => c.sources.length > 0), "chaque fiche cite ses sources");

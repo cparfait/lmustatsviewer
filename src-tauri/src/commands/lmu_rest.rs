@@ -269,6 +269,10 @@ pub struct GameTrackMap {
     pub racing: Vec<[f64; 2]>,
     /// Voie des stands (type 1), x/z.
     pub pit_lane: Vec<[f64; 2]>,
+    /// Emplacements de la zone des stands (types ≥ 2, une paire de points
+    /// chacun) : (type, milieu x/z). Relevé à Road Atlanta : deux séries
+    /// (2..53 et 106..159) le long de la voie des stands, rôle exact à confirmer.
+    pub spots: Vec<(i64, [f64; 2])>,
 }
 
 /// Instantané envoyé avec chaque trame `live-data` (compact : pas de garage).
@@ -589,6 +593,7 @@ pub fn parse_trackmap(v: &Value) -> Result<Parsed<GameTrackMap>, ()> {
     };
     let mut racing = Vec::new();
     let mut pit_lane = Vec::new();
+    let mut spots: std::collections::BTreeMap<i64, ([f64; 2], u32)> = std::collections::BTreeMap::new();
     for p in arr {
         let (Some(t), Some(x), Some(z)) = (num(p, "type"), num(p, "x"), num(p, "z")) else {
             continue;
@@ -596,13 +601,22 @@ pub fn parse_trackmap(v: &Value) -> Result<Parsed<GameTrackMap>, ()> {
         match t as i64 {
             0 => racing.push([x, z]),
             1 => pit_lane.push([x, z]),
+            k if k >= 2 => {
+                let e = spots.entry(k).or_insert(([0.0, 0.0], 0));
+                e.0 = [e.0[0] + x, e.0[1] + z];
+                e.1 += 1;
+            }
             _ => {}
         }
     }
     if racing.len() < 50 {
         return Ok(Parsed::Empty);
     }
-    Ok(Parsed::Data(GameTrackMap { track: String::new(), racing, pit_lane }))
+    let spots = spots
+        .into_iter()
+        .map(|(k, (s, n))| (k, [s[0] / n as f64, s[1] / n as f64]))
+        .collect();
+    Ok(Parsed::Data(GameTrackMap { track: String::new(), racing, pit_lane, spots }))
 }
 
 pub fn parse_garage(v: &Value) -> Result<Parsed<Vec<SettingBound>>, ()> {
@@ -1120,6 +1134,7 @@ mod tests {
         let Parsed::Data(m) = parse_trackmap(&Value::Array(pts)).unwrap() else { panic!() };
         assert_eq!(m.racing.len(), 60);
         assert_eq!(m.pit_lane.len(), 5);
+        assert_eq!(m.spots, vec![(7, [1.0, 9.0])]);
         assert_eq!(parse_trackmap(&json!([{"type": 0, "x": 1, "z": 2}])).unwrap(), Parsed::Empty);
         assert!(parse_trackmap(&json!(3)).is_err());
     }

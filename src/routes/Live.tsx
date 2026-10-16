@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Radio as RadioIcon } from "lucide-react";
 import { RadioReviewModal } from "@/components/RadioReviewModal";
 import { gameForecast, restStatus } from "@/lib/lmuRest";
-import { trackPaths, pathOf, pathOfRuns, sectorPolylines, nearestIndex, type Pt } from "@/lib/trackMapGeom";
+import { trackPaths, pathOf, pathOfRuns, sectorPolylines, nearestIndex, fitTransform, heatSegments, type Pt } from "@/lib/trackMapGeom";
+import { BUCKET_M, LiveHeat, deltaColor, miniDuel, speedColor } from "@/lib/liveHeat";
+import { CornerLabels } from "@/components/CornerLabels";
 import { isSectorYellow } from "@/lib/sectorFlags";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -57,7 +59,7 @@ import { LiveCoachPanel } from "@/components/AICoachPanel";
 import { useTheme } from "@/stores/theme";
 import { ClassBadge } from "@/components/ClassBadge";
 import { TrackFlag } from "@/components/TrackFlag";
-import { CAR_CLASS_COLORS } from "@/lib/staticData";
+import { classSolidColor, liveClassColor, liveClassKey } from "@/lib/staticData";
 import { toast, toastSuccess, toastError, confirmDialog } from "@/stores/dialogs";
 import { computeStrategy, type StrategySnapshot } from "@/lib/strategy";
 import { playerClassPosition } from "@/lib/livePosition";
@@ -74,26 +76,6 @@ import { IncidentDots } from "@/components/IncidentDots";
  *  - à ajouter = nécessaire − réservoir actuel (négatif ⇒ surplus).
  * Renvoie `null` si non calculable (pas de conso, ou tours restants inconnus).
  */
-/**
- * Normalise le nom de classe brut rF2/LMU (ex. « LMGT3 », « P2 », « Hypercar »)
- * vers la clé interne de l'app (Hypercar / LMP2_WEC / LMP3 / GT3 / GTE) pour
- * réutiliser la palette de couleurs commune (`CAR_CLASS_COLORS`, `ClassBadge`).
- */
-function liveClassKey(vehicleClass: string): string {
-  const c = vehicleClass.toLowerCase();
-  if (c.includes("hyper") || c.includes("lmh") || c.includes("lmdh")) return "Hypercar";
-  if (c.includes("gt3") || c.includes("lmgt3")) return "GT3";
-  if (c.includes("gte")) return "GTE";
-  if (c.includes("p3")) return "LMP3";
-  if (c.includes("p2")) return "LMP2_WEC";
-  return vehicleClass;
-}
-
-/** Couleur d'accent (texte) de la classe — pour liserés et pastilles. */
-function liveClassColor(vehicleClass: string): string | null {
-  return CAR_CLASS_COLORS[liveClassKey(vehicleClass)]?.color ?? null;
-}
-
 /** Couleur de la position au général : or / argent / bronze sur le podium. */
 function podiumColor(position: number): string {
   if (position === 1) return "text-yellow-400";
@@ -1826,7 +1808,25 @@ const MAP_CENTER = "stroke-white/50 dark:stroke-white/25";
 
 function TrackMap({ data }: { data: LiveData }) {
   const { t } = useTranslation();
+  const northUp = useAppStore((s) => s.mapNorthUp);
+  // Surcouche : rien, vitesse, écart au meilleur tour, duel par mini-secteurs.
+  const [heatMode, setHeatMode] = usePageState<"off" | "speed" | "delta" | "duel">("live.mapHeat", () => "off");
+  const [duelId, setDuelId] = useState<number | null>(null);
+  const heat = useRef(new LiveHeat());
   const pts = data.track_points;
+  const player = data.player;
+  const me = data.standings.find((s) => s.is_player);
+  heat.current.reset(`${data.session?.track ?? ""}|${data.session?.session ?? -1}`);
+  if (player && data.telemetry && me) {
+    heat.current.push(
+      data.telemetry.lap_dist_est ?? data.telemetry.lap_dist,
+      data.telemetry.speed_kmh,
+      player.current_lap_time,
+      player.total_laps,
+      player.last_lap_time,
+      me.in_pits,
+    );
+  }
   if (pts.length < 8) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-center px-6 gap-1 text-muted-foreground">
@@ -1836,38 +1836,18 @@ function TrackMap({ data }: { data: LiveData }) {
     );
   }
 
-  let minX = Infinity,
-    maxX = -Infinity,
-    minZ = Infinity,
-    maxZ = -Infinity;
-  for (const p of pts) {
-    minX = Math.min(minX, p[0]);
-    maxX = Math.max(maxX, p[0]);
-    minZ = Math.min(minZ, p[1]);
-    maxZ = Math.max(maxZ, p[1]);
-  }
   const pitLane = data.pit_lane_points ?? [];
-  for (const p of pitLane) {
-    minX = Math.min(minX, p[0]);
-    maxX = Math.max(maxX, p[0]);
-    minZ = Math.min(minZ, p[1]);
-    maxZ = Math.max(maxZ, p[1]);
-  }
-  for (const s of data.standings) {
-    if (s.pos_x === 0 && s.pos_z === 0) continue;
-    minX = Math.min(minX, s.pos_x);
-    maxX = Math.max(maxX, s.pos_x);
-    minZ = Math.min(minZ, s.pos_z);
-    maxZ = Math.max(maxZ, s.pos_z);
-  }
-  const w = maxX - minX || 1;
-  const h = maxZ - minZ || 1;
-  const pad = 0.08;
-  const mapX = (x: number) =>
-    ((x - minX) / w) * (1 - 2 * pad) * 1000 + pad * 1000;
-  const mapY = (z: number) =>
-    (1 - (z - minZ) / h) * (1 - 2 * pad) * 1000 + pad * 1000;
-  const project = (p: Pt): Pt => [mapX(p[0]), mapY(p[1])];
+  const spots = data.pit_spots ?? [];
+  const cars: Pt[] = data.standings.filter((s) => s.pos_x !== 0 || s.pos_z !== 0).map((s) => [s.pos_x, s.pos_z]);
+  // Projection commune (rotation auto, échelle identique sur les deux axes).
+  const view = fitTransform(pts, [...pts, ...pitLane, ...cars], {
+    mode: northUp ? "north" : "auto",
+    width: 1000,
+    pad: 0.07,
+  });
+  const project = view.project;
+  const W = view.width;
+  const H = view.height;
 
   // Tronçons (un tracé incomplet n'est plus refermé par des cordes).
   const lapLen = data.session?.track_length ?? 0;
@@ -1889,47 +1869,90 @@ function TrackMap({ data }: { data: LiveData }) {
       .filter((tk) => tk.idx >= 0),
   ];
 
+  // ── Surcouche colorée par segment de 20 m ──────────────────────────────────
+  const rival = duelId != null ? data.standings.find((s) => s.id === duelId && !s.is_player) : undefined;
+  const segColor: ((i: number) => { color: string; opacity: number } | null) | null = (() => {
+    if (heatMode === "speed") {
+      const sp = heat.current.speedMap();
+      if (!sp) return null;
+      const vals = sp.filter((v) => v > 0);
+      const lo = Math.min(...vals);
+      const hi = Math.max(...vals);
+      return (i: number) => {
+        const v = sp[Math.floor(dists[i] / BUCKET_M)];
+        return v > 0 ? { color: speedColor(v, lo, hi), opacity: 0.95 } : null;
+      };
+    }
+    if (heatMode === "delta") {
+      const dm = heat.current.deltaMap();
+      if (!dm) return null;
+      return (i: number) => {
+        const v = dm[Math.floor(dists[i] / BUCKET_M)];
+        return Number.isFinite(v) ? deltaColor(v, 0.05) : null;
+      };
+    }
+    if (heatMode === "duel" && rival && me && data.mini_zone_len) {
+      const diff = miniDuel(me.mini, rival.mini);
+      const zl = data.mini_zone_len;
+      return (i: number) => {
+        const v = diff[Math.floor(dists[i] / zl)];
+        return Number.isFinite(v) ? deltaColor(v, 0.3) : null;
+      };
+    }
+    return null;
+  })();
+  const segs = segColor ? heatSegments(dists, lapLen) : [];
+  const heatHint =
+    heatMode === "duel" && !rival
+      ? t("live.mapDuelPick")
+      : heatMode !== "off" && !segColor
+        ? t("live.mapHeatWaiting")
+        : null;
+
   return (
-    <div className="w-full h-full flex items-center justify-center">
-      <svg
-        viewBox="0 0 1000 1000"
-        preserveAspectRatio="xMidYMid meet"
-        className="w-full h-full"
-      >
-        {pitPath && (
-          <path
-            d={pitPath}
-            fill="none"
-            className={MAP_PIT}
-            strokeWidth={12}
-            strokeLinejoin="round"
-            strokeLinecap="round"
+    <div className="relative w-full h-full flex items-center justify-center">
+      <div className="absolute top-1 right-1 z-10 flex gap-1">
+        {(["off", "speed", "delta", "duel"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setHeatMode(m)}
+            className={cn(
+              "rounded border px-2 py-0.5 text-micro uppercase tracking-wider",
+              heatMode === m ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground hover:text-foreground",
+            )}
           >
+            {t(`live.mapHeat_${m}`)}
+          </button>
+        ))}
+      </div>
+      {heatHint && <p className="absolute bottom-1 left-2 z-10 text-micro text-muted-foreground">{heatHint}</p>}
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="w-full h-full">
+        {pitPath && (
+          <path d={pitPath} fill="none" className={MAP_PIT} strokeWidth={12} strokeLinejoin="round" strokeLinecap="round">
             <title>{t("live.mapPitLane")}</title>
           </path>
         )}
+        {spots.map((sp) => {
+          const [x, y] = project([sp.x, sp.z]);
+          return <circle key={`spot${sp.kind}`} cx={x} cy={y} r={3} className="fill-[#9ca3af] dark:fill-[#4b5565]" />;
+        })}
         {paths.map((d, i) => (
-          <path
-            key={`edge${i}`}
-            d={d}
-            fill="none"
-            className={MAP_ROAD_EDGE}
-            strokeWidth={34}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
+          <path key={`edge${i}`} d={d} fill="none" className={MAP_ROAD_EDGE} strokeWidth={34} strokeLinejoin="round" strokeLinecap="round" />
         ))}
         {paths.map((d, i) => (
-          <path
-            key={`base${i}`}
-            d={d}
-            fill="none"
-            className={MAP_ROAD}
-            strokeWidth={28}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
+          <path key={`base${i}`} d={d} fill="none" className={MAP_ROAD} strokeWidth={28} strokeLinejoin="round" strokeLinecap="round" />
         ))}
+        {segColor &&
+          segs.map(([i, j]) => {
+            const c = segColor(i);
+            if (!c) return null;
+            const [x1, y1] = project(pts[i]);
+            const [x2, y2] = project(pts[j]);
+            return (
+              <line key={`h${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.color} strokeOpacity={c.opacity} strokeWidth={16} strokeLinecap="round" />
+            );
+          })}
         {sectors &&
           sectors.map((sp, i) =>
             showSectorYellow(flags[i], phase) && sp.length >= 2 ? (
@@ -1945,17 +1968,10 @@ function TrackMap({ data }: { data: LiveData }) {
               />
             ) : null,
           )}
-        {paths.map((d, i) => (
-          <path
-            key={`dash${i}`}
-            d={d}
-            fill="none"
-            className={MAP_CENTER}
-            strokeWidth={3}
-            strokeDasharray="3 14"
-            strokeLinejoin="round"
-          />
-        ))}
+        {!segColor &&
+          paths.map((d, i) => (
+            <path key={`dash${i}`} d={d} fill="none" className={MAP_CENTER} strokeWidth={3} strokeDasharray="3 14" strokeLinejoin="round" />
+          ))}
         {ticks.map((tk) => {
           // Borne de secteur : barre en travers de la route + étiquette
           // en pastille, posée côté extérieur du circuit.
@@ -1965,7 +1981,7 @@ function TrackMap({ data }: { data: LiveData }) {
           const len = Math.hypot(bx - ax, by - ay) || 1;
           let nx = -(by - ay) / len;
           let ny = (bx - ax) / len;
-          if ((cx - 500) * nx + (cy - 500) * ny < 0) {
+          if ((cx - W / 2) * nx + (cy - H / 2) * ny < 0) {
             nx = -nx;
             ny = -ny;
           }
@@ -1974,15 +1990,7 @@ function TrackMap({ data }: { data: LiveData }) {
           return (
             <g key={tk.label}>
               <title>{tk.start ? `${tk.label} — ${t("live.mapStartLine")}` : tk.label}</title>
-              <line
-                x1={cx - nx * 20}
-                y1={cy - ny * 20}
-                x2={cx + nx * 20}
-                y2={cy + ny * 20}
-                stroke="#0A0E1A"
-                strokeWidth={10}
-                strokeLinecap="round"
-              />
+              <line x1={cx - nx * 20} y1={cy - ny * 20} x2={cx + nx * 20} y2={cy + ny * 20} stroke="#0A0E1A" strokeWidth={10} strokeLinecap="round" />
               <line
                 x1={cx - nx * 18}
                 y1={cy - ny * 18}
@@ -1993,61 +2001,47 @@ function TrackMap({ data }: { data: LiveData }) {
                 strokeLinecap={tk.start ? "butt" : "round"}
                 strokeDasharray={tk.start ? "6 6" : undefined}
               />
-              <rect
-                x={lx - 29}
-                y={ly - 18}
-                width={58}
-                height={36}
-                rx={9}
-                fill="#0A0E1A"
-                stroke="#ffffff"
-                strokeWidth={2}
-              />
-              <text
-                x={lx}
-                y={ly + 8}
-                textAnchor="middle"
-                fontSize={24}
-                fontWeight="bold"
-                fill="#ffffff"
-              >
+              <rect x={lx - 29} y={ly - 18} width={58} height={36} rx={9} fill="#0A0E1A" stroke="#ffffff" strokeWidth={2} />
+              <text x={lx} y={ly + 8} textAnchor="middle" fontSize={24} fontWeight="bold" fill="#ffffff">
                 {tk.label}
               </text>
             </g>
           );
         })}
+        <CornerLabels track={data.session?.track ?? ""} pts={pts} dists={dists} lapLen={lapLen} project={project} />
         <IncidentDots track={data.session?.track ?? ""} pts={pts} dists={dists} project={project} />
-        {data.standings.map((s) => {
-          if (s.pos_x === 0 && s.pos_z === 0) return null;
-          return (
-            <g key={s.position}>
-              <circle
-                cx={mapX(s.pos_x)}
-                cy={mapY(s.pos_z)}
-                r={s.is_player ? 20 : 13}
-                fill={
-                  s.is_player ? "#FFB400" : s.in_pits ? "#6b7280" : "#60a5fa"
-                }
-                stroke="#0A0E1A"
-                strokeWidth={3}
+        {data.standings
+          .slice()
+          .sort((a, b) => Number(a.is_player) - Number(b.is_player))
+          .map((s) => {
+            if (s.pos_x === 0 && s.pos_z === 0) return null;
+            const [x, y] = project([s.pos_x, s.pos_z]);
+            const picked = rival != null && s.id === rival.id;
+            return (
+              <g
+                key={s.id || s.position}
+                onClick={() => !s.is_player && setDuelId(picked ? null : (s.id ?? null))}
+                className={s.is_player ? undefined : "cursor-pointer"}
+                opacity={s.in_pits ? 0.55 : 1}
               >
-                <title>
-                  P{s.position} {s.driver}
-                </title>
-              </circle>
-              <text
-                x={mapX(s.pos_x)}
-                y={mapY(s.pos_z) + (s.is_player ? 7 : 5)}
-                textAnchor="middle"
-                fontSize={s.is_player ? 22 : 15}
-                fontWeight="bold"
-                fill="#0A0E1A"
-              >
-                {s.position}
-              </text>
-            </g>
-          );
-        })}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={s.is_player ? 20 : 13}
+                  fill={s.is_player ? "#FFB400" : classSolidColor(s.vehicle_class)}
+                  stroke={picked ? "#ffffff" : "#0A0E1A"}
+                  strokeWidth={picked ? 5 : 3}
+                >
+                  <title>
+                    P{s.position} {s.driver} — {s.vehicle_class}
+                  </title>
+                </circle>
+                <text x={x} y={y + (s.is_player ? 7 : 5)} textAnchor="middle" fontSize={s.is_player ? 22 : 15} fontWeight="bold" fill="#0A0E1A" pointerEvents="none">
+                  {s.position}
+                </text>
+              </g>
+            );
+          })}
       </svg>
     </div>
   );

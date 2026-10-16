@@ -233,6 +233,7 @@ export function ConfigV2() {
   const launchIntro = useAppStore((s) => s.launchIntro);
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
   const mapIncidents = useAppStore((s) => s.mapIncidents);
+  const mapNorthUp = useAppStore((s) => s.mapNorthUp);
   const gameWrites = useAppStore((s) => s.gameWrites);
   const pitAutoEnergy = useAppStore((s) => s.pitAutoEnergy);
   const overlayTargetTier = useAppStore((s) => s.overlayTargetTier);
@@ -1013,6 +1014,13 @@ export function ConfigV2() {
                             tip={t("config.mapIncidentsTip")}
                             checked={mapIncidents}
                             onChange={(v) => void useAppStore.getState().setMapIncidents(v)}
+                          />
+                          <ToggleRow
+                            icon={<MapPin className="h-4 w-4" />}
+                            label={t("config.mapNorthUp")}
+                            tip={t("config.mapNorthUpTip")}
+                            checked={mapNorthUp}
+                            onChange={(v) => void useAppStore.getState().setMapNorthUp(v)}
                           />
                           <ToggleRow
                             icon={<PenLine className="h-4 w-4" />}

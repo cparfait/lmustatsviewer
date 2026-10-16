@@ -64,6 +64,39 @@ export const CAR_CLASS_SOLID_COLORS: Record<string, { color: string; background:
 };
 
 /**
+ * Normalise le nom de classe brut rF2/LMU (« LMGT3 », « P2 », « Hypercar »…)
+ * vers la clé de palette (Hypercar / LMP2_WEC / LMP3 / GT3 / GTE). Une classe
+ * inconnue garde son nom (couleur dérivée, cf. `classSolidColor`).
+ */
+export function liveClassKey(vehicleClass: string): string {
+  const c = vehicleClass.toLowerCase();
+  if (c.includes("hyper") || c.includes("lmh") || c.includes("lmdh")) return "Hypercar";
+  if (c.includes("gt3") || c.includes("lmgt3")) return "GT3";
+  if (c.includes("gte")) return "GTE";
+  if (c.includes("p3")) return "LMP3";
+  if (c.includes("p2")) return "LMP2_WEC";
+  return vehicleClass;
+}
+
+/** Couleur d'accent (texte) de la classe, ou null si inconnue. */
+export function liveClassColor(vehicleClass: string): string | null {
+  return CAR_CLASS_COLORS[liveClassKey(vehicleClass)]?.color ?? null;
+}
+
+/**
+ * Couleur pleine d'une classe (cartes, pastilles) : palette commune pour les
+ * classes connues, sinon une teinte **stable tirée du nom** (une nouvelle classe
+ * du jeu reçoit sa propre couleur au lieu d'un bleu par défaut).
+ */
+export function classSolidColor(vehicleClass: string): string {
+  const known = CAR_CLASS_SOLID_COLORS[liveClassKey(vehicleClass)]?.background;
+  if (known) return known;
+  let h = 0;
+  for (const ch of vehicleClass) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `hsl(${h % 360}, 65%, 55%)`;
+}
+
+/**
  * Couleur de remplissage pleine pour les graphiques (recharts `fill`/`stroke`).
  * Source unique : `CAR_CLASS_SOLID_COLORS`. Remplace les anciennes copies
  * `CLASS_COLORS` dupliquées dans Dashboard / Profile.

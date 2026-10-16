@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 
 use super::lmu_rest;
+use super::minisectors::MiniSectors;
 use super::track_align::{self, Polyline};
 use crate::error::AppError;
 
@@ -581,6 +582,20 @@ pub struct LiveStanding {
     /// 4 sortie. L'état 1 n'est qu'une demande, pas toujours suivie d'effet.
     #[serde(default)]
     pub pit_state: u8,
+    /// Identifiant stable de la voiture (`mID`) : sélection sur la carte.
+    #[serde(default)]
+    pub id: i32,
+    /// Derniers temps des mini-secteurs (s, 0 = inconnu), cf. `minisectors.rs`.
+    #[serde(default)]
+    pub mini: Vec<f32>,
+}
+
+/// Emplacement de la zone des stands lu dans le jeu (type `watch/trackmap`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PitSpot {
+    pub kind: i64,
+    pub x: f64,
+    pub z: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -694,6 +709,12 @@ pub struct LiveData {
     pub spotter_calibrated: bool,
     /// Voie des stands (x/z) fournie par le jeu (`watch/trackmap`), vide sinon.
     pub pit_lane_points: Vec<[f64; 2]>,
+    /// Emplacements de la zone des stands (jeu), vide sinon.
+    #[serde(default)]
+    pub pit_spots: Vec<PitSpot>,
+    /// Longueur d'un mini-secteur (m), 0 si inconnue.
+    #[serde(default)]
+    pub mini_zone_len: f64,
     /// Fins de S1 et de S2 (distance-tour, m), mesurées aux changements de
     /// secteur des voitures et conservées par circuit. 0, 1 ou 2 valeurs.
     pub sector_dists: Vec<f64>,
@@ -723,6 +744,8 @@ impl Default for LiveData {
             nearby: Vec::new(),
             spotter_calibrated: false,
             pit_lane_points: Vec::new(),
+            pit_spots: Vec::new(),
+            mini_zone_len: 0.0,
             sector_dists: Vec::new(),
             track_from_game: false,
             rest: None,
@@ -1028,6 +1051,10 @@ struct PollState {
     game_filled: bool,
     /// Voie des stands du jeu (allégée), pour le circuit courant.
     pit_lane: Vec<[f64; 2]>,
+    /// Emplacements de la zone des stands (jeu).
+    pit_spots: Vec<PitSpot>,
+    /// Mini-secteurs de tout le plateau (créés quand la longueur du tour est connue).
+    mini: Option<MiniSectors>,
     // ── Bornes de secteurs ───────────────────────────────────────────────
     /// Dernier secteur vu par voiture (`mID` → (`mSector`, lap_dist)).
     last_sector: HashMap<i32, (u8, f64)>,
@@ -1068,6 +1095,8 @@ impl PollState {
             align_samples: Vec::new(),
             game_filled: false,
             pit_lane: Vec::new(),
+            pit_spots: Vec::new(),
+            mini: None,
             last_sector: HashMap::new(),
             sector_bounds: [(0.0, 0); 2],
             sector_challengers: [(0.0, 0); 2],
@@ -1692,6 +1721,8 @@ fn extract(state: &mut PollState) -> LiveData {
         state.align_samples.clear();
         state.game_filled = false;
         state.pit_lane.clear();
+        state.pit_spots.clear();
+        state.mini = None;
         // Nouvelle session → la mesure de consommation repart de zéro (une
         // référence carburant de l'ancienne session fausserait le 1er tour).
         state.fuel_at_lap_start = 0.0;
@@ -1750,6 +1781,11 @@ fn extract(state: &mut PollState) -> LiveData {
                 let same_len = lap_len > 0.0 && ((poly.length() - lap_len) / lap_len).abs() < 0.15;
                 if same_name || (map.track.is_empty() && same_len) {
                     state.pit_lane = thin(&map.pit_lane, 15.0);
+                    state.pit_spots = map
+                        .spots
+                        .iter()
+                        .map(|(k, p)| PitSpot { kind: *k, x: p[0], z: p[1] })
+                        .collect();
                     state.game_poly = Some(poly);
                     state.align_samples.clear();
                 }
@@ -1762,6 +1798,9 @@ fn extract(state: &mut PollState) -> LiveData {
         (f64::INFINITY, f64::NEG_INFINITY, f64::INFINITY, f64::NEG_INFINITY);
     // Bornes de secteurs : seulement drapeau vert / FCY (pas grille ni formation).
     let green = matches!(scor_info.m_game_phase, 5 | 6);
+    if state.mini.as_ref().map(|m| (m.lap_len() - lap_len).abs() > 1.0).unwrap_or(true) {
+        state.mini = MiniSectors::new(lap_len);
+    }
 
     for i in 0..n {
         let v = match veh_scor(i) {
@@ -1787,6 +1826,9 @@ fn extract(state: &mut PollState) -> LiveData {
 
         // Accumulation du tracé (résolution 20 m, hors stands, moyenne 2 passages).
         let lap_dist = v.m_lap_dist;
+        if let Some(m) = state.mini.as_mut() {
+            m.push(v.m_id, lap_dist, scor_info.m_current_et, green && v.m_in_pits == 0 && lap_dist > 0.0);
+        }
         if lap_dist > 0.0 && v.m_in_pits == 0 {
             state.record_sector(v.m_id, v.m_sector, lap_dist, green);
             // Échantillons de recalage du tracé du jeu (espacés d'au moins 50 m).
@@ -1837,6 +1879,8 @@ fn extract(state: &mut PollState) -> LiveData {
             finish_status: v.m_finish_status,
             lap_dist: lap_dist as f32,
             pit_state: v.m_pit_state,
+            id: v.m_id,
+            mini: state.mini.as_ref().map(|m| m.times(v.m_id)).unwrap_or_default(),
         });
     }
 
@@ -2028,6 +2072,8 @@ fn extract(state: &mut PollState) -> LiveData {
         nearby,
         spotter_calibrated,
         pit_lane_points: state.pit_lane.clone(),
+        pit_spots: state.pit_spots.clone(),
+        mini_zone_len: state.mini.as_ref().map(|m| m.zone_len()).unwrap_or(0.0),
         sector_dists: state.sector_dists(),
         track_from_game: state.game_filled,
         rest: None,

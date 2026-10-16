@@ -8,7 +8,7 @@
 
 import type { LiveData } from "@/lib/api";
 import type { Tr } from "@/i18n";
-import { CAR_CLASS_COLORS } from "@/lib/staticData";
+import { liveClassColor } from "@/lib/staticData";
 import { computeStrategy } from "@/lib/strategy";
 import { playerClassPosition } from "@/lib/livePosition";
 
@@ -45,22 +45,8 @@ export function fmtSec(s: number): string {
   return s.toFixed(3);
 }
 
-/** Normalise le nom de classe brut LMU vers la clé interne (palette commune). */
-export function liveClassKey(vehicleClass: string): string {
-  const c = vehicleClass.toLowerCase();
-  if (c.includes("hyper") || c.includes("lmh") || c.includes("lmdh"))
-    return "Hypercar";
-  if (c.includes("gt3") || c.includes("lmgt3")) return "GT3";
-  if (c.includes("gte")) return "GTE";
-  if (c.includes("p3")) return "LMP3";
-  if (c.includes("p2")) return "LMP2_WEC";
-  return vehicleClass;
-}
-
-/** Couleur d'accent de la classe (ou null). */
-export function liveClassColor(vehicleClass: string): string | null {
-  return CAR_CLASS_COLORS[liveClassKey(vehicleClass)]?.color ?? null;
-}
+// Clé et couleurs de classe : source unique dans `staticData.ts`.
+export { liveClassKey, liveClassColor } from "@/lib/staticData";
 
 /**
  * Case « Position » des overlays : en multiclasse, position dans la classe

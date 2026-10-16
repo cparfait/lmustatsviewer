@@ -702,6 +702,10 @@ export interface LiveStanding {
    * (anciennes charges utiles, objets de test).
    */
   pit_state?: number;
+  /** Identifiant stable de la voiture (`mID`). */
+  id?: number;
+  /** Derniers temps des mini-secteurs (s, 0 = inconnu). */
+  mini?: number[];
 }
 
 export interface LiveSession {
@@ -807,6 +811,10 @@ export interface LiveData {
   spotter_calibrated?: boolean;
   /** Voie des stands (x/z) fournie par le jeu, vide sinon. */
   pit_lane_points?: [number, number][];
+  /** Emplacements de la zone des stands (jeu) : type + position. */
+  pit_spots?: { kind: number; x: number; z: number }[];
+  /** Longueur d'un mini-secteur (m), 0 si inconnue. */
+  mini_zone_len?: number;
   /** Fins de S1 et S2 (distance-tour, m) mesurées ; 0 à 2 valeurs. */
   sector_dists?: number[];
   /** Le tracé a été complété / corrigé avec celui du jeu. */

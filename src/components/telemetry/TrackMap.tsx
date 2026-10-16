@@ -1,3 +1,5 @@
+import { useAppStore } from "@/stores/app";
+import { principalAngle } from "@/lib/trackMapGeom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -127,6 +129,7 @@ export function TrackMap({
   theme,
 }: TrackMapProps) {
   const { t } = useTranslation();
+  const northUp = useAppStore((s) => s.mapNorthUp);
   // ── Projection + mise à l'échelle dans le repère interne (mémoïsé) ──
   const geom = useMemo(() => {
     const n = Math.min(lat.length, lon.length);
@@ -135,6 +138,20 @@ export function TrackMap({
     const lat0 = lat[0];
     const lon0 = lon[0];
     const cosLat = Math.cos((lat0 * Math.PI) / 180);
+    // Orientation commune des cartes : axe principal du tour à l'horizontale,
+    // ligne de départ en bas ; « nord en haut » (réglage) = pas de rotation.
+    let rot = 0;
+    if (!northUp) {
+      const flat: [number, number][] = [];
+      for (let i = 0; i < n; i += Math.max(1, Math.floor(n / 600))) flat.push([(lon[i] - lon0) * cosLat, lat[i] - lat0]);
+      rot = -principalAngle(flat);
+      const c0 = Math.cos(rot);
+      const s0 = Math.sin(rot);
+      const ys = flat.map(([x, y]) => x * s0 + y * c0);
+      if (ys[0] > (Math.min(...ys) + Math.max(...ys)) / 2) rot += Math.PI;
+    }
+    const cr = Math.cos(rot);
+    const sr = Math.sin(rot);
     const rx = new Array<number>(n);
     const ry = new Array<number>(n);
     let minX = Infinity,
@@ -142,8 +159,10 @@ export function TrackMap({
       minY = Infinity,
       maxY = -Infinity;
     for (let i = 0; i < n; i++) {
-      const x = (lon[i] - lon0) * cosLat;
-      const y = lat[i] - lat0;
+      const gx = (lon[i] - lon0) * cosLat;
+      const gy = lat[i] - lat0;
+      const x = gx * cr - gy * sr;
+      const y = gx * sr + gy * cr;
       rx[i] = x;
       ry[i] = y;
       if (x < minX) minX = x;
@@ -171,9 +190,9 @@ export function TrackMap({
     }
     // Paramètres de projection conservés → une 2ᵉ trajectoire (référence) est
     // projetée dans le MÊME repère absolu et se superpose exactement.
-    const proj = { lat0, lon0, cosLat, minX, minY, scale, pad };
+    const proj = { lat0, lon0, cosLat, minX, minY, scale, pad, cr, sr };
     return { pts, boxW, boxH, proj, centroid: { x: sumX / n, y: sumY / n } };
-  }, [lat, lon, plain]);
+  }, [lat, lon, plain, northUp]);
 
   // Projette une trace GPS (lat/lon) dans le repère de `geom` (même origine /
   // échelle que le tour courant → superposition exacte) puis renvoie un chemin
@@ -186,8 +205,10 @@ export function TrackMap({
       const { proj, boxH } = geom;
       const pts: Pt[] = new Array(n);
       for (let i = 0; i < n; i++) {
-        const rx = (lo[i] - proj.lon0) * proj.cosLat;
-        const ry = la[i] - proj.lat0;
+        const gx = (lo[i] - proj.lon0) * proj.cosLat;
+        const gy = la[i] - proj.lat0;
+        const rx = gx * proj.cr - gy * proj.sr;
+        const ry = gx * proj.sr + gy * proj.cr;
         pts[i] = {
           x: proj.pad + (rx - proj.minX) * proj.scale,
           y: boxH - proj.pad - (ry - proj.minY) * proj.scale,
@@ -219,8 +240,10 @@ export function TrackMap({
       const { proj, boxH } = geom;
       const pts: Pt[] = new Array(n);
       for (let i = 0; i < n; i++) {
-        const rx = (lo[i] - proj.lon0) * proj.cosLat;
-        const ry = la[i] - proj.lat0;
+        const gx = (lo[i] - proj.lon0) * proj.cosLat;
+        const gy = la[i] - proj.lat0;
+        const rx = gx * proj.cr - gy * proj.sr;
+        const ry = gx * proj.sr + gy * proj.cr;
         pts[i] = {
           x: proj.pad + (rx - proj.minX) * proj.scale,
           y: boxH - proj.pad - (ry - proj.minY) * proj.scale,

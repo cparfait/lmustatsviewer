@@ -65,6 +65,8 @@ interface AppState {
   showOhneSpeed: boolean;
   /** Carte Live : mes incidents passés sur ce circuit (chocs, coupures, sorties). */
   mapIncidents: boolean;
+  /** Cartes « nord en haut » (repère brut) au lieu de la rotation automatique. */
+  mapNorthUp: boolean;
   /** L'app peut écrire dans le jeu (menu des stands) — expérimental, coupé par défaut. */
   gameWrites: boolean;
   /** Réglage automatique de l'énergie au menu des stands (exige `gameWrites`). */
@@ -272,6 +274,7 @@ interface AppState {
   setAutoUpdate: (v: boolean) => Promise<void>;
   setShowOhneSpeed: (v: boolean) => Promise<void>;
   setMapIncidents: (v: boolean) => Promise<void>;
+  setMapNorthUp: (v: boolean) => Promise<void>;
   setGameWrites: (v: boolean) => Promise<void>;
   setPitAutoEnergy: (v: boolean) => Promise<void>;
   setLaunchIntro: (v: boolean) => Promise<void>;
@@ -355,6 +358,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   autoUpdate: true,
   showOhneSpeed: true,
   mapIncidents: true,
+  mapNorthUp: false,
   gameWrites: false,
   pitAutoEnergy: false,
   launchIntro: true,
@@ -566,6 +570,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       autoUpdate: cfg.auto_update !== "false",
       showOhneSpeed: cfg.show_ohne_speed !== "false",
       mapIncidents: cfg.map_incidents !== "false",
+      mapNorthUp: cfg.map_north_up === "true",
       gameWrites: cfg.game_writes === "true",
       pitAutoEnergy: cfg.pit_auto_energy === "true",
       launchIntro: cfg.launch_intro !== "false",
@@ -813,6 +818,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPitAutoEnergy: async (v) => {
     await config.set("pit_auto_energy", v ? "true" : "false");
     set({ pitAutoEnergy: v });
+  },
+
+  setMapNorthUp: async (v) => {
+    await config.set("map_north_up", v ? "true" : "false");
+    set({ mapNorthUp: v });
   },
 
   setMapIncidents: async (v) => {

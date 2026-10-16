@@ -15,6 +15,7 @@ import { Classement } from "@/routes/Classement";
 import { Setups } from "@/routes/Setups";
 import { SetupDetail } from "@/routes/SetupDetail";
 import { SetupCompare } from "@/routes/SetupCompare";
+import { Strategy } from "@/routes/Strategy";
 import { Live } from "@/routes/Live";
 import { Telemetry } from "@/routes/Telemetry";
 import { TelemetryView } from "@/routes/TelemetryView";
@@ -31,6 +32,7 @@ import { useAppStore } from "@/stores/app";
 import { fetchBenchmarks } from "@/lib/ohne_speed";
 import { useSpotter } from "@/lib/useSpotter";
 import { usePitLoss } from "@/lib/usePitLoss";
+import { useRacePrep } from "@/lib/racePlan/useRacePrep";
 import { useCoachVoice } from "@/lib/useCoachVoice";
 import { useCornerCoach } from "@/lib/useCornerCoach";
 import { RaceEngineerHost } from "@/components/RaceEngineerHost";
@@ -59,6 +61,8 @@ export default function App() {
   useSpotter();
   // Benchmark automatique du temps perdu au stand (T13 #152) → alimente #151.
   usePitLoss();
+  // Programme d'essais : préparation de course cochée toute seule (circuit × voiture).
+  useRacePrep();
   // Coach IA vocal : raccourci global push-to-talk → question libre → réponse parlée.
   useCoachVoice();
   // Coach par virage : conseils vocaux automatiques en roulage (fenêtre de délivrance).
@@ -145,6 +149,7 @@ export default function App() {
             <Route path="/setups/:id" element={<SetupDetail />} />
             <Route path="/setups/compare" element={<SetupCompare />} />
             <Route path="/live" element={<Live />} />
+            <Route path="/strategy" element={<Strategy />} />
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/telemetry/view" element={<TelemetryView />} />
             <Route path="/overlays" element={<Overlays />} />

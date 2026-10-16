@@ -916,6 +916,20 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
 - ✅ **㉜ Dossier de faits typé** (`ai/facts.ts`) : avant l'appel IA d'une question vocale, `status`
   + jusqu'à 3 intentions candidates du routeur répondues par le code (commandes jamais exécutées),
   faits absents marqués `UNKNOWN`, consigne « seule source des chiffres ».
+- ✅ **Page Stratégie** (`/strategy`, `routes/Strategy.tsx`, entrée de menu masquable) :
+  - **㉖ Préparation de course** (`racePlan/prep.ts` pur + `useRacePrep.ts` monté dans App,
+    `race_prep_map` par circuit × voiture) : obligatoires rythme (3 tours propres ≤ 102 %), conso
+    (3), usure (pente mesurée), plein (3 tours propres d'un relais parti à ≥ 55 %), perte au stand
+    (combo connu) ; facultatifs relais long (8 d'affilée), chauffe (mesurée/mémorisée), pluie (3 tours
+    ≥ 0,12). Badge « Prêt », bouton Recommencer.
+  - **㉔ Feuille de relais** (`racePlan/stintPlan.ts` + `sun.ts`, purs) : relais pleins, perte au stand
+    dans le temps de course, dernier relais au damier, pneus tous les N, rotation (×1/2/3) ou
+    équilibrage, épinglage par relais, volant max signalé, nuit = > 50 % du relais après le coucher
+    (soleil calculé : 15 circuits avec lat/long, fuseau, heure d'été UE/US). Valeurs initiales lues
+    dans la séance en cours.
+  - Vérifié dans le navigateur (serveur de dev sur 5176, état forcé par import du store) : Le Mans
+    16/10 → lever 08:18, coucher 19:11 ; 6 h / 3:28,5 / 14 tours / 2 pilotes → 7 arrêts, 2 relais de
+    nuit, volant max 2:30 dépassé signalé. Suite `plan.suite.ts`.
 
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 

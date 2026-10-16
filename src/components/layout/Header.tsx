@@ -24,6 +24,7 @@ const navKeys = [
   { to: "/classement", key: "community" },
   { to: "/setups", key: "setups" },
   { to: "/live", key: "live" },
+  { to: "/strategy", key: "strategy" },
   { to: "/overlays", key: "overlays" },
   { to: "/telemetry", key: "telemetry" },
   { to: "/config", key: "config" },
@@ -36,6 +37,7 @@ export const MENU_MODULE_KEYS = [
   "sessions",
   "setups",
   "live",
+  "strategy",
   "overlays",
   "telemetry",
 ] as const;

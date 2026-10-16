@@ -895,6 +895,17 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — « Tester l'IA » et le point de course lus par la voix IA
+
+**Demande** : « comment tester avec la voix IA car là ça utilise Piper » (bouton « Tester l'IA » du Coach IA).
+
+- ✅ `ConfigV2.tsx` : la réponse de test passe par `announceAnswer` (voix IA en direct si active, Piper
+  en secours) au lieu de `announce` (mode « cache » : un texte unique n'y est jamais → Piper).
+- ✅ `useSpotter.ts` : le point de course de la touche Statut, réponse à une demande du pilote, idem.
+  Les messages d'erreur et « Répète » restent sur `announce` (alerte possible).
+- ✅ tsc, eslint, npm. Changelog 1.0.10 (5 langues).
+- 📋 **Prochaine étape** : cliquer « Tester l'IA » avec la voix IA activée et vérifier le timbre.
+
 ### 2026-10-16 — Profil : menus Saison à la largeur du contenu ; avatar à gauche du pied de page
 
 **Demandes** : « les menus ne sont pas adaptés à l'app » (filtres Saison tronqués, sous-titre qui

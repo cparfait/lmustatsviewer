@@ -14,7 +14,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live } from "@/lib/api";
-import { announce, repeatLast, cancelSpeech } from "@/lib/voice";
+import { announce, announceAnswer, repeatLast, cancelSpeech } from "@/lib/voice";
 import { buildStatus } from "@/lib/spotter";
 
 export function useSpotter() {
@@ -40,7 +40,8 @@ export function useSpotter() {
       const lang = langRef.current;
       try {
         const data = await live.getData();
-        announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
+        // Point de course demandé par le pilote : une réponse → voix IA si active.
+        announceAnswer(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
       } catch {
         announce(tt("live.spNoSession"), lang);
       }

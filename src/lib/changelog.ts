@@ -488,6 +488,13 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "fixed",
         items: [
           {
+            en: "Online AI voice: the AI Coach's \"Test the AI\" button and the race status asked with the spotter's Status key are now read with the AI voice when it is on (local voice as a fallback), like the answers to your questions.",
+            fr: "Voix IA en ligne : le bouton « Tester l'IA » du Coach IA et le point de course demandé avec la touche Statut du spotter sont désormais lus avec la voix IA quand elle est activée (voix locale en secours), comme les réponses à tes questions.",
+            es: "Voz IA en línea: el botón «Probar la IA» del Coach IA y el resumen de carrera pedido con la tecla Estado del spotter se leen ahora con la voz IA cuando está activada (voz local como respaldo), como las respuestas a tus preguntas.",
+            de: "Online-KI-Stimme: Die Schaltfläche „KI testen“ des KI-Coachs und der mit der Status-Taste des Spotters abgefragte Rennstand werden jetzt mit der KI-Stimme vorgelesen, wenn sie aktiv ist (lokale Stimme als Ersatz), wie die Antworten auf deine Fragen.",
+            it: "Voce IA online: il pulsante «Prova l'IA» del Coach IA e il punto gara chiesto con il tasto Stato dello spotter ora vengono letti con la voce IA quando è attiva (voce locale come riserva), come le risposte alle tue domande.",
+          },
+          {
             en: "Online AI voice: the chosen voice is now shown in the voice field (typing still searches the list). In the listening bench, \"Prepare the voice\" moves to the top and the AI button is greyed out until the phrase is prepared, instead of an unclear error. The engineer's longer fixed phrases (such as the question about lap times) can now be prepared too.",
             fr: "Voix IA en ligne : la voix choisie s'affiche dans le champ de la voix (taper lance toujours la recherche). Dans le banc d'écoute, « Préparer la voix » passe en haut et le bouton IA reste grisé tant que la phrase n'est pas préparée, au lieu d'une erreur peu claire. Les phrases fixes plus longues de l'ingénieur (comme la question sur les chronos) se préparent aussi.",
             es: "Voz IA en línea: la voz elegida aparece ahora en el campo de la voz (escribir sigue buscando en la lista). En el banco de escucha, «Preparar la voz» pasa arriba y el botón IA queda en gris hasta que la frase está preparada, en lugar de un error poco claro. Las frases fijas más largas del ingeniero (como la pregunta sobre los tiempos) también se pueden preparar.",

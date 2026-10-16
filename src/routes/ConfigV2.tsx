@@ -119,7 +119,6 @@ import {
   previewVoice,
   announceAnswer,
   speechSupported,
-  announce,
   compareRadioStyles,
 } from "@/lib/voice";
 import { MAX_VOICE_VOLUME, pttBeep } from "@/lib/radioFx";
@@ -497,8 +496,9 @@ export function ConfigV2() {
       if (clean) {
         setAiFunResult({ text: clean });
         // Lecture par la voix du coach (même chaîne radio que les annonces en
-        // course) : le test valide aussi le TTS, pas seulement le texte.
-        announce(clean, i18n.language);
+        // course) : le test valide aussi le TTS. Réponse au pilote → voix IA en
+        // ligne si elle est activée (Piper en secours), comme en course.
+        announceAnswer(clean, i18n.language);
       } else {
         setAiFunResult({ error: t("coach.errNetwork") });
       }

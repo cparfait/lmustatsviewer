@@ -10,9 +10,9 @@ import { create } from "zustand";
 import { config, indexer, queries, ai, system, type WheelBinding } from "@/lib/api";
 import { setAppTimezone } from "@/lib/utils";
 import { preloadStaticData } from "@/lib/staticData";
-import { configureVoice, setSpeechReplay, setTalkSilence } from "@/lib/voice";
+import { configureVoice, setCloudSegmentSource, setSpeechReplay, setTalkSilence } from "@/lib/voice";
 import { initCloudVoice } from "@/lib/cloudVoice";
-import { initVoiceOverrides } from "@/lib/voiceMessages";
+import { initVoiceOverrides, segmentTemplates } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled, setRadioStyle, MAX_VOICE_VOLUME } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
@@ -27,6 +27,10 @@ import type {
   FilterOptions,
   IndexReport,
 } from "@/lib/api";
+
+// Annonces chiffrées de la voix en ligne : reconnues parmi les gabarits effectifs
+// (personnalisations comprises, relues à chaque annonce).
+setCloudSegmentSource(segmentTemplates);
 
 /**
  * Version de la logique d'indexation. À **incrémenter** dès que le parser ou

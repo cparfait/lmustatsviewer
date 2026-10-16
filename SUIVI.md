@@ -55,7 +55,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Aides de pilotage publiques** | **Décidé (2026-10-08)** — les aides (TC, aide au freinage/direction, boîte auto) sont envoyées au serveur mais **jamais publiées pilote par pilote** (classements, comparaison `combos/compare`, fiche pilote). Elles ne servent qu'aux filtres et agrégats (ex. « Sans aide au freinage »). |
 | **Mémoire des filtres** | **Décidé (2026-09-30)** — filtres, tris, page et vue de chaque page conservés **le temps que l'app tourne** (`usePageState`, en mémoire) ; remis à zéro au redémarrage. Un lien profond (`?track=…`) impose ses filtres. |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
-| **Moteurs de voix** | **Décidé (2026-10-15)** — **Piper reste le moteur par défaut et le repli**. La **voix en ligne** (clé de l'utilisateur : OpenAI, ElevenLabs, Cartesia) est un réglage **désactivé par défaut**. Elle n'est **jamais** utilisée pour la sécurité (`critical` : drapeaux, crevaison, box…), le spotter, le coach par virage ni « Répète ». Piper reprend la phrase en cas d'erreur ou au-delà de 3 s. Le relais Rust n'accepte que les hôtes de la liste blanche. « Préparer la voix » ne génère que les phrases fixes que la voix en ligne peut dire, sur clic, après affichage du coût estimé. **Kokoro-82M écarté** pour l'instant (pas d'allemand, 4 à 8 fois plus lent que Piper, 325 Mo) ; détail dans `voice-eval/README.md`. |
+| **Moteurs de voix** | **Décidé (2026-10-15)** — **Piper reste le moteur par défaut et le repli**. La **voix en ligne** (clé de l'utilisateur : OpenAI, ElevenLabs, Cartesia) est un réglage **désactivé par défaut**. **Révisé le 2026-10-16 (demande du mainteneur : « si on active voix IA il faut qu'elle dise tout »)** : information et réponses en direct ; sécurité (`critical`), spotter, coach et « Répète » **seulement depuis le cache** (phrase préparée), jamais en attente du réseau, Piper sinon (`cloudModeFor` : live / cached / off). Réglage « Alertes en voix locale » = ancien comportement (jamais pour l'urgent). Piper reprend la phrase en cas d'erreur ou au-delà de 3 s. Le relais Rust n'accepte que les hôtes de la liste blanche. « Préparer la voix » génère, sur clic et après affichage du coût estimé, les phrases fixes de l'information **et** les phrases urgentes (`CLOUD_PREP_ALERT_KEYS`), sauf « Alertes en voix locale ». **Annonces chiffrées (2026-10-16)** : assemblées à partir de morceaux préparés (parties fixes des gabarits `live.v*`/`sp*`/`in*` + nombres en toutes lettres par langue, `cloudVoiceSegments.ts`), lus dans le cache disque et recollés, jamais de réseau ; réglage « Annonces chiffrées » `alerts` (défaut) / `all` / `off` (ancien comportement). Noms propres et textes libres → Piper. **Kokoro-82M écarté** pour l'instant (pas d'allemand, 4 à 8 fois plus lent que Piper, 325 Mo) ; détail dans `voice-eval/README.md`. |
 
 ---
 
@@ -895,6 +895,93 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Voix IA en ligne : banc d'écoute
+
+**Demande** (mainteneur, via la session parente) : « il faudrait avoir une page pour tester et voir ce
+que ça donne en local ».
+
+- ✅ `cloudVoiceBench.ts` (pur) : familles du banc (information = `CLOUD_PREP_KEYS`, sécurité / spotter /
+  coach = `CLOUD_PREP_ALERT_KEYS`, 8 exemples chiffrés à valeurs modifiables), `benchText`,
+  `benchRoute(faits)` → moteur (`cloud` / `assembled` / `piper`) + motif (`cached`, `assembled`,
+  `cloudOff`, `alertsLocal`, `notPrepared`, `liveOnly`, `numbersOff`, `notAssemblable`,
+  `segmentsMissing`) = ce que `trySynthAndPlay` ferait **réseau coupé**. `assembleAllowed` sorti dans
+  `cloudVoicePrep.ts`, partagé avec `voice.ts`.
+- ✅ `voice.ts` : `probeCloudPlayback` (mode, présence en cache via `cloudCacheMissing`, morceaux) et
+  `playBench(raw, lang, cloud|assembled|piper)` — aucune requête, hors compteur « servies par le cache »
+  (`count: false`).
+- ✅ `CloudVoiceBench.tsx` : bouton « Banc d'écoute » dans le bloc Voix IA ; phrase libre + priorité,
+  familles, badges moteur + motif (morceaux manquants listés), ▶ IA / ▶ Assemblé / ▶ Piper ; seul envoi
+  possible : `PrepareVoice` (sorti avec `Row` dans `CloudVoicePrepare.tsx`). Source des gabarits posée
+  au chargement du module `stores/app.ts` (et non plus dans le chargement de la config).
+- ✅ i18n 5 langues ; changelog 1.0.10 ; tests npm 2212 (verdicts, textes, familles × 5 langues,
+  exemples chiffrés assemblables), tsc, eslint. Rendu vérifié dans le navigateur (Tauri simulé, sans
+  clé : verdicts « voix IA désactivée »).
+- 📋 **Prochaine étape** : dans l'app compilée depuis cette branche, avec une clé : « Préparer la voix »
+  depuis le banc, puis ▶ Assemblé sur « Carburant : environ 3 tours restants » et une phrase libre ;
+  ajuster `PAUSE_*_MS` / `trimSilence` à l'oreille.
+
+### 2026-10-16 — Voix IA en ligne : annonces chiffrées assemblées par morceaux
+
+**Demande** (via la session « voix IA dit tout ») : « enregistrer la voix pour servir des choses en
+local » → les phrases à chiffre (carburant, écarts, positions, tours restants, coach par virage)
+étaient toujours dites par Piper en urgent, faute d'être préparables.
+
+- ✅ `cloudVoiceSegments.ts` (pur) : reconnaissance d'une annonce **brute** parmi les gabarits effectifs
+  (`live.v*`, `sp*`, `in*`, personnalisés compris, variantes `|`), découpe en parties fixes + valeurs ;
+  nombres 0–999 en toutes lettres FR/EN/ES/DE/IT avec accord selon le nom qui suit (une minute, una
+  vuelta, eine Runde) ; décimaux (« zéro virgule quatre » d'un morceau sous 10, sinon composés ;
+  chiffre par chiffre en EN/DE), signes, suffixe « s », chronos `m:ss.mmm` ; valeurs imbriquées
+  (`vLapTime` dans `vGapLeader`, `inMinutes` dans `vRainForecast`) ; annonces fusionnées « A, B »,
+  prénom ou « Je répète : » en tête (DP sur les ponctuations, puis sur les mots). Refusés : variables
+  `name/driver/cls/what/wheels/marker/sector/car/no`, ordinal collé (« 3ᵉ »), > 999.
+  `segmentInventory` : ~360 morceaux / ~5 500 caractères par langue. `trimSilence` + `joinPcm`
+  (silence rogné, 20/50/170 ms selon nombre / mot / ponctuation, fondu 6 ms).
+- ✅ `voice.ts` : `QueueItem.raw` (texte avant normalisation, conservé par la reprise et « Répète ») ;
+  mode `cached` + phrase non fixe → `assembledBuffer` (mémoire ~200 morceaux puis disque via
+  `cloudCachedAudioMany` : présence vérifiée d'un coup, aucune requête), sinon Piper (+ compteur
+  « relais » si la phrase était assemblable). Réglage `all` : l'information chiffrée essaie l'assemblage
+  avant la requête en direct. `prewarmSpeech` charge aussi les morceaux des callouts chiffrés.
+  `setCloudSegmentSource(segmentTemplates)` posé dans `stores/app.ts` ; `TTS_WORDS` sorti dans
+  `ttsWords.ts` (partagé).
+- ✅ « Préparer la voix » : morceaux ajoutés au devis (`cloudSegmentPrepTexts`, `segmentsWanted`),
+  ligne « Dont N morceaux… » ; génération 3 requêtes à la fois (`PREP_CONCURRENCY`).
+- ✅ Réglage « Annonces chiffrées » (`voice_cloud.numbers` : `alerts` défaut, `all`, `off` = ancien
+  comportement). i18n 5 langues ; textes d'aide « phrases à chiffre non préparables » corrigés ;
+  changelog 1.0.10 (nouvelle entrée + entrée « elle dit tout » corrigée).
+- ✅ Tests : npm 1859 (nombres par langue, accords, valeurs, découpe, imbrication, fusion, gabarit
+  personnalisé, couverture de tous les gabarits chiffrés sans nom propre × 5 langues avec morceaux
+  tous dans l'inventaire, recollage PCM), tsc, eslint. Aucun changement Rust. Branche de worktree
+  `claude/elastic-bose-a13534`, basée sur `feat/cloud-voice-all` (9f28887), `main` non fusionné.
+- ⏳ Non vérifié à l'oreille : naturel du recollage (prosodie d'un mot isolé, « P » seul), seuil de
+  rognage (0,006) selon les fournisseurs. Prénom du pilote en tête → Piper (non préparé).
+- 📋 **Prochaine étape** : en jeu avec une clé, « Préparer la voix » puis écouter « Carburant : environ
+  2 tours restants » (alerte), un conseil du coach « Virage 4 : freine 10 mètres plus tôt » et, en
+  réglage « Tout assemblé », « P3, place gagnée » ; ajuster `PAUSE_*_MS` et le seuil de
+  `trimSilence` si les raccords s'entendent.
+
+### 2026-10-16 — Voix IA en ligne : elle dit tout (alertes depuis le cache)
+
+**Demande** : « si on active voix IA il faut qu'elle dise tout » ; « le bouton préparer la voix peut
+servir à ça ? » → oui : une phrase préparée se joue sans délai, donc l'urgent peut passer par la voix
+IA sans jamais attendre le réseau.
+
+- ✅ `cloudVoicePrep.ts` : `cloudModeFor(priorité, cloudOk, alertsLocal)` → `live` (information,
+  réponses), `cached` (critical, spotter, coach, « Répète »), `off` (urgent avec « Alertes en voix
+  locale »). `CLOUD_PREP_ALERT_KEYS` (21 gabarits : drapeaux, box, crevaison, roue, pénalité, dégâts,
+  surchauffes, limiteur, 7 phrases du spotter, 2 conseils fixes du coach de relais) ; `cloudPrepKeys`.
+- ✅ `voice.ts` : mode `cached` = cache mémoire puis cache disque (`cloudCachedAudio` : présence via
+  `tts_cloud_cache_missing`, relecture sans réseau), jamais de requête ; phrase fixe non préparée →
+  Piper + compteur « relais ». `prewarmSpeech` charge aussi en mémoire les phrases déjà préparées
+  (drapeaux, spotter… au début de séance). Utilisable même pendant la pause réseau (`cloudVoiceOn`).
+- ✅ Réglage « Alertes en voix locale » (`voice_cloud.alertsLocal`, défaut non) dans le bloc Voix IA ;
+  textes sécurité / préparation selon le réglage. i18n 5 langues ; changelog 1.0.10 (2 entrées voix IA
+  corrigées, version pas encore sortie).
+- ⏳ Limite : les conseils du coach par virage et les alertes à chiffre (« carburant pour 3 tours »)
+  ne sont pas préparables → Piper. Aucun changement côté Rust.
+- ✅ Tests : npm 692 (dont mode par priorité, couverture des gabarits urgents relue dans
+  `useRaceEngineer.ts`, 5 langues), tsc, eslint. Branche `feat/cloud-voice-all`.
+- 📋 **Prochaine étape** : en jeu avec une clé, « Préparer la voix » puis vérifier qu'un drapeau
+  jaune et « voiture à gauche » sortent en voix IA sans retard, puis couper le réseau (cache encore lu).
 ### 2026-10-16 — Régie tablette (⑪), notation des annonces (④), cartes : orientation, heatmap, duel, virages officiels
 
 **Demande** : « à faire » sur ④ (notation des interventions du coach), ⑪ (régie 2ᵉ écran /

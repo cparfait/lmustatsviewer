@@ -308,6 +308,10 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   - ✅ Voie des stands du jeu (`watch/trackmap` type 1) en **deux tronçons** séparés de 540 m (bouts les plus proches à 261 m) → tracée coupée aux sauts > 60 m (plus de corde).
   - ⚠️ La version **installée** et la version de dev partagent `{appdata}/tracks/` (écrasements croisés) et le profil WebView2 : fermer l'une pour tester l'autre.
   - ⏳ Non vérifié : `pitStopLength` avec carburant + pneus, `pit_lane_loss_map` (arrêt réel), alertes plaquettes + question « plaquettes ? » (STT absent du build de dev), formation avec le correctif (`rest_used.sessionEnd` = « game »), chance de pluie ≠ 0, carte dès la sortie des stands en roulant.
+- **Virages officiels sur les cartes (2026-10-16)** : table `src/data/cornerNames.ts`, une fiche
+  par circuit avec ses sources officielles ; affichage **tout ou rien** (compte détecté sur le tracé
+  du jeu = compte officiel). Ajouter un circuit = source officielle numéro → nom, sinon numéros seuls,
+  sinon rien. Liste des circuits écartés et des raisons en tête du fichier.
 - Live : plugin shared memory rF2 (`$rFactor2SMMP_Telemetry$` / `$rFactor2SMMP_Scoring$`) — l'utilisateur doit l'installer dans `<LMU>/Plugins/`.
 - ~~**À faire — badge Online/Solo**~~ : **abandonné** (2026-06-03). Redondant : la distinction est déjà visible via le type de réglage « En ligne » (Multiplayer) vs « Week-end de course » (Race Weekend) affiché dans les tableaux.
 - **Idée future — plugin SimHub** (pour les fans de SimHub) : proposer un **plugin SimHub** apportant les annonces vocales « ingénieur de course » (et/ou des propriétés de données) dans l'écosystème SimHub. ⚠️ Sous-projet **séparé en C#** (SimHub Plugin SDK / `IDataPlugin`), distinct du code Tauri/Rust : la logique de callouts (`useVoiceCallouts`) serait **réimplémentée** côté C# à partir de la télémétrie que SimHub fournit déjà. Indépendant de l'app principale. À planifier plus tard. Alternative plus légère côté app : fenêtre **overlay transparente always-on-top** (Tauri) au lieu d'un vrai plugin SimHub.
@@ -889,6 +893,65 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-16 — Régie tablette (⑪), notation des annonces (④), cartes : orientation, heatmap, duel, virages officiels
+
+**Demande** : « à faire » sur ④ (notation des interventions du coach), ⑪ (régie 2ᵉ écran /
+tablette) et les pistes cartes (heatmap live, mini-secteurs pour tout le plateau, numéros/noms
+officiels des virages, orientation commune, box, couleurs de classe), puis « proposer plusieurs
+gabarits pour la régie » et « liste tout ce que je dois valider quand je pourrai rouler ». Choix du
+mainteneur : notation à la voix **et** après séance ; régie opt-in avec code ; virages depuis des
+sources officielles vérifiées ; rotation automatique + réglage « nord en haut ».
+
+- ✅ **Régie (⑪)** : `commands/regie.rs`, serveur HTTP/1.1 maison (aucune dépendance réseau),
+  **désactivé par défaut**, écoute sur l'IPv4 du réseau local (pas `0.0.0.0`), code à 6 chiffres
+  (temps constant), 5 essais ratés → 60 s de blocage par adresse, `Host` limité à une IP ou
+  `localhost` (anti DNS rebinding), corps ≤ 4 Ko, **lecture seule** (aucune route d'écriture,
+  jamais `lmu_rest_write`). Page autonome `data/regie.html` (5 langues, CSP stricte) avec
+  **5 gabarits** : Classement, Ingénieur, Carte, Duel, TV. Flux live maintenu sans fenêtre
+  (`live::acquire(app, "regie")`). Réglages : Configuration › Régie tablette (QR code SVG via la
+  crate `qrcode`, port, appareils connectés), relance au démarrage (`lib/regie.ts`). Vérifié à
+  l'écran sur un faux serveur local (5 gabarits) ; test de bout en bout Rust sur la boucle locale.
+- ✅ **Notation (④)** : `engineer/radioFeedback.ts` (pur) : journal des annonces retenues par
+  l'arbitre (200 max), notes « utile / inutile / trop tard / faux » ; à la radio (intentions
+  `rateUseful…`, phrases exactes 5 langues, sur la dernière annonce ≤ 2 min, traitées dans
+  `ask.ts` sans IA) ; fenêtre « Radio de la séance » (bouton « Radio » de la page Live). Cumul
+  par famille de clé persisté (`radio_feedback`) ; famille ≥ 3 notes négatives et > 2 × les
+  utiles → délai de redite ≥ 3 tours / 3 min et priorité −25, **jamais** pour la sécurité.
+- ✅ **Cartes** :
+  - Rust `minisectors.rs` : zones égales ~350 m (8-24), franchissements interpolés entre deux
+    mesures de scoring, coupés aux stands ; `LiveStanding.id` (mID) et `mini` ; `mini_zone_len`.
+  - `lmu_rest` : points de la zone des stands (types ≥ 2 de `watch/trackmap`) → `pit_spots`.
+  - `trackMapGeom.fitTransform` : projection commune (ACP → plus large que haut, départ en bas,
+    échelle identique sur les deux axes — la carte Live étirait le tracé) ; réglage
+    `map_north_up`. Appliquée à la carte Live, à l'overlay (cache `lmu_trackmap_v3_*` en
+    coordonnées du monde) et à la télémétrie (GPS). La régie applique la même règle en JS.
+  - Carte Live : surcouches Vitesse / Écart (`liveHeat.ts`, buckets 20 m, référence = meilleur
+    tour) / Duel (clic sur une voiture, mini-secteurs) ; couleurs de classe centralisées dans
+    `staticData.ts` (`classSolidColor`, teinte stable tirée du nom pour une classe inconnue ;
+    copies retirées de `Live.tsx` et `format.ts`).
+  - Virages officiels : `data/cornerNames.ts` (sources citées par fiche) + détection
+    géométrique `trackCorners.ts` (rayon < 250 m, ≥ 10°, fusion 40 m) ; numéros posés **seulement
+    si le compte détecté = le compte officiel**. Réglage validé sur le tracé réel de Road Atlanta
+    (13 détectés = 13 repères 1-9, 10A, 10B, 11, 12) ; Long Beach : 9 détectés / 11 → rien affiché.
+- ✅ **Recherche des numérotations officielles** (agents web, sources officielles seules) :
+  retenus Spa (19, F1 + circuit), Monza (11), COTA (20), Silverstone (18), Lusail (16, sans nom),
+  Sebring (17, noms ACO numérotés), Interlagos (15, noms partiels), Imola (21, carte du circuit ≠
+  F1 19), Bahreïn (15, T1 « Michael Schumacher »), Road Atlanta (1-9, 10A, 10B, 11, 12, sans nom),
+  Barcelone (14, sans nom), Laguna Seca (1-11 + 8A), Long Beach (11, sans nom), Daytona (12).
+  **Écartés** : Le Mans (l'ACO ne numérote pas), Fuji (16 ou 17 selon la source), Portimão (15 F1
+  / 16 circuit), Paul Ricard (numérotation non séquentielle, variante V2 ambiguë).
+- ✅ Tests : `cargo test --lib` 88 ✅ (8 régie dont bout en bout, 3 mini-secteurs) ; `npm test`
+  868 ✅ (suite `maps.suite.ts` : orientation, heatmap, duel, virages sur tracés réels, notes
+  radio) ; `tsc -b` ✅ ; `eslint .` ✅. Changelog 1.0.10 (5 langues).
+- ⚠️ Non testé en jeu : tout ce qui précède (régie sur une vraie tablette et pare-feu, notation à
+  la voix, surcouches avec de vraies données, numéros de virages contre les cartes officielles,
+  rôle des deux séries d'emplacements des stands). Liste complète : **`VALIDATION-EN-JEU.md`**.
+- ⚠️ Incident : deux agents de recherche ont ouvert des PDF officiels dans le navigateur intégré,
+  ce qui a déclenché des boîtes « Enregistrer sous » chez l'utilisateur (rien enregistré).
+- 📋 **Prochaine étape** : dérouler `VALIDATION-EN-JEU.md` en roulant (garage → piste → course).
+  Ensuite : calibrage par circuit de la détection des virages (Long Beach), noms des emplacements
+  de box une fois leur rôle confirmé, duel par mini-secteurs dans le gabarit Duel de la régie.
 
 ### 2026-10-16 — Toutes les branches ouvertes fusionnées dans `main`
 

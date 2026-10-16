@@ -1944,6 +1944,7 @@ pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), A
     std::thread::spawn(move || {
         let mut state = PollState::new();
         state.tracks_dir = tracks_dir;
+        let mut in_session = false;
         // Le thread s'arrête si on lui demande (`LIVE_POLLING`) **ou** si une
         // génération plus récente a pris le relais (redémarrage rapide).
         while LIVE_POLLING.load(Ordering::SeqCst)
@@ -1951,7 +1952,10 @@ pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), A
         {
             let mut data = extract(&mut state);
             // Pont REST : le thread dédié lit le jeu ; ici on copie seulement.
-            lmu_rest::set_sim_present(data.connected);
+            // Il n'interroge qu'une séance chargée (une pause ne l'interrompt
+            // pas) — jamais les menus ni le lancement du jeu (plantage relevé).
+            in_session = data.session.is_some() || (data.paused && in_session);
+            lmu_rest::set_sim_present(data.connected && in_session);
             data.rest = lmu_rest::live_view();
             if app.emit("live-data", &data).is_err() {
                 // Plus personne à qui émettre : on ne coupe le drapeau que si

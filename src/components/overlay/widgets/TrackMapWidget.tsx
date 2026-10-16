@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Map as MapIcon } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
 import { liveClassColor } from "@/components/overlay/format";
-import { mapComplete, pathOf, trackPaths, type Pt } from "@/lib/trackMapGeom";
+import { mapComplete, pathOfRuns, trackPaths, type Pt } from "@/lib/trackMapGeom";
 import type { WidgetProps } from "./types";
 
 const SIZE = 300;
@@ -58,7 +58,7 @@ function buildOutline(pts: Pt[], dists: number[], lapLen: number, pit: Pt[]): Ou
   return {
     bounds,
     paths: trackPaths(pts, dists, lapLen, proj),
-    pit: pit.length >= 2 ? pathOf(pit.map(proj), false) : undefined,
+    pit: pit.length >= 2 ? pathOfRuns(pit, proj) : undefined,
   };
 }
 

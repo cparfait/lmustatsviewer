@@ -12,7 +12,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-use super::lmu_rest::{build_client, fetch_json, loopback_base, FetchError, LMU_REST_PORT};
+use super::lmu_rest::{build_client, fetch_json, loopback_base, session_ready, FetchError, LMU_REST_PORT};
 use crate::error::AppError;
 
 const ROUTE_MENU_GET: &str = "/rest/garage/PitMenu/receivePitMenu";
@@ -75,6 +75,16 @@ pub fn with_setting(v: &Value, name: &str, index: i64) -> Option<Value> {
     Some(out)
 }
 
+/// Même garde que le pont : jamais de requête `garage/*` sans séance confirmée
+/// par le jeu (LMU plante si on l'interroge pendant son initialisation).
+fn require_session() -> Result<(), AppError> {
+    if session_ready() {
+        Ok(())
+    } else {
+        Err(AppError::Unsupported("Aucune séance chargée dans le jeu.".to_string()))
+    }
+}
+
 fn err(e: FetchError) -> AppError {
     AppError::Unsupported(match e {
         FetchError::Unreachable => "Le jeu ne répond pas (API locale).".to_string(),
@@ -85,6 +95,7 @@ fn err(e: FetchError) -> AppError {
 /// Lit le menu des stands du jeu.
 #[tauri::command]
 pub async fn get_pit_menu() -> Result<Vec<PitMenuItem>, AppError> {
+    require_session()?;
     tauri::async_runtime::spawn_blocking(|| {
         let client = build_client().ok_or_else(|| AppError::Internal("client HTTP".to_string()))?;
         let v = fetch_json(&client, &loopback_base(LMU_REST_PORT), ROUTE_MENU_GET).map_err(err)?;
@@ -98,6 +109,7 @@ pub async fn get_pit_menu() -> Result<Vec<PitMenuItem>, AppError> {
 /// affiche bien la nouvelle valeur.
 #[tauri::command]
 pub async fn set_pit_menu_item(name: String, index: i64) -> Result<bool, AppError> {
+    require_session()?;
     tauri::async_runtime::spawn_blocking(move || {
         let client = build_client().ok_or_else(|| AppError::Internal("client HTTP".to_string()))?;
         let base = loopback_base(LMU_REST_PORT);

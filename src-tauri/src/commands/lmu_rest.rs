@@ -100,6 +100,12 @@ impl<T: Clone> Slot<T> {
         self.last_error = Some(kind);
     }
 
+    /// Plus fraîche du tout (hors séance) ; la dernière valeur reste lisible.
+    fn forget(&mut self) {
+        self.last_ok = None;
+        self.last_error = Some(Freshness::Absent);
+    }
+
     /// État à l'instant `now`. Une valeur récente reste « fraîche » même si
     /// une tentative isolée a échoué ; au-delà de 8 s, l'échec prend le pas.
     fn freshness(&self, now: Instant) -> Freshness {
@@ -724,7 +730,8 @@ impl Store {
 
 static STORE: Mutex<Option<Store>> = Mutex::new(None);
 static WORKER: AtomicBool = AtomicBool::new(false);
-/// Le jeu tourne (mémoire partagée présente) : inutile d'interroger sinon.
+/// Une séance est **chargée** dans le jeu (pas seulement la mémoire partagée
+/// présente) : rien n'est interrogé sinon. Cf. `set_sim_present`.
 static SIM_PRESENT: AtomicBool = AtomicBool::new(false);
 /// Incrémenté à chaque nouveau tracé de circuit lu (évite de copier le tracé à
 /// chaque trame : la boucle live ne le relit que quand ce numéro change).
@@ -750,7 +757,14 @@ pub fn track_map() -> Option<GameTrackMap> {
     with_store(|s| s.track_map.value.clone()).flatten()
 }
 
-/// Signalé par la boucle live à chaque trame.
+/// Signalé par la boucle live à chaque trame : vrai seulement quand une séance
+/// est chargée (horloge démarrée, voitures présentes ; une pause ne l'éteint pas).
+///
+/// ⚠️ Relevé réel (2026-10-16, deux plantages de suite) : LMU **plante au
+/// lancement** si on interroge `garage/getVehicleCondition` juste après
+/// l'ouverture de son serveur REST (13,7 s), pendant `Game::Setup` : `sessionInfo`
+/// répond vide, la requête garage reste pendante, le jeu meurt 1,2 s plus tard.
+/// La mémoire partagée existe dès 9,4 s : ce n'est donc pas un signal suffisant.
 pub fn set_sim_present(present: bool) {
     SIM_PRESENT.store(present, Ordering::Relaxed);
 }
@@ -760,10 +774,11 @@ struct Schedule {
     due: [Instant; 6],
 }
 
+/// `sessionInfo` d'abord : les autres routes en dépendent (`session_ready`).
 const ROUTES: [(&str, Duration); 6] = [
+    (ROUTE_SESSION, EVERY_FAST),
     (ROUTE_VEHICLE, EVERY_FAST),
     (ROUTE_PIT, EVERY_FAST),
-    (ROUTE_SESSION, EVERY_FAST),
     (ROUTE_WEATHER, EVERY_WEATHER),
     (ROUTE_GARAGE, EVERY_GARAGE),
     (ROUTE_TRACKMAP, EVERY_TRACKMAP),
@@ -833,12 +848,37 @@ fn track_map_wanted() -> bool {
     .unwrap_or(false)
 }
 
+/// Délai après l'entrée en séance avant la première requête (le jeu finit de
+/// charger le circuit ; son serveur ne répond de toute façon pas pendant le chargement).
+pub const SETTLE_AFTER_SESSION: Duration = Duration::from_secs(5);
+
+/// `sessionInfo` vient de décrire une vraie séance (fraîche, avec un circuit).
+/// Condition pour toucher aux routes `garage/*` et `watch/trackmap`.
+pub fn session_ready() -> bool {
+    with_store(|s| {
+        s.session.freshness(Instant::now()) == Freshness::Fresh
+            && s.session.value.as_ref().is_some_and(|v| !v.track_name.is_empty())
+    })
+    .unwrap_or(false)
+}
+
+/// Route autorisée sans séance confirmée par le jeu (seulement `sessionInfo`).
+pub fn needs_session(route: &str) -> bool {
+    route != ROUTE_SESSION
+}
+
 /// Un passage : interroge les routes échues. Le réseau se fait **hors verrou** ;
 /// le verrou n'est pris que pour ranger chaque résultat.
 fn poll_due(client: &reqwest::blocking::Client, base: &str, sched: &mut Schedule) {
     let now = Instant::now();
     for (i, (route, every)) in ROUTES.iter().enumerate() {
         if now < sched.due[i] {
+            continue;
+        }
+        if needs_session(route) && !session_ready() {
+            // Pas de séance confirmée : on ne touche pas au garage (risque de
+            // plantage du jeu en cours d'initialisation), on réessaie bientôt.
+            sched.due[i] = now + EVERY_FAST;
             continue;
         }
         if *route == ROUTE_TRACKMAP && !track_map_wanted() {
@@ -898,13 +938,19 @@ pub fn ensure_worker(keep_running: fn() -> bool) {
             }
             let present = SIM_PRESENT.load(Ordering::Relaxed);
             if present && !was_present {
-                // Le jeu vient d'apparaître : on oublie le recul accumulé.
-                let now = Instant::now();
-                sched.due = [now; 6];
+                // Séance tout juste chargée : on oublie le recul accumulé et on
+                // laisse le jeu se poser avant la première requête.
+                let start = Instant::now() + SETTLE_AFTER_SESSION;
+                sched.due = [start; 6];
                 with_store(|s| s.backoff = Duration::ZERO);
             }
             if !present {
-                with_store(|s| s.reachable = false);
+                // Hors séance : on oublie aussi la dernière séance vue, pour que
+                // les routes garage attendent une nouvelle confirmation du jeu.
+                with_store(|s| {
+                    s.reachable = false;
+                    s.session.forget();
+                });
             }
             was_present = present;
             if present {
@@ -1093,6 +1139,24 @@ mod tests {
         assert_eq!(s.freshness(t0 + Duration::from_secs(3)), Freshness::Fresh);
         assert_eq!(s.freshness(t0 + Duration::from_secs(9)), Freshness::Empty);
         assert_eq!(s.view(t0 + Duration::from_secs(9)).data, Some(1));
+    }
+
+    #[test]
+    fn only_session_info_before_a_confirmed_session() {
+        // Plantage relevé au lancement du jeu : aucune route garage/watch sans
+        // séance confirmée par `sessionInfo`.
+        assert!(!needs_session(ROUTE_SESSION));
+        for r in [ROUTE_VEHICLE, ROUTE_PIT, ROUTE_WEATHER, ROUTE_GARAGE, ROUTE_TRACKMAP] {
+            assert!(needs_session(r), "{r}");
+        }
+        assert_eq!(ROUTES[0].0, ROUTE_SESSION, "sessionInfo interrogé en premier");
+        let t0 = Instant::now();
+        let mut slot: Slot<u8> = Slot::default();
+        slot.set_ok(1, t0);
+        assert_eq!(slot.freshness(t0), Freshness::Fresh);
+        slot.forget();
+        assert_eq!(slot.freshness(t0), Freshness::Absent, "hors séance : plus fraîche");
+        assert_eq!(slot.value, Some(1));
     }
 
     #[test]

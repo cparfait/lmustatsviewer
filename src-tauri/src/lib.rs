@@ -212,6 +212,7 @@ pub fn run() {
             commands::live::start_live_polling,
             commands::live::stop_live_polling,
             commands::lmu_rest::get_lmu_garage_bounds,
+            commands::lmu_rest::get_lmu_vehicle_condition,
             // Overlays in-game (fenêtre transparente always-on-top)
             commands::overlay::open_overlay_window,
             commands::overlay::close_overlay_window,

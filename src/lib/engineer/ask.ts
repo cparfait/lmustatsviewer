@@ -16,7 +16,7 @@
 import { emit } from "@tauri-apps/api/event";
 import type { TFunction } from "i18next";
 import { useAppStore } from "@/stores/app";
-import { live } from "@/lib/api";
+import { live, type LiveData } from "@/lib/api";
 import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, announceAnswer, cancelSpeech, repeatLast } from "@/lib/voice";
 import { getProvider } from "@/lib/ai/providers";
@@ -126,6 +126,22 @@ function commandLabel(t: TFunction, id: string): string {
   return label === key ? id : label.split(" (")[0];
 }
 
+/** La question peut porter sur les plaquettes (intention, supposition ou candidate). */
+function aboutPads(r: ReturnType<typeof route>): boolean {
+  return r.intent === "brakeWear" || r.guess === "brakeWear" || r.candidates.includes("brakeWear");
+}
+
+/**
+ * Au garage, le pont REST ne lit plus l'état de la voiture en continu (LMU peut
+ * planter sur ses écrans) : pour « plaquettes ? », lecture ponctuelle (côté Rust :
+ * joueur dans son box, au plus une toutes les 30 s). Sinon, `data` inchangé.
+ */
+async function withGamePads(data: LiveData | null): Promise<LiveData | null> {
+  if (!data?.rest || data.rest.vehicle.state === "fresh") return data;
+  const vehicle = await live.vehicleCondition().catch(() => null);
+  return vehicle ? { ...data, rest: { ...data.rest, vehicle } } : data;
+}
+
 /**
  * Répond à `question` (dictée libre) : parle, affiche, et renvoie la réponse.
  * Mode « stricte seule » (réglage) : seule la reconnaissance stricte compte,
@@ -158,9 +174,10 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   // La question reconnue s'affiche (l'utilisateur voit si la dictée a mal compris).
   toast(`🎤 ${heard}`);
   void emit("coach-voice", { question: heard, answer: null });
-  const data = await live.getData().catch(() => null);
-
   const r = route(free, lang);
+  let data = await live.getData().catch(() => null);
+  if (aboutPads(r)) data = await withGamePads(data);
+
   const norm = r.norm || normalize(strict, lang);
   const opts = {
     pitLossSec: effectivePitLoss(data, st0.pitLossSeconds, st0.pitLaneLoss),

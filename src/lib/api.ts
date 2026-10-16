@@ -1390,6 +1390,8 @@ export const live = {
     listen<LiveData>("live-data", (e) => cb(enrichLive(e.payload))),
   /** Bornes des réglages du setup lues dans le jeu (pont REST). */
   garageBounds: () => invoke<RestField<RestSettingBound[]>>("get_lmu_garage_bounds"),
+  /** État de la voiture lu dans le jeu (pont REST) ; au garage, lecture ponctuelle. */
+  vehicleCondition: () => invoke<RestField<RestVehicle>>("get_lmu_vehicle_condition"),
   /** Fichiers météo scénarisés `.wet` du dossier Settings (prévision). */
   weatherFiles: (lmuPath: string) =>
     invoke<WetFile[]>("list_weather_files", { lmuPath }),

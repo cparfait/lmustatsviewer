@@ -895,6 +895,22 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Voix IA : voix choisie visible, banc d'écoute plus clair
+
+**Demandes** : « on ne voit pas la voix que l'on a sélectionnée » ; « pourquoi tout n'est pas fait en
+IA ? » (banc : alertes en « Piper — pas encore préparée », toast « Rien à jouer… »).
+
+- ✅ Cause du « pas tout en IA » : la seule préparation faite l'a été dans l'ancienne version (36
+  phrases d'information) ; les gabarits urgents et les morceaux ne sont générés qu'en relançant
+  « Préparer la voix » dans la version actuelle. Rien de cassé.
+- ✅ `CloudVoiceSettings.tsx` : le champ de recherche affiche la voix retenue (texte normal), taper
+  cherche toujours. `CloudVoiceBench.tsx` : « Préparer la voix » en tête du banc ; bouton IA grisé tant
+  que la phrase n'est pas en cache (info-bulle explicite) ; toasts distincts IA / Piper (5 langues).
+- ✅ `isFixedPhrase` : plafond 70 → 160 caractères (la question `vAskLapPref`, 88 caractères, était
+  « dite en direct » faute d'être préparable). npm 2555, tsc, eslint. Changelog 1.0.10.
+- 📋 **Prochaine étape** : relancer « Préparer la voix » dans l'app, vérifier le banc (alertes et
+  spotter en « Voix IA (cache) », phrases chiffrées « Assemblée »).
+
 ### 2026-10-16 — Profil : sans carte récap ni championnats ; avatar du pied de page sans cercle
 
 **Demande** : « n'entoure pas le logo et supprime Championnats et Carte récap du profil ».

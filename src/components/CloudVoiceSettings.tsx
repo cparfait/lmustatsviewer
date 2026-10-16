@@ -31,6 +31,7 @@ import {
   type CloudNumbersMode,
 } from "@/lib/cloudVoice";
 import { isTauri } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { previewCloudVoice } from "@/lib/voice";
 import { PrepareVoice, Row } from "@/components/CloudVoicePrepare";
 import { CloudVoiceBench } from "@/components/CloudVoiceBench";
@@ -212,9 +213,16 @@ function VoicePicker() {
               } else setDraft(v);
             }}
             options={shown.map((v) => ({ value: v.id, label: v.label }))}
-            placeholder={voices?.length ? t("config.cloudVoiceSearch") : active || t("config.cloudVoiceVoiceRequired")}
+            // La voix retenue s'affiche dans le champ (en texte normal) ; taper lance
+            // la recherche. Sans voix retenue : invite à chercher ou à saisir.
+            placeholder={
+              active ? activeName : voices?.length ? t("config.cloudVoiceSearch") : t("config.cloudVoiceVoiceRequired")
+            }
             ariaLabel={t("config.cloudVoiceVoice")}
-            className="h-8 w-full rounded-md border border-input bg-background pl-2.5 pr-7 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            className={cn(
+              "h-8 w-full rounded-md border border-input bg-background pl-2.5 pr-7 text-sm focus:outline-none focus:ring-1 focus:ring-ring",
+              active && "placeholder:text-foreground focus:placeholder:text-muted-foreground",
+            )}
           />
           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
         </div>

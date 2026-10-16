@@ -117,12 +117,14 @@ export function assembleAllowed(mode: CloudMode, numbers: CloudNumbersMode): boo
 }
 
 /**
- * Phrase fixe : courte et sans chiffre, elle revient mot pour mot → cache
- * (mémoire pour Piper, disque pour la voix en ligne). Critère partagé avec
- * `voice.ts` : le cache préparé n'est utile que si la course le relit.
+ * Phrase fixe : sans chiffre (et pas un paragraphe), elle revient mot pour mot →
+ * cache (mémoire pour Piper, disque pour la voix en ligne). Critère partagé avec
+ * `voice.ts` : le cache préparé n'est utile que si la course le relit. Plafond
+ * relevé de 70 à 160 caractères (2026-10-16) : les questions de l'ingénieur
+ * (« tes chronos, tu les veux… ») se préparent aussi.
  */
 export function isFixedPhrase(text: string): boolean {
-  return text.length <= 70 && !/\d/.test(text);
+  return text.length <= 160 && !/\d/.test(text);
 }
 
 /**

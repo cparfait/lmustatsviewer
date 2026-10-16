@@ -69,7 +69,7 @@ function BenchRow(props: {
   const route = facts ? benchRoute(facts) : null;
   const play = (how: BenchEngine) => {
     void playBench(text, lang, how).then((ok) => {
-      if (!ok) toastError(t("config.cloudBenchNothing"));
+      if (!ok) toastError(t(how === "piper" ? "config.cloudBenchNothingPiper" : "config.cloudBenchNothingCloud"));
     });
   };
   const missing = facts?.missing ?? [];
@@ -90,8 +90,9 @@ function BenchRow(props: {
               variant="outline"
               size="sm"
               className="h-7 px-2 text-xs gap-1"
-              disabled={!facts?.fixed || !facts.cloudOn}
-              title={t("config.cloudBenchPlayCloudHint")}
+              // Grisé tant que la phrase n'est pas dans le cache : rien à lire.
+              disabled={!facts?.wholeCached || !facts.cloudOn}
+              title={t(facts?.wholeCached ? "config.cloudBenchPlayCloudHint" : "config.cloudBenchPlayCloudMissing")}
               onClick={() => play("cloud")}
             >
               <Play className="h-3 w-3" />
@@ -195,6 +196,12 @@ export function CloudVoiceBench({ onClose }: { onClose: () => void }) {
         <div className="overflow-y-auto px-5 py-4 space-y-5">
           {!isTauri() && <div className="text-xs text-amber-500">{t("config.cloudBenchDesktopOnly")}</div>}
 
+          {/* En tête : sans préparation, l'urgent reste en Piper. */}
+          <section className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+            <div className="text-xs text-muted-foreground">{t("config.cloudBenchPrepNote")}</div>
+            <PrepareVoice />
+          </section>
+
           <section className="space-y-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-primary">
               {t("config.cloudBenchFamily_free")}
@@ -257,10 +264,6 @@ export function CloudVoiceBench({ onClose }: { onClose: () => void }) {
             </section>
           ))}
 
-          <section className="space-y-2 border-t border-border pt-4">
-            <div className="text-xs text-muted-foreground">{t("config.cloudBenchPrepNote")}</div>
-            <PrepareVoice />
-          </section>
         </div>
       </div>
     </div>

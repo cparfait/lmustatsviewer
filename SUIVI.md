@@ -895,6 +895,34 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Toutes les branches fusionnées dans `main` (2ᵉ passe)
+
+**Demande** : « merge toutes les branches ».
+
+- ✅ `main` ← `claude/distracted-franklin-e5ed64` (avance rapide : régie tablette, notation des
+  annonces, cartes, `integration-veille`, pont REST hors piste) ← `feat/rest-garage-gate` (plaquettes
+  au garage, tracé du jeu au box) ← `claude/elastic-bose-a13534` (contient `feat/cloud-voice-all` et
+  `feat/coach-audio` : voix IA qui dit tout, annonces chiffrées assemblées, banc d'écoute) ←
+  `claude/frosty-agnesi-895f79`. `v1-legacy` toujours exclue. Seules les modifications **commitées**
+  sont fusionnées (non commitées laissées en place : `SUIVI.md` du dossier principal, `Cargo.toml` de
+  `distracted-franklin`).
+- ⚠️ **Deux implémentations du même besoin** (« une seule voix ») : `frosty-agnesi` (réglage `scope`,
+  alertes et coach en ligne avec 1,5 s d'attente, spotter pré-synthétisé par requête en arrière-plan)
+  et `cloud-voice-all` (`cloudModeFor` : urgent **seulement depuis le cache**, jamais de réseau).
+  **Retenu : `cloudModeFor`** (consigne « jamais de requête réseau pour l'urgent », socle des annonces
+  chiffrées et du banc). `voiceRoute.ts` retiré ; `scope: "info"` d'une config de développement lu
+  comme « Alertes en voix locale ». Repris de `frosty-agnesi` : suivi `inflight` dans `voice.ts`
+  (anti-doublon pendant la synthèse, préemption par une annonce plus urgente sans « Je répète » ni
+  requête payée deux fois, `cancelSpeech` libère la file), `localOnly` (« Tester » de la voix locale),
+  jeton de démarrage du service coach, suite `voice.suite.ts` adaptée (préparation simulée, cas
+  « chiffrée assemblée »). Changelog : l'entrée « une seule voix » réécrite en « plus d'annonce en double ».
+- ⚠️ Changelog : l'entrée « Données du jeu… hors piste » avait disparu dans une fusion antérieure ;
+  rétablie avec le texte à jour (`rest-garage-gate`).
+- ✅ Tests : npm 2555, tsc, eslint, `cargo check` (1 avertissement préexistant).
+- 📋 **Prochaine étape** : compiler l'app depuis `main` et valider en jeu la voix IA (préparer, banc
+  d'écoute, une alerte, un message chiffré) et `VALIDATION-EN-JEU.md`. Les accusés de l'ingénieur
+  (« Bien reçu », `coach.voiceAck*`) ne sont pas dans « Préparer la voix » : encore en Piper.
+
 ### 2026-10-16 — Voix IA en ligne : banc d'écoute
 
 **Demande** (mainteneur, via la session parente) : « il faudrait avoir une page pour tester et voir ce
@@ -1042,6 +1070,41 @@ sources officielles vérifiées ; rotation automatique + réglage « nord en hau
 - 📋 **Prochaine étape** : dérouler `VALIDATION-EN-JEU.md` en roulant (garage → piste → course).
   Ensuite : calibrage par circuit de la détection des virages (Long Beach), noms des emplacements
   de box une fois leur rôle confirmé, duel par mini-secteurs dans le gabarit Duel de la régie.
+### 2026-10-16 — Voix IA en ligne : une seule voix, plus d'annonce en double
+
+**Retour mainteneur** (séance de validation du pont REST, build de dev 4214da0 + 8db5f5b) : « quand
+j'active le coach IA », deux voix différentes (Piper et une autre) et certains messages dits en double.
+
+- ✅ **Diagnostic** (config locale lue en lecture seule) : `voice_cloud` activé (Cartesia, 0 repli
+  noté), aucun fournisseur d'IA configuré → le « coach IA » du retour est la **voix IA en ligne**. Les
+  deux voix étaient le routage voulu de la bêta : en ligne pour `normal`/`chatty` et les réponses,
+  Piper pour `critical` (drapeaux, box, « Répète », accusés « Reçu, je regarde »), spotter et coach.
+- ✅ **Doublons** : la phrase en cours de synthèse n'était ni en file ni `current` → l'anti-doublon de
+  `speak` ne la voyait pas ; ce trou durait ~0,2 s avec Piper, jusqu'à 3 s avec la voix en ligne.
+  Même trou : une alerte attendait la fin d'une requête en ligne (le spotter y périmait),
+  `announce` restait bloquée jusqu'à l'annonce suivante après un `cancelSpeech` en vol, et un repli
+  voix Windows pouvait jouer une annonce annulée. En plus, `startCoachService` laissait deux
+  abonnements `live-data` sur arrêt/redémarrage pendant l'`await` (StrictMode du build de dev).
+- ✅ **Correctif** :
+  - `voice.ts` : `busy`/`generation` → `inflight` (annonce en synthèse) ; anti-doublon dessus ;
+    préemption par une annonce plus urgente (l'autre reprend telle quelle, audio et requête en ligne
+    réutilisés, sans « Je répète ») ; `cancelSpeech` libère la file ; jamais de repli pour une
+    annonce annulée ; prise de parole du pilote = synthèse non critique remise en file.
+  - Nouveau `voiceRoute.ts` (pur) + réglage `voice_cloud.scope` : « Toutes (une seule voix) » par
+    défaut (alertes et coach : attente ≤ 1,5 s ; spotter : jamais de réseau, audio pré-synthétisé ou
+    rempli en arrière-plan, Piper cette fois-là) ; « Infos et réponses seulement » = ancien
+    fonctionnement. `prewarmSpeech` prépare aussi la version en ligne en portée « toutes » ;
+    « Préparer la voix » ajoute alertes fixes + spotter (`CLOUD_PREP_SAFETY_KEYS`). Bouton
+    « Tester » de la voix locale : `localOnly`, reste en Piper.
+  - `coach/service.ts` : jeton de démarrage, abonnement de trop libéré.
+- ✅ Tests : nouvelle suite `voice.suite.ts` (file réelle, faux Tauri + faux Web Audio ; 12 échecs sur
+  l'ancien code : 2 lectures au lieu d'1, voix mélangées, alerte bloquée, 2 abonnements), contrôle
+  des clés préparées dans `radio.suite.ts`. `npm test` 922, `tsc -b`, `eslint .`, `cargo test --lib`.
+  Changelog 1.0.10 (correctif + deux entrées voix en ligne mises à jour, 5 langues).
+- ⏳ Non vérifié en jeu. Pas de requête à 127.0.0.1:6397 pour ce travail.
+- 📋 **Prochaine étape** : une sortie de 10 min avec voix en ligne en portée « toutes » (Config →
+  Audio / Voix), d'abord « Préparer la voix » : vérifier une seule voix (drapeaux, accusé, coach) et
+  aucune phrase en double ; le compteur de replis de la Config dit combien de phrases Piper a dû dire.
 
 ### 2026-10-16 — Toutes les branches ouvertes fusionnées dans `main`
 

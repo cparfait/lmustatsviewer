@@ -489,6 +489,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Online AI voice: no announcement said twice any more. A phrase that came back while it was still being generated is no longer said a second time, an urgent alert no longer waits for an online request in progress (the interrupted announcement follows once, without \"I repeat\" and without being paid twice), an acknowledgement right after a question is no longer held back, and the local voice \"Test\" button always plays the local voice.",
+              fr: "Voix IA en ligne : plus d'annonce dite en double. Une phrase revenue pendant qu'elle était encore en cours de génération n'est plus redite, une alerte urgente n'attend plus la fin d'une requête en ligne en cours (l'annonce devancée suit une fois, sans « Je répète » et sans être payée deux fois), un accusé de réception juste après une question n'est plus retenu, et le bouton « Tester » de la voix locale fait toujours entendre la voix locale.",
+              es: "Voz IA en línea: ningún aviso se dice dos veces. Una frase que vuelve mientras aún se está generando ya no se repite, una alerta urgente ya no espera a que termine una petición en línea en curso (el aviso adelantado sigue una vez, sin «Repito» y sin pagarse dos veces), un acuse de recibo justo después de una pregunta ya no se retiene, y el botón «Probar» de la voz local siempre reproduce la voz local.",
+              de: "Online-KI-Stimme: keine Ansage mehr doppelt. Ein Satz, der zurückkommt, während er noch erzeugt wird, wird nicht mehr zweimal gesagt, eine dringende Warnung wartet nicht mehr auf eine laufende Online-Anfrage (die überholte Ansage folgt einmal, ohne „Ich wiederhole“ und ohne doppelt bezahlt zu werden), eine Bestätigung direkt nach einer Frage wird nicht mehr zurückgehalten, und die Schaltfläche „Testen“ der lokalen Stimme spielt immer die lokale Stimme.",
+              it: "Voce IA online: nessun annuncio detto due volte. Una frase tornata mentre era ancora in generazione non viene più ripetuta, un avviso urgente non aspetta più la fine di una richiesta online in corso (l'annuncio superato segue una volta, senza «Ripeto» e senza essere pagato due volte), una conferma subito dopo una domanda non viene più trattenuta, e il pulsante «Prova» della voce locale fa sempre sentire la voce locale.",
+            },
+          },
+          {
+            text: {
               en: "Voice: \"brake temperature\" (or \"are my brakes hot?\") is now answered — front and rear temperature with a verdict (cold, in the window, too hot) based on the car's disc material.",
               fr: "Voix : « température des freins » (ou « mes freins sont chauds ? ») a désormais une réponse — température avant et arrière avec un verdict (froids, dans la fenêtre, trop chauds) selon le matériau des disques de la voiture.",
               es: "Voz: «temperatura de frenos» (o «¿frenos calientes?») ya tiene respuesta: temperatura delantera y trasera con un veredicto (fríos, en la ventana, demasiado calientes) según el material de los discos del coche.",

@@ -135,7 +135,8 @@ export async function initCloudVoice(raw?: string | null, rawUsage?: string | nu
                 ),
               )
             : {},
-        alertsLocal: parsed.alertsLocal === true,
+        // `scope: "info"` : réglage d'une version de développement (infos seulement) = alertes en voix locale.
+        alertsLocal: parsed.alertsLocal === true || parsed.scope === "info",
         numbers: parsed.numbers === "all" || parsed.numbers === "off" ? parsed.numbers : "alerts",
       };
     }

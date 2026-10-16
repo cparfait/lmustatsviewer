@@ -215,6 +215,8 @@ export interface SpeakOpts {
    * direct malgré sa priorité critique (une alerte, elle, n'y passe que préparée).
    */
   cloudOk?: boolean;
+  /** Voix locale seulement (bouton « Tester » de la voix Piper / système). */
+  localOnly?: boolean;
 }
 
 interface QueueItem {
@@ -232,6 +234,21 @@ interface QueueItem {
   opts?: SpeakOpts;
   /** Déjà reprise une fois (coupure ou perte) : jamais deux. */
   retried?: boolean;
+  /** Audio déjà synthétisé, gardé quand une annonce plus urgente est passée devant. */
+  audio?: AudioBuffer;
+  /** Requête à la voix en ligne en vol : reprise telle quelle, jamais payée deux fois. */
+  cloudPending?: Promise<AudioBuffer | null>;
+}
+
+/**
+ * Annonce sortie de la file dont l'audio est en cours de synthèse (Piper ou voix
+ * en ligne). Elle n'est ni en file ni en lecture : sans ce suivi, l'anti-doublon
+ * ne la voyait pas (même phrase dite deux fois) et une annonce plus urgente
+ * attendait la fin de la requête (jusqu'à 3 s avec la voix en ligne).
+ */
+interface InFlight {
+  item: QueueItem;
+  rank: number;
 }
 
 const PRIORITY_RANK: Record<VoicePriority, number> = {
@@ -276,6 +293,18 @@ interface Playback {
 
 let queue: QueueItem[] = [];
 let current: Playback | null = null;
+/** Synthèse en cours (une seule à la fois) ; `null` dès qu'elle est annulée ou devancée. */
+let inflight: InFlight | null = null;
+
+/**
+ * Remet en file l'annonce en cours de synthèse (jamais entendue : ni préfixe
+ * « Je répète », ni nouvelle durée de vie). Son résultat sera ignoré à l'arrivée.
+ */
+function releaseInflight() {
+  if (!inflight) return;
+  queue.unshift(inflight.item);
+  inflight = null;
+}
 
 // ── Quand ne pas entamer une phrase ──────────────────────────────────────────
 // Ces gardes **retiennent** une annonce non critique dans la file (elle part dès
@@ -324,6 +353,8 @@ function requeueCut(item: QueueItem) {
     raw: `${item.opts.replayPrefix} ${item.raw}`,
     retried: true,
     expiry: Date.now() + item.ttl,
+    audio: undefined, // autre texte, autre audio
+    cloudPending: undefined,
   });
 }
 
@@ -339,6 +370,9 @@ export function setDriverTalking(on: boolean) {
     cut.end(false);
     requeueCut(cut.item);
   }
+  // Annonce en cours de synthèse : elle attend que le pilote ait fini (sinon
+  // elle démarrait par-dessus sa voix à l'arrivée de l'audio).
+  if (on && talkSilence && inflight && inflight.rank < PRIORITY_RANK.critical) releaseInflight();
   if (!on) void pump();
 }
 
@@ -372,10 +406,6 @@ function holdChannel(item: QueueItem) {
 let lastSpokenText = "";
 let lastSpokenRaw = "";
 let lastSpokenLang = "";
-/** Synthèse Piper en cours (fenêtre asynchrone) — bloque un second pump. */
-let busy = false;
-/** Génération : incrémentée à chaque annulation pour ignorer une synthèse périmée. */
-let generation = 0;
 
 function buildUtterance(text: string, lang: string): SpeechSynthesisUtterance {
   const u = new SpeechSynthesisUtterance(text);
@@ -809,44 +839,77 @@ export async function playBench(raw: string, lang: string, how: BenchEngine): Pr
   return true;
 }
 
-/** Tente la synthèse Piper + lecture. Renvoie false si indisponible/échec. */
-async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
+/**
+ * Audio en ligne de l'annonce selon son mode (`cloudModeFor`) ; `null` = Piper
+ * la dira. `stale` : la synthèse a été annulée ou devancée entre-temps.
+ */
+async function cloudAudio(
+  ctx: AudioContext,
+  code: string,
+  item: QueueItem,
+  stale: () => boolean,
+): Promise<AudioBuffer | null> {
+  if (item.opts?.localOnly) return null;
+  const mode = cloudMode(item);
+  const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, item.text)}`;
+  if (mode === "live" && cloudVoiceOn() && !isFixedPhrase(item.text) && assembleFor(mode)) {
+    // Réglage « tout assemblé » : l'information chiffrée prête se lit sans requête.
+    const assembled = (await assembledBuffer(ctx, code, item.raw)).buffer;
+    if (assembled || stale()) return assembled;
+  }
+  if (mode === "live" && cloudVoiceReady()) {
+    const cached = synthCache.get(cloudKey);
+    if (cached) return cached;
+    // Annonce reprise après être passée derrière une plus urgente : même requête.
+    const pending = item.cloudPending ?? cloudBuffer(ctx, code, item.text);
+    item.cloudPending = pending;
+    const raw = await pending;
+    if (item.cloudPending === pending) item.cloudPending = undefined;
+    if (raw && isFixedPhrase(item.text)) rememberPhrase(cloudKey, raw);
+    // Repli compté une fois, par la reprise qui le dit vraiment.
+    if (!raw && !stale()) noteCloudFallback();
+    return raw;
+  }
+  if (mode === "cached" && cloudVoiceOn()) {
+    // Phrase urgente : mémoire (pré-chargée) puis cache disque, jamais le réseau.
+    const cached = synthCache.get(cloudKey);
+    if (cached) return cached;
+    if (isFixedPhrase(item.text)) {
+      const raw = await cloudCachedBuffer(ctx, code, item.text);
+      if (raw) rememberPhrase(cloudKey, raw);
+      else if (!stale()) noteCloudFallback(); // phrase fixe non préparée : Piper la dit
+      return raw;
+    }
+    if (assembleFor(mode)) {
+      // Phrase chiffrée : recollée à partir des morceaux préparés, sinon Piper.
+      const res = await assembledBuffer(ctx, code, item.raw);
+      if (!res.buffer && res.matched && !stale()) noteCloudFallback();
+      return res.buffer;
+    }
+  }
+  return null;
+}
+
+/**
+ * Synthèse (voix en ligne ou Piper) + lecture de l'annonce `job`. Renvoie false
+ * si Piper est indisponible (repli voix système). Si `job` n'est plus la
+ * synthèse en cours à l'arrivée de l'audio (annulée ou devancée), rien ne joue —
+ * pas même en repli ; l'audio est gardé pour la reprise.
+ */
+async function trySynthAndPlay(job: InFlight): Promise<boolean> {
+  const item = job.item;
   if (engine !== "piper" || !isTauri()) return false;
   const code = norm(item.lang);
   const ctx = audioContext();
   if (!ctx) return false;
-  const g = generation;
-  let raw: AudioBuffer | null = null;
-  const mode = cloudMode(item);
-  if (mode === "live" && cloudVoiceOn() && !isFixedPhrase(item.text) && assembleFor(mode)) {
-    // Réglage « tout assemblé » : l'information chiffrée prête se lit sans requête.
-    raw = (await assembledBuffer(ctx, code, item.raw)).buffer;
-    if (g !== generation) return true;
-  }
-  if (!raw && mode === "live" && cloudVoiceReady()) {
-    const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, item.text)}`;
-    raw = synthCache.get(cloudKey) ?? null;
-    if (!raw) {
-      raw = await cloudBuffer(ctx, code, item.text);
-      if (raw && isFixedPhrase(item.text)) rememberPhrase(cloudKey, raw);
-      if (!raw) noteCloudFallback();
+  const stale = () => inflight !== job;
+  let raw: AudioBuffer | null = item.audio ?? null;
+  if (!raw) {
+    raw = await cloudAudio(ctx, code, item, stale);
+    if (stale()) {
+      if (raw) item.audio = raw;
+      return true;
     }
-    if (g !== generation) return true; // annulé pendant la requête
-  } else if (mode === "cached" && cloudVoiceOn()) {
-    // Phrase urgente : mémoire (pré-chargée) puis cache disque, jamais le réseau.
-    const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, item.text)}`;
-    raw = synthCache.get(cloudKey) ?? null;
-    if (!raw && isFixedPhrase(item.text)) {
-      raw = await cloudCachedBuffer(ctx, code, item.text);
-      if (raw) rememberPhrase(cloudKey, raw);
-      else noteCloudFallback(); // phrase fixe non préparée : Piper la dit
-    } else if (!raw && assembleFor(mode)) {
-      // Phrase chiffrée : recollée à partir des morceaux préparés, sinon Piper.
-      const res = await assembledBuffer(ctx, code, item.raw);
-      raw = res.buffer;
-      if (!raw && res.matched) noteCloudFallback();
-    }
-    if (g !== generation) return true;
   }
   if (!raw && piperUnavailable.has(code)) return false;
   // Callout pré-synthétisé (P3.3) ou phrase fixe déjà dite → lecture immédiate,
@@ -857,18 +920,23 @@ async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
     raw = await synthBuffer(ctx, code, item.text);
     if (raw && isFixedPhrase(item.text)) rememberPhrase(key, raw);
   }
+  if (stale()) {
+    if (raw) item.audio = raw;
+    return true;
+  }
   if (!raw) return false; // Piper indisponible → repli voix système
-  // Annulé entre-temps (`cancelSpeech`) : rien ne joue — pas même en repli.
-  if (g !== generation) return true;
   // Profil « Radio stand » : habillage appliqué au tampon (le cache reste nu).
   const buffer = await styleVoiceBuffer(ctx, raw);
-  if (g !== generation) return true;
+  if (stale()) {
+    item.audio = raw;
+    return true;
+  }
   playBuffer(ctx, buffer, item);
   return true;
 }
 
 async function pump() {
-  if (current || busy) return;
+  if (current || inflight) return;
   const now = Date.now();
   // Purge des périmés. Une annonce importante qui n'a jamais pu passer (file
   // retenue, pilote occupé) a droit à une seconde chance, une seule.
@@ -896,13 +964,18 @@ async function pump() {
     return;
   }
   const item = queue.splice(idx, 1)[0];
-  busy = true;
+  const job: InFlight = { item, rank: PRIORITY_RANK[item.priority] };
+  inflight = job;
+  let played = false;
   try {
-    const played = await trySynthAndPlay(item);
-    if (!played) playSpeech(item); // repli voix système
-  } finally {
-    busy = false;
+    played = await trySynthAndPlay(job);
+  } catch {
+    /* synthèse en erreur : repli voix système */
   }
+  // Annulée ou devancée pendant la synthèse : la file a déjà repris sans elle.
+  if (inflight !== job) return;
+  inflight = null;
+  if (!played) playSpeech(item); // repli voix système
 }
 
 /**
@@ -967,7 +1040,8 @@ export function speak(
   lastSpokenText = text;
   lastSpokenRaw = raw;
   lastSpokenLang = lang;
-  if (current?.text === text) return;
+  // Doublon : déjà en lecture, en cours de synthèse ou en file.
+  if (current?.text === text || inflight?.item.text === text) return;
   if (queue.some((it) => it.text === text)) return;
   const ttl = ttlMs !== undefined && ttlMs > 0 ? ttlMs : TTL[priority];
   queue.push({ text, raw, lang, priority, expiry: Date.now() + ttl, ttl, opts });
@@ -977,13 +1051,19 @@ export function speak(
     const cut = current;
     cut.end(false);
     requeueCut(cut.item);
+  } else if (inflight && PRIORITY_RANK[priority] > inflight.rank) {
+    // Plus urgente que l'annonce en cours de synthèse : elle passe devant, sans
+    // attendre la réponse du service ; l'autre, jamais entendue, suit telle quelle.
+    releaseInflight();
   }
   void pump();
 }
 
 /** Coupe et vide tout (désactivation des annonces, changement de session). */
 export function cancelSpeech() {
-  generation++; // invalide toute synthèse Piper en vol
+  // Synthèse en vol ignorée à l'arrivée ; la file repart aussitôt (une annonce
+  // posée juste après, ex. `announce`, n'attend plus la fin de la requête).
+  inflight = null;
   queue = [];
   if (retryTimer) {
     clearTimeout(retryTimer);
@@ -1074,9 +1154,12 @@ export function repeatLast(): boolean {
   return true;
 }
 
-/** Joue immédiatement une phrase (bouton « Tester » de la config). */
-export function previewVoice(text: string, lang: string) {
-  announce(text, lang);
+/**
+ * Joue immédiatement une phrase (bouton « Tester » de la config). `localOnly` :
+ * test de la voix locale, même quand la voix en ligne dit aussi les alertes.
+ */
+export function previewVoice(text: string, lang: string, opts?: { localOnly?: boolean }) {
+  announce(text, lang, undefined, opts?.localOnly ? { localOnly: true } : undefined);
 }
 
 let compareTimer: ReturnType<typeof setTimeout> | null = null;

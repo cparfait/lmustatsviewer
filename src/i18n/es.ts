@@ -141,7 +141,7 @@ export default {
   },
   career: {
     title: "Temporada",
-    subtitle: "Momentos destacados, progresión, tarjeta resumen y campeonatos.",
+    subtitle: "Momentos destacados, progresión y defecto recurrente.",
     year: "Año",
     allTime: "Desde el principio",
     all: "Todas las carreras",

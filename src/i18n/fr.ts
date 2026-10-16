@@ -141,7 +141,7 @@ export default {
   },
   career: {
     title: "Saison",
-    subtitle: "Temps forts, progression, carte récap et championnats.",
+    subtitle: "Temps forts, progression et défaut récurrent.",
     year: "Année",
     allTime: "Depuis le début",
     all: "Toutes les courses",

@@ -141,7 +141,7 @@ export default {
   },
   career: {
     title: "Stagione",
-    subtitle: "Momenti salienti, progressione, scheda riepilogo e campionati.",
+    subtitle: "Momenti salienti, progressione e difetto ricorrente.",
     year: "Anno",
     allTime: "Da sempre",
     all: "Tutte le gare",

@@ -15,6 +15,15 @@ export function Footer() {
     <footer className="mt-12 border-t border-border/60 bg-background/60">
       <div className="mx-auto max-w-[1800px] px-4 py-6 flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {/* Le pilote, devant le nom et la version : un clic rejoue l'animation. */}
+          <button
+            type="button"
+            onClick={() => setEasterEgg(true)}
+            aria-label={t("footer.easterEggLabel")}
+            className="h-8 w-8 shrink-0 overflow-hidden rounded-full transition-transform hover:scale-110 hover:rotate-[-6deg] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <img src="/logos/avatar.png" alt="" className="h-full w-full object-cover" />
+          </button>
           <span className="font-mono">LMU Stats Viewer · v{APP_VERSION}</span>
           <span className="text-muted-foreground/40">·</span>
           <Link
@@ -36,15 +45,6 @@ export function Footer() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setEasterEgg(true)}
-            aria-label={t("footer.easterEggLabel")}
-            className="h-8 w-8 overflow-hidden rounded-full transition-transform hover:scale-110 hover:rotate-[-6deg] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <img src="/logos/avatar.png" alt="" className="h-full w-full object-cover" />
-          </button>
-
           <a
             href={DISCORD_URL}
             target="_blank"

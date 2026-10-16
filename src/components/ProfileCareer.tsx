@@ -55,25 +55,25 @@ export function ProfileCareer() {
         <h2 className="text-sm font-bold tracking-tight">{t("career.title")}</h2>
         <span className="text-mini opacity-80 truncate hidden sm:inline">{t("career.subtitle")}</span>
       </div>
+      {/* Largeur au contenu, comme les filtres des autres pages (rien de tronqué). */}
       <div className="flex flex-wrap items-center gap-2">
         <Select
           value={year}
           onValueChange={setYear}
-          className="w-32"
           ariaLabel={t("career.year")}
           options={[{ value: "all", label: t("career.allTime") }, ...years.map((y) => ({ value: String(y), label: String(y) }))]}
         />
         <Select
           value={online}
           onValueChange={(v) => setOnline(v as OnlineFilter)}
-          className="w-36"
+          ariaLabel={t("career.all")}
           options={[
             { value: "all", label: t("career.all") },
             { value: "online", label: t("career.online") },
             { value: "offline", label: t("career.offline") },
           ]}
         />
-        <Select value={cls} onValueChange={setCls} className="w-36" options={[{ value: "", label: t("career.allClasses") }, ...classes.map((c) => ({ value: c, label: c }))]} />
+        <Select value={cls} onValueChange={setCls} ariaLabel={t("career.allClasses")} options={[{ value: "", label: t("career.allClasses") }, ...classes.map((c) => ({ value: c, label: c }))]} />
       </div>
 
       {list.length === 0 ? (

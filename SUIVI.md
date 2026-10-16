@@ -895,6 +895,16 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Profil : menus Saison à la largeur du contenu ; avatar à gauche du pied de page
+
+**Demandes** : « les menus ne sont pas adaptés à l'app » (filtres Saison tronqués, sous-titre qui
+citait encore carte récap et championnats) ; « mets le logo plutôt à gauche devant le numéro de version ».
+
+- ✅ `ProfileCareer.tsx` : filtres année / en ligne / classe sans largeur fixe (comme les filtres de
+  Records), libellés accessibles ; sous-titre `career.subtitle` mis à jour (5 langues).
+- ✅ `Footer.tsx` : avatar (easter egg) déplacé devant « LMU Stats Viewer · vX ».
+- 📋 **Prochaine étape** : coup d'œil dans l'app (Profil → Saison, pied de page).
+
 ### 2026-10-16 — Voix IA : voix choisie visible, banc d'écoute plus clair
 
 **Demandes** : « on ne voit pas la voix que l'on a sélectionnée » ; « pourquoi tout n'est pas fait en

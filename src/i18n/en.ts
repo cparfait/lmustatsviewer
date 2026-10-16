@@ -141,7 +141,7 @@ export default {
   },
   career: {
     title: "Season",
-    subtitle: "Highlights, progress, recap card and championships.",
+    subtitle: "Highlights, progress and recurring issue.",
     year: "Year",
     allTime: "All time",
     all: "All races",

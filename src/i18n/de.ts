@@ -141,7 +141,7 @@ export default {
   },
   career: {
     title: "Saison",
-    subtitle: "Highlights, Fortschritt, Rückblick-Karte und Meisterschaften.",
+    subtitle: "Höhepunkte, Fortschritt und wiederkehrende Schwäche.",
     year: "Jahr",
     allTime: "Gesamt",
     all: "Alle Rennen",

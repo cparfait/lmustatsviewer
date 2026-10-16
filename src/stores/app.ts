@@ -73,6 +73,9 @@ interface AppState {
   pitAutoEnergy: boolean;
   /** Courte animation (volet + titre) au lancement de l'app. */
   launchIntro: boolean;
+  /** Pont REST : interroger aussi les écrans du jeu au garage, en pause et aux
+   *  menus (ancien comportement ; off par défaut, LMU y plante parfois). */
+  restPollOffTrack: boolean;
   /** Rythme cible de l'overlay live (clé tier ohne_speed : alien/competitive/good/midpack). */
   overlayTargetTier: string;
   /** Modules du menu activés (clé nav → bool). Absent/true = visible. */
@@ -278,6 +281,7 @@ interface AppState {
   setGameWrites: (v: boolean) => Promise<void>;
   setPitAutoEnergy: (v: boolean) => Promise<void>;
   setLaunchIntro: (v: boolean) => Promise<void>;
+  setRestPollOffTrack: (v: boolean) => Promise<void>;
   setOverlayTargetTier: (v: string) => Promise<void>;
   setMenuModule: (key: string, value: boolean) => Promise<void>;
   setVoiceAnnouncements: (v: boolean) => Promise<void>;
@@ -362,6 +366,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   gameWrites: false,
   pitAutoEnergy: false,
   launchIntro: true,
+  restPollOffTrack: false,
   overlayTargetTier: "competitive",
   menuModules: {},
   voiceAnnouncements: false,
@@ -574,6 +579,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       gameWrites: cfg.game_writes === "true",
       pitAutoEnergy: cfg.pit_auto_energy === "true",
       launchIntro: cfg.launch_intro !== "false",
+      restPollOffTrack: cfg.rest_poll_off_track === "true",
       overlayTargetTier: cfg.overlay_target_tier || "competitive",
       menuModules,
       voiceAnnouncements: cfg.voice_announcements === "true",
@@ -838,6 +844,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLaunchIntro: async (v) => {
     await config.set("launch_intro", v ? "true" : "false");
     set({ launchIntro: v });
+  },
+
+  setRestPollOffTrack: async (v) => {
+    // Appliqué à chaud côté Rust par `set_config`.
+    await config.set("rest_poll_off_track", v ? "true" : "false");
+    set({ restPollOffTrack: v });
   },
 
   setOverlayTargetTier: async (v) => {

@@ -5,7 +5,7 @@ import { IntroVideo } from "@/components/IntroVideo";
 // Une seule fois par lancement de l'app (pas à chaque changement de page).
 let playedThisRun = false;
 
-/** Fin de l'animation de lancement (volet + titre, ~3 s), désactivable dans
+/** Fin de l'animation de lancement (plan du titre, 7,8 → 10,4 s du rendu), désactivable dans
  *  Configuration → Préférences → « Animation au lancement ». Monté une fois la config chargée. */
 export function LaunchIntro() {
   const enabled = useAppStore((s) => s.launchIntro);

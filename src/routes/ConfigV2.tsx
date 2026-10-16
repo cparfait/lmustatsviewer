@@ -228,6 +228,7 @@ export function ConfigV2() {
   const telemetryDir = useAppStore((s) => s.telemetryDir);
   const timezone = useAppStore((s) => s.timezone);
   const autoIndex = useAppStore((s) => s.autoIndex);
+  const restPollOffTrack = useAppStore((s) => s.restPollOffTrack);
   const systemTray = useAppStore((s) => s.systemTray);
   const autoUpdate = useAppStore((s) => s.autoUpdate);
   const launchIntro = useAppStore((s) => s.launchIntro);
@@ -2427,6 +2428,15 @@ export function ConfigV2() {
                   tip={t("config.autoIndexTip")}
                   checked={autoIndex}
                   onChange={(v) => useAppStore.getState().setAutoIndex(v)}
+                />
+                <Separator />
+                <ToggleRow
+                  icon={<Radio className="h-4 w-4" />}
+                  label={t("config.restPollOffTrack")}
+                  desc={t("config.restPollOffTrackDesc")}
+                  tip={t("config.restPollOffTrackTip")}
+                  checked={restPollOffTrack}
+                  onChange={(v) => useAppStore.getState().setRestPollOffTrack(v)}
                 />
                 <Separator />
                 <ActionRow

@@ -282,6 +282,15 @@ pub fn run() {
                 build_tray(app.handle())?;
             }
 
+            // Pont REST : interroger aussi le jeu hors piste (garage, pause,
+            // menus) ? Défaut : non (plantages de LMU relevés sur ses écrans).
+            commands::lmu_rest::set_poll_off_track(
+                db::config_get(app.state::<DbState>().inner(), commands::lmu_rest::CONFIG_POLL_OFF_TRACK)
+                    .ok()
+                    .flatten()
+                    .is_some_and(|v| v == "true"),
+            );
+
             Ok(())
         })
         .on_window_event(|window, event| {

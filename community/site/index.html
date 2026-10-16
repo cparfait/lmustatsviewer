@@ -3,91 +3,563 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Classements communautaires — LMU Stats Viewer</title>
-<meta name="description" content="Les meilleurs tours des pilotes LMU Stats Viewer sur Le Mans Ultimate, circuit par circuit, par classe, voiture et version du jeu.">
+<title data-i18n="meta.title">LMU Stats Viewer — stats, télémétrie et coach IA pour Le Mans Ultimate</title>
+<meta name="description" data-i18n-attr="content" data-i18n="meta.description" content="Application Windows native pour Le Mans Ultimate : statistiques, records, setups, télémétrie, live timing, overlays in-game, ingénieur de course vocal, classements communautaires et coach IA. Gratuite, locale, rien d&#x27;envoyé sans votre accord.">
 <meta name="theme-color" content="#D93B00">
-<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=50">
-<link rel="icon" href="/favicon.ico?v=50">
-<link rel="apple-touch-icon" href="/assets/icon-128.png?v=50">
-<meta property="og:title" content="Classements communautaires — LMU Stats Viewer">
-<meta property="og:description" content="Où vous situez-vous, circuit par circuit ? Des temps enregistrés par le jeu, pas saisis à la main.">
+<link rel="icon" href="assets/img/32x32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/img/128x128@2x.png">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="/assets/site.css?v=50">
+<meta property="og:title" data-i18n-attr="content" data-i18n="meta.title" content="LMU Stats Viewer">
+<meta property="og:description" data-i18n-attr="content" data-i18n="meta.description" content="">
+<meta property="og:image" content="assets/img/shots/records-dark.png">
+<link rel="stylesheet" href="/assets/site.css?v=51">
+<link rel="stylesheet" href="/assets/css/vitrine.css?v=51">
+
+<!-- Thème et langue posés avant le premier rendu (fichier commun à tout le site). -->
+<script src="/assets/boot.js?v=51"></script>
 </head>
 <body>
+
+<a class="skip-link" href="#main" data-i18n="a11y.skip">Aller au contenu</a>
+
+<!-- Jeu d'icônes (référencé par <use>) -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <g id="i-trophy"><path d="M7 4h10v4.5a5 5 0 0 1-10 0zM7 6H4v1.2A3.2 3.2 0 0 0 7 10.4M17 6h3v1.2A3.2 3.2 0 0 1 17 10.4M9.5 20h5M12 13.5V20"/></g>
+    <g id="i-list"><path d="M8.5 6H21M8.5 12H21M8.5 18H21M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></g>
+    <g id="i-flag"><path d="M4 15.2s1.2-1 4-1 5 2 8 2 4-1 4-1V4.2s-1.2 1-4 1-5-2-8-2-4 1-4 1zM4 21.5V3"/></g>
+    <g id="i-target"><path d="M12 2.5a9.5 9.5 0 1 0 0 19 9.5 9.5 0 0 0 0-19zM12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6zM12 11.4a.6.6 0 1 0 0 1.2.6.6 0 0 0 0-1.2z"/></g>
+    <g id="i-sliders"><path d="M4 21v-6.5M4 10.5V3M12 21v-8.5M12 8.5V3M20 21v-4.5M20 12.5V3M1.5 14.5h5M9.5 8.5h5M17.5 16.5h5"/></g>
+    <g id="i-pulse"><path d="M2.5 12.5h4.2l2.8 7 4-15.5 2.8 8.5h5.2"/></g>
+    <g id="i-live"><path d="M12 11.6a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8M8.6 8.6a4.8 4.8 0 0 0 0 6.8M15.4 15.4a4.8 4.8 0 0 0 0-6.8M5.6 5.6a8.9 8.9 0 0 0 0 12.8M18.4 18.4a8.9 8.9 0 0 0 0-12.8"/></g>
+    <g id="i-layers"><path d="M3.5 4.5h9.5v7.5H3.5zM11 12.5h9.5v7H11zM6.5 15.5h3"/></g>
+    <g id="i-bot"><path d="M12 2.5v3M5.8 5.5h12.4a2.2 2.2 0 0 1 2.2 2.2v9.6a2.2 2.2 0 0 1-2.2 2.2H5.8a2.2 2.2 0 0 1-2.2-2.2V7.7a2.2 2.2 0 0 1 2.2-2.2zM9 11h.01M15 11h.01M9.5 15h5"/></g>
+    <g id="i-mic"><path d="M12 2.5a2.9 2.9 0 0 1 2.9 2.9v5.8a2.9 2.9 0 0 1-5.8 0V5.4A2.9 2.9 0 0 1 12 2.5zM5.5 11.2a6.5 6.5 0 0 0 13 0M12 17.7v3.8M8.5 21.5h7"/></g>
+    <g id="i-user"><path d="M20 21v-1.8a4.2 4.2 0 0 0-4.2-4.2H8.2A4.2 4.2 0 0 0 4 19.2V21M12 3a4.1 4.1 0 1 1 0 8.2A4.1 4.1 0 0 1 12 3z"/></g>
+    <g id="i-lock"><path d="M4.8 10.8h14.4v10.4H4.8zM8.2 10.8V7a3.8 3.8 0 0 1 7.6 0v3.8M12 15v2.6"/></g>
+    <g id="i-check"><path d="M4 12.5l5 5L20 6.5"/></g>
+    <g id="i-arrow-up"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></g>
+
+    <!-- Drapeaux du sélecteur de langue (viewBox 16×12). Dessinés en SVG et
+         non en emoji : Windows n'affiche pas les emoji-drapeaux. -->
+    <clipPath id="flagClip"><rect width="16" height="12" rx="1"/></clipPath>
+    <g id="flag-fr">
+      <rect width="16" height="12" fill="#F5F5F5"/>
+      <rect width="5.34" height="12" fill="#002654"/>
+      <rect x="10.66" width="5.34" height="12" fill="#CE1126"/>
+    </g>
+    <g id="flag-es">
+      <rect width="16" height="12" fill="#C60B1E"/>
+      <rect y="3" width="16" height="6" fill="#FFC400"/>
+    </g>
+    <g id="flag-de">
+      <rect width="16" height="12" fill="#141414"/>
+      <rect y="4" width="16" height="4" fill="#DD0000"/>
+      <rect y="8" width="16" height="4" fill="#FFCE00"/>
+    </g>
+    <g id="flag-it">
+      <rect width="16" height="12" fill="#F5F5F5"/>
+      <rect width="5.34" height="12" fill="#009246"/>
+      <rect x="10.66" width="5.34" height="12" fill="#CE2B37"/>
+    </g>
+    <g id="flag-en" clip-path="url(#flagClip)">
+      <rect width="16" height="12" fill="#012169"/>
+      <path d="M0 0l16 12M16 0L0 12" stroke="#F5F5F5" stroke-width="2.6"/>
+      <path d="M0 0l16 12M16 0L0 12" stroke="#C8102E" stroke-width="1.3"/>
+      <path d="M8 0v12M0 6h16" stroke="#F5F5F5" stroke-width="4"/>
+      <path d="M8 0v12M0 6h16" stroke="#C8102E" stroke-width="2.2"/>
+    </g>
+  </defs>
+</svg>
+
 <header class="site-header"></header>
 
-<main>
-  <!-- Accueil = les classements, tout de suite : un en-tête court, puis le tableau
-       circuits × classes où chaque temps ouvre son classement. -->
-  <section class="intro">
-    <div class="wrap intro-grid">
-      <div class="intro-text">
-        <h1 data-i18n="home.title"></h1>
-        <p class="lead" data-i18n="home.lead"></p>
-        <p class="intro-trust muted" data-i18n="home.trust"></p>
+<main id="main">
+
+  <!-- ───────────────── HERO ───────────────── -->
+  <section class="hero">
+    <div class="wrap">
+      <!-- Aucun numéro de version en dur : le badge n'apparaît que si la
+           dernière release a pu être lue sur GitHub (cf. assets/js/app.js). -->
+      <p class="eyebrow">
+        <span class="dot"></span>
+        <span data-i18n="hero.badge">Windows 10 / 11 · Gratuit · Open source</span>
+        <a class="ver" id="verTag" href="changelog.html" hidden></a>
+      </p>
+      <h1 data-i18n="hero.title">Toute votre saison Le Mans Ultimate, sur votre PC et nulle part ailleurs</h1>
+      <p class="lead" data-i18n="hero.lead">Gratuite, open source, sans compte ni abonnement. LMU Stats Viewer lit les fichiers de votre jeu — résultats, télémétrie, réglages — et en tire vos records, votre place dans les classements de la communauté et l'analyse virage par virage. Et en course : live timing, 23 overlays et un ingénieur de course qui vous parle.</p>
+
+      <div class="cta-row">
+        <a class="btn btn-primary btn-lg" data-dl="hero" href="https://github.com/cparfait/lmustatsviewer/releases">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5M4 21h16"/></svg>
+          <span data-i18n="hero.cta1">Télécharger pour Windows</span>
+        </a>
+        <a class="btn btn-ghost btn-lg" href="https://github.com/cparfait/lmustatsviewer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.4 5 18.4 5.3 18.4 5.3c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5z"/></svg>
+          <span data-i18n="hero.cta2">Code source</span>
+        </a>
       </div>
-      <div class="intro-side">
-        <ul class="kstats" id="stats">
-          <li><b class="skeleton">000</b><span data-i18n="stat.drivers"></span><em></em></li>
-          <li><b class="skeleton">000</b><span data-i18n="stat.sessions"></span><em></em></li>
-          <li><b class="skeleton">00</b><span data-i18n="stat.layouts"></span><em></em></li>
-          <li><b class="skeleton">00</b><span data-i18n="stat.ranked"></span><em></em></li>
-        </ul>
-        <div class="intro-actions">
-          <a class="btn btn-primary btn-sm" id="meLink" hidden data-i18n="home.me"></a>
-          <a class="btn btn-ghost btn-sm" href="#how" data-i18n="nav.share"></a>
+      <p class="fineprint" data-i18n="hero.fineprint">Licence MIT · Aucun compte, aucune inscription · Mise à jour automatique intégrée</p>
+
+      <!-- Pas d'apparition différée ici : c'est la plus grande image de la page,
+           elle doit être peinte le plus tôt possible. -->
+      <figure class="hero-shot">
+        <div class="win-bar" aria-hidden="true">
+          <span class="win-dots"><i></i><i></i><i></i></span>
+          <span class="win-title">LMU Stats Viewer</span>
+          <span class="win-ctrls"><i></i><i></i><i></i></span>
+        </div>
+        <img data-shot="records" src="assets/img/shots/records-dark.png" data-i18n-attr="alt" data-i18n="hero.shotAlt" alt="Écran Records de LMU Stats Viewer : meilleurs temps par circuit avec secteurs et tour optimal" width="1920" height="1009" loading="eager" fetchpriority="high">
+      </figure>
+
+      <ul class="chips">
+        <li><strong>23</strong><span data-i18n="chips.overlays">overlays in-game</span></li>
+        <li><strong>5</strong><span data-i18n="chips.langs">langues</span></li>
+        <li><strong>7</strong><span data-i18n="chips.ai">fournisseurs IA</span></li>
+        <li><strong>0</strong><span data-i18n="chips.cloud">donnée envoyée sans votre accord</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ───────────────── SPOTLIGHT ───────────────── -->
+  <section class="section alt" id="spotlight">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker" data-i18n="spot.kicker">L'essentiel</p>
+        <h2 data-i18n="spot.title">Trois façons de gagner du temps au tour</h2>
+        <p class="section-lead" data-i18n="spot.lead">Avant la course pour comprendre, pendant la course pour réagir, après la course pour progresser.</p>
+      </header>
+
+      <div class="spot reveal">
+        <div class="spot-text">
+          <p class="spot-kicker" data-i18n="spot.1.k">Avant : l'analyse</p>
+          <h3 data-i18n="spot.1.t">Voyez précisément où part le temps</h3>
+          <p data-i18n="spot.1.d">La télémétrie du jeu, lue nativement : freinage, vitesse, gaz, direction sur une même vue, carte du circuit synchronisée avec les courbes, et le tour optimal théorique en face de votre meilleur tour.</p>
+          <ul class="ticks">
+            <li data-i18n="spot.1.b1">Carte 2D et 3D, curseur lié aux canaux</li>
+            <li data-i18n="spot.1.b2">Analyse virage par virage</li>
+            <li data-i18n="spot.1.b3">Comparaison A/B de vos réglages</li>
+          </ul>
+        </div>
+        <figure class="spot-shot">
+          <img data-shot="telemetry" src="assets/img/shots/telemetry-dark.png" data-i18n-attr="alt" data-i18n="spot.1.alt" alt="Vue télémétrie : carte du circuit et canaux synchronisés" loading="lazy" width="1920" height="1009">
+        </figure>
+      </div>
+
+      <div class="spot spot-rev reveal">
+        <div class="spot-text">
+          <p class="spot-kicker" data-i18n="spot.2.k">Pendant : la course</p>
+          <h3 data-i18n="spot.2.t">Les bonnes informations sans quitter la piste des yeux</h3>
+          <p data-i18n="spot.2.d">23 overlays translucides que vous placez où vous voulez, sur n'importe quel écran, un live timing complet et un ingénieur de course qui vous parle : l'écart qui se réduit, le trafic à venir, la fenêtre d'arrêt, la météo, les drapeaux — même application réduite.</p>
+          <ul class="ticks">
+            <li data-i18n="spot.2.b1">Delta, relatif, radar, pneus, carburant</li>
+            <li data-i18n="spot.2.b2">Stratégie carburant recalculée à chaque tour</li>
+            <li data-i18n="spot.2.b3">Questions et alertes à la voix, reconnaissance hors-ligne en 5 langues</li>
+          </ul>
+        </div>
+        <figure class="spot-shot">
+          <img data-shot="overlays" src="assets/img/shots/overlays-dark.png" data-i18n-attr="alt" data-i18n="spot.2.alt" alt="Page Overlays : 23 widgets à activer et positionner" loading="lazy" width="1920" height="1009">
+        </figure>
+      </div>
+
+      <div class="spot reveal">
+        <div class="spot-text">
+          <p class="spot-kicker" data-i18n="spot.3.k">Après : le débrief</p>
+          <h3 data-i18n="spot.3.t">Vos progrès, session après session</h3>
+          <p data-i18n="spot.3.d">Records par circuit avec secteurs et tour optimal, temps de piste, victoires, régularité et heatmap d'activité sur l'année. Vous voyez où vous en êtes, votre rang parmi les pilotes LMU Stats Viewer et de combien vous vous rapprochez des références de la communauté.</p>
+          <ul class="ticks">
+            <li data-i18n="spot.3.b1">Records, secteurs et tour optimal par circuit</li>
+            <li data-i18n="spot.3.b2">Votre rang communautaire et votre niveau, de Débutant à Alien</li>
+            <li><span data-i18n="spot.3.b3">En option, une analyse IA de votre course</span> <span class="tag-beta" data-i18n="tag.beta">bêta</span></li>
+          </ul>
+        </div>
+        <figure class="spot-shot">
+          <img data-shot="sessions" src="assets/img/shots/sessions-dark.png" data-i18n-attr="alt" data-i18n="spot.3.alt" alt="Historique des sessions : toutes vos courses, essais et qualifications" loading="lazy" width="1920" height="1009">
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── COMMUNITY ───────────────── -->
+  <section class="section" id="community">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker" data-i18n="comm.kicker">Communauté</p>
+        <h2 data-i18n="comm.title">Où vous situez-vous parmi les autres pilotes ?</h2>
+        <p class="section-lead" data-i18n="comm.lead">Les meilleurs tours des pilotes LMU Stats Viewer, circuit par circuit, par classe, voiture et version du jeu — dans l'app, page Classements, et en ligne.</p>
+      </header>
+
+      <div class="grid features community">
+        <article class="card reveal">
+          <span class="ico ico-amber"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-trophy"/></svg></span>
+          <h3 data-i18n="comm.1.t">Votre rang sur chaque combo</h3>
+          <p data-i18n="comm.1.d">Calculé tout seul à partir de vos meilleurs tours : position, top %, écart au plus rapide et répartition des temps, à côté de votre niveau OhneSpeed.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-green"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg></span>
+          <h3 data-i18n="comm.2.t">Des chronos que personne ne saisit</h3>
+          <p data-i18n="comm.2.d">Seuls les tours validés par le jeu comptent, lus dans ses fichiers de résultats. Les secteurs incohérents et les temps impossibles sont écartés par le serveur.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg></span>
+          <h3 data-i18n="comm.3.t">C'est vous qui décidez</h3>
+          <p data-i18n="comm.3.d">Partager vos tours est facultatif et passe par votre compte Steam : rien ne part sans votre clic, et nous ne gardons qu'une empreinte de votre identifiant Steam. Vous apparaissez sous votre nom de pilote LMU, ou restez anonyme ; vos tours s'effacent en un clic, depuis n'importe quel PC.</p>
+        </article>
+      </div>
+
+      <div class="cta-row center community-cta">
+        <a class="btn btn-primary btn-lg" href="/classements.html" data-i18n="comm.cta">Voir les classements en ligne</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── FEATURES ───────────────── -->
+  <section class="section alt" id="features">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker" data-i18n="features.kicker">Fonctionnalités</p>
+        <h2 data-i18n="features.title">Tout ce que le jeu enregistre, exploité</h2>
+        <p class="section-lead" data-i18n="features.lead">Douze modules qui travaillent sur les mêmes fichiers : ceux que Le Mans Ultimate écrit déjà sur votre disque.</p>
+      </header>
+
+      <div class="grid features">
+        <article class="card reveal">
+          <span class="ico ico-amber"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-trophy"/></svg></span>
+          <h3 data-i18n="feat.records.t">Records &amp; meilleurs temps</h3>
+          <p data-i18n="feat.records.d">Vos meilleurs tours groupés par circuit, avec secteurs S1/S2/S3, tour optimal théorique, V-max, position d'arrivée et progression. Filtres par circuit, tracé, classe, voiture, type de session et version du jeu.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-list"/></svg></span>
+          <h3 data-i18n="feat.sessions.t">Historique des sessions</h3>
+          <p data-i18n="feat.sessions.d">Toutes vos sessions — essais, qualifications, courses — dans une liste paginée, triable et filtrable. Chaque cellule est un filtre : un clic sur un circuit ou une voiture et la liste s'ajuste.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-red"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-flag"/></svg></span>
+          <h3 data-i18n="feat.detail.t">Détails de course</h3>
+          <p data-i18n="feat.detail.d">Classement par classe avec écarts, tour par tour de chaque pilote (secteurs, carburant, usure pneus), stratégie, incidents, pénalités, chat et comparaison de pilotes en tête-à-tête.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-green"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg></span>
+          <h3 data-i18n="feat.refs.t">Classements</h3>
+          <p data-i18n="feat.refs.d">Votre rang parmi les pilotes LMU Stats Viewer sur chaque combo, et les références OhneSpeed : votre niveau de Débutant à Alien, avec l'écart exact qui vous en sépare.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-amber"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sliders"/></svg></span>
+          <h3 data-i18n="feat.setups.t">Garage &amp; réglages</h3>
+          <p data-i18n="feat.setups.d">Scan automatique de vos fichiers <code>.svm</code> et création de vos propres réglages. Éditeur lisible (moteur, pneus, suspension, amortisseurs, châssis), notes, duplication, export et comparaison A/B — et chaque setup se rattache à la session où il a servi.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-violet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pulse"/></svg></span>
+          <h3 data-i18n="feat.telemetry.t">Télémétrie</h3>
+          <p data-i18n="feat.telemetry.d">Lecture native des enregistrements du jeu : graphes multi-canaux, carte 2D et 3D du circuit, curseur synchronisé carte ↔ courbes, analyse virage par virage et meilleur tour théorique.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-red"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-live"/></svg></span>
+          <h3 data-i18n="feat.live.t">Live timing</h3>
+          <p data-i18n="feat.live.d">Tableau de bord temps réel via le plugin de mémoire partagée : chronos, delta, classement complet, carte du circuit, drapeaux, pneus, et stratégie carburant recalculée à chaque tour.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-layers"/></svg></span>
+          <h3 data-i18n="feat.overlays.t">Overlays in-game</h3>
+          <p data-i18n="feat.overlays.d">23 widgets translucides par-dessus le jeu — delta, relatif, secteurs, radar, carte, pneus, carburant, G-force, coach… Placement libre en mode édition, sur n'importe lequel de vos écrans, opacité réglable et profils enregistrés.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-green"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-mic"/></svg></span>
+          <h3 data-i18n="feat.spotter.t">Ingénieur de course</h3>
+          <p data-i18n="feat.spotter.d">Il vous parle comme un ingénieur : l'écart qui se réduit, le trafic à venir, la fenêtre d'arrêt, la météo, les drapeaux, le carburant. Questions à la voix, alertes « préviens-moi », même application réduite. Reconnaissance 100 % hors-ligne dans les 5 langues.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-amber"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-user"/></svg></span>
+          <h3 data-i18n="feat.profile.t">Profil pilote</h3>
+          <p data-i18n="feat.profile.d">Temps de piste, distance, tours, victoires et podiums en ligne et hors ligne, heatmap d'activité sur l'année et indicateurs de régularité.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg></span>
+          <h3 data-i18n="feat.privacy.t">Local et privé</h3>
+          <p data-i18n="feat.privacy.d">Aucun compte. Tout est calculé sur votre machine, dans une base locale, et rien ne part sans votre accord : le partage de vos meilleurs tours est facultatif, et le Coach IA ne contacte que le fournisseur choisi — ou personne avec Ollama.</p>
+        </article>
+        <article class="card reveal">
+          <span class="ico ico-violet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bot"/></svg></span>
+          <h3><span data-i18n="feat.ai.t">Coach IA</span> <span class="tag-beta" data-i18n="tag.beta">bêta</span></h3>
+          <p data-i18n="feat.ai.d">Analyse de course et de télémétrie avec votre propre clé API (OpenAI, Anthropic, Google, OpenRouter, DeepSeek, Mistral, Ollama en local ou tout service compatible OpenAI). Objectifs chiffrés vérifiés à la session suivante ; en course, les questions factuelles sont répondues tout de suite, sans IA ni coût.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── GALLERY ───────────────── -->
+  <section class="section" id="gallery">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker" data-i18n="gallery.kicker">Captures d'écran</p>
+        <h2 data-i18n="gallery.title">L'application en images</h2>
+        <p class="section-lead" data-i18n="gallery.lead">Captures réelles, sur de vraies données de jeu. Les images suivent le thème du site : basculez en haut de page pour les voir en clair ou en sombre.</p>
+      </header>
+
+      <div class="tabs" id="galleryTabs" role="tablist" aria-label="Filtres de la galerie">
+        <button class="tab is-active" type="button" role="tab" aria-selected="true" data-filter="all" data-i18n="gallery.f.all">Tout</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-filter="stats" data-i18n="gallery.f.stats">Stats</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-filter="race" data-i18n="gallery.f.race">Course</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-filter="tech" data-i18n="gallery.f.tech">Technique</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-filter="config" data-i18n="gallery.f.config">Réglages</button>
+      </div>
+
+      <div class="grid gallery" id="galleryGrid">
+        <figure class="shot" data-cat="stats">
+          <button class="shot-open" type="button">
+            <img data-shot="records" src="assets/img/shots/records-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.records.t">Records</strong><span data-i18n="shot.records.d">Meilleurs temps par circuit, secteurs et tour optimal</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="stats">
+          <button class="shot-open" type="button">
+            <img data-shot="profile" src="assets/img/shots/profile-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.profile.t">Profil</strong><span data-i18n="shot.profile.d">Temps de piste, résultats et heatmap d'activité</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="stats">
+          <button class="shot-open" type="button">
+            <img data-shot="sessions" src="assets/img/shots/sessions-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.sessions.t">Sessions</strong><span data-i18n="shot.sessions.d">Historique complet, trié et filtrable</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="race">
+          <button class="shot-open" type="button">
+            <img data-shot="session-detail" src="assets/img/shots/session-detail-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.detail.t">Détail de course</strong><span data-i18n="shot.detail.d">Classement par classe, écarts et statistiques du tour</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="race">
+          <button class="shot-open" type="button">
+            <img data-shot="session-laps" src="assets/img/shots/session-laps-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.laps.t">Tours de course</strong><span data-i18n="shot.laps.d">Tour par tour : secteurs, carburant, pneus, V-max</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="race">
+          <button class="shot-open" type="button">
+            <img data-shot="live-overview" src="assets/img/shots/live-overview-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.liveOverview.t">Live timing</strong><span data-i18n="shot.liveOverview.d">Position, chrono du tour, carburant et pneus en direct</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="race">
+          <button class="shot-open" type="button">
+            <img data-shot="live-standings" src="assets/img/shots/live-standings-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.liveStandings.t">Classement en direct</strong><span data-i18n="shot.liveStandings.d">Tout le plateau, secteur par secteur, avec les écarts</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="race">
+          <button class="shot-open" type="button">
+            <img data-shot="live-telemetry" src="assets/img/shots/live-telemetry-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.liveTelemetry.t">Données en direct</strong><span data-i18n="shot.liveTelemetry.d">Pilotage, carburant, pneus, dégâts et chronométrage</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="race">
+          <button class="shot-open" type="button">
+            <img data-shot="live-map" src="assets/img/shots/live-map-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.liveMap.t">Carte live</strong><span data-i18n="shot.liveMap.d">La position de toutes les voitures, en temps réel</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="stats">
+          <button class="shot-open" type="button">
+            <img data-shot="references" src="assets/img/shots/references-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.refs.t">Références</strong><span data-i18n="shot.refs.d">Temps de référence OhneSpeed et votre niveau</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="tech">
+          <button class="shot-open" type="button">
+            <img data-shot="setups" src="assets/img/shots/setups-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.setups.t">Garage</strong><span data-i18n="shot.setups.d">Ceux du jeu et les vôtres, au même endroit</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="tech">
+          <button class="shot-open" type="button">
+            <img data-shot="setup-editor" src="assets/img/shots/setup-editor-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.editor.t">Éditeur de réglages</strong><span data-i18n="shot.editor.d">Paramètres lisibles, notes et comparaison A/B</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="tech">
+          <button class="shot-open" type="button">
+            <img data-shot="telemetry" src="assets/img/shots/telemetry-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.telemetry.t">Télémétrie</strong><span data-i18n="shot.telemetry.d">Carte du circuit et canaux synchronisés</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="tech">
+          <button class="shot-open" type="button">
+            <img data-shot="telemetry-list" src="assets/img/shots/telemetry-list-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.telemetryList.t">Enregistrements</strong><span data-i18n="shot.telemetryList.d">Vos fichiers de télémétrie, météo et meilleur tour</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="tech">
+          <button class="shot-open" type="button">
+            <img data-shot="overlays" src="assets/img/shots/overlays-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.overlays.t">Overlays</strong><span data-i18n="shot.overlays.d">23 widgets à activer et positionner librement</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="config">
+          <button class="shot-open" type="button">
+            <img data-shot="config" src="assets/img/shots/config-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.config.t">Configuration</strong><span data-i18n="shot.config.d">Dossiers détectés automatiquement au premier lancement</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="config">
+          <button class="shot-open" type="button">
+            <img data-shot="changelog" src="assets/img/shots/changelog-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong data-i18n="shot.changelog.t">Notes de version</strong><span data-i18n="shot.changelog.d">L'historique des versions, directement dans l'app</span></figcaption>
+        </figure>
+        <figure class="shot" data-cat="config">
+          <button class="shot-open" type="button">
+            <img data-shot="config-ai" src="assets/img/shots/config-ai-dark.png" alt="" loading="lazy" width="1920" height="1009">
+          </button>
+          <figcaption><strong><span data-i18n="shot.ai.t">Coach IA</span> <span class="tag-beta" data-i18n="tag.beta">bêta</span></strong><span data-i18n="shot.ai.d">Votre fournisseur, votre clé, chiffrée localement</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── HOW IT WORKS ───────────────── -->
+  <section class="section alt" id="how">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker" data-i18n="how.kicker">Fonctionnement</p>
+        <h2 data-i18n="how.title">Rien à saisir, rien d'envoyé sans votre accord</h2>
+        <p class="section-lead" data-i18n="how.lead">Le Mans Ultimate écrit déjà tout sur votre disque. L'application se contente de lire ces fichiers et de les indexer localement.</p>
+      </header>
+
+      <ol class="steps">
+        <li class="reveal">
+          <span class="step-n">1</span>
+          <h3 data-i18n="how.s1.t">Le jeu écrit ses fichiers</h3>
+          <p data-i18n="how.s1.d">Résultats XML après chaque session, télémétrie haute fréquence si vous l'activez, et vos réglages <code>.svm</code>.</p>
+        </li>
+        <li class="reveal">
+          <span class="step-n">2</span>
+          <h3 data-i18n="how.s2.t">L'app détecte et indexe</h3>
+          <p data-i18n="how.s2.d">Les dossiers sont trouvés automatiquement. Seuls les fichiers nouveaux ou modifiés sont relus : le chargement reste instantané même avec des centaines de sessions.</p>
+        </li>
+        <li class="reveal">
+          <span class="step-n">3</span>
+          <h3 data-i18n="how.s3.t">Vous analysez</h3>
+          <p data-i18n="how.s3.d">Records, écarts, secteurs, stratégie, virages. Et en course, le live timing, les overlays et le spotter prennent le relais.</p>
+        </li>
+      </ol>
+
+      <div class="pillars">
+        <div><strong data-i18n="how.p1.t">Application native</strong><p data-i18n="how.p1.d">Pas de navigateur, pas de serveur local à lancer. Un <code>.exe</code>, et c'est tout.</p></div>
+        <div><strong data-i18n="how.p2.t">Base locale</strong><p data-i18n="how.p2.d">Vos sessions sont indexées dans une base sur votre disque. Seuls vos meilleurs tours peuvent en sortir, et seulement si vous choisissez de les partager.</p></div>
+        <div><strong data-i18n="how.p3.t">Mises à jour signées</strong><p data-i18n="how.p3.d">L'app vérifie les nouvelles versions et s'installe en un clic.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────── INSTALL ───────────────── -->
+  <section class="section" id="install">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker" data-i18n="install.kicker">Installation</p>
+        <h2 data-i18n="install.title">Trois minutes, montre en main</h2>
+        <p class="section-lead" data-i18n="install.lead">Un installeur, un premier lancement, et vos sessions passées sont déjà là.</p>
+      </header>
+
+      <div class="split">
+        <ol class="install-steps">
+          <li><span data-i18n="install.s1">Téléchargez le fichier <code>LMU_Stats_Viewer_x.x.x_x64-setup.exe</code> depuis la page des versions.</span></li>
+          <li><span data-i18n="install.s2">Lancez l'installeur, puis ouvrez l'application depuis le bureau ou le menu Démarrer.</span></li>
+          <li><span data-i18n="install.s3">Au premier lancement, confirmez votre nom de pilote : les dossiers du jeu sont détectés tout seuls.</span></li>
+          <li><span data-i18n="install.s4">Pour le live timing et les overlays, copiez le plugin de mémoire partagée rF2 dans le dossier <code>Plugins</code> du jeu — un guide s'affiche dans l'app si besoin.</span></li>
+        </ol>
+
+        <div class="req">
+          <h3 data-i18n="install.req.t">Prérequis</h3>
+          <table>
+            <tr><th data-i18n="install.req.os">Système</th><td>Windows 10 / 11 (64 bits)</td></tr>
+            <tr><th data-i18n="install.req.game">Jeu</th><td>Le Mans Ultimate (Steam)</td></tr>
+            <tr><th data-i18n="install.req.runtime">Runtime</th><td data-i18n="install.req.runtimeV">Aucun — tout est inclus</td></tr>
+            <tr><th data-i18n="install.req.live">Live &amp; overlays</th><td data-i18n="install.req.liveV">Plugin mémoire partagée rF2 <em>(optionnel)</em></td></tr>
+            <tr><th data-i18n="install.req.tel">Télémétrie</th><td data-i18n="install.req.telV">« Telemetry Recording » activé en jeu <em>(optionnel)</em></td></tr>
+            <tr><th data-i18n="install.req.ai">Coach IA</th><td data-i18n="install.req.aiV">Une clé API, ou Ollama en local <em>(optionnel)</em></td></tr>
+          </table>
+          <a class="btn btn-primary" data-dl="installation" href="https://github.com/cparfait/lmustatsviewer/releases" data-i18n="install.cta">Aller à la page de téléchargement</a>
         </div>
       </div>
     </div>
   </section>
 
-  <div class="topfilters"><div class="wrap"><div class="filters" id="filters"></div></div></div>
+  <!-- ───────────────── FAQ ───────────────── -->
+  <section class="section alt" id="faq">
+    <div class="wrap narrow">
+      <header class="section-head">
+        <p class="kicker" data-i18n="faq.kicker">Questions fréquentes</p>
+        <h2 data-i18n="faq.title">Bon à savoir</h2>
+      </header>
 
-  <div class="wrap" id="notice"></div>
-
-  <section class="board" id="tracks">
-    <div class="wrap">
-      <div class="tbar board-bar">
-        <h3 data-i18n="home.board"></h3>
-        <span class="tbar-right">
-          <b class="tbar-n" id="resultsCount"></b>
-          <span class="seg" role="group" id="sortSeg"><button type="button" data-sort="popular" data-i18n="sort.popular"></button><button type="button" data-sort="az" data-i18n="sort.az"></button></span>
-          <span class="seg" role="group" id="viewSeg"><button type="button" data-view="grid" data-i18n="view.grid"></button><button type="button" data-view="list" data-i18n="view.list"></button></span>
-          <a class="btn btn-sm" href="/" id="resetBtn" hidden data-i18n="f.reset"></a>
-        </span>
-      </div>
-      <div id="board" class="board-body">
-        <div class="panel sk-panel"><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
-        <div class="panel sk-panel"><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
-      </div>
-      <p class="board-legend muted" data-i18n="mx.legend"></p>
+      <details>
+        <summary data-i18n="faq.q1">L'application est-elle vraiment gratuite ?</summary>
+        <p data-i18n="faq.a1">Oui. Elle est gratuite, sous licence MIT, et son code est public. Si elle vous rend service, un café suffit à faire plaisir — mais rien n'est bridé sans cela.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q2">Mes données sont-elles envoyées quelque part ?</summary>
+        <p data-i18n="faq.a2">Rien ne part sans votre accord. Tout est lu et calculé sur votre PC. Les requêtes sortantes sont la vérification de mise à jour, les temps de référence et les classements communautaires — pour afficher votre place, l'app envoie un temps et un combo, sans identifiant. Le reste n'a lieu que si vous l'activez : le partage de vos meilleurs tours, et les appels du Coach IA vers le fournisseur choisi (en local avec Ollama).</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q3">Le live timing ne fonctionne pas, pourquoi ?</summary>
+        <p data-i18n="faq.a3">Le live, les overlays et le spotter reposent sur le plugin de mémoire partagée rF2, à copier dans le dossier <code>Plugins</code> du jeu puis à activer. Tant qu'il est absent, l'application affiche un guide d'installation ; le reste des fonctions marche normalement.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q4">Faut-il une clé API pour utiliser l'application ?</summary>
+        <p data-i18n="faq.a4">Non, le Coach IA est optionnel. Sans clé, toutes les autres fonctions restent disponibles. Si vous en voulez une, vous utilisez la vôtre : elle est chiffrée localement et vous gardez la maîtrise du coût.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q5">Mes anciennes sessions sont-elles prises en compte ?</summary>
+        <p data-i18n="faq.a5">Oui. Au premier lancement, tous les fichiers de résultats déjà présents sur votre disque sont indexés, y compris ceux de vos toutes premières sorties.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q6">Est-ce lié à Studio 397 ou à Le Mans Ultimate ?</summary>
+        <p data-i18n="faq.a6">Non. C'est un projet indépendant, réalisé par un joueur pour la communauté, sans affiliation avec Studio 397 ni Le Mans Ultimate.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q7">Comment fonctionnent les classements communautaires ?</summary>
+        <p data-i18n="faq.a7">Activez le partage dans l'app (Configuration → Communauté) en vous connectant avec Steam — c'est Steam qui confirme votre identité, nous ne gardons qu'une empreinte de votre identifiant : après chaque session, votre meilleur tour valide est envoyé — circuit, voiture, classe, temps et secteurs, rythme médian, aides, et votre nom de pilote LMU sauf si vous restez anonyme. Jamais les tours des autres pilotes, vos réglages ni votre télémétrie. Désactiver le partage anonymise vos tours ; « Supprimer mes données » les efface du serveur.</p>
+      </details>
+      <details>
+        <summary data-i18n="faq.q8">Puis-je essayer l'application sans Le Mans Ultimate ?</summary>
+        <p data-i18n="faq.a8">Oui. Au premier lancement, « Continuer sans le jeu » ouvre directement l'application ; une bannière rouvre l'assistant en un clic le jour où le jeu est installé.</p>
+      </details>
     </div>
   </section>
 
-  <section class="section section-tight" id="how">
-    <div class="wrap">
-      <div class="section-head">
-        <p class="kicker" data-i18n="how.kicker"></p>
-        <h2 data-i18n="how.title"></h2>
-      </div>
-      <div class="how">
-        <div class="panel"><span class="n">1</span><h3 data-i18n="how.0t"></h3><p class="muted" data-i18n="how.0d"></p><a class="btn btn-primary btn-sm" href="https://lmustatsviewer.cparfait.ovh/" data-i18n="how.0cta"></a></div>
-        <div class="panel"><span class="n">2</span><h3 data-i18n="how.1t"></h3><p class="muted" data-i18n="how.1d"></p></div>
-        <div class="panel"><span class="n">3</span><h3 data-i18n="how.2t"></h3><p class="muted" data-i18n="how.2d"></p></div>
-        <div class="panel"><span class="n">4</span><h3 data-i18n="how.3t"></h3><p class="muted" data-i18n="how.3d"></p></div>
-      </div>
-      <div class="privacy-note">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-        <span data-i18n="privacy"></span>
+  <!-- ───────────────── FINAL CTA ───────────────── -->
+  <section class="final">
+    <div class="wrap narrow center">
+      <h2 data-i18n="final.title">Votre prochain tour commence ici</h2>
+      <p data-i18n="final.lead">Installez l'application, lancez-la, et vos sessions apparaissent. Rien d'autre à configurer.</p>
+      <div class="cta-row center">
+        <a class="btn btn-primary btn-lg" data-dl="final" href="https://github.com/cparfait/lmustatsviewer/releases" data-i18n="final.cta1">Télécharger</a>
+        <a class="btn btn-ghost btn-lg" href="https://discord.gg/G9ng9GdvSU" data-i18n="final.cta2">Rejoindre le Discord</a>
       </div>
     </div>
   </section>
+
 </main>
 
 <footer class="site-footer"></footer>
 
-<script src="/assets/site.js?v=50"></script>
-<script src="/assets/home.js?v=50"></script>
+<button class="to-top" id="toTop" type="button" aria-label="Haut de page" hidden>
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><use href="#i-arrow-up"/></svg>
+</button>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Capture d'écran" hidden>
+  <button class="lb-close" id="lbClose" aria-label="Fermer">×</button>
+  <button class="lb-nav lb-prev" id="lbPrev" aria-label="Précédent">‹</button>
+  <img id="lbImg" src="" alt="">
+  <button class="lb-nav lb-next" id="lbNext" aria-label="Suivant">›</button>
+  <p class="lb-caption" id="lbCaption"><span id="lbCount" class="lb-count"></span><span id="lbText"></span></p>
+</div>
+
+<script src="/assets/site.js?v=51"></script>
+<script src="/assets/js/i18n.js?v=51"></script>
+<script src="/assets/js/app.js?v=51"></script>
+<script src="/assets/js/analytics.js?v=51"></script>
 </body>
 </html>

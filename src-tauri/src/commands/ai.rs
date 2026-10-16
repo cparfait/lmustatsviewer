@@ -235,7 +235,7 @@ fn net_err(context: &str, e: reqwest::Error) -> AppError {
 
 /// Tronque un corps d'erreur : certains fournisseurs renvoient une page HTML
 /// entière sur un 502, illisible dans une bulle d'erreur.
-fn truncate_body(text: &str) -> String {
+pub(crate) fn truncate_body(text: &str) -> String {
     const MAX: usize = 500;
     if text.chars().count() <= MAX {
         return text.to_string();
@@ -244,7 +244,7 @@ fn truncate_body(text: &str) -> String {
     format!("{cut}…")
 }
 
-fn header_map(headers: Vec<(String, String)>) -> Result<reqwest::header::HeaderMap, AppError> {
+pub(crate) fn header_map(headers: Vec<(String, String)>) -> Result<reqwest::header::HeaderMap, AppError> {
     use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
     let mut map = HeaderMap::new();
     for (k, v) in headers {

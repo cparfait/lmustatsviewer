@@ -52,11 +52,19 @@ export function Combobox({
     setActive((i) => (i >= matches.length ? 0 : i));
   }, [matches.length]);
 
-  // Garde l'entrée survolée au clavier visible dans la liste défilante.
+  // Garde l'entrée survolée au clavier visible dans la liste défilante. On fait
+  // défiler le **panneau seul** : `scrollIntoView` faisait aussi défiler la page
+  // (longues listes), ce qui sortait le champ de l'écran à l'ouverture.
   useEffect(() => {
     if (!open) return;
-    listRef.current?.children[active]?.scrollIntoView({ block: "nearest" });
-  }, [active, open]);
+    const panel = panelRef.current;
+    const item = listRef.current?.children[active] as HTMLElement | undefined;
+    if (!panel || !item) return;
+    const top = item.offsetTop;
+    const bottom = top + item.offsetHeight;
+    if (top < panel.scrollTop) panel.scrollTop = top;
+    else if (bottom > panel.scrollTop + panel.clientHeight) panel.scrollTop = bottom - panel.clientHeight;
+  }, [active, open, panelRef]);
 
   const pick = (v: string) => {
     onChange(v);

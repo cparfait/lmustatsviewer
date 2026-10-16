@@ -77,3 +77,17 @@ community/.deploy.env
 community/.releases/
 community/state/
 community/.source/
+
+# Évaluation des voix : WAV d'écoute (~40 Mo), régénérables (voice-eval/README.md)
+voice-eval/wav/
+
+# Animation de lancement (HyperFrames) : caches/snapshots de travail, rendu maître régénérable
+# (npm run render), sons bruts non redistribuables (Pixabay, extraits YouTube sous accord) —
+# seuls les sons montés (assets/sfx-real/) et la liste des sources sont versionnés.
+videos/lmu-splash-motion/.hyperframes/
+videos/lmu-splash-motion/.media/
+videos/lmu-splash-motion/.thumbnails/
+videos/lmu-splash-motion/.waveform-cache/
+videos/lmu-splash-motion/renders/
+videos/lmu-splash-motion/assets/sfx-src/*
+!videos/lmu-splash-motion/assets/sfx-src/SOURCES.md

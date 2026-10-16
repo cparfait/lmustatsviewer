@@ -81,6 +81,11 @@ export interface AppOptions {
   stateDir?: string;
   /** Adresse publique du site (retour de Steam). Défaut : https://lmu.cparfait.ovh. */
   publicUrl?: string;
+  /**
+   * Anciennes adresses du site, redirigées en 301 vers `publicUrl` (chemin et paramètres
+   * conservés). Défaut : l'ancienne vitrine, fusionnée dans ce site le 2026-10-09.
+   */
+  redirectHosts?: string[];
   /** Vérification des connexions Steam (remplacée dans les tests). */
   steamVerify?: SteamVerifier;
   /** Lecture des avatars Steam (remplacée dans les tests). */
@@ -157,6 +162,17 @@ export function createApp(db: Db, opts: AppOptions = {}) {
   const log = opts.log ?? ((line) => console.log(JSON.stringify(line)));
 
   const app = new Hono<Env>();
+  const publicUrl = (opts.publicUrl ?? "https://lmu.cparfait.ovh").replace(/\/$/, "");
+  const redirectHosts = new Set((opts.redirectHosts ?? ["lmustatsviewer.cparfait.ovh"]).map((h) => h.toLowerCase()));
+
+  // Ancienne adresse de la vitrine : tout le site vit désormais à `publicUrl`. Les pages de
+  // la vitrine y ont gardé leur chemin (/, /changelog.html) : la redirection le conserve.
+  app.use("*", async (c, next) => {
+    const host = (c.req.header("host") ?? "").split(":")[0].toLowerCase();
+    if (!redirectHosts.has(host)) return next();
+    const url = new URL(c.req.url);
+    return c.redirect(`${publicUrl}${url.pathname}${url.search}`, 301);
+  });
 
   // Drapeaux de pays et avatars : aussi affichés par l'app (autre origine). Déclaré AVANT
   // secureHeaders pour passer après lui au retour (il pose « same-origin » partout).
@@ -168,13 +184,15 @@ export function createApp(db: Db, opts: AppOptions = {}) {
   app.use(
     "*",
     secureHeaders({
-      // Site : uniquement nos propres scripts (aucun script en ligne ni tiers).
+      // Site : nos propres scripts (aucun script en ligne). Seules exceptions, pour la
+      // vitrine : la mesure d'audience GoatCounter (sans cookie) et l'API GitHub (dernière
+      // version, notes de version).
       contentSecurityPolicy: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://gc.zgo.at"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https://cparfait.goatcounter.com"],
+        connectSrc: ["'self'", "https://api.github.com", "https://cparfait.goatcounter.com"],
         frameAncestors: ["'none'"],
         baseUri: ["'none'"],
         formAction: ["'none'"],
@@ -322,7 +340,6 @@ export function createApp(db: Db, opts: AppOptions = {}) {
   });
 
   // ── Se connecter avec Steam (lier / retrouver son installation) ─────────────
-  const publicUrl = (opts.publicUrl ?? "https://lmu.cparfait.ovh").replace(/\/$/, "");
   const steamVerify = opts.steamVerify ?? verifyWithSteam;
   const steamAvatars = opts.steamAvatars ?? steamAvatarFetcher();
 

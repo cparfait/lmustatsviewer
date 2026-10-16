@@ -1,14 +1,10 @@
 /**
- * Spotter — Couches 1 & 2 (raccourcis globaux).
+ * Spotter — raccourcis directs (sans parler).
  *
- * **Couche 1** : raccourcis « one-shot » Statut / Mute / Répète → réponse parlée
- * immédiate via la voix Piper.
- *
- * **Couche 2 (push-to-talk)** : on **maintient** une touche, on pose une question
- * parlée (« écart ? », « carburant ? »…), au relâchement le micro est capté,
- * downsamplé puis envoyé à Vosk (`stt_recognize`) avec la **grammaire fermée** de
- * la langue. Le texte reconnu est mappé sur une intention → réponse construite
- * depuis les données Live (`buildAnswer`). Reco vide / échec → repli **Statut**.
+ * Statut / Mute / Répète → réponse parlée immédiate. L'ancienne touche « Parler »
+ * (push-to-talk sur la liste des commandes) est désormais une **seconde touche de
+ * l'ingénieur** (`useCoachVoice`) : même prise de parole, même réponse, avec la
+ * reconnaissance stricte de la liste des commandes en secours (ou seule, réglage).
  *
  * Monté une seule fois au niveau de l'app (App.tsx) pour rester actif quelle que
  * soit la page. Les raccourcis ne sont enregistrés que si l'option est activée.
@@ -16,17 +12,10 @@
 
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live } from "@/lib/api";
-import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, repeatLast, cancelSpeech } from "@/lib/voice";
 import { buildStatus } from "@/lib/spotter";
-import { answerIntent } from "@/lib/engineer/answers";
-import { extractEntities, normalize } from "@/lib/engineer/router";
-import { buildGrammar, matchIntent } from "@/lib/spotterCommands";
-import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
-import { pttBeep } from "@/lib/radioFx";
 
 export function useSpotter() {
   const { t, i18n } = useTranslation();
@@ -34,8 +23,6 @@ export function useSpotter() {
   const keyStatus = useAppStore((s) => s.spotterKeyStatus);
   const keyMute = useAppStore((s) => s.spotterKeyMute);
   const keyRepeat = useAppStore((s) => s.spotterKeyRepeat);
-  const keyTalk = useAppStore((s) => s.spotterKeyTalk);
-  const pttMode = useAppStore((s) => s.spotterPttMode);
 
   // Refs « vivantes » : les handlers sont enregistrés une seule fois mais doivent
   // lire la langue / les traductions courantes sans réenregistrer les raccourcis.
@@ -43,10 +30,6 @@ export function useSpotter() {
   const langRef = useRef(i18n.language);
   tRef.current = t;
   langRef.current = i18n.language;
-  // Capture micro en cours (push-to-talk) — évite double start / release orphelin.
-  const capturing = useRef(false);
-  // Anti-rebond du mode toggle (l'OS peut ré-émettre « Pressed » si la touche est tenue).
-  const lastToggle = useRef(0);
 
   useEffect(() => {
     if (!enabled || !isTauri()) return;
@@ -77,80 +60,12 @@ export function useSpotter() {
       if (!repeatLast()) onStatus(); // rien à répéter → repli sur le statut
     };
 
-    // Push-to-talk : début de capture (touche enfoncée).
-    const onTalkStart = async () => {
-      if (capturing.current) return;
-      capturing.current = true;
-      try {
-        await startCapture();
-        if (useAppStore.getState().pttBeeps) pttBeep("open");
-      } catch {
-        // Micro indisponible / refusé → on annule, le relâchement fera le repli.
-        capturing.current = false;
-      }
-    };
-    // Push-to-talk : fin de capture (touche relâchée) → reconnaissance + réponse.
-    const onTalkEnd = async () => {
-      if (!capturing.current) return;
-      capturing.current = false;
-      const tt = tRef.current;
-      const lang = langRef.current;
-      const pcm = stopCapture();
-      if (useAppStore.getState().pttBeeps) pttBeep("send");
-      let data = null;
-      try {
-        data = await live.getData();
-      } catch {
-        /* pas de session → repli statut plus bas */
-      }
-      // Pas d'audio capté → repli direct sur le statut.
-      if (pcm.length === 0) {
-        announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
-        return;
-      }
-      try {
-        const text = await invoke<string>("stt_recognize", {
-          pcmBase64: pcmToBase64(pcm),
-          lang,
-          grammar: buildGrammar(lang),
-        });
-        const intent = matchIntent(text, lang);
-        if (intent === "repeat") {
-          if (!repeatLast()) announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
-        } else if (intent === "mute") {
-          onMute();
-        } else if (intent) {
-          // Réponse calculée en code (intentions historiques + ingénieur : identité
-          // des voitures, fenêtre d'arrêt, trafic, prévision, accusés…).
-          const st = useAppStore.getState();
-          const norm = normalize(text, lang);
-          announce(
-            answerIntent(intent, data, tt, {
-              pitLossSec: effectivePitLoss(data, st.pitLossSeconds, st.pitLaneLoss),
-              fuelReserveLaps: st.fuelReserveLaps,
-              classPositions: st.classPositions,
-              entities: extractEntities(norm, lang),
-              norm,
-            }),
-            lang,
-          );
-        } else {
-          // Commande non reconnue → repli statut (filet de sécurité §7 SUIVI).
-          announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
-        }
-      } catch {
-        announce(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
-      }
-    };
-
     // accel → handler « Pressed » (un même accélérateur en double est écrasé).
     const pressMap: Record<string, () => void> = {};
     if (keyStatus) pressMap[keyStatus] = onStatus;
     if (keyMute) pressMap[keyMute] = onMute;
     if (keyRepeat) pressMap[keyRepeat] = onRepeat;
-    // Le push-to-talk écoute les DEUX états (enfoncé → capture, relâché → reco).
     const accels = [...Object.keys(pressMap)];
-    if (keyTalk && !accels.includes(keyTalk)) accels.push(keyTalk);
 
     (async () => {
       const gs = await import("@tauri-apps/plugin-global-shortcut");
@@ -160,23 +75,6 @@ export function useSpotter() {
           if (await gs.isRegistered(accel)) await gs.unregister(accel);
           await gs.register(accel, (e) => {
             if (disposed) return;
-            if (accel === keyTalk) {
-              if (pttMode === "toggle") {
-                // Toggle : un appui démarre, l'appui suivant arrête (Released ignoré).
-                if (e.state === "Pressed") {
-                  const now = Date.now();
-                  if (now - lastToggle.current < 500) return; // anti auto-répétition
-                  lastToggle.current = now;
-                  if (capturing.current) void onTalkEnd();
-                  else void onTalkStart();
-                }
-              } else {
-                // Hold : capture tant que la touche est maintenue.
-                if (e.state === "Pressed") void onTalkStart();
-                else if (e.state === "Released") void onTalkEnd();
-              }
-              return;
-            }
             if (e.state === "Pressed") pressMap[accel]?.();
           });
         } catch {
@@ -187,10 +85,6 @@ export function useSpotter() {
 
     return () => {
       disposed = true;
-      if (capturing.current) {
-        stopCapture(); // libère le micro si on démonte pendant une capture
-        capturing.current = false;
-      }
       void (async () => {
         try {
           const gs = await import("@tauri-apps/plugin-global-shortcut");
@@ -206,5 +100,5 @@ export function useSpotter() {
         }
       })();
     };
-  }, [enabled, keyStatus, keyMute, keyRepeat, keyTalk, pttMode]);
+  }, [enabled, keyStatus, keyMute, keyRepeat]);
 }

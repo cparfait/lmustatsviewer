@@ -11,6 +11,12 @@
       "port": 5173
     },
     {
+      "name": "dev-alt",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5174", "--strictPort"],
+      "port": 5174
+    },
+    {
       "name": "mockups",
       "runtimeExecutable": "python",
       "runtimeArgs": [
@@ -32,6 +38,15 @@
       "env": {
         "API": "https://lmu.cparfait.ovh"
       }
+    },
+    {
+      "name": "community-local-tmp",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "community/node_modules/tsx/dist/cli.mjs",
+        "C:/Users/chris/AppData/Local/Temp/merge-site/preview.mts"
+      ],
+      "port": 5191
     },
     {
       "name": "vitrine",

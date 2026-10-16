@@ -16,7 +16,7 @@
 //! Rien n'est enregistré ni envoyé : hors appui et hors mot déclencheur, l'audio ne
 //! fait que traverser un tampon circulaire de 1,5 s en mémoire.
 
-use crate::commands::stt::{get_model, recognize_free_samples};
+use crate::commands::stt::{get_model, recognize_free_samples, recognize_grammar_samples};
 use crate::error::{AppError, AppResult};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use serde::Serialize;
@@ -513,6 +513,36 @@ pub fn ptt_end(app: AppHandle, lang: String) -> AppResult<Option<String>> {
         }
     };
     recognize_free_samples(&app, &lang, &buf).map(Some)
+}
+
+/// Les deux lectures d'une même prise de parole.
+#[derive(serde::Serialize)]
+pub struct PttTexts {
+    /// Dictée libre (questions, phrases naturelles).
+    free: String,
+    /// Reconnaissance stricte sur la liste des commandes (plus sûre dans le bruit) ;
+    /// vide si aucune grammaire n'est fournie.
+    strict: String,
+}
+
+/// Fin de push-to-talk, **double lecture** : la même capture passe à la dictée
+/// libre et à la grammaire fermée des commandes (`grammar`). L'appelant choisit
+/// (libre d'abord, stricte en secours). `None` si aucune capture en cours.
+#[tauri::command(async)]
+pub fn ptt_end_dual(app: AppHandle, lang: String, grammar: Vec<String>) -> AppResult<Option<PttTexts>> {
+    let buf = {
+        let slot = engine().lock().unwrap();
+        let Some(e) = slot.as_ref() else { return Ok(None) };
+        let mut c = e.ctl.lock().unwrap();
+        match c.ptt.take() {
+            Some(p) => p.buf,
+            None => return Ok(None),
+        }
+    };
+    let free = recognize_free_samples(&app, &lang, &buf)?;
+    // Une grammaire en échec ne doit pas faire perdre la dictée libre.
+    let strict = recognize_grammar_samples(&app, &lang, &buf, &grammar).unwrap_or_default();
+    Ok(Some(PttTexts { free, strict }))
 }
 
 /// Abandonne la capture push-to-talk en cours (rien n'est dicté).

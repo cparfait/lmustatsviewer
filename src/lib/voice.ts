@@ -31,6 +31,8 @@ import {
 } from "@/lib/radioFx";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "@/lib/api";
+import { cloudSynth, cloudVoiceReady, cloudVoiceTag, noteCloudFallback } from "@/lib/cloudVoice";
+import { fixedPhrases, isFixedPhrase } from "@/lib/cloudVoicePrep";
 
 export type VoicePriority = "spotter" | "critical" | "normal" | "chatty" | "coach";
 export type VoiceEngine = "piper" | "system";
@@ -186,6 +188,11 @@ export interface SpeakOpts {
    * démarre pendant ce délai (le spotter garde la parole).
    */
   holdChannelMs?: number;
+  /**
+   * Réponse au pilote (question posée, lecture d'une analyse) : peut passer par
+   * la voix en ligne malgré sa priorité critique. Jamais pour une alerte.
+   */
+  cloudOk?: boolean;
 }
 
 interface QueueItem {
@@ -532,10 +539,6 @@ export function clearSpeechCache() {
 const FIXED_MAX = 60;
 const fixedKeys: string[] = [];
 
-function isFixedPhrase(text: string): boolean {
-  return text.length <= 70 && !/\d/.test(text);
-}
-
 function rememberPhrase(key: string, buffer: AudioBuffer) {
   if (synthCache.has(key)) return;
   synthCache.set(key, buffer);
@@ -560,18 +563,60 @@ export function warmupVoice(lang: string) {
   });
 }
 
+/**
+ * Voix en ligne (option, cf. `cloudVoice.ts`) : seulement pour l'information
+ * (`normal`, `chatty`) et les réponses au pilote. **Jamais** pour la sécurité
+ * (`critical` : drapeaux, crevaison, box…), le spotter ni le coach par virage,
+ * dont le moment de parole est calculé sur la latence de Piper.
+ */
+function cloudEligible(item: QueueItem): boolean {
+  if (item.priority === "normal" || item.priority === "chatty") return true;
+  return item.priority === "critical" && item.opts?.cloudOk === true;
+}
+
+/**
+ * « Préparer la voix » : textes exacts que la course enverra à la voix en ligne
+ * pour ces gabarits (variantes, normalisation de `speak`), avec la langue et la
+ * vitesse qui entrent dans la clé du cache disque.
+ */
+export function cloudPrepTexts(templates: string[], lang: string): { code: string; rate: number; texts: string[] } {
+  return { code: norm(lang), rate: speechRate, texts: fixedPhrases(templates, (s) => normalizeForTts(s, lang)) };
+}
+
+/** Synthèse en ligne → `AudioBuffer` décodé, ou `null` (Piper prend le relais). */
+async function cloudBuffer(ctx: AudioContext, code: string, text: string): Promise<AudioBuffer | null> {
+  const bytes = await cloudSynth(text, code, speechRate, { cacheable: isFixedPhrase(text) });
+  if (!bytes) return null;
+  try {
+    return await ctx.decodeAudioData(bytes);
+  } catch {
+    return null;
+  }
+}
+
 /** Tente la synthèse Piper + lecture. Renvoie false si indisponible/échec. */
 async function trySynthAndPlay(item: QueueItem): Promise<boolean> {
   if (engine !== "piper" || !isTauri()) return false;
   const code = norm(item.lang);
-  if (piperUnavailable.has(code)) return false;
   const ctx = audioContext();
   if (!ctx) return false;
   const g = generation;
+  let raw: AudioBuffer | null = null;
+  if (cloudVoiceReady() && cloudEligible(item)) {
+    const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, item.text)}`;
+    raw = synthCache.get(cloudKey) ?? null;
+    if (!raw) {
+      raw = await cloudBuffer(ctx, code, item.text);
+      if (raw && isFixedPhrase(item.text)) rememberPhrase(cloudKey, raw);
+      if (!raw) noteCloudFallback();
+    }
+    if (g !== generation) return true; // annulé pendant la requête
+  }
+  if (!raw && piperUnavailable.has(code)) return false;
   // Callout pré-synthétisé (P3.3) ou phrase fixe déjà dite → lecture immédiate,
   // sans appel Piper.
   const key = synthKey(code, item.text);
-  let raw = synthCache.get(key) ?? null;
+  if (!raw) raw = synthCache.get(key) ?? null;
   if (!raw) {
     raw = await synthBuffer(ctx, code, item.text);
     if (raw && isFixedPhrase(item.text)) rememberPhrase(key, raw);
@@ -730,7 +775,7 @@ export function cancelSpeech() {
  * réponse différée ou dédupliquée n'aurait pas de sens — l'utilisateur vient de
  * « poser une question », on répond tout de suite, même si c'est le même texte.
  */
-export function announce(text: string, lang: string, onEnd?: () => void) {
+export function announce(text: string, lang: string, onEnd?: () => void, opts?: SpeakOpts) {
   if (!text || (!speechSupported() && !isTauri())) {
     onEnd?.();
     return;
@@ -746,8 +791,45 @@ export function announce(text: string, lang: string, onEnd?: () => void) {
     expiry: Date.now() + TTL.critical,
     ttl: TTL.critical,
     onEnd,
+    opts,
   });
   void pump();
+}
+
+/**
+ * Réponse au pilote (question à la radio, lecture d'une analyse du Coach IA) :
+ * comme `announce`, mais peut utiliser la voix en ligne si elle est activée.
+ * Ne pas l'employer pour une alerte ni pour « Répète » (qui peut rejouer une alerte).
+ */
+export function announceAnswer(text: string, lang: string, onEnd?: () => void) {
+  announce(text, lang, onEnd, { cloudOk: true });
+}
+
+/**
+ * Joue une phrase avec la voix en ligne (bouton « Tester » de la Config), sans
+ * repli : renvoie la durée de la requête, ou lève l'erreur du fournisseur.
+ */
+export async function previewCloudVoice(text: string, lang: string): Promise<number> {
+  const ctx = audioContext();
+  if (!ctx) throw new Error("audio");
+  const t0 = performance.now();
+  const bytes = await cloudSynth(normalizeForTts(text, lang), norm(lang), speechRate, {
+    cacheable: false,
+    test: true,
+  });
+  const ms = Math.round(performance.now() - t0);
+  if (!bytes) throw new Error("audio");
+  const raw = await ctx.decodeAudioData(bytes);
+  cancelSpeech();
+  const item: QueueItem = {
+    text,
+    lang,
+    priority: "normal",
+    expiry: Date.now() + TTL.normal,
+    ttl: TTL.normal,
+  };
+  playBuffer(ctx, await styleVoiceBuffer(ctx, raw), item);
+  return ms;
 }
 
 /**

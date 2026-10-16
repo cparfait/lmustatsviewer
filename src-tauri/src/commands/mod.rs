@@ -15,6 +15,7 @@ pub mod overlay;
 pub mod records;
 pub mod telemetry;
 pub mod tts;
+pub mod tts_cloud;
 pub mod assets;
 pub mod stt;
 pub mod voice_input;

@@ -51,9 +51,11 @@ Construire la **V3** de LMU Stats Viewer :
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
 | **Base communautaire** | **Décidé sur le principe (2026-09-26), spec `COMMUNITY-SPEC.md` en validation** — meilleurs tours partagés en **opt-in** (désactivé par défaut), hébergés sur le **VPS du mainteneur** (Docker + Nginx Proxy Manager, 8 Go partagés → < 400 Mo). Classements **ouverts à tous**, consultables dans une page **« Classement » de l'app** ET sur un **site dédié séparé** de la vitrine : **`lmu.cparfait.ovh`** (site + API). Joueur affiché sous son **nom LMU tel qu'écrit par le jeu, non modifiable** (reconnaissance des pilotes), option « Rester anonyme » **décochée par défaut** à l'activation (décision 2026-09-27, remplace « cochée » du 2026-09-26). **Connexion Steam obligatoire pour partager** (décision 2026-09-27) : un compte Steam = une installation (ni doublon, ni données orphelines) ; seule une empreinte HMAC du SteamID est stockée. **Invitation** au lancement puis une seule relance après un record — jamais d'activation sans clic (consentement explicite). Désactiver = anonymiser les temps déjà partagés ; « Supprimer » = effacement réel. La vitrine reformule « 0 donnée envoyée » en « 0 donnée envoyée sans votre accord ». **Échanges** : n'afficher que ce qui a été entièrement reçu (empreinte, transaction, accusé, renvoi idempotent — spec §4 bis). **Lot 1 (serveur) livré le 2026-09-26**, déploiement en attente. **Pays et avatar (décision 2026-09-29)** : pays = `Nationality` du profil du jeu (comme le nom, non modifiable) ; **avatar Steam affiché par défaut** (arbitrage mainteneur, option « 2 » : pas de lecture silencieuse des fichiers Steam du joueur) → le **SteamID64 est conservé** à chaque connexion Steam (seulement pour lire l'avatar), sauf si le joueur retire l'avatar (`avatar_off`, SteamID effacé) ; joueurs déjà inscrits : un clic (connexion Steam) dans l'app 1.0.9 ; « Ce qui part » le mentionne. Ni pays ni avatar publiés en mode anonyme ; images relayées par le serveur (aucune requête des visiteurs vers Steam). |
+| **Site unique** | **Décidé (2026-10-09)** — supersède « site dédié séparé de la vitrine » (ligne « Base communautaire ») et l'hébergement de la vitrine sur le Docker domestique. **Un seul site, `lmu.cparfait.ovh`, sur le VPS** (même conteneur que l'API) : vitrine à la racine (`/`, `/changelog.html`), classements sur `/classements.html` (`/combo.html`, `/pilote.html` inchangés : liens des apps installées valables). `lmustatsviewer.cparfait.ovh` **redirige en 301** (chemin conservé). **Palette de l'app partout** (orange `#D93B00`, clair par défaut), en-tête / pied de page / langue / thème communs. La vitrine vit désormais dans le dépôt (`community/site`) ; `C:\tmp\__DEV__\lmusv-site` est obsolète. |
 | **Aides de pilotage publiques** | **Décidé (2026-10-08)** — les aides (TC, aide au freinage/direction, boîte auto) sont envoyées au serveur mais **jamais publiées pilote par pilote** (classements, comparaison `combos/compare`, fiche pilote). Elles ne servent qu'aux filtres et agrégats (ex. « Sans aide au freinage »). |
 | **Mémoire des filtres** | **Décidé (2026-09-30)** — filtres, tris, page et vue de chaque page conservés **le temps que l'app tourne** (`usePageState`, en mémoire) ; remis à zéro au redémarrage. Un lien profond (`?track=…`) impose ses filtres. |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
+| **Moteurs de voix** | **Décidé (2026-10-15)** — **Piper reste le moteur par défaut et le repli**. La **voix en ligne** (clé de l'utilisateur : OpenAI, ElevenLabs, Cartesia) est un réglage **désactivé par défaut**. Elle n'est **jamais** utilisée pour la sécurité (`critical` : drapeaux, crevaison, box…), le spotter, le coach par virage ni « Répète ». Piper reprend la phrase en cas d'erreur ou au-delà de 3 s. Le relais Rust n'accepte que les hôtes de la liste blanche. « Préparer la voix » ne génère que les phrases fixes que la voix en ligne peut dire, sur clic, après affichage du coût estimé. **Kokoro-82M écarté** pour l'instant (pas d'allemand, 4 à 8 fois plus lent que Piper, 325 Mo) ; détail dans `voice-eval/README.md`. |
 
 ---
 
@@ -264,6 +266,17 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 ---
 
 ## 7. Notes / points ouverts
+
+- ⏳ **Piper sous forte charge CPU** (2026-10-15, `voice-eval/README.md`) : avec 12 threads
+  saturés, 1 à 5 s par phrase (medium) en priorité basse, car `piper.exe` ne borne pas ses
+  threads onnxruntime. Mesurer en jeu réel (et avec un encodage OBS en CPU). Si c'est
+  confirmé, deux pistes : faire tourner les modèles Piper via `ort` avec 2 threads, ou
+  passer le worker en priorité normale le temps de la synthèse.
+- ⏳ **Voix par défaut IT / ES** (2026-10-15) : Serena et Sharvard sont nettement plus
+  claires que Paola et DaveFX (transcription), et sont au catalogue. Passage en défaut à
+  décider après écoute.
+- ℹ️ **Licence** : la voix EN par défaut (Ryan, `en_US-ryan-medium`) est sous CC BY-NC-SA
+  (pas d'usage commercial). Sans effet tant que l'app est gratuite ; à revoir sinon.
 
 - `zz_V1` ne contient pas le code source PHP (seulement l'`.exe`) — la référence est `OLDLMU_Stats_Viewer_095\htdocs\`.
 - `zz_V2` contient un backend Rust complet (`src-tauri/src/`) — utilisable comme référence d'inspiration, mais à réécrire/vérifier contre la V1.
@@ -1011,6 +1024,17 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   (≤ 6 mots) non reconnue → « Je n'ai pas compris la question » (`coach.voiceNotUnderstood`).
   Test de cohérence : chaque phrase de grammaire `brakeTemp` donne la même intention par
   `matchIntent` et `route`. Refusion du pont REST (`8db5f5b`, `97be05a`). 728 tests ✅.
+- ✅ **Voix en ligne absente de la branche** (signalé par l'utilisateur : « plus de menu des
+  fournisseurs IA de voix ») : elle n'existait qu'en modifications non commitées du dossier
+  principal ; commitée entre-temps sur `feat/coach-audio` (`6326a98`), puis **fusionnée** ici.
+  Remaniement côté `feat/coach-audio` : logique des questions dans `engineer/ask.ts`, push-to-talk du
+  spotter retiré de `useSpotter.ts`, Audio / Voix en sous-onglets. Résolution : versions
+  `feat/coach-audio` reprises, puis portés dans `ask.ts` la perte au stand du pont REST
+  (`effectivePitLoss`), le dossier de faits (㉜) et les fiches sûres sans IA (⑰) ; interrupteur
+  « Questions de préférences » replacé dans le sous-onglet Radio ; `vAskLapPref` ajouté aux phrases
+  préparées de la voix en ligne. La réponse « Je n'ai pas compris la question » est retirée :
+  `ask.ts` répond déjà toujours en local (meilleure supposition ou point de course, le message de
+  configuration n'est plus qu'une notification). 832 tests TS, 77 Rust ✅.
 - 📋 **Prochaine étape** : course de test en jeu sur cette branche (`npm run tauri dev` depuis le
   worktree) — vérifier dans l'ordre : « le leader rentre » + « quand s'arrête le leader ? », « quels
   pneus changer ? », silence en tour lancé de qualif, question des chronos au 2ᵉ tour, préparation
@@ -1166,6 +1190,72 @@ indicateur discret sur la page Live.
   plateau, numéros/noms officiels des virages, orientation commune app/overlay/télémétrie, emplacements
   de box (types 2..159), couleurs de classe dérivées des données.
 
+### 2026-10-16 — Animation intégrée à l'app : intro au lancement + easter egg du pilote
+
+**Demande** : icône du perso dans le pied de page + vidéo en easter egg au clic ; au lancement,
+jouer seulement la fin de l'animation (7 → 10 s).
+
+- ✅ `public/easter/lmu-splash.mp4` (vidéo complète, 720p, 1,35 Mo) et `public/easter/lmu-intro.mp4`
+  (7,0 → 10,0 s, fondu audio final, 0,28 Mo), tirés de `videos/lmu-splash-motion/renders/video.mp4`.
+- ✅ `components/IntroVideo.tsx` : vidéo plein écran (portail), lecture avec son puis repli muet si
+  bloquée, fermeture à la fin / Échap / clic / croix, fondu de sortie.
+- ✅ `components/LaunchIntro.tsx` : une fois par lancement (pas aux changements de page), monté dans
+  `App` après chargement de la config, jamais en page Live ; fenêtre overlay non concernée
+  (`OverlayApp`). Réglage `launch_intro` (défaut on) → Configuration → Préférences →
+  « Animation au lancement » (`setLaunchIntro`, i18n 5 langues).
+- ✅ `Footer.tsx` : avatar `/logos/avatar.png` avant Discord (pas à droite : masqué par le bouton
+  « remonter en haut ») ; clic = vidéo complète. Logo de l'en-tête inchangé (reste le lien Accueil).
+- ✅ Vérifié en navigateur (port 5175, hors Tauri) : intro jouée avec son ~0,6 s après l'ouverture et
+  fermée à 3 s ; easter egg OK ; Échap ferme ; réglage visible. `tsc` + ESLint OK. Changelog 1.0.10.
+- ⏳ Non testé dans la WebView Tauri (lecture auto avec son, protocole `tauri://` pour les MP4) ;
+  persistance du réglage non testable hors Tauri.
+- 📋 Prochaine étape : `npm run tauri dev` → vérifier intro + son au démarrage, désactivation du réglage.
+
+### 2026-10-16 — Animation de lancement (motion design HyperFrames)
+
+**Demande** : petite animation pro pour le lancement de l'app, hypercar cartoon + personnage du
+logo qui monte dans la voiture et grimpe le Raidillon ; finir sur le titre avec ≥ 1 s de pause.
+
+- ✅ Projet HyperFrames autonome `videos/lmu-splash-motion/` (1920×1080, 30 i/s, 9,2 s), hors
+  build de l'app. Composition unique `index.html` (GSAP, timeline en pause, tout déterministe).
+- ✅ Personnage : `src-tauri/icons/icon.png` détouré (`hyperframes remove-background`) puis
+  nettoyé au masque polygonal (`tools/clean_cutout.py`, piste résiduelle retirée) →
+  `assets/pilot.png`. Tête et corps = deux calques du même sticker (découpe `clip-path`) pour
+  les hochements de tête et le geste « mains au volant ».
+- ✅ Voiture : prototype ouvert « chibi » en SVG (livrée blanc/bleu/rouge du casque, nez
+  orange `#D93B00` de l'app). Décor : forêt des Ardennes en parallaxe, panneaux La Source /
+  Eau Rouge / Raidillon, profil de piste calculé (descente → compression → montée → crête),
+  trajectoire et caméra pré-intégrées en keyframes (seek-safe).
+- ✅ Déroulé : iris → chute du pilote → salto dans le cockpit → démarrage (phares, pétarade,
+  « VROOM ! ») → départ, Eau Rouge, Raidillon, saut à la crête → volet vibreur → titre
+  « LMU Stats Viewer » + mini-voiture qui trace le soulignement → image figée de 7,75 s à 9,2 s.
+- ✅ `hyperframes check` : 0 erreur ; contraste 24/24. Avertissements restants = faux positifs
+  (rotation de la voiture pendant sa translation) et conseils de découpe en sous-compositions.
+- ✅ Retouches demandées (même jour) : voiture → **hypercar fermée** à porte en élytre (carrosserie
+  percée + porte séparée, casque visible derrière la vitre) ; « VROOM » supprimé ; **3 hypercars
+  rivales** (jaune n°7, rouge n°50, verte n°8) : deux passent pendant que le pilote arrive, la
+  verte est doublée dans le Raidillon ; **sons** synthétisés (`tools/make_sfx.py`, 14 WAV dans
+  `assets/sfx/`, physique du départ reprise du HTML). Durée portée à 10,4 s, titre figé de
+  ~8,85 s à 10,4 s. Correctif : `easeEach` ignoré par GSAP en keyframes tableau → easing posé
+  par keyframe (sinon micro-saccades sur la trajectoire).
+- ✅ Sons synthétisés jugés « cartoon » → remplacés par de **vrais enregistrements** Pixabay
+  (passage au Nürburgring, démarrage GT, accélération, montée en régime, portière ; licence
+  Pixabay, sources dans `assets/sfx-src/SOURCES.md`) + whoosh/impacts de la bibliothèque
+  HyperFrames. Montage reproductible : `tools/build_real_sfx.py` → `assets/sfx-real/`.
+  `tools/make_sfx.py` et `assets/sfx/` (synthèse) ne sont plus référencés.
+- ✅ Rendu `videos/lmu-splash-motion/renders/video.mp4` : 1920×1080, 30 i/s, 10,4 s, AAC,
+  crête −1,6 dB.
+- ✅ Son moteur jugé « pas top » → remplacé par l'audio des vidéos **GMR-001 (Genesis Magma Racing)**
+  et **McLaren 2027 (short TesfroF1)**, extrait avec `yt-dlp` (`--js-runtimes node`) sur accord des
+  ayants droit déclaré par l'utilisateur (obtenu par e-mail). Départ = vraie accélération GMR
+  bas régime → rupteur avec passages de rapports ; passages des rivales = son embarqué passé en
+  Doppler simulé (`doppler_pass`) + grondement McLaren. Sources et périmètre : `assets/sfx-src/SOURCES.md`.
+  Sons du jeu LMU écartés (propriété de l'éditeur, extraction interdite par la licence).
+- ⏳ Pas encore intégré comme écran de démarrage de l'app ; son non écouté côté assistant.
+- 📋 Prochaine étape : valider le rendu → `npx hyperframes render` (MP4) ; ensuite, si souhaité,
+  l'intégrer comme splash (vidéo dans `public/`, affichage au premier chargement, réglage pour
+  la désactiver — cf. règle « ne jamais perdre de fonctionnalité ») + entrée `changelog.ts`.
+
 ### 2026-10-15 — Veille TrackMind, 3ᵉ passe REA : décompilation + domaines hors voix (aucun code modifié)
 
 **Demande** : « avec REA, vérifie toutes les fonctionnalités de TrackMind (installé, lancé),
@@ -1261,6 +1351,273 @@ propriétaire : idées seulement, rien de repris, aucun nom de concurrent dans l
 - 📋 **Prochaine étape** : arbitrage de l'utilisateur. Recommandation : **⑳ puis ㉑**, avec un
   effort faible, de la valeur en course et une base pour ㉒/㉕. Vérifier sur le jeu réel que
   le port 6397 répond en séance (l'interface web LMU doit être active).
+
+
+
+### 2026-10-15 — Voix en ligne : bouton « Préparer la voix »
+
+**Demande** (session lancée par la session coach audio) : pré-générer en une fois les
+phrases fixes de l'ingénieur avec la voix en ligne et les ranger dans le cache disque,
+pour que leur première annonce soit instantanée.
+
+- ✅ **Liste des phrases** (`src/lib/cloudVoicePrep.ts`, module pur) : `CLOUD_PREP_KEYS` =
+  les 22 gabarits `live.v*` sans variable que `useRaceEngineer.ts` dit en `normal` ou
+  `chatty`. Toutes les variantes `A | B | C`, normalisées comme `speak`
+  (`voice.ts::cloudPrepTexts`), filtrées par `isFixedPhrase` (désormais partagé avec
+  `voice.ts` : même critère que la course). Textes personnalisés de l'utilisateur pris
+  en compte (`getMessageText`). **Exclus** : `critical` (drapeaux jaune/FCY/rouge, box,
+  crevaison, pénalité, mécanique), spotter (`vSpot*`), coach par virage — ils ne passent
+  jamais par la voix en ligne. Environ **36 phrases et 1 000 caractères par langue**
+  (≈ 0,015 à 0,05 $).
+- ✅ **Garde-fou anti-dérive** (`radio.suite.ts`, « préparer la voix en ligne ») : le test
+  relit le source de l'ingénieur et retrouve la priorité de chaque `t("live.vX")`. Une
+  clé de la liste dite en `critical`, ou une nouvelle annonce `normal`/`chatty` sans
+  variable absente de la liste, fait échouer `npm test`.
+- ✅ **Devis local avant tout envoi** (`cloudVoice.ts::planCloudPrep` + Rust
+  `tts_cloud_cache_missing`) : nombre de phrases à générer sur le total, caractères,
+  coût estimé (`estimateCostUsd`, tarifs publics du README de l'étude). Phrases déjà
+  en cache comptées comme prêtes, jamais renvoyées.
+- ✅ **Génération sur clic seulement** (`runCloudPrep`) : séquentielle, délai 15 s par
+  phrase, même clé de cache que `cloudSynth` (`cacheKeyFor`, factorisé). Barre de
+  progression + « Annuler » (arrêt après la phrase en vol). **Pause après échecs
+  respectée** : deux échecs d'affilée mettent la voix en ligne en pause (règle
+  existante), la préparation s'arrête et le dit. **Invalidation** : l'identité
+  (fournisseur, modèle, voix, langue, vitesse) est figée au lancement ; si elle change
+  en route, la préparation s'arrête (« changé ») ; le devis est recalculé à chaque
+  changement, donc l'état « prête » est toujours celui de la voix affichée. Les anciens
+  fichiers restent sur disque sous leur ancienne clé (relus si on revient à l'ancienne
+  voix) ; « Vider le cache » libère la place.
+- ✅ État de la préparation dans le module (`snapshot.prep`) : quitter la Config ne
+  l'interrompt pas, la progression réapparaît au retour.
+- ✅ i18n 5 langues (12 clés `config.cloudVoicePrep*`), changelog 1.0.10.
+- ✅ Contrôles : `tsc -b` OK, lint 0, `npm test` 520 OK, `cargo test` 52 OK (dont
+  `missing_keys_lists_absent_empty_and_invalid`).
+- ⏳ Non vérifié en réel : aucun appel à un fournisseur (pas de clé), ni dans l'app Tauri
+  (l'aperçu navigateur n'a pas `invoke`).
+- 📋 **Prochaine étape** : avec une vraie clé, lancer « Préparer la voix » en FR puis
+  rouler 10 min : vérifier que les annonces préparées partent sans latence (compteur
+  « phrases servies par le cache » qui monte) et que le coût affiché colle à la
+  facture du fournisseur.
+
+### 2026-10-15 — Qualité de la voix : Kokoro vs Piper, voix Piper, voix en ligne (étude + prototype)
+
+**Demande** (session lancée par la session coach audio) : évaluer Kokoro-82M, chercher de
+meilleures voix Piper (DE/IT surtout), concevoir une voix en ligne avec la clé de
+l'utilisateur, puis prototyper la meilleure piste derrière un réglage désactivé par défaut.
+Rapport complet, tableau chiffré et WAV d'écoute : **`voice-eval/README.md`**
+(`voice-eval/wav/<langue>/`, ignoré par git, ~40 Mo ; scripts dans `scripts/voice-eval/`).
+
+- ✅ **Protocole** : 10 phrases radio par langue tirées des gabarits réels. Piper mesuré
+  comme le worker de `tts.rs`. Kokoro en ONNX brut (onnxruntime 1.23, espeak-ng).
+  Mesures au repos puis sous charge de 6 et 12 threads (synthèse en priorité basse).
+  Intelligibilité : transcription Whisper small et taux d'erreur par caractère (CER).
+- ✅ **Kokoro-82M écarté** :
+  - Apache-2.0, mais **pas d'allemand** et une seule voix FR (corpus SIWIS, 6,8 %
+    d'erreurs, comme Piper) ;
+  - fp32 325 Mo seul utilisable : l'int8 est 2 à 3 fois **plus lent**, le q8f16 plante
+    onnxruntime CPU ;
+  - **1,0-1,2 s** à 2 threads (1,3-1,8 s sous charge), contre 0,1-0,3 s pour Piper
+    medium ;
+  - il faudrait un second onnxruntime (≥ 1.17, Piper livre le 1.14).
+- ✅ **Voix Piper** (catalogue relu au commit HF `c10ece1a`) :
+  - **IT Serena medium** : 0,4 % d'erreurs contre 4,4 % (Paola) ;
+  - **ES Sharvard medium** : 2,0 % contre 11,1 % (DaveFX), voix homme et femme ;
+  - même latence que les voix actuelles ;
+  - DE : Thorsten medium reste (high plus net, mais 3 à 14 fois plus lent) ;
+  - FR et EN : statu quo. `fr_FR-mls` est inutilisable (78 %).
+  - **Ajoutées au catalogue comme alternatives** (`assets.rs` : champ `commit` par voix,
+    `HF_COMMIT_2026`, SHA-256). Les défauts ne changent pas.
+  - Serena (entraînée avec Piper ≥ 1.5) déclare des diphtongues que notre `piper.exe`
+    refuse : `sanitize_voice_json` les retire au téléchargement (3 tests `cargo`).
+- ⚠️ **Découverte** : sous 12 threads saturés, Piper en priorité basse monte à **1-5 s**
+  par phrase (14 s en « high »). `piper.exe` ne borne pas ses threads onnxruntime. Avec
+  6 threads occupés, ça reste correct (0,2-0,6 s). À vérifier en jeu réel, cf. section 7.
+- ✅ **Prototype « Voix en ligne (bêta) »**, désactivé par défaut (Config → Audio / Voix,
+  sous « Moteur ») : OpenAI (gpt-4o-mini-tts), ElevenLabs (Flash v2.5), Cartesia (Sonic 3.6 ;
+    requête recalée le jour même sur la doc API : version `2026-08-14`, `Authorization: Bearer`,
+    vitesse dans `generation_config` — la 1ʳᵉ écriture, d’après une doc ancienne, aurait échoué ; voix par défaut **par langue** choisies par le mainteneur — FR `8f1e9d27-96ff-405e-9213-7432a784ac0b`, EN `5ee9feff-1265-424a-9d7f-8e4d431a12c7`, ES `21c2f7ab-dacb-4847-a593-3cd20668c4b3`, IT `c8403b5c-6465-4396-9065-a440d376528a`, DE `b7187e84-fe22-4344-ba4a-bc013fcb533e` — via `defaultVoiceByLang` + `providerDefaultVoice()` ; le champ « Voix » saisi reste prioritaire pour toutes les langues).
+  - Rust `tts_cloud.rs` : relais avec **liste blanche d'hôtes HTTPS**, délai borné,
+    **cache disque des phrases fixes**, `tts_cloud_cache_clear` ; tests `cargo`.
+  - `cloudVoiceProviders.ts` + `cloudVoice.ts` : clé chiffrée par fournisseur
+    (`tts-<id>`), pause 60 s après 2 échecs, consommation du mois.
+  - `voice.ts` : seulement pour `normal` / `chatty` et les réponses au pilote
+    (`announceAnswer`, appelée dans `useCoachVoice` et `AICoachPanel`). **Jamais** pour
+    `critical`, le spotter, le coach par virage ni « Répète ». Piper parle à la place en
+    cas d'échec ou au-delà de 3 s.
+  - i18n 18 clés × 5 langues ; changelog 1.0.10 (2 entrées : voix en ligne, nouvelles
+    voix).
+- ✅ Contrôles : `tsc -b` OK, lint 0, **428 tests**, `npm run build` OK, `cargo test`
+  51 OK (+5).
+- ⚠️ **Non vérifié** :
+  - aucun appel réel aux fournisseurs (pas de clé) ;
+  - rendu dans l'app Tauri non vu à l'écran : le bloc n'apparaît que sous Tauri ;
+  - téléchargement de Serena et Sharvard par l'app non testé de bout en bout (le
+    nettoyage du JSON est testé, et la voix fonctionne avec un JSON nettoyé de la même
+    façon).
+- ℹ️ Une session sœur modifiait en même temps `ConfigV2.tsx`, i18n, `voice.ts`,
+  `useCoachVoice.ts`, `app.ts` et `changelog.ts` (bouton de volant, mot déclencheur) :
+  ajouts localisés, rien d'écrasé constaté (tsc, lint et tests verts sur l'ensemble).
+- 📋 **Prochaine étape** :
+  - écouter `voice-eval/wav/it` et `voice-eval/wav/es` pour décider si Serena et
+    Sharvard deviennent les défauts IT et ES (changer le défaut côté app, pas le fichier
+    `<langue>.onnx`) ;
+  - avec une clé, cliquer « Tester » pour chaque fournisseur et noter la latence ;
+  - rouler 20 min avec la voix en ligne pour valider le relais par Piper (couper le Wi-Fi
+    en roulant).
+
+**Complément 2 (même jour) — liste des voix + Google Cloud** (demande : « lister les voix
+disponibles », pour Cartesia, ElevenLabs, OpenAI, et « Google le propose aussi »).
+- ✅ **Liste des voix dans la Config** (`VoicePicker` de `CloudVoiceSettings.tsx`) :
+  - champ avec recherche par nom (`Combobox` existant), liste chargée automatiquement
+    (fournisseur, clé ou langue changés), bouton « Recharger » ;
+  - **une voix retenue par langue de l'app** (`voiceByLang` dans `voice_cloud`), bouton
+    « Par défaut » ;
+  - un identifiant saisi à la main reste accepté (aucune perte) ;
+  - l'ancien champ « voix pour toutes les langues » est converti au chargement en
+    choix par langue (même rendu).
+- ✅ **Sources** :
+  - Cartesia : `GET /voices?language=` (100 par page) ;
+  - ElevenLabs : `GET /v2/voices` (voix du compte ; celles vérifiées pour la langue
+    d'abord) ;
+  - Google : `GET /v1/voices?languageCode=` (Chirp 3 HD d'abord) ;
+  - OpenAI : pas d'API de liste, catalogue fixe de 13 voix.
+  - Nouvelle commande Rust `tts_cloud_get_json` (GET, même liste blanche, 15 s).
+- ✅ **4ᵉ fournisseur : Google Cloud Text-to-Speech** :
+  - hôte `texttospeech.googleapis.com` ajouté à la liste blanche, clé `X-Goog-Api-Key` ;
+  - défaut `<locale>-Chirp3-HD-Charon` par langue, pas de ligne « Modèle » (`noModel`) ;
+  - audio en base64 dans du JSON, décodé par `decodeAudio` (le cache disque garde la
+    réponse brute) ;
+  - indice dans la Config : l'API « Cloud Text-to-Speech » doit être activée sur le
+    projet de la clé ;
+  - tarif de 30 $/M caractères au-delà d'environ 1 M gratuit par mois, **de mémoire**
+    (page de prix illisible) : à confirmer.
+- ✅ i18n : 7 clés × 5 langues ; changelog 1.0.10 mis à jour ; `tsc`, lint, 520 tests,
+  `cargo test` 52 OK. L'app en mode dev s'est recompilée.
+- ⚠️ Non vérifié : aucun appel réel (pas de clé), donc ni les listes ni la synthèse
+  Google n'ont été vues. Le nom par défaut « Chirp3-HD-Charon » par locale est à
+  confirmer avec la liste.
+
+**Complément 3 (même jour) — retours du mainteneur en testant l'app (mode dev)** :
+- ✅ **Audio / Voix réorganisé en 5 sous-onglets** sous l'interrupteur « Annonces
+  vocales » (retours « pas logique », « trop de menus, c'est le bordel ») :
+  - Voix · Annonces · Parler à l'ingénieur · Spotter · Coach par virage ;
+  - état `voiceTab` dans `ConfigV2.tsx` ;
+  - le dépliant « Réglages des annonces », qui pendait sous « Enregistrer une
+    session », est supprimé : son contenu forme l'onglet Voix ;
+  - la pastille « Piper actif » est conservée ;
+  - message si les annonces sont coupées ;
+  - aucun réglage retiré.
+- ✅ **Liste des voix** :
+  - le `Combobox` partagé faisait défiler **toute la page** (`scrollIntoView`) : le
+    champ sortait de l'écran. Il fait maintenant défiler le panneau seul, ce qui
+    profite aussi au choix du modèle IA ;
+  - champ stylé avec une flèche ; taper = rechercher, sans rien enregistrer ;
+    seul un choix dans la liste, ou un identifiant inconnu saisi en entier,
+    change la voix ;
+  - **seulement les voix de la langue**, d'après la locale de la voix : le filtre
+    `language` de Cartesia laisse passer des voix d'autres langues ;
+  - **filtre par pays** (fr-FR, fr-CA…), calé sur le pays de la voix utilisée ;
+  - mise en page sur deux niveaux.
+- ✅ Bloc renommé **« Voix IA en ligne (bêta) »** (5 langues, changelog).
+- ✅ **Bouton « Tester » à côté du prénom radio** : « {{name}}, dernier tour. Ramène-la
+  à la maison. », dit avec la voix des annonces d'information (voix IA si active).
+- ⚠️ **Pendant mes essais de l'app par contrôle d'écran, le mainteneur l'utilisait en
+  même temps** : nos clics se sont mélangés, et la voix FR a changé plusieurs fois
+  (valeur finale `d9f4af15-…`, sans doute la sienne). Leçon : ne pas piloter l'app
+  pendant qu'il teste, se limiter aux captures.
+- ✅ Changelog 1.0.10 (entrée « improved » réécrite) ; `tsc`, lint, 520 tests OK.
+- ✅ Dépliant **« Réglages du spotter »** supprimé à son tour : l'onglet Spotter montre
+  ses réglages directement (pastille d'état de la reconnaissance conservée).
+- ✅ **« Parler à l'ingénieur » sans IA utilisable** : avant, une question non
+  reconnue recevait « Coach vocal incomplet : choisis un modèle ». Désormais :
+  - toujours une réponse locale ;
+  - `route()` expose `guess`, la meilleure intention même sous le seuil ou pour
+    une question de jugement ; les décisions avec IA ne changent pas ;
+  - une commande radio n'est **jamais** exécutée sur supposition ;
+  - rien de reconnu → `coach.voiceLocalFallback` + `buildStatus` (le point de
+    course) ;
+  - l'astuce de configuration passe en toast, sans être dite ;
+  - 4 assertions ajoutées à `radio.suite.ts` (524 tests OK).
+- ✅ **Fusion ingénieur + spotter** (demande « fusionne les deux en organisant bien »,
+  « l'ingénieur doit répondre à toute la liste des commandes », « tester avec et sans
+  IA ») :
+  - **une seule logique de réponse**, `src/lib/engineer/ask.ts` (`askEngineer`),
+    sortie de `useCoachVoice` ; ordre : commandes → routeur → **liste des
+    commandes** (`commandPick.ts` : dictée libre puis lecture stricte ; une question
+    longue n'y passe que sans IA) → Coach IA → sans IA : supposition ou point de
+    course ;
+  - **double lecture d'une même prise de parole** : nouvelle commande Rust
+    `ptt_end_dual` (dictée libre + grammaire fermée de la liste) ;
+    `recognize_grammar_samples` mutualisé dans `stt.rs`. Côté navigateur :
+    `stt_recognize_free` + `stt_recognize` ;
+  - l'ancienne touche « Parler » du spotter (`spotterKeyTalk`) devient la
+    **seconde touche** de l'ingénieur ; `useSpotter` ne garde que Statut / Mute /
+    Répète ;
+  - réglage **`pttRecognition`** (`ptt_recognition`) : `dual` (défaut) / `strict`
+    (= ancien « Parler » du spotter, non reconnu → point de course) ;
+  - Config : l'onglet Spotter disparaît (**4 onglets**). « Parler à l'ingénieur »
+    est rangé en 6 sections : Parler · Tester l'ingénieur · Raccourcis sans
+    parler · Commandes reconnues · Calculs · Reconnaissance vocale ;
+  - **`EngineerTester`** : question tapée + exemples, boutons « Sans IA » / « Avec
+    IA » (`mode` local / ai), réponse dite et affichée avec sa source ; en test
+    (`dryRun`), les commandes qui agissent sont annoncées, pas exécutées ;
+  - i18n 27 clés × 5 ; changelog (entrée « added » + 4 onglets) ; `tsc`, lint,
+    **529 tests**, `cargo test` 52 OK ; l'app dev s'est recompilée.
+  - ⚠️ Non testé à la voix : la double lecture (`ptt_end_dual`) et le secours
+    strict sont à essayer en piste. Un test bruité serait idéal (moteur, casque
+    ouvert).
+
+**Complément (même jour) — veille TrackMind sur la voix : Discord bêta + 2 vidéos.**
+Sources : serveur Discord TRACKMIND, salons `patch-notes` (82 messages, v0.7.2 →
+v0.8.24) et `annonces`, lus en lecture seule depuis le compte du mainteneur.
+Vidéos : interview AD SimRacing du 2026-09-24 (`2DKdWMN9fdc`), découverte Gran-Touriste
+du 2026-10-15 (`5k9wxU2l-98`). Idées seulement, rien de repris dans le code.
+
+- **Voix « HD » = cloud payant, financé par l'abonnement.**
+  - Annonces : « la génération vocale HD a un coût de serveur réel à chaque seconde
+    passée en piste ».
+  - V1 sur abonnement : **19,99 €/mois ou 199,90 €/an**, essai gratuit 7 jours. Offre
+    « Pionnier » pour les bêta-testeurs : 11,99 €/mois à vie.
+  - L'abonnement inclut ingénieur vocal, coaching, spotter 360, assistant setup et
+    clips vidéo.
+- **Catalogue de voix réduit pour raisons de coût** (2026-10-01, v0.8.4.7) :
+  - 16 voix (12 FR, 4 EN) ramenées à 8 : Pierre, Gérard, Inès, Amélie (FR) ; Clive,
+    Ronald, Rowan, Gemma (EN) ;
+  - **FR et EN seulement**, aucune langue de plus.
+- **Incident fournisseur** (v0.7.2) : la voix HD « s'était tue » plusieurs heures.
+  - Tout le monde est retombé sur la voix de secours.
+  - Retour « sur un nouveau moteur », annoncé à moins d'une seconde de réponse.
+  - Les choix de voix ont été remis à zéro.
+  - C'est cohérent avec le passage d'ElevenLabs à Cartesia vu dans le code (09-25).
+- **Phrases d'alerte pré-générées par voix** (v0.7.2, v0.8.9) : au choix d'une voix, ses
+  alertes se téléchargent (« Téléchargement de la voix… » puis « Voix prête ✓ »). Une
+  alerte nouvelle est « fabriquée une fois, puis instantanée ». C'est l'équivalent de
+  notre cache disque des phrases fixes, mais généré à l'avance côté serveur.
+- **Repli local** : la voix hors connexion (Piper) n'est plus proposée comme choix
+  (v0.8.10) ; elle reste le secours automatique. Mêmes bugs que chez nous au début :
+  spotter dit d'abord par la voix de secours, « go go go » par une voix d'un autre genre.
+- **Rythme** : v0.8.23, débit plus nerveux imposé à tous et réglage de vitesse retiré ;
+  v0.8.24, réglage remis (vitesse + bip radio). Les utilisateurs veulent garder la
+  main : cela conforte notre règle « ne jamais perdre de fonctionnalité ».
+- **Discours vs réalité** :
+  - Dans l'interview (≈ 23:00), le développeur insiste : « voix locale dans le
+    logiciel », « tu débranches Internet, le logiciel fonctionne », « pas des appels
+    API », « temps de réponse moyen 100 ms ».
+  - C'est vrai pour la compréhension des commandes (routeur local) et pour la voix de
+    secours. C'est faux pour la voix HD (cloud payant) et pour les questions ouvertes
+    (SDK Anthropic dans le code).
+  - En course filmée (≈ 50:30-53:45), il s'écoule **~3 à 5 s** entre la fin de la question
+    et la réponse parlée (PTT + STT + voix).
+  - Réponses très courtes, style radio (« P6 en LMP2, c'est la 3 Laurent »).
+- 📋 **Conséquences pour nous** :
+  - notre voix en ligne avec clé personnelle est l'alternative honnête à leur modèle
+    (pas d'abonnement, pas de quota imposé, 5 langues) ;
+  - leur incident valide le relais automatique par Piper et la pause après échecs ;
+  - idée à garder : **pré-générer les alertes fixes au choix d'une voix en ligne**
+    (bouton « Préparer la voix » : ~300 phrases × 40 caractères ≈ 12 000 caractères,
+    ~0,20 $ chez OpenAI), pour que même la première occurrence soit instantanée ;
+  - mesurer notre propre délai question → réponse avec le même découpage (objectif
+    < 2 s avec réponse locale).
 
 ### 2026-10-15 — Écoute de l'ingénieur : bouton de volant, micro prêt, mot déclencheur
 
@@ -1509,6 +1866,45 @@ nôtre. Idées seulement, rien de copié.
     proximité.
 - 📋 **Prochaine étape** : choix utilisateur ; recommandation = **Lot A** (le plus
   ressenti en piste, effort moyen, la carte des freinages existe déjà dans `src/lib/coach`).
+
+
+
+### 2026-10-09 — Site unique : vitrine + classements sur lmu.cparfait.ovh
+
+- ✅ **Commits et push** de la veille : `e1e6f75` (travail 1.0.10 : positions en classe, freins,
+  coach IA, Setups) et `6be10fc` (comparaison de pilotes) sur `origin/main`.
+- ✅ **Demande mainteneur** : « fusionner les deux sites, vitrine et classement ; tout au même
+  endroit ». Arbitrages : VPS avec l'API, adresse principale `lmu.cparfait.ovh`, palette de l'app
+  partout (décision en §2).
+- ✅ **Rapatriement** de la vitrine dans `community/site` : `index.html` (accueil) et
+  `changelog.html`, `assets/js/{i18n,app,changelog,analytics}.js`, `assets/css/vitrine.css`
+  (ex-`style.css`, réduit au contenu : palette, base, boutons, en-tête, pied de page retirés),
+  `assets/img` (5,3 Mo de captures) ; scripts de capture dans `community/site-tools/`. L'ancien
+  accueil des classements devient `classements.html` (liens internes, fil d'Ariane, « retour »).
+- ✅ **Socle commun** : `assets/boot.js` (thème + langue avant le rendu, fichier car la CSP
+  interdit le script en ligne ; `?lang=` retenu > `lmu-lang` > navigateur > anglais ; clair par
+  défaut) sur toutes les pages ; `chrome()` (`site.js`) construit l'en-tête (Fonctionnalités,
+  Captures, Classements, Installation, FAQ, Nouveautés ; recherche de pilote en loupe ≤ 1360 px,
+  menu ☰ ≤ 1100 px, Télécharger avec `data-dl`) et le pied de page de la vitrine (mot du dev,
+  licence/OhneSpeed, « aucun cookie… sur ses visiteurs » — précisé : le service, lui, reçoit les
+  tours partagés). Libellés repris du dictionnaire de la vitrine ×5 ; 5 clés devenues inutiles
+  retirées. La vitrine garde son script (galerie, version GitHub, liens .exe directs, apparitions,
+  suivi de section) branché sur le socle (`lmu:theme` pour ses captures claires/sombres) ; son
+  dictionnaire devient `VITRINE_I18N` ; `site.js` ne traduit les `data-i18n` que hors vitrine
+  (clés homonymes `nav.how`, `how.kicker`, `how.title`).
+- ✅ **Serveur** : CSP ouverte à GoatCounter (`gc.zgo.at`, `cparfait.goatcounter.com`) et à
+  `api.github.com`, rien d'autre ; redirection 301 des `redirectHosts` (défaut
+  `lmustatsviewer.cparfait.ovh`, env `REDIRECT_HOSTS`) vers `PUBLIC_URL`. Tests 38/38.
+- ✅ **App** : lien « Aussi sur lmu.cparfait.ovh » → `/classements.html` (avec `?me=`). Changelog.
+- ✅ Vérifié sur API locale PGlite + démo : accueil, nouveautés (versions GitHub chargées sous la
+  CSP), classements, combo + comparaison ; clair/sombre, FR/EN, mobile (menu ☰), console propre.
+  Corrigés en route : ☰ visible sur grand écran (spécificité), repère de section resté allumé
+  sur « Classements » (toutes les sections suivies), nom tronqué ≤ 420 px (logo seul).
+- 📋 **Prochaine étape (mainteneur)** : DNS `lmustatsviewer` → VPS, l'ajouter au proxy host NPM de
+  `lmu.cparfait.ovh` (certificat), redéployer la pile (`update-from-github.sh`), vérifier la
+  redirection, puis arrêter le conteneur `lmustatsviewer-site` du Docker domestique. Les liens
+  externes (README GitHub, Discord, annonces) peuvent passer à `lmu.cparfait.ovh`.
+
 ### 2026-10-08 — Classements : comparaison de pilotes d'un clic sur un pseudo (app + site)
 
 - ✅ **Demande mainteneur** : « en cliquant sur le pseudo, une fenêtre de comparaisons, sur l'app et

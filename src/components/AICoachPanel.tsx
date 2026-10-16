@@ -57,7 +57,7 @@ import {
   POST_RACE_MAX_TOKENS,
   type PostRaceMode,
 } from "@/lib/ai/prompts/postrace";
-import { announce, cancelSpeech, speak } from "@/lib/voice";
+import { announceAnswer, cancelSpeech, speak } from "@/lib/voice";
 
 /** Nombre de tours d'historique envoyés (en plus du 1er message qui porte le contexte). */
 const HISTORY_TAIL = 8;
@@ -580,7 +580,7 @@ export function CoachPanel({
     }
     if (!lastAnswer) return;
     setReading(true);
-    announce(stripMarkdown(lastAnswer), i18n.language, () => setReading(false));
+    announceAnswer(stripMarkdown(lastAnswer), i18n.language, () => setReading(false));
   };
 
   const copy = async () => {

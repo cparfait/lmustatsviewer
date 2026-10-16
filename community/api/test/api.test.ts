@@ -359,6 +359,15 @@ describe("site public servi par le même service", () => {
     assert.match(home.headers.get("content-security-policy") ?? "", /script-src 'self'/);
     assert.equal(home.headers.get("cache-control"), "no-cache");
     assert.equal((await ctx.app.request("/combo.html")).status, 200);
+    // Site unique : la vitrine à la racine, les classements sur /classements.html.
+    assert.match(await home.text(), /assets\/js\/app\.js/);
+    assert.equal((await ctx.app.request("/classements.html")).status, 200);
+    assert.equal((await ctx.app.request("/changelog.html")).status, 200);
+    assert.equal((await ctx.app.request("/assets/css/vitrine.css")).status, 200);
+    // Exceptions de la vitrine seulement : mesure d'audience et API GitHub.
+    const csp = home.headers.get("content-security-policy") ?? "";
+    assert.match(csp, /script-src 'self' https:\/\/gc\.zgo\.at;/);
+    assert.match(csp, /connect-src 'self' https:\/\/api\.github\.com https:\/\/cparfait\.goatcounter\.com;/);
     assert.equal((await ctx.app.request("/assets/site.js")).status, 200);
     assert.equal((await ctx.app.request("/data/cars.json")).status, 200);
     assert.equal((await ctx.app.request("/logos/ferrari.png")).status, 200);
@@ -369,6 +378,19 @@ describe("site public servi par le même service", () => {
     assert.equal(home.headers.get("cross-origin-resource-policy"), "same-origin");
     assert.equal((await ctx.app.request("/..%2f..%2fpackage.json")).status, 404);
     assert.equal((await ctx.app.request("/api/v1/inconnu")).status, 404);
+    await ctx.close();
+  });
+
+  test("ancienne adresse de la vitrine : 301 vers le site unique, chemin et paramètres conservés", async () => {
+    const ctx = await setup();
+    const old = (path: string) => ctx.app.request(`http://lmustatsviewer.cparfait.ovh${path}`, { headers: { host: "lmustatsviewer.cparfait.ovh" } });
+    const res = await old("/changelog.html?lang=it");
+    assert.equal(res.status, 301);
+    assert.equal(res.headers.get("location"), "https://lmu.cparfait.ovh/changelog.html?lang=it");
+    assert.equal((await old("/")).headers.get("location"), "https://lmu.cparfait.ovh/");
+    // L'adresse principale n'est pas touchée.
+    const main = await ctx.app.request("http://lmu.cparfait.ovh/api/v1/stats", { headers: { host: "lmu.cparfait.ovh" } });
+    assert.equal(main.status, 200);
     await ctx.close();
   });
 });

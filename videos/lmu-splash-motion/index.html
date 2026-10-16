@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ink: #12151d;
+        --white: #f7f8fa;
+        --blue: #3fa9e6;
+        --red: #e2412b;
+        --orange: #d93b00;
+        --night: #0b101f;
+        --night-2: #131a30;
+        --text: #eef1f6;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--night);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: Montserrat, sans-serif;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+
+      /* ---------- Scène piste ---------- */
+      #world {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: var(--night);
+      }
+      #sky {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, #3b97de 0%, #74bde9 38%, #b9e0f4 62%, #e9f6fb 78%);
+      }
+      #sun {
+        position: absolute;
+        left: 1380px;
+        top: 70px;
+        width: 360px;
+        height: 360px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 246, 214, 0.95) 0 18%, rgba(255, 236, 170, 0.35) 34%, rgba(255, 236, 170, 0) 70%);
+      }
+      .layer {
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+      .layer svg {
+        display: block;
+        overflow: visible;
+      }
+      #car-rig {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 810px;
+        height: 324px;
+      }
+      #car-body {
+        position: absolute;
+        inset: 0;
+      }
+      .car-svg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 810px;
+        height: 324px;
+        overflow: visible;
+      }
+      .wheel {
+        position: absolute;
+        width: 135px;
+        height: 135px;
+      }
+      #wheel-r {
+        left: 126px;
+        top: 175.5px;
+      }
+      #wheel-f {
+        left: 553.5px;
+        top: 175.5px;
+      }
+      #car-shadow {
+        position: absolute;
+        left: 20px;
+        top: 290px;
+        width: 770px;
+        height: 34px;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(10, 20, 15, 0.42), rgba(10, 20, 15, 0));
+      }
+      #pilot-clip {
+        position: absolute;
+        inset: 0;
+        clip-path: polygon(-3000px -3000px, 3000px -3000px, 3000px 262px, 30px 262px, 30px 2000px, -3000px 2000px);
+      }
+      #pilot-pos {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 194.3px;
+        height: 267.4px;
+      }
+      #pilot-spin,
+      #pilot-squash {
+        position: absolute;
+        inset: 0;
+      }
+      .pilot-img {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 194.3px;
+        height: 267.4px;
+        background: url("assets/pilot.png") 0 0 / 100% 100% no-repeat;
+      }
+      #headlight-glow {
+        position: absolute;
+        left: 650px;
+        top: 130px;
+        width: 360px;
+        height: 150px;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(255, 244, 190, 0.95), rgba(255, 230, 140, 0.35) 45%, rgba(255, 230, 140, 0));
+        opacity: 0;
+      }
+      #flame {
+        position: absolute;
+        left: -92px;
+        top: 196px;
+        width: 104px;
+        height: 46px;
+      }
+      .rival {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 720px;
+        height: 288px;
+      }
+      .rival svg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 720px;
+        height: 288px;
+        overflow: visible;
+      }
+      .speedline {
+        position: absolute;
+        height: 9px;
+        border-radius: 9px;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.9));
+        transform-origin: 100% 50%;
+      }
+      .puff {
+        position: absolute;
+        width: 120px;
+        height: 90px;
+      }
+      .puff i {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 40% 35%, #ffffff 0 45%, #e6ebf0 75%, #cfd6de 100%);
+      }
+      .puff i:nth-child(1) {
+        left: 0;
+        top: 30px;
+        width: 60px;
+        height: 60px;
+      }
+      .puff i:nth-child(2) {
+        left: 30px;
+        top: 0;
+        width: 70px;
+        height: 70px;
+      }
+      .puff i:nth-child(3) {
+        left: 66px;
+        top: 34px;
+        width: 54px;
+        height: 54px;
+      }
+      #impact {
+        position: absolute;
+        left: 320px;
+        top: -70px;
+        width: 200px;
+        height: 120px;
+        overflow: visible;
+      }
+
+      /* ---------- Volet vibreur ---------- */
+      #wipe-band {
+        position: absolute;
+        left: 0;
+        top: -200px;
+        width: 560px;
+        height: 1480px;
+        margin-left: -280px;
+        background: repeating-linear-gradient(180deg, var(--red) 0 90px, var(--white) 90px 180px);
+        border-left: 14px solid var(--ink);
+        border-right: 14px solid var(--ink);
+      }
+      #wipe-skew {
+        position: absolute;
+        inset: 0;
+        transform: skewX(-18deg);
+      }
+
+      /* ---------- Titre ---------- */
+      #title-inner {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 70% 60% at 50% 46%, #1b2747 0%, var(--night) 70%);
+      }
+      #title-glow {
+        position: absolute;
+        left: 460px;
+        top: 140px;
+        width: 1000px;
+        height: 700px;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(217, 59, 0, 0.22), rgba(217, 59, 0, 0));
+      }
+      #kerb-strip {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 18px;
+        background: repeating-linear-gradient(90deg, var(--red) 0 60px, var(--white) 60px 120px);
+      }
+      .lockup {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 44px;
+        padding: 120px 160px;
+      }
+      #badge {
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 8px solid var(--white);
+        box-shadow:
+          0 0 0 8px var(--orange),
+          0 18px 60px rgba(217, 59, 0, 0.45);
+      }
+      #badge img {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .title-skew {
+        transform: skewX(-9deg);
+      }
+      #title-wrap {
+        position: relative;
+        display: inline-block;
+        padding-bottom: 34px;
+      }
+      #title {
+        display: block;
+        font-size: 124px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        color: var(--text);
+        white-space: nowrap;
+      }
+      #title .ch {
+        display: inline-block;
+      }
+      #title .lmu {
+        color: var(--orange);
+      }
+      #title .sp {
+        display: inline-block;
+        width: 0.28em;
+      }
+      #underline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 16px;
+        border-radius: 8px;
+        background: linear-gradient(90deg, var(--orange), #ff7a2e);
+        clip-path: polygon(0% 0%, -60% 0%, -60% 100%, 0% 100%);
+      }
+      #minicar-track {
+        position: absolute;
+        left: 0;
+        bottom: 12px;
+        width: 100%;
+        height: 92px;
+      }
+      #minicar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 230px;
+        height: 92px;
+      }
+      #minicar svg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 230px;
+        height: 92px;
+        overflow: visible;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-ks3v"
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="10.4"
+      data-fps="30"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Scène 1 : piste, pilote, hypercars, Raidillon -->
+      <div data-hf-id="hf-aoc6" id="track-scene" class="clip scene" data-start="0" data-duration="8.1" data-track-index="0">
+        <div data-hf-id="hf-5hx4" id="world" data-layout-allow-overflow="true">
+          <div data-hf-id="hf-f7j0" id="sky"></div>
+          <div data-hf-id="hf-ys19" id="sun"></div>
+          <div data-hf-id="hf-6vdf" id="clouds" class="layer"></div>
+          <div data-hf-id="hf-v8wo" id="far" class="layer"></div>
+          <div data-hf-id="hf-xnn9" id="mid" class="layer"></div>
+          <div data-hf-id="hf-x6d2" id="track" class="layer">
+            <div data-hf-id="hf-vzet" id="track-svg" data-layout-allow-occlusion="true" data-layout-allow-overlap="true"></div>
+            <div id="rivals" data-layout-allow-occlusion="true" data-layout-allow-overlap="true"></div>
+            <div data-hf-id="hf-scmg" id="smoke-layer"></div>
+            <div data-hf-id="hf-suxc" id="car-rig">
+              <div data-hf-id="hf-xnaz" id="speedlines"></div>
+              <div data-hf-id="hf-24ei" id="car-shadow"></div>
+              <div data-hf-id="hf-p24m" id="car-body">
+                <div data-hf-id="hf-jo9t" id="headlight-glow"></div>
+                <svg data-hf-id="hf-txad" id="car-back" class="car-svg" viewBox="0 0 900 360"></svg>
+                <div data-hf-id="hf-ddys" id="pilot-clip">
+                  <div data-hf-id="hf-hqe8" id="pilot-pos">
+                    <div data-hf-id="hf-i3b2" id="pilot-spin">
+                      <div data-hf-id="hf-0a9t" id="pilot-squash">
+                        <div data-hf-id="hf-kzv1" id="pilot-body" class="pilot-img"></div>
+                        <div data-hf-id="hf-voef" id="pilot-head" class="pilot-img"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <svg data-hf-id="hf-1gjz" id="car-front" class="car-svg" viewBox="0 0 900 360"></svg>
+                <svg id="car-door" class="car-svg" viewBox="0 0 900 360"></svg>
+                <svg data-hf-id="hf-qvxn" id="flame" viewBox="0 0 104 46"></svg>
+                <div data-hf-id="hf-hbrf" id="idle-smoke"></div>
+                <svg data-hf-id="hf-rh9w" id="impact" viewBox="0 0 200 120"></svg>
+              </div>
+              <svg data-hf-id="hf-7gk9" id="wheel-r" class="wheel" viewBox="-75 -75 150 150"></svg>
+              <svg data-hf-id="hf-9pzp" id="wheel-f" class="wheel" viewBox="-75 -75 150 150"></svg>
+            </div>
+            <div data-hf-id="hf-ysjx" id="dust-layer"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scène 2 : titre -->
+      <div data-hf-id="hf-se42" id="title-scene" class="clip scene" data-start="7.3" data-duration="3.1" data-track-index="1">
+        <div data-hf-id="hf-xm6a" id="title-inner">
+          <div data-hf-id="hf-ugvl" id="title-glow"></div>
+          <div data-hf-id="hf-bozw" id="kerb-strip"></div>
+          <div data-hf-id="hf-6jvi" class="lockup">
+            <div data-hf-id="hf-wwdm" id="badge"><img data-hf-id="hf-4d1q" src="assets/logo.png" alt="" /></div>
+            <div data-hf-id="hf-tz4x" class="title-skew">
+              <div data-hf-id="hf-cnra" id="title-wrap">
+                <div data-hf-id="hf-7ba5" id="title"></div>
+                <div data-hf-id="hf-x55n" id="underline"></div>
+                <div data-hf-id="hf-1eir" id="minicar-track" data-layout-allow-overflow="true"><div data-hf-id="hf-axgi" id="minicar"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Volet vibreur entre les deux scènes -->
+      <div data-hf-id="hf-fwh8" id="wipe" class="clip scene" data-start="7.3" data-duration="0.75" data-track-index="2">
+        <div data-hf-id="hf-q42s" id="wipe-skew" data-layout-allow-overflow="true"><div data-hf-id="hf-wwic" id="wipe-band"></div></div>
+      </div>
+
+      <!-- Sons : hypercars GMR-001 / McLaren (avec accord), Pixabay + bruitages HyperFrames, montés par tools/build_real_sfx.py -->
+      <audio id="sfx-r1-pass" src="assets/sfx-real/r1_pass.wav" data-start="0.26" data-duration="2.3" data-track-index="10" data-volume="0.66"></audio>
+      <audio id="sfx-r2-pass" src="assets/sfx-real/r2_pass.wav" data-start="0.11" data-duration="2.6" data-track-index="11" data-volume="0.55"></audio>
+      <audio id="sfx-fall" src="assets/sfx-real/fall.wav" data-start="0.3" data-duration="0.57" data-track-index="12" data-volume="0.35"></audio>
+      <audio id="sfx-land" src="assets/sfx-real/land.wav" data-start="0.7" data-duration="0.7" data-track-index="13" data-volume="0.31"></audio>
+      <audio id="sfx-door-open" src="assets/sfx-real/door_open.wav" data-start="1.75" data-duration="0.6" data-track-index="14" data-volume="0.35"></audio>
+      <audio id="sfx-jump" src="assets/sfx-real/jump.wav" data-start="2.13" data-duration="0.57" data-track-index="10" data-volume="0.35"></audio>
+      <audio id="sfx-car-land" src="assets/sfx-real/car_land.wav" data-start="2.75" data-duration="0.7" data-track-index="11" data-volume="0.31"></audio>
+      <audio id="sfx-door-close" src="assets/sfx-real/door_close.wav" data-start="3.04" data-duration="0.62" data-track-index="12" data-volume="0.7"></audio>
+      <audio id="sfx-engine-start" src="assets/sfx-real/engine_start.wav" data-start="3.45" data-duration="1.0" data-track-index="13" data-volume="0.75"></audio>
+      <audio id="sfx-engine-run" src="assets/sfx-real/engine_run.wav" data-start="4.4" data-duration="3.6" data-track-index="14" data-volume="0.7"></audio>
+      <audio id="sfx-overtake" src="assets/sfx-real/overtake.wav" data-start="5.4" data-duration="2.1" data-track-index="10" data-volume="0.23"></audio>
+      <audio id="sfx-wipe" src="assets/sfx-real/wipe.wav" data-start="7.28" data-duration="0.75" data-track-index="11" data-volume="0.39"></audio>
+      <audio id="sfx-title-hit" src="assets/sfx-real/title_hit.wav" data-start="7.7" data-duration="1.6" data-track-index="12" data-volume="0.39"></audio>
+      <audio id="sfx-title-sparkle" src="assets/sfx-real/title_sparkle.wav" data-start="7.95" data-duration="1.8" data-track-index="13" data-volume="0.16"></audio>
+      <audio id="sfx-zip" src="assets/sfx-real/zip.wav" data-start="8.18" data-duration="0.94" data-track-index="14" data-volume="0.27"></audio>
+    </div>
+
+    <script>
+      (function () {
+        // ================================================================
+        //  Géométrie de la piste (coordonnées "monde", y vers le bas)
+        // ================================================================
+        const KN = [
+          [-3000, 860],
+          [1900, 860],
+          [2700, 940],
+          [2950, 940],
+          [4200, 380],
+          [8000, 380],
+        ];
+        function Y(x) {
+          for (let i = 0; i < KN.length - 1; i++) {
+            const [x0, y0] = KN[i];
+            const [x1, y1] = KN[i + 1];
+            if (x <= x1) {
+              const u = Math.max(0, (x - x0) / (x1 - x0));
+              return y0 + ((y1 - y0) * (1 - Math.cos(Math.PI * u))) / 2;
+            }
+          }
+          return KN[KN.length - 1][1];
+        }
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+        const smooth = (u) => {
+          u = clamp(u, 0, 1);
+          return u * u * (3 - 2 * u);
+        };
+        // PRNG déterministe (seedé) pour placer arbres / touffes
+        function rng(seed) {
+          let s = seed >>> 0;
+          return function () {
+            s = (s + 0x6d2b79f5) >>> 0;
+            let t = s;
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+        const f1 = (n) => Math.round(n * 10) / 10;
+        function line(fn, x0, x1, step) {
+          const pts = [];
+          const n = Math.round((x1 - x0) / step);
+          for (let i = 0; i <= n; i++) {
+            const x = x0 + i * step;
+            pts.push(f1(x) + "," + f1(fn(x)));
+          }
+          return pts;
+        }
+
+        const PAL = {
+          ink: "#12151d",
+          white: "#f7f8fa",
+          blue: "#3fa9e6",
+          red: "#e2412b",
+          orange: "#D93B00",
+          tire: "#1d2028",
+        };
+
+        // ================================================================
+        //  Décor : nuages, collines, forêt, piste
+        // ================================================================
+        function pine(x, base, h, dark, light) {
+          const w = h * 0.42;
+          let s = `<rect x="${f1(x - w * 0.06)}" y="${f1(base - h * 0.16)}" width="${f1(w * 0.12)}" height="${f1(h * 0.18)}" fill="#5a3b26"/>`;
+          for (let k = 0; k < 3; k++) {
+            const top = base - h + k * h * 0.24;
+            const bot = base - h * 0.12 - (2 - k) * h * 0.2;
+            const ww = w * (0.55 + k * 0.22);
+            s += `<path d="M${f1(x)} ${f1(top)} L${f1(x + ww)} ${f1(bot)} L${f1(x - ww)} ${f1(bot)} Z" fill="${dark}"/>`;
+            s += `<path d="M${f1(x)} ${f1(top)} L${f1(x + ww)} ${f1(bot)} L${f1(x + ww * 0.25)} ${f1(bot)} Z" fill="${light}"/>`;
+          }
+          return s;
+        }
+        function cloud(x, y, s) {
+          return `<g transform="translate(${x} ${y}) scale(${s})">
+            <path d="M0 60 Q-10 20 40 22 Q55 -12 100 4 Q140 -14 165 22 Q215 20 205 60 Z" fill="#ffffff"/>
+            <path d="M0 60 Q40 48 100 54 Q160 48 205 60 Z" fill="#dfeef8"/></g>`;
+        }
+
+        // Nuages (parallaxe 0.06)
+        document.getElementById("clouds").innerHTML =
+          `<svg width="2400" height="500" viewBox="0 0 2400 500">` +
+          cloud(120, 120, 1.1) +
+          cloud(700, 70, 0.8) +
+          cloud(1150, 170, 1.3) +
+          cloud(1750, 90, 0.9) +
+          cloud(2150, 150, 1.0) +
+          `</svg>`;
+
+        // Collines lointaines (parallaxe 0.2)
+        (function () {
+          const Wd = 2900;
+          const h1 = line((x) => 560 - 70 * Math.sin(x / 260 + 0.6) - 40 * Math.sin(x / 97), -20, Wd + 20, 20);
+          const h2 = line((x) => 640 - 60 * Math.sin(x / 210 + 2.1) - 25 * Math.sin(x / 71 + 1), -20, Wd + 20, 20);
+          document.getElementById("far").innerHTML =
+            `<svg width="${Wd}" height="1400" viewBox="0 0 ${Wd} 1400">` +
+            `<path d="M-20 1400 L${h1.join(" L")} L${Wd + 20} 1400 Z" fill="#a7cfd2"/>` +
+            `<path d="M-20 1400 L${h2.join(" L")} L${Wd + 20} 1400 Z" fill="#86bcb1"/>` +
+            `</svg>`;
+        })();
+
+        // Forêt des Ardennes (parallaxe 0.5)
+        (function () {
+          const Wd = 3600;
+          const r = rng(7);
+          let back = "";
+          let front = "";
+          for (let x = -40; x < Wd + 60; x += 46 + r() * 30) back += pine(x, 760 + r() * 20, 200 + r() * 130, "#4f8f78", "#6aa58c");
+          for (let x = -20; x < Wd + 60; x += 58 + r() * 40) front += pine(x, 800 + r() * 20, 170 + r() * 110, "#2d6a4c", "#3f8160");
+          document.getElementById("mid").innerHTML =
+            `<svg width="${Wd}" height="1400" viewBox="0 0 ${Wd} 1400">` +
+            back +
+            `<rect x="-40" y="770" width="${Wd + 100}" height="700" fill="#4f8f78"/>` +
+            front +
+            `<rect x="-40" y="805" width="${Wd + 100}" height="700" fill="#2d6a4c"/>` +
+            `</svg>`;
+        })();
+
+        // Piste (parallaxe 1)
+        (function () {
+          const X0 = -200;
+          const X1 = 6200;
+          const st = 10;
+          const bankTop = (x) => Y(x) - 150 - 34 * Math.sin(x / 230) - 18 * Math.sin(x / 83 + 1.3);
+          const r = rng(21);
+          let trees = "";
+          for (let x = X0; x < X1; x += 70 + r() * 70) {
+            const h = 150 + r() * 120;
+            trees += pine(x, bankTop(x) + 20, h, r() > 0.5 ? "#2f7650" : "#367f57", "#4c9a6b");
+          }
+          const bank = `M${X0} ${Y(X0) - 30} L${line(bankTop, X0, X1, st).join(" L")} L${X1} ${Y(X1) - 30} L${line((x) => Y(x) - 30, X1, X0, -st).join(" L")} Z`;
+          const rail1 = line((x) => Y(x) - 64, X0, X1, st).join(" L");
+          const rail2 = line((x) => Y(x) - 54, X0, X1, st).join(" L");
+          let posts = "";
+          for (let x = X0; x < X1; x += 70) posts += `<rect x="${x}" y="${f1(Y(x) - 66)}" width="7" height="26" fill="#8d96a3"/>`;
+          const roadTop = line((x) => Y(x) - 46, X0, X1, st);
+          const roadBot = line((x) => Y(x) + 20, X1, X0, -st);
+          const road = `M${roadTop.join(" L")} L${roadBot.join(" L")} Z`;
+          const farKerb = line((x) => Y(x) - 46, X0, X1, st).join(" L");
+          const nearKerb = line((x) => Y(x) + 27, X0, X1, st).join(" L");
+          const racing = line((x) => Y(x) - 8, X0, X1, st).join(" L");
+          const grass = `M${line((x) => Y(x) + 34, X0, X1, st).join(" L")} L${X1} 1600 L${X0} 1600 Z`;
+          let tufts = "";
+          const r2 = rng(5);
+          for (let x = X0; x < X1; x += 90 + r2() * 120) {
+            const y = Y(x) + 70 + r2() * 180;
+            tufts += `<path d="M${f1(x)} ${f1(y)} l8 -22 l6 22 l7 -16 l5 16 Z" fill="#4f9a3a"/>`;
+          }
+          function board(x, w, h, lift, fill, txt, txtFill, fs) {
+            const by = Math.min(Y(x), Y(x + w)) - lift;
+            return `<g><rect x="${x + 18}" y="${f1(by)}" width="10" height="${lift}" fill="#596273"/>
+              <rect x="${x + w - 28}" y="${f1(by)}" width="10" height="${lift}" fill="#596273"/>
+              <rect x="${x}" y="${f1(by - h)}" width="${w}" height="${h}" rx="10" fill="${fill}" stroke="${PAL.ink}" stroke-width="6"/>
+              <text x="${x + w / 2}" y="${f1(by - h / 2 + fs * 0.36)}" text-anchor="middle" font-family="Montserrat" font-weight="900" font-size="${fs}" fill="${txtFill}" letter-spacing="1">${txt}</text></g>`;
+          }
+          const laSource = board(1500, 330, 78, 120, "#ffffff", "LA SOURCE", PAL.ink, 40);
+          const eauRouge = board(2640, 300, 78, 120, "#ffffff", "EAU ROUGE", PAL.red, 40);
+          const raidillon = board(3560, 520, 104, 200, PAL.red, "RAIDILLON", "#ffffff", 64);
+
+          document.getElementById("track-svg").innerHTML =
+            `<svg width="${X1}" height="1600" viewBox="0 0 ${X1} 1600">
+              ${trees}
+              <path d="${bank}" fill="#5fae4a"/>
+              <path d="M${line(bankTop, X0, X1, st).join(" L")}" fill="none" stroke="#7cc95f" stroke-width="8"/>
+              ${laSource}${eauRouge}${raidillon}
+              ${posts}
+              <path d="M${rail1}" fill="none" stroke="#d3d9e1" stroke-width="7"/>
+              <path d="M${rail2}" fill="none" stroke="#b9c1cc" stroke-width="7"/>
+              <path d="${road}" fill="#4a505c"/>
+              <path d="M${racing}" fill="none" stroke="#40454f" stroke-width="18"/>
+              <path d="M${farKerb}" fill="none" stroke="#ffffff" stroke-width="9"/>
+              <path d="M${farKerb}" fill="none" stroke="${PAL.red}" stroke-width="9" stroke-dasharray="34 34"/>
+              <path d="${grass}" fill="#67b84a"/>
+              <path d="M${nearKerb}" fill="none" stroke="#ffffff" stroke-width="17"/>
+              <path d="M${nearKerb}" fill="none" stroke="${PAL.red}" stroke-width="17" stroke-dasharray="46 46"/>
+              <path d="M${line((x) => Y(x) + 37, X0, X1, st).join(" L")}" fill="none" stroke="#4f9a3a" stroke-width="5"/>
+              ${tufts}
+            </svg>`;
+        })();
+
+        // ================================================================
+        //  Hypercar fermée (viewBox 900x360, sol à y=340)
+        //  porte en élytre : carrosserie percée (car-front) + porte séparée
+        // ================================================================
+        const BODY =
+          "M34 292 L28 206 Q30 176 62 168 L210 156 C262 152 300 112 352 86 C410 58 520 54 584 80 C624 98 652 124 694 142 C770 166 838 198 872 242 Q892 272 870 294 L771 294 A84 84 0 1 0 609 294 L296 294 A84 84 0 1 0 134 294 Z";
+        const DOOR = "M330 232 L360 100 C420 74 520 72 572 92 L622 140 L604 228 Z";
+        const WIN = "M368 196 L382 108 C432 86 512 84 562 102 L606 146 L600 196 Z";
+        const LIV_OURS = { base: PAL.white, s1: PAL.red, s2: PAL.blue, nose: PAL.orange, num: "1" };
+        function stripes(L) {
+          return `
+            <path d="M780 120 L920 120 L920 320 L835 320 Z" fill="${L.nose}"/>
+            <path d="M20 250 C250 238 560 226 920 200 L920 212 C560 238 250 250 20 262 Z" fill="${L.s1}"/>
+            <path d="M20 264 C250 252 560 240 920 214 L920 248 C560 272 250 284 20 296 Z" fill="${L.s2}"/>
+            <path d="M0 278 C300 272 600 264 920 252 L920 320 L0 320 Z" fill="#000" opacity="0.13"/>
+            <path d="M70 176 L210 164 C262 160 300 120 352 94 L352 104 C300 130 262 170 210 174 L70 186 Z" fill="#fff" opacity="0.55"/>`;
+        }
+        function carBack(p) {
+          return `
+            <ellipse cx="450" cy="342" rx="420" ry="16" fill="#0a140f" opacity="${p === "c1" ? 0 : 0.3}"/>
+            <circle cx="215" cy="270" r="82" fill="#0b0d12"/>
+            <circle cx="690" cy="270" r="82" fill="#0b0d12"/>
+            <rect x="110" y="284" width="690" height="16" rx="4" fill="${PAL.ink}"/>
+            <rect x="92" y="96" width="16" height="70" fill="#2b303b"/>
+            <path d="M362 92 C300 108 200 106 110 110 L106 168 L300 158 Z" fill="#e9edf2" stroke="${PAL.ink}" stroke-width="6" stroke-linejoin="round"/>
+            <path d="M6 92 L160 82 Q170 82 170 92 L170 104 L6 114 Z" fill="${PAL.ink}"/>
+            <path d="${DOOR}" fill="#1b2030"/>
+            <path d="M340 230 L364 118 Q370 104 388 106 L408 112 L398 230 Z" fill="#2f3649"/>
+            <path d="M548 128 Q562 132 560 176 Q556 184 548 182 Z" fill="#0e1016"/>`;
+        }
+        function carFront(p, L) {
+          return `
+            <defs><clipPath id="${p}-clip"><path d="${BODY} ${DOOR}" clip-rule="evenodd"/></clipPath></defs>
+            <path d="${BODY} ${DOOR}" fill="${L.base}" fill-rule="evenodd"/>
+            <g clip-path="url(#${p}-clip)">${stripes(L)}</g>
+            <path d="${BODY}" fill="none" stroke="${PAL.ink}" stroke-width="7" stroke-linejoin="round"/>
+            <path d="${DOOR}" fill="none" stroke="${PAL.ink}" stroke-width="5" stroke-linejoin="round"/>
+            <path d="M584 84 C620 100 648 124 690 142 L640 146 L600 102 Z" fill="#a9d8f2" stroke="${PAL.ink}" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M604 100 L622 118" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+            <path d="M236 206 Q268 196 300 198 L298 220 Q268 220 240 226 Z" fill="${PAL.ink}"/>
+            <path d="M812 206 Q842 210 864 232 L854 240 Q832 222 808 216 Z" fill="#fff4c4" stroke="${PAL.ink}" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M28 202 L42 201 L43 218 L29 219 Z" fill="#ff3b2b" stroke="${PAL.ink}" stroke-width="3"/>
+            <ellipse cx="29" cy="240" rx="7" ry="10" fill="${PAL.ink}"/>
+            <path d="M4 84 L60 80 L70 186 L22 190 Q12 190 12 180 Z" fill="${L.base}" stroke="${PAL.ink}" stroke-width="6" stroke-linejoin="round"/>
+            <path d="M8 110 L62 106 L64 126 L10 130 Z" fill="${L.nose}"/>
+            <text x="37" y="166" text-anchor="middle" font-family="Montserrat" font-weight="900" font-size="20" fill="${PAL.ink}">LMU</text>`;
+        }
+        function carDoor(p, L) {
+          return `
+            <defs><clipPath id="${p}-dclip"><path d="${DOOR} ${WIN}" clip-rule="evenodd"/></clipPath></defs>
+            <path d="${DOOR} ${WIN}" fill="${L.base}" fill-rule="evenodd"/>
+            <g clip-path="url(#${p}-dclip)">${stripes(L)}</g>
+            <path d="${WIN}" fill="#9fd2ef" opacity="0.2"/>
+            <path d="M400 120 L430 98 L446 98 L412 132 Z" fill="#ffffff" opacity="0.5"/>
+            <path d="M470 100 L484 94 L452 132 L440 134 Z" fill="#ffffff" opacity="0.3"/>
+            <path d="${WIN}" fill="none" stroke="${PAL.ink}" stroke-width="5" stroke-linejoin="round"/>
+            <path d="${DOOR}" fill="none" stroke="${PAL.ink}" stroke-width="5" stroke-linejoin="round"/>
+            <circle cx="470" cy="212" r="19" fill="${PAL.white}" stroke="${PAL.ink}" stroke-width="4"/>
+            <text x="470" y="221" text-anchor="middle" font-family="Montserrat" font-weight="900" font-size="${L.num.length > 1 ? 18 : 26}" fill="${PAL.ink}">${L.num}</text>
+            <rect x="540" y="206" width="34" height="7" rx="3" fill="${PAL.ink}"/>`;
+        }
+        function wheel() {
+          let spokes = "";
+          for (let k = 0; k < 5; k++) spokes += `<path d="M-7 -12 L-11 -40 Q0 -45 11 -40 L7 -12 Z" fill="#7d8594" transform="rotate(${k * 72})"/>`;
+          return `
+            <circle r="70" fill="${PAL.tire}" stroke="${PAL.ink}" stroke-width="4"/>
+            <circle r="57" fill="none" stroke="#3a404d" stroke-width="3"/>
+            <path d="M-52 -30 A60 60 0 0 1 -10 -59" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="6" stroke-linecap="round"/>
+            <circle r="45" fill="#d4d9e2" stroke="${PAL.ink}" stroke-width="4"/>
+            ${spokes}
+            <circle r="13" fill="${PAL.orange}" stroke="${PAL.ink}" stroke-width="3"/>`;
+        }
+        function rivalHelmet(c1, c2) {
+          return `<g>
+            <path d="M402 196 L404 150 Q408 104 462 100 Q516 102 524 150 L526 196 Z" fill="${c1}" stroke="${PAL.ink}" stroke-width="5"/>
+            <path d="M432 136 Q480 124 524 138 L524 162 Q480 152 432 162 Z" fill="#161a24"/>
+            <path d="M412 124 Q460 104 512 116" fill="none" stroke="${c2}" stroke-width="10" stroke-linecap="round"/></g>`;
+        }
+        function fullCar(p, L, helmet) {
+          return `<svg viewBox="0 0 900 360">${carBack(p)}${helmet}${carFront(p, L)}${carDoor(p, L)}
+            <g transform="translate(215 270)"><g class="spin">${wheel()}</g></g>
+            <g transform="translate(690 270)"><g class="spin">${wheel()}</g></g></svg>`;
+        }
+
+        document.getElementById("car-back").innerHTML = carBack("c1");
+        document.getElementById("car-front").innerHTML = carFront("c1", LIV_OURS);
+        document.getElementById("car-door").innerHTML = carDoor("c1", LIV_OURS);
+        document.getElementById("wheel-r").innerHTML = wheel();
+        document.getElementById("wheel-f").innerHTML = wheel();
+        document.getElementById("flame").innerHTML = `
+          <path d="M104 23 C80 4 40 0 0 23 C40 46 80 42 104 23 Z" fill="#ff8a1e"/>
+          <path d="M104 23 C86 11 60 10 34 23 C60 36 86 35 104 23 Z" fill="#ffd23f"/>
+          <path d="M104 23 C94 17 82 17 70 23 C82 29 94 29 104 23 Z" fill="#fff6c8"/>`;
+        document.getElementById("impact").innerHTML = [
+          [40, 70, 10, 40],
+          [70, 40, 55, 6],
+          [100, 34, 100, 0],
+          [130, 40, 145, 6],
+          [160, 70, 190, 40],
+        ]
+          .map((l) => `<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="${PAL.ink}" stroke-width="8" stroke-linecap="round"/>`)
+          .join("");
+
+        // Hypercars rivales (voie du fond, échelle 0.8)
+        const RIVALS = [
+          { id: "r1", liv: { base: "#ffc21a", s1: "#ffffff", s2: "#14161c", nose: "#14161c", num: "7" }, helmet: ["#ffffff", "#14161c"] },
+          { id: "r2", liv: { base: "#d42a2a", s1: "#ffffff", s2: "#1a1d26", nose: "#ffffff", num: "50" }, helmet: ["#1a1d26", "#ffc21a"] },
+          { id: "r3", liv: { base: "#1e7b4f", s1: "#b6e34a", s2: "#f7f8fa", nose: "#b6e34a", num: "8" }, helmet: ["#f7f8fa", "#1e7b4f"] },
+        ];
+        const rivalsEl = document.getElementById("rivals");
+        RIVALS.forEach((r) => {
+          const d = document.createElement("div");
+          d.className = "rival";
+          d.id = r.id;
+          d.innerHTML = fullCar(r.id, r.liv, rivalHelmet(r.helmet[0], r.helmet[1]));
+          rivalsEl.appendChild(d);
+        });
+
+        // Mini-voiture du titre (même dessin, porte fermée)
+        document.getElementById("minicar").innerHTML = fullCar("c2", LIV_OURS, rivalHelmet("#f7f8fa", PAL.blue));
+
+        // Pilote : la tête et le corps sont deux calques du même sticker
+        const PW = 335;
+        const PH = 461;
+        const pct = (pts) => "polygon(" + pts.map(([x, y]) => `${f1((x / PW) * 100)}% ${f1((y / PH) * 100)}%`).join(", ") + ")";
+        document.getElementById("pilot-head").style.clipPath = pct([
+          [40, 0], [300, 0], [300, 118], [268, 124], [262, 196], [238, 236], [100, 236], [62, 205], [62, 124], [40, 118],
+        ]);
+        document.getElementById("pilot-body").style.clipPath = pct([
+          [0, 112], [64, 112], [64, 205], [100, 214], [250, 214], [268, 205], [268, 112], [335, 112], [335, 461], [0, 461],
+        ]);
+
+        // Titre lettre par lettre
+        (function () {
+          const words = [
+            ["LMU", "lmu"],
+            ["Stats", ""],
+            ["Viewer", ""],
+          ];
+          let html = "";
+          words.forEach(([w, cls], i) => {
+            if (i) html += `<span class="sp"></span>`;
+            for (const c of w) html += `<span class="ch ${cls}">${c}</span>`;
+          });
+          document.getElementById("title").innerHTML = html;
+        })();
+
+        function makePuff(parent, x, y, id) {
+          const d = document.createElement("div");
+          d.className = "puff";
+          d.id = id;
+          d.style.left = f1(x - 60) + "px";
+          d.style.top = f1(y - 45) + "px";
+          d.innerHTML = "<i></i><i></i><i></i>";
+          parent.appendChild(d);
+          return d;
+        }
+        // Apparition seek-safe : invisible avant le départ, puis fondu de sortie
+        function burst(tl, el, t, from, to, dur, ease) {
+          tl.fromTo(el, Object.assign({}, from, { opacity: 0 }), Object.assign({}, from, { opacity: to.opacityIn ?? 0.95, duration: 0.04, ease: "none" }), t);
+          const end = Object.assign({}, to);
+          delete end.opacityIn;
+          tl.to(el, Object.assign(end, { opacity: 0, duration: dur, ease: ease || "power1.out" }), t + 0.04);
+        }
+        const speedEl = document.getElementById("speedlines");
+        [
+          [70, 260],
+          [120, 340],
+          [180, 220],
+          [235, 300],
+          [270, 180],
+        ].forEach(([y, w], i) => {
+          const s = document.createElement("div");
+          s.className = "speedline";
+          s.id = "sl" + i;
+          s.style.top = y + "px";
+          s.style.left = -40 - w + "px";
+          s.style.width = w + "px";
+          speedEl.appendChild(s);
+        });
+
+        // ================================================================
+        //  Trajectoire : départ -> Eau Rouge -> Raidillon -> saut
+        //  (les mêmes constantes sont reprises par tools/make_sfx.py)
+        // ================================================================
+        const CAR_X0 = 1150;
+        const T_LAUNCH = 4.4;
+        const RWHEEL = 63; // rayon de roue à l'écran
+        const ACC = 1700;
+        function vTarget(x) {
+          if (x < 2950) return 1500;
+          if (x < 4200) return 1500 - 430 * smooth((x - 2950) / 1250);
+          return 1070 + 330 * smooth((x - 4200) / 500);
+        }
+        const smin = (a, b, k) => -k * Math.log(Math.exp(-a / k) + Math.exp(-b / k));
+        const CAM_MAX = 2550;
+        const samples = [];
+        (function integrate() {
+          const dt = 1 / 240;
+          let t = T_LAUNCH;
+          let x = CAR_X0;
+          let cam = 0;
+          let frame = 0;
+          while (x < 5050) {
+            const v = Math.min(Math.sqrt(2 * ACC * (x - CAR_X0)) + 40, vTarget(x));
+            const desired = Math.max(0, x - CAR_X0 + 0.45 * v);
+            cam += (desired - cam) * (1 - Math.exp(-dt / 0.22));
+            if (frame % 8 === 0) {
+              const camX = Math.max(0, smin(cam, CAM_MAX, 140) + 140 * Math.log(1 + Math.exp(-CAM_MAX / 140)));
+              samples.push({ t, x, camX });
+            }
+            x += v * dt;
+            t += dt;
+            frame++;
+          }
+        })();
+        // Pose d'une voiture posée sur la piste : demi-empattements (px), décalage de voie
+        function carPose(x, back, front, lane) {
+          const xr = x - back;
+          const xf = x + front;
+          let gy = (Y(xr) + Y(xf)) / 2 + lane;
+          let rot = (Math.atan2(Y(xf) - Y(xr), xf - xr) * 180) / Math.PI;
+          if (x > 4200) {
+            const u = clamp((x - 4200) / 700, 0, 1);
+            const k = lane ? 0.35 : 1;
+            gy -= 80 * k * Math.sin(Math.PI * u);
+            rot -= 7 * k * Math.sin(Math.PI * u);
+          }
+          return { gy, rot };
+        }
+        const camYof = (camX) => -60 * smooth((camX - 1500) / 1000);
+        const sampleAt = (x) => samples.find((s) => s.x >= x) || samples[samples.length - 1];
+
+        // ================================================================
+        //  Timeline
+        // ================================================================
+        const tl = gsap.timeline({ paused: true });
+        // keyframes en tableau : l'easing se donne keyframe par keyframe
+        const K = (arr, ease) => arr.map((k) => Object.assign({ ease }, k));
+        const $ = (s) => document.querySelector(s);
+
+        tl.set("#car-rig", { x: CAR_X0 - 405, y: Y(CAR_X0) - 306, rotation: 0, transformOrigin: "405px 306px" }, 0);
+        tl.set(["#track", "#mid", "#far", "#clouds"], { x: 0, y: 0 }, 0);
+        tl.set("#pilot-head", { transformOrigin: "50.7% 49%" }, 0);
+        tl.set("#car-body", { transformOrigin: "405px 250px" }, 0);
+        tl.set("#car-door", { transformOrigin: "540px 90px" }, 0);
+        tl.set("#pilot-squash", { transformOrigin: "50% 100%" }, 0);
+        tl.set("#pilot-spin", { transformOrigin: "50% 55%" }, 0);
+        tl.set(".rival", { transformOrigin: "360px 272px", x: -2000, y: 0 }, 0);
+        tl.set(".rival .spin", { transformOrigin: "50% 50%" }, 0);
+
+        // Iris d'ouverture façon cartoon
+        tl.fromTo("#world", { clipPath: "circle(0% at 50% 55%)" }, { clipPath: "circle(75% at 50% 55%)", duration: 0.5, ease: "power2.out" }, 0);
+        tl.fromTo("#clouds svg", { x: 0 }, { x: -110, duration: 8.1, ease: "none" }, 0);
+
+        // --- Le pilote tombe du ciel ---
+        const STAND = { x: -260, y: 38.6 };
+        const SEAT = { x: 326.7, y: 79 };
+        tl.fromTo("#pilot-pos", { x: STAND.x, y: -1150 }, { x: STAND.x, y: STAND.y, duration: 0.4, ease: "power2.in" }, 0.3);
+        tl.fromTo("#pilot-squash", { scaleX: 0.86, scaleY: 1.2 }, { scaleX: 0.9, scaleY: 1.14, duration: 0.4, ease: "none" }, 0.3);
+        tl.to("#pilot-squash", { scaleX: 1.22, scaleY: 0.76, duration: 0.07, ease: "power2.out" }, 0.7);
+        tl.to("#pilot-squash", { scaleX: 1, scaleY: 1, duration: 0.45, ease: "elastic.out(1, 0.4)" }, 0.77);
+        const dustLayer = $("#dust-layer");
+        const feetX = CAR_X0 - 405 + STAND.x + 97;
+        const feetY = Y(CAR_X0) - 4;
+        [
+          ["dust0", -1],
+          ["dust1", 1],
+        ].forEach(([id, dir]) => {
+          const p = makePuff(dustLayer, feetX + dir * 70, feetY - 10, id);
+          burst(tl, p, 0.7, { x: -dir * 40, scale: 0.2 }, { x: dir * 50, scale: 1.1 }, 0.56, "power2.out");
+        });
+
+        // --- Deux hypercars passent en trombe (voie du fond) ---
+        const LANE = -30;
+        function passBy(id, t0, dur) {
+          const xa = -700;
+          const xb = 2700;
+          const gy = Y(CAR_X0) + LANE;
+          tl.fromTo("#" + id, { x: xa - 360, y: gy - 272, rotation: 0 }, { x: xb - 360, y: gy - 272, duration: dur, ease: "none" }, t0);
+          tl.fromTo(`#${id} .spin`, { rotation: 0 }, { rotation: (((xb - xa) / 56) * 180) / Math.PI, duration: dur, ease: "none" }, t0);
+          // petite trépidation de suspension
+          const kf = [];
+          for (let i = 0; i < 10; i++) kf.push({ rotation: i % 2 ? 0.5 : -0.4, duration: dur / 10 });
+          tl.to(`#${id} svg`, { keyframes: K(kf, "sine.inOut") }, t0);
+          // une fois sortie du cadre, elle disparaît (sinon la caméra la retrouverait plus loin)
+          tl.set("#" + id, { x: -3000 }, t0 + dur + 0.02);
+          // traînée de vent
+          const p = makePuff(dustLayer, 0, gy - 30, id + "-wind");
+          tl.set(p, { x: -2000 }, 0);
+          burst(tl, p, t0 + dur * 0.42, { x: (xa + xb) / 2 - 260, scale: 0.5 }, { x: (xa + xb) / 2 - 520, scale: 1.4 }, 0.5);
+        }
+        passBy("r1", 0.72, 1.1);
+        passBy("r2", 1.0, 1.05);
+        // Le pilote les suit du regard puis trépigne
+        tl.to("#pilot-head", { rotation: -9, duration: 0.18, ease: "power2.out" }, 0.82);
+        tl.to("#pilot-head", { rotation: 11, duration: 0.55, ease: "sine.inOut" }, 1.0);
+        tl.to("#pilot-head", { rotation: 0, duration: 0.2, ease: "power2.inOut" }, 1.62);
+        tl.to("#pilot-pos", { y: STAND.y - 46, duration: 0.14, ease: "power2.out" }, 1.5);
+        tl.to("#pilot-pos", { y: STAND.y, duration: 0.14, ease: "power2.in" }, 1.64);
+        tl.to("#pilot-squash", { scaleX: 1.15, scaleY: 0.84, duration: 0.06, ease: "power2.out" }, 1.78);
+        tl.to("#pilot-squash", { scaleX: 1, scaleY: 1, duration: 0.14, ease: "power2.out" }, 1.84);
+
+        // --- La porte s'ouvre ---
+        tl.fromTo("#car-door", { rotation: 0 }, { rotation: 66, duration: 0.32, ease: "back.out(1.6)" }, 1.75);
+
+        // --- Il plonge dans le cockpit ---
+        tl.to("#pilot-squash", { scaleX: 1.13, scaleY: 0.82, duration: 0.17, ease: "power2.in" }, 1.98);
+        tl.to("#pilot-squash", { scaleX: 0.88, scaleY: 1.18, duration: 0.09, ease: "power2.out" }, 2.15);
+        tl.to("#pilot-squash", { scaleX: 1, scaleY: 1, duration: 0.3, ease: "power1.out" }, 2.3);
+        tl.to("#pilot-pos", { x: SEAT.x, duration: 0.6, ease: "sine.inOut" }, 2.15);
+        tl.to("#pilot-pos", { y: -240, duration: 0.3, ease: "power2.out" }, 2.15);
+        tl.to("#pilot-pos", { y: SEAT.y + 16, duration: 0.3, ease: "power2.in" }, 2.45);
+        tl.fromTo("#pilot-spin", { rotation: 0 }, { rotation: 360, duration: 0.5, ease: "power1.inOut" }, 2.2);
+        tl.to("#pilot-pos", { y: SEAT.y, duration: 0.3, ease: "back.out(2)" }, 2.75);
+        tl.to("#car-body", { y: 14, duration: 0.08, ease: "power2.out" }, 2.75);
+        tl.to("#car-body", { y: 0, duration: 0.22, ease: "power2.out" }, 2.83);
+        tl.set("#impact", { transformOrigin: "50% 100%" }, 0);
+        burst(tl, "#impact", 2.75, { scale: 0.5 }, { scale: 1.25, opacityIn: 1 }, 0.3, "power2.out");
+
+        // --- La porte se referme ---
+        tl.to("#car-door", { rotation: 0, duration: 0.22, ease: "power3.in" }, 2.85);
+        tl.to("#car-body", { y: 5, duration: 0.04, ease: "power2.out" }, 3.07);
+        tl.to("#car-body", { y: 0, duration: 0.25, ease: "back.out(3)" }, 3.11);
+
+        // Poings levés derrière la vitre
+        tl.to("#pilot-body", { y: -14, duration: 0.08, ease: "power2.out" }, 3.12);
+        tl.to("#pilot-body", { y: 0, duration: 0.08, ease: "power2.in" }, 3.2);
+        tl.to("#pilot-body", { y: -14, duration: 0.08, ease: "power2.out" }, 3.28);
+        tl.to("#pilot-body", { y: 0, duration: 0.08, ease: "power2.in" }, 3.36);
+        tl.to("#pilot-head", { rotation: -5, duration: 0.12, ease: "sine.inOut" }, 3.12);
+        tl.to("#pilot-head", { rotation: 4, duration: 0.12, ease: "sine.inOut" }, 3.24);
+        tl.to("#pilot-head", { rotation: 0, duration: 0.12, ease: "sine.inOut" }, 3.36);
+
+        // --- Démarrage moteur : démarreur, ça prend, ralenti ---
+        function shake(t0, dur, n, ay, ar) {
+          const kf = [];
+          for (let i = 1; i <= n; i++) {
+            const a = i === n ? 0 : 1;
+            kf.push({ y: a * (i % 2 ? -ay : ay * 0.85), rotation: a * (i % 3 === 0 ? ar : -ar * 0.7), duration: dur / n });
+          }
+          tl.to("#car-body", { keyframes: K(kf, "sine.inOut") }, t0);
+        }
+        shake(3.45, 0.32, 8, 1.2, 0.15);
+        tl.to("#car-body", { rotation: -1.6, y: -3, duration: 0.08, ease: "power2.out" }, 3.78);
+        tl.to("#car-body", { rotation: 0, y: 0, duration: 0.14, ease: "power2.inOut" }, 3.86);
+        shake(4.0, 0.4, 12, 2.4, 0.45);
+        tl.fromTo("#headlight-glow", { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, 3.78);
+        tl.to("#headlight-glow", { opacity: 0.35, duration: 0.05, ease: "none" }, 3.83);
+        tl.to("#headlight-glow", { opacity: 1, duration: 0.07, ease: "none" }, 3.88);
+        tl.fromTo("#flame", { scaleX: 0, opacity: 1, transformOrigin: "100% 50%" }, { scaleX: 1.2, duration: 0.07, ease: "power2.out" }, 3.8);
+        tl.to("#flame", { scaleX: 0, duration: 0.13, ease: "power2.in" }, 3.87);
+        const idle = $("#idle-smoke");
+        [3.82, 4.02, 4.2].forEach((t, i) => {
+          const p = makePuff(idle, -16, 236, "idle" + i);
+          burst(tl, p, t, { x: 0, y: 0, scale: 0.15 }, { x: -150, y: -40, scale: 1 }, 0.62);
+        });
+        // Les mains sur le volant
+        tl.to("#pilot-body", { y: 80, duration: 0.22, ease: "power2.in" }, 4.05);
+        tl.to("#pilot-head", { rotation: -4, duration: 0.12, ease: "power1.out" }, 4.08);
+        tl.to("#pilot-head", { rotation: 0, duration: 0.18, ease: "power1.inOut" }, 4.2);
+
+        // --- Départ ! ---
+        const kRig = [];
+        const kWr = [];
+        const kTrack = [];
+        const kMid = [];
+        const kFar = [];
+        const kClouds = [];
+        const kR3 = [];
+        const kR3w = [];
+        // Rival vert : il roule devant, on le double dans la montée
+        const V_R3 = 600;
+        const tCatch = sampleAt(3560).t;
+        const XR3_0 = 3560 - V_R3 * (tCatch - T_LAUNCH);
+        for (let i = 1; i < samples.length; i++) {
+          const s = samples[i];
+          const d = s.t - samples[i - 1].t;
+          const pose = carPose(s.x, 211.5, 216, 0);
+          const camY = camYof(s.camX);
+          kRig.push({ x: s.x - 405, y: pose.gy - 306, rotation: pose.rot, duration: d });
+          kWr.push({ rotation: (((s.x - CAR_X0) / RWHEEL) * 180) / Math.PI, duration: d });
+          kTrack.push({ x: -s.camX, y: -camY, duration: d });
+          kMid.push({ x: -s.camX * 0.5, y: -camY * 0.5, duration: d });
+          kFar.push({ x: -s.camX * 0.2, y: -camY * 0.2, duration: d });
+          kClouds.push({ x: -s.camX * 0.06, duration: d });
+          const xr3 = XR3_0 + V_R3 * (s.t - T_LAUNCH);
+          const p3 = carPose(xr3, 188, 192, LANE);
+          kR3.push({ x: xr3 - 360, y: p3.gy - 272, rotation: p3.rot, duration: d });
+          kR3w.push({ rotation: (((xr3 - XR3_0) / 56) * 180) / Math.PI, duration: d });
+        }
+        const T0 = samples[0].t;
+        tl.to("#car-rig", { keyframes: K(kRig, "none") }, T0);
+        tl.to(["#wheel-r", "#wheel-f"], { keyframes: K(kWr, "none") }, T0);
+        tl.to("#track", { keyframes: K(kTrack, "none") }, T0);
+        tl.to("#mid", { keyframes: K(kMid, "none") }, T0);
+        tl.to("#far", { keyframes: K(kFar, "none") }, T0);
+        tl.to("#clouds", { keyframes: K(kClouds, "none") }, T0);
+        const p30 = carPose(XR3_0, 188, 192, LANE);
+        tl.set("#r3", { x: XR3_0 - 360, y: p30.gy - 272, rotation: p30.rot }, T0 - 0.01);
+        tl.to("#r3", { keyframes: K(kR3, "none") }, T0);
+        tl.to("#r3 .spin", { keyframes: K(kR3w, "none") }, T0);
+
+        tl.to("#car-body", { rotation: -3.2, duration: 0.14, ease: "power2.out" }, T_LAUNCH);
+        tl.to("#car-body", { rotation: 0, duration: 0.6, ease: "elastic.out(1, 0.5)" }, T_LAUNCH + 0.14);
+        tl.to("#pilot-head", { rotation: -12, duration: 0.12, ease: "power2.out" }, T_LAUNCH);
+        tl.to("#pilot-head", { rotation: 0, duration: 0.5, ease: "power2.inOut" }, T_LAUNCH + 0.25);
+        const tBottom = sampleAt(2860).t;
+        tl.to("#car-body", { y: 12, duration: 0.1, ease: "power2.out" }, tBottom - 0.05);
+        tl.to("#car-body", { y: 0, duration: 0.35, ease: "back.out(2)" }, tBottom + 0.05);
+        tl.to("#pilot-head", { rotation: -8, duration: 0.25, ease: "power1.out" }, tBottom);
+        tl.to("#pilot-head", { rotation: 7, duration: 0.18, ease: "power1.out" }, tCatch);
+        tl.to("#pilot-head", { rotation: -6, duration: 0.2, ease: "power1.inOut" }, tCatch + 0.2);
+        const tCrest = sampleAt(4150).t;
+        tl.to("#pilot-head", { rotation: 6, duration: 0.2, ease: "power1.out" }, tCrest);
+
+        (function () {
+          const kf = [];
+          for (let i = 0; i < 10; i++) kf.push({ scaleX: i % 2 ? 0.7 : 1.25, duration: 0.05 });
+          kf.push({ scaleX: 0, duration: 0.08 });
+          tl.to("#flame", { keyframes: K(kf, "none") }, T_LAUNCH);
+        })();
+        const smoke = $("#smoke-layer");
+        const xAt = (t) => {
+          for (let i = 1; i < samples.length; i++) if (samples[i].t >= t) return samples[i].x;
+          return samples[samples.length - 1].x;
+        };
+        [0, 0.07, 0.14, 0.22, 0.31, 0.42].forEach((dtp, i) => {
+          const t = T_LAUNCH + dtp;
+          const xr = xAt(t) - 211;
+          const p = makePuff(smoke, xr - 30, Y(xr) - 20, "spin" + i);
+          burst(tl, p, t, { scale: 0.3, x: 0, y: 0 }, { scale: 1.7, x: -90, y: -50 }, 0.76);
+        });
+        for (let i = 0; i < 5; i++) {
+          const kf = [];
+          for (let j = 0; j < 18; j++) kf.push({ scaleX: 0.6 + ((i * 7 + j * 3) % 5) * 0.12, x: ((i + j) % 3) * -14, duration: 0.12 });
+          tl.fromTo("#sl" + i, { opacity: 0, scaleX: 0.3 }, { opacity: 0.85, scaleX: 1, duration: 0.2, ease: "power1.out" }, T_LAUNCH + 0.4 + i * 0.03);
+          tl.to("#sl" + i, { keyframes: K(kf, "sine.inOut") }, T_LAUNCH + 0.62 + i * 0.03);
+        }
+
+        // ================================================================
+        //  Volet vibreur + titre
+        // ================================================================
+        const WIPE_T = 7.3;
+        const WIPE_D = 0.65;
+        tl.fromTo("#wipe-band", { x: -500 }, { x: 2500, duration: WIPE_D, ease: "power2.inOut" }, WIPE_T);
+        tl.fromTo(
+          "#title-inner",
+          { clipPath: "polygon(-600px 0px, -325px 0px, -675px 1080px, -600px 1080px)" },
+          { clipPath: "polygon(-600px 0px, 2675px 0px, 2325px 1080px, -600px 1080px)", duration: WIPE_D, ease: "power2.inOut" },
+          WIPE_T
+        );
+        tl.fromTo("#badge", { scale: 0, rotation: -25 }, { scale: 1, rotation: 0, duration: 0.5, ease: "back.out(1.9)" }, 7.7);
+        tl.fromTo("#title .ch", { x: 70, opacity: 0, skewX: -20 }, { x: 0, opacity: 1, skewX: 0, duration: 0.32, ease: "power3.out", stagger: 0.025 }, 7.9);
+        const ZIP_T = 8.18;
+        const ZIP_D = 0.56;
+        tl.fromTo("#minicar-track", { xPercent: -60 }, { xPercent: 135, duration: ZIP_D, ease: "power1.in" }, ZIP_T);
+        tl.fromTo(
+          "#underline",
+          { clipPath: "polygon(0% 0%, -60% 0%, -60% 100%, 0% 100%)" },
+          { clipPath: "polygon(0% 0%, 135% 0%, 135% 100%, 0% 100%)", duration: ZIP_D, ease: "power1.in" },
+          ZIP_T
+        );
+        tl.fromTo("#minicar .spin", { rotation: 0 }, { rotation: 1440, duration: ZIP_D, ease: "power1.in" }, ZIP_T);
+        tl.fromTo("#title", { y: 0 }, { y: -6, duration: 0.1, ease: "power2.out" }, ZIP_T + 0.3);
+        tl.to("#title", { y: 0, duration: 0.25, ease: "back.out(3)" }, ZIP_T + 0.4);
+        // À partir de ~8.85 s tout est figé jusqu'à la fin (10.4 s) : temps de lecture.
+
+        window.__timelines["main"] = tl;
+        tl.seek(0);
+      })();
+    </script>
+  </body>
+</html>

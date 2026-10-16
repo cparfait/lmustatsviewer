@@ -5,13 +5,21 @@
  * Tout est pur (horloge passée en paramètre) → rejouable sans le jeu.
  */
 
-import { section, ok, eq } from "../assert";
+import { section, ok, eq, approx } from "../assert";
 import { BrakeMap, driverBusy, QUIET_BEFORE_BRAKE_M } from "@/lib/engineer/focus";
 import { RadioPolicy, classOf, rivalOf, type PolicyCtx } from "@/lib/engineer/policy";
 import { RadioArbiter, TEXT_REPEAT_LAPS, type Candidate } from "@/lib/engineer/arbiter";
 import { VariantPicker, NameDoser, splitVariants, NAME_GAP_S } from "@/lib/engineer/variants";
 import { ProximitySpotter, occupiedSides } from "@/lib/engineer/proximity";
 import { route } from "@/lib/engineer/router";
+import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
+import { CLOUD_PREP_KEYS, estimateCostUsd, fixedPhrases, isFixedPhrase } from "@/lib/cloudVoicePrep";
+import fr from "@/i18n/fr";
+import en from "@/i18n/en";
+import es from "@/i18n/es";
+import de from "@/i18n/de";
+import it from "@/i18n/it";
+import { readFileSync } from "node:fs";
 import {
   createCoachVoiceState,
   observeCorner,
@@ -291,6 +299,19 @@ function commandsSuite() {
   eq(route("on ramène la voiture", "fr").intent, "radioHome", "FR : on ramène la voiture");
   eq(route("tu peux reparler", "fr").intent, "radioNormal", "FR : reprise");
   eq(route("coach moi", "fr").intent, "coachMe", "FR : coach-moi");
+  // Sans IA utilisable : une supposition même sous le seuil, sans changer la décision.
+  const sure = route("combien d'essence", "fr");
+  eq(sure.guess, sure.intent, "supposition = intention quand elle est sûre");
+  const judged = route("tu penses que les pneus vont tenir", "fr");
+  eq(judged.intent, null, "question de jugement : toujours laissée à l'IA");
+  ok(judged.guess !== null, "… mais une supposition locale existe pour le cas sans IA");
+  eq(route("raconte-moi une blague", "fr").guess, null, "rien de reconnu : aucune supposition");
+  // Liste des commandes (phrases éditables) : dictée libre puis stricte.
+  eq(commandFromPhrases("carburant", "", "fr", true), "fuel", "phrase courte de la liste, même avec IA");
+  eq(commandFromPhrases("bla bla", "carburant", "fr", true), "fuel", "secours : la lecture stricte trouve la commande");
+  eq(commandFromPhrases("est-ce que tu penses que celui de devant va craquer", "", "fr", true), null, "question longue → laissée à l'IA");
+  ok(commandFromPhrases("est-ce que tu penses que celui de devant va craquer", "", "fr", false) !== null, "… mais sans IA, la liste répond");
+  ok(isAction("radioBattle") && isAction("mute") && !isAction("fuel"), "commandes qui agissent repérées");
   eq(route("où est-ce que je perds du temps", "fr").intent, "whereLose", "FR : où je perds");
   eq(route("quiet until lap 20", "en").entities.lap, 20, "EN : lap read");
   eq(route("just the essentials", "en").intent, "radioEssential", "EN : essentials");
@@ -301,6 +322,55 @@ function commandsSuite() {
   eq(route("ma bagarre", "fr").intent, "rival", "« ma bagarre » reste une question sur le rival");
 }
 
+// ── « Préparer la voix » (voix en ligne) ────────────────────────────────────
+
+function cloudPrepSuite() {
+  section("radio — préparer la voix en ligne");
+  // Priorité de chaque gabarit sans variable dit par l'ingénieur, relue dans le
+  // source : la 1re priorité littérale qui suit `t("live.vX")` dans l'instruction.
+  const src = readFileSync("src/lib/engineer/useRaceEngineer.ts", "utf8");
+  const prios = new Map<string, Set<string>>();
+  for (const m of src.matchAll(/t\("live\.(v\w+)"\)/g)) {
+    const rest = src.slice(m.index! + m[0].length);
+    const end = rest.search(/;|\},/);
+    const stmt = end < 0 ? rest : rest.slice(0, end);
+    const p = /"(spotter|critical|normal|chatty|coach)"/.exec(stmt)?.[1] ?? "?";
+    if (!prios.has(m[1])) prios.set(m[1], new Set());
+    prios.get(m[1])!.add(p);
+  }
+  const cloudOnly = (k: string) => [...(prios.get(k) ?? [])].every((p) => p === "normal" || p === "chatty");
+  for (const k of CLOUD_PREP_KEYS) {
+    ok(prios.has(k), `${k} est dit par l'ingénieur`);
+    ok(cloudOnly(k), `${k} jamais en critical/spotter/coach (vu : ${[...(prios.get(k) ?? [])].join(",")})`);
+  }
+  for (const [k] of prios) {
+    if (cloudOnly(k)) ok(CLOUD_PREP_KEYS.includes(k), `${k} (normal/chatty, sans variable) est préparé`);
+  }
+  for (const k of ["vFlagYellow", "vPuncture", "vBoxBox", "vPenalty", "vSpotLeft", "vCornerWatching"]) {
+    ok(!CLOUD_PREP_KEYS.includes(k), `${k} (sécurité, spotter ou coach) n'est pas préparé`);
+  }
+
+  // Toutes les variantes, sans doublon ; jamais un gabarit à variable ni un chiffre.
+  eq(
+    fixedPhrases(["Box | Box | Rentre au stand", "Écart {{d}}", "Tour 3 | Dernier tour"], (s) => s),
+    ["Box", "Rentre au stand", "Dernier tour"],
+    "variantes découpées, doublons, variables et chiffres écartés",
+  );
+  eq(fixedPhrases(["a | b"], (s) => s.toUpperCase()), ["A", "B"], "normalisation appliquée à chaque variante");
+  const bundles = { fr, en, es, de, it } as unknown as Record<string, { live: Record<string, string> }>;
+  for (const [lang, b] of Object.entries(bundles)) {
+    const tpls = CLOUD_PREP_KEYS.map((k) => b.live[k]);
+    ok(tpls.every((x) => typeof x === "string" && x.length > 0), `${lang} : chaque gabarit existe`);
+    const phrases = fixedPhrases(tpls, (s) => s);
+    ok(phrases.length >= CLOUD_PREP_KEYS.length, `${lang} : au moins une phrase par gabarit (${phrases.length})`);
+    ok(phrases.every((p) => isFixedPhrase(p) && !p.includes("|")), `${lang} : phrases fixes, une variante chacune`);
+  }
+
+  approx(estimateCostUsd("openai", "gpt-4o-mini-tts", 1_000_000), 15, 1e-9, "OpenAI ≈ 15 $/M caractères");
+  approx(estimateCostUsd("openai", "tts-1-hd", 1_000_000), 30, 1e-9, "tts-1-hd plus cher");
+  approx(estimateCostUsd("inconnu", "", 2_000), 0.1, 1e-9, "fournisseur inconnu : tarif prudent");
+}
+
 export function run() {
   focusSuite();
   policySuite();
@@ -309,4 +379,5 @@ export function run() {
   proximitySuite();
   rigorSuite();
   commandsSuite();
+  cloudPrepSuite();
 }

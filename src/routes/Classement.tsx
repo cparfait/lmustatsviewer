@@ -42,6 +42,7 @@ const RANKED_MIN = 20;
 const PERF_HEAD = "bg-sky-500/10";
 const PERF_CELL = "bg-sky-500/[0.06]";
 const GROUP_SEP = "border-l border-border/55";
+/** Site unique (présentation + classements) ; les classements sont sur /classements.html. */
 const SITE = "https://lmu.cparfait.ovh";
 
 /** Pilote du record d'un combo (format du classement : nom, ou anonyme avec son repère). */
@@ -1181,7 +1182,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {t("leaderboard.subtitle")}{" "}
-            <a href={myTag ? `${SITE}/?${new URLSearchParams({ me: myTag })}` : SITE} target="_blank" rel="noreferrer" className="underline">
+            <a href={`${SITE}/classements.html${myTag ? `?${new URLSearchParams({ me: myTag })}` : ""}`} target="_blank" rel="noreferrer" className="underline">
               {t("leaderboard.siteLink")} ↗
             </a>
           </p>

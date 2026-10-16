@@ -1,14 +1,18 @@
-# Service communautaire — `lmu.cparfait.ovh`
+# Site et service communautaire — `lmu.cparfait.ovh`
 
-Service des classements communautaires de LMU Stats Viewer (spec : `../COMMUNITY-SPEC.md`) :
-**l'API** (`/api/v1`) et **le site public** (`/`, `community/site/`) dans un même conteneur.
+Le site unique de LMU Stats Viewer (présentation de l'app + classements communautaires, spec :
+`../COMMUNITY-SPEC.md`) : **l'API** (`/api/v1`) et **le site public** (`community/site/`) dans
+un même conteneur. Depuis le 2026-10-09, la vitrine (`lmustatsviewer.cparfait.ovh`, ex-Docker
+domestique) est fusionnée ici : son ancienne adresse redirige en 301 vers `lmu.cparfait.ovh`.
 Node 22 + Hono + Postgres 16, en Docker Compose, derrière le **Nginx Proxy Manager du VPS**.
 
 ```
 community/
   api/            service HTTP (TypeScript) + tests
   shared/         contrat d'envoi app ↔ serveur (schémas zod)
-  site/           site public (HTML/CSS/JS, sans framework ; CSP stricte, 4 langues)
+  site/           site public (HTML/CSS/JS, sans framework ; CSP stricte, 5 langues) :
+                  vitrine (/, /changelog.html) + classements (/classements.html, combo, pilote)
+  site-tools/     captures d'écran de la vitrine (PowerShell), total des téléchargements
   scripts/        backup.sh (sauvegarde), smoke.mjs (vérification de bout en bout),
                   seed-local.mjs (données de démonstration, LOCAL uniquement),
                   serve-site.mjs (aperçu du site sans reconstruire l'image)
@@ -24,8 +28,14 @@ community/
 ### 1. DNS (espace client OVH)
 
 Zone `cparfait.ovh` → ajouter un enregistrement **A** : sous-domaine `lmu`, cible = **IP du
-VPS** (et un **AAAA** si le VPS a une IPv6). La vitrine garde son enregistrement actuel.
-Vérifier la propagation : `nslookup lmu.cparfait.ovh` doit renvoyer l'IP du VPS.
+VPS** (et un **AAAA** si le VPS a une IPv6). Vérifier la propagation : `nslookup lmu.cparfait.ovh`
+doit renvoyer l'IP du VPS.
+
+**Ancienne adresse de la vitrine** : faire pointer `lmustatsviewer` (A/AAAA, ou CNAME vers
+`lmu.cparfait.ovh.`) sur le VPS, puis l'ajouter au proxy host de l'étape 6. Le service la
+redirige lui-même en 301 vers `lmu.cparfait.ovh` (chemin et paramètres conservés : `/`,
+`/changelog.html`, `?lang=`…) ; liste réglable par `REDIRECT_HOSTS` (séparées par des virgules).
+Le conteneur `lmustatsviewer-site` du Docker domestique peut alors être arrêté.
 
 ### 2. Récupérer le dossier sur le VPS
 
@@ -107,7 +117,7 @@ Les migrations de la base s'appliquent toutes seules au démarrage.
 
 | Onglet | Réglage |
 |---|---|
-| Details | Domain Names : `lmu.cparfait.ovh` · Scheme : `http` · Forward Hostname : **`lmustatsviewer-web`** · Forward Port : **`3000`** · *Block Common Exploits* ✓ · WebSocket inutile |
+| Details | Domain Names : `lmu.cparfait.ovh` **et** `lmustatsviewer.cparfait.ovh` (redirigée par le service) · Scheme : `http` · Forward Hostname : **`lmustatsviewer-web`** · Forward Port : **`3000`** · *Block Common Exploits* ✓ · WebSocket inutile |
 | SSL | *Request a new SSL Certificate* (Let's Encrypt) · *Force SSL* ✓ · *HTTP/2 Support* ✓ · *HSTS Enabled* ✓ |
 
 NPM transmet déjà l'IP réelle (`X-Real-IP`), utilisée **uniquement** en mémoire par le
@@ -275,11 +285,29 @@ circuit toutes classes, une ligne par pilote. **Steam** : seul un HMAC du SteamI
 
 ## Site public
 
-Servi par le même conteneur : `/` (accueil : chiffres, puis tous les classements — une carte
-repliable par circuit, une ligne par classement comme dans l'app, ou vue liste ; filtrable, sans tracé) et `/combo.html?track=&course=&class=` (répartition, position d'un temps,
-classement paginé, par voiture, versions). Visuels et drapeaux = ceux de l'app (mêmes règles de
-correspondance). Pages HTML en `no-cache`, `/assets` en cache 1 h ; CSP stricte (aucun script
-en ligne ni tiers) ; tout nom de pilote est échappé avant affichage.
+Un seul site, servi par le même conteneur :
+
+- **Vitrine** : `/` (présentation, captures, installation, FAQ) et `/changelog.html` (notes de
+  version lues sur l'API GitHub). Contenu traduit par `assets/js/i18n.js` (`VITRINE_I18N`) et
+  `assets/js/app.js` (galerie, version courante, liens de téléchargement directs) ; styles de
+  contenu dans `assets/css/vitrine.css`, chargé après `assets/site.css`.
+- **Classements** : `/classements.html` (chiffres, puis tous les classements — une carte
+  repliable par circuit ou vue liste ; filtrable), `/combo.html?track=&course=&class=`
+  (répartition, position d'un temps, classement paginé, comparaison de pilotes, par voiture,
+  versions) et `/pilote.html?tag=`. Les liens de l'app vers `/combo.html` restent valables.
+- **Socle commun** (`assets/site.js`, `assets/site.css`, `assets/boot.js`) : en-tête (navigation,
+  recherche de pilote, langue, thème, Télécharger), pied de page, palette de l'app (clair par
+  défaut). `boot.js` pose thème et langue avant le rendu : `?lang=` (retenu) > choix mémorisé
+  (`lmu-lang`) > navigateur > anglais ; thème `lmu-theme`.
+
+Visuels et drapeaux = ceux de l'app (mêmes règles de correspondance). Pages HTML en `no-cache`,
+`/assets` en cache 1 h. CSP stricte : aucun script en ligne ; seules exceptions, pour la vitrine,
+la mesure d'audience GoatCounter (sans cookie, ignorée en local) et l'API GitHub. Tout nom de
+pilote est échappé avant affichage.
+
+Captures de la vitrine (`assets/img/shots/<nom>-light|dark.png`) : depuis `community/site`,
+`powershell -ExecutionPolicy Bypass -File ../site-tools/capture-set.ps1 -Theme dark` (guide écran
+par écran), puis `-Theme light`.
 
 Contours des circuits (`site/assets/tracks.js`) : générés à partir de la télémétrie du jeu,
 par tracé exact (un tour complet enregistré suffit) :

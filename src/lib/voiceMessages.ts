@@ -124,6 +124,8 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vRivalPitAheadFront", vars: ["name"], sample: { name: "Martin" } },
       { key: "vRivalPitAheadClose", vars: ["name"], sample: { name: "Martin" } },
       { key: "vRivalPitBehind", vars: ["name"], sample: { name: "Martin" } },
+      { key: "vLeaderPit", vars: ["name"], sample: { name: "Martin" } },
+      { key: "vLeaderPitStint", vars: ["name", "n"], sample: { name: "Martin", n: 24 } },
     ],
   },
   {

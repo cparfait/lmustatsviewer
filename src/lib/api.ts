@@ -657,6 +657,12 @@ export interface LiveStanding {
   /** Distance parcourue sur le tour courant (m) — position physique sur la piste
    *  (trafic : qui est devant / derrière, retardataires compris). */
   lap_dist: number;
+  /**
+   * État de stand (`mPitState`) : 0 aucun, 1 demande, 2 entrée, 3 arrêt, 4 sortie.
+   * L'état 1 n'est qu'une demande, pas toujours suivie d'effet. Optionnel
+   * (anciennes charges utiles, objets de test).
+   */
+  pit_state?: number;
 }
 
 export interface LiveSession {

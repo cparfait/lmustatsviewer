@@ -960,6 +960,20 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         }
       } else rivalPits.current.push(data, 0); // garde le suivi à jour
 
+      // ── Le leader de la classe rentre (registre des arrêts du plateau) ───
+      // Tenu à jour à chaque trame ; annonce en course seulement. Si le leader
+      // est la voiture juste devant (je suis P2), l'annonce de rival direct
+      // ci-dessus en dit déjà plus : on ne double pas.
+      const leaderPit = engineer.stints.push(data);
+      if (leaderPit && warmedUp && isRace && playerStanding && playerStanding.class_position > 2) {
+        const name = radioName(leaderPit.driver);
+        const text =
+          leaderPit.stintLaps != null && leaderPit.stintLaps >= 3
+            ? t("live.vLeaderPitStint", { name, n: leaderPit.stintLaps })
+            : t("live.vLeaderPit", { name });
+        say(`leaderpit:${leaderPit.driver}:${leaderPit.stop}`, text, "normal", { score: 45, retryS: 15 });
+      }
+
       // ── Dernier tour / mi-course (courses au nombre de tours) ────────────
       if (sc.max_laps > 0 && sc.max_laps < 1000) {
         if (!announcedFinal.current && player.total_laps === sc.max_laps - 1) {

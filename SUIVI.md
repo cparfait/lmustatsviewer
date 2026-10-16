@@ -867,6 +867,25 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Idées de veille ⑰–㉞ enchaînées (branche `claude/integration-veille`)
+
+**Demande** : « enchaîne tout » (les idées ⑰–⑲ et ㉑–㉞ de la veille), puis « pas de Discord » (㉙
+abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans un worktree
+(`.claude/worktrees/integration-veille`) = `feat/coach-audio` + pont REST
+(`claude/determined-shirley-160cbb`, fusion `0b351fd` : conflits résolus en gardant les deux côtés
+— spotter de proximité + tracé du jeu dans `live.rs`/`api.ts`, intentions coach + plaquettes dans
+`router.ts`). Mécanismes réécrits à notre façon, aucun nom de concurrent dans le code.
+
+- ✅ **㉑ Registre des arrêts du plateau** (`engineer/rivalStints.ts`, pur) : tour de chaque arrêt
+  (compteur `num_pitstops`), relais = médiane des relais complets (< 3 tours ignorés, 1er relais
+  seulement si la voiture est vue dès le départ), repli sur le relais type de la classe ; prochain
+  arrêt, arrêts restants (tours restants par voiture, course au temps ou aux tours). Rust :
+  `pit_state` par voiture dans `LiveStanding`. Annonce « le leader rentre » (front de `in_pits`,
+  `pit_state` 1 = simple demande ignorée ; pas si je suis P2, l'annonce de rival direct suffit) —
+  familles radio situation + stratégie (gel de fin de course). Intention vocale `rivalStops`
+  (« quand s'arrête le leader ? », « arrêts de la voiture devant ? », voiture citée), grammaire Vosk
+  5 langues ; contexte Coach IA (« Rival pit stops in my class »). Suite `strategy.suite.ts`.
+
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 
 **Demande** (session lancée par la session « coach audio », puis le mainteneur en direct) : implémenter

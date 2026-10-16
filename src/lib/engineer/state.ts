@@ -13,6 +13,7 @@ import { RadioPolicy } from "./policy";
 import { BrakeMap, type DriverSnapshot } from "./focus";
 import type { WetData } from "./forecast";
 import { PadWearTracker } from "@/lib/lmuRest";
+import { StintRegistry } from "./rivalStints";
 
 export interface ForecastState {
   data: WetData;
@@ -25,6 +26,8 @@ class EngineerState {
   /** Usure des plaquettes par tour (donnée du jeu via le pont REST). */
   pads = new PadWearTracker();
   pit = new PitWindowTracker();
+  /** Arrêts et relais de tout le plateau (registre des arrêts adverses). */
+  stints = new StintRegistry();
   watches = new WatchList();
   /** Fichier `.wet` retenu pour le circuit courant (non validé). */
   forecast: ForecastState | null = null;
@@ -49,6 +52,7 @@ class EngineerState {
     this.energy.reset();
     this.pads.reset();
     this.pit.reset();
+    this.stints.reset();
     this.watches.clear();
     this.forecastValid = false;
     this.lastPitCallLap = -99;

@@ -67,10 +67,10 @@ export interface PolicyCtx {
 
 /** Préfixes de clé → famille. Toute clé inconnue est une « décision » (jamais bridée). */
 const SAFETY = ["flag:", "mech:", "vigie:", "traffic:", "faster:", "blue", "fuel:laps", "pit:box", "penalty"];
-const SITUATION = ["pos:", "gap:", "closing:", "opening:"];
+const SITUATION = ["pos:", "gap:", "closing:", "opening:", "leaderpit:"];
 const COMFORT = ["lap:", "group:lap", "sector:", "fastest", "delta", "race:half", "battery:saturated"];
 /** Stratégie gelée en fin de course (le box critique, lui, reste). */
-const STRATEGY = ["pit:open", "pit:closing", "rivalpit:", "posture:", "fuel:refuel"];
+const STRATEGY = ["pit:open", "pit:closing", "rivalpit:", "leaderpit:", "posture:", "fuel:refuel"];
 /** Messages de piste tolérés dans la voie des stands. */
 const PIT_LANE_OK = ["pit:", "vigie:", "watch:"];
 
@@ -85,7 +85,7 @@ export function classOf(c: Candidate): MsgClass {
 
 /** Pilote visé par une clé (`closing:ahead:<nom>`, `faster:<nom>`…), ou `null`. */
 export function rivalOf(key: string): string | null {
-  const m = /^(?:closing:(?:ahead|behind)|opening:(?:ahead|behind)|faster|blue|rivalpit):([^:]+)/.exec(key);
+  const m = /^(?:closing:(?:ahead|behind)|opening:(?:ahead|behind)|faster|blue|rivalpit|leaderpit):([^:]+)/.exec(key);
   return m ? m[1] : null;
 }
 

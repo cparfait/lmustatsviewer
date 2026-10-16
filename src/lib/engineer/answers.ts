@@ -180,6 +180,10 @@ export function rankGap(myCls: string) {
   return (cls: string) => Math.max(1, classRank(cls) - classRank(myCls));
 }
 
+/** Cible « voiture devant / derrière » dans une question (texte normalisé). */
+const AHEAD_RX = / (devant|ahead|in front|delante|vordermann|vorne|davanti) /;
+const BEHIND_RX = / (derriere|behind|detras|hintermann|hinten|dietro) /;
+
 /** Perte moyenne en deçà de laquelle un virage n'est pas cité (s). */
 const LOSS_MIN_S = 0.05;
 
@@ -350,6 +354,32 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       const n = stopsNeeded(strat.sessionLapsLeft, info.rangeLaps, perStint);
       if (n == null) return noData;
       return n === 0 ? t("live.spNoStopNeeded") : t("live.spStops", { count: n });
+    }
+
+    case "rivalStops": {
+      if (!me) return noData;
+      const n = ` ${o.norm ?? ""} `;
+      const cls = me.vehicle_class;
+      const car =
+        e?.carNo || e?.pos
+          ? (findCited(d, e, o.norm) ?? (e.pos ? findAtPosition(d, e.pos, targetClass(d, me, e)) : null))
+          : AHEAD_RX.test(n)
+            ? classNeighbor(d, me, -1)
+            : BEHIND_RX.test(n)
+              ? classNeighbor(d, me, 1)
+              : me.class_position === 1
+                ? classNeighbor(d, me, 1)
+                : findAtPosition(d, 1, cls);
+      if (!car || car.is_player) return noData;
+      const name = radioName(car.driver);
+      const est = engineer.stints.estimate(d, car);
+      const parts = [car.num_pitstops > 0 ? t("live.spRStops", { name, count: car.num_pitstops }) : t("live.spRStopsNone", { name })];
+      if (est.stintLaps == null) return `${parts[0]}, ${t("live.spRUnknown")}`;
+      const stint = Math.round(est.stintLaps);
+      parts.push(t(est.fromClass ? "live.spRStintClass" : "live.spRStint", { n: stint }));
+      if (est.lapsToNext != null) parts.push(est.lapsToNext <= 0 ? t("live.spRDue") : t("live.spRNext", { when: whenLaps(t, est.lapsToNext) }));
+      if (est.stopsLeft != null) parts.push(est.stopsLeft === 0 ? t("live.spRLeftNone") : t("live.spRLeft", { count: est.stopsLeft }));
+      return parts.join(", ");
     }
 
     case "ackBox":

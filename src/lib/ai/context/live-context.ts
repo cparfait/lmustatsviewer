@@ -13,6 +13,7 @@ import { buildTyreInsights } from "../insights";
 import { playerClassPosition, gapBetween } from "../../livePosition";
 import type { LiveData, LiveStanding } from "../../api";
 import { restContextLines } from "../../lmuRest";
+import { engineer } from "../../engineer/state";
 
 function sessionTypeLabel(s: number): string {
   if (s === 0) return "Test";
@@ -204,6 +205,14 @@ export function buildLiveContext(data: LiveData): string {
     lines.push("");
     lines.push("## Game data (official, from the game itself)");
     lines.push(...rest);
+  }
+
+  // Arrêts observés des voitures de la classe (registre de l'ingénieur).
+  const stints = engineer.stints.contextLines(data);
+  if (stints.length) {
+    lines.push("");
+    lines.push("## Rival pit stops in my class (observed live, estimates)");
+    lines.push(...stints);
   }
 
   return lines.join("\n");

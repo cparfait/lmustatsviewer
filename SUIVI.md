@@ -894,6 +894,10 @@ arrêtée. Au 1er essai, **LMU plante au lancement** deux fois de suite.
   S3 + S1 en jaune). Changelog 1.0.10 corrigé.
 - ✅ Voie des stands en deux tronçons → plus de corde (`pathOfRuns`, Live + overlay).
 - ✅ Tests : npm 386, cargo 45, tsc, eslint. Commits `44757c0`, `60941ea`.
+- ✅ Sans rouler (mainteneur indisponible pour la course) : durée d'arrêt retenue aux stands = **la plus
+  haute vue** pendant le passage (`keepPlannedStop`) — si le jeu décompte `pitStopLength` pendant le
+  service, la dernière valeur aurait gonflé le temps de voie ; routage « plaquettes ? » testé dans les
+  5 langues (+ « température des freins » ≠ usure). npm 394.
 - 📋 **Prochaine étape** : la course de test se fait sur `claude/integration-veille` (session
   principale) — y intégrer `44757c0` + `60941ea` **avant** ; y observer `pitStopLength` carburant +
   4 pneus, formation (`rest_used.sessionEnd` = « game »), « plaquettes ? », arrêt réel →

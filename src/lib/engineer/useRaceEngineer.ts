@@ -48,6 +48,7 @@ import { VigieTracker } from "./vigie";
 import { BOX_CRITICAL_LAPS } from "./pitWindow";
 import { consistentWithLive, parseWet, pickWetFile, wetSession } from "./forecast";
 import { engineer } from "./state";
+import { brakeAvgLimits } from "./brakes";
 import { isWetCompound, wheelWear } from "./tyres";
 import { radioClass, radioName } from "./text";
 import { scopedPosition } from "@/lib/livePosition";
@@ -166,22 +167,8 @@ const PREWARM_KEYS = [
 /** Seuil de surchauffe historique (pic instantané, débit Complet) (°C). */
 const BRAKE_HOT_C = 750;
 
-/**
- * Seuils de la MOYENNE glissante selon le matériau des disques de la classe
- * (débit Ingénieur). Sources (recherche du 06/10/2026, cf. SUIVI) :
- *  - Brembo, 24 h du Mans 2025 : Hypercar et LMP2 = carbone, 250–850 °C ;
- *    LMGT3 = fonte, 250–750 °C. LMP3 = acier imposé (règlement LMP3 art. 12.3).
- *  - Seuils par matériau d'un ingénieur vocal communautaire : fonte course
- *    « chaud » au-delà de 700 °C, carbone au-delà de 1 200 °C.
- * La moyenne restant sous les pics, son dépassement du HAUT de la plage de
- * fonctionnement signale une vraie surchauffe, pas un gros freinage.
- * Classe inconnue (GTE, autres) : 750 °C, valeur d'origine.
- */
-export function brakeAvgLimits(vehicleClass: string): { hot: number; rearm: number } {
-  const cls = radioClass(vehicleClass);
-  if (cls === "Hypercar" || cls === "LMP2") return { hot: 850, rearm: 800 }; // carbone
-  return { hot: 750, rearm: 700 }; // fonte/acier (LMP3, GT3) et repli
-}
+export { brakeAvgLimits } from "./brakes";
+
 /** Constante de temps de la moyenne glissante (ms) — environ 2 à 4 freinages. */
 const BRAKE_TAU_MS = 30000;
 

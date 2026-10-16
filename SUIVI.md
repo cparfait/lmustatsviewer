@@ -1003,6 +1003,14 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   Live = nouvelle version + `IncidentDots`, changelog et journal = les deux. Les commandes
   `get_pit_menu` / `set_pit_menu_item` passent par la même garde (`session_ready`, rendu public) :
   refus « Aucune séance chargée » hors séance. 635 tests TS, 71 Rust ✅.
+- ✅ **Bug signalé en jeu** (« ingénieur, température des freins » → « Coach vocal incomplet ») :
+  aucune intention, et toute question non reconnue sans IA prête renvoyait vers la configuration.
+  Nouvelle intention `brakeTemp` (grammaire Vosk + routeur 5 langues, tournures possessives pour ne
+  pas tomber sur `brakeWear`) : avant / arrière max, verdict < 250 °C froid, > 850 °C (carbone) ou
+  750 °C (fonte) chaud — seuils sortis dans `engineer/brakes.ts`. Sans IA, une question courte
+  (≤ 6 mots) non reconnue → « Je n'ai pas compris la question » (`coach.voiceNotUnderstood`).
+  Test de cohérence : chaque phrase de grammaire `brakeTemp` donne la même intention par
+  `matchIntent` et `route`. Refusion du pont REST (`8db5f5b`, `97be05a`). 728 tests ✅.
 - 📋 **Prochaine étape** : course de test en jeu sur cette branche (`npm run tauri dev` depuis le
   worktree) — vérifier dans l'ordre : « le leader rentre » + « quand s'arrête le leader ? », « quels
   pneus changer ? », silence en tour lancé de qualif, question des chronos au 2ᵉ tour, préparation

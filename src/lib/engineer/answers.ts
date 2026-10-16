@@ -24,6 +24,7 @@ import type { WatchCond } from "./watches";
 import { coachCornerLosses } from "@/lib/coach/service";
 import { isWetCompound, tyreChangePlan, wheelWear, type WheelId } from "./tyres";
 import { sessionKind, type LapPref } from "./prefs";
+import { BRAKE_COLD_C, brakeAvgLimits } from "./brakes";
 
 /** Fenêtre de température « de travail » des pneus (°C, générique). */
 export const TYRE_WINDOW: [number, number] = [75, 105];
@@ -308,6 +309,25 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       const rear = d.telemetry?.rear_brake_bias ?? 0;
       if (!(rear > 0 && rear < 1)) return noData;
       return t("live.spBrakeBias", { f: ((1 - rear) * 100).toFixed(1) });
+    }
+
+    case "brakeTemp": {
+      const w = d.telemetry?.wheels;
+      const ok = (x: number) => x > 0 && x < 2000; // -1 = donnée non significative
+      const front = (w ?? []).slice(0, 2).map((x) => x.brake_temp).filter(ok);
+      const rear = (w ?? []).slice(2, 4).map((x) => x.brake_temp).filter(ok);
+      if (!front.length && !rear.length) return t("live.spBrakeTempNone");
+      const f = front.length ? Math.round(Math.max(...front)) : 0;
+      const r = rear.length ? Math.round(Math.max(...rear)) : 0;
+      const hi = brakeAvgLimits(me?.vehicle_class ?? "").hot;
+      const max = Math.max(f, r);
+      const verdict =
+        max < BRAKE_COLD_C
+          ? t("live.spBrakeTempCold", { lo: BRAKE_COLD_C })
+          : max > hi
+            ? t("live.spBrakeTempHot", { hi })
+            : t("live.spBrakeTempOk");
+      return `${t("live.spBrakeTemp", { f, r })}, ${verdict}`;
     }
 
     case "brakeWear": {

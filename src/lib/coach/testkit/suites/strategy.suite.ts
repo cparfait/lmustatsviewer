@@ -9,6 +9,7 @@ import type { LiveData, LiveStanding } from "@/lib/api";
 import type { Tr } from "@/i18n";
 import { StintRegistry, stintsOf, lapsLeftFor } from "@/lib/engineer/rivalStints";
 import { route, normalize } from "@/lib/engineer/router";
+import { getPhrases, matchIntent } from "@/lib/spotterCommands";
 import { matchCards, radioCard, cardsContextText } from "@/lib/ai/knowledge/engineering-cards";
 import { factsBlock } from "@/lib/ai/facts";
 import { answerIntent } from "@/lib/engineer/answers";
@@ -229,6 +230,34 @@ export function run(): void {
     const f = factsBlock(["fuel", "ackBox", "lapPrefNone", "tyreChange"], d, t, { pitLossSec: 60, fuelReserveLaps: 1 });
     ok(f.includes("- status:") && f.includes("- fuel:") && f.includes("- tyreChange: UNKNOWN"), `faits calculés + inconnus — ${f}`);
     ok(!f.includes("ackBox") && !f.includes("lapPrefNone"), "aucune commande exécutée");
+  }
+
+  section("brakes.temp");
+  {
+    eq(route("ingénieur, température des freins", "fr").intent, "brakeTemp", "FR : température des freins");
+    eq(route("mes freins sont chauds ?", "fr").intent, "brakeTemp", "FR : freins chauds");
+    eq(route("plaquettes", "fr").intent, "brakeWear", "FR : plaquettes restent l'usure");
+    eq(route("brake temps", "en").intent, "brakeTemp", "EN");
+    eq(route("temperatura de frenos", "es").intent, "brakeTemp", "ES");
+    eq(route("Bremstemperatur", "de").intent, "brakeTemp", "DE");
+    eq(route("temperatura dei freni", "it").intent, "brakeTemp", "IT");
+    const wheels = (f: number, r: number) => [f, f - 40, r, r - 20].map((b) => ({ brake_temp: b }));
+    const at = (f: number, r: number, cls = "Hypercar") =>
+      answerIntent("brakeTemp", data([st({ driver: "Me", is_player: true, vehicle_class: cls })], { telemetry: { wheels: wheels(f, r) } } as never), t, { pitLossSec: 60, fuelReserveLaps: 1 });
+    ok(at(500, 420).includes("live.spBrakeTempOk") && at(500, 420).includes('"f":500') && at(500, 420).includes('"r":420'), "carbone à 500 °C : dans la fenêtre");
+    ok(at(180, 150).includes("live.spBrakeTempCold"), "sous 250 °C : froids");
+    ok(at(800, 600, "LMGT3").includes("live.spBrakeTempHot"), "fonte à 800 °C : trop chauds");
+    ok(at(800, 600, "Hypercar").includes("live.spBrakeTempOk"), "carbone à 800 °C : encore dans la fenêtre");
+    ok(at(-1, -1).startsWith("live.spBrakeTempNone"), "donnée absente");
+    eq(route("température de mes freins", "fr").intent, "brakeTemp", "FR : « mes freins » ne capte pas la température");
+    eq(route("temperature of my brakes", "en").intent, "brakeTemp", "EN : my brakes ne capte pas la température");
+    // Grammaire fermée du push-to-talk : chaque phrase donne la même intention
+    // par le routeur libre et par la reconnaissance à grammaire fermée.
+    for (const lang of ["fr", "en", "es", "de", "it"])
+      for (const ph of getPhrases(lang, "brakeTemp")) {
+        eq(matchIntent(ph, lang), "brakeTemp", `grammaire ${lang} « ${ph} »`);
+        eq(route(ph, lang).intent, "brakeTemp", `routeur ${lang} « ${ph} »`);
+      }
   }
 
   section("strategy.voice");

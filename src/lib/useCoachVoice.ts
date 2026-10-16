@@ -29,6 +29,9 @@ import { route, INTENT_HELP, RADIO_COMMANDS, type AnswerIntent } from "@/lib/eng
 import { answerIntent, registerWatch } from "@/lib/engineer/answers";
 import { factsBlock } from "@/lib/ai/facts";
 import { radioCard } from "@/lib/ai/knowledge/engineering-cards";
+
+/** Au plus ce nombre de mots, une question non reconnue est « pas comprise ». */
+export const SHORT_QUESTION_WORDS = 6;
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
 import { toast, toastSuccess } from "@/stores/dialogs";
@@ -252,7 +255,13 @@ export function useCoachVoice() {
             sayLocal(card);
             return;
           }
-          // Sinon : seul le Coach IA saurait y répondre.
+          // Rien de reconnu dans une phrase courte : on n'a pas compris (le pilote
+          // ne doit pas croire qu'il lui manque un réglage). Une vraie question
+          // ouverte (phrase longue) relève, elle, du Coach IA.
+          if (r.norm.split(" ").filter(Boolean).length <= SHORT_QUESTION_WORDS) {
+            announce(tt("coach.voiceNotUnderstood"), lang);
+            return;
+          }
           const configured = !!p && !!model && (!p.needsKey || !!apiKey);
           announce(tt(st.aiCoachEnabled && !configured ? "coach.voiceNotConfigured" : "coach.voiceNoAi"), lang);
           return;

@@ -36,6 +36,7 @@ export type Intent =
   | "forecast"
   | "tyreTemp"
   | "brakeBias"
+  | "brakeTemp"
   | "brakeWear"
   | "rivalStops"
   | "tyreChange"
@@ -70,6 +71,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["prévisions", "prévision météo", "va-t-il pleuvoir"],
     tyreTemp: ["température des pneus", "température pneus"],
     brakeBias: ["répartition", "répartition de freinage"],
+    brakeTemp: ["température des freins", "freins chauds", "freins froids"],
     brakeWear: ["plaquettes", "mes plaquettes", "usure des plaquettes", "état des plaquettes", "usure des freins", "état des freins"],
     rivalStops: ["arrêts du leader", "arrêts des rivaux", "relais du leader"],
     tyreChange: ["quels pneus changer", "pneus pluie ou slicks"],
@@ -102,6 +104,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["forecast", "weather forecast", "will it rain"],
     tyreTemp: ["tyre temperature", "tire temperature", "tyre temps"],
     brakeBias: ["brake bias", "brake balance"],
+    brakeTemp: ["brake temperature", "brake temps", "brakes hot"],
     brakeWear: ["brake pads", "my pads", "pad wear", "brake wear"],
     rivalStops: ["leader stops", "rival stops", "leader stint"],
     tyreChange: ["which tyres", "wets or slicks"],
@@ -134,6 +137,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["pronóstico", "va a llover", "previsión"],
     tyreTemp: ["temperatura de neumáticos", "temperatura neumáticos"],
     brakeBias: ["reparto de frenada", "reparto de frenos"],
+    brakeTemp: ["temperatura de frenos", "frenos calientes"],
     brakeWear: ["pastillas", "mis pastillas", "desgaste de pastillas", "desgaste de frenos"],
     rivalStops: ["paradas del líder", "paradas de los rivales"],
     tyreChange: ["qué neumáticos cambio", "lluvia o slicks"],
@@ -166,6 +170,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["vorhersage", "wettervorhersage", "wird es regnen"],
     tyreTemp: ["reifentemperatur", "temperatur der reifen"],
     brakeBias: ["bremsbalance", "bremsverteilung"],
+    brakeTemp: ["bremstemperatur", "bremsen heiß"],
     brakeWear: ["bremsbeläge", "beläge", "belagverschleiß", "bremsverschleiß"],
     rivalStops: ["stopps des führenden", "stopps der gegner"],
     tyreChange: ["welche reifen", "regen oder slicks"],
@@ -201,6 +206,7 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     forecast: ["previsioni", "previsioni meteo", "pioverà"],
     tyreTemp: ["temperatura gomme", "temperatura delle gomme", "temperatura pneumatici"],
     brakeBias: ["ripartizione", "ripartizione di frenata", "bilanciamento freni"],
+    brakeTemp: ["temperatura dei freni", "freni caldi"],
     brakeWear: ["pastiglie", "le mie pastiglie", "usura pastiglie", "usura dei freni", "usura freni"],
     rivalStops: ["soste del leader", "soste degli avversari"],
     tyreChange: ["quali gomme cambio", "pioggia o slick"],
@@ -232,6 +238,7 @@ const INTENT_ORDER: Intent[] = [
   "closing",
   "traffic",
   "battery",
+  "brakeTemp",
   "brakeWear",
   "brakeBias",
   "ahead",
@@ -272,6 +279,7 @@ export const INTENTS: Intent[] = [
   "forecast",
   "tyreTemp",
   "brakeBias",
+  "brakeTemp",
   "brakeWear",
   "rivalStops",
   "tyreChange",

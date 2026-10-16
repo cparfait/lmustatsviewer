@@ -1706,7 +1706,7 @@ export default {
     detectTip: "Rileva automaticamente LMU dal registro di Steam e legge il nome del giocatore attivo.",
     pickFolderTip: "Sfoglia il disco per individuare la cartella di installazione di Le Mans Ultimate.",
     autoIndexTip: "Indicizza i nuovi file XML all'avvio dell'app. Disattivalo per un avvio più rapido.",
-    restPollOffTrackTip: "Per impostazione predefinita l'app legge le schermate del gioco (stato dell'auto, menu dei box, intervalli del setup, tracciato) solo mentre guidi: LMU può chiudersi se interrogato in garage, in pausa o nei suoi menu. Attiva per ripristinare il comportamento precedente (lettura continua ovunque). Altrimenti, in garage, gli intervalli del setup vengono letti una volta quando il coach ne ha bisogno.",
+    restPollOffTrackTip: "Per impostazione predefinita l'app legge le schermate del gioco (stato dell'auto, menu dei box, intervalli del setup) solo mentre guidi: LMU può chiudersi se interrogato in garage, in pausa o nei suoi menu. Il tracciato del circuito viene ancora letto in garage. In garage, gli intervalli del setup e lo stato delle pastiglie vengono letti una volta, solo quando lo chiedi. Attiva per ripristinare il comportamento precedente (lettura continua ovunque).",
     systemTrayTip: "Chiudendo la finestra l'app viene ridotta nell'area di notifica invece di chiudersi.",
     launchIntroTip: "Riproduce la fine dell'animazione (tendina a cordoli e titolo, circa 3 s) a ogni avvio dell'app. Un clic o Esc la salta.",
     autoUpdateTip: "Controlla automaticamente all'avvio se c'è una nuova release su GitHub.",

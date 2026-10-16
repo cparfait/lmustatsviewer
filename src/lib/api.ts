@@ -1459,6 +1459,8 @@ export const live = {
    * Écriture dans le jeu : seulement si l'utilisateur l'a autorisée (Config).
    */
   setPitMenuItem: (name: string, index: number) => invoke<boolean>("set_pit_menu_item", { name, index }),
+  /** État de la voiture lu dans le jeu (pont REST) ; au garage, lecture ponctuelle. */
+  vehicleCondition: () => invoke<RestField<RestVehicle>>("get_lmu_vehicle_condition"),
   /** Fichiers météo scénarisés `.wet` du dossier Settings (prévision). */
   weatherFiles: (lmuPath: string) =>
     invoke<WetFile[]>("list_weather_files", { lmuPath }),

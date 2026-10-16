@@ -1706,7 +1706,7 @@ export default {
     detectTip: "Auto-detect LMU from the Steam registry and read the active player name.",
     pickFolderTip: "Browse your disk to locate the Le Mans Ultimate installation folder.",
     autoIndexTip: "Index new XML files when the app starts. Disable for a faster startup.",
-    restPollOffTrackTip: "By default the app only reads the game's screens (car condition, pit menu, setup ranges, track map) while you are driving: LMU can crash when queried in the garage, while paused or in its menus. Enable to restore the previous behaviour (continuous reading everywhere). Otherwise, in the garage, setup ranges are read once when the coach needs them.",
+    restPollOffTrackTip: "By default the app only reads the game's screens (car condition, pit menu, setup ranges) while you are driving: LMU can crash when queried in the garage, while paused or in its menus. The track map is still read in the garage. In the garage, setup ranges and brake pad condition are read once, only when you ask. Enable to restore the previous behaviour (continuous reading everywhere).",
     systemTrayTip: "Closing the window minimises the app to the system tray instead of quitting.",
     launchIntroTip: "Plays the end of the animation (kerb wipe and title, about 3 s) each time the app starts. Click or press Esc to skip it.",
     autoUpdateTip: "Automatically checks for a new GitHub release on startup.",

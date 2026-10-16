@@ -303,7 +303,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   - ❌ **`mSectorFlag` (mémoire partagée) n'indique pas les jaunes locaux** dans LMU : essais **sans aucun incident** = `[1,11,1]` constant ; course : `[11,1,11]`, `[11,11,1]`, `[1,11,11]` (> 3 min en vert, `yellow_flag_state` 0), `[1,11,3]`, `[1,2,2]` (phase 8). Ni « > 0 » ni « === 1 » ne tiennent → `isSectorYellow` renvoie **faux** (carte, widget Drapeaux, coach) en attendant une source fiable. Le `sectorFlag` REST (`UNKNOWN`/`YELLOW` sur les 3 secteurs à la fois) ne colle pas non plus.
   - ✅ `mSector` des voitures : 1 = S1, 2 = S2, **0 = S3** (frontière S2/S3 ≈ 2 535 m à Atlanta). Sur la **grille**, les voitures passent de 2 à 0 **sur place** vers 3 999 m → bornes mesurées seulement en phase 5/6 et si la voiture avance.
   - 🔴 **LMU plante au lancement si on interroge `garage/*` pendant son initialisation** (2/2 le 2026-10-16, à 14,9 s, rapport BugSplat ; 2/2 lancements sans interrogation OK) : serveur REST ouvert à 13,7 s pendant `Game::Setup`, `sessionInfo` répond vide, `getVehicleCondition` reste pendante, le jeu meurt. La mémoire partagée existe dès 9,4 s → pont actif **seulement en séance chargée** (`data.session`), 5 s de délai, `sessionInfo` d'abord, `garage/*` et `watch/trackmap` seulement après une séance confirmée (44757c0). Pendant le chargement d'un circuit, `sessionInfo` ne répond pas (curl en délai dépassé).
-  - 🔴 **Écrans d'interface aussi** (veille 2026-10-16) : LMU 1.4130 plante quand on l'interroge au garage / sur les écrans de réglage, jamais en piste. → `garage/*` et `watch/trackmap` **seulement joueur en piste** (`PlayerSpot::Driving` : ni `mInGarageStall`, ni horloge figée, ni joueur absent du scoring) ; `sessionInfo` et `sessions/weather` libres. Bornes de setup au garage : lecture ponctuelle (≤ 1 / 30 s) quand le coach en a besoin. Réglage `rest_poll_off_track` (Config → Maintenance) = ancien comportement. ⏳ À valider en jeu (garage ↔ piste, pause, retour aux menus).
+  - 🔴 **Écrans d'interface aussi** (veille 2026-10-16) : LMU 1.4130 plante quand on l'interroge au garage / sur les écrans de réglage, jamais en piste. → `garage/*` **seulement joueur en piste** (`PlayerSpot::Driving` : ni `mInGarageStall`, ni horloge figée, ni joueur absent du scoring) ; `watch/trackmap` (une lecture par circuit) en piste **ou au box**, jamais en pause ni aux menus ; `sessionInfo` et `sessions/weather` libres. Au box, lecture ponctuelle (≤ 1 / 30 s par route) des bornes de setup (question de réglage) et de `getVehicleCondition` (« plaquettes ? »). Réglage `rest_poll_off_track` (Config → Maintenance) = ancien comportement. ⏳ À valider en jeu (garage ↔ piste, pause, retour aux menus ; voiture du joueur présente dans le scoring au garage avant le premier « Rouler » ?).
   - ✅ Conso « jeu » au 1er tour **sans** énergie virtuelle (LMP2) : 1,98 L/tour, `rest_used.fuel` = « game », 37,8 tours (menu « 75l/37 laps »).
   - ✅ Bornes S1/S2 apprises = transitions observées (588 / 2 540 m à Atlanta). ⚠️ `get_live_data` (spotter, coach vocal, Coach IA à la demande) avait un **2e `PollState`** sans tracé sauvegardé → valeurs différentes de la page Live ; renvoie désormais la dernière trame du flux.
   - ✅ Voie des stands du jeu (`watch/trackmap` type 1) en **deux tronçons** séparés de 540 m (bouts les plus proches à 261 m) → tracée coupée aux sauts > 60 m (plus de corde).
@@ -1279,6 +1279,29 @@ indicateur discret sur la page Live.
   puis pistes cartes non faites : heatmap live par bucket, mini-secteurs chronométrés pour tout le
   plateau, numéros/noms officiels des virages, orientation commune app/overlay/télémétrie, emplacements
   de box (types 2..159), couleurs de classe dérivées des données.
+### 2026-10-16 — Pont REST au garage : « plaquettes ? » et tracé sans perte
+
+**Demande** : « corrige » les deux pertes laissées par la coupure du polling au garage (entrée
+suivante) : « plaquettes ? » au garage sans valeur du jeu, tracé du jeu repoussé à la sortie du box.
+
+- ✅ Lecture ponctuelle généralisée (`read_on_demand`, `ON_DEMAND_ROUTES` = bornes de setup + état de
+  la voiture, ≤ 1 lecture / 30 s **par route**, seulement joueur au box, valeur pas fraîche, séance
+  confirmée). Nouvelle commande `get_lmu_vehicle_condition` (async + `spawn_blocking`).
+- ✅ `ask.ts` : si la question vise les plaquettes (intention, supposition ou candidate `brakeWear`)
+  et que l'état de la voiture n'est pas frais, `live.vehicleCondition()` avant de répondre (réponse
+  locale et contexte du Coach IA). Une commande perso de la liste de phrases qui mène à `brakeWear`
+  n'en profite pas (cas marginal).
+- ✅ Tracé : `watch/trackmap` n'est plus traité comme un écran garage (famille `watch/*` comme
+  `sessionInfo`, une seule lecture par circuit) → lu au box comme avant ; toujours bloqué en pause et
+  aux menus. `reads_game_screens` = `garage/*` seulement.
+- ✅ Info-bulle du réglage « Interroger le jeu hors piste » et entrée changelog 1.0.10 mises à jour
+  (5 langues).
+- ✅ Tests : cargo 79 (+ `track_map_read_in_the_box_but_not_paused_or_in_menus`,
+  `on_demand_routes_are_the_garage_ones_needed_in_the_box`), npm 652, tsc, eslint.
+- 📋 **Prochaine étape** : valider en jeu — la voiture du joueur figure-t-elle dans le scoring au garage
+  avant le premier « Rouler » ? Sinon `PlayerSpot` vaut Absent : le tracé attend la sortie du box et
+  « plaquettes ? » n'a pas de lecture ponctuelle (il faudrait alors traiter Absent + séance chargée
+  comme le box). Vérifier aussi qu'une seule requête `getVehicleCondition` part par question.
 
 ### 2026-10-16 — Pont REST : écrans du jeu interrogés seulement en piste
 

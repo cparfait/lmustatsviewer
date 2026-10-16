@@ -17,7 +17,6 @@ import { emit } from "@tauri-apps/api/event";
 import type { TFunction } from "i18next";
 import { useAppStore } from "@/stores/app";
 import { live } from "@/lib/api";
-import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, announceAnswer, cancelSpeech, repeatLast } from "@/lib/voice";
 import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, classifyIntent, friendlyError } from "@/lib/ai/coach";
@@ -28,6 +27,9 @@ import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
 import { toast, toastSuccess } from "@/stores/dialogs";
+import { effectivePitLoss } from "@/lib/lmuRest";
+import { factsBlock } from "@/lib/ai/facts";
+import { radioCard } from "@/lib/ai/knowledge/engineering-cards";
 
 /**
  * Fournisseur / modèle / clé réellement utilisés par le coach **vocal**.
@@ -163,6 +165,7 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   const r = route(free, lang);
   const norm = r.norm || normalize(strict, lang);
   const opts = {
+    // Perte au stand : temps de voie mesuré + durée de l'arrêt lue dans le jeu (pont REST).
     pitLossSec: effectivePitLoss(data, st0.pitLossSeconds, st0.pitLaneLoss),
     fuelReserveLaps: st0.fuelReserveLaps,
     classPositions: st0.classPositions,
@@ -212,6 +215,10 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   // ── 3. Sans IA : toujours une réponse locale ───────────────────────────────
   if (!aiReady || !p) {
     toast(t(st0.aiCoachEnabled && !configured ? "coach.voiceNotConfigured" : "coach.voiceNoAi"));
+    // Question de pilotage ouverte : une fiche de savoir sûre (sous-virage, pluie,
+    // pneus froids…) ; les fiches incertaines ne sont jamais dites.
+    const card = r.intent ? null : radioCard(norm, lang);
+    if (card) return say(card, "local");
     const guess = r.ambiguous && r.candidates.length ? r.candidates[0] : r.guess;
     if (guess && !isAction(guess)) return runIntent(guess, "local");
     return say(`${t("coach.voiceLocalFallback")} ${buildStatus(data, t, st0.classPositions)}`, "fallback");
@@ -232,7 +239,10 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     // Sans données live, l'appel échoue comme avant (message d'erreur lisible).
     const baseCtx = await buildLiveCoachContext(data ?? (await live.getData()), free);
     const recent = recentDiagnosticsBlock();
-    const ctx = recent ? `${baseCtx}\n\n${recent}` : baseCtx;
+    // Faits calculés par l'app : seule source des chiffres de la réponse (les
+    // fiches de savoir sont déjà jointes par `buildLiveCoachContext`).
+    const facts = factsBlock(r.candidates, data, t, opts);
+    const ctx = [baseCtx, facts, recent].filter(Boolean).join("\n\n");
     const answer = await askCoachVoice({
       provider: p,
       model,

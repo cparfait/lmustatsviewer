@@ -197,6 +197,45 @@ export interface RaceActivityRow {
   online: boolean;
 }
 
+/** Élément du menu des stands du jeu (`lmu_rest_write::PitMenuItem`). */
+export interface PitMenuItem {
+  name: string;
+  /** Index de l'option choisie. */
+  current: number;
+  options: string[];
+}
+
+/** Course du joueur pour la page Carrière (`queries::CareerRace`). */
+export interface CareerRace {
+  session_id: number;
+  timestamp: number;
+  track: string;
+  track_course: string;
+  online: boolean;
+  car: string;
+  car_class: string;
+  position: number;
+  class_position: number;
+  grid_pos: number;
+  class_grid_pos: number;
+  /** Voitures de la même classe dans la course. */
+  class_size: number;
+  finish_status: string;
+  best_lap: number | null;
+  laps: number;
+  pitstops: number;
+  vmax: number | null;
+}
+
+/** Résultat d'un pilote dans sa classe (`queries::ClassResult`). */
+export interface ClassResult {
+  session_id: number;
+  driver_name: string;
+  class_position: number;
+  finish_status: string;
+  is_player: boolean;
+}
+
 /** Compteurs en-tête de la page Sessions (`queries::SessionsOverview`). */
 export interface SessionsOverview {
   total: number;
@@ -657,6 +696,12 @@ export interface LiveStanding {
   /** Distance parcourue sur le tour courant (m) — position physique sur la piste
    *  (trafic : qui est devant / derrière, retardataires compris). */
   lap_dist: number;
+  /**
+   * État de stand (`mPitState`) : 0 aucun, 1 demande, 2 entrée, 3 arrêt, 4 sortie.
+   * L'état 1 n'est qu'une demande, pas toujours suivie d'effet. Optionnel
+   * (anciennes charges utiles, objets de test).
+   */
+  pit_state?: number;
 }
 
 export interface LiveSession {
@@ -1280,6 +1325,15 @@ export const queries = {
   getSessionsOverview: () =>
     invoke<SessionsOverview>("get_sessions_overview"),
   getRaceActivity: () => invoke<RaceActivityRow[]>("get_race_activity"),
+  /** Courses du joueur pour la page Carrière (plus ancienne d'abord). */
+  getCareerRaces: () => invoke<CareerRace[]>("get_career_races"),
+  /** Résultats de tous les pilotes d'une classe sur une liste de courses (championnats). */
+  getClassResults: (sessionIds: number[], carClass: string) =>
+    invoke<ClassResult[]>("get_class_results", { sessionIds, carClass }),
+  /** Enregistre une image (carte récap) au chemin choisi par l'utilisateur. */
+  saveImage: (path: string, bytes: number[]) => invoke<void>("save_image_file", { path, bytes }),
+  /** Enregistre un texte (`.jsonl` / `.json`) au chemin choisi par l'utilisateur. */
+  saveText: (path: string, content: string) => invoke<void>("save_text_file", { path, content }),
   getSessionDetail: (sessionId: number) =>
     invoke<SessionDetail>("get_session_detail", { sessionId }),
   getLapChartData: (sessionId: number) =>
@@ -1390,6 +1444,13 @@ export const live = {
     listen<LiveData>("live-data", (e) => cb(enrichLive(e.payload))),
   /** Bornes des réglages du setup lues dans le jeu (pont REST). */
   garageBounds: () => invoke<RestField<RestSettingBound[]>>("get_lmu_garage_bounds"),
+  /** Menu des stands du jeu (lecture directe, API locale). */
+  pitMenu: () => invoke<PitMenuItem[]>("get_pit_menu"),
+  /**
+   * Règle un élément du menu des stands puis relit le menu (`true` = confirmé).
+   * Écriture dans le jeu : seulement si l'utilisateur l'a autorisée (Config).
+   */
+  setPitMenuItem: (name: string, index: number) => invoke<boolean>("set_pit_menu_item", { name, index }),
   /** Fichiers météo scénarisés `.wet` du dossier Settings (prévision). */
   weatherFiles: (lmuPath: string) =>
     invoke<WetFile[]>("list_weather_files", { lmuPath }),

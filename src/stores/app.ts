@@ -63,6 +63,12 @@ interface AppState {
   autoUpdate: boolean;
   /** Afficher les tiers ohne_speed dans Sessions, SessionDetail et LapChartModal. */
   showOhneSpeed: boolean;
+  /** Carte Live : mes incidents passés sur ce circuit (chocs, coupures, sorties). */
+  mapIncidents: boolean;
+  /** L'app peut écrire dans le jeu (menu des stands) — expérimental, coupé par défaut. */
+  gameWrites: boolean;
+  /** Réglage automatique de l'énergie au menu des stands (exige `gameWrites`). */
+  pitAutoEnergy: boolean;
   /** Courte animation (volet + titre) au lancement de l'app. */
   launchIntro: boolean;
   /** Rythme cible de l'overlay live (clé tier ohne_speed : alien/competitive/good/midpack). */
@@ -158,6 +164,8 @@ interface AppState {
   radioPhases: boolean;
   /** Budgets par tour (situation, confort, par rival) en course. */
   radioBudgets: boolean;
+  /** L'ingénieur pose une fois par type de séance la question des chronos voulus. */
+  radioAskPrefs: boolean;
   /** Annonce coupée redite une fois, annonce importante perdue retentée, anti-redite. */
   radioReplay: boolean;
   /** Chronos dits au dixième (`tenth`) ou au millième (`ms`, historique). */
@@ -263,6 +271,9 @@ interface AppState {
   setSystemTray: (v: boolean) => Promise<void>;
   setAutoUpdate: (v: boolean) => Promise<void>;
   setShowOhneSpeed: (v: boolean) => Promise<void>;
+  setMapIncidents: (v: boolean) => Promise<void>;
+  setGameWrites: (v: boolean) => Promise<void>;
+  setPitAutoEnergy: (v: boolean) => Promise<void>;
   setLaunchIntro: (v: boolean) => Promise<void>;
   setOverlayTargetTier: (v: string) => Promise<void>;
   setMenuModule: (key: string, value: boolean) => Promise<void>;
@@ -299,6 +310,7 @@ interface AppState {
   setPttBeeps: (v: boolean) => Promise<void>;
   setRadioQuietZones: (v: boolean) => Promise<void>;
   setRadioPhases: (v: boolean) => Promise<void>;
+  setRadioAskPrefs: (v: boolean) => Promise<void>;
   setRadioBudgets: (v: boolean) => Promise<void>;
   setRadioReplay: (v: boolean) => Promise<void>;
   setVoiceLapPrecision: (v: "tenth" | "ms") => Promise<void>;
@@ -342,6 +354,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   systemTray: true,
   autoUpdate: true,
   showOhneSpeed: true,
+  mapIncidents: true,
+  gameWrites: false,
+  pitAutoEnergy: false,
   launchIntro: true,
   overlayTargetTier: "competitive",
   menuModules: {},
@@ -379,6 +394,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   radioQuietZones: true,
   radioPhases: true,
   radioBudgets: true,
+  radioAskPrefs: true,
   radioReplay: true,
   voiceLapPrecision: "tenth",
   radioDriverName: "",
@@ -549,6 +565,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       systemTray: cfg.system_tray !== "false",
       autoUpdate: cfg.auto_update !== "false",
       showOhneSpeed: cfg.show_ohne_speed !== "false",
+      mapIncidents: cfg.map_incidents !== "false",
+      gameWrites: cfg.game_writes === "true",
+      pitAutoEnergy: cfg.pit_auto_energy === "true",
       launchIntro: cfg.launch_intro !== "false",
       overlayTargetTier: cfg.overlay_target_tier || "competitive",
       menuModules,
@@ -602,6 +621,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       radioQuietZones: cfg.voice_quiet_zones !== "false",
       radioPhases: cfg.voice_race_phases !== "false",
       radioBudgets: cfg.voice_budgets !== "false",
+      radioAskPrefs: cfg.voice_ask_prefs !== "false",
       radioReplay: cfg.voice_replay !== "false",
       voiceLapPrecision: cfg.voice_lap_precision === "ms" ? "ms" : "tenth",
       radioDriverName: cfg.voice_driver_name ?? "",
@@ -783,6 +803,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAutoUpdate: async (v) => {
     await config.set("auto_update", v ? "true" : "false");
     set({ autoUpdate: v });
+  },
+
+  setGameWrites: async (v) => {
+    await config.set("game_writes", v ? "true" : "false");
+    set({ gameWrites: v });
+  },
+
+  setPitAutoEnergy: async (v) => {
+    await config.set("pit_auto_energy", v ? "true" : "false");
+    set({ pitAutoEnergy: v });
+  },
+
+  setMapIncidents: async (v) => {
+    await config.set("map_incidents", v ? "true" : "false");
+    set({ mapIncidents: v });
   },
 
   setShowOhneSpeed: async (v) => {
@@ -998,6 +1033,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setRadioPhases: async (v) => {
     await config.set("voice_race_phases", v ? "true" : "false");
     set({ radioPhases: v });
+  },
+
+  setRadioAskPrefs: async (v) => {
+    await config.set("voice_ask_prefs", v ? "true" : "false");
+    set({ radioAskPrefs: v });
   },
 
   setRadioBudgets: async (v) => {

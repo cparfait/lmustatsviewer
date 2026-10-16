@@ -890,6 +890,306 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-16 — Idées de veille ⑰–㉞ enchaînées (branche `claude/integration-veille`)
+
+**Demande** : « enchaîne tout » (les idées ⑰–⑲ et ㉑–㉞ de la veille), puis « pas de Discord » (㉙
+abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans un worktree
+(`.claude/worktrees/integration-veille`) = `feat/coach-audio` + pont REST
+(`claude/determined-shirley-160cbb`, fusion `0b351fd` : conflits résolus en gardant les deux côtés
+— spotter de proximité + tracé du jeu dans `live.rs`/`api.ts`, intentions coach + plaquettes dans
+`router.ts`). Mécanismes réécrits à notre façon, aucun nom de concurrent dans le code.
+
+- ✅ **㉑ Registre des arrêts du plateau** (`engineer/rivalStints.ts`, pur) : tour de chaque arrêt
+  (compteur `num_pitstops`), relais = médiane des relais complets (< 3 tours ignorés, 1er relais
+  seulement si la voiture est vue dès le départ), repli sur le relais type de la classe ; prochain
+  arrêt, arrêts restants (tours restants par voiture, course au temps ou aux tours). Rust :
+  `pit_state` par voiture dans `LiveStanding`. Annonce « le leader rentre » (front de `in_pits`,
+  `pit_state` 1 = simple demande ignorée ; pas si je suis P2, l'annonce de rival direct suffit) —
+  familles radio situation + stratégie (gel de fin de course). Intention vocale `rivalStops`
+  (« quand s'arrête le leader ? », « arrêts de la voiture devant ? », voiture citée), grammaire Vosk
+  5 langues ; contexte Coach IA (« Rival pit stops in my class »). Suite `strategy.suite.ts`.
+- ✅ **㉒ + ㉓ Pneus** (`engineer/tyres.ts`, pur) :
+  - usure par roue et par tour (6 tours, remise à zéro quand la gomme remonte de 10 points) ;
+    **pneus à changer** = roues qui passeraient sous 25 % au bout du relais suivant (relais à
+    plein carburant ou énergie, borné par la fin de course), la plus usée d'abord ;
+  - **pluie / slicks** : humidité de trajectoire + tendance sur 2 min, hystérésis (pluie si
+    ≥ 0,40, ou ≥ 0,12 en hausse avec pluie ; slicks si ≤ 0,06, ou ≤ 0,12 en baisse sans pluie) ;
+    annonce `tyres:crossover:*` tenue 30 s ;
+  - **chauffe mesurée** (㉓) : sur toutes les voitures, surcoût S2 + S3 du tour de sortie vs
+    leurs meilleurs secteurs + tour suivant vs leur meilleur tour (0,2-25 s), médiane par classe,
+    mémorisée par circuit × classe (`tyre_warmup_map`). Le « temps de service appris » n'est pas
+    refait : la durée d'arrêt du jeu (`pitStopLength`, pont REST) le donne déjà.
+  - intention `tyreChange` 5 langues ; contexte Coach IA « Tyre strategy (measured) ».
+- ✅ **㉚ Radio concise** (`policy.ts`, couche « Phases de course ») : épisode d'incident = 60 s après
+  un choc, au plus 2 annonces `mech:`/`vigie:` non critiques (constat + bilan) ; qualif : tour lancé
+  (ni stands, ni tour de sortie, > 400 m après la ligne) → situation et confort muets. **Noms
+  courts** : rien à faire, la radio ne lit jamais la livrée ni le nom officiel du circuit (pseudo
+  nettoyé par `radioName`, voiture citée par son numéro).
+- ✅ **㉛ Préférences apprises** (`engineer/prefs.ts`) : chronos `auto / every / best / none` par
+  type de séance (`radio_lap_prefs`), posés à la voix (4 commandes locales, 5 langues ; entrées
+  `exact` séparées des locutions car `score` ignore les locutions d'une entrée `exact`) ; question
+  unique par type de séance au 2ᵉ tour (`prefs:ask`, famille confort), réglage `radioAskPrefs`
+  (`voice_ask_prefs`, défaut actif) dans Audio / Voix.
+- ✅ **⑰ Fiches de savoir** (`ai/knowledge/engineering-cards.ts`, contenu maison) : 11 fiches
+  (sous-virage d'entrée, survirage de sortie, instabilité au freinage, écart de température, pluie,
+  économie, pneus froids, trafic multiclasse — `high` ; répartition, undercut/overcut — `medium` ;
+  pressions — `low`), mots-clés 5 langues (préfixe de mot pour les mots seuls). Jointes au contexte
+  de `buildLiveCoachContext` (panneau Coach IA + voix) avec la confiance ; sans IA, seule une fiche
+  `high` est dite à la radio (`radioCard`).
+- ✅ **㉜ Dossier de faits typé** (`ai/facts.ts`) : avant l'appel IA d'une question vocale, `status`
+  + jusqu'à 3 intentions candidates du routeur répondues par le code (commandes jamais exécutées),
+  faits absents marqués `UNKNOWN`, consigne « seule source des chiffres ».
+- ✅ **Page Stratégie** (`/strategy`, `routes/Strategy.tsx`, entrée de menu masquable) :
+  - **㉖ Préparation de course** (`racePlan/prep.ts` pur + `useRacePrep.ts` monté dans App,
+    `race_prep_map` par circuit × voiture) : obligatoires rythme (3 tours propres ≤ 102 %), conso
+    (3), usure (pente mesurée), plein (3 tours propres d'un relais parti à ≥ 55 %), perte au stand
+    (combo connu) ; facultatifs relais long (8 d'affilée), chauffe (mesurée/mémorisée), pluie (3 tours
+    ≥ 0,12). Badge « Prêt », bouton Recommencer.
+  - **㉔ Feuille de relais** (`racePlan/stintPlan.ts` + `sun.ts`, purs) : relais pleins, perte au stand
+    dans le temps de course, dernier relais au damier, pneus tous les N, rotation (×1/2/3) ou
+    équilibrage, épinglage par relais, volant max signalé, nuit = > 50 % du relais après le coucher
+    (soleil calculé : 15 circuits avec lat/long, fuseau, heure d'été UE/US). Valeurs initiales lues
+    dans la séance en cours.
+  - Vérifié dans le navigateur (serveur de dev sur 5176, état forcé par import du store) : Le Mans
+    16/10 → lever 08:18, coucher 19:11 ; 6 h / 3:28,5 / 14 tours / 2 pilotes → 7 arrêts, 2 relais de
+    nuit, volant max 2:30 dépassé signalé. Suite `plan.suite.ts`.
+- ✅ **㉕ Assistant setup** (`lib/setupAssistant.ts` pur + `components/SetupAssistantPanel.tsx`, onglet
+  « Assistant » de `SetupDetail`) : table maison symptôme (7) × phase (entrée/milieu/sortie, pour
+  sous/survirage) × type de virage (lent = mécanique, rapide = aéro) → chaîne ordonnée de 13 leviers
+  `.svm` (sens : index ↑ = raideur, incidence, blocage, hauteur, aide ; `RearBrakeSetting` ↑ =
+  arrière), 3 au plus, réglages « N/A / fixed » écartés (« Detached » = cran 0, réglable), butée basse
+  = index 0, butée haute via `getPlayerGarageData` (clé REST rapprochée par fragment). « Essayer » =
+  `duplicate` + `update` d'un cran (deux roues pour ressorts/hauteurs) + lignée dans les notes
+  (`<nom> V<n+1> ← #id : levier ±1 (symptôme)`), l'original jamais modifié. Verdict : ressenti noté +
+  meilleur tour/secteurs des sessions liées (version précédente vs celle-ci), checklist de
+  comparabilité (± 3 L, pneus de même âge, 3 tours propres, même piste). Le A-B-A et le verdict par
+  virage restent à faire (il faudrait relier les tours de télémétrie à une version de setup).
+  ⚠️ Non vérifié à l'écran : la fiche setup exige le backend Tauri (tests purs seulement).
+- ✅ **㉗ Page Carrière** (`/career`, `routes/Career.tsx`, `lib/career.ts` pur, `lib/wrappedCard.ts`) :
+  Rust `get_career_races` (courses du joueur + taille de classe), `get_class_results` (tous les
+  pilotes d'une classe sur une liste de courses), `save_image_file` (PNG/JPG seulement, ≤ 20 Mo).
+  Bilan filtré (année / en ligne / classe) : courses, circuits, victoires/podiums (courses terminées),
+  meilleur résultat, taux d'arrivée, places gagnées en classe, progression (5 premières vs 5
+  dernières, 10 courses minimum) ; temps forts (victoire, meilleure remontée ≥ 2 places, plus longue
+  course) ; défaut récurrent (≥ 5 courses, ≥ 30 % d'abandons ou de courses à −2 places vs grille).
+  Carte récap 1080 × 1350 (canvas, 3 courses minimum) enregistrée via la boîte « Enregistrer sous ».
+  Championnats (`championships` en config) : manches circuit + date, rattachement à ±7 jours dans la
+  classe, classement de tous les pilotes de la classe (WEC ou top 10, abandon = 0 pt), « ce qu'il
+  me faut » (mène / titre acquis / à X points sur N manches / hors de portée). Vérifié à l'écran
+  (données simulées injectées). ㉙ Discord : **abandonné** (demande utilisateur).
+- ✅ **㉘ + ㉝ Incidents et temps forts** : la carte Live traçait déjà toutes les voitures. Nouveau
+  `lib/liveEvents.ts` (pur) : contact (nouvel impact ≥ 1 500, 3 s), limites de piste (compteur du
+  jeu), sortie (≥ 2 roues herbe/terre/gravier 0,5 s), et en course dépassement / place perdue
+  (position de classe, les deux en piste), roue dans roue (`nearby` latéral 1,2-4 m, ≤ 5 m, 4 trames,
+  60 s), départ (≥ 3 places au tour 1). `useLiveEvents` (App) : `live_events` en config (1 500 max,
+  écriture différée 2 s). Carte Live : `IncidentDots` (300 derniers incidents du circuit, placés par
+  distance-tour ; une ligne ajoutée dans `Live.tsx`), réglage `mapIncidents` (Affichage › options
+  Live). Fiche session, onglet Incidents : `SessionMoments` (même circuit, même type de séance, début
+  à durée + 15 min de l'horodatage du fichier). ⚠️ Non vérifié en jeu (seuils d'impact et surfaces à
+  confirmer sur une vraie séance).
+- ✅ **⑲ + ㉞ Écritures dans le jeu (opt-in)** : module Rust séparé `lmu_rest_write.rs` (le pont reste
+  GET seul) : `get_pit_menu` (`PitMenu/receivePitMenu`, tableau nu ou sous `pitMenu`), et
+  `set_pit_menu_item(name, index)` = lecture → copie avec `currentSetting` changé (index borné) →
+  POST `PitMenu/loadPitMenu` → **relecture** (renvoie si le jeu a pris la valeur). Réglages
+  `gameWrites` (`game_writes`, défaut **off**) et `pitAutoEnergy` (`pit_auto_energy`, off, exige le
+  premier), dans Affichage › options Live. Page Stratégie : carte « Menu des stands du jeu » (lecture
+  en direct, sélecteurs si écritures autorisées). `usePitAutoEnergy` (App) : en course, une fois par
+  tour, si autonomie ≤ 6 tours et arrêt nécessaire → besoin = (tours restants après l'arrêt + ½) ×
+  conso, plafonné au plein → plus petite option qui couvre (`lib/pitMenu.ts`) ; réglage manuel du
+  pilote détecté → plus rien jusqu'au prochain arrêt. **Setup chargé/sauvé par l'API : non fait**
+  (sémantique des routes `garage/setup` non confirmée ; à relever en jeu avant de l'écrire).
+  ⚠️ Écritures jamais testées contre le vrai jeu (format POST déduit des lectures).
+- ✅ **⑱ Banc de rejeu** : `lib/replay/format.ts` (pur), `recorder.ts` (2 Hz, trames allégées sans
+  tracé/REST, 8 h max) + `ReplayBenchPanel` (Config › Maintenance : Enregistrer / Arrêter /
+  Enregistrer le fichier…, commande Rust `save_text_file` `.jsonl`/`.json` ≤ 200 Mo) ; `bench.ts`
+  rejoue dans `EventDetector`, `StintRegistry`, `WarmupTracker`, `WetnessTrend`, `TyreWearTracker` ;
+  `npm run replay -- seance.jsonl` (esbuild → node). Vérifié sur un fichier synthétique.
+- ✅ **Contrôles** : `tsc -b` ✅, `eslint src` ✅, `npm test` **633** ✅ (nouvelles suites
+  `strategy.suite.ts`, `plan.suite.ts`), `cargo test --lib` ✅. Pages Stratégie et Carrière vérifiées
+  dans le navigateur (serveur de dev 5176, état simulé). Commits `7d11b25` → dernier lot, branche
+  `claude/integration-veille` (worktree `.claude/worktrees/integration-veille`), **non fusionnée**
+  dans `feat/coach-audio` ni poussée.
+- ✅ **Refusion du pont REST** (alerte de la session de validation : LMU planté 2 fois au lancement
+  avec `0600c92`) : `claude/determined-shirley-160cbb` refusionnée jusqu'à `3ec85c6` (`44757c0`
+  pont actif seulement en séance confirmée par `sessionInfo` + 5 s ; `60941ea` jaunes par secteur
+  désactivés, trame du flux, voie des stands sans corde ; `05fb0aa` carte asphalte). Conflits : carte
+  Live = nouvelle version + `IncidentDots`, changelog et journal = les deux. Les commandes
+  `get_pit_menu` / `set_pit_menu_item` passent par la même garde (`session_ready`, rendu public) :
+  refus « Aucune séance chargée » hors séance. 635 tests TS, 71 Rust ✅.
+- ✅ **Bug signalé en jeu** (« ingénieur, température des freins » → « Coach vocal incomplet ») :
+  aucune intention, et toute question non reconnue sans IA prête renvoyait vers la configuration.
+  Nouvelle intention `brakeTemp` (grammaire Vosk + routeur 5 langues, tournures possessives pour ne
+  pas tomber sur `brakeWear`) : avant / arrière max, verdict < 250 °C froid, > 850 °C (carbone) ou
+  750 °C (fonte) chaud — seuils sortis dans `engineer/brakes.ts`. Sans IA, une question courte
+  (≤ 6 mots) non reconnue → « Je n'ai pas compris la question » (`coach.voiceNotUnderstood`).
+  Test de cohérence : chaque phrase de grammaire `brakeTemp` donne la même intention par
+  `matchIntent` et `route`. Refusion du pont REST (`8db5f5b`, `97be05a`). 728 tests ✅.
+- ✅ **Voix en ligne absente de la branche** (signalé par l'utilisateur : « plus de menu des
+  fournisseurs IA de voix ») : elle n'existait qu'en modifications non commitées du dossier
+  principal ; commitée entre-temps sur `feat/coach-audio` (`6326a98`), puis **fusionnée** ici.
+  Remaniement côté `feat/coach-audio` : logique des questions dans `engineer/ask.ts`, push-to-talk du
+  spotter retiré de `useSpotter.ts`, Audio / Voix en sous-onglets. Résolution : versions
+  `feat/coach-audio` reprises, puis portés dans `ask.ts` la perte au stand du pont REST
+  (`effectivePitLoss`), le dossier de faits (㉜) et les fiches sûres sans IA (⑰) ; interrupteur
+  « Questions de préférences » replacé dans le sous-onglet Radio ; `vAskLapPref` ajouté aux phrases
+  préparées de la voix en ligne. La réponse « Je n'ai pas compris la question » est retirée :
+  `ask.ts` répond déjà toujours en local (meilleure supposition ou point de course, le message de
+  configuration n'est plus qu'une notification). 832 tests TS, 77 Rust ✅.
+- 📋 **Prochaine étape** : course de test en jeu sur cette branche (`npm run tauri dev` depuis le
+  worktree) — vérifier dans l'ordre : « le leader rentre » + « quand s'arrête le leader ? », « quels
+  pneus changer ? », silence en tour lancé de qualif, question des chronos au 2ᵉ tour, préparation
+  qui se coche, points d'incidents sur la carte Live, puis (écritures autorisées) le menu des stands
+  modifié depuis la page Stratégie et relu dans le jeu. Enregistrer la séance au banc de rejeu pour
+  rejouer les seuils hors piste.
+
+### 2026-10-16 — Validation en jeu du pont REST (2e séance) : plantage au lancement corrigé
+
+**Contexte** : le mainteneur peut lancer le jeu mais pas rouler ; LMP2 en essais avec IA, voiture
+arrêtée. Au 1er essai, **LMU plante au lancement** deux fois de suite.
+
+- ✅ **Cause** (traces `UserData/Log` + horodatage de la sonde) : requête `garage/getVehicleCondition`
+  envoyée 0,5 s après l'ouverture du serveur REST du jeu, pendant `Game::Setup` → plantage 1,2 s plus
+  tard. Le pont faisait pareil dès la mémoire partagée présente. Correctif `44757c0` (séance chargée,
+  délai 5 s, `sessionInfo` d'abord, garage seulement après séance confirmée) ; relancé avec l'app
+  active pendant le chargement : plus de plantage. Session « intégration » prévenue (sa branche n'a
+  que `0600c92`).
+- ✅ Conso « jeu » sans énergie virtuelle validée ; bornes S1/S2 validées (588 / 2 540 m).
+- ✅ `get_live_data` = trame du flux (2e état sans tracé → écarts S2 2 590 m, carte de 3 points).
+- ✅ Jaunes par secteur **désactivés** (`[1,11,1]` en essais sans incident ; capture du mainteneur :
+  S3 + S1 en jaune). Changelog 1.0.10 corrigé.
+- ✅ Voie des stands en deux tronçons → plus de corde (`pathOfRuns`, Live + overlay).
+- ✅ Tests : npm 386, cargo 45, tsc, eslint. Commits `44757c0`, `60941ea`.
+- ✅ Sans rouler (mainteneur indisponible pour la course) : durée d'arrêt retenue aux stands = **la plus
+  haute vue** pendant le passage (`keepPlannedStop`) — si le jeu décompte `pitStopLength` pendant le
+  service, la dernière valeur aurait gonflé le temps de voie ; routage « plaquettes ? » testé dans les
+  5 langues (+ « température des freins » ≠ usure). npm 394.
+- 📋 **Prochaine étape** : la course de test se fait sur `claude/integration-veille` (session
+  principale) — y intégrer `44757c0` + `60941ea` **avant** ; y observer `pitStopLength` carburant +
+  4 pneus, formation (`rest_used.sessionEnd` = « game »), « plaquettes ? », arrêt réel →
+  `pit_lane_loss_map`.
+
+### 2026-10-16 — Validation en jeu du pont REST (1re séance) + Coach / Voix IA
+
+**Demande** (session lancée par « Pont REST LMU ») : valider 3f2c2da en conditions réelles (7 points)
+et corriger ; puis, en direct, retours du mainteneur sur le Coach IA et les annonces de dégâts.
+Séance : Road Atlanta, Hypercar, essais puis course de 10 min ; le mainteneur roule au clavier
+(débutant), accident dans le 1er tour, voiture bloquée en S1 jusqu'à la fin. Méthode : app en
+`tauri dev` avec port de débogage WebView2 (lecture de `live.getData()` sans toucher à la fenêtre)
++ sonde REST GET une route à la fois ; journaux hors dépôt (`live_2026-10-16/` du dossier de notes).
+
+- ✅ Point 1 : pont joignable, données fraîches (météo « périmé » = normal, lue toutes les 60 s) ;
+  point « API du jeu » vert (capture du mainteneur).
+- ✅ Point 4 corrigé : avant le vert `startEventTime` = 0 → l'app aurait sous-estimé le temps restant
+  de toute la formation. `restSessionEnd` : phase < 5 → maintenant + `maxTime` (test sur relevé).
+- ✅ Bornes de secteurs (point 2) : fausse fin de S2 à 3 999 m apprise sur la grille, puis protégée par
+  le rejet des aberrants. `record_sector` : phase 5/6 seulement, voiture qui avance (0,5–150 m) ;
+  5 mesures concordantes remplacent une borne fausse (2 tests Rust).
+- ✅ Point 7 (partiel) : `sector_flags` = 11 hors jaune, le test `> 0` allumait tout (widget Drapeaux,
+  coach `frame.ts` : tous les tours « sous jaune », carte Live). Règle unique `isSectorYellow` (=== 1).
+- ✅ Point 6 (partiel) : dégâts aéro 1,89 → bornés à 100 % ; **annonces de dégâts en boucle** sur le
+  bas-côté (retour mainteneur) → `engineer/alertLatch.ts` : une annonce, réarmement après 5 s de
+  retour à la normale continu, 60 s mini entre deux ; donnée REST manquante = inconnue.
+- ✅ **Coach / Voix IA** (retours mainteneur) : section renommée « Coach / Voix IA » ; « Ouvrir la
+  Config » → `/config?cat=coach` ; sans fournisseur ajouté, plus de « Google / Gemini » fantôme
+  (ancienne valeur par défaut) ni de modèle, ligne d'aide à la place ; réglage vocal « Fournisseur et
+  modèle vocal » + ce qu'il utilise ; fournisseur local sans clé (Ollama) interrogé à l'ouverture
+  (éteint / modèle absent → bandeau, voyant dans le pied).
+- ✅ Tests : `npm test` 384, `cargo test --lib` 44, `tsc -b`, eslint. Changelog 1.0.10 (5 langues).
+  Commit `0600c92`.
+- 📋 **Prochaine étape** : 2e séance (LMP2 sans énergie virtuelle, course 15 min avec formation) :
+  conso « jeu » au 1er tour, formation avec le correctif (`rest_used.sessionEnd` = « game »), carte
+  dès la sortie des stands + corde de la voie des stands, arrêt carburant + 4 pneus (`pitStopLength`,
+  `pit_lane_loss_map`), « plaquettes ? », jaune local situé pour l'ordre des index.
+
+### 2026-10-16 — Carte Live : route asphalte, secteurs lisibles, jaune corrigé
+
+**Demande** : la route de la carte Live est « olive, pas beau » ; les secteurs se voient mal, S1
+absent ; faut-il supprimer l'ancien répertoire de tracés locaux maintenant que le jeu fournit le tracé ?
+
+- ✅ **Cause de l'olive** : ce n'était pas la couleur de la route mais le surlignage « secteur sous
+  jaune » (`#facc15` à 55 % sur `#1c2533`), allumé sur les 3 secteurs : `sector_flags` = `[1, 11, 3]`
+  relu en mémoire partagée (Road Atlanta, phase 8, `yellow_flag_state` 0) et test `> 0`. Carte :
+  `showSectorYellow` = `isSectorYellow` (helper `lib/sectorFlags.ts` de la session de validation)
+  **et** phase 5/6 (en fin de séance le jeu laisse des 1). Surlignage plus net (90 %, 14 u).
+  Sonde de la session de validation en course : 11 presque tout le temps, `[1,11,11]` > 3 min en
+  vert sans jaune global → « 1 = jaune » reste la meilleure lecture, non prouvée (ordre des index aussi).
+- ✅ **Couleurs** (`Live.tsx::TrackMap`, classes Tailwind `dark:` → suivent le thème sans prop) :
+  bord `#374151`/`#4b5565`, asphalte `#6b7280`/`#2b3240` (clair/sombre), ligne médiane blanche
+  50 %/25 %, voie des stands `#9ca3af`/`#3a4250` (12 u).
+- ✅ **Secteurs** : barre blanche cerclée de noir en travers de la route + pastille noire « S2/S3 »
+  posée côté extérieur ; **S1** sur la ligne de départ (barre en damier) — remplace le point blanc.
+- ✅ Vérifié dans l'app (`tauri dev` du worktree, HMR) en thème clair et sombre ; `tsc -b`, `eslint`
+  OK. Changelog 1.0.10 (5 langues).
+- ✅ **Répertoires de tracés — à garder** : `src-tauri/src/data/tracks/` (2 JSON, 16 Ko, embarqués
+  par `include_str!`) = base hors API et fixture du test `track_align` ; `{appdata}/tracks/` = tracé
+  recalé persistant + seul stockage des bornes S1/S2 mesurées ; `community/site/assets/tracks.js`
+  sert le site. L'API REST ne répond qu'en séance (rien au chargement, dans les menus, ni sans
+  voitures en piste pour le recalage).
+- ⏳ Vu sur la carte : la voie des stands du jeu a une **corde** (segment droit de la sortie des
+  stands vers la piste) — donnée `pit_lane_points`, pas la couleur.
+- 📋 Prochaine étape : en séance verte, confirmer le surlignage sous un vrai jaune local (valeur 1,
+  ordre des index) ; puis traiter la corde de la voie des stands (`trackMapGeom`/`live.rs`).
+
+### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
+
+**Demande** (session lancée par la session « coach audio », puis le mainteneur en direct) : implémenter
+⑳ — pont REST LMU **en lecture seule** côté Rust, branché sur la prévision, le carburant et la durée de
+course ; puis « regarde ce que l'API peut améliorer sur ce qui est déjà en place » (choix : **tout
+implémenter**), « comment sont gérées les cartes avec les secteurs », et la même question côté TrackMind
+via REA. Réponses du mainteneur : test sur le vrai jeu (essais Hypercar lancés), garde-fou pour la conso,
+indicateur discret sur la page Live.
+
+- ✅ **Rust `commands/lmu_rest.rs`** (écrit à partir de la doc publique des routes et des relevés réels,
+  aucune ligne tierce) : thread dédié démarré avec le flux live, client `reqwest::blocking` (feature
+  `blocking` ajoutée) **boucle locale forcée** (`127.0.0.1`, sans proxy), redirections refusées, délai
+  1,2 s, corps ≤ 512 Ko, recul 2→60 s quand le jeu est muet, interrogation seulement si la mémoire
+  partagée est présente. Routes GET : `getVehicleCondition`, `UIScreen/RepairAndRefuel`,
+  `watch/sessionInfo` (2 s), `getPlayerGarageData` (5 s), `sessions/weather` (60 s), `watch/trackmap`
+  (une fois par circuit). Chaque valeur : **absent / vide / invalide / périmé (> 8 s) / frais**. La boucle
+  live ne fait que copier l'instantané (`LiveData.rest`) ; bornes de setup via `get_lmu_garage_bounds`.
+  **Aucune écriture** (ni PitMenu ni setup).
+- ✅ **Front `src/lib/lmuRest.ts`** (pur) : `enrichLive` appliqué à chaque trame (`api.ts`) → durée de
+  séance du jeu quand `mEndET` manque (formation), conso **garde-fou** (mesure prioritaire ; valeur du jeu
+  avant mesure ou si écart > 40 %) ; `rest_used` pour l'indicateur.
+- ✅ **Branchements** :
+  - prévision du jeu prioritaire sur `.wet` si cohérente (`forecast.ts::pickForecast`, `answers.ts::activeForecast`) ;
+  - énergie virtuelle : garde-fou officiel sur `EnergyTracker` (fenêtre d'arrêt, « combien d'arrêts ») ;
+  - **perte au stand** : temps de voie = perte mesurée − durée de l'arrêt lue en entrant aux stands
+    (`pit_lane_loss_map` en config) ; prévision = voie + `pitStopLength` du menu actuel
+    (`effectivePitLoss`, utilisé par l'ingénieur, le spotter et le coach vocal) ;
+  - **plaquettes** (absentes de la mémoire partagée) : alertes 25 % / 10 %, nouvelle intention vocale
+    `brakeWear` (routeur + grammaire Vosk 5 langues) avec verdict « tiendront / à changer » (`PadWearTracker`) ;
+  - **dégâts détaillés** : suspension touchée (roue), dégâts aéro ≥ 10 % ;
+  - **Coach IA** : section « Game data » dans `live-context.ts` ; bornes `getPlayerGarageData` ajoutées
+    aux questions de réglage (`records-context.ts::isSetupQuestion`) ;
+  - **indicateur** « API du jeu » (point vert/gris + infobulle des sources) sur la page Live.
+- ✅ **Cartes** (`track_align.rs` + `live.rs` + `trackMapGeom.ts`) : tracé `watch/trackmap` recalé sur la
+  distance-tour (sens, décalage, échelle, à partir des voitures en piste) → comble les trous et remplace
+  les buckets aberrants (> 15 m), persisté avec le tracé utilisateur ; voie des stands
+  (`pit_lane_points`) ; bornes S1/S2 mesurées aux changements de `mSector` (moyenne glissante, persistées
+  dans le JSON du tracé sous `s1`/`s2`) ; carte Live : tronçons sans cordes, voie des stands, ligne de
+  départ, repères S2/S3, secteur sous jaune surligné ; overlay : gel seulement sur tour complet (bug :
+  un tracé partiel pouvait rester figé), cache `lmu_trackmap_v2_*`.
+- ✅ **Veille TrackMind (REA + pack 278, idées seulement)** : ils **n'utilisent pas** `watch/trackmap`
+  (simple mot-clé d'une sonde) ; carte = ligne médiane de flotte calculée côté serveur, sinon relevé local
+  240 points, sinon anneau ; pas de voie des stands ; secteurs en tiers égaux hors ligne ; mini-secteurs
+  « duel » de ~350 m chronométrés pour tout le plateau ; orientation incohérente entre leurs vues.
+- ✅ **Tests** : `cargo test --lib` 42 ✅ (dont 15 `lmu_rest` avec serveur HTTP simulé : redirection,
+  corps trop gros, délai, port fermé ; 5 `track_align` dont recalage sur données réelles) ; `npm test`
+  371 ✅ (nouvelle suite `rest.suite.ts`) ; `tsc -b` ✅ ; `eslint .` ✅. Changelog 1.0.10 (5 langues).
+- ⚠️ **Testé sur le vrai jeu** : relevés réels des 5 routes + trackmap (formes, encodage, table, bornes,
+  recalage), **mais pas l'app elle-même lancée contre le jeu** (séance fermée avant la fin du code ;
+  l'app n'a pas été démarrée en `tauri dev` dans cette session). Le jeu a planté une fois pendant le
+  chargement d'un circuit, alors que seules 5 requêtes GET avaient été envoyées et que le port ne
+  répondait pas encore → a priori sans lien, à surveiller.
+- 📋 **Prochaine étape** : lancer l'app (`npm run tauri dev`) contre une séance LMU et vérifier : point
+  « API du jeu » vert, carte complète dès la sortie des stands avec voie des stands, conso « jeu » au
+  premier tour, puis une **course** avec tour de formation (durée connue avant le départ) et un arrêt
+  avec ravitaillement + pneus (perte au stand = voie + arrêt). Ensuite ㉑ (registre des arrêts rivaux),
+  puis pistes cartes non faites : heatmap live par bucket, mini-secteurs chronométrés pour tout le
+  plateau, numéros/noms officiels des virages, orientation commune app/overlay/télémétrie, emplacements
+  de box (types 2..159), couleurs de classe dérivées des données.
+
 ### 2026-10-16 — Animation intégrée à l'app : intro au lancement + easter egg du pilote
 
 **Demande** : icône du perso dans le pied de page + vidéo en easter egg au clic ; au lancement,
@@ -1051,6 +1351,8 @@ propriétaire : idées seulement, rien de repris, aucun nom de concurrent dans l
 - 📋 **Prochaine étape** : arbitrage de l'utilisateur. Recommandation : **⑳ puis ㉑**, avec un
   effort faible, de la valeur en course et une base pour ㉒/㉕. Vérifier sur le jeu réel que
   le port 6397 répond en séance (l'interface web LMU doit être active).
+
+
 
 ### 2026-10-15 — Voix en ligne : bouton « Préparer la voix »
 
@@ -1565,6 +1867,8 @@ nôtre. Idées seulement, rien de copié.
 - 📋 **Prochaine étape** : choix utilisateur ; recommandation = **Lot A** (le plus
   ressenti en piste, effort moyen, la carte des freinages existe déjà dans `src/lib/coach`).
 
+
+
 ### 2026-10-09 — Site unique : vitrine + classements sur lmu.cparfait.ovh
 
 - ✅ **Commits et push** de la veille : `e1e6f75` (travail 1.0.10 : positions en classe, freins,
@@ -1600,154 +1904,6 @@ nôtre. Idées seulement, rien de copié.
   `lmu.cparfait.ovh` (certificat), redéployer la pile (`update-from-github.sh`), vérifier la
   redirection, puis arrêter le conteneur `lmustatsviewer-site` du Docker domestique. Les liens
   externes (README GitHub, Discord, annonces) peuvent passer à `lmu.cparfait.ovh`.
-
-### 2026-10-16 — Validation en jeu du pont REST (2e séance) : plantage au lancement corrigé
-
-**Contexte** : le mainteneur peut lancer le jeu mais pas rouler ; LMP2 en essais avec IA, voiture
-arrêtée. Au 1er essai, **LMU plante au lancement** deux fois de suite.
-
-- ✅ **Cause** (traces `UserData/Log` + horodatage de la sonde) : requête `garage/getVehicleCondition`
-  envoyée 0,5 s après l'ouverture du serveur REST du jeu, pendant `Game::Setup` → plantage 1,2 s plus
-  tard. Le pont faisait pareil dès la mémoire partagée présente. Correctif `44757c0` (séance chargée,
-  délai 5 s, `sessionInfo` d'abord, garage seulement après séance confirmée) ; relancé avec l'app
-  active pendant le chargement : plus de plantage. Session « intégration » prévenue (sa branche n'a
-  que `0600c92`).
-- ✅ Conso « jeu » sans énergie virtuelle validée ; bornes S1/S2 validées (588 / 2 540 m).
-- ✅ `get_live_data` = trame du flux (2e état sans tracé → écarts S2 2 590 m, carte de 3 points).
-- ✅ Jaunes par secteur **désactivés** (`[1,11,1]` en essais sans incident ; capture du mainteneur :
-  S3 + S1 en jaune). Changelog 1.0.10 corrigé.
-- ✅ Voie des stands en deux tronçons → plus de corde (`pathOfRuns`, Live + overlay).
-- ✅ Tests : npm 386, cargo 45, tsc, eslint. Commits `44757c0`, `60941ea`.
-- ✅ Sans rouler (mainteneur indisponible pour la course) : durée d'arrêt retenue aux stands = **la plus
-  haute vue** pendant le passage (`keepPlannedStop`) — si le jeu décompte `pitStopLength` pendant le
-  service, la dernière valeur aurait gonflé le temps de voie ; routage « plaquettes ? » testé dans les
-  5 langues (+ « température des freins » ≠ usure). npm 394.
-- 📋 **Prochaine étape** : la course de test se fait sur `claude/integration-veille` (session
-  principale) — y intégrer `44757c0` + `60941ea` **avant** ; y observer `pitStopLength` carburant +
-  4 pneus, formation (`rest_used.sessionEnd` = « game »), « plaquettes ? », arrêt réel →
-  `pit_lane_loss_map`.
-
-### 2026-10-16 — Validation en jeu du pont REST (1re séance) + Coach / Voix IA
-
-**Demande** (session lancée par « Pont REST LMU ») : valider 3f2c2da en conditions réelles (7 points)
-et corriger ; puis, en direct, retours du mainteneur sur le Coach IA et les annonces de dégâts.
-Séance : Road Atlanta, Hypercar, essais puis course de 10 min ; le mainteneur roule au clavier
-(débutant), accident dans le 1er tour, voiture bloquée en S1 jusqu'à la fin. Méthode : app en
-`tauri dev` avec port de débogage WebView2 (lecture de `live.getData()` sans toucher à la fenêtre)
-+ sonde REST GET une route à la fois ; journaux hors dépôt (`live_2026-10-16/` du dossier de notes).
-
-- ✅ Point 1 : pont joignable, données fraîches (météo « périmé » = normal, lue toutes les 60 s) ;
-  point « API du jeu » vert (capture du mainteneur).
-- ✅ Point 4 corrigé : avant le vert `startEventTime` = 0 → l'app aurait sous-estimé le temps restant
-  de toute la formation. `restSessionEnd` : phase < 5 → maintenant + `maxTime` (test sur relevé).
-- ✅ Bornes de secteurs (point 2) : fausse fin de S2 à 3 999 m apprise sur la grille, puis protégée par
-  le rejet des aberrants. `record_sector` : phase 5/6 seulement, voiture qui avance (0,5–150 m) ;
-  5 mesures concordantes remplacent une borne fausse (2 tests Rust).
-- ✅ Point 7 (partiel) : `sector_flags` = 11 hors jaune, le test `> 0` allumait tout (widget Drapeaux,
-  coach `frame.ts` : tous les tours « sous jaune », carte Live). Règle unique `isSectorYellow` (=== 1).
-- ✅ Point 6 (partiel) : dégâts aéro 1,89 → bornés à 100 % ; **annonces de dégâts en boucle** sur le
-  bas-côté (retour mainteneur) → `engineer/alertLatch.ts` : une annonce, réarmement après 5 s de
-  retour à la normale continu, 60 s mini entre deux ; donnée REST manquante = inconnue.
-- ✅ **Coach / Voix IA** (retours mainteneur) : section renommée « Coach / Voix IA » ; « Ouvrir la
-  Config » → `/config?cat=coach` ; sans fournisseur ajouté, plus de « Google / Gemini » fantôme
-  (ancienne valeur par défaut) ni de modèle, ligne d'aide à la place ; réglage vocal « Fournisseur et
-  modèle vocal » + ce qu'il utilise ; fournisseur local sans clé (Ollama) interrogé à l'ouverture
-  (éteint / modèle absent → bandeau, voyant dans le pied).
-- ✅ Tests : `npm test` 384, `cargo test --lib` 44, `tsc -b`, eslint. Changelog 1.0.10 (5 langues).
-  Commit `0600c92`.
-- 📋 **Prochaine étape** : 2e séance (LMP2 sans énergie virtuelle, course 15 min avec formation) :
-  conso « jeu » au 1er tour, formation avec le correctif (`rest_used.sessionEnd` = « game »), carte
-  dès la sortie des stands + corde de la voie des stands, arrêt carburant + 4 pneus (`pitStopLength`,
-  `pit_lane_loss_map`), « plaquettes ? », jaune local situé pour l'ordre des index.
-
-### 2026-10-16 — Carte Live : route asphalte, secteurs lisibles, jaune corrigé
-
-**Demande** : la route de la carte Live est « olive, pas beau » ; les secteurs se voient mal, S1
-absent ; faut-il supprimer l'ancien répertoire de tracés locaux maintenant que le jeu fournit le tracé ?
-
-- ✅ **Cause de l'olive** : ce n'était pas la couleur de la route mais le surlignage « secteur sous
-  jaune » (`#facc15` à 55 % sur `#1c2533`), allumé sur les 3 secteurs : `sector_flags` = `[1, 11, 3]`
-  relu en mémoire partagée (Road Atlanta, phase 8, `yellow_flag_state` 0) et test `> 0`. Carte :
-  `showSectorYellow` = `isSectorYellow` (helper `lib/sectorFlags.ts` de la session de validation)
-  **et** phase 5/6 (en fin de séance le jeu laisse des 1). Surlignage plus net (90 %, 14 u).
-  Sonde de la session de validation en course : 11 presque tout le temps, `[1,11,11]` > 3 min en
-  vert sans jaune global → « 1 = jaune » reste la meilleure lecture, non prouvée (ordre des index aussi).
-- ✅ **Couleurs** (`Live.tsx::TrackMap`, classes Tailwind `dark:` → suivent le thème sans prop) :
-  bord `#374151`/`#4b5565`, asphalte `#6b7280`/`#2b3240` (clair/sombre), ligne médiane blanche
-  50 %/25 %, voie des stands `#9ca3af`/`#3a4250` (12 u).
-- ✅ **Secteurs** : barre blanche cerclée de noir en travers de la route + pastille noire « S2/S3 »
-  posée côté extérieur ; **S1** sur la ligne de départ (barre en damier) — remplace le point blanc.
-- ✅ Vérifié dans l'app (`tauri dev` du worktree, HMR) en thème clair et sombre ; `tsc -b`, `eslint`
-  OK. Changelog 1.0.10 (5 langues).
-- ✅ **Répertoires de tracés — à garder** : `src-tauri/src/data/tracks/` (2 JSON, 16 Ko, embarqués
-  par `include_str!`) = base hors API et fixture du test `track_align` ; `{appdata}/tracks/` = tracé
-  recalé persistant + seul stockage des bornes S1/S2 mesurées ; `community/site/assets/tracks.js`
-  sert le site. L'API REST ne répond qu'en séance (rien au chargement, dans les menus, ni sans
-  voitures en piste pour le recalage).
-- ⏳ Vu sur la carte : la voie des stands du jeu a une **corde** (segment droit de la sortie des
-  stands vers la piste) — donnée `pit_lane_points`, pas la couleur.
-- 📋 Prochaine étape : en séance verte, confirmer le surlignage sous un vrai jaune local (valeur 1,
-  ordre des index) ; puis traiter la corde de la voie des stands (`trackMapGeom`/`live.rs`).
-
-### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
-
-**Demande** (session lancée par la session « coach audio », puis le mainteneur en direct) : implémenter
-⑳ — pont REST LMU **en lecture seule** côté Rust, branché sur la prévision, le carburant et la durée de
-course ; puis « regarde ce que l'API peut améliorer sur ce qui est déjà en place » (choix : **tout
-implémenter**), « comment sont gérées les cartes avec les secteurs », et la même question côté TrackMind
-via REA. Réponses du mainteneur : test sur le vrai jeu (essais Hypercar lancés), garde-fou pour la conso,
-indicateur discret sur la page Live.
-
-- ✅ **Rust `commands/lmu_rest.rs`** (écrit à partir de la doc publique des routes et des relevés réels,
-  aucune ligne tierce) : thread dédié démarré avec le flux live, client `reqwest::blocking` (feature
-  `blocking` ajoutée) **boucle locale forcée** (`127.0.0.1`, sans proxy), redirections refusées, délai
-  1,2 s, corps ≤ 512 Ko, recul 2→60 s quand le jeu est muet, interrogation seulement si la mémoire
-  partagée est présente. Routes GET : `getVehicleCondition`, `UIScreen/RepairAndRefuel`,
-  `watch/sessionInfo` (2 s), `getPlayerGarageData` (5 s), `sessions/weather` (60 s), `watch/trackmap`
-  (une fois par circuit). Chaque valeur : **absent / vide / invalide / périmé (> 8 s) / frais**. La boucle
-  live ne fait que copier l'instantané (`LiveData.rest`) ; bornes de setup via `get_lmu_garage_bounds`.
-  **Aucune écriture** (ni PitMenu ni setup).
-- ✅ **Front `src/lib/lmuRest.ts`** (pur) : `enrichLive` appliqué à chaque trame (`api.ts`) → durée de
-  séance du jeu quand `mEndET` manque (formation), conso **garde-fou** (mesure prioritaire ; valeur du jeu
-  avant mesure ou si écart > 40 %) ; `rest_used` pour l'indicateur.
-- ✅ **Branchements** :
-  - prévision du jeu prioritaire sur `.wet` si cohérente (`forecast.ts::pickForecast`, `answers.ts::activeForecast`) ;
-  - énergie virtuelle : garde-fou officiel sur `EnergyTracker` (fenêtre d'arrêt, « combien d'arrêts ») ;
-  - **perte au stand** : temps de voie = perte mesurée − durée de l'arrêt lue en entrant aux stands
-    (`pit_lane_loss_map` en config) ; prévision = voie + `pitStopLength` du menu actuel
-    (`effectivePitLoss`, utilisé par l'ingénieur, le spotter et le coach vocal) ;
-  - **plaquettes** (absentes de la mémoire partagée) : alertes 25 % / 10 %, nouvelle intention vocale
-    `brakeWear` (routeur + grammaire Vosk 5 langues) avec verdict « tiendront / à changer » (`PadWearTracker`) ;
-  - **dégâts détaillés** : suspension touchée (roue), dégâts aéro ≥ 10 % ;
-  - **Coach IA** : section « Game data » dans `live-context.ts` ; bornes `getPlayerGarageData` ajoutées
-    aux questions de réglage (`records-context.ts::isSetupQuestion`) ;
-  - **indicateur** « API du jeu » (point vert/gris + infobulle des sources) sur la page Live.
-- ✅ **Cartes** (`track_align.rs` + `live.rs` + `trackMapGeom.ts`) : tracé `watch/trackmap` recalé sur la
-  distance-tour (sens, décalage, échelle, à partir des voitures en piste) → comble les trous et remplace
-  les buckets aberrants (> 15 m), persisté avec le tracé utilisateur ; voie des stands
-  (`pit_lane_points`) ; bornes S1/S2 mesurées aux changements de `mSector` (moyenne glissante, persistées
-  dans le JSON du tracé sous `s1`/`s2`) ; carte Live : tronçons sans cordes, voie des stands, ligne de
-  départ, repères S2/S3, secteur sous jaune surligné ; overlay : gel seulement sur tour complet (bug :
-  un tracé partiel pouvait rester figé), cache `lmu_trackmap_v2_*`.
-- ✅ **Veille TrackMind (REA + pack 278, idées seulement)** : ils **n'utilisent pas** `watch/trackmap`
-  (simple mot-clé d'une sonde) ; carte = ligne médiane de flotte calculée côté serveur, sinon relevé local
-  240 points, sinon anneau ; pas de voie des stands ; secteurs en tiers égaux hors ligne ; mini-secteurs
-  « duel » de ~350 m chronométrés pour tout le plateau ; orientation incohérente entre leurs vues.
-- ✅ **Tests** : `cargo test --lib` 42 ✅ (dont 15 `lmu_rest` avec serveur HTTP simulé : redirection,
-  corps trop gros, délai, port fermé ; 5 `track_align` dont recalage sur données réelles) ; `npm test`
-  371 ✅ (nouvelle suite `rest.suite.ts`) ; `tsc -b` ✅ ; `eslint .` ✅. Changelog 1.0.10 (5 langues).
-- ⚠️ **Testé sur le vrai jeu** : relevés réels des 5 routes + trackmap (formes, encodage, table, bornes,
-  recalage), **mais pas l'app elle-même lancée contre le jeu** (séance fermée avant la fin du code ;
-  l'app n'a pas été démarrée en `tauri dev` dans cette session). Le jeu a planté une fois pendant le
-  chargement d'un circuit, alors que seules 5 requêtes GET avaient été envoyées et que le port ne
-  répondait pas encore → a priori sans lien, à surveiller.
-- 📋 **Prochaine étape** : lancer l'app (`npm run tauri dev`) contre une séance LMU et vérifier : point
-  « API du jeu » vert, carte complète dès la sortie des stands avec voie des stands, conso « jeu » au
-  premier tour, puis une **course** avec tour de formation (durée connue avant le départ) et un arrêt
-  avec ravitaillement + pneus (perte au stand = voie + arrêt). Ensuite ㉑ (registre des arrêts rivaux),
-  puis pistes cartes non faites : heatmap live par bucket, mini-secteurs chronométrés pour tout le
-  plateau, numéros/noms officiels des virages, orientation commune app/overlay/télémétrie, emplacements
-  de box (types 2..159), couleurs de classe dérivées des données.
 
 ### 2026-10-08 — Classements : comparaison de pilotes d'un clic sur un pseudo (app + site)
 

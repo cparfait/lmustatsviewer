@@ -39,6 +39,7 @@ export const CLOUD_PREP_KEYS: readonly string[] = [
   "vRainStop",
   "vRainHeavier",
   "vRefuelNeeded",
+  "vAskLapPref",
 ];
 
 /**

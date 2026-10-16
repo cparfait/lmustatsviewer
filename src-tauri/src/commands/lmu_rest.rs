@@ -854,7 +854,7 @@ pub const SETTLE_AFTER_SESSION: Duration = Duration::from_secs(5);
 
 /// `sessionInfo` vient de décrire une vraie séance (fraîche, avec un circuit).
 /// Condition pour toucher aux routes `garage/*` et `watch/trackmap`.
-fn session_ready() -> bool {
+pub fn session_ready() -> bool {
     with_store(|s| {
         s.session.freshness(Instant::now()) == Freshness::Fresh
             && s.session.value.as_ref().is_some_and(|v| !v.track_name.is_empty())

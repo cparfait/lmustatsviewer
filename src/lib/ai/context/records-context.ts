@@ -12,6 +12,8 @@
  */
 
 import { live, records } from "../../api";
+import { cardsContextText, matchCards } from "../knowledge/engineering-cards";
+import { normalize } from "../../engineer/router";
 import { fresh, garageBoundsText } from "../../lmuRest";
 import { buildLiveContext } from "./live-context";
 import { formatTime } from "../../utils";
@@ -114,6 +116,13 @@ export async function buildLiveCoachContext(
   question?: string,
 ): Promise<string> {
   let base = buildLiveContext(data);
+  // Fiches de savoir pertinentes (niveau de confiance explicite).
+  if (question) {
+    const cards = cardsContextText(matchCards(normalize(question, "en")));
+    if (cards) base = `${base}
+
+${cards}`;
+  }
   // Question de réglage : plages de la voiture lues dans le jeu (pont REST).
   if (question && isSetupQuestion(question)) {
     const bounds = await live.garageBounds().catch(() => null);

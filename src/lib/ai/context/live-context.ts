@@ -13,6 +13,7 @@ import { buildTyreInsights } from "../insights";
 import { playerClassPosition, gapBetween } from "../../livePosition";
 import type { LiveData, LiveStanding } from "../../api";
 import { restContextLines } from "../../lmuRest";
+import { engineer } from "../../engineer/state";
 
 function sessionTypeLabel(s: number): string {
   if (s === 0) return "Test";
@@ -204,6 +205,26 @@ export function buildLiveContext(data: LiveData): string {
     lines.push("");
     lines.push("## Game data (official, from the game itself)");
     lines.push(...rest);
+  }
+
+  // Arrêts observés des voitures de la classe (registre de l'ingénieur).
+  const stints = engineer.stints.contextLines(data);
+  if (stints.length) {
+    lines.push("");
+    lines.push("## Rival pit stops in my class (observed live, estimates)");
+    lines.push(...stints);
+  }
+
+  // Pneus mesurés : usure par roue et par tour, chauffe après un arrêt.
+  const per = engineer.tyreWear.perLap();
+  const myCls = data.standings.find((s) => s.is_player)?.vehicle_class;
+  const warm = myCls ? (engineer.warmup.median(myCls) ?? engineer.warmupPrior[`${data.session?.track}::${myCls}`]) : null;
+  if (per.some((x) => x != null) || warm != null) {
+    lines.push("");
+    lines.push("## Tyre strategy (measured)");
+    if (per.some((x) => x != null))
+      lines.push(`Wear per lap (% of rubber, FL/FR/RL/RR): ${per.map((x) => (x == null ? "?" : x.toFixed(2))).join(" / ")}`);
+    if (warm != null) lines.push(`Cold-tyre warm-up cost after a stop (this class, measured): ~${warm.toFixed(1)} s`);
   }
 
   return lines.join("\n");

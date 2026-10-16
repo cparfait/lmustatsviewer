@@ -577,6 +577,10 @@ pub struct LiveStanding {
     /// piste, indépendante de l'ordre de course : sert au trafic (qui est
     /// physiquement devant / derrière le joueur, retardataires compris).
     pub lap_dist: f32,
+    /// État de stand (`mPitState`) : 0 aucun, 1 demande, 2 entrée, 3 arrêt,
+    /// 4 sortie. L'état 1 n'est qu'une demande, pas toujours suivie d'effet.
+    #[serde(default)]
+    pub pit_state: u8,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1832,6 +1836,7 @@ fn extract(state: &mut PollState) -> LiveData {
             pos_z: pos.z,
             finish_status: v.m_finish_status,
             lap_dist: lap_dist as f32,
+            pit_state: v.m_pit_state,
         });
     }
 

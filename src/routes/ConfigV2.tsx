@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MENU_MODULE_KEYS } from "@/components/layout/Header";
+import { ReplayBenchPanel } from "@/components/ReplayBenchPanel";
 import {
   FolderOpen,
   RefreshCw,
@@ -84,6 +85,10 @@ import {
   Mic,
   AudioLines,
   Gamepad2,
+  MessageCircleQuestion,
+  MapPin,
+  PenLine,
+  BatteryCharging,
   Film,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
@@ -223,6 +228,9 @@ export function ConfigV2() {
   const autoUpdate = useAppStore((s) => s.autoUpdate);
   const launchIntro = useAppStore((s) => s.launchIntro);
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
+  const mapIncidents = useAppStore((s) => s.mapIncidents);
+  const gameWrites = useAppStore((s) => s.gameWrites);
+  const pitAutoEnergy = useAppStore((s) => s.pitAutoEnergy);
   const overlayTargetTier = useAppStore((s) => s.overlayTargetTier);
   const menuModules = useAppStore((s) => s.menuModules);
   const overlayToggleKey = useAppStore((s) => s.overlayToggleKey);
@@ -283,6 +291,7 @@ export function ConfigV2() {
   const radioQuietZones = useAppStore((s) => s.radioQuietZones);
   const radioPhases = useAppStore((s) => s.radioPhases);
   const radioBudgets = useAppStore((s) => s.radioBudgets);
+  const radioAskPrefs = useAppStore((s) => s.radioAskPrefs);
   const radioReplay = useAppStore((s) => s.radioReplay);
   const voiceLapPrecision = useAppStore((s) => s.voiceLapPrecision);
   const proximitySpotter = useAppStore((s) => s.proximitySpotter);
@@ -992,6 +1001,32 @@ export function ConfigV2() {
                           </SettingRow>
                         </Disclosure>
                       )}
+                      {key === "live" && (
+                        <Disclosure title={t("config.moduleOptions")}>
+                          <ToggleRow
+                            icon={<MapPin className="h-4 w-4" />}
+                            label={t("config.mapIncidents")}
+                            tip={t("config.mapIncidentsTip")}
+                            checked={mapIncidents}
+                            onChange={(v) => void useAppStore.getState().setMapIncidents(v)}
+                          />
+                          <ToggleRow
+                            icon={<PenLine className="h-4 w-4" />}
+                            label={t("config.gameWrites")}
+                            tip={t("config.gameWritesTip")}
+                            checked={gameWrites}
+                            onChange={(v) => void useAppStore.getState().setGameWrites(v)}
+                          />
+                          <ToggleRow
+                            icon={<BatteryCharging className="h-4 w-4" />}
+                            label={t("config.pitAutoEnergy")}
+                            tip={t("config.pitAutoEnergyTip")}
+                            checked={pitAutoEnergy}
+                            disabled={!gameWrites}
+                            onChange={(v) => void useAppStore.getState().setPitAutoEnergy(v)}
+                          />
+                        </Disclosure>
+                      )}
                       {key === "sessions" && (
                         <>
                           <Separator />
@@ -1606,6 +1641,15 @@ export function ConfigV2() {
                       tip={t("config.radioBudgetsTip")}
                       checked={radioBudgets}
                       onChange={(v) => void useAppStore.getState().setRadioBudgets(v)}
+                      disabled={radioMode === "full"}
+                    />
+                    <ToggleRow
+                      icon={<MessageCircleQuestion className="h-4 w-4" />}
+                      label={t("config.radioAskPrefs")}
+                      desc={t("config.radioAskPrefsDesc")}
+                      tip={t("config.radioAskPrefsTip")}
+                      checked={radioAskPrefs}
+                      onChange={(v) => void useAppStore.getState().setRadioAskPrefs(v)}
                       disabled={radioMode === "full"}
                     />
                     <ToggleRow
@@ -2362,6 +2406,8 @@ export function ConfigV2() {
             {/* ── Maintenance (+ version / mises à jour) ── */}
             {cat === "maintenance" && (
               <div className="space-y-1">
+                <ReplayBenchPanel />
+                <Separator />
                 <ToggleRow
                   icon={<Zap className="h-4 w-4" />}
                   label={t("config.autoIndex")}

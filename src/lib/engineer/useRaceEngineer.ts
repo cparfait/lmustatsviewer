@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { live as liveApi, type LiveData } from "@/lib/api";
+import { config, live as liveApi, type LiveData } from "@/lib/api";
 import type { Tr } from "@/i18n";
 import {
   speak as rawSpeak,
@@ -39,7 +39,8 @@ import { driverBusy } from "./focus";
 import { NameDoser, VariantPicker } from "./variants";
 import { ProximitySpotter, type SpotCall } from "./proximity";
 import { ToneArbiter, setSharedTone, BATTLE_GAP_S } from "./tone";
-import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY } from "./lapPolicy";
+import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY, FLYING_FACTOR } from "./lapPolicy";
+import { applyLapPref, parseLapPrefs, questionDue, sessionKind } from "./prefs";
 import { onTrack, slowerPackAhead, fasterBehind } from "./traffic";
 import { RivalPitWatcher } from "./rivalPits";
 import { BatteryWatcher, CRITICAL_PCT } from "./battery";
@@ -47,6 +48,8 @@ import { VigieTracker } from "./vigie";
 import { BOX_CRITICAL_LAPS } from "./pitWindow";
 import { consistentWithLive, parseWet, pickWetFile, wetSession } from "./forecast";
 import { engineer } from "./state";
+import { brakeAvgLimits } from "./brakes";
+import { isWetCompound, wheelWear } from "./tyres";
 import { radioClass, radioName } from "./text";
 import { scopedPosition } from "@/lib/livePosition";
 import {
@@ -101,6 +104,25 @@ const BLUE_AFTER_PREVIEW_S = 30;
  * du seuil, puis se tait pendant `cooldownMs`. Évite le spam sur les pics
  * transitoires (ex. freins chauds à chaque gros freinage).
  */
+/**
+ * Coût de chauffe mesuré : mémorisé par circuit × classe (`tyre_warmup_map`)
+ * pour servir dès la séance suivante (réponses « quels pneus changer »).
+ */
+function saveWarmup(track: string, cls: string, seconds: number): void {
+  if (!track || !cls) return;
+  void (async () => {
+    try {
+      const raw = (await config.get("tyre_warmup_map")) || "{}";
+      const map = JSON.parse(raw) as Record<string, number>;
+      map[`${track}::${cls}`] = Math.round(seconds * 10) / 10;
+      engineer.warmupPrior = map;
+      await config.set("tyre_warmup_map", JSON.stringify(map));
+    } catch {
+      /* persistance best-effort */
+    }
+  })();
+}
+
 function sustainedAlert(
   s: { since: number; last: number },
   over: boolean,
@@ -145,22 +167,8 @@ const PREWARM_KEYS = [
 /** Seuil de surchauffe historique (pic instantané, débit Complet) (°C). */
 const BRAKE_HOT_C = 750;
 
-/**
- * Seuils de la MOYENNE glissante selon le matériau des disques de la classe
- * (débit Ingénieur). Sources (recherche du 06/10/2026, cf. SUIVI) :
- *  - Brembo, 24 h du Mans 2025 : Hypercar et LMP2 = carbone, 250–850 °C ;
- *    LMGT3 = fonte, 250–750 °C. LMP3 = acier imposé (règlement LMP3 art. 12.3).
- *  - Seuils par matériau d'un ingénieur vocal communautaire : fonte course
- *    « chaud » au-delà de 700 °C, carbone au-delà de 1 200 °C.
- * La moyenne restant sous les pics, son dépassement du HAUT de la plage de
- * fonctionnement signale une vraie surchauffe, pas un gros freinage.
- * Classe inconnue (GTE, autres) : 750 °C, valeur d'origine.
- */
-export function brakeAvgLimits(vehicleClass: string): { hot: number; rearm: number } {
-  const cls = radioClass(vehicleClass);
-  if (cls === "Hypercar" || cls === "LMP2") return { hot: 850, rearm: 800 }; // carbone
-  return { hot: 750, rearm: 700 }; // fonte/acier (LMP3, GT3) et repli
-}
+export { brakeAvgLimits } from "./brakes";
+
 /** Constante de temps de la moyenne glissante (ms) — environ 2 à 4 freinages. */
 const BRAKE_TAU_MS = 30000;
 
@@ -259,6 +267,11 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   // Usure : état « sous le seuil tenu » (filtre les frames de télémétrie
   // corrompues au lancement → fausse « usure pneus critique »).
   const tyreLow = useRef({ since: 0, last: 0 });
+  const crossoverHold = useRef({ since: 0, last: 0 });
+  const crossoverSaid = useRef<"toWets" | "toSlicks" | null>(null);
+  /** Tour de sortie des stands en cours (qualif : ce n'est pas un tour lancé). */
+  const outLap = useRef(true);
+  const outLapPrevPits = useRef(false);
   const engineTempWarned = useRef(false);
   const rainHeavy = useRef(false);
   const blueWarned = useRef(false);
@@ -306,6 +319,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   // Réglages de diffusion (chacun garde l'ancien comportement accessible).
   const quietZones = useAppStore((s) => s.radioQuietZones);
   const phases = useAppStore((s) => s.radioPhases);
+  const askPrefs = useAppStore((s) => s.radioAskPrefs);
   const budgets = useAppStore((s) => s.radioBudgets);
   const replay = useAppStore((s) => s.radioReplay);
   const tenth = useAppStore((s) => s.voiceLapPrecision) === "tenth";
@@ -321,6 +335,28 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     const keys = proximity ? [...PREWARM_KEYS, ...Object.values(SPOT_KEYS)] : PREWARM_KEYS;
     void prewarmSpeech(keys.map((k) => t(k)), lang);
   }, [enabled, proximity, lang, t]);
+
+  // Coûts de chauffe et préférences radio mémorisés : chargés une fois ; les
+  // préférences changées à la voix sont réécrites aussitôt.
+  useEffect(() => {
+    if (!enabled) return;
+    void config
+      .get("tyre_warmup_map")
+      .then((raw) => {
+        engineer.warmupPrior = JSON.parse(raw || "{}") as Record<string, number>;
+      })
+      .catch(() => {});
+    void config
+      .get("radio_lap_prefs")
+      .then((raw) => {
+        engineer.lapPrefs = parseLapPrefs(raw);
+      })
+      .catch(() => {});
+    engineer.onPrefsChanged = () => void config.set("radio_lap_prefs", JSON.stringify(engineer.lapPrefs)).catch(() => {});
+    return () => {
+      engineer.onPrefsChanged = null;
+    };
+  }, [enabled]);
 
   // Spotter de proximité : à chaque trame, hors arbitre (sa priorité passe avant
   // tout et tient le canal quelques secondes).
@@ -433,6 +469,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       tone.current.reset();
       sectors.current.reset();
       rivalPits.current.reset();
+      crossoverSaid.current = null;
+      outLap.current = true;
       battery.current.reset();
       vigie.current.reset();
       engineer.resetSession();
@@ -567,6 +605,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     }
 
     const inPits = playerStanding?.in_pits ?? false;
+    // Tour de sortie : de la sortie des stands jusqu'à la ligne suivante.
+    if (outLapPrevPits.current && !inPits) outLap.current = true;
+    outLapPrevPits.current = inPits;
 
     if (player) {
       // Réinitialisation des suivis joueur/positions sur (re)démarrage de
@@ -731,15 +772,32 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       // ── Passage de la ligne : point de tour, secteurs, rapprochement ─────
       if (lapDone) {
         lapsSinceLapCallout.current++;
+        outLap.current = false;
         engineer.energy.push(data.extended?.virtual_energy ?? 0);
         const pads = brakePads(data.rest);
         engineer.pads.push(pads ? Math.min(...pads) : null);
+        const wear = wheelWear(tel?.wheels);
+        if (wear) engineer.tyreWear.push(wear);
       }
+
+      // ── Pneus : chauffe mesurée sur tout le plateau, pluie ou slicks ─────
+      const green = sc.game_phase === 5;
+      for (const m of engineer.warmup.push(data, green)) {
+        if (m.cls === playerStanding?.vehicle_class) saveWarmup(sc.track, m.cls, engineer.warmup.median(m.cls) ?? m.seconds);
+      }
+      if (data.weather) engineer.wetness.push(sc.session_time, data.weather.path_wetness_avg);
+      const onWets = isWetCompound(tel?.front_compound) || isWetCompound(tel?.rear_compound);
+      const call = tel && warmedUp && !inPits ? engineer.wetness.call(onWets, data.weather?.rain ?? 0) : null;
+      if (sustainedAlert(crossoverHold.current, call != null, now, 30000, 0) && call && crossoverSaid.current !== call) {
+        crossoverSaid.current = call;
+        say(`tyres:crossover:${call}`, t(call === "toWets" ? "live.vTyresToWets" : "live.vTyresToSlicks"), "normal", { score: 60, retryS: 30 });
+      }
+      if (!call) crossoverSaid.current = null;
       if (!inPits && lapDone && player.last_lap_time > 0) {
         const best = player.best_lap_time;
         const isPb = best > 0 && (prevBest.current <= 0 || best < prevBest.current - 0.001);
         const lapVoice = fmtLapVoice(player.last_lap_time, t, tenth);
-        const decision = full ? (isPb ? "pb" : "last") : decideLapCallout({
+        const autoDecision = full ? (isPb ? "pb" : "last") : decideLapCallout({
           isRace,
           lapTime: player.last_lap_time,
           prevBest: prevBest.current,
@@ -747,6 +805,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
           lastAnnouncedPb: lastAnnouncedPb.current,
           lapsSinceLapCallout: lapsSinceLapCallout.current,
         });
+        // Préférence posée à la voix pour ce type de séance (sinon : politique habituelle).
+        const flyingLap = isPb || (prevBest.current > 0 && player.last_lap_time <= prevBest.current * FLYING_FACTOR);
+        const decision = applyLapPref(engineer.lapPrefs.prefs[sessionKind(sc.session)], autoDecision, isPb, flyingLap);
         if (decision && lapVoice) {
           say(
             "lap:time",
@@ -785,6 +846,13 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
           }
         }
         prevPurple.current = purple;
+
+        // Question unique par type de séance : comment le pilote veut ses chronos.
+        const kind = sessionKind(sc.session);
+        if (askPrefs && !full && warmedUp && player.total_laps >= 2 && questionDue(engineer.lapPrefs, kind)) {
+          say("prefs:ask", t("live.vAskLapPref"), "chatty", { score: 15, retryS: 60 });
+          engineer.markAsked(kind);
+        }
 
         // Débrief de secteur : secteur chroniquement faible (moyenne 4 tours
         // propres) de préférence, sinon le pire secteur du tour. Silencieux sur
@@ -959,6 +1027,20 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
           say(`rivalpit:${ev.driver}:${ev.stops}`, t(key, { name }), "normal", { score: 55, retryS: 15 });
         }
       } else rivalPits.current.push(data, 0); // garde le suivi à jour
+
+      // ── Le leader de la classe rentre (registre des arrêts du plateau) ───
+      // Tenu à jour à chaque trame ; annonce en course seulement. Si le leader
+      // est la voiture juste devant (je suis P2), l'annonce de rival direct
+      // ci-dessus en dit déjà plus : on ne double pas.
+      const leaderPit = engineer.stints.push(data);
+      if (leaderPit && warmedUp && isRace && playerStanding && playerStanding.class_position > 2) {
+        const name = radioName(leaderPit.driver);
+        const text =
+          leaderPit.stintLaps != null && leaderPit.stintLaps >= 3
+            ? t("live.vLeaderPitStint", { name, n: leaderPit.stintLaps })
+            : t("live.vLeaderPit", { name });
+        say(`leaderpit:${leaderPit.driver}:${leaderPit.stop}`, text, "normal", { score: 45, retryS: 15 });
+      }
 
       // ── Dernier tour / mi-course (courses au nombre de tours) ────────────
       if (sc.max_laps > 0 && sc.max_laps < 1000) {
@@ -1247,6 +1329,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       nearestGapS: nearestGap,
       phases: !full && phases,
       budgets: !full && budgets,
+      // Qualif : tour lancé (ni stands, ni tour de sortie, la ligne passée de 400 m).
+      qualiFlying: sc.session >= 5 && sc.session <= 8 && !inPits && !outLap.current && (playerStanding?.lap_dist ?? 0) > 400,
     };
     const allowed = engineer.policy.filter(cands, policyCtx);
 
@@ -1286,5 +1370,5 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (c.prio === "critical" || !critical) rawSpeak(text, lang, c.prio, c.ttlMs, optsOf(c));
       else deferred.current.push({ text, prio: c.prio, ttl: c.ttlMs, at: now, opts: optsOf(c) });
     }
-  }, [data, enabled, lang, t, full, classPositions, quietZones, phases, budgets, replay, tenth, driverName]);
+  }, [data, enabled, lang, t, full, classPositions, quietZones, phases, budgets, replay, tenth, driverName, askPrefs]);
 }

@@ -913,3 +913,132 @@ pub fn get_race_activity(db: State<'_, DbState>) -> Result<Vec<RaceActivityRow>,
         .map_err(|e| AppError::Database(format!("race_activity collect: {e}")))?;
     Ok(rows)
 }
+
+// ─── Carrière / saison ───────────────────────────────────────────────────────
+
+/// Une course du joueur pour la page Carrière (bilan, championnats, carte récap).
+#[derive(Debug, Serialize)]
+pub struct CareerRace {
+    pub session_id: i64,
+    pub timestamp: i64,
+    pub track: String,
+    pub track_course: String,
+    /// Course en ligne (`setting = Multiplayer`).
+    pub online: bool,
+    pub car: String,
+    pub car_class: String,
+    pub position: i64,
+    pub class_position: i64,
+    pub grid_pos: i64,
+    pub class_grid_pos: i64,
+    /// Voitures de la même classe dans la course.
+    pub class_size: i64,
+    pub finish_status: String,
+    pub best_lap: Option<f64>,
+    pub laps: i64,
+    pub pitstops: i64,
+    pub vmax: Option<f64>,
+}
+
+/// Toutes les courses du joueur, de la plus ancienne à la plus récente.
+#[tauri::command]
+pub fn get_career_races(db: State<'_, DbState>) -> Result<Vec<CareerRace>, AppError> {
+    let conn = get_conn(&db)?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT s.id, s.timestamp, s.track, s.track_course, s.setting, r.unique_car_name, r.car_class,
+                    r.position, r.class_position, r.grid_pos, r.class_grid_pos,
+                    (SELECT COUNT(*) FROM results r2 WHERE r2.session_id = s.id AND r2.car_class = r.car_class),
+                    r.finish_status, r.best_lap, r.laps_count, r.pitstops, r.vmax
+             FROM sessions s JOIN results r ON r.session_id = s.id
+             WHERE r.is_player = 1 AND s.session_type = 'Race' AND s.timestamp > 0
+             ORDER BY s.timestamp ASC",
+        )
+        .map_err(|e| AppError::Database(format!("career prepare: {e}")))?;
+    let rows = stmt
+        .query_map([], |row| {
+            let setting: String = row.get(4)?;
+            Ok(CareerRace {
+                session_id: row.get(0)?,
+                timestamp: row.get(1)?,
+                track: row.get(2)?,
+                track_course: row.get(3)?,
+                online: setting == "Multiplayer",
+                car: row.get(5)?,
+                car_class: row.get(6)?,
+                position: row.get(7)?,
+                class_position: row.get(8)?,
+                grid_pos: row.get(9)?,
+                class_grid_pos: row.get(10)?,
+                class_size: row.get(11)?,
+                finish_status: row.get(12)?,
+                best_lap: row.get(13)?,
+                laps: row.get(14)?,
+                pitstops: row.get(15)?,
+                vmax: row.get(16)?,
+            })
+        })
+        .map_err(|e| AppError::Database(format!("career query: {e}")))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| AppError::Database(format!("career collect: {e}")))?;
+    Ok(rows)
+}
+
+/// Résultat d'un pilote dans sa classe (classement de championnat).
+#[derive(Debug, Serialize)]
+pub struct ClassResult {
+    pub session_id: i64,
+    pub driver_name: String,
+    pub class_position: i64,
+    pub finish_status: String,
+    pub is_player: bool,
+}
+
+/// Résultats de tous les pilotes d'une classe pour une liste de courses.
+#[tauri::command]
+pub fn get_class_results(
+    session_ids: Vec<i64>,
+    car_class: String,
+    db: State<'_, DbState>,
+) -> Result<Vec<ClassResult>, AppError> {
+    let conn = get_conn(&db)?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT session_id, driver_name, class_position, finish_status, is_player
+             FROM results WHERE session_id = ?1 AND car_class = ?2 AND class_position > 0",
+        )
+        .map_err(|e| AppError::Database(format!("class results prepare: {e}")))?;
+    let mut out = Vec::new();
+    for id in session_ids.iter().take(200) {
+        let rows = stmt
+            .query_map(rusqlite::params![id, &car_class], |row| {
+                Ok(ClassResult {
+                    session_id: row.get(0)?,
+                    driver_name: row.get(1)?,
+                    class_position: row.get(2)?,
+                    finish_status: row.get(3)?,
+                    is_player: row.get::<_, i64>(4)? != 0,
+                })
+            })
+            .map_err(|e| AppError::Database(format!("class results query: {e}")))?;
+        for r in rows {
+            out.push(r.map_err(|e| AppError::Database(format!("class results row: {e}")))?);
+        }
+    }
+    Ok(out)
+}
+
+/// Enregistre une image choisie par l'utilisateur (carte récap PNG). Le chemin
+/// vient de la boîte « Enregistrer sous » ; seules les extensions d'image passent.
+#[tauri::command]
+pub fn save_image_file(path: String, bytes: Vec<u8>) -> Result<(), AppError> {
+    let lower = path.to_lowercase();
+    if !(lower.ends_with(".png") || lower.ends_with(".jpg") || lower.ends_with(".jpeg")) {
+        return Err(AppError::Unsupported("Extension d'image attendue (.png, .jpg).".to_string()));
+    }
+    if bytes.len() > 20 * 1024 * 1024 {
+        return Err(AppError::Unsupported("Image trop lourde.".to_string()));
+    }
+    std::fs::write(&path, bytes)?;
+    Ok(())
+}

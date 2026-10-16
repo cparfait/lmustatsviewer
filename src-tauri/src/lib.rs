@@ -140,6 +140,9 @@ pub fn run() {
             commands::queries::get_sessions_list,
             commands::queries::get_sessions_overview,
             commands::queries::get_race_activity,
+            commands::queries::get_career_races,
+            commands::queries::get_class_results,
+            commands::queries::save_image_file,
             // Détail d'une session + graphe de tours
             commands::session_detail::get_session_detail,
             commands::session_detail::get_lap_chart_data,

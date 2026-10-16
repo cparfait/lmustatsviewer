@@ -4,8 +4,9 @@
  * d'essais coché tout seul.
  */
 
-import { section, ok, eq } from "../assert";
-import type { LiveData, SvmFile } from "@/lib/api";
+import { section, ok, eq, approx } from "../assert";
+import type { CareerRace, LiveData, SvmFile } from "@/lib/api";
+import { filterRaces, highlights, matchRounds, recurring, standings, summarize, titleMath, type Championship } from "@/lib/career";
 import { recommend, applyStep, nextVersionName } from "@/lib/setupAssistant";
 import { trackSun, trackGeo, isNight } from "@/lib/racePlan/sun";
 import { planStints, clock, hm, type PlanInput } from "@/lib/racePlan/stintPlan";
@@ -89,6 +90,38 @@ export function run(): void {
     ], "un cran sur les deux roues de l'essieu");
     eq(nextVersionName("Spa course V3"), "Spa course V4", "version suivante");
     eq(nextVersionName("Spa course"), "Spa course V2", "première version");
+  }
+
+  section("career");
+  {
+    const r = (i: number, o: Partial<CareerRace>): CareerRace => ({
+      session_id: i, timestamp: Date.UTC(2026, 0, i) / 1000, track: "Spa", track_course: "Spa", online: true, car: "Oreca", car_class: "LMP2",
+      position: 5, class_position: 3, grid_pos: 6, class_grid_pos: 4, class_size: 11, finish_status: "Finished Normally", best_lap: 130, laps: 30, pitstops: 1, vmax: 290, ...o,
+    });
+    const races = [r(1, { class_position: 1, class_grid_pos: 3 }), r(2, { class_position: 5, class_grid_pos: 2 }), r(3, { finish_status: "DNF" }), r(4, { online: false })];
+    const s = summarize(races);
+    ok(s.races === 4 && s.wins === 1 && s.podiums === 2, "victoires et podiums (courses terminées seulement)");
+    approx(s.finishRate, 0.75, 1e-9, "taux d'arrivée");
+    approx(s.gainedPerRace!, (2 + -3 + 1) / 3, 1e-9, "places gagnées en classe par course terminée");
+    eq(s.best?.session_id, 1, "meilleur résultat");
+    eq(filterRaces(races, { online: "offline", cls: "", from: null, to: null }).length, 1, "filtre hors ligne");
+    eq(highlights(races)[0].kind, "win", "temps fort : la victoire d'abord");
+    eq(recurring(races), null, "moins de 5 courses : pas de défaut récurrent");
+    const dnfs = [1, 2, 3, 4, 5].map((i) => r(i, { finish_status: i <= 2 ? "DNF" : "Finished Normally" }));
+    eq(recurring(dnfs)?.kind, "dnf", "40 % d'abandons : défaut récurrent");
+
+    const champ: Championship = { id: "1", name: "x", cls: "LMP2", scoring: "wec", rounds: [{ track: "spa", date: "2026-01-03" }, { track: "Monza", date: "2026-06-01" }] };
+    const m = matchRounds(champ, races);
+    ok(m[0]?.session_id === 2 || m[0]?.session_id === 3 || m[0]?.session_id === 4, "manche rattachée à ±7 jours (la plus proche)");
+    eq(m[1], null, "manche pas encore courue");
+    const rows = standings(champ, [
+      { session_id: 1, driver_name: "Me", class_position: 2, finish_status: "Finished Normally", is_player: true },
+      { session_id: 1, driver_name: "Max", class_position: 1, finish_status: "Finished Normally", is_player: false },
+      { session_id: 1, driver_name: "Bob", class_position: 3, finish_status: "DNF", is_player: false },
+    ]);
+    eq(rows.map((x) => [x.driver, x.points]), [["Max", 25], ["Me", 18], ["Bob", 0]], "barème WEC, abandon sans points");
+    eq(titleMath(rows, 1, "wec"), { kind: "chasing", leader: "Max", gap: 7, remaining: 1 }, "ce qu'il me faut");
+    eq(titleMath(rows, 0, "wec")?.kind, "out", "plus de manche : titre hors de portée");
   }
 
   section("plan.prep");

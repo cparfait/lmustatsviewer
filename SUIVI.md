@@ -942,6 +942,18 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   comparabilité (± 3 L, pneus de même âge, 3 tours propres, même piste). Le A-B-A et le verdict par
   virage restent à faire (il faudrait relier les tours de télémétrie à une version de setup).
   ⚠️ Non vérifié à l'écran : la fiche setup exige le backend Tauri (tests purs seulement).
+- ✅ **㉗ Page Carrière** (`/career`, `routes/Career.tsx`, `lib/career.ts` pur, `lib/wrappedCard.ts`) :
+  Rust `get_career_races` (courses du joueur + taille de classe), `get_class_results` (tous les
+  pilotes d'une classe sur une liste de courses), `save_image_file` (PNG/JPG seulement, ≤ 20 Mo).
+  Bilan filtré (année / en ligne / classe) : courses, circuits, victoires/podiums (courses terminées),
+  meilleur résultat, taux d'arrivée, places gagnées en classe, progression (5 premières vs 5
+  dernières, 10 courses minimum) ; temps forts (victoire, meilleure remontée ≥ 2 places, plus longue
+  course) ; défaut récurrent (≥ 5 courses, ≥ 30 % d'abandons ou de courses à −2 places vs grille).
+  Carte récap 1080 × 1350 (canvas, 3 courses minimum) enregistrée via la boîte « Enregistrer sous ».
+  Championnats (`championships` en config) : manches circuit + date, rattachement à ±7 jours dans la
+  classe, classement de tous les pilotes de la classe (WEC ou top 10, abandon = 0 pt), « ce qu'il
+  me faut » (mène / titre acquis / à X points sur N manches / hors de portée). Vérifié à l'écran
+  (données simulées injectées). ㉙ Discord : **abandonné** (demande utilisateur).
 
 ### 2026-10-16 — Pont REST LMU en lecture seule (idée ⑳) + cartes du circuit
 

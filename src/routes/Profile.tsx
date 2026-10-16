@@ -31,6 +31,7 @@ import { classChartColor } from "@/lib/staticData";
 import { CarLogo } from "@/components/CarLogo";
 import { TrackFlag } from "@/components/TrackFlag";
 import { ProfileActivity } from "@/components/ProfileActivity";
+import { ProfileCareer } from "@/components/ProfileCareer";
 import type {
   RaceActivityRow,
   RecordOverviewRow,
@@ -284,6 +285,8 @@ export function Profile() {
       />
 
       <ProfileActivity races={raceActivity} />
+
+      <ProfileCareer />
 
       {carsByClass.length > 0 && (
         <section>

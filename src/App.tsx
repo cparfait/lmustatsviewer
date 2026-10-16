@@ -16,7 +16,6 @@ import { Setups } from "@/routes/Setups";
 import { SetupDetail } from "@/routes/SetupDetail";
 import { SetupCompare } from "@/routes/SetupCompare";
 import { Strategy } from "@/routes/Strategy";
-import { Career } from "@/routes/Career";
 import { Live } from "@/routes/Live";
 import { Telemetry } from "@/routes/Telemetry";
 import { TelemetryView } from "@/routes/TelemetryView";
@@ -160,7 +159,6 @@ export default function App() {
             <Route path="/setups/compare" element={<SetupCompare />} />
             <Route path="/live" element={<Live />} />
             <Route path="/strategy" element={<Strategy />} />
-            <Route path="/career" element={<Career />} />
             <Route path="/telemetry" element={<Telemetry />} />
             <Route path="/telemetry/view" element={<TelemetryView />} />
             <Route path="/overlays" element={<Overlays />} />

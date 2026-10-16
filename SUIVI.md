@@ -965,7 +965,7 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   comparabilité (± 3 L, pneus de même âge, 3 tours propres, même piste). Le A-B-A et le verdict par
   virage restent à faire (il faudrait relier les tours de télémétrie à une version de setup).
   ⚠️ Non vérifié à l'écran : la fiche setup exige le backend Tauri (tests purs seulement).
-- ✅ **㉗ Page Carrière** (`/career`, `routes/Career.tsx`, `lib/career.ts` pur, `lib/wrappedCard.ts`) :
+- ✅ **㉗ Page Carrière** (devenue section Saison du Profil, voir plus bas ; `lib/career.ts` pur, `lib/wrappedCard.ts`) :
   Rust `get_career_races` (courses du joueur + taille de classe), `get_class_results` (tous les
   pilotes d'une classe sur une liste de courses), `save_image_file` (PNG/JPG seulement, ≤ 20 Mo).
   Bilan filtré (année / en ligne / classe) : courses, circuits, victoires/podiums (courses terminées),
@@ -1035,6 +1035,14 @@ abandonnée). Base choisie par l'utilisateur : **branche d'intégration** dans u
   préparées de la voix en ligne. La réponse « Je n'ai pas compris la question » est retirée :
   `ask.ts` répond déjà toujours en local (meilleure supposition ou point de course, le message de
   configuration n'est plus qu'une notification). 832 tests TS, 77 Rust ✅.
+- ✅ **Page Carrière supprimée** (demande de l'utilisateur : doublon du Profil). Retirés : route
+  `/career`, entrée de menu et module masquable `career`, clé `nav.career`. Ce que le Profil n'avait
+  pas passe dans une section **Saison** du Profil (`components/ProfileCareer.tsx`, sous l'activité) :
+  filtres année / en ligne / classe, temps forts, progression 5 premières vs 5 dernières, défaut
+  récurrent, carte récap PNG, championnats. Non repris (déjà dans le bilan du Profil) : courses,
+  victoires/podiums, meilleur résultat, taux d'arrivée, places gagnées (≈ progression moyenne) — ils
+  restent sur la carte récap. `lib/career.ts` et les clés i18n `career.*` inchangés (titre de section
+  « Saison »). Entrée du changelog 1.0.10 réécrite. 832 tests ✅.
 - 📋 **Prochaine étape** : course de test en jeu sur cette branche (`npm run tauri dev` depuis le
   worktree) — vérifier dans l'ordre : « le leader rentre » + « quand s'arrête le leader ? », « quels
   pneus changer ? », silence en tour lancé de qualif, question des chronos au 2ᵉ tour, préparation

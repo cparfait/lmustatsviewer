@@ -590,12 +590,14 @@ export function ConfigV2() {
     .flatMap((v) =>
       v.num_speakers > 1
         ? Array.from({ length: v.num_speakers }, (_, i) => ({
+            voiceId: v.id,
             value: `${v.id}${SPK_SEP}${i}`,
+            // Affichés sous leur voix dans la liste (« UPMC » › « Jessica », « Pierre »).
             label: v.speakers[i]
               ? cap(v.speakers[i])
               : `${v.label} ${t("config.voiceSpeakerN", { n: i })}`,
           }))
-        : [{ value: v.id, label: v.label }],
+        : [{ voiceId: v.id, value: v.id, label: v.label }],
     );
   const piperVoiceValue = piperVoiceCur
     ? piperNumSpeakers > 1
@@ -608,6 +610,11 @@ export function ConfigV2() {
     void useAppStore
       .getState()
       .setPiperSpeaker(i18n.language, sp ? Number(sp) : 0);
+  };
+  /** Choisit la voix puis joue la phrase d'essai (liste des voix neuronales). */
+  const testPiperVoice = (value: string) => {
+    onPiperVoiceChange(value);
+    setTimeout(() => previewVoice(t("config.voiceTestPhrase"), i18n.language, { localOnly: true }), 150);
   };
 
   const refreshEmptyCounts = () => {
@@ -1389,9 +1396,16 @@ export function ConfigV2() {
                             <div className="rounded-md border border-border p-3"><VoiceDownloads
                               kind="tts"
                               onInstalled={() => setAssetsVersion((v) => v + 1)}
+                              pick={{
+                                options: piperOptions,
+                                value: piperVoiceValue,
+                                onSelect: onPiperVoiceChange,
+                                onTest: testPiperVoice,
+                              }}
                             /></div>
                           </>
                         )}
+                        {voiceEngine === "system" && (
                         <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
@@ -1402,21 +1416,6 @@ export function ConfigV2() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            {voiceEngine === "piper" ? (
-                              <Select
-                                value={piperVoiceValue}
-                                onValueChange={onPiperVoiceChange}
-                                ariaLabel={t("config.voiceVoice")}
-                                className="h-8 max-w-[220px] px-2.5"
-                                options={[
-                                  { value: "", label: t("config.voiceAuto") },
-                                  ...piperOptions.map((o) => ({
-                                    value: o.value,
-                                    label: o.label,
-                                  })),
-                                ]}
-                              />
-                            ) : (
                               <Select
                                 value={voiceUri}
                                 onValueChange={(v) =>
@@ -1436,7 +1435,6 @@ export function ConfigV2() {
                                   })),
                                 ]}
                               />
-                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -1453,6 +1451,7 @@ export function ConfigV2() {
                             </Button>
                           </div>
                         </div>
+                        )}
                         {voiceEngine === "system" && voiceList.length === 0 && (
                           <div className="text-xs text-muted-foreground/70">
                             {t("config.voiceNoneFound")}
@@ -1563,14 +1562,11 @@ export function ConfigV2() {
                                 className="h-8 w-48 px-2.5 text-xs"
                                 options={RADIO_STYLES.map((rs) => ({ value: rs, label: t(`config.radioStyle_${rs}`) }))}
                               />
-                              {/* Joue une phrase avec le profil choisi (voix Piper). */}
+                              {/* Joue une phrase avec le profil choisi, dans la voix active (Piper ou IA). */}
                               <Button
                                 size="sm"
                                 variant="outline"
-                                disabled={voiceEngine !== "piper"}
-                                onClick={() =>
-                                  previewVoice(t("config.radioCompareSample"), i18n.language, { localOnly: true })
-                                }
+                                onClick={() => previewVoice(t("config.radioCompareSample"), i18n.language)}
                               >
                                 {t("config.voiceTest")}
                               </Button>

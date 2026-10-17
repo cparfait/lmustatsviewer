@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { config, isTauri } from "@/lib/api";
+import { OVERLAY_DEFS } from "@/lib/overlays";
 
 export interface WidgetServerStatus {
   running: boolean;
@@ -38,6 +39,8 @@ export const widgetServer = {
   stop: () => invoke<WidgetServerStatus>("widget_server_stop"),
   status: () => invoke<WidgetServerStatus>("widget_server_status"),
   setLanguage: (lang: string) => invoke<void>("widget_server_set_language", { lang }),
+  /** Nom de chaque widget dans la langue de l'app (titre des pages servies). */
+  setTitles: (titles: Record<string, string>) => invoke<void>("widget_server_set_titles", { titles }),
 };
 
 /**
@@ -79,7 +82,7 @@ export function widgetUrl(base: string, id: string, opts: WidgetUrlOptions = {})
  * transmet la langue de l'interface (les pages servies ne la connaissent pas).
  */
 export function useWidgetServerAutostart(): void {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   useEffect(() => {
     if (!isTauri()) return;
     void (async () => {
@@ -93,7 +96,10 @@ export function useWidgetServerAutostart(): void {
   useEffect(() => {
     if (!isTauri()) return;
     void widgetServer.setLanguage(i18n.language).catch(() => {});
-  }, [i18n.language]);
+    void widgetServer
+      .setTitles(Object.fromEntries(OVERLAY_DEFS.map((d) => [d.id, t(`overlays.items.${d.id}.title`)])))
+      .catch(() => {});
+  }, [i18n.language, t]);
 }
 
 /** Adresse de base du serveur de widgets, démarré à l'activation du mode VR. */

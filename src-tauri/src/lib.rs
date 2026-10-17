@@ -232,6 +232,7 @@ pub fn run() {
             commands::widget_server::widget_server_stop,
             commands::widget_server::widget_server_status,
             commands::widget_server::widget_server_set_language,
+            commands::widget_server::widget_server_set_titles,
             commands::lmu_rest_write::get_pit_menu,
             commands::lmu_rest_write::set_pit_menu_item,
             commands::queries::save_text_file,

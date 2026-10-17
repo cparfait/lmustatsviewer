@@ -461,6 +461,33 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Neural voices: pick and test a voice right in the download list (one line per voice, the two UPMC voices Jessica and Pierre listed under it); the separate “Voice” drop-down only remains for the System voice.",
+              fr: "Voix neuronales : on choisit et on teste la voix directement dans la liste des téléchargements (une ligne par voix, les deux voix d'UPMC, Jessica et Pierre, listées en dessous) ; la liste « Voix » séparée ne reste que pour la voix Système.",
+              es: "Voces neuronales: se elige y se prueba la voz directamente en la lista de descargas (una línea por voz; las dos voces de UPMC, Jessica y Pierre, debajo); la lista «Voz» aparte solo queda para la voz Sistema.",
+              de: "Neuronale Stimmen: Stimme direkt in der Download-Liste wählen und testen (eine Zeile pro Stimme, die beiden UPMC-Stimmen Jessica und Pierre darunter); die separate Liste „Stimme“ bleibt nur für die System-Stimme.",
+              it: "Voci neurali: si sceglie e si prova la voce direttamente nell'elenco dei download (una riga per voce, le due voci di UPMC, Jessica e Pierre, elencate sotto); l'elenco «Voce» separato resta solo per la voce Sistema.",
+            },
+          },
+          {
+            text: {
+              en: "Radio effect “Test” now uses the active voice (AI included) — the radio treatment applies to the AI voice too. French pronunciation: “medium” tyres are said “médium”. The “voice provider and model” setting of the AI coach is renamed “AI for in-race questions”, since it chooses the AI that answers, not a voice.",
+              fr: "« Tester » de l'effet radio utilise désormais la voix active (IA comprise) — l'habillage radio s'applique aussi à la voix IA. Prononciation : les pneus « medium » sont dits « médium ». Le réglage « Fournisseur et modèle vocal » du Coach IA devient « IA des questions en course », car il choisit l'IA qui répond, pas une voix.",
+              es: "«Probar» del efecto de radio usa ahora la voz activa (IA incluida) — el tratamiento de radio también se aplica a la voz IA. En francés, los neumáticos «medium» se pronuncian «médium». El ajuste «Proveedor y modelo de voz» del Coach IA pasa a «IA de las preguntas en carrera», porque elige la IA que responde, no una voz.",
+              de: "„Testen“ beim Funkeffekt nutzt jetzt die aktive Stimme (inklusive KI) — der Funkklang gilt auch für die KI-Stimme. Im Französischen werden „medium“-Reifen „médium“ ausgesprochen. Die Einstellung „Anbieter und Sprachmodell“ des KI-Coachs heißt jetzt „KI für Fragen im Rennen“, da sie die antwortende KI wählt, keine Stimme.",
+              it: "«Prova» dell'effetto radio usa ora la voce attiva (IA compresa) — l'effetto radio si applica anche alla voce IA. In francese le gomme «medium» si pronunciano «médium». L'impostazione «Fornitore e modello vocale» del Coach IA diventa «IA delle domande in gara», perché sceglie l'IA che risponde, non una voce.",
+            },
+          },
+          {
+            text: {
+              en: "Widgets by address: the page title carries the widget's name from the start (written by the app's server), so OpenKneeboard and OBS name new tabs and sources correctly.",
+              fr: "Widgets par adresse : le titre de la page porte le nom du widget dès son envoi (écrit par le serveur de l'app), pour qu'OpenKneeboard et OBS nomment correctement les nouveaux onglets et sources.",
+              es: "Widgets por dirección: el título de la página lleva el nombre del widget desde el envío (lo escribe el servidor de la app), para que OpenKneeboard y OBS nombren bien las nuevas pestañas y fuentes.",
+              de: "Widgets per Adresse: Der Seitentitel trägt den Widget-Namen schon beim Senden (vom Server der App geschrieben), damit OpenKneeboard und OBS neue Tabs und Quellen richtig benennen.",
+              it: "Widget per indirizzo: il titolo della pagina porta il nome del widget fin dall'invio (scritto dal server dell'app), così OpenKneeboard e OBS nominano correttamente le nuove schede e sorgenti.",
+            },
+          },
+          {
+            text: {
               en: "Audio / Voice: downloaded voices (and the voice-command model) can be deleted with a bin button, after confirmation, to free disk space; voices shipped with the app stay.",
               fr: "Audio / Voix : les voix téléchargées (et le modèle des commandes vocales) se suppriment avec un bouton poubelle, après confirmation, pour libérer de la place ; les voix fournies avec l'app restent.",
               es: "Audio / Voz: las voces descargadas (y el modelo de comandos de voz) se eliminan con un botón de papelera, tras confirmar, para liberar espacio; las voces incluidas con la app se quedan.",

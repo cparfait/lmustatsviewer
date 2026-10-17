@@ -1018,6 +1018,11 @@ function normalizeForTts(text: string, lang: string): string {
   // Suffixe secondes « 0.5s » / « 34s » → « 0.5 secondes » (le point est
   // traité juste après).
   s = s.replace(/\b(\d+(?:[.,]\d+)?)\s?s\b/g, `$1 ${w.seconds}`);
+  // Prononciation française des gommes : « medium » est lu à l'anglaise par Piper ;
+  // « médium » donne la prononciation attendue (le texte affiché n'est pas touché).
+  if (norm(lang) === "fr") {
+    s = s.replace(/\b([Mm])edium(s?)\b/g, (_m, c: string, pl: string) => `${c}édium${pl}`);
+  }
   // Unités.
   s = s.replace(/\bkm\/h\b/gi, w.kmh);
   s = s.replace(/°\s?C\b/g, ` ${w.degrees}`);

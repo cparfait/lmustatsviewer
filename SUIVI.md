@@ -913,6 +913,22 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Voix : choix dans la liste, test radio sur la voix active, « médium », titres des widgets
+
+- ✅ Liste des voix neuronales : choix (radio) et « Tester » sur chaque voix installée, locuteurs
+  d'UPMC (Jessica, Pierre) en sous-lignes ; plus de ligne « Auto » ; bloc « Voix » réservé à la
+  voix Système. « Tester » de l'effet radio sans `localOnly` (l'habillage s'applique aussi à la
+  voix IA, `styleVoiceBuffer` sur tous les tampons).
+- ✅ `normalizeForTts` FR : « medium(s) » → « médium(s) » (prononciation Piper).
+- ✅ Coach IA : « Fournisseur et modèle vocal » → « IA des questions en course » (choisit le
+  modèle qui répond, pas une voix).
+- ✅ **Widgets servis** : `<title>` réécrit par le serveur (`titled_page`, noms envoyés par
+  l'interface via `widget_server_set_titles`) ; test Rust. ⚠️ En dev, les pages servies
+  viennent du paquet `dist` embarqué à la compilation : `npm run build` puis relancer l'app de
+  dev pour y voir les changements d'interface (le `dist` datait de 11 h 20, reconstruit).
+- ℹ️ Voix Piper non incluses dans l'installeur ; en dev, lues dans le dossier du projet
+  (donc « installées » et non supprimables, `deletable: false`).
+
 ### 2026-10-17 — Audio / Voix : ordre logique, aide voix IA, suppression des voix, profils radio
 
 - ✅ Onglet Voix : bloc « Voix locale (sur ton PC) » (moteur → téléchargement → choix), bloc

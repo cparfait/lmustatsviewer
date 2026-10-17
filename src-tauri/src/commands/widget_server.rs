@@ -68,6 +68,25 @@ pub struct WidgetServerStatus {
 /// Langue de l'interface, poussée par la fenêtre principale (les pages servies
 /// ont leur propre stockage local et ne la connaissent pas).
 static LANG: Mutex<String> = Mutex::new(String::new());
+/// Nom de chaque widget dans la langue de l'app (id → « Classement »…), envoyé par
+/// l'interface : écrit dans le `<title>` de la page servie, que OpenKneeboard et OBS
+/// reprennent comme nom d'onglet / de source avant même que la page ne démarre.
+static TITLES: Mutex<Option<std::collections::HashMap<String, String>>> = Mutex::new(None);
+
+/// Page de widget (`?w=<id>`) : titre « <nom> · LMU » à la place du titre générique.
+fn titled_page(html: &[u8], query: &str) -> Option<Vec<u8>> {
+    let id = query.split('&').find_map(|kv| kv.strip_prefix("w="))?;
+    if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return None;
+    }
+    let name = TITLES.lock().ok()?.as_ref()?.get(id)?.clone();
+    // Échappement HTML minimal (le nom vient de nos propres traductions).
+    let name = name.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+    let text = std::str::from_utf8(html).ok()?;
+    let start = text.find("<title>")?;
+    let end = text[start..].find("</title>")? + start;
+    Some(format!("{}<title>{name} · LMU{}", &text[..start], &text[end..]).into_bytes())
+}
 
 // ── WebSocket minimal (RFC 6455) ────────────────────────────────────────────
 
@@ -339,7 +358,7 @@ const CSP: &str = "Content-Security-Policy: default-src 'self'; script-src 'self
 style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; \
 connect-src 'self' ws: https:\r\n";
 
-fn serve_asset(stream: &TcpStream, hub: &Hub, path: &str) {
+fn serve_asset(stream: &TcpStream, hub: &Hub, path: &str, query: &str) {
     if path.contains("..") || path.contains('\\') {
         respond(stream, "400 Bad Request", "text/plain", b"bad path", "");
         return;
@@ -353,7 +372,9 @@ fn serve_asset(stream: &TcpStream, hub: &Hub, path: &str) {
     });
     match found {
         Some((bytes, mime)) => {
-            let extra = if mime.starts_with("text/html") { CSP } else { "" };
+            let html = mime.starts_with("text/html");
+            let extra = if html { CSP } else { "" };
+            let bytes = if html { titled_page(&bytes, query).unwrap_or(bytes) } else { bytes };
             respond(stream, "200 OK", &mime, &bytes, extra);
         }
         None => respond(stream, "404 Not Found", "text/plain", b"not found", ""),
@@ -443,6 +464,7 @@ fn handle(stream: TcpStream, hub: Arc<Hub>) {
         return;
     }
     let path = req.path.split('?').next().unwrap_or("/");
+    let query = req.path.split_once('?').map(|(_, q)| q).unwrap_or("");
     if path == "/ws" {
         let h = |k: &str| req.headers.get(k).map(String::as_str);
         let is_ws = h("upgrade").is_some_and(|u| u.eq_ignore_ascii_case("websocket"));
@@ -458,7 +480,7 @@ fn handle(stream: TcpStream, hub: Arc<Hub>) {
         upgrade(stream, hub, &key);
         return;
     }
-    serve_asset(&stream, &hub, path);
+    serve_asset(&stream, &hub, path, query);
 }
 
 fn accept_loop(listener: TcpListener, hub: Arc<Hub>, stop: Arc<AtomicBool>) {
@@ -594,6 +616,18 @@ pub fn widget_server_status() -> Result<WidgetServerStatus, AppError> {
 
 /// Langue de l'interface (fenêtre principale) → widgets connectés et futurs.
 #[tauri::command]
+pub fn widget_server_set_titles(titles: std::collections::HashMap<String, String>) -> Result<(), AppError> {
+    let clean = titles
+        .into_iter()
+        .filter(|(k, v)| k.len() <= 32 && k.chars().all(|c| c.is_ascii_alphanumeric()) && v.chars().count() <= 60)
+        .collect();
+    if let Ok(mut t) = TITLES.lock() {
+        *t = Some(clean);
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn widget_server_set_language(lang: String) -> Result<(), AppError> {
     let lang: String = lang.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').take(12).collect();
     if let Ok(mut l) = LANG.lock() {
@@ -612,6 +646,17 @@ pub fn widget_server_set_language(lang: String) -> Result<(), AppError> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn widget_page_title_uses_widget_name() {
+        *TITLES.lock().unwrap() = Some([("standings".to_string(), "Classement".to_string())].into_iter().collect());
+        let html = b"<html><head><title>LMU Stats Viewer</title></head></html>";
+        let out = String::from_utf8(titled_page(html, "w=standings&bg=opaque").unwrap()).unwrap();
+        assert!(out.contains("<title>Classement · LMU</title>"));
+        assert!(titled_page(html, "w=unknown").is_none());
+        assert!(titled_page(html, "w=../x").is_none());
+        assert!(titled_page(html, "").is_none());
+    }
+
     use super::*;
     use std::io::{BufRead, BufReader};
     use std::sync::atomic::AtomicUsize;

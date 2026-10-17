@@ -1303,6 +1303,29 @@ export function ConfigV2() {
                     <RecordAnnounceSetting />
                   </div>
                 )}
+                {voiceTab === "announces" && voiceAnnouncements && (
+                  <div className="pb-2">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+        <div className="min-w-0">
+          <div className="text-sm font-medium leading-tight">
+            {t("live.vmTitle")}
+          </div>
+          <div className="text-xs text-muted-foreground/80 mt-0.5">
+            {t("live.vmSubtitle")}
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 shrink-0"
+          onClick={() => setVoiceModalOpen(true)}
+        >
+          <Volume2 className="h-3.5 w-3.5" />
+          {t("live.vmOpen")}
+        </Button>
+      </div>
+                  </div>
+                )}
                 {!voiceAnnouncements && (voiceTab === "voice" || voiceTab === "announces" || voiceTab === "coach") && (
                   <p className="py-2 text-xs text-muted-foreground/80">{t("config.voiceTabNeedsVoice")}</p>
                 )}
@@ -1328,7 +1351,8 @@ export function ConfigV2() {
                     )}
                     {(
                       <div className="pr-1 pb-1 pt-1 space-y-3">
-                        <div className="flex items-center justify-between gap-3 pt-1">
+                        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("config.voiceGroupVoice")}</p>
+                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
                               {t("config.voiceEngine")}
@@ -1352,9 +1376,15 @@ export function ConfigV2() {
                             ]}
                           />
                         </div>
-                        {/* Voix en ligne avec la clé de l'utilisateur (bêta, désactivée par défaut). */}
-                        {voiceEngine === "piper" && isTauri() && <CloudVoiceSettings />}
-                        <div className="flex items-center justify-between gap-3 pt-1">
+                        {voiceEngine === "piper" && (
+                          <>
+                            <div className="rounded-md border border-border p-3"><VoiceDownloads
+                              kind="tts"
+                              onInstalled={() => setAssetsVersion((v) => v + 1)}
+                            /></div>
+                          </>
+                        )}
+                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
                               {t("config.voiceVoice")}
@@ -1420,7 +1450,10 @@ export function ConfigV2() {
                             {t("config.voiceNoneFound")}
                           </div>
                         )}
-                        <div className="flex items-center justify-between gap-3">
+                        {/* Voix en ligne avec la clé de l'utilisateur (bêta, désactivée par défaut). */}
+                        {voiceEngine === "piper" && isTauri() && <CloudVoiceSettings />}
+                        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("config.voiceGroupSound")}</p>
+                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="text-sm font-medium leading-tight">
                             {t("config.voiceRate")}
                           </div>
@@ -1443,7 +1476,7 @@ export function ConfigV2() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
                               {t("config.voiceVolume")}
@@ -1471,7 +1504,7 @@ export function ConfigV2() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
                               {t("config.voiceRadio")}
@@ -1490,7 +1523,7 @@ export function ConfigV2() {
                         </div>
                         {/* Profil de l'effet radio + comparaison à l'écoute (A puis B). */}
                         {voiceRadio && (
-                          <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                             <div className="min-w-0">
                               <div className="text-sm font-medium leading-tight">
                                 {t("config.radioStyle")}
@@ -1540,56 +1573,6 @@ export function ConfigV2() {
                             </div>
                           </div>
                         )}
-                        {/* Bips du push-to-talk (ouverture 1000 Hz / envoi 700 Hz). */}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium leading-tight">
-                              {t("config.pttBeeps")}
-                            </div>
-                            <div className="text-xs text-muted-foreground/80 mt-0.5">
-                              {t("config.pttBeepsDesc")}
-                            </div>
-                          </div>
-                          <Switch
-                            checked={pttBeeps}
-                            onCheckedChange={(v) => {
-                              void useAppStore.getState().setPttBeeps(v);
-                              if (v) {
-                                pttBeep("open");
-                                setTimeout(() => pttBeep("send"), 450);
-                              }
-                            }}
-                            className="shrink-0"
-                          />
-                        </div>
-                        {voiceEngine === "piper" && (
-                          <>
-                            <Separator className="my-1" />
-                            <VoiceDownloads
-                              kind="tts"
-                              onInstalled={() => setAssetsVersion((v) => v + 1)}
-                            />
-                          </>
-                        )}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium leading-tight">
-                              {t("live.vmTitle")}
-                            </div>
-                            <div className="text-xs text-muted-foreground/80 mt-0.5">
-                              {t("live.vmSubtitle")}
-                            </div>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1.5 shrink-0"
-                            onClick={() => setVoiceModalOpen(true)}
-                          >
-                            <Volume2 className="h-3.5 w-3.5" />
-                            {t("live.vmOpen")}
-                          </Button>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -1851,6 +1834,31 @@ export function ConfigV2() {
                       </div>
                     </section>
 
+                    {/* Bips du push-to-talk : ce qu'on entend quand on parle à l'ingénieur. */}
+                    <section className="space-y-1.5 border-t border-border/50 pt-3">
+    {/* Bips du push-to-talk (ouverture 1000 Hz / envoi 700 Hz). */}
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+      <div className="min-w-0">
+        <div className="text-sm font-medium leading-tight">
+          {t("config.pttBeeps")}
+        </div>
+        <div className="text-xs text-muted-foreground/80 mt-0.5">
+          {t("config.pttBeepsDesc")}
+        </div>
+      </div>
+      <Switch
+        checked={pttBeeps}
+        onCheckedChange={(v) => {
+          void useAppStore.getState().setPttBeeps(v);
+          if (v) {
+            pttBeep("open");
+            setTimeout(() => pttBeep("send"), 450);
+          }
+        }}
+        className="shrink-0"
+      />
+    </div>
+                    </section>
                     {/* 2. Tester (avec / sans IA) */}
                     <section className="space-y-1.5 border-t border-border/50 pt-3">
                       <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

@@ -452,6 +452,24 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Audio / Voice settings in a logical order: engine and voice (download, then choose and test), online AI voice apart, then sound and radio effect. Push-to-talk beeps move to “Talk to the engineer”, “Customise announcements” to “Announcements”.",
+              fr: "Réglages Audio / Voix dans un ordre logique : moteur et voix (télécharger, puis choisir et tester), voix IA en ligne à part, puis son et effet radio. Les bips du push-to-talk passent dans « Parler à l'ingénieur », « Personnaliser les annonces » dans « Annonces ».",
+              es: "Ajustes de Audio / Voz en un orden lógico: motor y voz (descargar, luego elegir y probar), voz IA en línea aparte, después sonido y efecto de radio. Los pitidos del push-to-talk pasan a «Hablar con el ingeniero» y «Personalizar los anuncios» a «Anuncios».",
+              de: "Audio-/Stimmen-Einstellungen in logischer Reihenfolge: Engine und Stimme (herunterladen, dann wählen und testen), Online-KI-Stimme separat, dann Klang und Funkeffekt. Die Push-to-talk-Pieptöne wandern zu „Mit dem Ingenieur sprechen“, „Ansagen anpassen“ zu „Ansagen“.",
+              it: "Impostazioni Audio / Voce in ordine logico: motore e voce (scaricare, poi scegliere e provare), voce IA online a parte, poi suono ed effetto radio. I bip del push-to-talk passano in «Parla con l'ingegnere», «Personalizza gli annunci» in «Annunci».",
+            },
+          },
+          {
+            text: {
+              en: "Widgets by address: each page is named after its widget (“Standings · LMU”…), so tabs in OpenKneeboard and sources in OBS are easy to tell apart.",
+              fr: "Widgets par adresse : chaque page porte le nom de son widget (« Classement · LMU »…), pour reconnaître les onglets dans OpenKneeboard et les sources dans OBS.",
+              es: "Widgets por dirección: cada página lleva el nombre de su widget («Clasificación · LMU»…), para reconocer las pestañas en OpenKneeboard y las fuentes en OBS.",
+              de: "Widgets per Adresse: Jede Seite trägt den Namen ihres Widgets („Rangliste · LMU“…), damit Tabs in OpenKneeboard und Quellen in OBS unterscheidbar sind.",
+              it: "Widget per indirizzo: ogni pagina porta il nome del suo widget («Classifica · LMU»…), per riconoscere le schede in OpenKneeboard e le sorgenti in OBS.",
+            },
+          },
+          {
+            text: {
               en: "Session details, Regularity tab: a sentence explains what it measures, a verdict under the spread (very consistent → very inconsistent), sectors as small cards (most stable / to work on), bars that finally show the right length, and the tab now sits before AI Coach.",
               fr: "Détail d'une session, onglet Régularité : une phrase explique ce qu'il mesure, un verdict sous l'écart-type (très régulier → très irrégulier), les secteurs en petites cartes (le plus stable / à travailler), des barres enfin à la bonne longueur, et l'onglet passe avant Coach IA.",
               es: "Detalle de una sesión, pestaña Regularidad: una frase explica lo que mide, un veredicto bajo la desviación (muy regular → muy irregular), los sectores en pequeñas tarjetas (el más estable / a trabajar), barras por fin a la longitud correcta, y la pestaña pasa antes de Coach IA.",

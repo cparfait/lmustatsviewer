@@ -1617,6 +1617,8 @@ export default {
     wFireRain: "está lloviendo",
   },
   config: {
+    voiceGroupVoice: "Motor y voz",
+    voiceGroupSound: "Sonido y efecto de radio",
     toolsNav: "Herramientas y diagnóstico",
     tierSource: "Fuente de los niveles",
     tierSourceOhne: "Hoja ohne_speed",

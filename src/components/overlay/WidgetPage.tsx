@@ -85,6 +85,13 @@ export function WidgetPage({ id }: { id: string }) {
   const data = useOverlayData(cfg.highFps);
   const boxRef = useRef<HTMLDivElement>(null);
 
+  // Titre de la page = nom du widget : OpenKneeboard et OBS nomment l'onglet / la
+  // source d'après lui (sinon tous s'appellent « LMU Stats Viewer »).
+  const widgetTitle = OVERLAY_BY_ID[id as OverlayId] ? t(`overlays.items.${id}.title`) : "";
+  useEffect(() => {
+    if (widgetTitle) document.title = `${widgetTitle} · LMU`;
+  }, [widgetTitle]);
+
   // Fond transparent (comme la fenêtre overlay), ou sombre si demandé.
   useEffect(() => {
     const html = document.documentElement;

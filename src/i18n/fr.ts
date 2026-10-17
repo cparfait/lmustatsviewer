@@ -1618,6 +1618,8 @@ export default {
     wFireRain: "il pleut",
   },
   config: {
+    voiceGroupVoice: "Moteur et voix",
+    voiceGroupSound: "Son et effet radio",
     toolsNav: "Outils & diagnostic",
     tierSource: "Source des paliers",
     tierSourceOhne: "Feuille ohne_speed",

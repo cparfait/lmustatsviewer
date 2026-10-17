@@ -1617,6 +1617,8 @@ export default {
     wFireRain: "es regnet",
   },
   config: {
+    voiceGroupVoice: "Engine und Stimme",
+    voiceGroupSound: "Klang und Funkeffekt",
     toolsNav: "Tools & Diagnose",
     tierSource: "Quelle der Stufen",
     tierSourceOhne: "ohne_speed-Tabelle",

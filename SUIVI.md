@@ -267,6 +267,11 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 ## 7. Notes / points ouverts
 
+- ⏳ **VR / anti-triche — nouvel indice** (2026-10-17, journal §8) : un concurrent livre une
+  couche OpenXR implicite **signée** (Sectigo) et annonce LMU compatible en VR → EAC semble
+  tolérer une couche signée. La décision « Overlays en VR » (§2) reste OpenKneeboard tant que
+  le test Pimax n'est pas fait et qu'on n'a pas de certificat de signature de code ; à
+  rediscuter ensuite (couche maison = intégration plus fine).
 - ⏳ **Piper sous forte charge CPU** (2026-10-15, `voice-eval/README.md`) : avec 12 threads
   saturés, 1 à 5 s par phrase (medium) en priorité basse, car `piper.exe` ne borne pas ses
   threads onnxruntime. Mesurer en jeu réel (et avec un encodage OBS en CPU). Si c'est
@@ -894,6 +899,219 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-17 — Veille : MySIMRace (site + MSR Connector 3.0.95) — analyse REA, aucun code modifié
+
+**Demande** : analyser en profondeur `mysimrace.com` (compte de l'utilisateur, lecture seule
+dans son Chrome) et l'exe installé (`%LOCALAPPDATA%\Programs\MSRConnector`).
+
+**Méthode** : bundle .NET single-file extrait par script (520 fichiers, rien exécuté) →
+REA `inspect_managed_members` sur les 7 assemblies `MsrConnector.*` ; site : 29 pages lues
+par requêtes GET same-origin (hors déconnexion, aucun formulaire soumis) + capture REA
+`capture_browser_scenario` non connectée (tout redirige vers le login, API publique
+`/api/stats.php`). Exe **non signé**, .NET 8, WinForms (fenêtre) + WPF (overlays) + WebView2.
+
+**MSR Connector** ([O] observé / [D] déduit) :
+- ✅ Données : **uniquement le plugin rF2** (`$rFactor2SMMP_Scoring/Telemetry/Extended$`), pas
+  `LMU_Data` ; il **installe lui-même** la DLL du plugin et patche `CustomPluginVariables.JSON`.
+  Pas de lecture des XML. Détection de tour par sondage 100 ms (`TotalLaps`/`LastLapTime`,
+  10 s ≤ tour ≤ 10 min) ; « valide » = simplement pas au stand [D].
+- ✅ **API REST du jeu** : lit `GetGameState`, `sessionInfo`, `SESSSET_cut_rules` et, au menu,
+  **écrit** `POST /rest/sessions/settings` pour forcer les règles de cut « Default/Strict » ;
+  tour bloqué si cuts laxistes. Le serveur classe officiel / non officiel (online, IP:port du
+  serveur, type de séance, aides TC/ABS/SC, version du jeu, pneus, carburant).
+- ✅ Envoi : file SQLite `pending_laps` (WAL, rejet permanent vs transitoire, N essais) →
+  `POST /api/submit_lap.php` (réponse : PB, record voiture, record de classe). Clé API
+  chiffrée DPAPI, en-tête `X-API-Key`, version minimale imposée (`X-Connector-Version`, 403).
+  ⚠️ Pas de signature des tours ; clé API aussi passée en clair dans des URL.
+- ✅ **Bips** au volant après chaque tour : 1 = record perso, 2 = record de catégorie,
+  3 = « MASTER » (meilleur chrono de la catégorie). Pas de TTS.
+- ✅ Overlays écran (7) : Pilote (dernier tour, PB, record de catégorie + détenteur, rang),
+  Meilleurs temps (autour de soi), Carrière, Connexion, **« Delta cover »** (rectangle opaque
+  qui masque le delta du jeu), **Race Control** et **Race Radio** (pages web distantes en
+  WebView2). Fenêtres transparentes topmost, pas de click-through.
+- ✅ **Direction de course en ligne** : flux **Mercure (SSE)** avec JWT court (drapeaux
+  verts/jaunes/FCY/VSC/rouge, pit ouvert/fermé, messages info/avertissement/pénalité) ;
+  **radio pilote ↔ direction de course** : push-to-talk sur bouton volant (DirectInput),
+  10 s max, upload `audio/webm` ; **relais de positions** : un seul client par course,
+  désigné par le serveur, envoie toutes les 500 ms les positions X/Z, vitesse, place, stand
+  de tous les pilotes → carte live de la direction de course.
+- ✅ **VR = OpenVR seulement** (`OpenVR.NET`, pas d'OpenXR) et **seulement Race Control + Race
+  Radio** : capture de la WebView2 ~3 fois/s (`CapturePreviewAsync` → PNG → `SetOverlayRaw`),
+  ancrage tête ou fixe (pose capturée au recentrage), largeur/avance/hauteur/côté réglables,
+  manifeste SteamVR enregistré. Rudimentaire comparé à une couche OpenXR.
+- ✅ Diagnostic auto-réparateur (DLL bloquée « Mark of the Web », copie « (1).dll », JSON mal
+  encodé, VC++ 2013, double install) + rapport envoyé au serveur ; démarrage avec Windows,
+  surveillance de LMU, canal testeur, normalisation des noms de voitures (regex).
+
+**Site mysimrace.com** (32 sections, PHP + API JSON `api/*.php`) :
+- Classement hotlap (catégories HY/P2/P2 ELMS/P3/GT3/GTE, filtres sec/pluie, online/local,
+  P/Q/R, **seuls les tours sur serveurs officiels comptent**, colonne règle de cut, tour
+  optimal, pneus ; demande de correction de voiture avec capture) ; records officiels,
+  palmarès, matrice, **infographies/cartes à partager** (MSR Cards) ; classement par nation
+  et par équipe.
+- **Rival** : duel hebdomadaire automatique entre pilotes de même niveau (appariement le
+  mardi, +3/+1/0, bonus Daily Race, 75 %/50 % si l'adversaire ne roule pas), classement
+  cumulé sur 12 semaines, « Rival Mates » entre amis.
+- **MSR Index** : indice pilote 0–999 (1 point = 0,01 % d'écart au temps de référence mondial,
+  dès 5 combos circuit + catégorie) et classement d'équipes (moyenne des 5 meilleurs).
+- **Progression** : pace, régularité (écart-type, % de tours à < 1 s du meilleur, conversion
+  < 0,3/0,5/1 s), stabilité par secteur, temps théorique, « pilote à battre », delta vs top 10 %,
+  « coach virtuel ». **Comparateur** pilote vs pilote. **BOP** : effet réel d'un patch
+  (V1.2.3 → V1.2.4) par comparaison pilote à pilote.
+- Défis hebdomadaires sur les courses officielles, calendrier des courses LMU (compte à
+  rebours), statistiques Steam du jeu, 34 tracés de circuits avec secteurs, OhneSpeed
+  (diffusé avec accord de l'auteur), **Guardian** (quarantaine des chronos suspects),
+  **pack vocal CrewChief en français**, Draft/Coop (recrutement d'équipes, endurance
+  6/12/24 h), gestion d'Opens et championnats, **Race Control Academy** (Rookie → Spotter →
+  Commissaire → Directeur de course), Event Crew, boîte aux lettres, suggestions avec votes,
+  profil (matériel, casque, réseaux, export RGPD, suppression de compte).
+
+**Ce qu'on peut en tirer** (au-delà de la liste RaceLab/pitlane ci-dessous) :
+1. **Bips de record** au volant (1/2/3) — trivial avec notre audio ; option dans la voix.
+2. **Tour « comparable »** : lire `SESSSET_cut_rules` / online / serveur (lecture seule, sans
+   rien imposer au jeu — notre REST reste en lecture) et étiqueter chaque tour ; filtre
+   « tours comparables » dans `/records` et `/classement`. À vérifier : ce qu'on stocke déjà.
+3. **Régularité / conversion** dans le profil ou le détail de session (écart-type, % de tours
+   à < 0,3/0,5/1 s du meilleur, secteur le plus instable) — si absent.
+4. **Rival hebdomadaire** sur notre base communautaire (appariement par palier).
+5. **Effet d'un patch** (BOP) : comparaison avant/après par pilote ayant roulé sur les deux
+   versions — nous stockons déjà la version du jeu.
+6. **Assistant de diagnostic** qui répare (plugin bloqué MOTW, JSON, doublons).
+7. **Cartes à partager** (image de record) depuis `/records`.
+- ℹ️ Notre avantage : ingénieur vocal complet, télémétrie DuckDB, données `LMU_Data`
+  (énergie virtuelle, ABS/TC…) que MSR n'utilise pas.
+- 📋 **Prochaine étape** : voir l'entrée RaceLab ci-dessous (choix des pistes par l'utilisateur).
+
+### 2026-10-17 — Veille : RaceLab 8.4.4 + RaceLab VR 3.0.12 + pitlane (classement) — analyse REA, aucun code modifié
+
+**Demande** : analyser RaceLab en profondeur avec REA (surtout la VR, pour l'ajouter à
+l'app), le complément « RaceLab VR » installé à part, la doc `garage.racelab.app/docs/vr`,
+la vidéo de présentation, et `lmulead.pitlane.gr` pour la partie classement ; en tirer
+des idées pour la communauté. Rien n'est repris de leur code (règle veille, §2).
+
+**Méthode** : REA `analyze_javascript_application` (app Electron, 112 fichiers, couverture
+partielle : main et grosses fenêtres en bytecode V8 `.jsc`) ; `inspect_pe_resources` +
+imports/exports/chaînes PE pour les binaires VR (pas de Ghidra installé → pas de
+pseudo-code, l'architecture se lit sans) ; `capture_browser_scenario` pour pitlane
+(réseau + accessibilité) ; doc et vidéo lues dans le navigateur (chapitres + description,
+sous-titres non récupérés).
+
+**RaceLab VR — comment ça marche** (observé dans les binaires, `C:\Program Files\Racelab VR`) :
+- ✅ **Deux pièces, toutes deux signées** (Authenticode valide, Sectigo, « Pace Engineering
+  GmbH ») : `racelab_vr.exe` (v3.0.12, process séparé) + `XR_APILAYER_app_racelab_Overlay64.dll`,
+  **couche OpenXR implicite** enregistrée dans `HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Implicit`
+  (manifeste JSON, `disable_environment` = `DISABLE_XR_APILAYER_app_racelab_Overlay`).
+- ✅ **Rendu** : `racelab_vr.exe` embarque **CEF** (Chromium 132, rendu hors écran
+  `OnAcceleratedPaint`) et charge **les mêmes pages web que les overlays écran/OBS**
+  (`http://localhost:8080/ui/#/overlays/<id>`), avec un JS injecté (`RacelabVRNative`,
+  évènement `racelabvr/editmode`) et une classe CSS `vrMode` (marges, sans ombres, bandeau
+  « TRANSFORM POSITION / ADJUST » en édition). Limite 60 FPS (`chromiumFrameRateLimit`),
+  `resolutionScale` (utile surtout Varjo).
+- ✅ **Transport vers le jeu** : mémoire partagée (PID du « feeder » + keepalive : la couche
+  retire les overlays si le process meurt) + **textures D3D11 partagées et fences**
+  (`DuplicateHandle`, `OpenSharedResource1`, `OpenSharedFence`). Dans `xrEndFrame`, la couche
+  crée un swapchain par overlay et **ajoute un `XrCompositionLayerQuad`** aux couches du jeu.
+  Espaces VIEW (head-locked) / LOCAL / STAGE (world-locked) ; option `useWorldLockedPositions`
+  = contournement d'un bug Varjo Base ≥ 4.4. **Jeux D3D11 uniquement** (« Game is not
+  supported: not D3D11 ») — LMU est en D3D11.
+- ✅ **SteamVR** : chemin séparé via `openvr_api.dll` / `IVROverlay` (`SetOverlayTransformAbsolute`,
+  `…TrackedDeviceRelative`, courbure, alpha). La doc annonce OpenXR + OpenVR + OpenComposite.
+- ✅ **Abonnement** : l'exe *et* la DLL vérifient l'abonnement « Professional » par WinHTTP ;
+  sinon un panneau « abonnement requis ». Traces ETW (`RacelabVR.wprp`), log `openxr-apilayer.log`.
+- ✅ **Origine** : licence tierce « OpenKneeboard » (Fred Emmott) **concédée uniquement pour
+  RaceLab** — même architecture qu'OpenKneeboard (process + couche OpenXR + SHM). Rien de
+  réutilisable chez nous.
+- ✅ **UX** (doc + traductions + vidéo « Introducing RacelabVR », 10 min) : bouton VR dans le
+  pied de page ; raccourcis **Toggle VR** et **Recentrer** (à mettre sur le volant, *même
+  bouton que le recentrage du jeu*) ; **mode édition** clavier/souris (Tab entrer, Espace
+  overlay suivant, M position/ajustement, molette = transparence, Échap ×5 = sortie de
+  secours qui libère les hooks) ; **overlay d'accueil** qui s'estompe ; **jeux d'overlays**
+  (« sets ») par jeu, commutables par raccourci même en course ; **transparence selon le
+  regard** (distance angulaire au rayon de vue, début/fin, opacité mini) ; démarrage auto
+  avec l'app ; réinitialisation. Config utilisateur : `%APPDATA%\RacelabApps\vr.json`.
+- ⚠️ **Indice anti-triche (inféré, non observé en ligne)** : RaceLab annonce LMU compatible VR
+  avec cette couche **signée** injectée dans le jeu → fort indice qu'Easy Anti-Cheat tolère
+  une couche OpenXR implicite **signée** dans LMU. Lève en partie l'inconnue de l'option A
+  (étude du 2026-09-23) *à condition d'avoir un certificat de signature de code*. À confirmer
+  par le test Pimax prévu (☐ toujours pas fait).
+
+**RaceLab 8.4.4 — le reste** (catalogue complet ; [O] observé / [D] déduit) :
+- Architecture : Electron + bytenode ; serveur local `:8080` (overlays par URL, `/api/command`,
+  `/api/status`, WebSocket `/ws/status` pour Stream Deck) ; QR code pour ouvrir un overlay sur
+  tablette ; chaque overlay = source navigateur OBS (double PC : remplacer `localhost` par l'IP).
+- LMU : plugin `RacelabLMUPlugin.dll` + `CustomPluginVariables.JSON` (désactive le plugin rF2
+  standard), mémoire `$lmuSMMP_*$` (Telemetry, Scoring, Rules, Extended, Graphics, PitInfo,
+  Weather…), API REST `:6397` (`/rest/watch/trackmap`, `/rest/strategy/usage`,
+  `/rest/garage/UIScreen/RepairAndRefuel`, `/rest/watch/focus`) ; borderless exigé (lecture
+  regex de `Config_DX11.ini`).
+- 45 overlays : Standings (multiclasse, SOF, **Virtual Energy NRG**, Race Briefing), Relative,
+  Track map (121 réglages), Mini/Flat map, Input telemetry (comparaison PB/ami/percentile),
+  **Delta Trace** (delta sur tout le tour + **« Weak Spot »** 1–5 zones à travailler), Delta bar,
+  Fuel calculator (+ **partage carburant** d'équipe par jeton), Pitbox helper, Head-to-head,
+  Radar / Blind spot / Overtake alert (classe plus rapide), Flags, Weather, G-meter, Data blocks
+  (~80 widgets)… ; aperçus non sortis : Trend chart, Race Control Info, Battle prediction.
+- **Race Events** : chronologie incidents / dépassements / sorties / stands / drapeaux +
+  **« Review Mark »** posé par raccourci, clic → saut dans le replay.
+- Communauté : amis, **driver tags** (CLEAN, DIRTY, RIVAL… + notes, vus dans Standings/Relative),
+  layouts communautaires publiables.
+- Layouts : éditeur par écran, **règles d'activation auto** (classe, voiture, type de session,
+  spectateur). **Tools Manager** : lance/ferme SimHub, Crew Chief, Fanatec, MOZA… avec la sim.
+- `graphics.exe` : lit (sans modifier) les réglages GPU NVIDIA/AMD par jeu (VSync, low latency,
+  G-Sync, limiteur) dont `Le Mans Ultimate.exe` → diagnostic « Game Setup ».
+- Streaming : chat Twitch/YouTube, StatBot `!rl`, Chat Race, garage cover, visualiseur micro.
+- **Aucun spotter vocal ni TTS** (Crew Chief seulement en outil externe) → notre ingénieur
+  vocal reste un net avantage.
+- Modèle : gratuit limité / **Pro** (tous overlays, layouts, Race Briefing, fuel sharing,
+  **VR**). 17 langues. Mode démo par enregistrement iRacing rejoué (`demodata/race.json`).
+
+**pitlane (lmulead.pitlane.gr) — classement** (capture REA, API JSON publique) :
+- ✅ API : `/api/v1/meta` (saisons, classes, circuits/variantes, paliers), `/api/v1/board?track&layout&class`
+  (lignes : pilote Steam, vérifié, voiture, tour + S1/S2/S3, écart, **air/piste/pluie/mouillé/grip**,
+  version du jeu, date), `/api/v1/tiers?class`, `/api/v1/cars?class`, `/api/v1/me` ; connexion Steam.
+- ✅ **Paliers auto** : référence = **moyenne des 5 meilleurs tours valides** de la classe sur la
+  variante (se recale seule après chaque patch) ; seuils ALIEN 100,5 % · COMPETITIVE 101,5 % ·
+  GOOD 102,5 % · MIDPACK 104 % · TAIL-ENDER 107 % ; « PROVISIONAL » si trop peu de pilotes ;
+  calculateur « tape ton temps → ton palier » sans uploader.
+- ✅ **Car Index** : chaque voiture d'une classe sur chaque circuit en % de la plus rapide,
+  moyenne + pire circuit → quelle voiture choisir.
+- ✅ Tour optimal (meilleurs secteurs), vues Tour / Podium / Cartes, saisons (« Season 1 »
+  depuis le 2026-10-14), uploader tray de 80 Ko non signé qui lit les XML de résultats.
+  Volume encore faible (4–14 entrées par circuit).
+- ℹ️ Notre `/classement` couvre déjà : paliers (ohne_speed), percentiles/distribution,
+  comparaison avec tour optimal, filtre version, provisoire. Manquent : paliers *calculés sur
+  notre base*, Car Index, conditions du tour, calculateur manuel.
+
+**Pistes retenues pour nous** (classées par effet pour la communauté — à valider) :
+1. **Widgets servis par URL locale + WebSocket** (déjà prévu 2026-09-23) : une seule brique
+   débloque **la VR (OpenKneeboard Web Dashboards)**, **OBS** (streamers), **tablette/2ᵉ écran**
+   (la régie existe déjà en HTTP pur, port 8790 → y ajouter une route par widget, loopback, et
+   un push WebSocket de `live-data`) + une classe `vr` (marges, pas d'ombres, contraste).
+2. **VR niveau 1 = OpenKneeboard** (zéro DLL chez nous) : section « VR » dans `/overlays` avec
+   URLs à copier, guide pas à pas, raccourcis Recentrer / Afficher-masquer, lancement auto
+   d'OpenKneeboard avec LMU.
+3. **VR niveau 2 = compagnon natif signé** (seulement si certificat + test EAC OK) : process
+   séparé qui rend les widgets hors écran + couche OpenXR implicite D3D11 (un quad par widget,
+   textures partagées + fences, keepalive) + overlay OpenVR pour SteamVR ; mode édition,
+   sets, transparence selon le regard, overlay d'accueil, sortie de secours.
+4. Classement : **paliers calculés sur notre base** (top N, recalage par version, l'ancien
+   barème ohne_speed reste choisissable), **Index voitures**, conditions du tour,
+   calculateur de palier manuel.
+5. **Points faibles du tour** (style « Weak Spot ») : 1–5 zones où l'on perd le plus face à la
+   référence — à recouper avec le coach par virage existant.
+6. **Repères de revue** : bouton volant « marquer ce moment » pendant la course → liste
+   horodatée dans le détail de session (avec incidents, limites de piste, stands).
+7. **Briefing adversaires** : palier communautaire / historique des pilotes du lobby avant la
+   course (base communautaire opt-in).
+8. **Notes sur les pilotes** (propre / dangereux / rival) visibles dans le live.
+9. **Partage énergie/carburant d'équipe** en endurance (relié à T15 Social).
+10. **Lanceur d'outils** (OpenKneeboard, SimHub, Crew Chief… avec LMU) et **diagnostic PC**
+    (borderless, VSync, limiteur) en lecture seule.
+- ❌ Écarté : mode démo à données simulées (décision « pas de données mockées » ; un rejeu
+  de *vraies* sessions reste possible via le banc de rejeu).
+- 📋 **Prochaine étape** : choix utilisateur des pistes ; pour la VR, faire enfin le test
+  EAC sur le Pimax (OpenKneeboard *et*, pour comparaison, RaceLab VR qui est installé), puis
+  implémenter la piste 1 (prérequis commun à toutes les variantes VR).
 
 ### 2026-10-16 — Tout fusionné dans `main` ; on ne travaille plus que sur `main`
 

@@ -222,6 +222,17 @@ export default {
     legendMyTime: "Recuadro = mi nivel actual",
   },
   overlays: {
+    vr: {
+      button: "VR",
+      buttonHint: "Modo VR: copiar los widgets en OpenKneeboard",
+      title: "Modo VR",
+      desc: "Tus widgets se ven en el casco gracias a OpenKneeboard: transparentes, flotan sobre el juego. Elígelos abajo y copia su dirección.",
+      step1: "Instala OpenKneeboard y ábrelo antes de LMU.",
+      step2: "En la tarjeta de un widget, pulsa «Copiar dirección VR».",
+      step3: "En OpenKneeboard: Ajustes › Pestañas › Añadir › «Web Dashboard», pega la dirección y deja la transparencia activada. Una pestaña por widget.",
+      step4: "En VR, coloca y dimensiona el widget en OpenKneeboard. Su contenido y su color se ajustan aquí, pulsando su tarjeta.",
+      copy: "Copiar dirección VR",
+    },
     look: {
       title: "Apariencia de los overlays",
       desc: "Estilo común a todos los widgets, en el juego y en los widgets abiertos por dirección local (VR, OBS). El estilo Clásico mantiene el aspecto original.",

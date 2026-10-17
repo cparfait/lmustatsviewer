@@ -913,6 +913,19 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Page Overlays : bouton « VR » (mode VR en un clic)
+
+- ✅ **Bouton « VR »** dans la barre du haut (`usePageState("overlays.vr")`) : démarre le serveur
+  de widgets s'il ne tourne pas (`ensureWidgetServer`, réglage retenu comme activé), affiche un
+  bandeau en 4 gestes (installer OpenKneeboard, copier, onglet « Web Dashboard » avec
+  transparence, placer en VR ; rappel UAC) et remplace l'interrupteur de chaque carte par
+  « Copier l'adresse VR » + ouvrir (adresse transparente, échelle 1). Nouveau clic = page normale.
+  Composants `components/OverlayVr.tsx`, hook `useVrBase` (`lib/widgetServer.ts`). Vérifié dans
+  le navigateur avec un serveur simulé (démarrage, réglage enregistré, bandeau, bouton actif).
+- ℹ️ La transparence en VR est assurée par OpenKneeboard (fenêtre de navigateur virtuelle
+  transparente, option par onglet activée par défaut) et par notre page widget (fond transparent).
+- 📋 **Prochaine étape** : essai dans le casque une fois l'UAC réactivé (OpenKneeboard).
+
 ### 2026-10-17 — Widgets par adresse en 3 étapes ; rappels limiteur dans la préparation de la voix
 
 - ✅ **Carte « Widgets par adresse »** réécrite en étapes numérotées : ① activer ;

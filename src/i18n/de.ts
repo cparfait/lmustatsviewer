@@ -222,6 +222,17 @@ export default {
     legendMyTime: "Umrahmt = mein aktuelles Niveau",
   },
   overlays: {
+    vr: {
+      button: "VR",
+      buttonHint: "VR-Modus: Widgets in OpenKneeboard kopieren",
+      title: "VR-Modus",
+      desc: "Deine Widgets erscheinen dank OpenKneeboard im Headset: transparent schweben sie über dem Spiel. Wähle sie unten aus und kopiere ihre Adresse.",
+      step1: "Installiere OpenKneeboard und starte es vor LMU.",
+      step2: "Klicke auf der Karte eines Widgets auf „VR-Adresse kopieren“.",
+      step3: "In OpenKneeboard: Einstellungen › Tabs › Hinzufügen › „Web Dashboard“, Adresse einfügen und Transparenz aktiviert lassen. Ein Tab pro Widget.",
+      step4: "Platziere und skaliere das Widget in VR in OpenKneeboard. Inhalt und Farbe stellst du hier ein, per Klick auf seine Karte.",
+      copy: "VR-Adresse kopieren",
+    },
     look: {
       title: "Overlay-Darstellung",
       desc: "Gemeinsamer Stil für alle Widgets, im Spiel und in Widgets über lokale Adresse (VR, OBS). Der Stil Klassisch behält das ursprüngliche Aussehen.",

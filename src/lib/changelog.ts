@@ -74,6 +74,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Overlays page: a “VR” button at the top switches the page to VR mode — local addresses start by themselves, a short guide explains the OpenKneeboard steps, and each widget card offers “Copy VR address” (transparent widget that floats above the game). Click VR again to get the normal page back.",
+              fr: "Page Overlays : un bouton « VR » en haut passe la page en mode VR — les adresses locales démarrent toutes seules, un court guide donne les gestes dans OpenKneeboard, et chaque carte de widget propose « Copier l'adresse VR » (widget transparent qui flotte au-dessus du jeu). Un nouveau clic sur VR rend la page normale.",
+              es: "Página Overlays: un botón «VR» arriba pasa la página a modo VR — las direcciones locales se inician solas, una breve guía explica los pasos en OpenKneeboard y cada tarjeta de widget ofrece «Copiar dirección VR» (widget transparente que flota sobre el juego). Otro clic en VR devuelve la página normal.",
+              de: "Seite Overlays: Eine Schaltfläche „VR“ oben schaltet die Seite in den VR-Modus — lokale Adressen starten von selbst, eine kurze Anleitung zeigt die Schritte in OpenKneeboard, und jede Widget-Karte bietet „VR-Adresse kopieren“ (transparentes Widget, das über dem Spiel schwebt). Ein weiterer Klick auf VR stellt die normale Seite wieder her.",
+              it: "Pagina Overlay: un pulsante «VR» in alto passa la pagina in modalità VR — gli indirizzi locali si avviano da soli, una breve guida spiega i passi in OpenKneeboard e ogni scheda widget offre «Copia indirizzo VR» (widget trasparente che fluttua sopra il gioco). Un altro clic su VR riporta la pagina normale.",
+            },
+          },
+          {
+            text: {
               en: "Pit limiter reminders from the engineer: entering the pit lane without the limiter (“Pit entry, limiter on”), and back on track with the limiter still on (“Limiter off!”). Once per pass, nothing when leaving the garage.",
               fr: "Rappels du limiteur par l'ingénieur : entrée dans la voie des stands sans limiteur (« Entrée des stands, mets le limiteur ») et retour en piste avec le limiteur encore actif (« Enlève le limiteur ! »). Une fois par passage, rien au départ du garage.",
               es: "Recordatorios del limitador por el ingeniero: entrada en el pit lane sin limitador («Entrada a boxes, pon el limitador») y vuelta a pista con el limitador aún puesto («¡Quita el limitador!»). Una vez por paso, nada al salir del garaje.",

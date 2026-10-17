@@ -23,6 +23,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Palette,
+  Glasses,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,6 +34,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { WidgetServerSettings } from "@/components/WidgetServerSettings";
 import { OverlayLookDialog } from "@/components/OverlayLookSettings";
 import { OverlayThumb } from "@/components/overlay/OverlayThumb";
+import { VrBanner, VrCopyButton } from "@/components/OverlayVr";
+import { useVrBase } from "@/lib/widgetServer";
+import { usePageState } from "@/lib/usePageState";
 import { cn } from "@/lib/utils";
 import { overlay as overlayApi, type OverlayScreen } from "@/lib/api";
 import { toastError } from "@/stores/dialogs";
@@ -105,6 +109,9 @@ export function Overlays() {
   const [selected, setSelected] = useState<OverlayId | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showLook, setShowLook] = useState(false);
+  // Mode VR : adresses à copier dans OpenKneeboard à la place des interrupteurs.
+  const [vrMode, setVrMode] = usePageState("overlays.vr", false);
+  const vr = useVrBase(vrMode);
   // Mémorise qu'on a ouvert la config depuis le mode Édition (clic ⚙) afin d'y
   // revenir automatiquement au retour, sans avoir à recliquer « Mode Édition ».
   const returnToEditRef = useRef(false);
@@ -455,6 +462,16 @@ export function Overlays() {
           >
             <Check className="h-3.5 w-3.5" /> {t("overlays.saved")}
           </span>
+          <Button
+            variant={vrMode ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setVrMode(!vrMode)}
+            title={t("overlays.vr.buttonHint")}
+          >
+            <Glasses className="h-4 w-4" />
+            {t("overlays.vr.button")}
+          </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowLook(true)}>
             <Palette className="h-4 w-4" />
             {t("overlays.look.button")}
@@ -573,6 +590,8 @@ export function Overlays() {
         </div>
       </div>
 
+      {vrMode && <VrBanner base={vr.base} error={vr.error} />}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {OVERLAY_DEFS.map((def) => {
           const s = cfg.overlays[def.id];
@@ -608,18 +627,24 @@ export function Overlays() {
               <div className="mb-3 mt-1 text-[11px] leading-snug text-muted-foreground/70">
                 {t(`overlays.items.${def.id}.tip`)}
               </div>
-              <div
-                className="flex items-center justify-between border-t border-border pt-2.5"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {activeLabel(s)}
-                </span>
-                <Switch
-                  checked={s.enabled}
-                  onCheckedChange={() => handleToggle(def.id)}
-                />
-              </div>
+              {vrMode ? (
+                <div className="border-t border-border pt-2.5" onClick={(e) => e.stopPropagation()}>
+                  <VrCopyButton base={vr.base} id={def.id} />
+                </div>
+              ) : (
+                <div
+                  className="flex items-center justify-between border-t border-border pt-2.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {activeLabel(s)}
+                  </span>
+                  <Switch
+                    checked={s.enabled}
+                    onCheckedChange={() => handleToggle(def.id)}
+                  />
+                </div>
+              )}
             </Card>
           );
         })}

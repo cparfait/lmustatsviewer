@@ -6,7 +6,7 @@
  * `lib/widgetLink.ts`.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { config, isTauri } from "@/lib/api";
@@ -39,6 +39,19 @@ export const widgetServer = {
   status: () => invoke<WidgetServerStatus>("widget_server_status"),
   setLanguage: (lang: string) => invoke<void>("widget_server_set_language", { lang }),
 };
+
+/**
+ * Démarre le serveur s'il ne tourne pas encore et le retient comme activé (relancé au
+ * prochain démarrage), avec le port enregistré. Utilisé par le mode VR de la page Overlays.
+ */
+export async function ensureWidgetServer(): Promise<WidgetServerStatus> {
+  const s = await widgetServer.status();
+  if (s.running) return s;
+  const port = widgetServerPort(await config.get(WIDGET_SERVER_PORT_KEY));
+  await config.set(WIDGET_SERVER_ENABLED_KEY, "1");
+  await config.set(WIDGET_SERVER_PORT_KEY, String(port));
+  return widgetServer.start(port);
+}
 
 /** Port valide (1024-65535), sinon le port par défaut. */
 export function widgetServerPort(v: string | null): number {
@@ -81,4 +94,22 @@ export function useWidgetServerAutostart(): void {
     if (!isTauri()) return;
     void widgetServer.setLanguage(i18n.language).catch(() => {});
   }, [i18n.language]);
+}
+
+/** Adresse de base du serveur de widgets, démarré à l'activation du mode VR. */
+export function useVrBase(active: boolean): { base: string | null; error: string } {
+  const [base, setBase] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!active || !isTauri()) return;
+    let cancelled = false;
+    setError("");
+    ensureWidgetServer()
+      .then((s) => !cancelled && setBase(s.url))
+      .catch((e) => !cancelled && setError(String(e)));
+    return () => {
+      cancelled = true;
+    };
+  }, [active]);
+  return { base, error };
 }

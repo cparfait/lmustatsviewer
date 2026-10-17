@@ -222,6 +222,17 @@ export default {
     legendMyTime: "Outlined = my current level",
   },
   overlays: {
+    vr: {
+      button: "VR",
+      buttonHint: "VR mode: copy widgets into OpenKneeboard",
+      title: "VR mode",
+      desc: "Your widgets show in the headset through OpenKneeboard: transparent, they float above the game. Pick them below and copy their address.",
+      step1: "Install OpenKneeboard and start it before LMU.",
+      step2: "On a widget's card, click “Copy VR address”.",
+      step3: "In OpenKneeboard: Settings › Tabs › Add › “Web Dashboard”, paste the address and leave transparency on. One tab per widget.",
+      step4: "In VR, position and size the widget in OpenKneeboard. Its content and colour are set here, by clicking its card.",
+      copy: "Copy VR address",
+    },
     look: {
       title: "Overlay appearance",
       desc: "Shared style for every widget, in game and in widgets opened from a local address (VR, OBS). The Classic style keeps the original look.",

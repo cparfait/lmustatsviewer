@@ -913,6 +913,21 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Widgets par adresse en 3 étapes ; rappels limiteur dans la préparation de la voix
+
+- ✅ **Carte « Widgets par adresse »** réécrite en étapes numérotées : ① activer ;
+  ② destination (Casque VR / OBS / 2ᵉ écran), le mode d'emploi affiché est celui de la
+  destination choisie (nouveau : 2ᵉ écran, fond opaque proposé d'office) ; ③ un sélecteur de
+  widget (affichés à l'écran en tête), **une seule adresse** + « Copier l'adresse » / « Ouvrir
+  dans le navigateur », échelle, fond opaque. Port et liste complète des 23 adresses dans
+  « Plus d'options » (rien de retiré). Vérifié dans le navigateur (serveur simulé).
+- ✅ **Préparation de la voix** : `vPitEntryLimiter` / `vPitExitLimiterOn` ajoutés à
+  `CLOUD_PREP_ALERT_KEYS` (oubli : la phrase passe par `VIGIE_PHRASE`, que le test de
+  couverture des alertes ne voit pas). Compte FR : 71 gabarits d'information préparés avec
+  « Alertes en voix locale », 102 sans (+ 8 réponses) — d'où « 85 phrases » chez l'utilisateur.
+- 📋 **Prochaine étape** : faire reconnaître `VIGIE_PHRASE` par le test de couverture des
+  alertes de la préparation de la voix.
+
 ### 2026-10-17 — Overlays : vignettes animées dans les cartes, texture visible, option retirée
 
 - ✅ **Vignettes** : chaque carte de la page Overlays montre le vrai widget réduit

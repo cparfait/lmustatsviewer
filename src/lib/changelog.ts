@@ -434,6 +434,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Widgets by address, simpler: three steps — turn on, choose where to show it (VR headset, OBS, second screen, each with its own how-to), then pick the widget and copy its single address. The list of all addresses and the port are under “More options”; on a second screen the opaque background is suggested automatically.",
+              fr: "Widgets par adresse, plus simple : trois étapes — activer, choisir où l'afficher (casque VR, OBS, 2ᵉ écran, chacun avec son mode d'emploi), puis choisir le widget et copier son adresse unique. La liste de toutes les adresses et le port passent dans « Plus d'options » ; sur un 2ᵉ écran, le fond opaque est proposé d'office.",
+              es: "Widgets por dirección, más sencillo: tres pasos — activar, elegir dónde mostrarlo (casco de VR, OBS, 2.ª pantalla, cada uno con sus instrucciones) y elegir el widget para copiar su única dirección. La lista de todas las direcciones y el puerto pasan a «Más opciones»; en una 2.ª pantalla se propone el fondo opaco automáticamente.",
+              de: "Widgets per Adresse, einfacher: drei Schritte — aktivieren, wählen, wo es angezeigt wird (VR-Headset, OBS, 2. Bildschirm, jeweils mit Anleitung), dann das Widget wählen und seine eine Adresse kopieren. Die Liste aller Adressen und der Port stehen unter „Weitere Optionen“; auf einem 2. Bildschirm wird der deckende Hintergrund automatisch vorgeschlagen.",
+              it: "Widget per indirizzo, più semplice: tre passi — attivare, scegliere dove mostrarlo (visore VR, OBS, 2º schermo, ognuno con le sue istruzioni), poi scegliere il widget e copiarne l'unico indirizzo. L'elenco di tutti gli indirizzi e la porta passano in «Altre opzioni»; su un 2º schermo lo sfondo opaco viene proposto automaticamente.",
+            },
+          },
+          {
+            text: {
               en: "Overlays page: each card now shows a live preview of the real widget (sample data, animated, in the appearance you chose), so you can see what it looks like before switching it on.",
               fr: "Page Overlays : chaque carte montre maintenant un aperçu du vrai widget (données d'exemple animées, avec l'apparence choisie), pour voir à quoi il ressemble avant de l'activer.",
               es: "Página Overlays: cada tarjeta muestra ahora una vista previa del widget real (datos de ejemplo animados, con la apariencia elegida), para ver cómo es antes de activarlo.",
@@ -633,6 +642,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "Online AI voice: the new pit limiter reminders are now part of “Prepare the voice”, so they are said without delay (unless “Alerts in local voice” is on).",
+              fr: "Voix IA en ligne : les nouveaux rappels du limiteur font partie de « Préparer la voix » et sont dits sans délai (sauf avec « Alertes en voix locale »).",
+              es: "Voz IA en línea: los nuevos recordatorios del limitador forman parte de «Preparar la voz» y se dicen sin retraso (salvo con «Alertas en voz local»).",
+              de: "Online-KI-Stimme: Die neuen Begrenzer-Erinnerungen gehören jetzt zu „Stimme vorbereiten“ und werden ohne Verzögerung gesagt (außer mit „Warnungen in lokaler Stimme“).",
+              it: "Voce IA online: i nuovi promemoria del limitatore fanno parte di «Prepara la voce» e vengono detti senza ritardo (tranne con «Avvisi in voce locale»).",
+            },
+          },
           {
             text: {
               en: "The engineer no longer says you are within a second of the car ahead (or under attack) when you are stopped or crawling: crash, spin, slow return to the pits.",

@@ -83,6 +83,8 @@ export const CLOUD_PREP_ALERT_KEYS: readonly string[] = [
   "vBrakeOverheat",
   "vPitLaneLimiter",
   "vLimiterForgotten",
+  "vPitEntryLimiter",
+  "vPitExitLimiterOn",
   "vSpotLeft",
   "vSpotRight",
   "vSpotThree",

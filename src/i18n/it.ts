@@ -632,6 +632,11 @@ export default {
     },
   },
   header: {
+    playLmu: "Avvia Le Mans Ultimate",
+    lmuRunning: "Le Mans Ultimate è in esecuzione",
+    lmuLaunching: "Avvio di Le Mans Ultimate…",
+    lmuAlreadyRunning: "Le Mans Ultimate è già in esecuzione.",
+    lmuLaunchError: "Impossibile avviare Le Mans Ultimate: {{error}}",
     language: "Lingua",
     versionFilter: "Versione del gioco",
     allVersions: "Tutte le versioni",

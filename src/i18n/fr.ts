@@ -633,6 +633,11 @@ export default {
     },
   },
   header: {
+    playLmu: "Lancer Le Mans Ultimate",
+    lmuRunning: "Le Mans Ultimate est lancé",
+    lmuLaunching: "Lancement de Le Mans Ultimate…",
+    lmuAlreadyRunning: "Le Mans Ultimate est déjà lancé.",
+    lmuLaunchError: "Impossible de lancer Le Mans Ultimate : {{error}}",
     language: "Langue",
     versionFilter: "Version du jeu",
     allVersions: "Toutes les versions",

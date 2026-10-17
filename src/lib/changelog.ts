@@ -74,6 +74,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Play button in the top bar: launches Le Mans Ultimate through Steam (as from your library), or from the detected game folder if Steam does not respond. A green dot shows when the game is already running.",
+              fr: "Bouton Jouer dans la barre du haut : lance Le Mans Ultimate par Steam (comme depuis ta bibliothèque), ou depuis le dossier du jeu détecté si Steam ne répond pas. Une pastille verte indique que le jeu tourne déjà.",
+              es: "Botón Jugar en la barra superior: inicia Le Mans Ultimate a través de Steam (como desde tu biblioteca) o desde la carpeta del juego detectada si Steam no responde. Un punto verde indica que el juego ya está en marcha.",
+              de: "Spielen-Schaltfläche in der oberen Leiste: startet Le Mans Ultimate über Steam (wie aus deiner Bibliothek) oder aus dem erkannten Spielordner, falls Steam nicht reagiert. Ein grüner Punkt zeigt, dass das Spiel bereits läuft.",
+              it: "Pulsante Gioca nella barra in alto: avvia Le Mans Ultimate tramite Steam (come dalla tua libreria) o dalla cartella del gioco rilevata se Steam non risponde. Un punto verde indica che il gioco è già in esecuzione.",
+            },
+          },
+          {
+            text: {
               en: "Overlays page: a “VR” button at the top switches the page to VR mode — local addresses start by themselves, a short guide explains the OpenKneeboard steps, and each widget card offers “Copy VR address” (transparent widget that floats above the game). Click VR again to get the normal page back.",
               fr: "Page Overlays : un bouton « VR » en haut passe la page en mode VR — les adresses locales démarrent toutes seules, un court guide donne les gestes dans OpenKneeboard, et chaque carte de widget propose « Copier l'adresse VR » (widget transparent qui flotte au-dessus du jeu). Un nouveau clic sur VR rend la page normale.",
               es: "Página Overlays: un botón «VR» arriba pasa la página a modo VR — las direcciones locales se inician solas, una breve guía explica los pasos en OpenKneeboard y cada tarjeta de widget ofrece «Copiar dirección VR» (widget transparente que flota sobre el juego). Otro clic en VR devuelve la página normal.",

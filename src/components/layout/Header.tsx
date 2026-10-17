@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router";
 import { Flag, Moon, Sun, Globe, User, Check, HelpCircle } from "lucide-react";
 import { HelpModal } from "@/components/HelpModal";
+import { PlayLmuButton } from "@/components/layout/PlayLmuButton";
 import { useTheme } from "@/stores/theme";
 import { useAppStore } from "@/stores/app";
 import { Button } from "@/components/ui/button";
@@ -105,6 +106,7 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
+          <PlayLmuButton />
           <Button
             variant="ghost"
             size="icon"

@@ -28,6 +28,8 @@ use crate::error::AppError;
 
 /// Nom du processus du jeu surveillé.
 pub const LMU_PROCESS: &str = "Le Mans Ultimate.exe";
+/// Identifiant Steam de Le Mans Ultimate (`appmanifest_2399420.acf`).
+pub const LMU_STEAM_APPID: u32 = 2399420;
 /// Cadence de la surveillance.
 const WATCH_EVERY: Duration = Duration::from_secs(3);
 /// Pas de fenêtre console (outils console, `reg`, `taskkill`).
@@ -508,6 +510,46 @@ pub fn tools_set_launcher(config: LauncherConfig) -> LauncherStatus {
 #[tauri::command]
 pub fn tools_launcher_status() -> LauncherStatus {
     status_of(&mut state())
+}
+
+/// LMU est-il lancé ? (bouton « Jouer » de l'en-tête).
+#[tauri::command]
+pub fn lmu_is_running() -> bool {
+    lmu_running()
+}
+
+/// Bouton « Jouer » : lance LMU par Steam (`steam://rungameid/…` : Steam gère les mises à
+/// jour, l'anti-triche et les options de lancement), comme depuis la bibliothèque. Si
+/// Steam ne prend pas la main, lance l'exe du dossier détecté. Rien si LMU tourne déjà.
+/// Renvoie `running`, `steam` ou `exe`.
+#[tauri::command(async)]
+pub async fn launch_lmu(lmu_path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if lmu_running() {
+            return Ok("running".to_string());
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            let url = format!("steam://rungameid/{LMU_STEAM_APPID}");
+            let ok = Command::new("cmd")
+                .args(["/C", "start", "", &url])
+                .creation_flags(CREATE_NO_WINDOW)
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false);
+            if ok {
+                return Ok("steam".to_string());
+            }
+        }
+        let exe = Path::new(lmu_path.trim()).join(LMU_PROCESS);
+        spawn_tool(&exe.to_string_lossy()).map(|_| "exe".to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Bouton « Tester » : lance l'outil tout de suite. `false` = déjà ouvert

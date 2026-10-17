@@ -913,6 +913,18 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Bouton « Jouer » (lancer LMU) dans l'en-tête ; port des adresses locales à l'étape 1
+
+- ✅ **Bouton Jouer** (icône Play, en-tête, avant l'aide ; seulement dans l'app et si le dossier
+  LMU est connu) : commande `launch_lmu` (`tools.rs`) — `steam://rungameid/2399420` par
+  `cmd /C start` (Steam gère mises à jour, anti-triche, options de lancement ; AppID lu dans
+  `appmanifest_2399420.acf` chez l'utilisateur), repli sur `Le Mans Ultimate.exe` du dossier
+  détecté (même lancement sans élévation que les outils) ; rien si le jeu tourne déjà.
+  `lmu_is_running` sondé toutes les 5 s → pastille verte. Toasts 5 langues.
+- ✅ Port des adresses locales déplacé à côté de l'interrupteur (étape 1) ; « Plus d'options »
+  devient « Toutes les adresses ».
+- 📋 **Prochaine étape** : essai réel du bouton Jouer (Steam ouvert / fermé).
+
 ### 2026-10-17 — Carte « Widgets par adresse » recentrée sur OBS et le 2ᵉ écran
 
 - ✅ Destination « Casque VR » retirée de la carte (doublon du mode VR) : une ligne

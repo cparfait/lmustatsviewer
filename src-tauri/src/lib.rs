@@ -225,6 +225,8 @@ pub fn run() {
             commands::tools::tools_set_launcher,
             commands::tools::tools_launcher_status,
             commands::tools::tools_launch_now,
+            commands::tools::launch_lmu,
+            commands::tools::lmu_is_running,
             commands::tools::pc_diagnostic,
             commands::widget_server::widget_server_start,
             commands::widget_server::widget_server_stop,

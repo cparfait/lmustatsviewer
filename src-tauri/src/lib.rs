@@ -258,6 +258,7 @@ pub fn run() {
             // Téléchargement à la demande des modèles vocaux (voix Piper, Vosk)
             commands::assets::assets_catalog,
             commands::assets::asset_download,
+            commands::assets::asset_delete,
             // Reconnaissance vocale par commandes (Vosk, spotter Couche 2)
             commands::stt::stt_available,
             commands::stt::stt_recognize,

@@ -16,10 +16,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, Check, Download, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Download, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { assets, isTauri, type AssetInfo } from "@/lib/api";
-import { toastError, toastSuccess } from "@/stores/dialogs";
+import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 
 export function VoiceDownloads({
   kind,
@@ -36,6 +36,33 @@ export function VoiceDownloads({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pct, setPct] = useState(0);
   const mounted = useRef(true);
+
+  /** Supprime un modèle téléchargé, après confirmation (place disque récupérée). */
+  const remove = async (a: AssetInfo) => {
+    const name = kind === "tts" ? a.label : t("config.assetSttModel");
+    const ok = await confirmDialog({
+      title: t("config.assetDeleteTitle", { name }),
+      message: t("config.assetDeleteMsg", { size: a.size_mb }),
+      confirmLabel: t("config.assetDelete"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await assets.remove(kind, a.id);
+      toastSuccess(t("config.assetDeleted", { name }));
+      refresh();
+      onInstalled?.();
+    } catch (e) {
+      const code = String(e);
+      toastError(
+        code.includes("in_use")
+          ? t("config.assetDeleteInUse")
+          : code.includes("not_downloaded")
+            ? t("config.assetDeleteBundled")
+            : t("config.assetDeleteError", { error: code }),
+      );
+    }
+  };
 
   const refresh = () => {
     if (!isTauri()) return;
@@ -157,10 +184,22 @@ export function VoiceDownloads({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {a.installed ? (
-              <span className="flex items-center gap-1 text-xs text-success">
-                <Check className="h-3.5 w-3.5" />
-                {t("config.assetInstalled")}
-              </span>
+              <>
+                <span className="flex items-center gap-1 text-xs text-success">
+                  <Check className="h-3.5 w-3.5" />
+                  {t("config.assetInstalled")}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  aria-label={t("config.assetDelete")}
+                  title={t("config.assetDelete")}
+                  onClick={() => void remove(a)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </>
             ) : busyId === a.id ? (
               progressBar
             ) : (

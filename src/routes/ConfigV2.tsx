@@ -1354,13 +1354,20 @@ export function ConfigV2() {
                     {(
                       <div className="pr-1 pb-1 pt-1 space-y-3">
                         <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("cloudGuide.localTitle")}</p>
-                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+                        <div className="flex items-start justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
                               {t("config.voiceEngine")}
                             </div>
-                            <div className="text-xs text-muted-foreground/80 mt-0.5">
-                              {t("config.voiceEngineDesc")}
+                            {/* Une ligne par moteur (nom en gras), puis le repli. */}
+                            <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                              <p>
+                                <strong className="font-semibold text-foreground">Piper</strong> : {t("config.voiceEnginePiperDesc")}
+                              </p>
+                              <p>
+                                <strong className="font-semibold text-foreground">{t("config.voiceEngineSystemShort")}</strong> : {t("config.voiceEngineSystemDesc")}
+                              </p>
+                              <p className="pt-1 text-muted-foreground/80">{t("config.voiceEngineAutoFallback")}</p>
                             </div>
                           </div>
                           <Select

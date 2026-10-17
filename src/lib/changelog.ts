@@ -452,6 +452,24 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Audio / Voice: downloaded voices (and the voice-command model) can be deleted with a bin button, after confirmation, to free disk space; voices shipped with the app stay.",
+              fr: "Audio / Voix : les voix téléchargées (et le modèle des commandes vocales) se suppriment avec un bouton poubelle, après confirmation, pour libérer de la place ; les voix fournies avec l'app restent.",
+              es: "Audio / Voz: las voces descargadas (y el modelo de comandos de voz) se eliminan con un botón de papelera, tras confirmar, para liberar espacio; las voces incluidas con la app se quedan.",
+              de: "Audio / Stimme: Heruntergeladene Stimmen (und das Sprachbefehlsmodell) lassen sich nach Bestätigung per Papierkorb löschen, um Platz zu schaffen; mitgelieferte Stimmen bleiben.",
+              it: "Audio / Voce: le voci scaricate (e il modello dei comandi vocali) si eliminano con un pulsante cestino, dopo conferma, per liberare spazio; le voci fornite con l'app restano.",
+            },
+          },
+          {
+            text: {
+              en: "Speech engine: one line for Piper and one for System (in bold), the automatic fallback underneath; “Embedded” renamed “Piper (neural voice)”, since it has to be downloaded.",
+              fr: "Moteur de synthèse : une ligne pour Piper et une pour Système (en gras), le repli automatique en dessous ; « Embarqué » devient « Piper (voix neuronale) », puisqu'il faut le télécharger.",
+              es: "Motor de síntesis: una línea para Piper y otra para Sistema (en negrita), el relevo automático debajo; «Integrado» pasa a «Piper (voz neuronal)», ya que hay que descargarlo.",
+              de: "Sprachsynthese: eine Zeile für Piper und eine für System (fett), der automatische Rückgriff darunter; „Eingebettet“ heißt jetzt „Piper (neuronale Stimme)“, da es heruntergeladen werden muss.",
+              it: "Motore di sintesi: una riga per Piper e una per Sistema (in grassetto), il ripiego automatico sotto; «Integrato» diventa «Piper (voce neurale)», perché va scaricato.",
+            },
+          },
+          {
+            text: {
               en: "Audio / Voice: a “Local voice (on your PC)” block, then an “Online AI voice” block with a “How does it work?” button: a step-by-step guide (like the tour) on live phrases, “Prepare the voice”, urgent alerts, announcements with numbers and cost.",
               fr: "Audio / Voix : un bloc « Voix locale (sur ton PC) », puis un bloc « Voix IA en ligne » avec un bouton « Comment ça marche ? » : une aide pas à pas (comme la visite guidée) sur les phrases dites en direct, « Préparer la voix », les alertes urgentes, les annonces chiffrées et le coût.",
               es: "Audio / Voz: un bloque «Voz local (en tu PC)» y luego un bloque «Voz IA en línea» con un botón «¿Cómo funciona?»: una ayuda paso a paso (como la visita guiada) sobre las frases en directo, «Preparar la voz», las alertas urgentes, los anuncios con cifras y el coste.",

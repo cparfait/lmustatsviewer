@@ -1558,6 +1558,9 @@ export const assets = {
   /** Télécharge un modèle ; résout à la fin (progression via `onProgress`). */
   download: (kind: "tts" | "stt", id: string) =>
     invoke<void>("asset_download", { kind, id }),
+  /** Supprime un modèle téléchargé (erreurs : `not_downloaded`, `in_use`, `unknown`). */
+  remove: (kind: "tts" | "stt", id: string) =>
+    invoke<void>("asset_delete", { kind, id }),
   /** S'abonne à la progression des téléchargements (`asset-progress`). */
   onProgress: (cb: (p: AssetProgress) => void): Promise<UnlistenFn> =>
     listen<AssetProgress>("asset-progress", (e) => cb(e.payload)),

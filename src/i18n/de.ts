@@ -1917,6 +1917,8 @@ export default {
     coachGroupPhrasesDesc: "Formulierungen für die aktuelle Kombination.",
     coachGroupTools: "Werkzeuge",
     coachGroupToolsDesc: "Referenzrunde importieren, eine Session zur Diagnose aufzeichnen.",
+    devTools: "Entwicklerwerkzeuge",
+    devToolsDesc: "Zum Testen der App abseits der Strecke. Im Normalbetrieb nicht nötig.",
     voiceOffHint: "Aktiviere „Sprachansagen“, um Stimme, Ansagen, Ingenieur und Kurven-Coach einzustellen. Diese zwei Einstellungen funktionieren auch ohne Stimme, mit Pieptönen:",
     voiceTabNeedsVoice: "Schalte oben „Sprachansagen“ ein, um diesen Teil einzustellen.",
     voiceSpeaker: "Sprecher",

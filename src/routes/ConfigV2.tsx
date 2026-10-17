@@ -2467,8 +2467,6 @@ export function ConfigV2() {
             {/* ── Maintenance (+ version / mises à jour) ── */}
             {cat === "maintenance" && (
               <div className="space-y-1">
-                <ReplayBenchPanel />
-                <Separator />
                 <ToggleRow
                   icon={<Zap className="h-4 w-4" />}
                   label={t("config.autoIndex")}
@@ -2651,6 +2649,11 @@ export function ConfigV2() {
                     {t("updater.error")}
                   </p>
                 )}
+                <Separator />
+                {/* Outils réservés au développement (banc de rejeu de l'ingénieur) : repliés. */}
+                <CollapsibleSection title={t("config.devTools")} desc={t("config.devToolsDesc")}>
+                  <ReplayBenchPanel />
+                </CollapsibleSection>
               </div>
             )}
 

@@ -1912,6 +1912,8 @@ export default {
     coachGroupPhrasesDesc: "Formulazioni generate per la combo attuale.",
     coachGroupTools: "Strumenti",
     coachGroupToolsDesc: "Importa un giro di riferimento, registra una sessione per la diagnosi.",
+    devTools: "Strumenti di sviluppo",
+    devToolsDesc: "Per provare l'app fuori pista. Non serve nell'uso normale.",
     voiceOffHint: "Attiva «Annunci vocali» per regolare voce, annunci, ingegnere e coach per curva. Queste due impostazioni funzionano anche senza voce, con dei bip:",
     voiceTabNeedsVoice: "Attiva «Annunci vocali» qui sopra per regolare questa parte.",
     voiceSpeaker: "Speaker",

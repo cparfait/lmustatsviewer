@@ -1918,6 +1918,8 @@ export default {
     coachGroupPhrasesDesc: "Formulations générées pour le combo du moment.",
     coachGroupTools: "Outils",
     coachGroupToolsDesc: "Importer un tour de référence, enregistrer une session pour diagnostic.",
+    devTools: "Outils de développement",
+    devToolsDesc: "Pour tester l'app hors piste. Inutile en temps normal.",
     voiceOffHint: "Active « Annonces vocales » pour régler la voix, les annonces, l'ingénieur et le coach par virage. Ces deux réglages marchent aussi sans voix, avec des bips :",
     voiceTabNeedsVoice: "Active « Annonces vocales » ci-dessus pour régler cette partie.",
     voiceSpeaker: "Locuteur",

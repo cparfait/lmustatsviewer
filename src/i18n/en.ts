@@ -1912,6 +1912,8 @@ export default {
     coachGroupPhrasesDesc: "Wording generated for the current combo.",
     coachGroupTools: "Tools",
     coachGroupToolsDesc: "Import a reference lap, record a session for diagnostics.",
+    devTools: "Developer tools",
+    devToolsDesc: "To test the app off track. Not needed in normal use.",
     voiceOffHint: "Turn on “Voice announcements” to set up the voice, announcements, the engineer and the corner coach. These two settings also work without voice, with beeps:",
     voiceTabNeedsVoice: "Turn on \"Voice announcements\" above to set this part.",
     voiceSpeaker: "Speaker",

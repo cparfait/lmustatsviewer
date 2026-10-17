@@ -97,6 +97,7 @@ import {
   PenLine,
   BatteryCharging,
   Film,
+  Pencil,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
@@ -1330,7 +1331,7 @@ export function ConfigV2() {
           className="h-8 gap-1.5 shrink-0"
           onClick={() => setVoiceModalOpen(true)}
         >
-          <Volume2 className="h-3.5 w-3.5" />
+          <Pencil className="h-3.5 w-3.5" />
           {t("live.vmOpen")}
         </Button>
       </div>

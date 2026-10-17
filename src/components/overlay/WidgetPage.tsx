@@ -26,6 +26,7 @@ import { OPENKNEEBOARD_URL } from "@/lib/widgetServer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EMPTY_LIVE_DATA, useOverlayData } from "./useOverlayData";
 import { WIDGETS } from "./widgets";
+import { lookClasses, OverlayLookContext } from "./look";
 
 interface KneeboardApi {
   SetPreferredPixelSize?: (width: number, height: number) => unknown;
@@ -129,13 +130,13 @@ export function WidgetPage({ id }: { id: string }) {
   const Widget = WIDGETS[def.id];
 
   return (
-    <>
+    <OverlayLookContext.Provider value={cfg.look}>
       <div
         ref={boxRef}
-        className="inline-block"
+        className={`inline-block ${lookClasses(cfg.look)}`}
         style={{
-          transform: `scale(${scale})`,
-          transformOrigin: "top left",
+          // Agrandissement net (apparence des overlays) : mise en page à la taille réelle.
+          ...(cfg.look.sharpScale ? { zoom: scale } : { transform: `scale(${scale})`, transformOrigin: "top left" }),
           opacity: (settings?.opacity ?? 1) * cfg.globalOpacity,
           padding: opaque ? 8 : 0,
         }}
@@ -150,7 +151,7 @@ export function WidgetPage({ id }: { id: string }) {
         </ErrorBoundary>
       </div>
       <OfflineNotice online={online} />
-    </>
+    </OverlayLookContext.Provider>
   );
 }
 

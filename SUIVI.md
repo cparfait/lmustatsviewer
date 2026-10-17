@@ -913,6 +913,45 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Apparence des overlays : style Instrument et options d'affichage
+
+**Contexte** : suite de la veille du jour sur le dessin des overlays tiers. Demande explicite de
+l'utilisateur (« Fais tout ça ») : la phase 9 (overlays) est rouverte pour l'apparence seulement.
+Tout est désactivé par défaut ; le style **Classique** reste l'apparence d'origine, au pixel près
+(aucune règle CSS ne s'applique sans les classes `ov-instrument` / `ov-font-display` / `ov-texture`).
+
+- ✅ **Socle** `components/overlay/look.ts` + `look.css` : `OverlayLook` (style, police
+  d'affichage, agrandissement net, densité, texture, animations de record) rangé dans
+  `OverlaysConfig.look` (`mergeLook` : anciennes configs → défauts), setter `setLook`. Contexte
+  `OverlayLookContext` fourni par la fenêtre overlay (`OverlayRoot`) et par la page de widget
+  servie (`WidgetPage`) ; classes posées sur la racine (`lookClasses`).
+- ✅ **Style Instrument** : panneaux à angles de 3 px sans flou, filets de relief 1 px, bande
+  d'accent à gauche du titre ; palette sémantique `SEMANTIC` (gain / meilleur de la séance /
+  perte / accélérateur / frein) via `toneColor(look, tone, couleurClassique)` dans Delta,
+  Secteurs, Relatif, Delta virage, Vitesse, Carburant, G, Lift & coast, Télémétrie. Les couleurs
+  d'état (pneus, dégâts, drapeaux, radar) ne changent pas.
+- ✅ **Classement et relatif** : lignes `ov-row` teintées par la couleur de classe (dégradé en
+  biais), joueur en teinte d'accent, 3 densités (20 / 23 / 27 px) ; meilleur tour de la classe
+  en violet.
+- ✅ **Animations de record** (`RecordFlash`, ui.tsx) : remplissage bref puis couleur du record
+  (vert = perso, violet = classe), rejoué à chaque nouveau record, rien au montage ; Secteurs
+  (S1–S3 + tour, `is_class_best_s*` / `is_class_best_lap`) et meilleur tour du classement.
+  Respecte `prefers-reduced-motion`.
+- ✅ **Graphes HD** `components/overlay/TraceCanvas.tsx` : canvas dimensionné sur la taille
+  affichée × `devicePixelRatio` (net avec zoom ou scale), dégradé sous l'accélérateur, halo,
+  points de blocage ; Delta et Télémétrie en style Instrument (le SVG reste en Classique).
+- ✅ **Police d'affichage** : Bahnschrift (police de Windows, rien à télécharger) en chiffres
+  tabulaires, `.font-mono` compris. **Agrandissement net** : `zoom` au lieu de `transform: scale`
+  (cadre de l'overlay et page servie) ; la position et le glisser ne changent pas.
+- ✅ **Réglages** : carte « Apparence des overlays » (`components/OverlayLookSettings.tsx`) sur
+  la page Overlays ; densité et texture grisées hors style Instrument. i18n `overlays.look.*`
+  5 langues, changelog 1.0.10 (dev).
+- ✅ Aucun nom de logiciel tiers dans le code, les textes ou le changelog ; aucun code ni
+  ressource repris (sources de la veille lues seulement).
+- 📋 **Prochaine étape** : essai en jeu, style Instrument + police d'affichage + agrandissement
+  net à 150 % sur un écran 4K : lisibilité du classement en multiclasse, netteté des graphes,
+  animation au premier record perso ; puis dans OpenKneeboard (page servie).
+
 ### 2026-10-17 — Ingénieur vocal : choix du micro (écoute continue, push-to-talk, dictée)
 
 **Constat** : le moteur d'écoute natif (`voice_input.rs`, WASAPI via cpal) et la capture

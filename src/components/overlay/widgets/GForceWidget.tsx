@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { Orbit } from "lucide-react";
 import { Panel, PanelHeader, Stat, VBar } from "@/components/overlay/ui";
 import type { WidgetProps } from "./types";
+import { toneColor, useOverlayLook } from "@/components/overlay/look";
 
 const SIZE = 160;
 const PAD = 12;
@@ -11,6 +12,7 @@ const R = SIZE / 2 - PAD;
 const G_MAX = 3; // ±3 g pleine échelle
 
 export function GForceWidget({ data, content, accent, t }: WidgetProps) {
+  const look = useOverlayLook();
   const tel = data.telemetry;
   const gLat = tel?.g_lat ?? 0;
   const gLon = tel?.g_long ?? 0;
@@ -63,8 +65,8 @@ export function GForceWidget({ data, content, accent, t }: WidgetProps) {
 
         {content.inputs !== false && (
           <div className="mt-2 flex items-end gap-1.5">
-            <VBar value={tel?.throttle ?? 0} color="#22c55e" className="h-8" />
-            <VBar value={tel?.brake ?? 0} color="#ef4444" className="h-8" />
+            <VBar value={tel?.throttle ?? 0} color={toneColor(look, "throttle", "#22c55e")} className="h-8" />
+            <VBar value={tel?.brake ?? 0} color={toneColor(look, "brake", "#ef4444")} className="h-8" />
             <div className="relative ml-1 h-2 flex-1 self-center overflow-hidden rounded bg-white/10">
               <div
                 className="absolute top-0 h-full w-1.5 rounded bg-white"

@@ -17,6 +17,7 @@ import { EMPTY_LIVE_DATA, useOverlayData } from "./useOverlayData";
 import { OverlayFrame } from "./OverlayFrame";
 import { WIDGETS } from "./widgets";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { lookClasses, OverlayLookContext } from "./look";
 
 export function OverlayRoot() {
   const { t } = useTranslation();
@@ -142,7 +143,8 @@ export function OverlayRoot() {
   const live = data ?? EMPTY_LIVE_DATA;
 
   return (
-    <div className="fixed inset-0 overflow-hidden">
+    <OverlayLookContext.Provider value={cfg.look}>
+    <div className={`fixed inset-0 overflow-hidden ${lookClasses(cfg.look)}`}>
       {/* Mode édition : voile sombre légèrement flouté sur tout l'écran pour
           faire ressortir les overlays au premier plan + explication centrale.
           `pointer-events: none` → ne gêne ni le drag ni le bouton Valider. */}
@@ -227,5 +229,6 @@ export function OverlayRoot() {
       })}
       </div>
     </div>
+    </OverlayLookContext.Provider>
   );
 }

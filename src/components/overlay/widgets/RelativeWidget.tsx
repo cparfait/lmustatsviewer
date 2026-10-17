@@ -6,8 +6,11 @@ import { liveClassColor } from "@/components/overlay/format";
 import type { LiveStanding } from "@/lib/api";
 import { isMulticlass } from "@/lib/livePosition";
 import type { WidgetProps } from "./types";
+import { toneColor, useOverlayLook } from "@/components/overlay/look";
 
 export function RelativeWidget({ data, content, accent, t }: WidgetProps) {
+  const look = useOverlayLook();
+  const instrument = look.style === "instrument";
   const player = data.standings.find((s) => s.is_player);
   // Multiclasse : numéro = position dans la classe (désactivable → générale).
   const classNumbers = content.classPosition !== false && isMulticlass(data.standings);
@@ -40,15 +43,20 @@ export function RelativeWidget({ data, content, accent, t }: WidgetProps) {
                 return (
                   <tr
                     key={s.position}
-                    className="border-b border-white/5 last:border-0"
-                    style={{ background: s.is_player ? `${accent}22` : "transparent" }}
+                    className={`ov-row border-b border-white/5 last:border-0 ${s.is_player ? "ov-row-me" : ""}`}
+                    style={
+                      // Style Instrument : fond dessiné par look.css (teinte de classe en biais).
+                      instrument
+                        ? { ["--ov-row-class" as string]: color ?? "transparent" }
+                        : { background: s.is_player ? `${accent}22` : "transparent" }
+                    }
                   >
                     <td className="w-6 py-0.5 text-center font-mono font-bold text-white/70">
                       {classNumbers ? s.class_position : s.position}
                     </td>
                     <td className="w-1 py-0.5">
                       <span
-                        className="inline-block h-3 w-1 rounded-sm"
+                        className="ov-class-chip inline-block h-3 w-1 rounded-sm"
                         style={{ background: color ?? "transparent" }}
                       />
                     </td>
@@ -63,7 +71,7 @@ export function RelativeWidget({ data, content, accent, t }: WidgetProps) {
                       // → vert (cible à rattraper) ; rel > 0 = DERRIÈRE (menace) → rouge.
                       <td
                         className="w-16 py-0.5 pr-1 text-right font-mono tabular-nums"
-                        style={{ color: s.is_player ? accent : rel < 0 ? "#4ade80" : "#f87171" }}
+                        style={{ color: s.is_player ? accent : rel < 0 ? toneColor(look, "gain", "#4ade80") : toneColor(look, "loss", "#f87171") }}
                       >
                         {s.is_player ? "—" : `${rel > 0 ? "+" : ""}${rel.toFixed(1)}`}
                       </td>

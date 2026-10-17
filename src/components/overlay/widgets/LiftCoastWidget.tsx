@@ -3,8 +3,10 @@
 import { Activity } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
 import type { WidgetProps } from "./types";
+import { toneColor, useOverlayLook } from "@/components/overlay/look";
 
 export function LiftCoastWidget({ data, content, accent, t }: WidgetProps) {
+  const look = useOverlayLook();
   const tel = data.telemetry;
   const ext = data.extended;
   const thr = tel?.throttle ?? 0;
@@ -20,10 +22,10 @@ export function LiftCoastWidget({ data, content, accent, t }: WidgetProps) {
     let color = "rgba(255,255,255,0.08)";
     if (thr > 0.05 && pos >= 0.5 && pos - 0.5 <= thr / 2) {
       on = true;
-      color = "#22c55e";
+      color = toneColor(look, "throttle", "#22c55e");
     } else if (brk > 0.05 && pos < 0.5 && 0.5 - pos <= brk / 2) {
       on = true;
-      color = "#ef4444";
+      color = toneColor(look, "brake", "#ef4444");
     } else if (coasting && Math.abs(pos - 0.5) < 0.06) {
       on = true;
       color = "#facc15";

@@ -1,0 +1,131 @@
+/*
+ * Apparence des overlays (voir look.ts). Le style Classique n'est touché par aucune
+ * règle de ce fichier : seules les classes ov-instrument, ov-font-display et
+ * ov-texture modifient le rendu.
+ */
+
+/* ── Police d'affichage : chiffres à chasse fixe, sans police « machine à écrire » ── */
+.ov-font-display {
+  font-family: "Bahnschrift", "DIN Alternate", "Barlow Condensed", "Segoe UI", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.ov-font-display .font-mono {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* ── Densité des lignes de classement (style Instrument) ── */
+.ov-density-compact { --ov-row-h: 20px; }
+.ov-density-normal { --ov-row-h: 23px; }
+.ov-density-cosy { --ov-row-h: 27px; }
+
+/* ── Panneau « Instrument » : angles presque vifs, filets de relief, bande d'accent ── */
+.ov-instrument .ov-panel {
+  border-radius: 3px !important;
+  backdrop-filter: none !important;
+  background: linear-gradient(180deg, rgba(20, 22, 27, 0.94) 0%, rgba(11, 12, 15, 0.94) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6) !important;
+  position: relative;
+  overflow: hidden;
+}
+.ov-instrument .ov-panel-header {
+  position: relative;
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0));
+}
+/* Bande d'accent verticale à gauche du titre. */
+.ov-instrument .ov-panel-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: var(--ov-accent, #888);
+}
+.ov-instrument .ov-panel-title {
+  letter-spacing: 0.14em !important;
+}
+
+/* ── Texture fibrée (option) : deux trames fines croisées, fondu vers le bas ── */
+.ov-instrument.ov-texture .ov-panel-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 5px);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0));
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0));
+}
+
+/* ── Lignes de classement : teinte de classe en biais, filets de relief, densité ── */
+.ov-instrument .ov-row {
+  height: var(--ov-row-h, 23px);
+  border-bottom: 0 !important;
+  background:
+    linear-gradient(104deg, color-mix(in srgb, var(--ov-row-class, transparent) 42%, transparent) 0, transparent 72px),
+    rgba(255, 255, 255, 0.015);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+}
+.ov-instrument .ov-row.ov-row-me {
+  background:
+    linear-gradient(104deg, color-mix(in srgb, var(--ov-row-class, transparent) 42%, transparent) 0, transparent 72px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ov-accent, #fff) 26%, transparent), color-mix(in srgb, var(--ov-accent, #fff) 8%, transparent)) !important;
+}
+.ov-instrument .ov-row > td {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  vertical-align: middle;
+}
+/* La pastille de classe devient inutile : la ligne est déjà teintée. */
+.ov-instrument .ov-row .ov-class-chip {
+  opacity: 0;
+}
+
+/* ── Animations de record (option) ── */
+.ov-rec {
+  position: relative;
+  isolation: isolate;
+}
+.ov-rec-pb,
+.ov-rec-sb {
+  animation: ov-rec-text 2.8s ease-out both;
+}
+.ov-rec-pb { --ov-rec-color: #3ee07a; --ov-rec-bg: rgba(18, 92, 44, 0.85); }
+.ov-rec-sb { --ov-rec-color: #b86bff; --ov-rec-bg: rgba(70, 24, 110, 0.85); }
+.ov-rec-pb::before,
+.ov-rec-sb::before {
+  content: "";
+  position: absolute;
+  inset: -1px -3px;
+  z-index: -1;
+  border-radius: 2px;
+  background: var(--ov-rec-bg);
+  transform-origin: left center;
+  animation: ov-rec-fill 2.8s ease-out both;
+}
+@keyframes ov-rec-fill {
+  0% { transform: scaleX(0); opacity: 1; }
+  14% { transform: scaleX(1); opacity: 1; }
+  70% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+@keyframes ov-rec-text {
+  0% { color: #fff; }
+  14% { color: #fff; }
+  100% { color: var(--ov-rec-color); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ov-rec-pb::before,
+  .ov-rec-sb::before { animation-duration: 0.01s; }
+}

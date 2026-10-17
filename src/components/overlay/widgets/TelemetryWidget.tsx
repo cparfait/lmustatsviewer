@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { Zap } from "lucide-react";
 import { Panel, PanelHeader, VBar } from "@/components/overlay/ui";
 import type { WidgetProps } from "./types";
+import { toneColor, useOverlayLook } from "@/components/overlay/look";
+import { TraceCanvas } from "@/components/overlay/TraceCanvas";
 
 const TRACE_LEN = 160;
 
@@ -14,6 +16,7 @@ function gearLabel(gear: number): string {
 }
 
 export function TelemetryWidget({ data, content, accent, t }: WidgetProps) {
+  const look = useOverlayLook();
   const tel = data.telemetry;
 
   // Buffers de trace (throttle/frein) + dots de blocage.
@@ -93,18 +96,29 @@ export function TelemetryWidget({ data, content, accent, t }: WidgetProps) {
         {/* Pédales */}
         {content.pedals !== false && (
           <div className="flex items-end gap-1.5">
-            <VBar value={tel?.throttle ?? 0} color="#22c55e" className="h-[70px]" />
-            <VBar value={tel?.brake ?? 0} color="#ef4444" className="h-[70px]" />
+            <VBar value={tel?.throttle ?? 0} color={toneColor(look, "throttle", "#22c55e")} className="h-[70px]" />
+            <VBar value={tel?.brake ?? 0} color={toneColor(look, "brake", "#ef4444")} className="h-[70px]" />
           </div>
         )}
 
         {/* Trace */}
         {content.trace !== false && (
           <div className="flex flex-1 flex-col justify-center">
+            {look.style === "instrument" ? (
+              <TraceCanvas
+                throttle={thr.current}
+                brake={brk.current}
+                lock={lock.current}
+                length={TRACE_LEN}
+                height={H}
+                throttleColor={toneColor(look, "throttle", "#22c55e")}
+                brakeColor={toneColor(look, "brake", "#ef4444")}
+              />
+            ) : (
             <svg width={W} height={H} className="w-full">
               <rect x={0} y={0} width={W} height={H} fill="rgba(255,255,255,0.04)" rx={4} />
-              <path d={toPath(thr.current)} fill="none" stroke="#22c55e" strokeWidth={1.5} />
-              <path d={toPath(brk.current)} fill="none" stroke="#ef4444" strokeWidth={1.5} />
+              <path d={toPath(thr.current)} fill="none" stroke={toneColor(look, "throttle", "#22c55e")} strokeWidth={1.5} />
+              <path d={toPath(brk.current)} fill="none" stroke={toneColor(look, "brake", "#ef4444")} strokeWidth={1.5} />
               {lock.current.map((on, i) =>
                 on ? (
                   <circle
@@ -117,6 +131,7 @@ export function TelemetryWidget({ data, content, accent, t }: WidgetProps) {
                 ) : null,
               )}
             </svg>
+            )}
           </div>
         )}
       </div>
@@ -130,7 +145,7 @@ export function TelemetryWidget({ data, content, accent, t }: WidgetProps) {
               style={{
                 width: `${Math.min(1, rpmPct) * 100}%`,
                 background: redline
-                  ? "#ef4444"
+                  ? toneColor(look, "loss", "#ef4444")
                   : `linear-gradient(90deg, ${accent}, #eab308)`,
               }}
             />

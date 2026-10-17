@@ -30,6 +30,7 @@ import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { WidgetServerSettings } from "@/components/WidgetServerSettings";
+import { OverlayLookSettings } from "@/components/OverlayLookSettings";
 import { cn } from "@/lib/utils";
 import { overlay as overlayApi, type OverlayScreen } from "@/lib/api";
 import { toastError } from "@/stores/dialogs";
@@ -609,6 +610,10 @@ export function Overlays() {
             </Card>
           );
         })}
+      </div>
+
+      <div className="mt-6">
+        <OverlayLookSettings />
       </div>
 
       <div className="mt-6">

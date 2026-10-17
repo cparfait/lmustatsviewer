@@ -4,8 +4,10 @@ import { useEffect, useRef } from "react";
 import { TrendingUp } from "lucide-react";
 import { Panel, PanelHeader, Stat } from "@/components/overlay/ui";
 import type { WidgetProps } from "./types";
+import { toneColor, useOverlayLook } from "@/components/overlay/look";
 
 export function SpeedWidget({ data, content, accent, t }: WidgetProps) {
+  const look = useOverlayLook();
   const tel = data.telemetry;
   const speed = tel?.speed_kmh ?? 0;
 
@@ -37,7 +39,7 @@ export function SpeedWidget({ data, content, accent, t }: WidgetProps) {
             label={t("overlays.elements.topSpeed")}
             value={maxRef.current > 0 ? Math.round(maxRef.current).toString() : "—"}
             unit="km/h"
-            color="#4ade80"
+            color={toneColor(look, "throttle", "#4ade80")}
           />
         )}
         {content.minSpeed !== false && (
@@ -45,7 +47,7 @@ export function SpeedWidget({ data, content, accent, t }: WidgetProps) {
             label={t("overlays.elements.minSpeed")}
             value={minVal > 0 ? Math.round(minVal).toString() : "—"}
             unit="km/h"
-            color="#f87171"
+            color={toneColor(look, "brake", "#f87171")}
           />
         )}
         {content.current !== false && (

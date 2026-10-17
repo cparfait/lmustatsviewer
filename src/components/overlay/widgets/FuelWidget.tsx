@@ -4,8 +4,10 @@ import { Fuel } from "lucide-react";
 import { Panel, PanelHeader, Stat } from "@/components/overlay/ui";
 import { computeFuelToFinish } from "@/components/overlay/format";
 import type { WidgetProps } from "./types";
+import { toneColor, useOverlayLook } from "@/components/overlay/look";
 
 export function FuelWidget({ data, content, accent, t }: WidgetProps) {
+  const look = useOverlayLook();
   const tel = data.telemetry;
   const ext = data.extended;
   const calc = computeFuelToFinish(data.session, data.player, tel);
@@ -39,7 +41,7 @@ export function FuelWidget({ data, content, accent, t }: WidgetProps) {
             // (strategy.ts) — évite d'afficher « OK » à carburant pile-poil.
             value={calc ? (calc.fuelToAdd > 0.05 ? `+${calc.fuelToAdd.toFixed(1)}` : "OK") : "—"}
             unit={calc && calc.fuelToAdd > 0.05 ? "L" : undefined}
-            color={calc ? (calc.fuelToAdd > 0.05 ? "#f87171" : "#4ade80") : undefined}
+            color={calc ? (calc.fuelToAdd > 0.05 ? toneColor(look, "loss", "#f87171") : toneColor(look, "gain", "#4ade80")) : undefined}
           />
         )}
         {/* Énergie virtuelle (voitures hybrides WEC uniquement) */}

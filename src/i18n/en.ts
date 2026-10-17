@@ -283,6 +283,8 @@ export default {
       noteSettings: "Content and colour of each widget: those set above on this page, even if the widget is off on screen.",
       noteLocal: "This PC only. For a tablet on your local network, use Tablet race control (Settings).",
       offline: "LMU Stats Viewer unreachable: app closed or local addresses turned off",
+      connected: "Connected to the app",
+      openHere: "Open here",
       unknown: "Unknown widget: {{id}}",
       indexTitle: "LMU Stats Viewer: widgets",
       indexDesc: "Click a widget to open it on its own, or copy its address into OpenKneeboard or OBS.",

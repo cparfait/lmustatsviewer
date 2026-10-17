@@ -283,6 +283,8 @@ export default {
       noteSettings: "Contenu et couleur de chaque widget : ceux réglés plus haut dans cette page, même si le widget est éteint à l'écran.",
       noteLocal: "Réservé à ce PC. Pour une tablette du réseau local, utilise la Régie tablette (Configuration).",
       offline: "LMU Stats Viewer injoignable : app fermée ou adresses locales désactivées",
+      connected: "Connecté à l'app",
+      openHere: "Ouvrir ici",
       unknown: "Widget inconnu : {{id}}",
       indexTitle: "LMU Stats Viewer : widgets",
       indexDesc: "Clique un widget pour l'ouvrir seul, ou copie son adresse dans OpenKneeboard ou OBS.",

@@ -16,6 +16,9 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Check, Copy, ExternalLink, Flag, Glasses, MonitorPlay } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { useOverlaysStore, type OverlaysConfig } from "@/stores/overlays";
 import { OVERLAY_BY_ID, OVERLAY_DEFS, type OverlayId } from "@/lib/overlays";
 import { widgetLink } from "@/lib/widgetLink";
@@ -150,30 +153,118 @@ export function WidgetPage({ id }: { id: string }) {
   );
 }
 
-/** `/` : liste des widgets, pour copier une adresse depuis un navigateur. */
+/**
+ * `/` : liste des widgets, aux couleurs de l'app (même en-tête que la fenêtre
+ * principale, mêmes cartes que la page Overlays), pour ouvrir un widget ou copier
+ * son adresse.
+ */
 export function WidgetIndex() {
   const { t } = useTranslation();
-  useServedConfig();
+  const online = useServedConfig();
+  const [copied, setCopied] = useState("");
+
+  const copy = (url: string) => {
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopied(url);
+      setTimeout(() => setCopied((c) => (c === url ? "" : c)), 1500);
+    });
+  };
+
   return (
-    <main className="mx-auto max-w-3xl space-y-4 p-6">
-      <h1 className="text-xl font-bold">{t("overlays.web.indexTitle")}</h1>
-      <p className="text-sm text-muted-foreground">{t("overlays.web.indexDesc")}</p>
-      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {OVERLAY_DEFS.map((d) => {
-          const href = `/?w=${d.id}`;
-          return (
-            <li key={d.id} className="rounded-md border border-border p-3">
-              <a className="font-semibold hover:underline" href={href} style={{ color: d.accent }}>
-                {t(`overlays.items.${d.id}.title`)}
-              </a>
-              <p className="mt-1 font-mono text-xs text-muted-foreground">
-                {location.origin}
-                {href}
-              </p>
-            </li>
-          );
-        })}
-      </ul>
-    </main>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
+            <Flag className="h-4.5 w-4.5" strokeWidth={2.5} />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[15px] font-bold tracking-tight">LMU Stats Viewer</span>
+            <span className="text-[11px] text-muted-foreground">{t("overlays.web.title")}</span>
+          </div>
+          <span
+            className={cn(
+              "ml-auto inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+              online ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400" : "border-amber-500/40 bg-amber-500/10 text-amber-300",
+            )}
+          >
+            <span className={cn("h-1.5 w-1.5 rounded-full", online ? "bg-emerald-400" : "bg-amber-300")} />
+            {online ? t("overlays.web.connected") : t("overlays.web.offline")}
+          </span>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-[1400px] space-y-5 px-4 py-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t("overlays.web.indexTitle")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("overlays.web.indexDesc")}</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {OVERLAY_DEFS.map((d) => {
+            const Icon = d.icon;
+            const url = `${location.origin}/?w=${d.id}`;
+            return (
+              <Card key={d.id} className="flex flex-col p-4 transition-all hover:border-foreground/20 hover:shadow-md">
+                <div className="mb-3 flex items-start justify-between">
+                  <div className="grid h-9 w-9 place-items-center rounded-lg" style={{ background: `${d.accent}22`, color: d.accent }}>
+                    <Icon className="h-4.5 w-4.5" />
+                  </div>
+                </div>
+                <div className="mb-0.5 font-semibold">{t(`overlays.items.${d.id}.title`)}</div>
+                <div className="mb-3 text-xs font-medium text-muted-foreground">{t(`overlays.items.${d.id}.desc`)}</div>
+                <div className="mt-auto flex items-center gap-1 border-t border-border pt-2.5">
+                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground" title={url}>
+                    {url}
+                  </span>
+                  <button
+                    type="button"
+                    className="grid h-7 w-7 place-items-center rounded hover:bg-accent"
+                    onClick={() => copy(url)}
+                    title={t("overlays.web.copy")}
+                    aria-label={t("overlays.web.copy")}
+                  >
+                    {copied === url ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
+                  <a
+                    href={url}
+                    className="grid h-7 w-7 place-items-center rounded hover:bg-accent"
+                    title={t("overlays.web.openHere")}
+                    aria-label={t("overlays.web.openHere")}
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        <Card className="grid gap-4 p-4 text-xs text-muted-foreground md:grid-cols-2">
+          <div className="space-y-1">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Glasses className="h-4 w-4 text-primary" />
+              {t("overlays.web.vrTitle")}
+            </p>
+            <ol className="list-decimal space-y-1 pl-5">
+              <li>{t("overlays.web.vr1")}</li>
+              <li>{t("overlays.web.vr2")}</li>
+              <li>{t("overlays.web.vr3")}</li>
+              <li>{t("overlays.web.vr4")}</li>
+            </ol>
+          </div>
+          <div className="space-y-1">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <MonitorPlay className="h-4 w-4 text-primary" />
+              {t("overlays.web.obsTitle")}
+            </p>
+            <ol className="list-decimal space-y-1 pl-5">
+              <li>{t("overlays.web.obs1")}</li>
+              <li>{t("overlays.web.obs2")}</li>
+              <li>{t("overlays.web.obs3")}</li>
+            </ol>
+          </div>
+        </Card>
+      </main>
+    </div>
   );
 }

@@ -39,8 +39,13 @@ const helloReady = new Promise<void>((r) => {
   helloResolve = r;
 });
 
+/** Vrai dès la 1ʳᵉ ouverture ou fermeture du WebSocket (avant : état inconnu). */
+let statusKnown = false;
+
 function setConnected(v: boolean) {
-  if (state.connected === v) return;
+  const changed = !statusKnown || state.connected !== v;
+  statusKnown = true;
+  if (!changed) return;
   state.connected = v;
   statusSubs.forEach((cb) => cb(v));
 }
@@ -147,7 +152,7 @@ export const widgetLink = {
   /** Langue de l'interface de l'app. */
   onLanguage: (cb: Sub<string>) => subscribe(langSubs, cb, state.lang || undefined),
   /** Connexion au serveur (perdue quand l'app est fermée ou le serveur arrêté). */
-  onStatus: (cb: Sub<boolean>) => subscribe(statusSubs, cb, state.connected),
+  onStatus: (cb: Sub<boolean>) => subscribe(statusSubs, cb, statusKnown ? state.connected : undefined),
 };
 
 /** Évènement de l'app (`coach-voice`, `coach-corner`…), où que tourne le widget. */

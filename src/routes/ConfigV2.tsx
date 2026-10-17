@@ -1583,13 +1583,16 @@ export function ConfigV2() {
                     )}
                   </div>
                 )}
-                {/* Débit des annonces : ingénieur (arbitré) ou complet (historique).
-                    Mêmes annonces dans les deux modes — seul le filtrage change. */}
+                {/* Réglages des annonces regroupés en sections repliables (chaque réglage
+                    garde l'ancien comportement accessible : décoché = comme avant). */}
                 {voiceTab === "announces" && voiceAnnouncements && (
-                  <div className="flex items-center justify-between py-2 gap-3">
+                  <div className="space-y-2 pt-1">
+                    <CollapsibleSection title={t("config.announceGroupWhen")} desc={t("config.announceGroupWhenDesc")}>
+                      <div className="space-y-2">
+<div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                     <div className="flex items-start gap-2 min-w-0">
                       <Tip content={t("config.radioModeTip")} side="right">
-                        <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+                        <span className="text-primary cursor-help mt-0.5 shrink-0">
                           <Radio className="h-4 w-4" />
                         </span>
                       </Tip>
@@ -1622,9 +1625,7 @@ export function ConfigV2() {
                       ))}
                     </div>
                   </div>
-                )}
-                {voiceTab === "announces" && voiceAnnouncements && (
-                  <ToggleRow
+<ToggleRow
                     icon={<Monitor className="h-4 w-4" />}
                     label={t("config.announceEverywhere")}
                     desc={t("config.announceEverywhereDesc")}
@@ -1632,22 +1633,7 @@ export function ConfigV2() {
                     checked={announceEverywhere}
                     onChange={(v) => void useAppStore.getState().setAnnounceEverywhere(v)}
                   />
-                )}
-                {voiceTab === "announces" && voiceAnnouncements && (
-                  <ToggleRow
-                    icon={<Trophy className="h-4 w-4" />}
-                    label={t("config.classPositions")}
-                    desc={t("config.classPositionsDesc")}
-                    tip={t("config.classPositionsTip")}
-                    checked={classPositions}
-                    onChange={(v) => void useAppStore.getState().setClassPositions(v)}
-                  />
-                )}
-                {/* Diffusion de la radio : chaque réglage garde l'ancien
-                    comportement accessible (décoché = comme avant). */}
-                {voiceTab === "announces" && voiceAnnouncements && (
-                  <>
-                    <ToggleRow
+<ToggleRow
                       icon={<Ear className="h-4 w-4" />}
                       label={t("config.radioQuietZones")}
                       desc={t("config.radioQuietZonesDesc")}
@@ -1655,7 +1641,7 @@ export function ConfigV2() {
                       checked={radioQuietZones}
                       onChange={(v) => void useAppStore.getState().setRadioQuietZones(v)}
                     />
-                    <ToggleRow
+<ToggleRow
                       icon={<Flag className="h-4 w-4" />}
                       label={t("config.radioPhases")}
                       desc={t("config.radioPhasesDesc")}
@@ -1664,7 +1650,7 @@ export function ConfigV2() {
                       onChange={(v) => void useAppStore.getState().setRadioPhases(v)}
                       disabled={radioMode === "full"}
                     />
-                    <ToggleRow
+<ToggleRow
                       icon={<Gauge className="h-4 w-4" />}
                       label={t("config.radioBudgets")}
                       desc={t("config.radioBudgetsDesc")}
@@ -1673,7 +1659,15 @@ export function ConfigV2() {
                       onChange={(v) => void useAppStore.getState().setRadioBudgets(v)}
                       disabled={radioMode === "full"}
                     />
-                    <ToggleRow
+<ToggleRow
+                      icon={<Repeat className="h-4 w-4" />}
+                      label={t("config.radioReplay")}
+                      desc={t("config.radioReplayDesc")}
+                      tip={t("config.radioReplayTip")}
+                      checked={radioReplay}
+                      onChange={(v) => void useAppStore.getState().setRadioReplay(v)}
+                    />
+<ToggleRow
                       icon={<MessageCircleQuestion className="h-4 w-4" />}
                       label={t("config.radioAskPrefs")}
                       desc={t("config.radioAskPrefsDesc")}
@@ -1682,18 +1676,22 @@ export function ConfigV2() {
                       onChange={(v) => void useAppStore.getState().setRadioAskPrefs(v)}
                       disabled={radioMode === "full"}
                     />
-                    <ToggleRow
-                      icon={<Repeat className="h-4 w-4" />}
-                      label={t("config.radioReplay")}
-                      desc={t("config.radioReplayDesc")}
-                      tip={t("config.radioReplayTip")}
-                      checked={radioReplay}
-                      onChange={(v) => void useAppStore.getState().setRadioReplay(v)}
-                    />
-                    <div className="flex items-center justify-between py-2 gap-3">
+                      </div>
+                    </CollapsibleSection>
+                    <CollapsibleSection title={t("config.announceGroupWhat")} desc={t("config.announceGroupWhatDesc")}>
+                      <div className="space-y-2">
+<ToggleRow
+                    icon={<Trophy className="h-4 w-4" />}
+                    label={t("config.classPositions")}
+                    desc={t("config.classPositionsDesc")}
+                    tip={t("config.classPositionsTip")}
+                    checked={classPositions}
+                    onChange={(v) => void useAppStore.getState().setClassPositions(v)}
+                  />
+<div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                       <div className="flex items-start gap-2 min-w-0">
                         <Tip content={t("config.voiceLapPrecisionTip")} side="right">
-                          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+                          <span className="text-primary cursor-help mt-0.5 shrink-0">
                             <Timer className="h-4 w-4" />
                           </span>
                         </Tip>
@@ -1725,7 +1723,11 @@ export function ConfigV2() {
                       </div>
                     </div>
                     <DriverNameRow />
-                    <ToggleRow
+                      </div>
+                    </CollapsibleSection>
+                    <CollapsibleSection title={t("config.announceGroupSpotter")} desc={t("config.announceGroupSpotterDesc")}>
+                      <div className="space-y-2">
+<ToggleRow
                       icon={<ArrowLeftRight className="h-4 w-4" />}
                       label={t("config.proximitySpotter")}
                       desc={t("config.proximitySpotterDesc")}
@@ -1733,7 +1735,9 @@ export function ConfigV2() {
                       checked={proximitySpotter}
                       onChange={(v) => void useAppStore.getState().setProximitySpotter(v)}
                     />
-                  </>
+                      </div>
+                    </CollapsibleSection>
+                  </div>
                 )}
                 {/* « Parler à l'ingénieur » : push-to-talk indépendant de l'IA
                     (commandes radio, questions de course, « coach-moi » en local ;
@@ -3171,10 +3175,10 @@ function DriverNameRow() {
     if (draft.trim() !== saved) void useAppStore.getState().setRadioDriverName(draft);
   };
   return (
-    <div className="flex items-center justify-between py-2 gap-3">
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
       <div className="flex items-start gap-2 min-w-0">
         <Tip content={t("config.radioDriverNameTip")} side="right">
-          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+          <span className="text-primary cursor-help mt-0.5 shrink-0">
             <User className="h-4 w-4" />
           </span>
         </Tip>

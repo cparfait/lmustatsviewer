@@ -73,7 +73,7 @@ static LANG: Mutex<String> = Mutex::new(String::new());
 /// reprennent comme nom d'onglet / de source avant même que la page ne démarre.
 static TITLES: Mutex<Option<std::collections::HashMap<String, String>>> = Mutex::new(None);
 
-/// Page de widget (`?w=<id>`) : titre « <nom> · LMU » à la place du titre générique.
+/// Page de widget (`?w=<id>`) : titre « LMU · <nom> » (onglets regroupés par ordre alphabétique).
 fn titled_page(html: &[u8], query: &str) -> Option<Vec<u8>> {
     let id = query.split('&').find_map(|kv| kv.strip_prefix("w="))?;
     if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
@@ -85,7 +85,7 @@ fn titled_page(html: &[u8], query: &str) -> Option<Vec<u8>> {
     let text = std::str::from_utf8(html).ok()?;
     let start = text.find("<title>")?;
     let end = text[start..].find("</title>")? + start;
-    Some(format!("{}<title>{name} · LMU{}", &text[..start], &text[end..]).into_bytes())
+    Some(format!("{}<title>LMU · {name}{}", &text[..start], &text[end..]).into_bytes())
 }
 
 // ── WebSocket minimal (RFC 6455) ────────────────────────────────────────────
@@ -651,7 +651,7 @@ mod tests {
         *TITLES.lock().unwrap() = Some([("standings".to_string(), "Classement".to_string())].into_iter().collect());
         let html = b"<html><head><title>LMU Stats Viewer</title></head></html>";
         let out = String::from_utf8(titled_page(html, "w=standings&bg=opaque").unwrap()).unwrap();
-        assert!(out.contains("<title>Classement · LMU</title>"));
+        assert!(out.contains("<title>LMU · Classement</title>"));
         assert!(titled_page(html, "w=unknown").is_none());
         assert!(titled_page(html, "w=../x").is_none());
         assert!(titled_page(html, "").is_none());

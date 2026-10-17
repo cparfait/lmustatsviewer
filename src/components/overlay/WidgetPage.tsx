@@ -89,7 +89,7 @@ export function WidgetPage({ id }: { id: string }) {
   // source d'après lui (sinon tous s'appellent « LMU Stats Viewer »).
   const widgetTitle = OVERLAY_BY_ID[id as OverlayId] ? t(`overlays.items.${id}.title`) : "";
   useEffect(() => {
-    if (widgetTitle) document.title = `${widgetTitle} · LMU`;
+    if (widgetTitle) document.title = `LMU · ${widgetTitle}`;
   }, [widgetTitle]);
 
   // Fond transparent (comme la fenêtre overlay), ou sombre si demandé.

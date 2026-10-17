@@ -461,6 +461,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Announcements tab: settings grouped into folding sections — “When the engineer speaks”, “What he says”, “Proximity spotter” — each setting in its box.",
+              fr: "Onglet Annonces : réglages regroupés en sections repliables — « Quand l'ingénieur parle », « Ce qu'il dit », « Spotter de proximité » — chaque réglage dans son encadré.",
+              es: "Pestaña Anuncios: ajustes agrupados en secciones plegables — «Cuándo habla el ingeniero», «Qué dice», «Spotter de proximidad» — cada ajuste en su recuadro.",
+              de: "Tab Ansagen: Einstellungen in einklappbaren Abschnitten — „Wann der Ingenieur spricht“, „Was er sagt“, „Näherungs-Spotter“ — jede Einstellung in ihrem Kasten.",
+              it: "Scheda Annunci: impostazioni raggruppate in sezioni richiudibili — «Quando parla l'ingegnere», «Cosa dice», «Spotter di prossimità» — ogni impostazione nel suo riquadro.",
+            },
+          },
+          {
+            text: {
               en: "Audio / Voice: with voice announcements off, the sub-tabs are hidden; only the record beeps and review marks remain, since they also work with beeps.",
               fr: "Audio / Voix : annonces vocales coupées, les sous-onglets sont masqués ; seuls restent les bips de record et les repères de revue, qui marchent aussi avec des bips.",
               es: "Audio / Voz: con los anuncios de voz desactivados, se ocultan las subpestañas; solo quedan los pitidos de récord y las marcas de revisión, que también funcionan con pitidos.",
@@ -533,11 +542,11 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
-              en: "Widgets by address: each page is named after its widget (“Standings · LMU”…), so tabs in OpenKneeboard and sources in OBS are easy to tell apart.",
-              fr: "Widgets par adresse : chaque page porte le nom de son widget (« Classement · LMU »…), pour reconnaître les onglets dans OpenKneeboard et les sources dans OBS.",
-              es: "Widgets por dirección: cada página lleva el nombre de su widget («Clasificación · LMU»…), para reconocer las pestañas en OpenKneeboard y las fuentes en OBS.",
-              de: "Widgets per Adresse: Jede Seite trägt den Namen ihres Widgets („Rangliste · LMU“…), damit Tabs in OpenKneeboard und Quellen in OBS unterscheidbar sind.",
-              it: "Widget per indirizzo: ogni pagina porta il nome del suo widget («Classifica · LMU»…), per riconoscere le schede in OpenKneeboard e le sorgenti in OBS.",
+              en: "Widgets by address: each page is named after its widget (“LMU · Standings”…), so tabs in OpenKneeboard and sources in OBS are easy to tell apart.",
+              fr: "Widgets par adresse : chaque page porte le nom de son widget (« LMU · Classement »…), pour reconnaître les onglets dans OpenKneeboard et les sources dans OBS.",
+              es: "Widgets por dirección: cada página lleva el nombre de su widget («LMU · Clasificación»…), para reconocer las pestañas en OpenKneeboard y las fuentes en OBS.",
+              de: "Widgets per Adresse: Jede Seite trägt den Namen ihres Widgets („LMU · Rangliste“…), damit Tabs in OpenKneeboard und Quellen in OBS unterscheidbar sind.",
+              it: "Widget per indirizzo: ogni pagina porta il nome del suo widget («LMU · Classifica»…), per riconoscere le schede in OpenKneeboard e le sorgenti in OBS.",
             },
           },
           {

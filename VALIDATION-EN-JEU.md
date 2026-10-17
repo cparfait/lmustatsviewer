@@ -1,4 +1,4 @@
-# À valider en jeu (mise à jour : 2026-10-16)
+# À valider en jeu (mise à jour : 2026-10-18)
 
 Liste de ce qui n'a pas encore pu être vérifié en roulant, regroupée par moment
 de séance pour être suivie au volant. Coche au fur et à mesure ; ce qui ne
@@ -7,8 +7,70 @@ colle pas est à signaler (capture d'écran + moment de la séance).
 **Avant de commencer**
 - Lancer l'app de dev (`npm run tauri dev`) **et fermer la version installée** :
   elles partagent le dossier des tracés et le profil WebView2.
-- Pour tester la voix (questions « plaquettes ? », « utile », etc.), il faut le
-  build avec la reconnaissance vocale (feature `stt`, cf. SUIVI §7).
+- La reconnaissance vocale (Vosk) est compilée d'office : il suffit d'avoir
+  téléchargé le modèle de la langue (Configuration › Audio / Voix).
+
+---
+
+## 00. Annonces de course 2026-10-18 (branche `feat/radio-parity`)
+
+Rien de cette section n'a encore roulé : tout a été vérifié par les tests (TS et
+Rust) et par une capture synthétique rejouée, pas dans le jeu.
+
+**Lecture du jeu**
+- [ ] Page Live : aucun voyant « Données LMU » orange en séance normale (sinon, noter
+      la version du jeu : disposition de `LMU_Data` changée).
+- [ ] Zone « Rules » lue : en course, ouvrir Configuration › Maintenance › Capture,
+      enregistrer 30 s, rejouer → la page Live se rejoue (voyant « Rejeu »).
+- [ ] Centre de messages : une coupure sanctionnée → « Stop and go reçu : coupure de
+      piste » (ou drive-through) au lieu de « Pénalité reçue » ; « Pénalité purgée » à
+      la sortie du stop & go. **Vérifier si le jeu traduit ces messages** quand son
+      interface est en français (les textes reconnus sont ceux du jeu en anglais).
+- [ ] Limites de piste : « 1 sur 4 », … puis « la prochaine coûte une pénalité ».
+- [ ] Mauvais sens (faire demi-tour en essais) → « Mauvais sens ! ».
+- [ ] Course de nuit : « Phares obligatoires » à l'heure dite par le jeu.
+
+**Neutralisations**
+- [ ] Départ lancé avec formation : « Tu pars de la place N, colonne … » puis
+      « Suis X » ; « Recolle à X » si on traîne ; « Laisse passer X » si on double.
+- [ ] Full course yellow / voiture de sécurité : « Voiture de sécurité en piste »,
+      « Stands fermés / ouverts », « elle rentre ce tour », « Relance ».
+- [ ] Course en ligne : la zone « Rules » est-elle remplie (participants) ? Sinon,
+      seules la voiture de sécurité et la relance sont annoncées.
+
+**Stands**
+- [ ] Écritures activées : « plein jusqu'à la fin », « ajoute 20 litres », « énergie à
+      85 », « change les quatre pneus », « pneus avant », « mets des pneus pluie »,
+      « répare tout », « purge la pénalité », « programme du stand » → le menu du jeu
+      change et la radio confirme. Écritures coupées → la radio le dit, rien ne change.
+- [ ] Les libellés du menu varient selon la voiture (Hypercar, LMP2, GT3) : tester
+      les trois.
+- [ ] Endurance avec équipier : « box occupé : X est dedans » quand il est au box.
+- [ ] Sortie des stands avec trafic → « Trafic à la sortie des stands ».
+
+**Pneus, fin de course, choc**
+- [ ] Perte de pression (crevaison lente) → annoncée sans fausse alerte en virage.
+- [ ] Fenêtre de pression renseignée → bilan après 2 tours, une fois par relais.
+- [ ] Sortie dans l'herbe → « Pneus sales » ; gros blocage → « possible plat ».
+- [ ] Choc avec arrêt → « Tu vas bien ? », puis « on repart » en roulant.
+- [ ] Derniers tours avec un rival proche → « attaque » / « défends » (une fois).
+
+**Son, volant, coach**
+- [ ] Sortie audio choisie : la radio sort sur le casque, le jeu sur les enceintes.
+- [ ] Son du jeu baissé pendant la radio et pendant le push-to-talk, rendu après ;
+      **tuer l'app pendant une annonce** puis la relancer → le jeu retrouve son volume.
+- [ ] Boutons du volant : sourdine, répète, statut, volume ±, spotter, accusé du box.
+- [ ] Note vocale : bouton maintenu → « Note enregistrée pour le virage N » ; au tour
+      suivant elle est rejouée ~3 s avant le virage.
+- [ ] Coach sur Spa / Monza : « Virage 1, La Source » au lieu du numéro du coach.
+- [ ] Piper sous forte charge (OBS en encodage CPU) : spotter et alertes sans retard.
+- [ ] Mode cohabitation avec un autre ingénieur radio lancé : plus de spotter ni
+      d'annonces en doublon ; stratégie et météo toujours là.
+
+**Sécurité de l'app (build de release)**
+- [ ] CSP (`tauri.conf.json`) : sur une version **installée**, toutes les pages
+      s'affichent, la voix marche, le classement communautaire et ohne_speed se
+      chargent. En cas de souci : remettre `"csp": null` et le signaler.
 
 ---
 

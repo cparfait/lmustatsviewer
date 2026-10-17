@@ -2,7 +2,7 @@
 
 > **Document de reprise du projet. À LIRE EN PREMIER.**
 > Mettre à jour la section « Journal de bord » à chaque session de travail.
-> Dernière mise à jour : 2026-07-07 (**Audit pré-V1.0 + corrections + nettoyage final** — MAJEUR & MINEUR traités, 84 clés + 20 exports morts retirés ; tout vert : build/cargo/eslint 0/121 tests/i18n 1736×4)
+> Dernière mise à jour : 2026-10-18 (**Annonces de course** sur `feat/radio-parity` — centre de messages du jeu, ordre figé, stands à la voix, son, diagnostic ; tout vert : tsc, eslint, 4 742 tests TS, 136 tests Rust)
 
 ---
 
@@ -48,6 +48,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Pas de données mockées** | **Aucune donnée d'exemple/simulée.** On travaille uniquement sur les données de production (vrais fichiers du jeu). Supprimer `mockData.ts`, `webMock.ts` et tous les fallbacks web du bridge IPC. Pas de « mode web » avec données simulées. Tests faits sur les fichiers réels de `D:\SteamLibrary\...`. |
 | **Overlays en VR** | 🧪 **Décidé (2026-09-23), en attente de validation anti-triche** — la VR passe par **OpenKneeboard** (signé, OpenXR + SteamVR) via ses **Web Dashboards** : l'app sert chaque widget sur une URL locale (fond transparent, données live par WebSocket). **Pas de couche OpenXR maison** tant qu'on n'a pas de certificat de signature de code : une DLL non signée chargée dans LMU se heurterait à Easy Anti-Cheat (actif depuis LMU 1.2). Cibles de test : Pimax (Pimax Play OpenXR) + Quest 3 (Virtual Desktop / VDXR). Rouvre partiellement la Phase 9. **Étape 1 livrée (2026-10-17, branche `feat/veille-pistes`)** : widgets servis par adresse locale + WebSocket (`widget_server.rs`, section « Widgets par adresse » de `/overlays`), aussi pour OBS et un 2ᵉ écran. |
 | **Nouveautés issues de la veille** | **Décidé (2026-10-17)** — tout ce qui vient de la veille RaceLab / pitlane / MySIMRace est **désactivé par défaut** et s'active dans la Configuration ; l'existant ne change pas (paliers ohne_speed par défaut, aucune lecture/écriture supplémentaire de l'API du jeu). VR : OpenKneeboard seul (pas de couche OpenXR maison). Développé sur la branche `feat/veille-pistes`, à fusionner après validation. |
+| **Annonces de course (passe 2026-10-18)** | **Décidé (mainteneur, 2026-10-18)** — issues de l'analyse REA d'un ingénieur radio du marché (rapport hors dépôt, `C:\tmp\rea-crewchief\`). **Informations activées par défaut** (pénalités détaillées, limites de piste, avertissements du jeu, voiture de sécurité, pressions, stands, fin de course, pneus, choc, noms de virages et de rivaux, notes vocales), chacune désactivable (Configuration › Audio / Voix › Annonces). **Actions désactivées par défaut** : son du jeu baissé, écritures dans le jeu (menu des stands à la voix), mode cohabitation. Supersède, pour cette passe seulement, « Nouveautés issues de la veille : désactivé par défaut ». Lecture **seule** de deux nouvelles sources : zone « Rules » du plugin et dernier message du centre de messages (`Extended`). Aucune ligne de code tiers reprise : les comportements ont été réimplémentés ; les dispositions mémoire viennent du format public du plugin rF2. Développé sur `feat/radio-parity`, à fusionner après `VALIDATION-EN-JEU.md` § 00. |
 | **Veille concurrents** | **Décidé (2026-09-25)** — on s'inspire des idées et des réglages d'outils concurrents, mais **aucun nom de concurrent dans le code** (identifiants, commentaires, textes UI, changelog) et aucune ligne de leur code reprise. Les analyses restent dans `SUIVI.md` (doc de veille). |
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
@@ -287,9 +288,15 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   rediscuter ensuite (couche maison = intégration plus fine).
 - ⏳ **Piper sous forte charge CPU** (2026-10-15, `voice-eval/README.md`) : avec 12 threads
   saturés, 1 à 5 s par phrase (medium) en priorité basse, car `piper.exe` ne borne pas ses
-  threads onnxruntime. Mesurer en jeu réel (et avec un encodage OBS en CPU). Si c'est
-  confirmé, deux pistes : faire tourner les modèles Piper via `ort` avec 2 threads, ou
-  passer le worker en priorité normale le temps de la synthèse.
+  threads onnxruntime. **Atténué le 2026-10-18** (`tts.rs`) : worker limité à 2 cœurs
+  (affinité, les plus hauts) et passé en priorité normale le temps d'une phrase urgente
+  (sécurité, spotter) ; nouvelles alertes urgentes pré-synthétisées. Reste à **mesurer en
+  jeu** (avec OBS en encodage CPU) ; piste suivante si insuffisant : `ort` avec 2 threads.
+- ⏳ **Branche `feat/radio-parity` (2026-10-18)** : annonces de course, stands à la voix,
+  son, diagnostic. Rien n'a roulé en jeu → `VALIDATION-EN-JEU.md` § 00 avant fusion. Points
+  à vérifier en priorité : textes du centre de messages traduits ou non par le jeu ; zone
+  « Rules » remplie en ligne ; libellés du menu des stands par classe ; CSP sur un build
+  installé (`tauri.conf.json`, retour à `"csp": null` si une page casse).
 - ⏳ **Voix par défaut IT / ES** (2026-10-15) : Serena et Sharvard sont nettement plus
   claires que Paola et DaveFX (transcription), et sont au catalogue. Passage en défaut à
   décider après écoute.
@@ -344,7 +351,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   **Cible retenue** : *push-to-talk + reconnaissance vocale par **commandes** (grammaire fermée), avec repli touche→statut*. Le vocabulaire restreint = beaucoup plus fiable/léger/hors-ligne que la dictée libre, et plus naturel que des touches seules.
   - **Couche 1 — MVP touches (facile, sans STT)** : ✅ **implémentée** — raccourcis globaux (`tauri-plugin-global-shortcut`) **Statut · Mute · Répète** → réponse parlée via la voix Piper à partir des données Live (`live.getData()` à la demande). Modules `src/lib/spotter.ts` (constructeur de phrases) + `src/lib/useSpotter.ts` (enregistrement). Touches configurables en Config.
   - **Couche 2 — reconnaissance par commandes** : ✅ **implémentée** avec **Vosk** en sidecar (offline, grammaire fermée). Push-to-talk (`spotterKeyTalk`, défaut `Alt+T`) : maintenir → capture micro (`src/lib/mic.ts`, `getUserMedia` → PCM 16 kHz Int16), relâcher → `stt_recognize` (Rust `commands/stt.rs`, modèle caché + `Recognizer::new_with_grammar`) → `matchIntent` (`src/lib/spotterCommands.ts`) → `buildAnswer` (`src/lib/spotter.ts`) → `announce`. Repli **Statut** si reco vide/échec. Assets via `scripts/fetch-vosk.ps1` (libvosk + modèles small FR/EN/ES/DE dans `resources/stt/`, gitignorés). Indicateur d'état `stt_available` en Config.
-    - ⚠️ **`vosk` est derrière une feature Cargo `stt` (OFF par défaut)** : l'app compile **sans** les assets. Pour activer la reco : fetch des assets puis `npm run tauri dev -- --features stt --config src-tauri/tauri.stt.conf.json` (l'overlay `tauri.stt.conf.json` ajoute les ressources de bundle). Sans la feature, les commandes `stt_*` n'existent pas → le frontend retombe sur le Statut.
+    - ~~`vosk` derrière une feature Cargo `stt`~~ : **obsolète** — `vosk` est désormais une dépendance standard (`Cargo.toml`, `MAINTENANCE.md` §4.4) ; seuls les modèles par langue se téléchargent à la demande.
     - **Linking Windows** : le crate lie `libvosk.lib`. Si l'archive ne fournit que la DLL, générer l'import lib (`lib /def:… /out:libvosk.lib /machine:x64`) — cf. en-tête de `fetch-vosk.ps1`.
   - **Commandes & réponses** (toutes calculables depuis `LiveData`) : **statut** · **écart** (`time_behind_next` joueur + suivant) · **carburant** (`fuel_laps_remaining`) · **pneus** (`wheels` temp/usure) · **position** (`time_behind_leader`) · **rythme** (`last_lap`/`best_lap`/`lap_delta`) · **restant** (`max_laps`/`end_et`) · **météo** (`weather`) ; + contrôle : **répète / mute**.
   - **Reste possible** : streaming continu (au lieu de batch au relâchement), variante « boutons radio » (1 touche/question), presets de phrases.
@@ -944,6 +951,41 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ `Records.tsx` : compteur « (n) » du bandeau circuit, même correction.
 - 📋 **Prochaine étape** : règle à suivre — jamais `text-muted-foreground` ni logo en couleurs
   d'origine dans un `TableTitle` variante `primary`.
+
+### 2026-10-18 — Annonces de course (`feat/radio-parity`), en une passe
+
+Issu de l'analyse REA (statique + décompilation vérifiée de 436 méthodes) d'un
+ingénieur radio du marché ; rapport et comparaison hors dépôt (`C:\tmp\rea-crewchief\`).
+Comportements réimplémentés, aucune ligne de code tiers, aucun nom de concurrent.
+
+- ✅ **Lecture live** (`shm.rs`, `live.rs`) : vues gardées ouvertes (refermées chaque
+  seconde pour voir la fermeture du jeu), copies partielles (voitures présentes), relecture
+  d'une trame déchirée, plage seule de `LMU_Data` + contrôle de taille et de **plausibilité**
+  (voyant « Données LMU » sur la page Live si une mise à jour du jeu déplace les offsets).
+  Zone **« Rules »** lue (taille 45 272 octets testée) ; **dernier message du centre de
+  messages** exposé (`history_message`, déjà déclaré mais jamais lu).
+- ✅ **Captures brutes** `.lmurec` (deflate, 10 min max) + **rejeu** à la place du jeu ;
+  test Rust : capture synthétique rejouée à travers `extract()`.
+- ✅ **Ingénieur** (modules purs testés) : `gameMessages`, `penalties` (type/cause,
+  purgée, limites de piste), `pressures`, `frozenOrder`, `pitTraffic` (box partagé, sortie),
+  `endgame` (attaque/défends, position finale), `tyreEvents` (pneus sales, blocage, choc),
+  `pitVoice` (menu des stands à la voix, écritures relues), `alarm`, `coexist`,
+  `cornerVoice` (numéro + nom officiels dans le coach). Spotter réglable. Routeur : 14
+  commandes de stand à motif strict (jamais déclenchées par une question), pressions,
+  pénalité, position finale, réveil, note vocale — 5 langues.
+- ✅ **Son** : sortie audio de la radio (`setSinkId`), son du jeu baissé (WASAPI, marqueur
+  de restauration après plantage), sous-titres radio (widget « Radio », relayé à OBS),
+  boutons du volant par action (`wheel_watch_actions`), notes vocales par virage.
+- ✅ **Dette** : journal fichier + panic hook + rapport de bug zip (`applog.rs`), base
+  illisible mise de côté au démarrage (plus de `expect`), job CI Windows `cargo test`,
+  CSP définie (dev : aucune), Piper borné à 2 cœurs + priorité normale pour l'urgent,
+  infobulle `voiceAnnounceTip` corrigée (5 langues, sans nom de concurrent), README.
+- ✅ **Bug trouvé en comparant les noms de virages** : « Jose Carlo**s Pa**ce » contenait
+  « spa » → Interlagos prenait la fiche de Spa. `cornerTableFor` garde désormais le
+  fragment le plus long. Aucune donnée de virage tierce reprise (comparaison seulement).
+- ⏳ Validation en jeu : `VALIDATION-EN-JEU.md` § 00 (rien n'a roulé).
+- 📋 Prochaine étape : rouler une course avec formation + FCY (capture brute activée),
+  vérifier les messages du jeu en interface française, puis fusionner.
 
 ### 2026-10-17 — Audio / Voix : onglets en sections repliables, aide des variables
 

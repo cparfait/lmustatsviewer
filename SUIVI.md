@@ -301,6 +301,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 - Le `.git` de `zz_V1` est verrouillé (fichiers `.lock` périmés) — non bloquant, le code est ailleurs.
 - ohne_speed : CSV public Google Sheets, mapping circuits/classes, calcul tier + delta vs Alien.
 - **Sources de référence circuit — à re-vérifier à chaque nouveau circuit / pack** (2026-09-25). Checklist : (1) feuille ohne_speed (`TRACK_MAP` avec le `TrackVenue` exact des XML) ; (2) playlist Unleashed Drivers `PLk_3Ekb3fRQgMjnknAxq5ZGiT3sUOyFA7` (lister avec `yt_dlp` en `extract_flat`) + transcriptions (`youtube_transcript_api`) ; (3) ApexPoints (app JS : navigateur, pas `fetch`) ; (4) `track_db.py` de LMU Telemetry Lab (profils d'altitude). Points ouverts :
+  - ℹ️ **Revu le 2026-10-17** : ApexPoints toujours 12 circuits, Paul Ricard toujours faux (rien repris) ; HYMO Academy / GO Setups couvrent Barcelone, Paul Ricard (1A-V2, 1A-V2 Short), Silverstone (WEC, ELMS) et la LMP3 (bloc manuel de `video-guides-data.ts`).
   - ⚠️ **ApexPoints Road Atlanta était faux** (données pré-sortie) → remplacé à la main le 2026-09-25. Si ApexPoints corrige sa fiche, re-comparer avant de reprendre sa donnée. **Ne pas régénérer `braking-guide-data.ts` à l'aveugle** : le générateur écraserait Road Atlanta + le bloc manuel et réintroduirait les 7 fiches retirées pour tracé erroné.
   - ⏳ **Décision mainteneur** : la seule vidéo LMU **commentée** de Road Atlanta (GT3, `Htt-UPpr9d8`, ~4 k caractères de conseils) est publiée par **GO Fast**, marque d'une app de télémétrie/coaching (concurrent potentiel) → non intégrée, faute de feu vert (règle « aucun nom de concurrent dans le code »). Hypercar/LMP2 Long Beach et Road Atlanta : aucune vidéo commentée trouvée (HYMO / GO Setups = hotlaps muets).
   - ⏳ **Bug ohne_speed pré-existant — layouts** : `mapTrackName` construit un `layoutMap` qu'il n'utilise jamais (il renvoie la base). COTA National, Monza Curva Grande, Fuji Classic, Sarthe Mulsanne, Bahrain Outer/Paddock… prennent donc le temps de référence du tracé **principal**. Les clés du `layoutMap` (« Curva Grande ») ne correspondent d'ailleurs pas aux `track_course` réels (« Monza Curva Grande Circuit »).
@@ -912,6 +913,26 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-17 — Guides vidéo : Barcelone, Paul Ricard, Silverstone, LMP3, choix par tracé
+
+- ✅ **Sources revues** (navigateur + `ytInitialData`, chaque ID vérifié via oEmbed) : playlist
+  Unleashed Drivers (3 nouveaux guides commentés : Long Beach Hypercar, Road Atlanta GT3 et
+  Hypercar → remplacent les ajouts HYMO du bloc manuel), HYMO Academy (Barcelone, Paul Ricard
+  1A-V2 / 1A-V2 Short, Silverstone WEC / ELMS en GT3 + Hypercar ; Hypercar Lusail / Imola /
+  Interlagos ; LMP3 sur 8 circuits dont Fuji Classic), GO Setups (COTA Hypercar). 70 entrées.
+  Titre sans variante = tracé principal (HYMO nomme toujours Outer / Paddock / Mulsanne / Classic).
+- ✅ `video-guides.ts` : mots-clés barcelona / paul-ricard / silverstone **avant** spa (« spain »
+  contient « spa »), classe `lmp3` (`/p3/` avant `/p2/`), `pickGuide` choisit la variante dont
+  le `layout` figure dans le `track_course` du jeu (le plus long gagne : 1A-V2-Short > 1A-V2 ;
+  alias `LAYOUT_COURSE_WORD` Sebring « Short » → school, Bahreïn « Short » → paddock), sinon
+  le principal, et **`null` sans principal** (Paul Ricard ELMS : aucun guide, jamais un autre
+  tracé). 9 cas ajoutés à `veille.suite.ts` ; 3962 tests OK, `tsc` propre.
+- ✅ **ApexPoints** : toujours 12 circuits (ni Barcelone, ni Silverstone, ni Lusail, ni les US).
+  Fiche Paul Ricard toujours fausse (Sainte-Baume en T1, « Club » et « Pont de Fos » inexistants)
+  → rien intégré, `braking-guide-data.ts` inchangé.
+- 📋 **Prochaine étape** : transcrire les 3 nouveaux guides Unleashed (`video-transcripts-data.ts`)
+  quand le pipeline de sous-titres est relancé ; re-vérifier ApexPoints au prochain pack de circuits.
 
 ### 2026-10-17 — Logos et textes lisibles dans les bandeaux de couleur primaire
 

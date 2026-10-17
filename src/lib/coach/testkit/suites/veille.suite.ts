@@ -9,6 +9,7 @@ import { liveClassToDb, matchCombo, tierOfPct } from "@/lib/briefing";
 import { beepsFor } from "@/lib/useRecordBeeps";
 import { computeTier, findBenchmark, type PaceBenchmark } from "@/lib/ohne_speed";
 import { marksForSession, type ReviewMark } from "@/lib/reviewMarks";
+import { getVideoGuide } from "@/lib/ai/knowledge/video-guides";
 
 const lap = (t: number | null, s1 = 30, s2 = 30, opts: { pit?: boolean; valid?: boolean } = {}) => ({
   lap_time: t,
@@ -85,4 +86,16 @@ export function run(): void {
   eq(marksForSession([m], "Sebring International Raceway", 1_000_500, 3600, true).length, 1, "même séance → rattaché");
   eq(marksForSession([m], "Sebring International Raceway", 1_000_500, 3600, false).length, 0, "pas une course → écarté");
   eq(marksForSession([m], "Fuji Speedway", 1_000_500, 3600, true).length, 0, "autre circuit → écarté");
+
+  section("veille — guides vidéo par tracé");
+  const vid = (track: string, course: string | undefined, cls: string) => getVideoGuide(track, course, cls)?.url.split("/").pop() ?? null;
+  eq(vid("Paul Ricard", "Paul Ricard - 1A-V2", "GT3"), "gax_HhaE7DU", "Paul Ricard 1A-V2");
+  eq(vid("Paul Ricard", "Paul Ricard - 1A-V2-Short", "GT3"), "UJVNZj9P0vc", "Paul Ricard 1A-V2 Short (le plus long gagne)");
+  eq(vid("Paul Ricard", "Paul Ricard - ELMS", "GT3"), null, "Paul Ricard ELMS : aucun guide, jamais un autre tracé");
+  eq(vid("Silverstone Circuit", "Silverstone Grand Prix Circuit - WEC", "Hypercar"), "q3AxJcvLHWw", "Silverstone WEC");
+  eq(vid("Silverstone Circuit", "Silverstone Grand Prix Circuit - ELMS", "Hypercar"), "UXM_8y8cayU", "Silverstone ELMS");
+  eq(vid("Circuit de Barcelona-Catalunya", undefined, "Hyper"), "TumxvOGUAcI", "Barcelone (pas confondu avec Spa)");
+  eq(vid("Fuji Speedway", "Fuji Speedway Classic", "LMP3"), "iYj-EqaRiuA", "classe LMP3 + variante Classic");
+  eq(vid("Sebring International Raceway", "Sebring School Circuit", "GT3"), "TjU9MLRbVU0", "Sebring School → guide du tracé court");
+  eq(vid("Road Atlanta", undefined, "GT3"), "hi78biewbH4", "guide commenté prioritaire");
 }

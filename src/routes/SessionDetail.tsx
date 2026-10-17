@@ -1497,11 +1497,13 @@ function LapsTab({
                   <ClassBadge carClass={r.car_class} solid />
                   <CarNumber n={r.car_number} />
                   {r.driver_name}
-                  <span className="inline-flex items-center gap-1.5 text-muted-foreground font-normal">
+                  {/* Bandeau couleur primaire : logo en silhouette blanche et nom
+                      en blanc atténué, sinon les logos sombres disparaissent. */}
+                  <span className="inline-flex items-center gap-1.5 text-primary-foreground/85 font-normal">
                     <span>—</span>
                     <CarLogo
                       carName={r.unique_car_name || r.car_type}
-                      className="h-3.5 w-auto object-contain opacity-70 shrink-0"
+                      className="h-3.5 w-auto object-contain brightness-0 invert opacity-90 shrink-0"
                     />
                     {r.unique_car_name || r.car_type}
                   </span>

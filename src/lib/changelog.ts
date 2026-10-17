@@ -842,6 +842,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Session details, lap cards: the car logo and name in the coloured header were dark on orange and almost invisible; they are now white. Same for the lap count next to each track on the Records page.",
+              fr: "Détail de session, cartes des tours : le logo et le nom de la voiture dans le bandeau de couleur étaient sombres sur l'orange, presque invisibles ; ils sont maintenant en blanc. Idem pour le nombre de tours à côté de chaque circuit dans la page Records.",
+              es: "Detalle de sesión, tarjetas de vueltas: el logo y el nombre del coche en la cabecera de color eran oscuros sobre el naranja y casi invisibles; ahora son blancos. Lo mismo para el número de vueltas junto a cada circuito en la página Récords.",
+              de: "Session-Details, Rundenkarten: Logo und Name des Autos in der farbigen Kopfzeile waren dunkel auf Orange und kaum sichtbar; sie sind jetzt weiß. Ebenso die Rundenanzahl neben jeder Strecke auf der Seite Rekorde.",
+              it: "Dettaglio sessione, schede dei giri: il logo e il nome dell'auto nell'intestazione colorata erano scuri sull'arancione e quasi invisibili; ora sono bianchi. Lo stesso per il numero di giri accanto a ogni circuito nella pagina Record.",
+            },
+          },
+          {
+            text: {
               en: "Help (“?” in the top bar): the window now opens in the middle of the screen instead of being cut off at the top left; wider, in two columns (shortcuts, what each feature needs) with a link to the right screen for each item, plus VR and community rankings.",
               fr: "Aide (« ? » de la barre du haut) : la fenêtre s'ouvre au milieu de l'écran au lieu d'être coupée en haut à gauche ; plus large, sur deux colonnes (raccourcis, prérequis de chaque fonction) avec un lien vers le bon écran pour chacun, plus la VR et les classements communautaires.",
               es: "Ayuda («?» de la barra superior): la ventana se abre en el centro de la pantalla en lugar de aparecer cortada arriba a la izquierda; más ancha, en dos columnas (atajos, requisitos de cada función) con un enlace a la pantalla correcta para cada uno, además de la VR y las clasificaciones de la comunidad.",

@@ -913,6 +913,15 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Logos et textes lisibles dans les bandeaux de couleur primaire
+
+- ✅ `SessionDetail.tsx` (cartes des tours, `TableTitle` orange) : logo voiture en silhouette blanche
+  (`brightness-0 invert`) et nom en `text-primary-foreground/85` — avant, `text-muted-foreground`
+  + logo d'origine (souvent sombre, ex. Genesis) étaient illisibles sur l'orange.
+- ✅ `Records.tsx` : compteur « (n) » du bandeau circuit, même correction.
+- 📋 **Prochaine étape** : règle à suivre — jamais `text-muted-foreground` ni logo en couleurs
+  d'origine dans un `TableTitle` variante `primary`.
+
 ### 2026-10-17 — Audio / Voix : onglets en sections repliables, aide des variables
 
 - ✅ Onglets Annonces, Parler à l'ingénieur, Coach par virage : `CollapsibleSection` (option

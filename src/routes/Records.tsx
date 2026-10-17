@@ -306,7 +306,7 @@ function Overview({
                     className="h-4 w-auto rounded-[2px]"
                   />
                   {track}
-                  <span className="text-muted-foreground font-normal text-xs">
+                  <span className="text-primary-foreground/80 font-normal text-xs">
                     ({list.length})
                   </span>
                 </span>

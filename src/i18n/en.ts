@@ -2835,7 +2835,7 @@ export default {
     rivalNote: "Win 3 points, draw 1, loss 0, over the last 12 weeks. Only your shared laps count. You can leave at any time.",
   },
   briefing: {
-    title: "Opponent briefing",
+    title: "Community opponent briefing",
     refresh: "Refresh",
     noCombo: "This track and class are not in the community database yet.",
     nobody: "No driver in this session shares their laps under their name.",
@@ -2844,8 +2844,8 @@ export default {
     rank: "Rank",
     level: "Level",
     note: "{{shared}} of {{total}} driver(s) share their laps under their name. Anonymous drivers never appear.",
-    settingTitle: "Opponent briefing (Live page)",
-    settingDesc: "In Live › Standings: best lap, rank and level of the session's drivers who share their laps under their name. Their names are sent to the community server.",
+    settingTitle: "Community opponent briefing",
+    settingDesc: "During an online session, shows under the Live standings the best lap, rank and level of opponents who share their laps with the community. To find them, the names of the session's drivers are sent to the community server; anonymous drivers never appear.",
   },
   extras: {
     title: "Analysis: new features",

@@ -2840,7 +2840,7 @@ export default {
     rivalNote: "Sieg 3 Punkte, Unentschieden 1, Niederlage 0, über die letzten 12 Wochen. Nur deine geteilten Runden zählen. Du kannst jederzeit aussteigen.",
   },
   briefing: {
-    title: "Gegner-Briefing",
+    title: "Community-Gegner-Briefing",
     refresh: "Aktualisieren",
     noCombo: "Diese Strecke und Klasse sind noch nicht in der Community-Datenbank.",
     nobody: "Kein Fahrer dieser Session teilt seine Runden unter seinem Namen.",
@@ -2849,8 +2849,8 @@ export default {
     rank: "Rang",
     level: "Stufe",
     note: "{{shared}} von {{total}} Fahrer(n) teilen ihre Runden unter ihrem Namen. Anonyme Fahrer erscheinen nie.",
-    settingTitle: "Gegner-Briefing (Live-Seite)",
-    settingDesc: "In Live › Wertung: beste Runde, Rang und Stufe der Session-Fahrer, die ihre Runden unter ihrem Namen teilen. Ihre Namen werden an den Community-Server gesendet.",
+    settingTitle: "Community-Gegner-Briefing",
+    settingDesc: "Zeigt während einer Online-Session unter der Live-Wertung beste Runde, Rang und Stufe der Gegner, die ihre Runden mit der Community teilen. Um sie zu finden, werden die Namen der Session-Fahrer an den Community-Server gesendet; anonyme Fahrer erscheinen nie.",
   },
   extras: {
     title: "Analyse: Neuheiten",

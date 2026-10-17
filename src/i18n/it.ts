@@ -2835,7 +2835,7 @@ export default {
     rivalNote: "Vittoria 3 punti, pareggio 1, sconfitta 0, sulle ultime 12 settimane. Contano solo i tuoi giri condivisi. Puoi ritirarti quando vuoi.",
   },
   briefing: {
-    title: "Briefing avversari",
+    title: "Briefing avversari della community",
     refresh: "Aggiorna",
     noCombo: "Questo circuito e questa classe non sono ancora nel database della community.",
     nobody: "Nessun pilota della sessione condivide i propri giri con il suo nome.",
@@ -2844,8 +2844,8 @@ export default {
     rank: "Posizione",
     level: "Livello",
     note: "{{shared}} su {{total}} pilota/i condividono i giri con il loro nome. I piloti anonimi non compaiono mai.",
-    settingTitle: "Briefing avversari (pagina Live)",
-    settingDesc: "In Live › Classifica: giro migliore, posizione e livello dei piloti della sessione che condividono i giri con il loro nome. I loro nomi vengono inviati al server della community.",
+    settingTitle: "Briefing avversari della community",
+    settingDesc: "Durante una sessione online, mostra sotto la classifica Live il giro migliore, la posizione e il livello degli avversari che condividono i giri con la community. Per trovarli, i nomi dei piloti della sessione vengono inviati al server della community; i piloti anonimi non compaiono mai.",
   },
   extras: {
     title: "Analisi: novità",

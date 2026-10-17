@@ -94,11 +94,11 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
-              en: "Opponent briefing (Settings › Community, off by default): in Live › Standings, the best lap, rank and level of the session's drivers who share their laps under their name. Anonymous drivers never appear.",
-              fr: "Briefing des adversaires (Configuration › Communauté, désactivé par défaut) : dans Live › Classement, meilleur tour, rang et niveau des pilotes de la séance qui partagent leurs tours sous leur nom. Les pilotes anonymes n'apparaissent jamais.",
-              es: "Briefing de rivales (Configuración › Comunidad, desactivado por defecto): en Live › Clasificación, mejor vuelta, posición y nivel de los pilotos de la sesión que comparten sus vueltas con su nombre. Los pilotos anónimos nunca aparecen.",
-              de: "Gegner-Briefing (Einstellungen › Community, standardmäßig aus): In Live › Wertung beste Runde, Rang und Stufe der Session-Fahrer, die ihre Runden unter ihrem Namen teilen. Anonyme Fahrer erscheinen nie.",
-              it: "Briefing avversari (Impostazioni › Community, disattivato di default): in Live › Classifica, giro migliore, posizione e livello dei piloti della sessione che condividono i giri con il loro nome. I piloti anonimi non compaiono mai.",
+              en: "Community opponent briefing (Settings › Community, off by default): in Live › Standings, the best lap, rank and level of the session's drivers who share their laps under their name. Anonymous drivers never appear.",
+              fr: "Briefing adversaires de la communauté (Configuration › Communauté, désactivé par défaut) : dans Live › Classement, meilleur tour, rang et niveau des pilotes de la séance qui partagent leurs tours sous leur nom. Les pilotes anonymes n'apparaissent jamais.",
+              es: "Briefing de rivales de la comunidad (Configuración › Comunidad, desactivado por defecto): en Live › Clasificación, mejor vuelta, posición y nivel de los pilotos de la sesión que comparten sus vueltas con su nombre. Los pilotos anónimos nunca aparecen.",
+              de: "Community-Gegner-Briefing (Einstellungen › Community, standardmäßig aus): In Live › Wertung beste Runde, Rang und Stufe der Session-Fahrer, die ihre Runden unter ihrem Namen teilen. Anonyme Fahrer erscheinen nie.",
+              it: "Briefing avversari della community (Impostazioni › Community, disattivato di default): in Live › Classifica, giro migliore, posizione e livello dei piloti della sessione che condividono i giri con il loro nome. I piloti anonimi non compaiono mai.",
             },
           },
           {

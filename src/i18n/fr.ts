@@ -2841,7 +2841,7 @@ export default {
     rivalNote: "Victoire 3 points, égalité 1, défaite 0, sur les 12 dernières semaines. Seuls tes tours partagés comptent. Tu peux te retirer quand tu veux.",
   },
   briefing: {
-    title: "Briefing adversaires",
+    title: "Briefing adversaires de la communauté",
     refresh: "Actualiser",
     noCombo: "Ce circuit et cette classe ne sont pas encore dans la base communautaire.",
     nobody: "Aucun pilote de la séance ne partage ses tours sous son nom.",
@@ -2850,8 +2850,8 @@ export default {
     rank: "Rang",
     level: "Niveau",
     note: "{{shared}} pilote(s) sur {{total}} partagent leurs tours sous leur nom. Les pilotes anonymes n'apparaissent jamais.",
-    settingTitle: "Briefing des adversaires (page Live)",
-    settingDesc: "Dans Live › Classement : meilleur tour, rang et niveau des pilotes de la séance qui partagent leurs tours sous leur nom. Leurs noms sont envoyés au serveur communautaire.",
+    settingTitle: "Briefing adversaires de la communauté",
+    settingDesc: "Pendant une séance en ligne, affiche sous le classement Live le meilleur tour, le rang et le niveau des adversaires qui partagent leurs tours avec la communauté. Pour les retrouver, les noms des pilotes de la séance sont envoyés au serveur communautaire ; les pilotes anonymes n'apparaissent jamais.",
   },
   extras: {
     title: "Analyse : nouveautés",

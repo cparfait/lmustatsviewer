@@ -1,5 +1,5 @@
 /**
- * Briefing des adversaires (page Live › Classement), désactivé par défaut
+ * Briefing adversaires de la communauté (affiché sous Live › Classement), désactivé par défaut
  * (Configuration › Communauté). Pour les pilotes de la séance qui partagent leurs tours
  * sous leur nom : meilleur tour sur ce circuit et cette classe, rang et palier face à
  * la référence de la base communautaire. Les noms partent dans le corps de la requête ;

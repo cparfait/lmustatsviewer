@@ -2839,7 +2839,7 @@ export default {
     rivalNote: "Victoria 3 puntos, empate 1, derrota 0, en las últimas 12 semanas. Solo cuentan tus vueltas compartidas. Puedes salir cuando quieras.",
   },
   briefing: {
-    title: "Briefing de rivales",
+    title: "Briefing de rivales de la comunidad",
     refresh: "Actualizar",
     noCombo: "Este circuito y esta clase aún no están en la base de la comunidad.",
     nobody: "Ningún piloto de la sesión comparte sus vueltas con su nombre.",
@@ -2848,8 +2848,8 @@ export default {
     rank: "Posición",
     level: "Nivel",
     note: "{{shared}} de {{total}} piloto(s) comparten sus vueltas con su nombre. Los pilotos anónimos nunca aparecen.",
-    settingTitle: "Briefing de rivales (página Live)",
-    settingDesc: "En Live › Clasificación: mejor vuelta, posición y nivel de los pilotos de la sesión que comparten sus vueltas con su nombre. Sus nombres se envían al servidor de la comunidad.",
+    settingTitle: "Briefing de rivales de la comunidad",
+    settingDesc: "Durante una sesión online, muestra bajo la clasificación Live la mejor vuelta, la posición y el nivel de los rivales que comparten sus vueltas con la comunidad. Para encontrarlos, los nombres de los pilotos de la sesión se envían al servidor de la comunidad; los pilotos anónimos nunca aparecen.",
   },
   extras: {
     title: "Análisis: novedades",

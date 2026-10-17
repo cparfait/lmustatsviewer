@@ -204,9 +204,6 @@ export function OverlayLookDialog({ onClose }: { onClose: () => void }) {
             <Option title={t("overlays.look.displayFont")} hint={t("overlays.look.displayFontHint")}>
               <Switch checked={look.displayFont} onCheckedChange={(v: boolean) => setLook({ displayFont: v })} />
             </Option>
-            <Option title={t("overlays.look.sharpScale")} hint={t("overlays.look.sharpScaleHint")}>
-              <Switch checked={look.sharpScale} onCheckedChange={(v: boolean) => setLook({ sharpScale: v })} />
-            </Option>
             <Option title={t("overlays.look.texture")} hint={t("overlays.look.textureHint")}>
               <Switch
                 checked={look.texture}

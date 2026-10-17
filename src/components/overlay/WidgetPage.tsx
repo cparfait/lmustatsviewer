@@ -135,8 +135,8 @@ export function WidgetPage({ id }: { id: string }) {
         ref={boxRef}
         className={`inline-block ${lookClasses(cfg.look)}`}
         style={{
-          // Agrandissement net (apparence des overlays) : mise en page à la taille réelle.
-          ...(cfg.look.sharpScale ? { zoom: scale } : { transform: `scale(${scale})`, transformOrigin: "top left" }),
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
           opacity: (settings?.opacity ?? 1) * cfg.globalOpacity,
           padding: opaque ? 8 : 0,
         }}

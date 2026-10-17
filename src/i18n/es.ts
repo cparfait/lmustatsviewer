@@ -236,8 +236,6 @@ export default {
       densityCosy: "Amplia",
       displayFont: "Fuente de visualización",
       displayFontHint: "Cifras de ancho fijo en una fuente de instrumento (Bahnschrift): los tiempos ya no bailan al cambiar.",
-      sharpScale: "Ampliación nítida",
-      sharpScaleHint: "El widget se dibuja a su tamaño real en lugar de estirarse: textos y trazos siguen nítidos al 150 % o 200 %.",
       texture: "Textura de fibra",
       textureHint: "Trama discreta en la cabecera de los paneles (estilo Instrumento).",
       recordFx: "Animaciones de récord",

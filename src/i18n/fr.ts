@@ -236,8 +236,6 @@ export default {
       densityCosy: "Aérée",
       displayFont: "Police d'affichage",
       displayFontHint: "Chiffres de largeur fixe dans une police d'instrument (Bahnschrift) : les temps ne bougent plus quand ils défilent.",
-      sharpScale: "Agrandissement net",
-      sharpScaleHint: "Le widget est redessiné à sa taille réelle au lieu d'être étiré : textes et traits restent nets à 150 % ou 200 %.",
       texture: "Texture fibrée",
       textureHint: "Trame discrète en tête des panneaux (style Instrument).",
       recordFx: "Animations de record",

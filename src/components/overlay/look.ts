@@ -4,9 +4,11 @@
  * Deux styles : « Classique » (l'apparence historique, par défaut, inchangée) et
  * « Instrument » (angles presque vifs, filets de relief, palette sémantique, lignes
  * de classement teintées par classe, graphes en canvas haute définition). Options
- * indépendantes : police d'affichage à chiffres fixes, agrandissement net (le widget
- * est réellement mis en page à sa taille au lieu d'être étiré), densité des lignes,
- * texture fibrée, animations de record. Tout est désactivé par défaut.
+ * indépendantes : police d'affichage à chiffres fixes, densité des lignes, texture
+ * fibrée, animations de record. Tout est désactivé par défaut.
+ *
+ * (Un « agrandissement net » par `zoom` au lieu de `scale` a été essayé puis retiré :
+ * WebView2 redessine déjà le texte net à 150 / 200 %, aucune différence visible.)
  *
  * Les widgets lisent l'apparence par `useOverlayLook()` (contexte fourni par la
  * fenêtre overlay et par la page de widget servie).
@@ -21,8 +23,6 @@ export interface OverlayLook {
   style: OverlayStyle;
   /** Police d'affichage (Bahnschrift, police de Windows) à chiffres de chasse fixe. */
   displayFont: boolean;
-  /** Agrandissement net : `zoom` (mise en page à la taille réelle) au lieu de `scale`. */
-  sharpScale: boolean;
   /** Hauteur des lignes de classement (style Instrument). */
   density: OverlayDensity;
   /** Texture fibrée discrète en tête de panneau (style Instrument). */
@@ -34,7 +34,6 @@ export interface OverlayLook {
 export const DEFAULT_LOOK: OverlayLook = {
   style: "classic",
   displayFont: false,
-  sharpScale: false,
   density: "normal",
   texture: false,
   recordFx: false,
@@ -46,7 +45,6 @@ export function mergeLook(stored: Partial<OverlayLook> | undefined | null): Over
   return {
     style: s.style === "instrument" ? "instrument" : "classic",
     displayFont: !!s.displayFont,
-    sharpScale: !!s.sharpScale,
     density: s.density === "compact" || s.density === "cosy" ? s.density : "normal",
     texture: !!s.texture,
     recordFx: !!s.recordFx,

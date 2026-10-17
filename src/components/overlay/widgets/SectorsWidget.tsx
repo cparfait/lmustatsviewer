@@ -37,7 +37,7 @@ function Row({
   const record = last > 0 && best > 0 && Math.abs(last - best) < 0.0005 ? (classBest ? "sb" : "pb") : null;
   return (
     <div className="flex items-center gap-2 py-0.5">
-      <span className="w-9 text-[10px] font-bold uppercase tracking-wide text-white/50">
+      <span className="w-[88px] shrink-0 whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-white/50">
         {label}
       </span>
       <span className="flex-1">
@@ -94,7 +94,7 @@ export function SectorsWidget({ data, content, accent, t }: WidgetProps) {
         )}
         {content.optimal !== false && (
           <div className="flex items-center gap-2 py-0.5">
-            <span className="w-9 text-[10px] font-bold uppercase tracking-wide text-white/50">
+            <span className="w-[88px] shrink-0 whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-white/50">
               {t("overlays.elements.optimal")}
             </span>
             <span

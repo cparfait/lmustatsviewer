@@ -236,8 +236,6 @@ export default {
       densityCosy: "Roomy",
       displayFont: "Display font",
       displayFontHint: "Fixed-width digits in an instrument font (Bahnschrift): times no longer jitter as they tick.",
-      sharpScale: "Sharp scaling",
-      sharpScaleHint: "The widget is laid out at its real size instead of being stretched: text and lines stay crisp at 150% or 200%.",
       texture: "Fibre texture",
       textureHint: "Subtle weave on panel headers (Instrument style).",
       recordFx: "Record animations",

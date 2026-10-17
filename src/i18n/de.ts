@@ -236,8 +236,6 @@ export default {
       densityCosy: "Luftig",
       displayFont: "Anzeigeschrift",
       displayFontHint: "Ziffern mit fester Breite in einer Instrumentenschrift (Bahnschrift): Zeiten springen beim Hochzählen nicht mehr.",
-      sharpScale: "Scharfe Vergrößerung",
-      sharpScaleHint: "Das Widget wird in echter Größe aufgebaut statt gestreckt: Text und Linien bleiben bei 150 % oder 200 % scharf.",
       texture: "Fasertextur",
       textureHint: "Dezentes Gewebe im Kopf der Panels (Stil Instrument).",
       recordFx: "Rekord-Animationen",

@@ -236,8 +236,6 @@ export default {
       densityCosy: "Ariosa",
       displayFont: "Font di visualizzazione",
       displayFontHint: "Cifre a larghezza fissa in un font da strumento (Bahnschrift): i tempi non saltellano più mentre scorrono.",
-      sharpScale: "Ingrandimento nitido",
-      sharpScaleHint: "Il widget viene impaginato alla sua dimensione reale invece di essere stirato: testi e linee restano nitidi al 150% o 200%.",
       texture: "Texture in fibra",
       textureHint: "Trama discreta nell'intestazione dei pannelli (stile Strumento).",
       recordFx: "Animazioni dei record",

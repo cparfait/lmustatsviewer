@@ -12,7 +12,6 @@ import { emit } from "@tauri-apps/api/event";
 import { Minus, Plus, Settings2 } from "lucide-react";
 import { useOverlaysStore, type OverlaySettings } from "@/stores/overlays";
 import { OVERLAY_BY_ID, type OverlayId } from "@/lib/overlays";
-import { useOverlayLook } from "./look";
 
 interface Props {
   id: OverlayId;
@@ -34,9 +33,6 @@ export function OverlayFrame({
   const def = OVERLAY_BY_ID[id];
   const accent = settings.accent ?? def.accent;
   const updateSettings = useOverlaysStore((s) => s.updateSettings);
-  // Agrandissement net : le widget est mis en page à sa taille réelle (`zoom`) au
-  // lieu d'être étiré (`scale`) — texte et traits restent nets à toute échelle.
-  const sharp = useOverlayLook().sharpScale;
   const flush = useOverlaysStore((s) => s.flush);
 
   // Position locale pendant le drag (commit au pointerup → évite de spammer le store).
@@ -98,9 +94,7 @@ export function OverlayFrame({
       style={{
         left: 0,
         top: 0,
-        transform: sharp
-          ? `translate3d(${pos.x}px, ${pos.y}px, 0)`
-          : `translate3d(${pos.x}px, ${pos.y}px, 0) scale(${settings.scale})`,
+        transform: `translate3d(${pos.x}px, ${pos.y}px, 0) scale(${settings.scale})`,
         transformOrigin: "top left",
         opacity: settings.opacity * globalOpacity,
         pointerEvents: editMode ? "auto" : "none",
@@ -157,7 +151,6 @@ export function OverlayFrame({
           outline: editMode ? `1px dashed ${accent}88` : "none",
           outlineOffset: 2,
           borderRadius: 12,
-          ...(sharp ? { zoom: settings.scale } : {}),
         }}
       >
         {children}

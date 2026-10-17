@@ -179,6 +179,18 @@ export function WidgetServerSettings({ onVrMode }: { onVrMode?: () => void }) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">{t("overlays.web.enableHint")}</p>
               <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground" htmlFor="widget-port" title={t("overlays.web.portHint")}>
+                  {t("overlays.web.port")}
+                </label>
+                <Input
+                  id="widget-port"
+                  className="h-8 w-20 font-mono"
+                  inputMode="numeric"
+                  value={port}
+                  title={t("overlays.web.portHint")}
+                  disabled={running || busy}
+                  onChange={(e) => setPort(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                />
                 {busy && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                 <Switch checked={running} disabled={busy} onCheckedChange={(v: boolean) => void toggle(v)} />
               </div>
@@ -279,20 +291,6 @@ export function WidgetServerSettings({ onVrMode }: { onVrMode?: () => void }) {
               {t("overlays.web.more")}
             </summary>
             <div className="mt-3 space-y-3">
-              <div className="flex flex-wrap items-center gap-3 text-xs">
-                <label className="text-muted-foreground" htmlFor="widget-port">
-                  {t("overlays.web.port")}
-                </label>
-                <Input
-                  id="widget-port"
-                  className="h-8 w-24 font-mono"
-                  inputMode="numeric"
-                  value={port}
-                  disabled={running || busy}
-                  onChange={(e) => setPort(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                />
-                <span className="text-muted-foreground">{t("overlays.web.portHint")}</span>
-              </div>
               {running && status && (
                 <ul className="grid grid-cols-1 gap-1.5 lg:grid-cols-2">
                   {OVERLAY_DEFS.map((def) => {

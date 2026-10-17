@@ -461,6 +461,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Test the engineer: with no session running, answers use a sample race (multi-class standings, fuel, tyres, weather) instead of “No session in progress”, and say so; radio commands (battle, bring it home, radio silence…) and “coach me” show a readable name.",
+              fr: "Tester l'ingénieur : sans session en cours, les réponses s'appuient sur une course d'exemple (classement multiclasse, carburant, pneus, météo) au lieu de « Pas de session en cours », et le signalent ; les commandes radio (bagarre, ramener la voiture, silence radio…) et « coache-moi » affichent un nom lisible.",
+              es: "Probar al ingeniero: sin sesión en curso, las respuestas usan una carrera de ejemplo (clasificación multiclase, combustible, neumáticos, meteo) en lugar de «No hay sesión en curso», y lo indican; los comandos de radio (pelea, llevar el coche a casa, silencio de radio…) y «entréname» muestran un nombre legible.",
+              de: "Ingenieur testen: Ohne laufende Session nutzen die Antworten ein Beispielrennen (Mehrklassen-Wertung, Kraftstoff, Reifen, Wetter) statt „Keine Session aktiv“ und sagen das; Funkbefehle (Zweikampf, Auto heimbringen, Funkstille…) und „Coache mich“ zeigen einen lesbaren Namen.",
+              it: "Prova l'ingegnere: senza sessione in corso, le risposte usano una gara di esempio (classifica multiclasse, carburante, gomme, meteo) invece di «Nessuna sessione in corso», e lo segnalano; i comandi radio (battaglia, portare a casa, silenzio radio…) e «allenami» mostrano un nome leggibile.",
+            },
+          },
+          {
+            text: {
               en: "Talk to the engineer and Corner coach tabs: settings grouped into folding sections, like the Announcements tab (the “Talk” and “Tips while driving” sections open by default); push-to-talk beeps join “Talk”, review marks join the shortcuts without talking, and “Instant answers without AI” moves next to the recognised commands.",
               fr: "Onglets Parler à l'ingénieur et Coach par virage : réglages regroupés en sections repliables, comme l'onglet Annonces (« Parler » et « Conseils en roulant » ouvertes par défaut) ; les bips du push-to-talk rejoignent « Parler », les repères de revue les raccourcis sans parler, et « Réponses instantanées sans IA » passe à côté des commandes reconnues.",
               es: "Pestañas Hablar con el ingeniero y Coach por curva: ajustes agrupados en secciones plegables, como Anuncios («Hablar» y «Consejos en pista» abiertas por defecto); los pitidos del push-to-talk pasan a «Hablar», las marcas de revisión a los atajos sin hablar, y «Respuestas instantáneas sin IA» junto a los comandos reconocidos.",

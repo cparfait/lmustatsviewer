@@ -71,6 +71,7 @@ export function EngineerTester() {
           <div className="mb-0.5 text-mini text-muted-foreground">
             {t(result.mode === "ai" ? "config.engineerTestAi" : "config.engineerTestLocal")} ·{" "}
             {t(`config.engineerTestVia_${result.via}`)}
+            {result.sample && <span className="text-amber-600 dark:text-amber-400"> · {t("config.engineerTestSample")}</span>}
           </div>
           {result.text || "—"}
         </div>

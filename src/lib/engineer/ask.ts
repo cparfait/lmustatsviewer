@@ -22,6 +22,7 @@ import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, announceAnswer, cancelSpeech, repeatLast } from "@/lib/voice";
 import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, classifyIntent, errorMessage, friendlyError } from "@/lib/ai/coach";
+import { sampleLiveData } from "@/components/overlay/sampleData";
 import { aiErrorKind, type AiErrorKind } from "@/lib/ai/errorKind";
 import { VariantPicker } from "@/lib/engineer/variants";
 import { noAnswerKey, radioErrorKey } from "@/lib/engineer/radioErrors";
@@ -141,6 +142,8 @@ export interface AskResult {
   text: string;
   /** Qui a répondu. */
   via: "command" | "local" | "phrases" | "ai" | "fallback" | "none";
+  /** Test sans session en cours : la réponse repose sur la course d'exemple. */
+  sample?: boolean;
 }
 
 /** Libellé d'une commande pour le test (« Commande reconnue : … »). */
@@ -181,13 +184,15 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   const heard = free || strict;
   const gone = () => o.disposed?.() ?? false;
 
+  // Test sans rouler : sans session en cours, la course d'exemple prend le relais.
+  let sample = false;
   const say = (text: string, via: AskResult["via"]): AskResult => {
     if (!gone() && text) {
       announceAnswer(text, lang);
       toastSuccess(text);
       void emit("coach-voice", { question: heard, answer: text });
     }
-    return { text, via };
+    return sample ? { text, via, sample } : { text, via };
   };
 
   if (!heard) {
@@ -200,6 +205,12 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   void emit("coach-voice", { question: heard, answer: null });
   const r = route(free, lang);
   let data = await live.getData().catch(() => null);
+  // Configuration › Tester l'ingénieur : sans session en cours, une course d'exemple
+  // (celle des aperçus d'overlays) donne des réponses réalistes au lieu de « pas de session ».
+  if (o.dryRun && (!data || !data.connected || !data.session)) {
+    data = sampleLiveData(300);
+    sample = true;
+  }
   if (aboutPads(r)) data = await withGamePads(data);
 
   const norm = r.norm || normalize(strict, lang);

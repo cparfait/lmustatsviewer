@@ -65,6 +65,8 @@ import type {
 } from "@/lib/api";
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { TierBadge } from "@/components/TierBadge";
+import { ComparableBadge, RegularityPanel, ReviewMarksPanel } from "@/components/SessionExtras";
+import { FLAG_REGULARITY, useConfigFlag } from "@/lib/configFlag";
 import { AICoachPanel } from "@/components/AICoachPanel";
 import { useAppStore } from "@/stores/app";
 import type { Tr } from "@/i18n";
@@ -149,6 +151,7 @@ const VALID_TABS = [
   "chat",
   "tracklimits",
   "coach",
+  "regularity",
 ];
 const isValidTab = (v: string | null): v is string =>
   !!v && VALID_TABS.includes(v);
@@ -287,6 +290,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
     () => results.find((r) => r.is_player) ?? null,
     [results]
   );
+  const showRegularity = useConfigFlag(FLAG_REGULARITY);
   // Classes uniques présentes dans cette session (multi-classes : LMP2 + GT3
   // par exemple). Triées suivant l'ordre canonique V1 (Hyper → LMP2 → GT3 …).
   const sessionClasses = useMemo(() => {
@@ -433,6 +437,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
               <span className="text-muted-foreground">
                 · {formatDateTime(session.timestamp)}
               </span>
+              <ComparableBadge session={session} player={playerResult} />
               {showOhneSpeed && playerResult.best_lap != null && !ohneOffline && (
                 <TierBadge
                   benchmarks={benchmarks}
@@ -826,7 +831,16 @@ function SessionView({ data }: { data: SessionDetailData }) {
           {aiCoachEnabled && (
             <TabsTrigger value="coach">{t("sessionDetail.tabCoach")}</TabsTrigger>
           )}
+          {showRegularity && playerName && (
+            <TabsTrigger value="regularity">{t("extras.tabRegularity")}</TabsTrigger>
+          )}
         </TabsList>
+
+        {showRegularity && playerName && (
+          <TabsContent value="regularity">
+            <RegularityPanel laps={lapsByDriver.get(playerName) ?? []} />
+          </TabsContent>
+        )}
 
         <TabsContent value="result">
           <ClassificationTab
@@ -865,6 +879,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
         </TabsContent>
 
         <TabsContent value="incidents">
+          <ReviewMarksPanel session={session} isRace={isRace} />
           <SessionMoments
             track={session.track}
             timestamp={session.timestamp}

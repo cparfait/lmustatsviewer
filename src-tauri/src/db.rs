@@ -50,7 +50,10 @@ CREATE TABLE IF NOT EXISTS xml_index (
     vehicles_allowed TEXT    NOT NULL DEFAULT '',
     has_any_laps     INTEGER NOT NULL DEFAULT 0,
     event_id         INTEGER NOT NULL DEFAULT 0,
-    indexed_at       INTEGER NOT NULL DEFAULT 0
+    indexed_at       INTEGER NOT NULL DEFAULT 0,
+    -- Serveur de la séance (`<ServerName>`, `<Dedicated>` : 1 dédié, 0 joueur, -1 inconnu).
+    server_name      TEXT    NOT NULL DEFAULT '',
+    dedicated        INTEGER NOT NULL DEFAULT -1
 );
 
 -- Une ligne par session (Practice1 / Qualify / Race) d'un fichier XML.
@@ -371,6 +374,10 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
         "ALTER TABLE setups ADD COLUMN source TEXT NOT NULL DEFAULT 'game'",
         [],
     );
+    // Serveur de la séance (`<ServerName>`, `<Dedicated>`) : tours « comparables ».
+    // -1 = inconnu (fichier indexé avant l'ajout : une réindexation le complète).
+    let _ = conn.execute("ALTER TABLE xml_index ADD COLUMN server_name TEXT NOT NULL DEFAULT ''", []);
+    let _ = conn.execute("ALTER TABLE xml_index ADD COLUMN dedicated INTEGER NOT NULL DEFAULT -1", []);
     // Migration : création de la table `purged_files` si elle manque (base existante).
     let _ = conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS purged_files (

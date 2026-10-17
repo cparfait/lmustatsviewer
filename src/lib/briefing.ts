@@ -1,8 +1,11 @@
 /**
  * Briefing des adversaires : correspondance entre ce que voit le live (nom de circuit
  * `mTrackName`, classe brute du sim) et les combos de la base communautaire (noms des
- * résultats : `TrackVenue`, `TrackCourse`, classe normalisée de l'app). Fonctions pures.
+ * résultats : `TrackVenue`, `TrackCourse`, classe normalisée de l'app) — fonctions pures —
+ * et interrupteur de l'option.
  */
+import { useEffect, useState } from "react";
+import { config, isTauri } from "@/lib/api";
 
 /** Clé de config : briefing affiché dans la page Live (« 1 »), désactivé par défaut. */
 export const BRIEFING_KEY = "live_briefing";
@@ -64,4 +67,20 @@ export function tierOfPct(pct: number): "Alien" | "Competitive" | "Good" | "Midp
   if (pct <= 104) return "Midpack";
   if (pct <= 106) return "Tail-ender";
   return "Offline";
+}
+
+/** Interrupteur (Configuration › Communauté). */
+export function useBriefingSetting(): [boolean, (v: boolean) => void] {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (!isTauri()) return;
+    void config.get(BRIEFING_KEY).then((v) => setOn(v === "1")).catch(() => {});
+  }, []);
+  return [
+    on,
+    (v: boolean) => {
+      setOn(v);
+      void config.set(BRIEFING_KEY, v ? "1" : "0").catch(() => {});
+    },
+  ];
 }

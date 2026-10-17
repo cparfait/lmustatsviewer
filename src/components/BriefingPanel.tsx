@@ -130,19 +130,3 @@ export function BriefingPanel({ data }: { data: LiveData }) {
     </div>
   );
 }
-
-/** Interrupteur (Configuration › Communauté). */
-export function useBriefingSetting(): [boolean, (v: boolean) => void] {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    if (!isTauri()) return;
-    void config.get(BRIEFING_KEY).then((v) => setOn(v === "1")).catch(() => {});
-  }, []);
-  return [
-    on,
-    (v: boolean) => {
-      setOn(v);
-      void config.set(BRIEFING_KEY, v ? "1" : "0").catch(() => {});
-    },
-  ];
-}

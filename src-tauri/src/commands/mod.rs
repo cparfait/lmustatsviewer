@@ -25,3 +25,4 @@ pub mod voice_input;
 pub mod community;
 pub mod community_vault;
 pub mod wheel;
+pub mod tools;

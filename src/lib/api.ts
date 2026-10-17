@@ -270,6 +270,10 @@ export interface SessionInfo {
   tire_mult: number;
   vehicles_allowed: string;
   filename: string;
+  /** Serveur de la séance (`<ServerName>`, vide hors ligne). */
+  server_name: string;
+  /** 1 = serveur dédié, 0 = hébergé par un joueur, -1 = inconnu (réindexer). */
+  dedicated: number;
 }
 
 export interface ResultRow {

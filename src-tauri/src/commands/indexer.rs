@@ -463,8 +463,8 @@ fn index_one_file(
             (filename, file_path, mtime, timestamp, time_string, track, track_course,
              track_event, setting, game_version, race_laps, race_time, track_length,
              mech_fail_rate, damage_mult, fuel_mult, tire_mult, vehicles_allowed,
-             has_any_laps, event_id, indexed_at)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)",
+             has_any_laps, event_id, indexed_at, server_name, dedicated)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23)",
         params![
             filename,
             path.to_string_lossy(),
@@ -487,6 +487,8 @@ fn index_one_file(
             has_any_laps as i32,
             h.timestamp, // event_id provisoire = timestamp, recalculé ensuite
             now,
+            h.server_name,
+            h.dedicated,
         ],
     )
     .map_err(|e| AppError::Database(format!("insert xml_index: {e}")))?;

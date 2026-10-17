@@ -18,6 +18,7 @@ import { run as runMaps } from "./suites/maps.suite";
 import { run as runStrategy } from "./suites/strategy.suite";
 import { run as runPlan } from "./suites/plan.suite";
 import { run as runVoice } from "./suites/voice.suite";
+import { run as runVeille } from "./suites/veille.suite";
 
 runPure();
 runCoach();
@@ -32,6 +33,7 @@ runStrategy();
 runPlan();
 void (async () => {
   await runVoice();
+  runVeille();
   report();
   // Minuteries de fond des modules (compteur de la voix en ligne) : inutile d'attendre.
   process.exit(0);

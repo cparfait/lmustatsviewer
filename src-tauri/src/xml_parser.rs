@@ -32,6 +32,10 @@ pub struct HeaderInfo {
     pub fuel_mult: f64,
     pub tire_mult: f64,
     pub vehicles_allowed: String,
+    /// `<ServerName>` (vide hors ligne ou serveur sans nom).
+    pub server_name: String,
+    /// `<Dedicated>` : 1 = serveur dédié, 0 = hébergé par un joueur, -1 = absent.
+    pub dedicated: i32,
 }
 
 pub struct ParsedSession {
@@ -235,7 +239,7 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
     reader.config_mut().trim_text(true);
 
     let mut buf = Vec::new();
-    let mut header = HeaderInfo::default();
+    let mut header = HeaderInfo { dedicated: -1, ..HeaderInfo::default() };
     let mut sessions: Vec<ParsedSession> = Vec::new();
     let mut section = Section::Header;
 
@@ -543,6 +547,8 @@ fn apply_header_field(h: &mut HeaderInfo, tag: &[u8], val: &str) {
         b"FuelMult" => h.fuel_mult = parse_f64(val),
         b"TireMult" => h.tire_mult = parse_f64(val),
         b"VehiclesAllowed" => h.vehicles_allowed = val.to_string(),
+        b"ServerName" => h.server_name = val.trim().to_string(),
+        b"Dedicated" => h.dedicated = val.trim().parse().unwrap_or(-1),
         _ => {}
     }
 }
@@ -608,5 +614,33 @@ fn finalize_lap(driver: &mut Option<ParsedDriver>, text: &str) {
                 lap.is_valid = lap.lap_time > 0.0;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod server_tests {
+    use super::*;
+
+    /// `<ServerName>` et `<Dedicated>` lus dans l'en-tête ; absents → inconnu (-1).
+    #[test]
+    fn reads_server_name_and_dedicated() {
+        let dir = std::env::temp_dir().join(format!("lmusv-xml-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let online = dir.join("online.xml");
+        std::fs::write(
+            &online,
+            "<?xml version=\"1.0\"?><rFactorXML><RaceResults><Setting>Multiplayer</Setting><ServerName> Ligue FR </ServerName><Dedicated>1</Dedicated><TrackVenue>Sebring</TrackVenue></RaceResults></rFactorXML>",
+        )
+        .unwrap();
+        let h = parse_xml_file(&online).unwrap().header;
+        assert_eq!(h.setting, "Multiplayer");
+        assert_eq!(h.server_name, "Ligue FR");
+        assert_eq!(h.dedicated, 1);
+        let offline = dir.join("offline.xml");
+        std::fs::write(&offline, "<?xml version=\"1.0\"?><rFactorXML><RaceResults><Setting>Race Weekend</Setting></RaceResults></rFactorXML>").unwrap();
+        let h = parse_xml_file(&offline).unwrap().header;
+        assert_eq!(h.server_name, "");
+        assert_eq!(h.dedicated, -1);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

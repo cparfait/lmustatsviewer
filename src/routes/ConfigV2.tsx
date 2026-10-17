@@ -33,7 +33,9 @@ import {
 import { MENU_MODULE_KEYS } from "@/components/layout/Header";
 import { ReplayBenchPanel } from "@/components/ReplayBenchPanel";
 import { RegieSettings } from "@/components/RegieSettings";
+import { ToolsSettings } from "@/components/ToolsSettings";
 import { InsightsToggle, TierSourceSelect } from "@/components/ClassementOptions";
+import { AnalysisExtrasSettings } from "@/components/AnalysisExtrasSettings";
 import {
   FolderOpen,
   RefreshCw,
@@ -77,6 +79,7 @@ import {
   Upload,
   Users,
   Tablet,
+  Hammer,
   Trophy,
   Ear,
   Flag,
@@ -198,6 +201,7 @@ type CatId =
   | "coach"
   | "community"
   | "regie"
+  | "tools"
   | "maintenance"
   | "credits";
 
@@ -208,6 +212,7 @@ const SIDEBAR: { id: CatId; icon: typeof User; labelKey: string }[] = [
   { id: "coach", icon: Brain, labelKey: "config.aiCoach" },
   { id: "community", icon: Users, labelKey: "config.community" },
   { id: "regie", icon: Tablet, labelKey: "config.regieNav" },
+  { id: "tools", icon: Hammer, labelKey: "config.toolsNav" },
   { id: "maintenance", icon: Wrench, labelKey: "config.maintenance" },
   { id: "credits", icon: Heart, labelKey: "config.credits" },
 ];
@@ -1221,6 +1226,12 @@ export function ConfigV2() {
                     onChange={(v) => useAppStore.getState().setLaunchIntro(v)}
                   />
                 </div>
+              </div>
+            )}
+
+            {cat === "display" && (
+              <div className="mt-4">
+                <AnalysisExtrasSettings />
               </div>
             )}
 
@@ -2615,6 +2626,9 @@ export function ConfigV2() {
 
             {/* ── Régie tablette (lecture seule, opt-in) ── */}
             {cat === "regie" && <RegieSettings />}
+
+            {/* ── Outils & diagnostic (lanceur opt-in, diagnostic en lecture seule) ── */}
+            {cat === "tools" && <ToolsSettings />}
 
             {/* ── Crédits ── */}
             {cat === "credits" && (

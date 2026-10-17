@@ -414,6 +414,29 @@ export async function styleVoiceBuffer(c: AudioContext, buf: AudioBuffer): Promi
  * Bips du push-to-talk : sinus de 70 ms, fondus de 6 ms —
  * 1000 Hz à l'ouverture du micro, 700 Hz à l'envoi.
  */
+export function recordBeeps(count: 1 | 2 | 3) {
+  // Bips de record (1 = record perso, 2 = meilleur tour de la séance dans la classe,
+  // 3 = record communautaire) : sinus 1 320 Hz de 90 ms, espacés de 160 ms.
+  const c = ac();
+  if (!c) return;
+  for (let i = 0; i < count; i++) {
+    const t0 = c.currentTime + i * 0.16;
+    const dur = 0.09;
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 1320;
+    osc.connect(g);
+    g.connect(master(c));
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(0.28, t0 + 0.006);
+    g.gain.setValueAtTime(0.28, t0 + dur - 0.008);
+    g.gain.linearRampToValueAtTime(0, t0 + dur);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.01);
+  }
+}
+
 export function pttBeep(kind: "open" | "send") {
   const c = ac();
   if (!c) return;

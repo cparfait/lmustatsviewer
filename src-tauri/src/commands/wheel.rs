@@ -705,6 +705,11 @@ pub async fn wheel_capture(timeout_ms: u32) -> AppResult<Option<WheelBinding>> {
 /// Génération du thread de surveillance : tout thread dont la génération n'est plus
 /// la courante s'arrête (un seul thread actif à la fois).
 static WATCH_GEN: AtomicU64 = AtomicU64::new(0);
+/// Idem pour le bouton « repère de revue » : surveillé par son propre thread, sans
+/// toucher au push-to-talk.
+static MARK_WATCH_GEN: AtomicU64 = AtomicU64::new(0);
+/// Évènement émis à l'appui / au relâchement du bouton « repère de revue ».
+pub const MARK_WHEEL_EVENT: &str = "wheel-mark";
 
 enum WatchSource {
     Winmm { joy: u32, mask: u32 },
@@ -797,11 +802,11 @@ impl WatchSource {
     }
 }
 
-fn emit_ptt(app: &AppHandle, pressed: bool) {
-    let _ = app.emit(PTT_WHEEL_EVENT, PttWheelPayload { pressed });
+fn emit_ptt(app: &AppHandle, event: &str, pressed: bool) {
+    let _ = app.emit(event, PttWheelPayload { pressed });
 }
 
-fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64) {
+fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64, gens: &'static AtomicU64, event: &'static str) {
     let hid_match = match &binding {
         WheelBinding::Hid { report_id, byte, mask, pressed_set, .. } => Some(HidMatch {
             report_id: *report_id,
@@ -817,7 +822,7 @@ fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64) {
     let mut last_attempt: Option<Instant> = None;
     let mut buf = vec![0u8; HID_BUF_LEN];
 
-    while WATCH_GEN.load(Ordering::SeqCst) == gen {
+    while gens.load(Ordering::SeqCst) == gen {
         if source.is_none() && last_attempt.is_none_or(|t| t.elapsed() >= RETRY_EVERY) {
             last_attempt = Some(Instant::now());
             source = WatchSource::open(&binding);
@@ -827,7 +832,7 @@ fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64) {
             match src.read(hid_match.as_ref(), &mut buf) {
                 Ok(raw) => {
                     if let Some(pressed) = debouncer.update(raw, now_ms) {
-                        emit_ptt(&app, pressed);
+                        emit_ptt(&app, event, pressed);
                     }
                 }
                 Err(()) => {
@@ -835,7 +840,7 @@ fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64) {
                     source = None;
                     last_attempt = Some(Instant::now());
                     if debouncer.is_pressed() {
-                        emit_ptt(&app, false);
+                        emit_ptt(&app, event, false);
                     }
                     debouncer.reset();
                 }
@@ -844,7 +849,7 @@ fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64) {
         std::thread::sleep(WATCH_TICK);
     }
     if debouncer.is_pressed() {
-        emit_ptt(&app, false);
+        emit_ptt(&app, event, false);
     }
 }
 
@@ -855,8 +860,22 @@ pub fn wheel_watch(app: AppHandle, binding: Option<WheelBinding>) -> AppResult<(
     if let Some(binding) = binding {
         std::thread::Builder::new()
             .name("wheel-ptt".into())
-            .spawn(move || watch_loop(app, binding, gen))
+            .spawn(move || watch_loop(app, binding, gen, &WATCH_GEN, PTT_WHEEL_EVENT))
             .map_err(|e| AppError::Internal(format!("wheel_watch: {e}")))?;
+    }
+    Ok(())
+}
+
+/// (Re)démarre la surveillance du bouton « repère de revue » (évènement
+/// `wheel-mark`) ; `None` l'arrête. Indépendant du push-to-talk.
+#[tauri::command(async)]
+pub fn wheel_watch_mark(app: AppHandle, binding: Option<WheelBinding>) -> AppResult<()> {
+    let gen = MARK_WATCH_GEN.fetch_add(1, Ordering::SeqCst) + 1;
+    if let Some(binding) = binding {
+        std::thread::Builder::new()
+            .name("wheel-mark".into())
+            .spawn(move || watch_loop(app, binding, gen, &MARK_WATCH_GEN, MARK_WHEEL_EVENT))
+            .map_err(|e| AppError::Internal(format!("wheel_watch_mark: {e}")))?;
     }
     Ok(())
 }

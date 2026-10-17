@@ -33,6 +33,10 @@ pub struct SessionInfo {
     pub tire_mult: f64,
     pub vehicles_allowed: String,
     pub filename: String,
+    /// Serveur de la séance (vide hors ligne).
+    pub server_name: String,
+    /// 1 = serveur dédié, 0 = hébergé par un joueur, -1 = inconnu.
+    pub dedicated: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -173,7 +177,7 @@ pub fn get_session_detail(
                     s.track_course, s.setting, s.game_version, s.participants,
                     s.session_laps, s.session_minutes, x.track_event, x.track_length,
                     x.race_time, x.mech_fail_rate, x.damage_mult, x.fuel_mult,
-                    x.tire_mult, x.vehicles_allowed, x.filename
+                    x.tire_mult, x.vehicles_allowed, x.filename, x.server_name, x.dedicated
              FROM sessions s JOIN xml_index x ON x.id = s.xml_id
              WHERE s.id = ?1",
             [session_id],
@@ -199,6 +203,8 @@ pub fn get_session_detail(
                     tire_mult: row.get(17)?,
                     vehicles_allowed: row.get(18)?,
                     filename: row.get(19)?,
+                    server_name: row.get(20)?,
+                    dedicated: row.get(21)?,
                 })
             },
         )

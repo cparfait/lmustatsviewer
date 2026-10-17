@@ -12,7 +12,7 @@
  *   un record personnel. Rien n'est partagé tant que le joueur n'a pas cliqué « Activer
  *   le partage » (consentement explicite) : le bouton est seulement mis en avant.
  */
-import { useBriefingSetting } from "@/components/BriefingPanel";
+import { useBriefingSetting } from "@/lib/briefing";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Eye, Loader2, Send, ShieldCheck, Trash2, X, Lock, AlertTriangle, Trophy, Link2 } from "lucide-react";

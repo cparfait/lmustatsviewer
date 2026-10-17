@@ -103,11 +103,27 @@ const norm = (s: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
-/** Fiche officielle du circuit, ou null. */
+/**
+ * Fiche officielle du circuit, ou null. Plusieurs fiches peuvent reconnaître un
+ * fragment du nom : on garde celle dont le fragment est le **plus long** (le plus
+ * précis). Sans cela, « Autodromo Jose Carlo**s Pa**ce » (Interlagos) prenait la
+ * fiche de Spa, dont le fragment « spa » est contenu dans le nom normalisé.
+ */
 export function cornerTableFor(track: string, table: CornerTable[] = CORNER_TABLE): CornerTable | null {
   const t = norm(track);
   if (!t) return null;
-  return table.find((c) => c.match.some((m) => t.includes(norm(m)))) ?? null;
+  let best: CornerTable | null = null;
+  let bestLen = 0;
+  for (const c of table) {
+    for (const m of c.match) {
+      const f = norm(m);
+      if (f && t.includes(f) && f.length > bestLen) {
+        best = c;
+        bestLen = f.length;
+      }
+    }
+  }
+  return best;
 }
 
 export interface CornerLabel {

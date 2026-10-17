@@ -913,6 +913,25 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Overlays : vignettes animées dans les cartes, texture visible, option retirée
+
+- ✅ **Vignettes** : chaque carte de la page Overlays montre le vrai widget réduit
+  (`components/overlay/OverlayThumb.tsx`), animé sur des données d'exemple partagées
+  (`components/overlay/sampleData.ts` : course multiclasse sur un tracé fictif, pédales,
+  pneus, météo, aides, carburant, record en S2) et rendu avec l'apparence choisie. Une seule
+  horloge à 8 images/s pour toutes les vignettes, arrêtée quand aucune n'est affichée. Les
+  23 widgets vérifiés dans le navigateur. La fenêtre « Apparence » réutilise ces données.
+- ✅ **Texture fibrée** rendue visible (trame sur tout le panneau, plus forte en tête).
+- ✅ **Secteurs** : libellés « Tour complet / optimal » sur une ligne (colonne 88 px).
+- ✅ **« Agrandissement net » retiré** : comparé côte à côte à 150 / 200 %, `zoom` et
+  `transform: scale` donnent le même rendu dans WebView2 (le texte est déjà redessiné net).
+- ⏳ **Classements branchés sur un serveur de test** : la clé `community_url` vaut
+  `http://127.0.0.1:3080` dans la base de l'utilisateur (posée pour la démo locale) → la page
+  ne montre que ses combos et « personne n'a partagé ». À retirer par l'utilisateur (aucun
+  réglage dans l'interface ; modification refusée côté assistant).
+- 📋 **Prochaine étape** : retirer `community_url` puis vérifier la page Classements contre
+  le site ; éventuellement un réglage « Serveur communautaire » visible en mode développeur.
+
 ### 2026-10-17 — Classements préchargés, rappels limiteur, Régie tablette, correctifs ingénieur / IA
 
 - ✅ **Classements préchargés** : `fetchMyPositions` sorti de l'effet de `MyPosition`

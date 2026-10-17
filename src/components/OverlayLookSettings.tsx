@@ -16,9 +16,8 @@ import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useOverlaysStore } from "@/stores/overlays";
 import { OVERLAY_BY_ID, type OverlayId } from "@/lib/overlays";
-import type { LiveData } from "@/lib/api";
 import { WIDGETS } from "@/components/overlay/widgets";
-import { EMPTY_LIVE_DATA } from "@/components/overlay/useOverlayData";
+import { sampleLiveData } from "@/components/overlay/sampleData";
 import {
   lookClasses,
   OverlayLookContext,
@@ -46,72 +45,6 @@ function Option({
   );
 }
 
-/** Données d'exemple de l'aperçu : multiclasse, pédales en mouvement, record toutes les 4 s. */
-function sampleData(tick: number): LiveData {
-  const record = Math.floor(tick / 80); // un nouveau record de classe en S2 toutes les 4 s
-  const s2 = 40.1 - record * 0.012;
-  const th = Math.max(0, Math.sin(tick / 9));
-  const br = Math.max(0, -Math.sin(tick / 9));
-  const st = (pos: number, cls: number, driver: string, vclass: string, best: number, me: boolean, classBest: boolean) => ({
-    position: pos,
-    class_position: cls,
-    driver,
-    vehicle_name: driver,
-    vehicle_class: vclass,
-    last_lap_time: best + 0.4,
-    best_lap_time: best,
-    time_behind_leader: (pos - 1) * 1.7,
-    laps_behind_leader: 0,
-    time_behind_next: 1.7,
-    is_player: me,
-    in_pits: false,
-    current_sector: 1,
-    last_s1: 30.4,
-    last_s2: s2,
-    last_s3: 33.2,
-    is_class_best_lap: classBest,
-    is_class_best_s1: false,
-    is_class_best_s2: me,
-    is_class_best_s3: false,
-    total_laps: 10,
-    num_pitstops: 0,
-    num_penalties: 0,
-    pos_x: 0,
-    pos_z: 0,
-    finish_status: 0,
-  });
-  return {
-    ...EMPTY_LIVE_DATA,
-    connected: true,
-    player: {
-      lap_delta: Math.sin(tick / 25) * 0.6,
-      last_lap_time: 103.7,
-      best_lap_time: 103.4,
-      last_sectors: [30.52, s2, 33.08],
-      best_sectors: [30.4, s2, 33.0],
-      total_laps: 10,
-    },
-    telemetry: {
-      throttle: th,
-      brake: br,
-      speed_kmh: 160 + 110 * th,
-      gear: th > 0.5 ? 5 : 3,
-      max_gears: 6,
-      rpm: 6500 + 2200 * th,
-      max_rpm: 9000,
-      wheels: [{ grip_fract: br > 0.75 ? 0.85 : 1 }],
-    },
-    standings: [
-      st(1, 1, "A. Leclerc", "Hypercar", 208.1, false, true),
-      st(2, 2, "M. Rossi", "Hypercar", 208.6, false, false),
-      st(3, 1, "Moi", "LMP2", 214.3, true, true),
-      st(4, 2, "J. Weber", "LMP2", 214.9, false, false),
-      st(5, 1, "S. Martin", "GT3", 225.2, false, true),
-      st(6, 2, "L. Bianchi", "GT3", 225.8, false, false),
-    ],
-  } as unknown as LiveData;
-}
-
 const PREVIEW: OverlayId[] = ["standings", "sectors", "telemetry"];
 
 /** Aperçu en direct de quelques widgets avec l'apparence choisie. */
@@ -123,7 +56,7 @@ function LookPreview() {
     const id = setInterval(() => setTick((n) => n + 1), 50);
     return () => clearInterval(id);
   }, []);
-  const data = sampleData(tick);
+  const data = sampleLiveData(tick);
   return (
     <OverlayLookContext.Provider value={look}>
       <div

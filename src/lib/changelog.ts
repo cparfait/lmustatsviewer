@@ -434,6 +434,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Overlays page: each card now shows a live preview of the real widget (sample data, animated, in the appearance you chose), so you can see what it looks like before switching it on.",
+              fr: "Page Overlays : chaque carte montre maintenant un aperçu du vrai widget (données d'exemple animées, avec l'apparence choisie), pour voir à quoi il ressemble avant de l'activer.",
+              es: "Página Overlays: cada tarjeta muestra ahora una vista previa del widget real (datos de ejemplo animados, con la apariencia elegida), para ver cómo es antes de activarlo.",
+              de: "Seite Overlays: Jede Karte zeigt jetzt eine Vorschau des echten Widgets (animierte Beispieldaten, in der gewählten Darstellung), damit du es vor dem Aktivieren siehst.",
+              it: "Pagina Overlay: ogni scheda mostra ora un'anteprima del widget reale (dati di esempio animati, con l'aspetto scelto), per vedere com'è prima di attivarlo.",
+            },
+          },
+          {
+            text: {
               en: "Rankings page shows at once: your positions are loaded in the background when the app starts (and after each new session), instead of when you open the page.",
               fr: "La page Classements s'affiche tout de suite : tes positions sont chargées en arrière-plan au lancement de l'app (et après chaque nouvelle séance), au lieu de l'ouverture de la page.",
               es: "La página Clasificaciones aparece al instante: tus posiciones se cargan en segundo plano al iniciar la app (y tras cada nueva sesión), en lugar de al abrir la página.",

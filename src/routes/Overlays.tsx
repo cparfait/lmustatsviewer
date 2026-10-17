@@ -32,6 +32,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { WidgetServerSettings } from "@/components/WidgetServerSettings";
 import { OverlayLookDialog } from "@/components/OverlayLookSettings";
+import { OverlayThumb } from "@/components/overlay/OverlayThumb";
 import { cn } from "@/lib/utils";
 import { overlay as overlayApi, type OverlayScreen } from "@/lib/api";
 import { toastError } from "@/stores/dialogs";
@@ -590,15 +591,15 @@ export function Overlays() {
               )}
               style={s.enabled ? { boxShadow: `0 0 0 1px ${def.accent}66` } : undefined}
             >
-              <div className="mb-3 flex items-start justify-between">
-                <div
-                  className="grid h-9 w-9 place-items-center rounded-lg"
+              {/* Aperçu du vrai widget (données d'exemple, apparence choisie). */}
+              <OverlayThumb id={def.id} content={s.content} accent={s.accent ?? def.accent} />
+              <div className="mb-0.5 mt-3 flex items-center gap-2 font-semibold">
+                <span
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md"
                   style={{ background: `${def.accent}22`, color: def.accent }}
                 >
-                  <Icon className="h-4.5 w-4.5" />
-                </div>
-              </div>
-              <div className="mb-0.5 font-semibold">
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
                 {t(`overlays.items.${def.id}.title`)}
               </div>
               <div className="text-xs font-medium text-muted-foreground">

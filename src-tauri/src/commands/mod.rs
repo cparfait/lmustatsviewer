@@ -26,3 +26,7 @@ pub mod community;
 pub mod community_vault;
 pub mod wheel;
 pub mod tools;
+pub mod shm;
+pub mod audio_duck;
+pub mod applog;
+pub mod voice_notes;

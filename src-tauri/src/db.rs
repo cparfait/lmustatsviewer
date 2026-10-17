@@ -337,6 +337,22 @@ CREATE INDEX IF NOT EXISTS idx_corner_hist_combo ON corner_history(track, car_mo
 CREATE INDEX IF NOT EXISTS idx_phrasebank_combo   ON coach_phrasebank(track, car_model);
 ";
 
+/// Met de côté une base illisible (`lmu_cache.db` → `lmu_cache.db.corrupt-<date>`,
+/// avec ses fichiers WAL/SHM) pour que `init_db` reparte d'une base neuve. Rien
+/// n'est effacé : le fichier reste disponible pour un rapport de bug.
+pub fn quarantine_db(app_handle: &tauri::AppHandle) {
+    let Ok(dir) = app_handle.path().app_data_dir() else {
+        return;
+    };
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    for name in ["lmu_cache.db", "lmu_cache.db-wal", "lmu_cache.db-shm"] {
+        let from = dir.join(name);
+        if from.exists() {
+            let _ = std::fs::rename(&from, dir.join(format!("{name}.corrupt-{stamp}")));
+        }
+    }
+}
+
 pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
     let app_data_dir = app_handle
         .path()

@@ -76,6 +76,16 @@ struct PttWheelPayload {
     pressed: bool,
 }
 
+/// Évènement émis à chaque front d'un bouton lié à une action (sourdine,
+/// répète, volume…) : `{ "action": "...", "pressed": bool }`.
+pub const ACTION_WHEEL_EVENT: &str = "wheel-action";
+
+#[derive(Clone, Serialize)]
+struct ActionWheelPayload {
+    action: String,
+    pressed: bool,
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Logique pure (testée) : apprentissage de bit HID + anti-rebond
 // ─────────────────────────────────────────────────────────────────────────────
@@ -571,7 +581,7 @@ fn open_hid_capture() -> Vec<HidCaptureDevice> {
     let api = match hidapi::HidApi::new() {
         Ok(api) => api,
         Err(e) => {
-            eprintln!("[wheel] hidapi indisponible : {e}");
+            crate::app_warn!("[wheel] hidapi indisponible : {e}");
             return Vec::new();
         }
     };
@@ -807,6 +817,11 @@ fn emit_ptt(app: &AppHandle, event: &str, pressed: bool) {
 }
 
 fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64, gens: &'static AtomicU64, event: &'static str) {
+    watch_loop_with(binding, gen, gens, move |pressed| emit_ptt(&app, event, pressed));
+}
+
+/// Boucle de surveillance d'un bouton ; `emit` reçoit chaque front.
+fn watch_loop_with(binding: WheelBinding, gen: u64, gens: &'static AtomicU64, emit: impl Fn(bool)) {
     let hid_match = match &binding {
         WheelBinding::Hid { report_id, byte, mask, pressed_set, .. } => Some(HidMatch {
             report_id: *report_id,
@@ -832,7 +847,7 @@ fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64, gens: &'static At
             match src.read(hid_match.as_ref(), &mut buf) {
                 Ok(raw) => {
                     if let Some(pressed) = debouncer.update(raw, now_ms) {
-                        emit_ptt(&app, event, pressed);
+                        emit(pressed);
                     }
                 }
                 Err(()) => {
@@ -840,7 +855,7 @@ fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64, gens: &'static At
                     source = None;
                     last_attempt = Some(Instant::now());
                     if debouncer.is_pressed() {
-                        emit_ptt(&app, event, false);
+                        emit(false);
                     }
                     debouncer.reset();
                 }
@@ -849,7 +864,7 @@ fn watch_loop(app: AppHandle, binding: WheelBinding, gen: u64, gens: &'static At
         std::thread::sleep(WATCH_TICK);
     }
     if debouncer.is_pressed() {
-        emit_ptt(&app, event, false);
+        emit(false);
     }
 }
 
@@ -862,6 +877,29 @@ pub fn wheel_watch(app: AppHandle, binding: Option<WheelBinding>) -> AppResult<(
             .name("wheel-ptt".into())
             .spawn(move || watch_loop(app, binding, gen, &WATCH_GEN, PTT_WHEEL_EVENT))
             .map_err(|e| AppError::Internal(format!("wheel_watch: {e}")))?;
+    }
+    Ok(())
+}
+
+/// Génération des threads des boutons d'action : un seul jeu actif à la fois.
+static ACTIONS_WATCH_GEN: AtomicU64 = AtomicU64::new(0);
+
+/// (Re)démarre la surveillance des boutons liés à une action (un thread par
+/// bouton, évènement `wheel-action`). Liste vide = tout arrêter. Indépendant du
+/// push-to-talk et du repère de revue.
+#[tauri::command(async)]
+pub fn wheel_watch_actions(app: AppHandle, bindings: Vec<(String, WheelBinding)>) -> AppResult<()> {
+    let gen = ACTIONS_WATCH_GEN.fetch_add(1, Ordering::SeqCst) + 1;
+    for (action, binding) in bindings {
+        let app = app.clone();
+        std::thread::Builder::new()
+            .name(format!("wheel-action-{action}"))
+            .spawn(move || {
+                watch_loop_with(binding, gen, &ACTIONS_WATCH_GEN, move |pressed| {
+                    let _ = app.emit(ACTION_WHEEL_EVENT, ActionWheelPayload { action: action.clone(), pressed });
+                })
+            })
+            .map_err(|e| AppError::Internal(format!("wheel_watch_actions: {e}")))?;
     }
     Ok(())
 }

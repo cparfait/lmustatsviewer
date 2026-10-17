@@ -42,12 +42,15 @@ futures-util = "0.3"
 ring = "0.17"
 # Extraction des archives de modèles Vosk téléchargés à la demande (assets.rs).
 zip = { version = "2", default-features = false, features = ["deflate"] }
+# Captures brutes de la mémoire partagée (commands/shm.rs) : flux compressé écrit
+# et relu trame par trame (déjà dans l'arbre via `zip`).
+flate2 = "1"
 # QR code de l'adresse de la régie tablette (SVG seul, sans images).
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 quick-xml = "0.36"
 walkdir = "2"
 raw-window-handle = "0.6"
-windows = { version = "0.58", features = ["Win32_System_Memory", "Win32_Foundation", "Win32_System_LibraryLoader", "Win32_Security", "Win32_Security_Credentials", "Win32_Media_Multimedia", "Win32_System_Registry", "Win32_System_Diagnostics_ToolHelp"] }
+windows = { version = "0.58", features = ["Win32_System_Memory", "Win32_Foundation", "Win32_System_LibraryLoader", "Win32_Security", "Win32_Security_Credentials", "Win32_Media_Multimedia", "Win32_System_Registry", "Win32_System_Diagnostics_ToolHelp", "Win32_Media_Audio", "Win32_System_Com", "Win32_System_Threading"] }
 # Push-to-talk sur un bouton de volant (commands/wheel.rs) : lecture HID brute en
 # arrière-plan pour les volants dont les boutons échappent à winmm (> 32 boutons).
 hidapi = "2"

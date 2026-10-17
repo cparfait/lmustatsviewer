@@ -52,7 +52,7 @@ const TRACK_KEYS: [&str; 4] = ["track_points", "track_dists", "pit_lane_points",
 /// Réglages de l'app transmis aux widgets (lecture seule).
 const SETTING_KEYS: [&str; 2] = ["spotter_key_coach", "map_north_up"];
 /// Évènements de l'app relayés tels quels aux widgets.
-const RELAYED_EVENTS: [&str; 2] = ["coach-voice", "coach-corner"];
+const RELAYED_EVENTS: [&str; 3] = ["coach-voice", "coach-corner", "radio-subtitle"];
 const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 #[derive(Debug, Clone, Serialize)]

@@ -518,6 +518,19 @@ pub fn lmu_is_running() -> bool {
     lmu_running()
 }
 
+/// Un autre ingénieur radio tourne-t-il ? Sert au mode « cohabitation » : l'app
+/// coupe alors son spotter et ses annonces en doublon, et garde le reste.
+#[tauri::command]
+pub fn other_engineer_running() -> bool {
+    let Some(names) = process_names() else {
+        return false;
+    };
+    KNOWN
+        .iter()
+        .filter(|k| k.radio_engineer)
+        .any(|k| is_process_running(&names, k.exe))
+}
+
 /// Bouton « Jouer » : lance LMU par Steam (`steam://rungameid/…` : Steam gère les mises à
 /// jour, l'anti-triche et les options de lancement), comme depuis la bibliothèque. Si
 /// Steam ne prend pas la main, lance l'exe du dossier détecté. Rien si LMU tourne déjà.
@@ -586,6 +599,8 @@ struct KnownSpec {
     rel: &'static [&'static str],
     /// Texte cherché dans les entrées de désinstallation du registre.
     needle: &'static str,
+    /// L'outil est lui-même un ingénieur radio (annonces vocales) : mode cohabitation.
+    radio_engineer: bool,
 }
 
 const KNOWN: [KnownSpec; 3] = [
@@ -595,6 +610,7 @@ const KNOWN: [KnownSpec; 3] = [
         exe: "OpenKneeboardApp.exe",
         rel: &[r"OpenKneeboard\bin\OpenKneeboardApp.exe"],
         needle: "OpenKneeboard",
+        radio_engineer: false,
     },
     KnownSpec {
         id: "simhub",
@@ -602,6 +618,7 @@ const KNOWN: [KnownSpec; 3] = [
         exe: "SimHubWPF.exe",
         rel: &[r"SimHub\SimHubWPF.exe"],
         needle: "SimHub",
+        radio_engineer: false,
     },
     KnownSpec {
         id: "crewchief",
@@ -609,6 +626,7 @@ const KNOWN: [KnownSpec; 3] = [
         exe: "CrewChiefV4.exe",
         rel: &[r"Britton IT Ltd\CrewChiefV4\CrewChiefV4.exe"],
         needle: "CrewChief",
+        radio_engineer: true,
     },
 ];
 

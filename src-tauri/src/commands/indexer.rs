@@ -181,7 +181,7 @@ pub fn purge_empty_sessions(
         }
     }
     if files_removed != to_purge.len() as u32 {
-        eprintln!(
+        crate::app_warn!(
             "[purge] {files_removed}/{} fichier(s) supprimé(s) du disque (les autres \
              étaient absents ou verrouillés)",
             to_purge.len()
@@ -864,7 +864,7 @@ mod tests {
             r"D:\SteamLibrary\steamapps\common\Le Mans Ultimate\UserData\Log\Results",
         );
         if !dir.is_dir() {
-            eprintln!("[skip] dossier Results introuvable : {}", dir.display());
+            crate::app_warn!("[skip] dossier Results introuvable : {}", dir.display());
             return;
         }
         // Détermine le joueur = nom de pilote le plus fréquent (règle V1).

@@ -326,10 +326,10 @@ fn open_stream(tx: &mpsc::Sender<Vec<f32>>, wanted: &str, lost: &Arc<AtomicBool>
                 Ok((stream, rate)) => {
                     return Ok(Opened { _stream: stream, rate, name: names[i].clone(), fallback: false })
                 }
-                Err(e) => eprintln!("[voice_input] micro « {wanted} » : {e} → micro par défaut"),
+                Err(e) => crate::app_warn!("[voice_input] micro « {wanted} » : {e} → micro par défaut"),
             }
         } else {
-            eprintln!("[voice_input] micro « {wanted} » introuvable → micro par défaut");
+            crate::app_warn!("[voice_input] micro « {wanted} » introuvable → micro par défaut");
         }
     }
     let device = host.default_input_device().ok_or("aucun micro")?;
@@ -376,7 +376,7 @@ fn open_device(
     let format = cfg.sample_format();
     let sc: cpal::StreamConfig = cfg.into();
     let err = move |e: cpal::StreamError| {
-        eprintln!("[voice_input] flux micro : {e}");
+        crate::app_warn!("[voice_input] flux micro : {e}");
         if matches!(e, cpal::StreamError::DeviceNotAvailable) {
             lost.store(true, Ordering::SeqCst);
         }
@@ -498,7 +498,7 @@ fn run(
         let stalled = std::mem::take(&mut queue_stalled) && opened.is_some();
         if lost.swap(false, Ordering::SeqCst) || stalled {
             if let Some(o) = opened.take() {
-                eprintln!("[voice_input] micro « {} » perdu : réouverture", o.name);
+                crate::app_warn!("[voice_input] micro « {} » perdu : réouverture", o.name);
             }
             // Un push-to-talk en cours garde ce qu'il a déjà capté.
             if let Some(r) = rec.as_mut() {
@@ -540,7 +540,7 @@ fn run(
                     // Signalé une seule fois par coupure ; nouvel essai régulier.
                     if !none_signaled {
                         none_signaled = true;
-                        eprintln!("[voice_input] aucun micro : {e}");
+                        crate::app_warn!("[voice_input] aucun micro : {e}");
                         ctl.lock().unwrap().device.clear();
                         let _ = app.emit(
                             "voice-input-device",
@@ -787,6 +787,24 @@ pub fn ptt_begin(auto_send: bool) -> bool {
     true
 }
 
+/// PCM (16 kHz mono) de la dernière prise de parole push-to-talk, gardé pour les
+/// notes vocales (`voice_notes.rs`) : la note se dit au push-to-talk, puis le front
+/// demande de la conserver. Une seule prise, écrasée à chaque appui.
+static LAST_UTTERANCE: Mutex<Option<Vec<i16>>> = Mutex::new(None);
+
+/// Copie la capture (bornée à `MAX_CAPTURE_S`) avant la dictée.
+fn remember_utterance(buf: &[i16]) {
+    let n = buf.len().min((MAX_CAPTURE_S * SR as f32) as usize);
+    if let Ok(mut g) = LAST_UTTERANCE.lock() {
+        *g = Some(buf[..n].to_vec());
+    }
+}
+
+/// Retire (et rend) la dernière prise de parole push-to-talk.
+pub(crate) fn take_last_utterance() -> Option<Vec<i16>> {
+    LAST_UTTERANCE.lock().ok()?.take()
+}
+
 /// Fin de push-to-talk : dictée de la capture. `None` si aucune capture en cours.
 #[tauri::command(async)]
 pub fn ptt_end(app: AppHandle, lang: String) -> AppResult<Option<String>> {
@@ -799,6 +817,7 @@ pub fn ptt_end(app: AppHandle, lang: String) -> AppResult<Option<String>> {
             None => return Ok(None),
         }
     };
+    remember_utterance(&buf);
     recognize_free_samples(&app, &lang, &buf).map(Some)
 }
 
@@ -826,6 +845,7 @@ pub fn ptt_end_dual(app: AppHandle, lang: String, grammar: Vec<String>) -> AppRe
             None => return Ok(None),
         }
     };
+    remember_utterance(&buf);
     let free = recognize_free_samples(&app, &lang, &buf)?;
     // Une grammaire en échec ne doit pas faire perdre la dictée libre.
     let strict = recognize_grammar_samples(&app, &lang, &buf, &grammar).unwrap_or_default();

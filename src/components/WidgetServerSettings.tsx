@@ -272,10 +272,13 @@ export function WidgetServerSettings() {
                       options={SCALES.map((s) => ({ value: String(s), label: `${s}×` }))}
                     />
                   </label>
-                  <label className="flex items-center gap-2" title={t("overlays.web.opaqueHint")}>
-                    <Switch checked={opaque} onCheckedChange={(v: boolean) => setOpaque(v)} />
-                    {t("overlays.web.opaque")}
-                  </label>
+                  {/* En VR, le widget doit rester transparent au-dessus du jeu : pas de fond opaque. */}
+                  {target !== "vr" && (
+                    <label className="flex items-center gap-2" title={t("overlays.web.opaqueHint")}>
+                      <Switch checked={opaque} onCheckedChange={(v: boolean) => setOpaque(v)} />
+                      {t("overlays.web.opaque")}
+                    </label>
+                  )}
                   <span className="text-muted-foreground">{t("overlays.web.clients", { count: status.clients })}</span>
                 </div>
               </>

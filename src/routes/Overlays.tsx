@@ -22,6 +22,7 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,7 +31,7 @@ import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { WidgetServerSettings } from "@/components/WidgetServerSettings";
-import { OverlayLookSettings } from "@/components/OverlayLookSettings";
+import { OverlayLookDialog } from "@/components/OverlayLookSettings";
 import { cn } from "@/lib/utils";
 import { overlay as overlayApi, type OverlayScreen } from "@/lib/api";
 import { toastError } from "@/stores/dialogs";
@@ -102,6 +103,7 @@ export function Overlays() {
 
   const [selected, setSelected] = useState<OverlayId | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showLook, setShowLook] = useState(false);
   // Mémorise qu'on a ouvert la config depuis le mode Édition (clic ⚙) afin d'y
   // revenir automatiquement au retour, sans avoir à recliquer « Mode Édition ».
   const returnToEditRef = useRef(false);
@@ -433,19 +435,29 @@ export function Overlays() {
   return (
     <div>
       {/* Barre d'actions */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-y-2">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">{t("overlays.title")}</h1>
           <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
             {t("overlays.activeCount", { count: activeCount })}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {savedFlash && (
-            <span className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-emerald-500 transition-opacity">
-              <Check className="h-3.5 w-3.5" /> {t("overlays.saved")}
-            </span>
-          )}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* Place toujours réservée : l'indicateur ne pousse plus les boutons à chaque
+              réglage modifié (la page changeait de largeur). */}
+          <span
+            aria-hidden={!savedFlash}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-emerald-500 transition-opacity",
+              savedFlash ? "opacity-100" : "opacity-0",
+            )}
+          >
+            <Check className="h-3.5 w-3.5" /> {t("overlays.saved")}
+          </span>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowLook(true)}>
+            <Palette className="h-4 w-4" />
+            {t("overlays.look.button")}
+          </Button>
           {/* Tout activer / Tout désactiver : bascule l'état ON/OFF de tous les overlays. */}
           <Button
             variant="outline"
@@ -613,12 +625,10 @@ export function Overlays() {
       </div>
 
       <div className="mt-6">
-        <OverlayLookSettings />
-      </div>
-
-      <div className="mt-6">
         <WidgetServerSettings />
       </div>
+
+      {showLook && <OverlayLookDialog onClose={() => setShowLook(false)} />}
 
       {showCreate && (
         <CreateProfileModal

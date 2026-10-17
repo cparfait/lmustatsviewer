@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Copy, ExternalLink, Glasses, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Copy, ExternalLink, Glasses, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -41,6 +41,8 @@ export function WidgetServerSettings() {
   const [opaque, setOpaque] = useState(false);
   const [scale, setScale] = useState(1);
   const [copied, setCopied] = useState("");
+  // Carte repliée par défaut : seuls le titre et « à quoi ça sert » sont visibles.
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -82,13 +84,32 @@ export function WidgetServerSettings() {
 
   return (
     <Card className="space-y-4 p-4">
-      <div className="flex items-start gap-3">
+      <button
+        type="button"
+        className="flex w-full items-start gap-3 text-left"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
         <Glasses className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-        <div className="space-y-1">
-          <h3 className="font-semibold">{t("overlays.web.title")}</h3>
+        <div className="min-w-0 flex-1 space-y-1">
+          <h3 className="flex flex-wrap items-center gap-2 font-semibold">
+            {t("overlays.web.title")}
+            {running && (
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600">
+                {t("overlays.web.active")}
+              </span>
+            )}
+          </h3>
           <p className="text-sm text-muted-foreground">{t("overlays.web.desc")}</p>
         </div>
-      </div>
+        <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
+          {expanded ? t("overlays.web.hide") : t("overlays.web.show")}
+          <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        </span>
+      </button>
+
+      {expanded && (
+        <>
 
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-border p-3">
         <div className="space-y-0.5">
@@ -200,6 +221,8 @@ export function WidgetServerSettings() {
         <li>{t("overlays.web.noteSettings")}</li>
         <li>{t("overlays.web.noteLocal")}</li>
       </ul>
+        </>
+      )}
     </Card>
   );
 }

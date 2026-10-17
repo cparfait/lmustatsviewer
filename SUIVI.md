@@ -951,6 +951,28 @@ connecteur est bien branché ».
 - 📋 **Prochaine étape** : surveiller le journal en roulage (wake word + push-to-talk) ;
   commit après accord de l'utilisateur.
 
+### 2026-10-17 — Overlays : bouton « Apparence » avec aperçu, carte « Widgets par adresse » repliée
+
+**Retour de l'utilisateur** : réglages d'apparence perdus en bas de page, aucun effet visible
+(0 overlay actif), page qui change de largeur à chaque réglage, carte VR/OBS trop longue et
+peu claire.
+
+- ✅ **Bouton « Apparence »** dans la barre du haut de la page Overlays → fenêtre
+  `OverlayLookDialog` (réglages + **aperçu en direct** : Classement, Secteurs, Télémétrie sur
+  des données d'exemple multiclasse, pédales animées, record de classe en S2 toutes les 4 s
+  pour voir l'animation). La carte en bas de page est retirée.
+- ✅ **Saut de largeur** : l'indicateur « Enregistré » apparaissait/disparaissait dans la barre
+  d'actions (non repliable) à chaque sauvegarde → la barre débordait et la page s'élargissait.
+  Place désormais toujours réservée (opacité seulement) et barre en `flex-wrap`.
+- ✅ **Carte « Widgets par adresse »** repliée par défaut (`Afficher les réglages` / `Masquer`,
+  pastille « Actif » quand le serveur tourne) ; description réécrite « à quoi ça sert » (VR où
+  les overlays d'écran sont invisibles, OBS, 2ᵉ écran ; inutile sinon). 5 langues, changelog.
+- ⏳ **OpenKneeboard refuse de démarrer** chez l'utilisateur : UAC désactivé dans Windows
+  (exigence d'OpenKneeboard, pas de notre app). À réactiver par l'utilisateur (réglage de
+  sécurité Windows), puis redémarrage.
+- 📋 **Prochaine étape** : l'utilisateur précise le lien voulu sur la page Live (à côté de
+  « Régie tablette ») ; essai en jeu du style Instrument.
+
 ### 2026-10-17 — Apparence des overlays : style Instrument et options d'affichage
 
 **Contexte** : suite de la veille du jour sur le dessin des overlays tiers. Demande explicite de

@@ -2608,7 +2608,7 @@ export default {
   },
   help: {
     title: "Hilfe",
-    subtitle: "Tastenkürzel, Voraussetzungen und geführte Tour.",
+    subtitle: "Tastenkürzel, Voraussetzungen jeder Funktion und geführte Tour.",
     replayTour: "Geführte Tour erneut ansehen",
     shortcuts: "Globale Tastenkürzel",
     shortcutStatus: "Spotter — Status ansagen",
@@ -2627,7 +2627,13 @@ export default {
     reqVoice: "Sprachansagen — Stimmen zum Herunterladen",
     reqVoiceDesc: "Lade die Piper-Stimme deiner Sprache (≈ 61 MB) in Config → Audio / Stimme herunter. Das Vosk-Modell (Sprachbefehle) gibt es an derselben Stelle.",
     reqAi: "KI-Coach — API-Schlüssel (optional)",
-    reqAiDesc: "Die KI-Analyse nutzt deinen eigenen Schlüssel (OpenAI, Anthropic, Google, Mistral, DeepSeek, lokales Ollama). Alles andere funktioniert ohne Schlüssel.",
+    reqAiDesc: "KI-Analyse und freie Fragen an den Ingenieur nutzen deinen eigenen Schlüssel (OpenAI, Anthropic, Google, Mistral, DeepSeek, lokales Ollama oder ein eigener Anbieter). Alles andere funktioniert ohne Schlüssel.",
+    reqVr: "VR — OpenKneeboard",
+    reqVrDesc: "Widgets erscheinen über OpenKneeboard (kostenlos) im Headset. Seite Overlays, Schaltfläche „VR“. OpenKneeboard verlangt eine aktivierte Benutzerkontensteuerung (UAC) von Windows.",
+    reqCommunity: "Community-Ranglisten — Teilen (optional)",
+    reqCommunityDesc: "Deine Positionen gegenüber anderen Fahrern setzen das Teilen deiner besten Runden voraus (Steam-Anmeldung, standardmäßig aus). Ranglisten ansehen erfordert nichts.",
+    go: "Öffnen",
+    setShortcuts: "Tastenkürzel einstellen",
   },
   profile: {
     unknownDriver: "Unbekannter Fahrer",

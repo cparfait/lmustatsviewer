@@ -2603,7 +2603,7 @@ export default {
   },
   help: {
     title: "Help",
-    subtitle: "Shortcuts, requirements and guided tour.",
+    subtitle: "Shortcuts, what each feature needs, and the guided tour.",
     replayTour: "Replay the guided tour",
     shortcuts: "Global keyboard shortcuts",
     shortcutStatus: "Spotter — announce status",
@@ -2622,7 +2622,13 @@ export default {
     reqVoice: "Voice announcements — downloadable voices",
     reqVoiceDesc: "Download your language's Piper voice (≈ 61 MB) in Config → Audio / Voice. The Vosk model (voice commands) downloads in the same place.",
     reqAi: "AI coach — API key (optional)",
-    reqAiDesc: "AI analysis uses your own key (OpenAI, Anthropic, Google, Mistral, DeepSeek, local Ollama). Everything else works without a key.",
+    reqAiDesc: "AI analysis and free questions to the engineer use your own key (OpenAI, Anthropic, Google, Mistral, DeepSeek, local Ollama or a custom provider). Everything else works without a key.",
+    reqVr: "VR — OpenKneeboard",
+    reqVrDesc: "Widgets show in the headset through OpenKneeboard (free). Overlays page, “VR” button. OpenKneeboard requires Windows User Account Control (UAC) to be on.",
+    reqCommunity: "Community rankings — sharing (optional)",
+    reqCommunityDesc: "Your positions against other drivers require sharing your best laps (Steam sign-in, off by default). Browsing the rankings needs nothing.",
+    go: "Open",
+    setShortcuts: "Set shortcuts",
   },
   profile: {
     unknownDriver: "Unknown driver",

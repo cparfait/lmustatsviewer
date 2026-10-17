@@ -1,5 +1,5 @@
 /**
- * Bouton « Jouer » de l'en-tête : lance Le Mans Ultimate (par Steam, sinon l'exe du
+ * Bouton « Jouer » de l'en-tête (icône volant) : lance Le Mans Ultimate (par Steam, sinon l'exe du
  * dossier détecté). Pastille verte quand le jeu tourne déjà ; rien à faire alors.
  * Backend : `launch_lmu` / `lmu_is_running` (`src-tauri/src/commands/tools.rs`).
  */
@@ -7,11 +7,22 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { Loader2, Play } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isTauri } from "@/lib/api";
 import { useAppStore } from "@/stores/app";
 import { toast, toastError } from "@/stores/dialogs";
+
+/** Volant (même tracé que les icônes de l'app : 24 px, trait 2). */
+function SteeringWheel({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M2.5 10.5 9.6 11.2M14.4 11.2l7.1-.7M12 14.5V22" />
+    </svg>
+  );
+}
 
 export function PlayLmuButton() {
   const { t } = useTranslation();
@@ -59,7 +70,7 @@ export function PlayLmuButton() {
       {busy ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <Play className={running ? "h-4 w-4 text-emerald-500" : "h-4 w-4 fill-current text-primary"} />
+        <SteeringWheel className={running ? "h-4 w-4 text-emerald-500" : "h-4 w-4 text-primary"} />
       )}
       {running && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />}
     </Button>

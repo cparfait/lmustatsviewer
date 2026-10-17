@@ -1,21 +1,21 @@
 /**
  * HelpModal — aide in-app accessible via le « ? » du header.
  *
- * Trois blocs : raccourcis clavier globaux (valeurs réelles du store, pas les
- * défauts), prérequis des fonctions live/télémétrie/voix/coach IA, et actions
- * (revoir la visite guidée, notes de version). Contenu 100 % i18n (`help.*`).
+ * Deux colonnes : raccourcis clavier globaux (valeurs réelles du store, pas les
+ * défauts, avec un lien pour les régler) et prérequis de chaque fonction (avec un
+ * lien vers l'écran qui les règle). En tête : visite guidée, notes de version, Discord.
+ * Contenu 100 % i18n (`help.*`).
+ *
+ * Rendue dans `document.body` (portail) : l'en-tête qui l'ouvre a un flou d'arrière-plan,
+ * qui sert de cadre aux éléments `fixed` — rendue sur place, la fenêtre se calait sur
+ * l'en-tête (coupée en haut à gauche) au lieu de l'écran.
  */
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
-import {
-  X,
-  Keyboard,
-  ListChecks,
-  ScrollText,
-  PlayCircle,
-} from "lucide-react";
+import { ArrowRight, Keyboard, ListChecks, PlayCircle, ScrollText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/stores/app";
 import { useTourStore } from "@/stores/tour";
@@ -48,81 +48,97 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
     { label: t("help.shortcutOverlay"), value: overlayToggleKey },
   ];
 
-  const requirements: { title: string; desc: string }[] = [
-    { title: t("help.reqPlugin"), desc: t("help.reqPluginDesc") },
+  const requirements: { title: string; desc: string; to?: string }[] = [
+    { title: t("help.reqPlugin"), desc: t("help.reqPluginDesc"), to: "/live" },
     { title: t("help.reqTelemetry"), desc: t("help.reqTelemetryDesc") },
-    { title: t("help.reqVoice"), desc: t("help.reqVoiceDesc") },
-    { title: t("help.reqAi"), desc: t("help.reqAiDesc") },
+    { title: t("help.reqVoice"), desc: t("help.reqVoiceDesc"), to: "/config?cat=voice" },
+    { title: t("help.reqAi"), desc: t("help.reqAiDesc"), to: "/config?cat=coach" },
+    { title: t("help.reqVr"), desc: t("help.reqVrDesc"), to: "/overlays" },
+    { title: t("help.reqCommunity"), desc: t("help.reqCommunityDesc"), to: "/config?cat=community" },
   ];
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-background shadow-2xl"
+        className="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* En-tête */}
-        <div className="sticky top-0 flex items-start justify-between gap-3 border-b border-border/60 bg-background p-4">
-          <div>
-            <h2 className="text-lg font-bold leading-tight">
-              {t("help.title")}
-            </h2>
+        {/* En-tête : titre + actions principales */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-border/60 p-4">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold leading-tight">{t("help.title")}</h2>
             <p className="text-xs text-muted-foreground">{t("help.subtitle")}</p>
           </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              onClose();
+              useTourStore.getState().setOpen(true);
+            }}
+          >
+            <PlayCircle className="mr-1.5 h-4 w-4" />
+            {t("help.replayTour")}
+          </Button>
+          <Link
+            to="/changelog"
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+          >
+            <ScrollText className="h-3.5 w-3.5" />
+            {t("changelog.title")}
+          </Link>
+          <a
+            href={DISCORD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-[#5865F2] transition-colors hover:bg-[#5865F2]/10"
+          >
+            <DiscordIcon className="h-3.5 w-3.5" />
+            Discord
+          </a>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label={t("coach.close")}
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="p-4 space-y-5">
-          {/* Visite guidée */}
-          <Button
-            className="w-full"
-            onClick={() => {
-              onClose();
-              useTourStore.getState().setOpen(true);
-            }}
-          >
-            <PlayCircle className="h-4 w-4 mr-2" />
-            {t("help.replayTour")}
-          </Button>
-
+        <div className="grid gap-6 overflow-y-auto p-4 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           {/* Raccourcis clavier */}
           <section>
             <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
               <Keyboard className="h-4 w-4 text-primary" />
               {t("help.shortcuts")}
             </h3>
-            <div className="rounded-md border border-border/60 divide-y divide-border/60">
+            <div className="divide-y divide-border/60 rounded-md border border-border/60">
               {shortcuts.map((s) => (
-                <div
-                  key={s.label}
-                  className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
-                >
+                <div key={s.label} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                   <span className="text-muted-foreground">{s.label}</span>
                   {s.value ? (
-                    <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">
+                    <kbd className="shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">
                       {s.value}
                     </kbd>
                   ) : (
-                    <span className="text-xs text-muted-foreground/60">
-                      {t("help.notSet")}
-                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground/60">{t("help.notSet")}</span>
                   )}
                 </div>
               ))}
             </div>
-            <p className="mt-1.5 text-xs text-muted-foreground/70">
-              {t("help.shortcutsNote")}
-            </p>
+            <p className="mt-1.5 text-xs text-muted-foreground/70">{t("help.shortcutsNote")}</p>
+            <Link
+              to="/config?cat=voice"
+              onClick={onClose}
+              className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              {t("help.setShortcuts")}
+              <ArrowRight className="h-3 w-3" />
+            </Link>
           </section>
 
           {/* Prérequis */}
@@ -133,41 +149,28 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
             </h3>
             <div className="space-y-2">
               {requirements.map((r) => (
-                <div
-                  key={r.title}
-                  className="rounded-md bg-muted/40 px-3 py-2 text-sm"
-                >
-                  <div className="font-medium">{r.title}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
-                    {r.desc}
+                <div key={r.title} className="rounded-md bg-muted/40 px-3 py-2 text-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="font-medium">{r.title}</div>
+                    {r.to && (
+                      <Link
+                        to={r.to}
+                        onClick={onClose}
+                        className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      >
+                        {t("help.go")}
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    )}
                   </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">{r.desc}</div>
                 </div>
               ))}
             </div>
           </section>
-
-          {/* Liens */}
-          <div className="flex items-center gap-2">
-            <Link
-              to="/changelog"
-              onClick={onClose}
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors"
-            >
-              <ScrollText className="h-3.5 w-3.5" />
-              {t("changelog.title")}
-            </Link>
-            <a
-              href={DISCORD_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-[#5865F2] hover:bg-[#5865F2]/10 transition-colors"
-            >
-              <DiscordIcon className="h-3.5 w-3.5" />
-              Discord
-            </a>
-          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

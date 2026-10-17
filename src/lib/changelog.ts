@@ -74,11 +74,11 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
-              en: "Play button in the top bar: launches Le Mans Ultimate through Steam (as from your library), or from the detected game folder if Steam does not respond. A green dot shows when the game is already running.",
-              fr: "Bouton Jouer dans la barre du haut : lance Le Mans Ultimate par Steam (comme depuis ta bibliothèque), ou depuis le dossier du jeu détecté si Steam ne répond pas. Une pastille verte indique que le jeu tourne déjà.",
-              es: "Botón Jugar en la barra superior: inicia Le Mans Ultimate a través de Steam (como desde tu biblioteca) o desde la carpeta del juego detectada si Steam no responde. Un punto verde indica que el juego ya está en marcha.",
-              de: "Spielen-Schaltfläche in der oberen Leiste: startet Le Mans Ultimate über Steam (wie aus deiner Bibliothek) oder aus dem erkannten Spielordner, falls Steam nicht reagiert. Ein grüner Punkt zeigt, dass das Spiel bereits läuft.",
-              it: "Pulsante Gioca nella barra in alto: avvia Le Mans Ultimate tramite Steam (come dalla tua libreria) o dalla cartella del gioco rilevata se Steam non risponde. Un punto verde indica che il gioco è già in esecuzione.",
+              en: "Steering-wheel button in the top bar: launches Le Mans Ultimate through Steam (as from your library), or from the detected game folder if Steam does not respond. A green dot shows when the game is already running.",
+              fr: "Bouton volant dans la barre du haut : lance Le Mans Ultimate par Steam (comme depuis ta bibliothèque), ou depuis le dossier du jeu détecté si Steam ne répond pas. Une pastille verte indique que le jeu tourne déjà.",
+              es: "Botón del volante en la barra superior: inicia Le Mans Ultimate a través de Steam (como desde tu biblioteca) o desde la carpeta del juego detectada si Steam no responde. Un punto verde indica que el juego ya está en marcha.",
+              de: "Lenkrad-Schaltfläche in der oberen Leiste: startet Le Mans Ultimate über Steam (wie aus deiner Bibliothek) oder aus dem erkannten Spielordner, falls Steam nicht reagiert. Ein grüner Punkt zeigt, dass das Spiel bereits läuft.",
+              it: "Pulsante volante nella barra in alto: avvia Le Mans Ultimate tramite Steam (come dalla tua libreria) o dalla cartella del gioco rilevata se Steam non risponde. Un punto verde indica che il gioco è già in esecuzione.",
             },
           },
           {
@@ -660,6 +660,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "Help (“?” in the top bar): the window now opens in the middle of the screen instead of being cut off at the top left; wider, in two columns (shortcuts, what each feature needs) with a link to the right screen for each item, plus VR and community rankings.",
+              fr: "Aide (« ? » de la barre du haut) : la fenêtre s'ouvre au milieu de l'écran au lieu d'être coupée en haut à gauche ; plus large, sur deux colonnes (raccourcis, prérequis de chaque fonction) avec un lien vers le bon écran pour chacun, plus la VR et les classements communautaires.",
+              es: "Ayuda («?» de la barra superior): la ventana se abre en el centro de la pantalla en lugar de aparecer cortada arriba a la izquierda; más ancha, en dos columnas (atajos, requisitos de cada función) con un enlace a la pantalla correcta para cada uno, además de la VR y las clasificaciones de la comunidad.",
+              de: "Hilfe („?“ in der oberen Leiste): Das Fenster öffnet sich in der Bildschirmmitte statt oben links abgeschnitten; breiter, in zwei Spalten (Tastenkürzel, Voraussetzungen jeder Funktion) mit einem Link zum passenden Bildschirm, dazu VR und Community-Ranglisten.",
+              it: "Aiuto («?» della barra in alto): la finestra si apre al centro dello schermo invece di comparire tagliata in alto a sinistra; più larga, su due colonne (scorciatoie, requisiti di ogni funzione) con un link alla schermata giusta per ciascuno, più la VR e le classifiche della community.",
+            },
+          },
           {
             text: {
               en: "Online AI voice: the new pit limiter reminders are now part of “Prepare the voice”, so they are said without delay (unless “Alerts in local voice” is on).",

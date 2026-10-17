@@ -2603,7 +2603,7 @@ export default {
   },
   help: {
     title: "Aiuto",
-    subtitle: "Scorciatoie, requisiti e tour guidato.",
+    subtitle: "Scorciatoie, requisiti di ogni funzione e visita guidata.",
     replayTour: "Rivedi il tour guidato",
     shortcuts: "Scorciatoie da tastiera globali",
     shortcutStatus: "Spotter — annuncia lo stato",
@@ -2622,7 +2622,13 @@ export default {
     reqVoice: "Annunci vocali — voci scaricabili",
     reqVoiceDesc: "Scarica la voce Piper della tua lingua (≈ 61 MB) in Config → Audio / Voce. Il modello Vosk (comandi vocali) si scarica nello stesso punto.",
     reqAi: "Coach IA — chiave API (opzionale)",
-    reqAiDesc: "L'analisi IA usa la tua chiave personale (OpenAI, Anthropic, Google, Mistral, DeepSeek, Ollama in locale). Tutto il resto funziona senza chiave.",
+    reqAiDesc: "L'analisi IA e le domande libere all'ingegnere usano la tua chiave (OpenAI, Anthropic, Google, Mistral, DeepSeek, Ollama in locale o un fornitore personalizzato). Tutto il resto funziona senza chiave.",
+    reqVr: "VR — OpenKneeboard",
+    reqVrDesc: "I widget appaiono nel visore tramite OpenKneeboard (gratuito). Pagina Overlay, pulsante «VR». OpenKneeboard richiede il Controllo dell'account utente (UAC) di Windows attivo.",
+    reqCommunity: "Classifiche della community — condivisione (facoltativa)",
+    reqCommunityDesc: "Le tue posizioni rispetto agli altri piloti richiedono la condivisione dei tuoi giri migliori (accesso Steam, disattivata di default). Consultare le classifiche non richiede nulla.",
+    go: "Apri",
+    setShortcuts: "Imposta le scorciatoie",
   },
   profile: {
     unknownDriver: "Pilota sconosciuto",

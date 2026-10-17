@@ -915,9 +915,11 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 ### 2026-10-17 — Logos et textes lisibles dans les bandeaux de couleur primaire
 
-- ✅ `SessionDetail.tsx` (cartes des tours, `TableTitle` orange) : logo voiture en silhouette blanche
-  (`brightness-0 invert`) et nom en `text-primary-foreground/85` — avant, `text-muted-foreground`
-  + logo d'origine (souvent sombre, ex. Genesis) étaient illisibles sur l'orange.
+- ✅ `SessionDetail.tsx` (cartes des tours, `TableTitle` orange) : logo voiture dans ses couleurs
+  sur une pastille blanche (`bg-white rounded px-0.5`), nom en `text-primary-foreground/85`, numéro
+  `CarNumber` en blanc — avant, `text-muted-foreground` + logo d'origine (souvent sombre, ex.
+  Genesis) étaient illisibles sur l'orange. Silhouette blanche (`brightness-0 invert`) essayée puis
+  écartée : les logos ronds (BMW) devenaient un simple disque blanc.
 - ✅ `Records.tsx` : compteur « (n) » du bandeau circuit, même correction.
 - 📋 **Prochaine étape** : règle à suivre — jamais `text-muted-foreground` ni logo en couleurs
   d'origine dans un `TableTitle` variante `primary`.

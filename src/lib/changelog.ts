@@ -842,11 +842,11 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
-              en: "Session details, lap cards: the car logo and name in the coloured header were dark on orange and almost invisible; they are now white. Same for the lap count next to each track on the Records page.",
-              fr: "Détail de session, cartes des tours : le logo et le nom de la voiture dans le bandeau de couleur étaient sombres sur l'orange, presque invisibles ; ils sont maintenant en blanc. Idem pour le nombre de tours à côté de chaque circuit dans la page Records.",
-              es: "Detalle de sesión, tarjetas de vueltas: el logo y el nombre del coche en la cabecera de color eran oscuros sobre el naranja y casi invisibles; ahora son blancos. Lo mismo para el número de vueltas junto a cada circuito en la página Récords.",
-              de: "Session-Details, Rundenkarten: Logo und Name des Autos in der farbigen Kopfzeile waren dunkel auf Orange und kaum sichtbar; sie sind jetzt weiß. Ebenso die Rundenanzahl neben jeder Strecke auf der Seite Rekorde.",
-              it: "Dettaglio sessione, schede dei giri: il logo e il nome dell'auto nell'intestazione colorata erano scuri sull'arancione e quasi invisibili; ora sono bianchi. Lo stesso per il numero di giri accanto a ogni circuito nella pagina Record.",
+              en: "Session details, lap cards: the car logo and name in the coloured header were dark on orange and almost invisible: the logo now keeps its colours on a small white badge, the name and car number are white. Same for the lap count next to each track on the Records page.",
+              fr: "Détail de session, cartes des tours : le logo et le nom de la voiture dans le bandeau de couleur étaient sombres sur l'orange, presque invisibles : le logo garde ses couleurs sur une petite pastille blanche, le nom et le numéro de la voiture sont en blanc. Idem pour le nombre de tours à côté de chaque circuit dans la page Records.",
+              es: "Detalle de sesión, tarjetas de vueltas: el logo y el nombre del coche en la cabecera de color eran oscuros sobre el naranja y casi invisibles: el logo conserva sus colores sobre una pequeña pastilla blanca, el nombre y el número del coche son blancos. Lo mismo para el número de vueltas junto a cada circuito en la página Récords.",
+              de: "Session-Details, Rundenkarten: Logo und Name des Autos in der farbigen Kopfzeile waren dunkel auf Orange und kaum sichtbar: Das Logo behält seine Farben auf einem kleinen weißen Feld, Name und Startnummer sind weiß. Ebenso die Rundenanzahl neben jeder Strecke auf der Seite Rekorde.",
+              it: "Dettaglio sessione, schede dei giri: il logo e il nome dell'auto nell'intestazione colorata erano scuri sull'arancione e quasi invisibili: il logo mantiene i suoi colori su una piccola pastiglia bianca, nome e numero dell'auto sono bianchi. Lo stesso per il numero di giri accanto a ogni circuito nella pagina Record.",
             },
           },
           {

@@ -34,6 +34,7 @@ import {
   Orbit,
   Split,
   Waypoints,
+  Radio,
   type LucideIcon,
 } from "lucide-react";
 
@@ -60,7 +61,8 @@ export type OverlayId =
   | "radar"
   | "aids"
   | "gforce"
-  | "sectors";
+  | "sectors"
+  | "radio";
 
 /** Un élément de contenu activable d'un overlay (onglet « Content »). */
 export interface OverlayElement {
@@ -312,6 +314,16 @@ export const OVERLAY_DEFS: OverlayDef[] = [
     defaultX: 40,
     defaultY: 880,
     width: 380,
+    elements: [],
+  },
+  {
+    // Sous-titres des annonces radio (ingénieur + spotter).
+    id: "radio",
+    icon: Radio,
+    accent: "#f59e0b",
+    defaultX: 40,
+    defaultY: 760,
+    width: 420,
     elements: [],
   },
   {

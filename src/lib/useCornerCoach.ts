@@ -47,6 +47,17 @@ import {
   applyOrGeneratePhrasebank,
   resetPhrasebankApplied,
 } from "@/lib/coachPhrasebank";
+import { cornerNamer } from "@/lib/engineer/cornerVoice";
+
+/**
+ * Numéro officiel (et nom) du virage à la place du numéro du coach, quand le
+ * circuit a une fiche officielle qui colle au tracé (réglage « noms de virages »).
+ */
+function withCornerName<T extends { corner_uid: string; vars: Record<string, string | number> }>(msg: T): T {
+  if (!useAppStore.getState().radioExtras.cornerNames || !("n" in msg.vars)) return msg;
+  const label = cornerNamer.forUid(msg.corner_uid);
+  return label ? { ...msg, vars: { ...msg.vars, n: label } } : msg;
+}
 
 /** TTL vocal étendu du débrief (§11) : plusieurs phrases → ne pas couper trop tôt. */
 const REPORT_TTL_MS = 15000;
@@ -81,8 +92,9 @@ export function useCornerCoach() {
 
     // Abonnement synchrone (avant le démarrage async du service) → aucun message
     // manqué entre `startCoachService()` et l'installation du listener.
-    const off = onCoachSpeak((msg) => {
+    const off = onCoachSpeak((raw) => {
       if (disposed) return;
+      const msg = withCornerName(raw);
       // Re-vérifie le mute au moment de parler (l'utilisateur a pu couper depuis).
       if (!useAppStore.getState().voiceAnnouncements) return;
       // Arbitre de ton : un « pousse » (grip inexploité, trop lent à l'apex…)

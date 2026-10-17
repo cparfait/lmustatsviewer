@@ -69,6 +69,40 @@ export function setMasterVolume(v: number) {
   if (masterGain) masterGain.gain.value = masterVolume;
 }
 
+/** Sortie audio choisie (identifiant WebAudio), `""` = sortie par défaut de Windows. */
+let sinkId = "";
+
+/**
+ * Envoie la radio (voix Piper / voix en ligne, bips, souffle) vers un autre
+ * périphérique que celui de Windows — casque pour la radio, enceintes pour le
+ * jeu, ou sortie dédiée au streaming. `""` = périphérique par défaut. La voix
+ * « système » (Web Speech) ne passe pas par Web Audio : elle reste sur la sortie
+ * par défaut. Renvoie `false` si le moteur ne sait pas changer de sortie.
+ */
+export async function setOutputDevice(id: string): Promise<boolean> {
+  sinkId = id;
+  const c = ac() as (AudioContext & { setSinkId?: (id: string) => Promise<void> }) | null;
+  if (!c || typeof c.setSinkId !== "function") return false;
+  try {
+    await c.setSinkId(id);
+    return true;
+  } catch {
+    // Périphérique débranché ou renommé : repli sur la sortie par défaut.
+    sinkId = "";
+    try {
+      await c.setSinkId("");
+    } catch {
+      /* sortie par défaut déjà active */
+    }
+    return false;
+  }
+}
+
+/** Sortie audio active (`""` = défaut). */
+export function outputDevice(): string {
+  return sinkId;
+}
+
 /** Nœud de sortie commun (à connecter en bout de chaîne voix). */
 export function audioOutput(): AudioNode | null {
   const c = ac();

@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, Home, RotateCcw } from "lucide-react";
 import i18n from "@/i18n";
 import { Button } from "@/components/ui/button";
+import { logError } from "@/lib/log";
 
 interface Props {
   children: ReactNode;
@@ -32,9 +33,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Pas de service de crash distant (app 100 % locale) : on trace en console
-    // pour que l'utilisateur puisse copier l'erreur dans un rapport de bug.
-    console.error("[ErrorBoundary]", error, info.componentStack);
+    // Pas de service de crash distant (app 100 % locale) : console + journal
+    // local, qui part dans le rapport de bug (Configuration › Maintenance).
+    logError("ErrorBoundary", error, info.componentStack ?? undefined);
   }
 
   private reset = () => this.setState({ error: null });

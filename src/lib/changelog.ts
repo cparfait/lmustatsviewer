@@ -73,6 +73,107 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "added",
         items: [
           {
+            featured: true,
+            text: {
+              en: "Race calls from the game itself: the engineer now says the exact penalty type and cause (stop-go for cutting, drive-through for pit lane speeding…), “penalty served”, “wrong way”, “headlights required”, the blue flag warning before a penalty and “last lap to serve”, read from the game's message centre. Track limits are called as they are counted (“2 of 4”, then “the next one is a penalty”).",
+              fr: "Annonces venues du jeu lui-même : l'ingénieur dit maintenant le type et la cause exacts de la pénalité (stop and go pour coupure, drive-through pour excès de vitesse dans les stands…), « pénalité purgée », « mauvais sens », « phares obligatoires », l'avertissement drapeau bleu avant pénalité et « dernier tour pour purger », lus dans le centre de messages du jeu. Les limites de piste sont annoncées au fil des coupures comptées (« 2 sur 4 », puis « la prochaine coûte une pénalité »).",
+              es: "Avisos que vienen del propio juego: el ingeniero dice ahora el tipo y la causa exactos de la penalización (stop and go por recortar, drive-through por exceso de velocidad en boxes…), «penalización cumplida», «dirección contraria», «faros obligatorios», el aviso de bandera azul antes de penalizar y «última vuelta para cumplir», leídos en el centro de mensajes del juego. Los límites de pista se avisan según se cuentan los cortes («2 de 4», luego «el próximo es penalización»).",
+              de: "Ansagen direkt aus dem Spiel: Der Ingenieur nennt jetzt Art und Grund der Strafe genau (Stop and Go fürs Abkürzen, Durchfahrt für zu schnell in der Boxengasse…), „Strafe abgesessen“, „falsche Richtung“, „Licht vorgeschrieben“, die Blaue-Flagge-Warnung vor einer Strafe und „letzte Runde zum Absitzen“, gelesen aus der Nachrichtenzentrale des Spiels. Track Limits werden angesagt, sobald sie gezählt werden („2 von 4“, dann „die nächste kostet eine Strafe“).",
+              it: "Annunci che arrivano dal gioco stesso: l'ingegnere dice ora il tipo e la causa esatti della penalità (stop and go per taglio, drive-through per eccesso di velocità in pit lane…), “penalità scontata”, “contromano”, “fari obbligatori”, l'avviso di bandiera blu prima della penalità e “ultimo giro per scontare”, letti dal centro messaggi del gioco. I limiti della pista vengono annunciati man mano che i tagli sono contati (“2 su 4”, poi “il prossimo costa una penalità”).",
+            },
+          },
+          {
+            featured: true,
+            text: {
+              en: "Safety car and frozen order: safety car out, “safety car in this lap”, restart, pits open or closed, and who to follow — “follow Martin, left column”, “catch up”, “let him through” — on formation laps and under caution (read from the game's track rules).",
+              fr: "Voiture de sécurité et ordre figé : voiture de sécurité en piste, « elle rentre ce tour », relance, stands ouverts ou fermés, et qui suivre — « suis Martin, colonne de gauche », « recolle », « laisse-le passer » — au tour de formation et sous neutralisation (lu dans le règlement de piste du jeu).",
+              es: "Coche de seguridad y orden congelado: coche de seguridad en pista, «entra esta vuelta», relanzada, boxes abiertos o cerrados, y a quién seguir — «sigue a Martin, columna izquierda», «acércate», «déjale pasar» — en la vuelta de formación y bajo neutralización (leído de las reglas de pista del juego).",
+              de: "Safety-Car und eingefrorene Reihenfolge: Safety-Car draußen, „kommt diese Runde rein“, Restart, Box offen oder zu, und wem du folgen musst — „folge Martin, linke Reihe“, „schließ auf“, „lass ihn vorbei“ — in der Formationsrunde und unter Neutralisation (aus den Streckenregeln des Spiels).",
+              it: "Safety car e ordine congelato: safety car in pista, “rientra questo giro”, ripartenza, box aperti o chiusi, e chi seguire — “segui Martin, fila sinistra”, “ricongiungiti”, “lascialo passare” — nel giro di formazione e in neutralizzazione (letto dalle regole di pista del gioco).",
+            },
+          },
+          {
+            text: {
+              en: "Pit stop by voice (needs in-game writes enabled): “fuel to the end”, “add 20 litres”, “energy to 85”, “four tyres”, “front tyres”, “put the wets on”, “repair everything”, “serve the penalty”, and “what's the pit plan?”. Each change is read back from the game before it is confirmed on the radio.",
+              fr: "Arrêt au stand à la voix (écritures dans le jeu activées) : « plein jusqu'à la fin », « ajoute 20 litres », « énergie à 85 », « change les quatre pneus », « pneus avant », « mets des pneus pluie », « répare tout », « purge la pénalité », et « programme du stand ? ». Chaque réglage est relu dans le jeu avant d'être confirmé à la radio.",
+              es: "Parada en boxes por voz (con las escrituras en el juego activadas): «combustible hasta el final», «añade 20 litros», «energía a 85», «cambia los cuatro neumáticos», «neumáticos delanteros», «pon los de lluvia», «repara todo», «cumple la penalización» y «¿plan de parada?». Cada ajuste se relee en el juego antes de confirmarlo por radio.",
+              de: "Boxenstopp per Stimme (Schreibzugriffe aufs Spiel aktiviert): „Sprit bis zum Ende“, „20 Liter nachtanken“, „Energie auf 85“, „alle vier Reifen“, „Vorderreifen wechseln“, „Regenreifen drauf“, „alles reparieren“, „Strafe absitzen“ und „Boxenplan?“. Jede Einstellung wird im Spiel nachgelesen, bevor der Funk sie bestätigt.",
+              it: "Sosta ai box a voce (con le scritture nel gioco attive): “pieno fino alla fine”, “aggiungi 20 litri”, “energia a 85”, “cambia le quattro gomme”, “gomme anteriori”, “monta le gomme da pioggia”, “ripara tutto”, “sconta la penalità” e “piano della sosta?”. Ogni impostazione viene riletta nel gioco prima di essere confermata alla radio.",
+            },
+          },
+          {
+            text: {
+              en: "New race calls (each can be turned off in Settings › Audio / Voice › Announcements): tyre pressure loss on a wheel and an optional pressure-window check after warm-up, box occupied by a car sharing your pit, car coming at your pit exit, rival leaving the pits ahead of you, “push”/“defend” in the last laps, dirty tyres after an off, big lock-up (flat spot risk), “are you okay?” after a crash, and rival names in the gap calls.",
+              fr: "Nouvelles annonces de course (chacune désactivable dans Configuration › Audio / Voix › Annonces) : perte de pression d'une roue et bilan de fenêtre de pression après la chauffe (optionnel), box occupé par une voiture qui partage ton stand, voiture qui arrive à ta sortie des stands, rival qui sort devant toi, « attaque » / « défends » dans les derniers tours, pneus sales après une sortie, gros blocage (risque de plat), « tu vas bien ? » après un choc, et nom des rivaux dans les annonces d'écart.",
+              es: "Nuevos avisos de carrera (cada uno desactivable en Configuración › Audio / Voz › Avisos): pérdida de presión de una rueda y revisión opcional de la ventana de presión tras calentar, box ocupado por un coche que comparte tu box, coche que llega a tu salida de boxes, rival que sale delante de ti, «ataca» / «defiende» en las últimas vueltas, neumáticos sucios tras una salida, gran bloqueo (riesgo de plano), «¿estás bien?» tras un golpe, y nombre de los rivales en los avisos de diferencia.",
+              de: "Neue Rennansagen (jede einzeln abschaltbar unter Einstellungen › Audio / Stimme › Ansagen): Druckverlust an einem Rad und optionaler Druckfenster-Check nach dem Aufwärmen, Box belegt von einem Auto, das deine Box teilt, Auto an deiner Boxenausfahrt, Gegner kommt vor dir aus der Box, „Angriff“ / „Verteidigen“ in den letzten Runden, verschmutzte Reifen nach einem Ausflug, starkes Blockieren (Bremsplatten-Gefahr), „alles in Ordnung?“ nach einem Unfall, und die Namen der Gegner in den Abstandsansagen.",
+              it: "Nuovi annunci di gara (ognuno disattivabile in Configurazione › Audio / Voce › Annunci): perdita di pressione di una ruota e controllo facoltativo della finestra di pressione dopo il riscaldamento, box occupato da una vettura che condivide il tuo box, vettura in arrivo alla tua uscita dai box, rivale che esce davanti a te, “attacca” / “difendi” negli ultimi giri, gomme sporche dopo un'uscita, grosso bloccaggio (rischio spiattellamento), “tutto bene?” dopo un incidente, e nomi dei rivali negli annunci di distacco.",
+            },
+          },
+          {
+            text: {
+              en: "Radio sound: choose the audio output of the radio (headset, streaming output), and optionally lower the game sound while the engineer speaks or while you talk to him (Windows volume mixer, original volume restored when the app closes, even after a crash).",
+              fr: "Son de la radio : choix de la sortie audio de la radio (casque, sortie de streaming), et en option, son du jeu baissé pendant que l'ingénieur parle ou que tu lui parles (mélangeur de volume de Windows ; volume d'origine rétabli à la fermeture de l'app, même après un arrêt brutal).",
+              es: "Sonido de la radio: elección de la salida de audio de la radio (auriculares, salida de streaming) y, opcionalmente, bajar el sonido del juego mientras el ingeniero habla o mientras le hablas (mezclador de volumen de Windows; volumen original restablecido al cerrar la app, incluso tras un cierre brusco).",
+              de: "Funksound: Auswahl des Audioausgangs für den Funk (Headset, Streaming-Ausgang) und optional Absenken des Spielsounds, während der Ingenieur spricht oder du mit ihm sprichst (Windows-Lautstärkemixer; ursprüngliche Lautstärke beim Schließen der App wiederhergestellt, auch nach einem Absturz).",
+              it: "Audio della radio: scelta dell'uscita audio della radio (cuffie, uscita per lo streaming) e, facoltativamente, audio del gioco abbassato mentre l'ingegnere parla o mentre gli parli (mixer volume di Windows; volume originale ripristinato alla chiusura dell'app, anche dopo una chiusura improvvisa).",
+            },
+          },
+          {
+            text: {
+              en: "“Radio” overlay widget: subtitles of the last engineer and spotter calls, also served to OBS and OpenKneeboard.",
+              fr: "Widget d'overlay « Radio » : sous-titres des dernières annonces de l'ingénieur et du spotter, aussi servi à OBS et OpenKneeboard.",
+              es: "Widget de overlay «Radio»: subtítulos de los últimos avisos del ingeniero y del spotter, también servido a OBS y OpenKneeboard.",
+              de: "Overlay-Widget „Funk“: Untertitel der letzten Ingenieur- und Spotter-Ansagen, auch für OBS und OpenKneeboard.",
+              it: "Widget overlay “Radio”: sottotitoli degli ultimi annunci dell'ingegnere e dello spotter, servito anche a OBS e OpenKneeboard.",
+            },
+          },
+          {
+            text: {
+              en: "Wheel buttons for more actions: mute, repeat, race status, volume up/down, spotter on/off, acknowledge the box call, and a voice-note button.",
+              fr: "Boutons du volant pour plus d'actions : couper les annonces, répète, point de course, volume + / −, spotter activé / coupé, accusé de réception du box, et un bouton de note vocale.",
+              es: "Botones del volante para más acciones: silenciar avisos, repite, estado de la carrera, volumen + / −, spotter activado / desactivado, confirmar la llamada a boxes y un botón de nota de voz.",
+              de: "Lenkradtasten für mehr Aktionen: Ansagen stumm, wiederholen, Rennstatus, Lautstärke + / −, Spotter an / aus, Boxenruf bestätigen und eine Sprachnotiz-Taste.",
+              it: "Pulsanti del volante per più azioni: silenzia gli annunci, ripeti, stato della gara, volume + / −, spotter attivo / spento, conferma della chiamata ai box e un pulsante per le note vocali.",
+            },
+          },
+          {
+            text: {
+              en: "Voice notes per corner: record a short note with your own voice (wheel button, or “note for this corner…”) and hear it again when approaching that corner, per track and car.",
+              fr: "Notes vocales par virage : enregistre une courte note avec ta voix (bouton du volant, ou « note pour ce virage… ») et réentends-la à l'approche du virage, par circuit et par voiture.",
+              es: "Notas de voz por curva: graba una nota corta con tu voz (botón del volante o «nota para esta curva…») y vuelve a oírla al acercarte a la curva, por circuito y por coche.",
+              de: "Sprachnotizen pro Kurve: nimm eine kurze Notiz mit deiner Stimme auf (Lenkradtaste oder „Notiz für diese Kurve…“) und hör sie vor der Kurve wieder, pro Strecke und Auto.",
+              it: "Note vocali per curva: registra una breve nota con la tua voce (pulsante del volante o “nota per questa curva…”) e riascoltala avvicinandoti alla curva, per circuito e per vettura.",
+            },
+          },
+          {
+            text: {
+              en: "More radio questions: “what are my pressures?” (front, rear or all, with the lap average), “do I have a penalty?”, “where will I finish?”, and a radio alarm (“wake me at 2:30 pm”, “remind me in 20 minutes”).",
+              fr: "Nouvelles questions à la radio : « quelles sont mes pressions ? » (avant, arrière ou toutes, avec la moyenne du tour), « ai-je une pénalité ? », « où je vais finir ? », et un réveil radio (« réveille-moi à 14 h 30 », « rappelle-moi dans 20 minutes »).",
+              es: "Nuevas preguntas por radio: «¿mis presiones?» (delanteras, traseras o todas, con la media de la vuelta), «¿tengo una penalización?», «¿dónde voy a terminar?» y una alarma por radio («despiértame a las 14 30», «recuérdame en 20 minutos»).",
+              de: "Neue Funkfragen: „meine Drücke?“ (vorne, hinten oder alle, mit Rundenmittel), „habe ich eine Strafe?“, „wo komme ich an?“ und ein Funkwecker („weck mich um 14 Uhr 30“, „erinnere mich in 20 Minuten“).",
+              it: "Nuove domande alla radio: “le mie pressioni?” (anteriori, posteriori o tutte, con la media del giro), “ho una penalità?”, “dove arrivo?” e una sveglia radio (“svegliami alle 14 e 30”, “ricordami tra 20 minuti”).",
+            },
+          },
+          {
+            text: {
+              en: "Radio presets (Sprint, Endurance, Online), fine spotter settings (car length, “clear” delay, “still there” reminder, minimum speed), official corner names in the corner coach (“turn 1, La Source”) when the track has an official sheet, and a coexist mode that mutes duplicate calls when another radio engineer app is running.",
+              fr: "Préréglages de radio (Sprint, Endurance, En ligne), réglages fins du spotter (longueur de voiture, délai du « libre », rappel « toujours là », vitesse minimale), noms officiels des virages dans le coach (« virage 1, La Source ») quand le circuit a une fiche officielle, et un mode cohabitation qui coupe les annonces en doublon quand un autre logiciel d'ingénieur radio tourne.",
+              es: "Preajustes de radio (Sprint, Resistencia, Online), ajustes finos del spotter (longitud del coche, retardo del «libre», recordatorio «sigue ahí», velocidad mínima), nombres oficiales de las curvas en el coach («curva 1, La Source») cuando el circuito tiene ficha oficial, y un modo de convivencia que silencia los avisos duplicados cuando hay otro programa de ingeniero de radio abierto.",
+              de: "Funk-Voreinstellungen (Sprint, Langstrecke, Online), feine Spotter-Einstellungen (Fahrzeuglänge, Verzögerung für „frei“, Erinnerung „noch da“, Mindestgeschwindigkeit), offizielle Kurvennamen im Kurven-Coach („Kurve 1, La Source“), wenn die Strecke ein offizielles Datenblatt hat, und ein Koexistenz-Modus, der doppelte Ansagen stummschaltet, wenn ein anderes Funk-Ingenieur-Programm läuft.",
+              it: "Preimpostazioni radio (Sprint, Endurance, Online), impostazioni fini dello spotter (lunghezza della vettura, ritardo del “libero”, promemoria “ancora lì”, velocità minima), nomi ufficiali delle curve nel coach (“curva 1, La Source”) quando il circuito ha una scheda ufficiale, e una modalità convivenza che silenzia gli annunci doppi quando è aperto un altro programma di ingegnere radio.",
+            },
+          },
+          {
+            text: {
+              en: "Diagnostics (Settings › Maintenance): one-click local bug report (logs, settings without keys or passwords, system info — nothing is sent), raw recording of the game's live data (10 min max) and replay of a recording instead of the game.",
+              fr: "Diagnostic (Configuration › Maintenance) : rapport de bug local en un clic (journaux, réglages sans clés ni mots de passe, infos système — rien n'est envoyé), capture brute des données live du jeu (10 min max) et rejeu d'une capture à la place du jeu.",
+              es: "Diagnóstico (Configuración › Mantenimiento): informe de errores local en un clic (registros, ajustes sin claves ni contraseñas, información del sistema — no se envía nada), captura en bruto de los datos en vivo del juego (10 min máx.) y repetición de una captura en lugar del juego.",
+              de: "Diagnose (Einstellungen › Wartung): lokaler Fehlerbericht per Klick (Protokolle, Einstellungen ohne Schlüssel oder Passwörter, Systeminfos — nichts wird gesendet), Rohaufnahme der Live-Daten des Spiels (max. 10 min) und Wiedergabe einer Aufnahme anstelle des Spiels.",
+              it: "Diagnostica (Configurazione › Manutenzione): segnalazione di bug locale in un clic (log, impostazioni senza chiavi né password, info di sistema — non viene inviato nulla), cattura grezza dei dati live del gioco (max 10 min) e riproduzione di una cattura al posto del gioco.",
+            },
+          },
+          {
             text: {
               en: "AI coach video guides: new circuits Barcelona, Paul Ricard (1A-V2 and 1A-V2 Short) and Silverstone (WEC and ELMS) in Hypercar and LMGT3, missing Hypercar guides for Lusail, Imola, Interlagos and COTA, the LMP3 class at 8 circuits, and the new commented guides for Long Beach and Road Atlanta. The guide now follows the layout you drive (Sebring School, Monza Curva Grande, Fuji Classic…) and never points to a video from another layout.",
               fr: "Guides vidéo du Coach IA : nouveaux circuits Barcelone, Paul Ricard (1A-V2 et 1A-V2 Short) et Silverstone (WEC et ELMS) en Hypercar et LMGT3, guides Hypercar manquants à Lusail, Imola, Interlagos et COTA, classe LMP3 sur 8 circuits, et nouveaux guides commentés de Long Beach et Road Atlanta. Le guide suit désormais le tracé roulé (Sebring School, Monza Curva Grande, Fuji Classic…) et ne renvoie jamais vers la vidéo d'un autre tracé.",
@@ -470,6 +571,33 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Live data reading is lighter: the game's shared memory stays mapped instead of being reopened 20 times a second, only the cars actually on track are copied, and a frame caught mid-write is read again instead of being dropped.",
+              fr: "Lecture des données live allégée : la mémoire partagée du jeu reste ouverte au lieu d'être rouverte 20 fois par seconde, seules les voitures réellement en piste sont copiées, et une trame lue pendant une écriture est relue au lieu d'être perdue.",
+              es: "Lectura de datos en vivo más ligera: la memoria compartida del juego permanece abierta en vez de reabrirse 20 veces por segundo, solo se copian los coches realmente en pista, y un fotograma leído durante una escritura se vuelve a leer en vez de perderse.",
+              de: "Leichteres Lesen der Live-Daten: Der Shared Memory des Spiels bleibt geöffnet, statt 20-mal pro Sekunde neu geöffnet zu werden, nur die tatsächlich fahrenden Autos werden kopiert, und ein während eines Schreibvorgangs gelesener Frame wird erneut gelesen statt verworfen.",
+              it: "Lettura dei dati live più leggera: la memoria condivisa del gioco resta aperta invece di essere riaperta 20 volte al secondo, vengono copiate solo le vetture davvero in pista, e un frame letto durante una scrittura viene riletto invece di essere perso.",
+            },
+          },
+          {
+            text: {
+              en: "Urgent calls (safety, spotter) are synthesised faster under heavy CPU load: the voice engine switches to normal priority for those phrases and is limited to two CPU cores so it no longer competes with the game.",
+              fr: "Les annonces urgentes (sécurité, spotter) sont synthétisées plus vite sous forte charge : le moteur de voix passe en priorité normale pour ces phrases et se limite à deux cœurs pour ne plus concurrencer le jeu.",
+              es: "Los avisos urgentes (seguridad, spotter) se sintetizan más rápido con mucha carga de CPU: el motor de voz pasa a prioridad normal para esas frases y se limita a dos núcleos para no competir con el juego.",
+              de: "Dringende Ansagen (Sicherheit, Spotter) werden unter hoher CPU-Last schneller erzeugt: Die Sprachengine läuft für diese Sätze mit normaler Priorität und ist auf zwei Kerne begrenzt, damit sie dem Spiel keine Leistung mehr abnimmt.",
+              it: "Gli annunci urgenti (sicurezza, spotter) vengono sintetizzati più in fretta con la CPU sotto carico: il motore vocale passa a priorità normale per quelle frasi e si limita a due core per non competere più con il gioco.",
+            },
+          },
+          {
+            text: {
+              en: "Game updates no longer show wrong values: if LMU's native memory changes layout, TC/ABS, energy and track limits are hidden (with a notice on the Live page) instead of showing nonsense.",
+              fr: "Une mise à jour du jeu n'affiche plus de valeurs fausses : si la mémoire native de LMU change de disposition, TC/ABS, énergie et limites de piste sont masqués (avec un avertissement sur la page Live) au lieu d'afficher n'importe quoi.",
+              es: "Una actualización del juego ya no muestra valores falsos: si la memoria nativa de LMU cambia de disposición, TC/ABS, energía y límites de pista se ocultan (con un aviso en la página Live) en vez de mostrar cualquier cosa.",
+              de: "Ein Spiel-Update zeigt keine falschen Werte mehr: Ändert der native LMU-Speicher seinen Aufbau, werden TC/ABS, Energie und Track Limits ausgeblendet (mit Hinweis auf der Live-Seite), statt Unsinn anzuzeigen.",
+              it: "Un aggiornamento del gioco non mostra più valori sbagliati: se la memoria nativa di LMU cambia struttura, TC/ABS, energia e limiti della pista vengono nascosti (con un avviso nella pagina Live) invece di mostrare valori senza senso.",
+            },
+          },
+          {
+            text: {
               en: "Test the engineer: with no session running, answers use a sample race (multi-class standings, fuel, tyres, weather) instead of “No session in progress”, and say so; radio commands (battle, bring it home, radio silence…) and “coach me” show a readable name.",
               fr: "Tester l'ingénieur : sans session en cours, les réponses s'appuient sur une course d'exemple (classement multiclasse, carburant, pneus, météo) au lieu de « Pas de session en cours », et le signalent ; les commandes radio (bagarre, ramener la voiture, silence radio…) et « coache-moi » affichent un nom lisible.",
               es: "Probar al ingeniero: sin sesión en curso, las respuestas usan una carrera de ejemplo (clasificación multiclase, combustible, neumáticos, meteo) en lugar de «No hay sesión en curso», y lo indican; los comandos de radio (pelea, llevar el coche a casa, silencio de radio…) y «entréname» muestran un nombre legible.",
@@ -849,6 +977,24 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "Interlagos no longer picks up Spa's official corner names (“Jose Carlos Pace” contained “spa”).",
+              fr: "Interlagos ne prend plus les noms de virages officiels de Spa (« Jose Carlos Pace » contenait « spa »).",
+              es: "Interlagos ya no toma los nombres oficiales de las curvas de Spa («Jose Carlos Pace» contenía «spa»).",
+              de: "Interlagos übernimmt nicht mehr die offiziellen Kurvennamen von Spa („Jose Carlos Pace“ enthielt „spa“).",
+              it: "Interlagos non prende più i nomi ufficiali delle curve di Spa (“Jose Carlos Pace” conteneva “spa”).",
+            },
+          },
+          {
+            text: {
+              en: "An unreadable local database no longer prevents the app from starting: it is set aside and rebuilt from the game's files.",
+              fr: "Une base locale illisible n'empêche plus l'app de démarrer : elle est mise de côté et reconstruite depuis les fichiers du jeu.",
+              es: "Una base local ilegible ya no impide que la app arranque: se aparta y se reconstruye a partir de los archivos del juego.",
+              de: "Eine unlesbare lokale Datenbank verhindert den Start der App nicht mehr: Sie wird beiseitegelegt und aus den Spieldateien neu aufgebaut.",
+              it: "Un database locale illeggibile non impedisce più l'avvio dell'app: viene messo da parte e ricostruito dai file del gioco.",
+            },
+          },
           {
             text: {
               en: "Session details, lap cards: the car logo and name in the coloured header were dark on orange and almost invisible: the logo now keeps its colours on a small white badge, the name and car number are white. Same for the lap count next to each track on the Records page.",

@@ -133,6 +133,13 @@ import { VoiceIntroModal } from "@/components/VoiceIntroModal";
 import { SpotterCommandsModal } from "@/components/SpotterCommandsModal";
 import { INTENTS } from "@/lib/spotterCommands";
 import { Tip, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  DiagnosticsRows,
+  RadioPresetAndExtras,
+  RadioSoundRows,
+  SpotterTuningRows,
+  WheelActionsRows,
+} from "@/components/config/RadioExtrasSettings";
 import { getProvider, isForeignModel } from "@/lib/ai/providers";
 import { fetchModels } from "@/lib/ai/models";
 import { testConnection, chat, friendlyError } from "@/lib/ai/coach";
@@ -1580,6 +1587,7 @@ export function ConfigV2() {
                             </div>
                           </div>
                         )}
+                        <RadioSoundRows />
                       </div>
                     )}
                   </div>
@@ -1736,8 +1744,10 @@ export function ConfigV2() {
                       checked={proximitySpotter}
                       onChange={(v) => void useAppStore.getState().setProximitySpotter(v)}
                     />
+                    {proximitySpotter && <SpotterTuningRows />}
                       </div>
                     </CollapsibleSection>
+                    <RadioPresetAndExtras />
                   </div>
                 )}
                 {/* « Parler à l'ingénieur » : push-to-talk indépendant de l'IA
@@ -1900,6 +1910,7 @@ export function ConfigV2() {
                         </div>
                       )}
                       <ReviewMarksSetting />
+                      <WheelActionsRows />
                       </div>
                     </CollapsibleSection>
 
@@ -2650,6 +2661,9 @@ export function ConfigV2() {
                   </p>
                 )}
                 <Separator />
+                <CollapsibleSection title={t("config.diagTitle")} desc={t("config.diagDesc")}>
+                  <DiagnosticsRows />
+                </CollapsibleSection>
                 {/* Outils réservés au développement (banc de rejeu de l'ingénieur) : repliés. */}
                 <CollapsibleSection title={t("config.devTools")} desc={t("config.devToolsDesc")}>
                   <ReplayBenchPanel />

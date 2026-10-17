@@ -776,6 +776,54 @@ export interface LiveExtended {
   damage_accum_impact: number;
   /** Build du jeu (ex. "1.2.3.4") — critère de péremption des réfs coach. */
   game_version: string;
+  /**
+   * Dernier message du centre de messages du jeu (textes anglais du jeu :
+   * « Stop/Go Penalty: Cut Track », « Wrong Way »…). Absent des anciennes trames.
+   */
+  history_message?: string;
+  /** Horodatage de ce message : un même texte redit par le jeu change d'horodatage. */
+  history_ticks?: number;
+}
+
+/** Voiture du règlement de piste (ordre figé), hors course normale (`live::LiveRulesParticipant`). */
+export interface LiveRulesParticipant {
+  id: number;
+  place: number;
+  relative_laps: number;
+  /** Colonne LMU : 0 gauche, 1 milieu, 2 droite, 3 invalide, 4 libre, 5 en attente. */
+  column: number;
+  /** Place attribuée (0 = tête) dans la colonne ou la file unique. */
+  position_assignment: number;
+  pits_open: boolean;
+}
+
+/** Règlement de piste (zone « Rules » du plugin) : voiture de sécurité, ordre figé. */
+export interface LiveRules {
+  /** 0 formation (init), 1 formation, 2 course normale, 3 neutralisation (init), 4 neutralisation. */
+  stage: number;
+  pole_column: number;
+  safety_car_exists: boolean;
+  safety_car_active: boolean;
+  safety_car_laps: number;
+  /** Distance-tour de la voiture de sécurité (m). */
+  safety_car_lap_dist: number;
+  /** Vitesse de la voiture de sécurité (m/s). */
+  safety_car_speed: number;
+  pit_lane_start_dist: number;
+  yellow_flag_state: number;
+  yellow_flag_laps: number;
+  message: string;
+  player_message: string;
+  participants: LiveRulesParticipant[];
+}
+
+/** État des sources de données (`live::LiveDiag`). */
+export interface LiveDiag {
+  /** Mémoire native LMU : ok / absent / size (version non prise en charge) / implausible (disposition changée). */
+  lmu_data: "ok" | "absent" | "size" | "implausible" | "";
+  rules: boolean;
+  replay: boolean;
+  recording: boolean;
 }
 
 export interface TrackBounds {
@@ -827,6 +875,10 @@ export interface LiveData {
   rest?: LmuRestLive | null;
   /** Ajouté côté front par `enrichLive` : d'où viennent les chiffres corrigés. */
   rest_used?: RestUsed;
+  /** Règlement de piste (voiture de sécurité, ordre figé), si le plugin le publie. */
+  rules?: LiveRules | null;
+  /** État des sources de données (absent des anciennes trames). */
+  diag?: LiveDiag;
 }
 
 // ─── Pont REST du jeu (`lmu_rest`, lecture seule) ───────────────────────────
@@ -1468,6 +1520,65 @@ export const live = {
   /** Fichiers météo scénarisés `.wet` du dossier Settings (prévision). */
   weatherFiles: (lmuPath: string) =>
     invoke<WetFile[]>("list_weather_files", { lmuPath }),
+  /** Capture brute de la mémoire partagée (10 min max) ; renvoie le chemin du fichier. */
+  recordStart: () => invoke<string>("shm_record_start"),
+  recordStop: () => invoke<void>("shm_record_stop"),
+  /** Rejoue une capture à la place du jeu (page Live, overlays, ingénieur). */
+  replayStart: (path: string) => invoke<void>("shm_replay_start", { path }),
+  replayStop: () => invoke<void>("shm_replay_stop"),
+  captureStatus: () => invoke<ShmStatus>("shm_status"),
+};
+
+/** État des captures brutes (`live::ShmStatus`). */
+export interface ShmStatus {
+  recording: string | null;
+  recording_s: number;
+  replaying: string | null;
+  last_capture: string | null;
+  error: string | null;
+}
+
+/** Son du jeu baissé pendant que l'ingénieur parle (`audio_duck.rs`). */
+export interface DuckStatus {
+  available: boolean;
+  game_sessions: number;
+  ducked: boolean;
+}
+
+export const gameAudio = {
+  /** Baisse le son du jeu de `level` (0-0,95) ; idempotent. */
+  duck: (level: number) => invoke<void>("duck_game_audio", { level }),
+  /** Rend au jeu son volume d'origine. */
+  unduck: () => invoke<void>("unduck_game_audio"),
+  status: () => invoke<DuckStatus>("duck_status"),
+};
+
+/** Journal de l'application (`applog.rs`) et rapport de bug local. */
+export const appLog = {
+  write: (level: "info" | "warn" | "error", source: string, message: string) =>
+    invoke<void>("log_write", { level, source, message }),
+  /** Crée un zip (journaux, réglages sans clés, dernière capture si demandé) ; renvoie son chemin. */
+  exportReport: (includeReplay: boolean) => invoke<string>("export_report", { includeReplay }),
+};
+
+/** Note vocale du pilote attachée à un virage (`voice_notes.rs`). */
+export interface VoiceNoteInfo {
+  corner: number;
+  duration_s: number;
+  modified: number;
+}
+
+export const voiceNotes = {
+  /** Enregistre la dernière prise de parole (push-to-talk) comme note du virage. */
+  saveLast: (track: string, car: string, corner: number) =>
+    invoke<number>("voice_note_save_last", { track, car, corner }),
+  list: (track: string, car: string) => invoke<VoiceNoteInfo[]>("voice_note_list", { track, car }),
+  /** Fichier WAV de la note (pour `decodeAudioData`). */
+  read: (track: string, car: string, corner: number) =>
+    invoke<number[]>("voice_note_read", { track, car, corner }),
+  remove: (track: string, car: string, corner: number) =>
+    invoke<boolean>("voice_note_delete", { track, car, corner }),
+  clear: (track: string, car: string) => invoke<number>("voice_note_clear", { track, car }),
 };
 
 /** Un fichier `.wet` lu sur le disque (`live::WetFile`). */

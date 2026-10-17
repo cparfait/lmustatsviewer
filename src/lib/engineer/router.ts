@@ -20,6 +20,7 @@
 
 import type { Intent } from "@/lib/spotterCommands";
 import { DEFAULTS, type WatchCond } from "./watches";
+import type { PitCmd } from "./pitVoice";
 
 /** Intentions du routeur libre (spotter + intentions à paramètres). */
 export type AnswerIntent =
@@ -45,7 +46,16 @@ export type AnswerIntent =
   | "rateUseful"
   | "rateUseless"
   | "rateLate"
-  | "rateWrong";
+  | "rateWrong"
+  // Pressions, pénalités, position finale estimée.
+  | "pressures"
+  | "penaltyStatus"
+  | "finishPosition"
+  // Réveil radio et note vocale du virage (actions).
+  | "alarm"
+  | "voiceNote"
+  // Menu des stands à la voix (actions, écritures dans le jeu).
+  | PitCmd;
 
 /** Commandes radio : toujours traitées en local (l'IA ne sait pas les exécuter). */
 export const RADIO_COMMANDS = new Set<AnswerIntent>([
@@ -262,6 +272,9 @@ const T: Record<string, Def[]> = {
     { id: "lapPrefAuto", family: "lapPref", exact: ["comme maintenant", "comme avant"] },
     { id: "coachMe", family: "coach", idioms: ["coach moi", "coache moi", "fais moi progresser", "aide moi a progresser", "donne moi un conseil de pilotage", "comment aller plus vite"] },
     { id: "whereLose", family: "coach", idioms: ["ou je perds", "ou est ce que je perds", "ou je perds du temps", "ou est ce que je perds du temps", "mon point faible", "quel virage je perds"] },
+    { id: "pressures", family: "pressure", idioms: ["pression des pneus", "pressions des pneus", "mes pressions", "les pressions", "pressions avant", "pressions arriere", "pression avant", "pression arriere", "quelles pressions"] },
+    { id: "penaltyStatus", family: "penalty", idioms: ["ai je 1 penalite", "j ai 1 penalite", "est ce que j ai 1 penalite", "ai je purge", "j ai purge ma penalite", "j ai purge", "ma penalite", "quelle penalite", "penalite en cours", "il me reste 1 penalite", "des penalites"] },
+    { id: "finishPosition", family: "position", idioms: ["ou je vais finir", "je vais finir ou", "position finale", "position a l arrivee", "ou je finis", "a quelle place je vais finir"] },
     { id: "repeat", family: "command", exact: ["repete", "tu peux repeter", "redis", "quoi", "pardon", "repete s il te plait"] },
     { id: "mute", family: "command", exact: ["silence", "tais toi", "coupe les annonces", "mute", "chut"] },
     { id: "rateUseful", family: "rate", exact: ["utile", "c est utile", "tres utile", "bonne info"] },
@@ -314,6 +327,9 @@ const T: Record<string, Def[]> = {
     { id: "lapPrefAuto", family: "lapPref", exact: ["as before", "as usual", "like now"] },
     { id: "coachMe", family: "coach", idioms: ["coach me", "help me improve", "make me faster", "give me driving advice", "driving tip", "how to go faster"] },
     { id: "whereLose", family: "coach", idioms: ["where am i losing", "where do i lose", "where am i losing time", "where do i lose time", "my weak spot", "which corner am i losing"] },
+    { id: "pressures", family: "pressure", idioms: ["tyre pressures", "tire pressures", "my pressures", "front pressures", "rear pressures", "the pressures", "what are my pressures"] },
+    { id: "penaltyStatus", family: "penalty", idioms: ["do i have a penalty", "have i got a penalty", "have i served", "did i serve", "my penalty", "what penalty", "any penalty", "penalty status"] },
+    { id: "finishPosition", family: "position", idioms: ["where will i finish", "expected finish", "finishing position", "predicted finish", "where am i going to finish"] },
     { id: "repeat", family: "command", exact: ["repeat", "say again", "what", "again", "come again", "pardon"] },
     { id: "mute", family: "command", exact: ["mute", "quiet", "shut up", "silence"] },
     { id: "rateUseful", family: "rate", exact: ["useful", "that was useful", "good call", "helpful"] },
@@ -366,6 +382,9 @@ const T: Record<string, Def[]> = {
     { id: "lapPrefAuto", family: "lapPref", exact: ["como antes", "como ahora"] },
     { id: "coachMe", family: "coach", idioms: ["entrename", "ayudame a mejorar", "hazme mas rapido", "dame un consejo de pilotaje", "como ir mas rapido"] },
     { id: "whereLose", family: "coach", idioms: ["donde pierdo", "donde pierdo tiempo", "donde estoy perdiendo", "mi punto debil", "en que curva pierdo"] },
+    { id: "pressures", family: "pressure", idioms: ["presion de los neumaticos", "presiones de los neumaticos", "mis presiones", "las presiones", "presiones delanteras", "presiones traseras"] },
+    { id: "penaltyStatus", family: "penalty", idioms: ["tengo 1 penalizacion", "tengo penalizacion", "he cumplido", "cumpli la penalizacion", "mi penalizacion", "que penalizacion"] },
+    { id: "finishPosition", family: "position", idioms: ["donde voy a terminar", "posicion final", "donde termino", "en que posicion termino"] },
     { id: "repeat", family: "command", exact: ["repite", "repitelo", "otra vez", "que", "perdon"] },
     { id: "mute", family: "command", exact: ["silencio", "callate", "calla"] },
     { id: "rateUseful", family: "rate", exact: ["util", "muy util", "buena info"] },
@@ -418,6 +437,9 @@ const T: Record<string, Def[]> = {
     { id: "lapPrefAuto", family: "lapPref", exact: ["wie vorher", "wie immer"] },
     { id: "coachMe", family: "coach", idioms: ["coache mich", "hilf mir besser zu werden", "mach mich schneller", "gib mir einen fahrtipp", "wie werde ich schneller"] },
     { id: "whereLose", family: "coach", idioms: ["wo verliere ich", "wo verliere ich zeit", "meine schwachstelle", "in welcher kurve verliere ich"] },
+    { id: "pressures", family: "pressure", idioms: ["reifendruck", "reifendrucke", "luftdruck", "meine drucke", "druck vorne", "druck hinten"] },
+    { id: "penaltyStatus", family: "penalty", idioms: ["habe ich 1 strafe", "hab ich 1 strafe", "strafe abgesessen", "habe ich die strafe abgesessen", "meine strafe", "welche strafe"] },
+    { id: "finishPosition", family: "position", idioms: ["wo komme ich an", "wo werde ich ankommen", "zielposition", "endposition", "auf welchem platz komme ich an"] },
     { id: "repeat", family: "command", exact: ["wiederhole", "noch mal", "was", "wie bitte", "nochmal"] },
     { id: "mute", family: "command", exact: ["stumm", "ruhe", "halt den mund"] },
     { id: "rateUseful", family: "rate", exact: ["nutzlich", "hilfreich", "gute info"] },
@@ -470,6 +492,9 @@ const T: Record<string, Def[]> = {
     { id: "lapPrefAuto", family: "lapPref", exact: ["come prima", "come ora"] },
     { id: "coachMe", family: "coach", idioms: ["allenami", "aiutami a migliorare", "fammi andare piu veloce", "dammi un consiglio di guida", "come andare piu veloce"] },
     { id: "whereLose", family: "coach", idioms: ["dove perdo", "dove perdo tempo", "dove sto perdendo", "il mio punto debole", "in che curva perdo"] },
+    { id: "pressures", family: "pressure", idioms: ["pressione delle gomme", "pressioni delle gomme", "pressione gomme", "le mie pressioni", "le pressioni", "pressioni anteriori", "pressioni posteriori"] },
+    { id: "penaltyStatus", family: "penalty", idioms: ["ho 1 penalita", "ho penalita", "ho scontato", "ho scontato la penalita", "la mia penalita", "quale penalita"] },
+    { id: "finishPosition", family: "position", idioms: ["dove arrivo", "posizione finale", "dove finiro", "dove finisco", "in che posizione arrivo"] },
     { id: "repeat", family: "command", exact: ["ripeti", "puoi ripetere", "ripeti per favore", "come", "cosa", "scusa", "di nuovo", "non ho capito"] },
     { id: "mute", family: "command", exact: ["silenzio", "zitto", "stai zitto", "taci", "muto"] },
     { id: "rateUseful", family: "rate", exact: ["utile", "molto utile", "buona info"] },
@@ -579,6 +604,119 @@ export function parseWatch(norm: string, ent: Entities): WatchSpec | null {
   return null;
 }
 
+// ── Commandes d'action (menu des stands, réveil, note vocale) ───────────────
+// Motifs stricts (verbe d'action obligatoire) : une question sur les pneus ou le
+// carburant ne doit jamais régler le menu des stands.
+
+const PIT_RX: Record<string, [PitCmd, RegExp][]> = {
+  fr: [
+    ["pitFuelEnd", /(^| )(plein jusqu a la fin|(mets|met|prepare|prevois|box) .*(carburant|essence|energie|plein) .*(fin|finir))( |$)/],
+    ["pitFuelAdd", /(^| )(ajoute|rajoute|mets) \d+ ?(l|litre|litres)( |$)/],
+    ["pitEnergy", /(^| )((mets|regle|passe) .*energie .*\d+|energie (a )?\d+ ?(%|pour ?cent)?$)/],
+    ["pitTyresAll", /(^| )((change|mets|monte) (les |des )?(quatre|4) pneus|(quatre|4) pneus neufs|mets des pneus neufs|change tous les pneus)( |$)/],
+    ["pitTyresNone", /(^| )(pas de pneus|garde les pneus|ne change pas les pneus|aucun pneu)( |$)/],
+    ["pitTyresFront", /(^| )(change|mets|monte) (les |des )?pneus avant( |$)/],
+    ["pitTyresRear", /(^| )(change|mets|monte) (les |des )?pneus arriere( |$)/],
+    ["pitWet", /^(box )?(mets|monte|passe) (moi )?(des |les )?(pneus )?pluie( |$)/],
+    ["pitDry", /^(box )?(mets|monte|passe) (moi )?(des |les )?(pneus )?(slicks|secs)( |$)/],
+    ["pitRepairAll", /(^| )(repare tout|reparation complete|repare toute la voiture)( |$)/],
+    ["pitRepairBody", /(^| )(repare (la )?carrosserie|carrosserie seulement)( |$)/],
+    ["pitRepairNone", /(^| )(ne repare rien|ne repare pas|pas de reparation)( |$)/],
+    ["pitServePenalty", /^(box )?(purge|sers|fais) (la |ma )?penalite( |$)/],
+    ["pitPlan", /(^| )(programme du stand|plan d arret|plan de l arret|menu des stands|qu est ce qu on fait au stand|reglages du stand)( |$)/],
+  ],
+  en: [
+    ["pitFuelEnd", /(^| )((fuel|fill|energy) (it )?(up )?to the (end|finish)|fill to finish)( |$)/],
+    ["pitFuelAdd", /(^| )add \d+ ?(l|litres?|liters?)( |$)/],
+    ["pitEnergy", /(^| )(set )?(virtual )?energy (to )?\d+/],
+    ["pitTyresAll", /(^| )((change|fit) (all )?(four|4) (tyres|tires)|(four|4) new (tyres|tires)|fit new (tyres|tires)|change all (the )?(tyres|tires))( |$)/],
+    ["pitTyresNone", /(^| )(no (tyres|tires)|keep the (tyres|tires)|don t change the (tyres|tires))( |$)/],
+    ["pitTyresFront", /(^| )(change|fit) (the )?front (tyres|tires)( |$)/],
+    ["pitTyresRear", /(^| )(change|fit) (the )?rear (tyres|tires)( |$)/],
+    ["pitWet", /(^| )(fit|put on|give me) (the )?(wets|wet (tyres|tires)|rain (tyres|tires))( |$)/],
+    ["pitDry", /(^| )(fit|put on|give me) (the )?(slicks|dry (tyres|tires))( |$)/],
+    ["pitRepairAll", /(^| )(repair (all|everything)|full repair)( |$)/],
+    ["pitRepairBody", /(^| )(repair (the )?body(work)?|body(work)? only)( |$)/],
+    ["pitRepairNone", /(^| )(no repairs?|don t repair)( |$)/],
+    ["pitServePenalty", /^(box )?serve (the |my )?penalty( |$)/],
+    ["pitPlan", /(^| )(pit plan|pit stop plan|what are the pit actions|what s the pit plan)( |$)/],
+  ],
+  es: [
+    ["pitFuelEnd", /(^| )((pon|carga|mete) .*(combustible|gasolina|energia) .*(final|terminar))( |$)/],
+    ["pitFuelAdd", /(^| )(anade|agrega|pon) \d+ ?(l|litros?)( |$)/],
+    ["pitEnergy", /(^| )(pon|ajusta) .*energia .*\d+/],
+    ["pitTyresAll", /(^| )((cambia|pon) (los )?(cuatro|4) neumaticos|(cuatro|4) neumaticos nuevos|pon neumaticos nuevos)( |$)/],
+    ["pitTyresNone", /(^| )(sin neumaticos|no cambies los neumaticos|manten los neumaticos)( |$)/],
+    ["pitTyresFront", /(^| )(cambia|pon) (los )?neumaticos delanteros( |$)/],
+    ["pitTyresRear", /(^| )(cambia|pon) (los )?neumaticos traseros( |$)/],
+    ["pitWet", /^(pon|monta) (los )?(neumaticos de )?lluvia( |$)/],
+    ["pitDry", /^(pon|monta) (los )?(slicks|neumaticos de seco)( |$)/],
+    ["pitRepairAll", /(^| )(repara todo|reparacion completa)( |$)/],
+    ["pitRepairBody", /(^| )(repara (la )?carroceria|solo carroceria)( |$)/],
+    ["pitRepairNone", /(^| )(no repares nada|sin reparaciones)( |$)/],
+    ["pitServePenalty", /^(cumple|cumplir) (la |mi )?penalizacion( |$)/],
+    ["pitPlan", /(^| )(plan de parada|menu de boxes|que hacemos en boxes)( |$)/],
+  ],
+  de: [
+    ["pitFuelEnd", /(^| )((tank|sprit|energie) bis (zum ende|ins ziel)|voll bis zum ende)( |$)/],
+    ["pitFuelAdd", /(^| )\d+ ?(l|liter) (nachtanken|dazu|mehr)( |$)/],
+    ["pitEnergy", /(^| )energie (auf )?\d+/],
+    ["pitTyresAll", /(^| )((alle )?(vier|4) (neue )?reifen|neue reifen drauf|alle reifen wechseln)( |$)/],
+    ["pitTyresNone", /(^| )(keine reifen|reifen nicht wechseln|reifen drauf lassen)( |$)/],
+    ["pitTyresFront", /(^| )(vorderreifen wechseln|neue vorderreifen)( |$)/],
+    ["pitTyresRear", /(^| )(hinterreifen wechseln|neue hinterreifen)( |$)/],
+    ["pitWet", /(^| )(regenreifen drauf|auf regenreifen)( |$)/],
+    ["pitDry", /(^| )(slicks drauf|auf slicks)( |$)/],
+    ["pitRepairAll", /(^| )(alles reparieren|komplett reparieren)( |$)/],
+    ["pitRepairBody", /(^| )(karosserie reparieren|nur karosserie)( |$)/],
+    ["pitRepairNone", /(^| )(nichts reparieren|keine reparatur)( |$)/],
+    ["pitServePenalty", /(^| )(strafe absitzen|strafe abbussen)( |$)/],
+    ["pitPlan", /(^| )(boxenplan|was machen wir an der box|boxenstopp plan)( |$)/],
+  ],
+  it: [
+    ["pitFuelEnd", /(^| )((metti|carica) .*(benzina|carburante|energia) .*(fine|finire)|pieno fino alla fine)( |$)/],
+    ["pitFuelAdd", /(^| )(aggiungi|metti) \d+ ?(l|litri)( |$)/],
+    ["pitEnergy", /(^| )(metti|imposta) .*energia .*\d+/],
+    ["pitTyresAll", /(^| )((cambia|monta) (le )?(quattro|4) gomme|(quattro|4) gomme nuove|monta gomme nuove)( |$)/],
+    ["pitTyresNone", /(^| )(niente gomme|non cambiare le gomme|tieni le gomme)( |$)/],
+    ["pitTyresFront", /(^| )(cambia|monta) (le )?gomme anteriori( |$)/],
+    ["pitTyresRear", /(^| )(cambia|monta) (le )?gomme posteriori( |$)/],
+    ["pitWet", /^(monta|metti) (le )?(gomme da )?pioggia( |$)/],
+    ["pitDry", /^(monta|metti) (le )?(slick|gomme da asciutto)( |$)/],
+    ["pitRepairAll", /(^| )(ripara tutto|riparazione completa)( |$)/],
+    ["pitRepairBody", /(^| )(ripara (la )?carrozzeria|solo carrozzeria)( |$)/],
+    ["pitRepairNone", /(^| )(non riparare niente|nessuna riparazione)( |$)/],
+    ["pitServePenalty", /^(sconta|scontare) (la )?penalita( |$)/],
+    ["pitPlan", /(^| )(piano della sosta|cosa facciamo ai box|menu dei box)( |$)/],
+  ],
+};
+
+/** Question plutôt qu'ordre (« ai-je purgé ma pénalité ? ») : jamais une commande. */
+const ASKING = /(^| )(ai je|est ce que|j ai|do i|have i|did i|tengo|he|habe ich|hab ich|ho|devo|dois je|faut il|should i|need)( |$)/;
+
+/** Commande du menu des stands dite à la voix, ou null. */
+export function parsePitCommand(norm: string, lang: string): PitCmd | null {
+  if (ASKING.test(` ${norm} `)) return null;
+  for (const [cmd, re] of PIT_RX[lng(lang)] ?? PIT_RX.en) if (re.test(norm)) return cmd;
+  return null;
+}
+
+const ALARM_RX: Record<string, RegExp> = {
+  fr: /(^| )(reveille moi|reveil|rappelle moi)( |$)/,
+  en: /(^| )(wake me|alarm|remind me)( |$)/,
+  es: /(^| )(despiertame|alarma|recuerdame)( |$)/,
+  de: /(^| )(weck mich|wecker|erinnere mich)( |$)/,
+  it: /(^| )(svegliami|sveglia|ricordami)( |$)/,
+};
+
+const NOTE_RX: Record<string, RegExp> = {
+  fr: /(^note |(^| )(note (pour )?(ce|le) virage|enregistre une note|note vocale)( |$))/,
+  en: /(^note |(^| )(note for (this|the) corner|record a note|corner note)( |$))/,
+  es: /(^nota |(^| )(nota (para )?(esta|la) curva|graba una nota)( |$))/,
+  de: /(^notiz |(^| )(notiz (fur )?(diese|die) kurve|notiz aufnehmen)( |$))/,
+  it: /(^nota |(^| )(nota (per )?(questa|la) curva|registra una nota)( |$))/,
+};
+
 /** Description courte (anglais) de chaque intention — pour l'aiguillage par l'IA. */
 export const INTENT_HELP: Partial<Record<AnswerIntent, string>> = {
   status: "full race summary",
@@ -619,6 +757,9 @@ export const INTENT_HELP: Partial<Record<AnswerIntent, string>> = {
   rateLate: "the driver rates the last radio call as too late",
   rateWrong: "the driver rates the last radio call as wrong",
   tyreChange: "which tyres to change at the next stop, wets or slicks, tyre warm-up cost",
+  pressures: "current tyre pressures (all, front or rear) and the lap average",
+  penaltyStatus: "do I have a penalty to serve, which one, has it been served",
+  finishPosition: "expected finishing position in my class at the current pace",
 };
 
 // ── Routage ──────────────────────────────────────────────────────────────────
@@ -642,6 +783,11 @@ export function route(text: string, lang: string): Route {
   if (isWatchRequest(norm, lang)) {
     return { ...empty, intent: "watch", candidates: ["watch"], watch: parseWatch(norm, entities) };
   }
+  // Actions à motif strict : menu des stands, réveil, note vocale du virage.
+  const pit = parsePitCommand(norm, lang);
+  if (pit) return { ...empty, intent: pit, candidates: [pit] };
+  if ((ALARM_RX[lng(lang)] ?? ALARM_RX.en).test(norm)) return { ...empty, intent: "alarm", candidates: ["alarm"] };
+  if ((NOTE_RX[lng(lang)] ?? NOTE_RX.en).test(norm)) return { ...empty, intent: "voiceNote", candidates: ["voiceNote"] };
 
   const toks = tokenSet(norm);
   const all = (T[lng(lang)] ?? T.en)

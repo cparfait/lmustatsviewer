@@ -16,6 +16,21 @@ import { initVoiceOverrides, segmentTemplates } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled, setRadioStyle, toRadioStyle, MAX_VOICE_VOLUME, type RadioStyle } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
+import { logError } from "@/lib/log";
+import {
+  parseExtras,
+  parsePreset,
+  parsePressureUnit,
+  parsePressureWindows,
+  parseSpotterTuning,
+  parseWheelActions,
+  RADIO_PRESETS,
+  type RadioExtra,
+  type RadioPreset,
+  type WheelAction,
+} from "@/lib/radioSettings";
+import type { PressureUnit, PressureWindow } from "@/lib/engineer/pressures";
+import type { SpotterTuning } from "@/lib/engineer/proximity";
 import {
   setCustomProviders,
   newCustomProviderId,
@@ -185,6 +200,26 @@ interface AppState {
   coachRigor: boolean;
   /** Spotter de proximité (voiture à gauche / à droite / libre). */
   proximitySpotter: boolean;
+  /** Réglages fins du spotter (longueur de voiture, délai du « libre »…). */
+  spotterTuning: SpotterTuning;
+  /** Sortie audio de la radio (libellé du périphérique, "" = défaut de Windows). */
+  radioOutputDevice: string;
+  /** Son du jeu baissé pendant que l'ingénieur parle (désactivé par défaut). */
+  gameDucking: boolean;
+  /** Part du son du jeu retirée pendant la radio (0-0,95). */
+  gameDuckLevel: number;
+  /** Unité des pressions dites à la radio. */
+  pressureUnit: PressureUnit;
+  /** Fenêtres de pression à chaud par classe (kPa), renseignées par le pilote. */
+  pressureWindows: Record<string, PressureWindow>;
+  /** Cohabitation : annonces en doublon coupées si un autre ingénieur radio tourne. */
+  coexistMode: boolean;
+  /** Familles d'annonces ajoutées, activables une à une. */
+  radioExtras: Record<RadioExtra, boolean>;
+  /** Boutons du volant liés à une action (en plus du push-to-talk). */
+  wheelActions: Partial<Record<WheelAction, WheelBinding>>;
+  /** Préréglage de radio appliqué (« custom » = réglages à la main). */
+  radioPreset: RadioPreset;
   /** Bouton de volant du push-to-talk « Parler à l'ingénieur » (`null` = aucun). */
   pttWheel: WheelBinding | null;
   /**
@@ -333,6 +368,16 @@ interface AppState {
   setRadioDriverName: (v: string) => Promise<void>;
   setCoachRigor: (v: boolean) => Promise<void>;
   setProximitySpotter: (v: boolean) => Promise<void>;
+  setSpotterTuning: (v: SpotterTuning) => Promise<void>;
+  setRadioOutputDevice: (v: string) => Promise<void>;
+  setGameDucking: (v: boolean) => Promise<void>;
+  setGameDuckLevel: (v: number) => Promise<void>;
+  setPressureUnit: (v: PressureUnit) => Promise<void>;
+  setPressureWindows: (v: Record<string, PressureWindow>) => Promise<void>;
+  setCoexistMode: (v: boolean) => Promise<void>;
+  setRadioExtra: (k: RadioExtra, v: boolean) => Promise<void>;
+  setWheelAction: (a: WheelAction, b: WheelBinding | null) => Promise<void>;
+  applyRadioPreset: (p: RadioPreset) => Promise<void>;
   setPttWheel: (b: WheelBinding | null) => Promise<void>;
   setMicReady: (v: boolean) => Promise<void>;
   setWakeWordEnabled: (v: boolean) => Promise<void>;
@@ -419,6 +464,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   radioDriverName: "",
   coachRigor: true,
   proximitySpotter: false,
+  spotterTuning: parseSpotterTuning(null),
+  radioOutputDevice: "",
+  gameDucking: false,
+  gameDuckLevel: 0.6,
+  pressureUnit: "kPa",
+  pressureWindows: {},
+  coexistMode: false,
+  radioExtras: parseExtras(null),
+  wheelActions: {},
+  radioPreset: "custom",
   pttWheel: null,
   micReady: true,
   wakeWordEnabled: false,
@@ -649,6 +704,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       radioDriverName: cfg.voice_driver_name ?? "",
       coachRigor: cfg.coach_rigor !== "false",
       proximitySpotter: cfg.spotter_proximity === "true",
+      spotterTuning: parseSpotterTuning(cfg.spotter_tuning),
+      radioOutputDevice: cfg.radio_output_device ?? "",
+      gameDucking: cfg.game_ducking === "true",
+      gameDuckLevel: ((v) => (Number.isFinite(v) ? Math.min(0.95, Math.max(0, v)) : 0.6))(Number(cfg.game_duck_level ?? "0.6")),
+      pressureUnit: parsePressureUnit(cfg.pressure_unit),
+      pressureWindows: parsePressureWindows(cfg.pressure_windows),
+      coexistMode: cfg.coexist_mode === "true",
+      radioExtras: parseExtras(cfg.radio_extras),
+      wheelActions: parseWheelActions(cfg.wheel_actions),
+      radioPreset: parsePreset(cfg.radio_preset),
       pttWheel: ((): WheelBinding | null => {
         try {
           const b = JSON.parse(cfg.ptt_wheel || "null");
@@ -691,7 +756,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Échec IPC/DB au boot (base verrouillée, migration ratée, IPC KO) : ne
       // pas laisser l'app figée sur le spinner infini. On marque la config
       // « chargée » en mode dégradé → l'app rend l'onboarding au lieu de geler.
-      console.error("[app.init] échec d'initialisation", e);
+      logError("app.init", e);
       set({ configLoaded: true, isConfigured: false });
    }
   },
@@ -1104,6 +1169,72 @@ export const useAppStore = create<AppState>((set, get) => ({
   setProximitySpotter: async (v) => {
     await config.set("spotter_proximity", v ? "true" : "false");
     set({ proximitySpotter: v });
+  },
+
+  setSpotterTuning: async (v) => {
+    await config.set("spotter_tuning", JSON.stringify(v));
+    set({ spotterTuning: v });
+  },
+
+  setRadioOutputDevice: async (v) => {
+    await config.set("radio_output_device", v);
+    set({ radioOutputDevice: v });
+  },
+
+  setGameDucking: async (v) => {
+    await config.set("game_ducking", v ? "true" : "false");
+    set({ gameDucking: v });
+  },
+
+  setGameDuckLevel: async (v) => {
+    const level = Math.min(0.95, Math.max(0, v));
+    await config.set("game_duck_level", String(level));
+    set({ gameDuckLevel: level });
+  },
+
+  setPressureUnit: async (v) => {
+    await config.set("pressure_unit", v);
+    set({ pressureUnit: v });
+  },
+
+  setPressureWindows: async (v) => {
+    await config.set("pressure_windows", JSON.stringify(v));
+    set({ pressureWindows: v });
+  },
+
+  setCoexistMode: async (v) => {
+    await config.set("coexist_mode", v ? "true" : "false");
+    set({ coexistMode: v });
+  },
+
+  setRadioExtra: async (k, v) => {
+    const next = { ...get().radioExtras, [k]: v };
+    await config.set("radio_extras", JSON.stringify(next));
+    set({ radioExtras: next, radioPreset: "custom" });
+    await config.set("radio_preset", "custom");
+  },
+
+  setWheelAction: async (a, b) => {
+    const next = { ...get().wheelActions };
+    if (b) next[a] = b;
+    else delete next[a];
+    await config.set("wheel_actions", JSON.stringify(next));
+    set({ wheelActions: next });
+  },
+
+  applyRadioPreset: async (p) => {
+    if (p !== "custom") {
+      const v = RADIO_PRESETS[p];
+      await get().setRadioMode(v.radioMode);
+      await get().setRadioPhases(v.radioPhases);
+      await get().setRadioBudgets(v.radioBudgets);
+      await get().setProximitySpotter(v.proximitySpotter);
+      const extras = { ...get().radioExtras, ...v.extras };
+      await config.set("radio_extras", JSON.stringify(extras));
+      set({ radioExtras: extras });
+    }
+    await config.set("radio_preset", p);
+    set({ radioPreset: p });
   },
 
   setPttWheel: async (b) => {

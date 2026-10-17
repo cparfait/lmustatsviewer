@@ -633,6 +633,7 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
         <div className="flex items-center gap-5 flex-wrap">
           <FlagPill flag={flag} />
           <RestBadge data={data} />
+          <SourceDiagBadge data={data} />
           <RadioReviewButton />
           {weather && (
             <div className="flex items-center gap-4 text-sm">
@@ -1374,6 +1375,37 @@ function RadioReviewButton() {
         {t("live.rrOpen")}
       </button>
       {open && <RadioReviewModal onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+/**
+ * État des sources live : capture rejouée ou en enregistrement, mémoire native
+ * LMU non reconnue (mise à jour du jeu : TC/ABS, énergie, limites de piste
+ * masqués plutôt que faux). Rien quand tout va bien.
+ */
+function SourceDiagBadge({ data }: { data: LiveData }) {
+  const { t } = useTranslation();
+  const d = data.diag;
+  if (!d) return null;
+  const items: { label: string; tone: string; tip: string }[] = [];
+  if (d.replay) items.push({ label: t("live.diagReplay"), tone: "bg-sky-400", tip: t("live.diagReplayTip") });
+  if (d.recording) items.push({ label: t("live.diagRecording"), tone: "bg-red-500 animate-pulse", tip: t("live.diagRecordingTip") });
+  if (d.lmu_data === "size" || d.lmu_data === "implausible")
+    items.push({ label: t("live.diagLmuData"), tone: "bg-amber-400", tip: t(d.lmu_data === "size" ? "live.diagLmuSize" : "live.diagLmuImplausible") });
+  if (!items.length) return null;
+  return (
+    <>
+      {items.map((it) => (
+        <span
+          key={it.label}
+          className="flex items-center gap-1.5 text-micro uppercase tracking-widest text-muted-foreground"
+          title={it.tip}
+        >
+          <span className={cn("h-2 w-2 rounded-full", it.tone)} />
+          {it.label}
+        </span>
+      ))}
     </>
   );
 }

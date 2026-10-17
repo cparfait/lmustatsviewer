@@ -44,6 +44,7 @@ import { useToolLauncher } from "@/lib/toolLauncher";
 import { useWidgetServerAutostart } from "@/lib/widgetServer";
 import { useRecordBeeps } from "@/lib/useRecordBeeps";
 import { useReviewMarks } from "@/lib/reviewMarks";
+import { useRadioAudio } from "@/lib/useRadioAudio";
 import { useRadioFeedback } from "@/lib/engineer/useRadioFeedback";
 import { CommunityInvite } from "@/components/CommunitySettings";
 import { useOverlayShortcut } from "@/lib/useOverlayShortcut";
@@ -87,6 +88,7 @@ export default function App() {
   useWidgetServerAutostart();
   useRecordBeeps();
   useReviewMarks();
+  useRadioAudio();
   useRadioFeedback();
   // Programme d'essais : préparation de course cochée toute seule (circuit × voiture).
   useRacePrep();

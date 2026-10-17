@@ -61,6 +61,13 @@ import {
   whenLaps,
   whenMinutes,
 } from "./answers";
+import { GameMessageTracker, type GameMsg, type GameWarning } from "./gameMessages";
+import { FrozenOrderTracker, type Column, type FoTarget } from "./frozenOrder";
+import { EndgameWatcher } from "./endgame";
+import { TyreEventWatcher } from "./tyreEvents";
+import { formatPressure } from "./pressures";
+import { cornerNamer } from "./cornerVoice";
+import { coexistFilter } from "./coexist";
 
 export type FlagKind = "green" | "yellow" | "fcy" | "stopped" | "over" | "none";
 
@@ -165,7 +172,16 @@ const PREWARM_KEYS = [
   "live.vLimiterForgotten",
   "live.vPitEntryLimiter",
   "live.vPitExitLimiterOn",
+  "live.vWrongWay",
+  "live.vScOut",
+  "live.vScIn",
+  "live.vRestart",
+  "live.vBlueWarning",
+  "live.vExitTraffic",
 ];
+
+/** Roues dans l'ordre FL, FR, RL, RR (clés `live.wheelVoice.*`). */
+const WHEEL_KEYS = ["fl", "fr", "rl", "rr"];
 
 /** En dessous, pas d'annonce d'écart devant / derrière (voiture arrêtée ou au ralenti) (km/h). */
 const GAP_MIN_SPEED_KMH = 60;
@@ -234,6 +250,32 @@ function updateBrakeAvg(
     return true;
   }
   return false;
+}
+
+/** Avertissement du centre de messages du jeu → phrase et priorité. */
+function warningCall(w: GameWarning, t: Tr): [string, VoicePriority] | null {
+  switch (w) {
+    case "oneLapDriveThrough":
+    case "oneLapStopGo":
+      return [t("live.vPenOneLap"), "critical"];
+    case "enterPitsToServe":
+      return [t("live.vPenEnterPits"), "critical"];
+    case "wrongWay":
+      return [t("live.vWrongWay"), "critical"];
+    case "blueWarning":
+      return [t("live.vBlueWarning"), "critical"];
+    case "enterPitsLapAllowance":
+      return [t("live.vLapAllowance"), "normal"];
+    case "drivingTooSlow":
+      return [t("live.vTooSlow"), "normal"];
+    case "unsportsmanlike":
+      return [t("live.vUnsportsmanlike"), "normal"];
+    case "headlights":
+      return [t("live.vHeadlights"), "normal"];
+    case "crewReady":
+      return [t("live.vCrewReady"), "normal"];
+  }
+  return null;
 }
 
 export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: string, t: Tr) {
@@ -339,7 +381,17 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const tenth = useAppStore((s) => s.voiceLapPrecision) === "tenth";
   const driverName = useAppStore((s) => s.radioDriverName);
   const proximity = useAppStore((s) => s.proximitySpotter);
+  const spotterTuning = useAppStore((s) => s.spotterTuning);
+  const coexistMode = useAppStore((s) => s.coexistMode);
+  const extras = useAppStore((s) => s.radioExtras);
+  const pressureUnit = useAppStore((s) => s.pressureUnit);
+  const pressureWindows = useAppStore((s) => s.pressureWindows);
   const spot = useRef(new ProximitySpotter());
+  const gameMsgs = useRef(new GameMessageTracker());
+  const frozen = useRef(new FrozenOrderTracker());
+  const endgame = useRef(new EndgameWatcher());
+  const tyreEv = useRef(new TyreEventWatcher());
+  const lastTrack = useRef("");
 
   // Voix prête avant la première annonce : moteur Piper démarré, alertes fixes
   // (et phrases du spotter) synthétisées d'avance.
@@ -376,7 +428,11 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   // Spotter de proximité : à chaque trame, hors arbitre (sa priorité passe avant
   // tout et tient le canal quelques secondes).
   useEffect(() => {
-    if (!enabled || !proximity) {
+    spot.current.setTuning(spotterTuning);
+  }, [spotterTuning]);
+  useEffect(() => {
+    // Cohabitation : un autre ingénieur radio fait déjà le spotter.
+    if (!enabled || !proximity || (coexistMode && engineer.otherEngineer)) {
       spot.current.reset();
       return;
     }
@@ -387,7 +443,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (!call) return;
     const ttl = call === "left" || call === "right" || call === "three" ? 1200 : 3000;
     rawSpeak(t(SPOT_KEYS[call]), lang, "spotter", ttl, { holdChannelMs: SPOT_HOLD_MS });
-  }, [data, enabled, proximity, lang, t]);
+  }, [data, enabled, proximity, coexistMode, lang, t]);
 
   // Garde « pilote occupé » de la file vocale : revérifiée juste avant chaque
   // prise de parole non critique (ingénieur ET coach : fenêtres coordonnées).
@@ -496,12 +552,24 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       forecastSaid.current = { first: false, soon: false };
       variants.current.reset();
       names.current.reset();
+      gameMsgs.current.reset();
+      frozen.current.reset();
+      endgame.current.reset();
+      tyreEv.current.reset();
+    }
+    if (sc.track !== lastTrack.current) {
+      lastTrack.current = sc.track;
+      engineer.pitTraffic.resetTrack();
     }
     if (sessionReset) clockRunning.current = false;
     else if (sc.session_time > prevSessionTime.current + 1e-3) clockRunning.current = true;
     prevSessionTime.current = sc.session_time;
     // Télémétrie stabilisée ? (seuils suspendus pendant le warm-up)
     const warmedUp = now - warmupStart.current > WARMUP_MS;
+
+    // Repères officiels des virages (coach : « virage 1, La Source »).
+    if (extras.cornerNames) cornerNamer.update(sc.track, data.track_points, data.track_dists, sc.track_length);
+    else cornerNamer.update("", [], [], 0);
 
     // ── Concentration : freinages appris + état de pilotage pour la file vocale ─
     if (tel) {
@@ -723,7 +791,18 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         if (gapsReady && playerStanding && !leader) {
           const gAhead = sp?.gapAhead ?? 0;
           if (gAhead > 0 && gAhead < 1 && !gapAheadWarned.current) {
-            say("gap:ahead", t("live.vGapAhead"), "chatty", { score: 25 });
+            // Nom du pilote devant (même classement) si le réglage le demande.
+            const nb = extras.rivalNames
+              ? data.standings.find(
+                  (s) =>
+                    !s.is_player &&
+                    (sp?.cls ? s.vehicle_class === playerStanding.vehicle_class : true) &&
+                    (sp?.cls ? s.class_position : s.position) === pos - 1,
+                )
+              : undefined;
+            say("gap:ahead", nb ? t("live.vGapAheadName", { name: radioName(nb.driver) }) : t("live.vGapAhead"), "chatty", {
+              score: 25,
+            });
             gapAheadWarned.current = true;
           } else if (gAhead <= 0 || gAhead > 1.6) {
             gapAheadWarned.current = false;
@@ -734,7 +813,12 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         if (behind) {
           const gBehind = sp?.gapBehind ?? 0;
           if (gBehind > 0 && gBehind < 1 && !underAttackWarned.current) {
-            say("gap:behind", t("live.vUnderAttack"), "normal", { score: 50 });
+            say(
+              "gap:behind",
+              extras.rivalNames ? t("live.vUnderAttackName", { name: radioName(behind.driver) }) : t("live.vUnderAttack"),
+              "normal",
+              { score: 50 },
+            );
             underAttackWarned.current = true;
           } else if (gBehind <= 0 || gBehind > 1.6) {
             underAttackWarned.current = false;
@@ -785,6 +869,35 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         }
       } else if (player.flag !== BLUE_FLAG) {
         blueWarned.current = false;
+      }
+
+      // ── Pressions : perte de pression (en roulant), fenêtre (au passage) ─
+      if (tel && extras.pressure && warmedUp && !inPits) {
+        for (const i of engineer.pressures.frame(nowS, tel.wheels, tel.speed_kmh)) {
+          say(`pressure:loss:${i}`, t("live.vPressureLoss", { wheel: t(`live.wheelVoice.${WHEEL_KEYS[i]}`) }), "normal", {
+            score: 75,
+          });
+        }
+      }
+      if (lapDone && extras.pressure) {
+        const win = playerStanding ? pressureWindows[playerStanding.vehicle_class] ?? null : null;
+        const verdict = engineer.pressures.lap(win);
+        if (verdict) {
+          if (!verdict.length) say("pressure:window", t("live.vPressureOk"), "chatty", { score: 20 });
+          else {
+            const list = verdict
+              .map((v) => `${t(`live.wheelVoice.${WHEEL_KEYS[v.wheel]}`)} ${v.off > 0 ? "+" : "-"}${formatPressure(Math.abs(v.off), pressureUnit)}`)
+              .join(", ");
+            say("pressure:window", t("live.vPressureOut", { list }), "normal", { score: 45 });
+          }
+        }
+      }
+      if (lapDone && extras.endgame && isRace) {
+        for (const ev of endgame.current.update(data.standings, strat?.sessionLapsLeft ?? null, sc.track_length)) {
+          const vars = { name: radioName(ev.driver), gap: ev.gap.toFixed(1), d: ev.perLap.toFixed(1) };
+          if (ev.kind === "attack") say("push:attack", t("live.vPushAttack", vars), "normal", { score: 55 });
+          else say("push:defend", t("live.vPushDefend", vars), "normal", { score: 60 });
+        }
       }
 
       // ── Passage de la ligne : point de tour, secteurs, rapprochement ─────
@@ -989,11 +1102,110 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         prevSector.current = playerStanding.current_sector;
       }
 
-      // ── Pénalité reçue ───────────────────────────────────────────────────
-      if (player.num_penalties > prevPenalties.current) {
-        say("penalty", t("live.vPenalty"), "critical");
+      // ── Pénalités : compteur du scoring + centre de messages du jeu ──────
+      // Le message du jeu donne le type et la cause ; sans lui (ou réglage
+      // coupé), l'annonce générique « pénalité reçue » d'avant.
+      const gm: GameMsg | null = gameMsgs.current.push(data.extended?.history_message, data.extended?.history_ticks);
+      for (const ev of engineer.penalties.update(nowS, player.num_penalties, gm)) {
+        if (ev.kind === "penalty") {
+          if (ev.type && extras.penaltyDetail) {
+            say("penalty", t(`live.vPen_${ev.type}`, { cause: t(`live.penCause.${ev.cause ?? "other"}`) }), "critical");
+          } else {
+            say("penalty", t("live.vPenalty"), "critical");
+          }
+        } else if (ev.kind === "served" && extras.penaltyDetail) {
+          say("pen:served", t("live.vPenaltyServed"), "normal", { score: 60 });
+        }
       }
       prevPenalties.current = player.num_penalties;
+      if (gm && extras.gameWarnings) {
+        if (gm.kind === "warning") {
+          const w = warningCall(gm.warning, t);
+          if (w) say(`msg:${gm.warning}`, w[0], w[1], { score: 70, cooldownS: 20 });
+        } else if (gm.kind === "dq") {
+          say("msg:dq", t("live.vDisqualified", { cause: t(`live.dqCause.${gm.cause}`) }), "critical");
+        }
+      }
+      if (extras.trackLimits && warmedUp) {
+        const tl = engineer.penalties.trackLimits(data.extended?.track_limits, data.extended?.track_limits_per_penalty);
+        if (tl?.kind === "trackLimits") {
+          say(
+            `limits:${tl.count}`,
+            t(tl.last ? "live.vTrackLimitsLast" : "live.vTrackLimits", { n: tl.count, max: tl.max }),
+            tl.last ? "critical" : "normal",
+            { score: 65 },
+          );
+        }
+      }
+
+      // ── Neutralisations : voiture de sécurité, ordre figé ────────────────
+      if (extras.safetyCar) {
+        const foName = (tg: FoTarget) => (tg.kind === "sc" ? null : radioName(tg.name));
+        const colTxt = (c: Column) => (c ? t(`live.col.${c}`) : "");
+        for (const ev of frozen.current.update(nowS, {
+          rules: data.rules,
+          standings: data.standings,
+          trackLength: sc.track_length,
+          yellowState: data.flags?.yellow_flag_state ?? 0,
+        })) {
+          switch (ev.kind) {
+            case "scOut":
+              say("sc:out", t("live.vScOut"), "critical");
+              break;
+            case "scIn":
+              say("sc:in", t("live.vScIn"), "critical");
+              break;
+            case "restart":
+              say("sc:restart", t("live.vRestart"), "critical");
+              break;
+            case "pitsClosed":
+              say("sc:pits", t("live.vPitsClosed"), "normal", { score: 70 });
+              break;
+            case "pitsOpen":
+              say("sc:pits", t("live.vPitsOpen"), "normal", { score: 70 });
+              break;
+            case "slot":
+              say(
+                "fo:slot",
+                ev.column ? t("live.vFoSlotCol", { p: ev.pos, col: colTxt(ev.column) }) : t("live.vFoSlot", { p: ev.pos }),
+                "normal",
+                { score: 75 },
+              );
+              break;
+            case "follow": {
+              const name = foName(ev.target);
+              const text = name
+                ? ev.column
+                  ? t("live.vFoFollowCol", { name, col: colTxt(ev.column) })
+                  : t("live.vFoFollow", { name })
+                : t("live.vFoFollowSc");
+              say("fo:follow", text, "normal", { score: 80 });
+              break;
+            }
+            case "catchUp": {
+              const name = foName(ev.target);
+              say("fo:catchup", name ? t("live.vFoCatchUp", { name }) : t("live.vFoCatchUpSc"), "normal", { score: 75 });
+              break;
+            }
+            case "allowPass": {
+              const name = foName(ev.target);
+              say("fo:pass", name ? t("live.vFoAllowPass", { name }) : t("live.vFoNoPassSc"), "critical");
+              break;
+            }
+          }
+        }
+      }
+
+      // ── Stands : box partagé, trafic à la sortie ─────────────────────────
+      const pitEvents = engineer.pitTraffic.update(nowS, data.standings, sc.track_length);
+      if (extras.pitTraffic && warmedUp) {
+        for (const ev of pitEvents) {
+          const name = radioName(ev.driver);
+          if (ev.kind === "boxOccupied") say(`pitx:box:${ev.driver}`, t("live.vBoxOccupied", { name }), "critical");
+          else if (ev.kind === "exitTraffic") say(`pitx:exit:${ev.driver}`, t("live.vExitTraffic"), "critical", { ttlMs: 4000 });
+          else say(`pitx:rival:${ev.driver}`, t("live.vRivalExiting", { name }), "normal", { score: 70 });
+        }
+      }
 
       // ── Demande d'arrêt aux stands (pit_state 1 = REQUEST) ───────────────
       if (player.pit_state === 1 && prevPitState.current !== 1) {
@@ -1008,6 +1220,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
       // ── Arrêt au stand effectué (nombre d'arrêts en hausse) ──────────────
       if (player.num_pitstops > prevPitstops.current) {
+        engineer.pressures.resetStint();
         say("pit:done", t("live.vPitDone"), "normal", { score: 40 });
         refuelWarned.current = false; // réarme l'alerte ravitaillement après l'arrêt
         debriefSkip.current = true; // pas de débrief de secteur sur l'out-lap
@@ -1180,8 +1393,28 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       say("mech:damage", t("live.vDamage"), "critical");
       lastDamageAt.current = now;
       engineer.policy.noteCrash(nowS); // calme de sécurité après le choc
+      tyreEv.current.noteCrash(nowS);
     }
     prevDamage.current = dmg;
+
+    // ── Pneus sales, gros blocage, nouvelles du pilote après un choc ─────────
+    if (tel && warmedUp) {
+      const inPitsNow = playerStanding?.in_pits ?? false;
+      for (const ev of tyreEv.current.update(nowS, tel.wheels, tel.speed_kmh, inPitsNow)) {
+        if (ev.kind === "dirty" && extras.tyreEvents) say("dirt", t("live.vTyresDirty"), "normal", { score: 55, ttlMs: 5000 });
+        else if (ev.kind === "lockFlatSpot" && extras.tyreEvents)
+          say(`lock:${ev.wheel}`, t("live.vLockFlatSpot", { wheel: t(`live.wheelVoice.${WHEEL_KEYS[ev.wheel]}`) }), "normal", {
+            score: 45,
+          });
+        else if (ev.kind === "crashCheck" && extras.crashCheck) say("crash:check", t("live.vCrashCheck"), "normal", { score: 85 });
+        else if (ev.kind === "crashResume" && extras.crashCheck) say("crash:resume", t("live.vCrashResume"), "chatty", { score: 30 });
+      }
+    }
+
+    // ── Réveil radio (heure du PC) ───────────────────────────────────────────
+    for (const a of engineer.alarms.due(Date.now())) {
+      say(`alarm:${a.at}`, t("live.vAlarm", { label: a.label }), "normal", { score: 95, retryS: 30 });
+    }
 
     // ── Alertes pneus / freins / moteur (télémétrie) ─────────────────────────
     // Suspendues pendant le warm-up (valeurs non stabilisées au départ).
@@ -1351,7 +1584,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       qualiFlying: sc.session >= 5 && sc.session <= 8 && !inPits && !outLap.current && (playerStanding?.lap_dist ?? 0) > 400,
     };
     // Notes du pilote : une famille jugée surtout inutile ou fausse se fait plus rare.
-    const allowed = engineer.policy.filter(adjustRated(cands, radioLog.stats), policyCtx);
+    const own = coexistFilter(cands, coexistMode && engineer.otherEngineer);
+    const allowed = engineer.policy.filter(adjustRated(own, radioLog.stats), policyCtx);
 
     // ── Arbitrage + diffusion ────────────────────────────────────────────────
     arbiter.current.textRepeatLaps = !full && replay ? TEXT_REPEAT_LAPS : 0;
@@ -1390,5 +1624,23 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (c.prio === "critical" || !critical) rawSpeak(text, lang, c.prio, c.ttlMs, optsOf(c));
       else deferred.current.push({ text, prio: c.prio, ttl: c.ttlMs, at: now, opts: optsOf(c) });
     }
-  }, [data, enabled, lang, t, full, classPositions, quietZones, phases, budgets, replay, tenth, driverName, askPrefs]);
+  }, [
+    data,
+    enabled,
+    lang,
+    t,
+    full,
+    classPositions,
+    quietZones,
+    phases,
+    budgets,
+    replay,
+    tenth,
+    driverName,
+    askPrefs,
+    coexistMode,
+    extras,
+    pressureUnit,
+    pressureWindows,
+  ]);
 }

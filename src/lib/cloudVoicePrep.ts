@@ -62,6 +62,20 @@ export const CLOUD_PREP_KEYS: readonly string[] = [
   "vRainHeavier",
   "vRefuelNeeded",
   "vAskLapPref",
+  // Annonces de course (sans variable, information).
+  "vPenaltyServed",
+  "vPitsClosed",
+  "vPitsOpen",
+  "vFoCatchUpSc",
+  "vPressureOk",
+  "vTyresDirty",
+  "vCrashCheck",
+  "vCrashResume",
+  "vLapAllowance",
+  "vTooSlow",
+  "vUnsportsmanlike",
+  "vHeadlights",
+  "vCrewReady",
 ];
 
 /**
@@ -94,6 +108,16 @@ export const CLOUD_PREP_ALERT_KEYS: readonly string[] = [
   "vSpotStill",
   "vStintLiftCoast",
   "vStintOutLap",
+  // Annonces de course urgentes (sans variable).
+  "vScOut",
+  "vScIn",
+  "vRestart",
+  "vFoNoPassSc",
+  "vExitTraffic",
+  "vWrongWay",
+  "vBlueWarning",
+  "vPenOneLap",
+  "vPenEnterPits",
 ];
 
 /**

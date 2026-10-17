@@ -26,6 +26,8 @@ import { isWetCompound, tyreChangePlan, wheelWear, type WheelId } from "./tyres"
 import { sessionKind, type LapPref } from "./prefs";
 import { BRAKE_COLD_C, brakeAvgLimits } from "./brakes";
 import { splitVariants } from "./variants";
+import { formatPressure, type PressureUnit } from "./pressures";
+import { expectedFinish } from "./endgame";
 
 /** Fenêtre de température « de travail » des pneus (°C, générique). */
 export const TYRE_WINDOW: [number, number] = [75, 105];
@@ -38,6 +40,8 @@ export interface AnswerOpts {
   fuelReserveLaps: number;
   /** Multiclasse : position/écarts dans la classe (réglage, défaut oui). */
   classPositions?: boolean;
+  /** Unité des pressions dites à la radio. */
+  pressureUnit?: PressureUnit;
 }
 
 const inSession = (d: LiveData | null): d is LiveData =>
@@ -448,6 +452,46 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       return parts.join(", ");
     }
 
+    case "pressures": {
+      const tel = d.telemetry;
+      if (!tel) return noData;
+      const unit = o.pressureUnit ?? "kPa";
+      const n = ` ${o.norm ?? ""} `;
+      const front = /( avant | front | delanter| vorne | anterior)/.test(n);
+      const rear = /( arriere | rear | traser| hinten | posterior)/.test(n);
+      const idx = front && !rear ? [0, 1] : rear && !front ? [2, 3] : [0, 1, 2, 3];
+      const wheels = ["fl", "fr", "rl", "rr"];
+      const now = idx
+        .filter((i) => tel.wheels[i].pressure > 0)
+        .map((i) => t("live.spPressureWheel", { wheel: t(`live.wheelVoice.${wheels[i]}`), v: formatPressure(tel.wheels[i].pressure, unit) }));
+      if (!now.length) return noData;
+      const avg = engineer.pressures.average();
+      const avgTxt = avg
+        ? t("live.spPressureAvg", {
+            list: idx.map((i) => formatPressure(avg[i], unit)).join(", "),
+          })
+        : "";
+      return [t("live.spPressures", { unit: t(`live.pressureUnit.${unit}`), list: now.join(", ") }), avgTxt]
+        .filter(Boolean)
+        .join(". ");
+    }
+
+    case "penaltyStatus": {
+      const n = engineer.penalties.outstanding || p.num_penalties;
+      if (n <= 0) return t("live.spPenaltyNone");
+      const last = engineer.penalties.lastTyped;
+      const what = last ? `${t(`live.penType.${last.type}`)}, ${t(`live.penCause.${last.cause}`)}` : "";
+      return what ? t("live.spPenaltyTyped", { count: n, what }) : t("live.spPenaltyCount", { count: n });
+    }
+
+    case "finishPosition": {
+      const sc = d.session!;
+      const remainingS = sc.end_et > 0 ? Math.max(0, sc.end_et - sc.session_time) : null;
+      const lapsLeft = sc.max_laps > 0 && sc.max_laps < 1000 ? sc.max_laps - p.total_laps : null;
+      const f = expectedFinish(d.standings, sc.track_length, { remainingS, lapsLeft });
+      return f ? t("live.spFinish", { p: f.pos, of: f.of }) : t("live.spFinishUnknown");
+    }
+
     case "ackBox":
       engineer.pit.ack(p.total_laps);
       return t("live.spAck");
@@ -509,6 +553,25 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
     case "rateUseless":
     case "rateLate":
     case "rateWrong":
+      return "";
+
+    // Actions (menu des stands, réveil, note vocale) : exécutées dans `ask.ts`.
+    case "alarm":
+    case "voiceNote":
+    case "pitFuelEnd":
+    case "pitFuelAdd":
+    case "pitEnergy":
+    case "pitTyresAll":
+    case "pitTyresNone":
+    case "pitTyresFront":
+    case "pitTyresRear":
+    case "pitWet":
+    case "pitDry":
+    case "pitRepairAll":
+    case "pitRepairBody":
+    case "pitRepairNone":
+    case "pitServePenalty":
+    case "pitPlan":
       return "";
 
     default:

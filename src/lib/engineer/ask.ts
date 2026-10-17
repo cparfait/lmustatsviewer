@@ -43,6 +43,10 @@ import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
 import { toast, toastError, toastSuccess } from "@/stores/dialogs";
 import { factsBlock } from "@/lib/ai/facts";
 import { radioCard } from "@/lib/ai/knowledge/engineering-cards";
+import { PIT_CMDS, runPitCommand, type PitCmd } from "@/lib/engineer/pitVoice";
+import { parseAlarm } from "@/lib/engineer/alarm";
+import { engineer } from "@/lib/engineer/state";
+import { saveNoteHere } from "@/lib/useVoiceNotes";
 
 // Phrases radio d'échec (« pas compris », coach indisponible) : variantes
 // « A | B | C » en rotation ; rappels de cause déjà dits (cf. `radioErrorKey`).
@@ -219,9 +223,27 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     pitLossSec: effectivePitLoss(data, st0.pitLossSeconds, st0.pitLaneLoss),
     fuelReserveLaps: st0.fuelReserveLaps,
     classPositions: st0.classPositions,
+    pressureUnit: st0.pressureUnit,
     entities: r.norm ? r.entities : extractEntities(norm, lang),
     norm,
   };
+
+  // Actions asynchrones : menu des stands (écritures dans le jeu), réveil, note vocale.
+  if (r.intent && (PIT_CMDS.has(r.intent) || r.intent === "alarm" || r.intent === "voiceNote")) {
+    if (o.dryRun) return say(t("config.engineerTestCommand", { name: commandLabel(t, r.intent) }), "command");
+    if (r.intent === "alarm") {
+      const a = parseAlarm(norm, Date.now());
+      if (!a) return say(t("live.spAlarmUnknown"), "command");
+      engineer.alarms.add(a);
+      return say(t("live.spAlarmSet", { label: a.label }), "command");
+    }
+    if (r.intent === "voiceNote") return say(await saveNoteHere(t), "command");
+    const text = await runPitCommand(r.intent as PitCmd, data, norm, t, {
+      allowed: st0.gameWrites,
+      reserveLaps: st0.fuelReserveLaps,
+    });
+    return say(text, "command");
+  }
 
   // Exécute (ou, en test, annonce seulement) une intention locale.
   const runIntent = (id: AnswerIntent, via: AskResult["via"]): AskResult => {

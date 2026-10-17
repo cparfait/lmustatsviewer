@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Tablet, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { config, isTauri } from "@/lib/api";
@@ -51,13 +51,8 @@ export function RegieSettings() {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-start gap-3">
-        <Tablet className="h-5 w-5 mt-0.5 text-primary shrink-0" />
-        <div className="space-y-1">
-          <h3 className="font-semibold">{t("config.regieTitle")}</h3>
-          <p className="text-sm text-muted-foreground">{t("config.regieDesc")}</p>
-        </div>
-      </div>
+      {/* Le titre « Régie tablette » est déjà celui de la catégorie : l'explication suffit. */}
+      <p className="text-sm text-muted-foreground">{t("config.regieDesc")}</p>
 
       <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
         <div className="space-y-0.5">

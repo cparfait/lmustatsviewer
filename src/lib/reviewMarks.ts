@@ -12,6 +12,7 @@ import { listen } from "@tauri-apps/api/event";
 import { config, isTauri, live, type LiveData, type WheelBinding } from "@/lib/api";
 import { FLAG_REVIEW_MARKS, useConfigFlag } from "@/lib/configFlag";
 import { pttBeep } from "@/lib/radioFx";
+import { sayLive } from "@/lib/engineer/sideCallouts";
 
 const KEY = "review_marks";
 export const MAX_MARKS = 500;
@@ -96,7 +97,8 @@ async function markNow(): Promise<void> {
   const m = d ? markFromLive(d, Date.now()) : null;
   if (!m) return;
   useMarksStore.getState().add(m);
-  pttBeep("send");
+  // Annonces vocales actives : « Repère noté » ; sinon, le bip court.
+  if (!sayLive("vReviewMark")) pttBeep("send");
 }
 
 /** Évènement fenêtre : raccourci ou bouton du volant modifié dans la Configuration. */

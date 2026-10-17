@@ -19,6 +19,17 @@ export interface WidgetServerStatus {
 }
 
 export const WIDGET_SERVER_DEFAULT_PORT = 8791;
+/** Site officiel d'OpenKneeboard (téléchargement), nécessaire pour la VR. */
+export const OPENKNEEBOARD_URL = "https://openkneeboard.com/";
+
+/** Ouvre une adresse dans le navigateur par défaut (app) ou un nouvel onglet (page servie). */
+export function openExternal(url: string): void {
+  if (!isTauri()) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
+  void import("@tauri-apps/plugin-opener").then(({ openUrl }) => openUrl(url)).catch(() => {});
+}
 export const WIDGET_SERVER_ENABLED_KEY = "widget_server_enabled";
 export const WIDGET_SERVER_PORT_KEY = "widget_server_port";
 

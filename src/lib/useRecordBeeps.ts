@@ -2,7 +2,8 @@
  * Bips de record au volant (désactivés par défaut) : après chaque tour chronométré,
  * 1 bip = record perso sur ce circuit et cette classe (base locale), 2 bips = meilleur
  * tour de la séance dans la classe, 3 bips = record de la base communautaire battu.
- * Le nombre le plus élevé l'emporte. Rien sur un tour de sortie des stands, un tour
+ * Le nombre le plus élevé l'emporte. Quand les annonces vocales de l'ingénieur sont
+ * actives, il le dit à la voix (phrases à variantes) au lieu des bips. Rien sur un tour de sortie des stands, un tour
  * passé par les stands ou un tour où le compteur de limites de piste a monté.
  */
 import { useEffect } from "react";
@@ -10,6 +11,7 @@ import { community, isTauri, live, type LiveData } from "@/lib/api";
 import { matchCombo, type ComboRef } from "@/lib/briefing";
 import { FLAG_RECORD_BEEPS, useConfigFlag } from "@/lib/configFlag";
 import { recordBeeps } from "@/lib/radioFx";
+import { recordKey, sayLive } from "@/lib/engineer/sideCallouts";
 
 interface LapState {
   laps: number;
@@ -73,7 +75,8 @@ export function useRecordBeeps(): void {
         const lap = p.last_lap_time;
         if (clean && lap > 0) {
           const n = beepsFor(lap, personalBest, !!me?.is_class_best_lap && Math.abs((me?.best_lap_time ?? 0) - lap) < 0.001, communityBest);
-          if (n !== 0) recordBeeps(n);
+          // Annonces vocales actives : l'ingénieur le dit ; sinon, les bips.
+          if (n !== 0 && !sayLive(recordKey(n))) recordBeeps(n);
           if (personalBest == null || lap < personalBest) personalBest = lap;
           if (n === 3) communityBest = lap;
         }

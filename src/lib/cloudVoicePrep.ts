@@ -94,9 +94,21 @@ export const CLOUD_PREP_ALERT_KEYS: readonly string[] = [
   "vStintOutLap",
 ];
 
+/**
+ * Gabarits d'information dits hors de `useRaceEngineer.ts` (records au volant,
+ * repères de revue : `engineer/sideCallouts.ts`), sans variable, en priorité `normal`.
+ */
+export const CLOUD_PREP_EXTRA_KEYS: readonly string[] = [
+  "vRecordPersonal",
+  "vRecordClass",
+  "vRecordCommunity",
+  "vReviewMark",
+];
+
 /** Gabarits à préparer : l'information, plus les phrases urgentes sauf « alertes en voix locale ». */
 export function cloudPrepKeys(alertsLocal: boolean): string[] {
-  return alertsLocal ? [...CLOUD_PREP_KEYS] : [...CLOUD_PREP_KEYS, ...CLOUD_PREP_ALERT_KEYS];
+  const info = [...CLOUD_PREP_KEYS, ...CLOUD_PREP_EXTRA_KEYS];
+  return alertsLocal ? info : [...info, ...CLOUD_PREP_ALERT_KEYS];
 }
 
 /**

@@ -22,6 +22,8 @@ import {
   widgetServer,
   widgetServerPort,
   widgetUrl,
+  openExternal,
+  OPENKNEEBOARD_URL,
   WIDGET_SERVER_DEFAULT_PORT,
   WIDGET_SERVER_ENABLED_KEY,
   WIDGET_SERVER_PORT_KEY,
@@ -173,11 +175,17 @@ export function WidgetServerSettings() {
         <div className="space-y-1">
           <p className="font-semibold text-foreground">{t("overlays.web.vrTitle")}</p>
           <ol className="list-decimal space-y-1 pl-5">
-            <li>{t("overlays.web.vr1")}</li>
+            <li>
+              {t("overlays.web.vr1")}{" "}
+              <button type="button" className="font-medium text-primary hover:underline" onClick={() => openExternal(OPENKNEEBOARD_URL)}>
+                {t("overlays.web.okbDownload")}
+              </button>
+            </li>
             <li>{t("overlays.web.vr2")}</li>
             <li>{t("overlays.web.vr3")}</li>
             <li>{t("overlays.web.vr4")}</li>
           </ol>
+          <p>{t("overlays.web.vrUac")}</p>
         </div>
         <div className="space-y-1">
           <p className="font-semibold text-foreground">{t("overlays.web.obsTitle")}</p>

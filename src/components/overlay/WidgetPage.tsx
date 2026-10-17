@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useOverlaysStore, type OverlaysConfig } from "@/stores/overlays";
 import { OVERLAY_BY_ID, OVERLAY_DEFS, type OverlayId } from "@/lib/overlays";
 import { widgetLink } from "@/lib/widgetLink";
+import { OPENKNEEBOARD_URL } from "@/lib/widgetServer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EMPTY_LIVE_DATA, useOverlayData } from "./useOverlayData";
 import { WIDGETS } from "./widgets";
@@ -246,11 +247,17 @@ export function WidgetIndex() {
               {t("overlays.web.vrTitle")}
             </p>
             <ol className="list-decimal space-y-1 pl-5">
-              <li>{t("overlays.web.vr1")}</li>
+              <li>
+                {t("overlays.web.vr1")}{" "}
+                <a href={OPENKNEEBOARD_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+                  {t("overlays.web.okbDownload")}
+                </a>
+              </li>
               <li>{t("overlays.web.vr2")}</li>
               <li>{t("overlays.web.vr3")}</li>
               <li>{t("overlays.web.vr4")}</li>
             </ol>
+            <p>{t("overlays.web.vrUac")}</p>
           </div>
           <div className="space-y-1">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">

@@ -26,6 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { isTauri } from "@/lib/api";
+import { openExternal, OPENKNEEBOARD_URL } from "@/lib/widgetServer";
 import {
   tools,
   loadLauncherConfig,
@@ -281,6 +282,11 @@ export function ToolsSettings() {
                     </p>
                     {d.detail && (
                       <p className="text-xs font-mono text-muted-foreground/80 break-all">{d.detail}</p>
+                    )}
+                    {d.id === "openkneeboard" && d.status !== "ok" && (
+                      <Button size="sm" variant="outline" className="mt-1 h-7 text-xs" onClick={() => openExternal(OPENKNEEBOARD_URL)}>
+                        {t("overlays.web.okbDownload")}
+                      </Button>
                     )}
                   </div>
                 </li>

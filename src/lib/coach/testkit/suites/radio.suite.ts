@@ -11,6 +11,7 @@ import { RadioPolicy, classOf, rivalOf, type PolicyCtx } from "@/lib/engineer/po
 import { RadioArbiter, TEXT_REPEAT_LAPS, type Candidate } from "@/lib/engineer/arbiter";
 import { VariantPicker, NameDoser, splitVariants, NAME_GAP_S } from "@/lib/engineer/variants";
 import { radioErrorKey } from "@/lib/engineer/radioErrors";
+import { SIDE_CALLOUT_KEYS } from "@/lib/engineer/sideCallouts";
 import { aiErrorKind, type AiErrorKind } from "@/lib/ai/errorKind";
 import { ProximitySpotter, occupiedSides } from "@/lib/engineer/proximity";
 import { route } from "@/lib/engineer/router";
@@ -18,6 +19,7 @@ import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
 import {
   CLOUD_PREP_ALERT_KEYS,
   CLOUD_PREP_KEYS,
+  CLOUD_PREP_EXTRA_KEYS,
   cloudModeFor,
   cloudPrepKeys,
   estimateCostUsd,
@@ -451,8 +453,10 @@ function cloudPrepSuite() {
     ok(CLOUD_PREP_ALERT_KEYS.includes(m[1]), `spotter ${m[1]} préparé`);
   }
   ok(CLOUD_PREP_ALERT_KEYS.every((k) => !CLOUD_PREP_KEYS.includes(k)), "aucune clé dans les deux listes");
-  eq(cloudPrepKeys(true), [...CLOUD_PREP_KEYS], "alertes en voix locale : seulement l'information");
-  eq(cloudPrepKeys(false).length, CLOUD_PREP_KEYS.length + CLOUD_PREP_ALERT_KEYS.length, "sinon : information + urgentes");
+  eq(cloudPrepKeys(true), [...CLOUD_PREP_KEYS, ...CLOUD_PREP_EXTRA_KEYS], "alertes en voix locale : seulement l'information");
+  eq(cloudPrepKeys(false).length, CLOUD_PREP_KEYS.length + CLOUD_PREP_EXTRA_KEYS.length + CLOUD_PREP_ALERT_KEYS.length, "sinon : information + urgentes");
+  eq([...CLOUD_PREP_EXTRA_KEYS], [...SIDE_CALLOUT_KEYS], "records et repères : tous préparés");
+  ok(CLOUD_PREP_EXTRA_KEYS.every((k) => !CLOUD_PREP_KEYS.includes(k) && !CLOUD_PREP_ALERT_KEYS.includes(k)), "records et repères : dans une seule liste");
 
   // Voix en ligne : en direct pour l'information et les réponses, depuis le cache
   // pour l'urgent, jamais pour l'urgent avec « alertes en voix locale ».
@@ -474,6 +478,7 @@ function cloudPrepSuite() {
   eq(fixedPhrases(["a | b"], (s) => s.toUpperCase()), ["A", "B"], "normalisation appliquée à chaque variante");
   const bundles = { fr, en, es, de, it } as unknown as Record<string, { live: Record<string, string> }>;
   for (const [lang, b] of Object.entries(bundles)) {
+    ok(CLOUD_PREP_EXTRA_KEYS.every((k) => typeof b.live[k] === "string" && b.live[k].includes("|") && !b.live[k].includes("{{")), `${lang} : records et repère, avec variantes, sans variable`);
     const tpls = CLOUD_PREP_KEYS.map((k) => b.live[k]);
     ok(tpls.every((x) => typeof x === "string" && x.length > 0), `${lang} : chaque gabarit existe`);
     const phrases = fixedPhrases(tpls, (s) => s);

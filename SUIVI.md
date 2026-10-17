@@ -977,6 +977,22 @@ la reconnaissance vocale échouait (`useCoachVoice.ts`).
   modèle, puis « Pas de réponse pour l'instant… », avec le toast détaillé) ; commit après
   accord de l'utilisateur.
 
+### 2026-10-17 — Records et repères dits par l'ingénieur, lien de téléchargement OpenKneeboard
+
+- ✅ **Annonces** : avec les annonces vocales de l'ingénieur actives (même règle que
+  `RaceEngineerHost` : interrupteur, partout ou page Live), les records au volant (perso,
+  catégorie en séance, communauté) et la confirmation d'un repère de revue sont **dits**
+  (`live.vRecord*`, `live.vReviewMark`, 3 variantes, `engineer/sideCallouts.ts`) ; sinon
+  les bips d'avant restent. Ces 4 phrases sont dans « Préparer la voix » IA
+  (`CLOUD_PREP_EXTRA_KEYS`), tests de cohérence dans `radio.suite.ts`.
+- ✅ **OpenKneeboard** : lien vers sa page de téléchargement (Overlays → Widgets par adresse,
+  page `127.0.0.1:8791`, outil manquant dans Outils & diagnostic) + note : il exige l'UAC de
+  Windows activé (réglage laissé à l'utilisateur).
+- ✅ Commits sur `feat/veille-pistes`, un par sujet : micro, phrases radio, annonces
+  vocales / OpenKneeboard, analyse des overlays.
+- 📋 **Prochaine étape** : en jeu, voix active : battre son record perso (phrase dite, pas
+  de bip), poser un repère (« Repère noté ») ; voix coupée : retour des bips.
+
 ### 2026-10-17 — Les 13 pistes de la veille, en une passe, sur `feat/veille-pistes`
 
 **Demande** : « fais tout sur une branche séparée, en une passe ; pose les questions

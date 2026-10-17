@@ -2946,8 +2946,8 @@ export default {
     settingDesc: "Durante una sessione online, mostra sotto la classifica Live il giro migliore, la posizione e il livello degli avversari che condividono i giri con la community. Per trovarli, i nomi dei piloti della sessione vengono inviati al server della community; i piloti anonimi non compaiono mai.",
   },
   extras: {
-    title: "Analisi: novità",
-    desc: "Ogni opzione è disattivata di default.",
+    detailTitle: "Dettaglio delle sessioni",
+    detailDesc: "Ciò che appare quando apri una sessione (pagina Sessioni). Disattivato di default.",
     regTitle: "Scheda «Costanza» delle sessioni",
     regDesc: "Nel dettaglio di una sessione: deviazione standard dei tuoi giri, quota di giri vicini al tuo migliore e settore meno costante.",
     tabRegularity: "Costanza",

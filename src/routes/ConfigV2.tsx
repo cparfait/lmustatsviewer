@@ -36,7 +36,7 @@ import { ReplayBenchPanel } from "@/components/ReplayBenchPanel";
 import { RegieSettings } from "@/components/RegieSettings";
 import { ToolsSettings } from "@/components/ToolsSettings";
 import { InsightsToggle, TierSourceSelect } from "@/components/ClassementOptions";
-import { AnalysisExtrasSettings } from "@/components/AnalysisExtrasSettings";
+import { RecordAnnounceSetting, ReviewMarksSetting, SessionDetailSettings } from "@/components/AnalysisExtrasSettings";
 import {
   FolderOpen,
   RefreshCw,
@@ -1238,7 +1238,7 @@ export function ConfigV2() {
 
             {cat === "display" && (
               <div className="mt-4">
-                <AnalysisExtrasSettings />
+                <SessionDetailSettings />
               </div>
             )}
 
@@ -1297,6 +1297,12 @@ export function ConfigV2() {
                     </button>
                   ))}
                 </div>
+                {/* Records au volant : marche aussi sans annonces vocales (bips). */}
+                {voiceTab === "announces" && (
+                  <div className="py-2">
+                    <RecordAnnounceSetting />
+                  </div>
+                )}
                 {!voiceAnnouncements && (voiceTab === "voice" || voiceTab === "announces" || voiceTab === "coach") && (
                   <p className="py-2 text-xs text-muted-foreground/80">{t("config.voiceTabNeedsVoice")}</p>
                 )}
@@ -1890,6 +1896,11 @@ export function ConfigV2() {
                           />
                         </div>
                       )}
+                    </section>
+
+                    {/* 3 bis. Repères de revue : un bouton en roulant marque « ce moment ». */}
+                    <section className="space-y-1.5 border-t border-border/50 pt-3">
+                      <ReviewMarksSetting />
                     </section>
 
                     {/* 4. Commandes reconnues (liste commune, modifiable) */}

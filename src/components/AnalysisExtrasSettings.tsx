@@ -1,17 +1,15 @@
 /**
- * Nouveautés d'analyse (veille 2026-10-17), réglées dans Configuration › Préférences,
- * toutes désactivées par défaut :
- * - onglet « Régularité » du détail de séance ;
- * - badge « tours comparables » du détail de séance ;
- * - bips de record au volant ;
- * - repères de revue (raccourci clavier et/ou bouton du volant).
+ * Options d'analyse (veille 2026-10-17), toutes désactivées par défaut, rangées là où
+ * elles agissent :
+ * - Préférences › Détail des séances : onglet « Régularité », badge « tours comparables » ;
+ * - Audio / Voix › Annonces : annonces de record au volant (phrase ou bips) ;
+ * - Audio / Voix › Parler à l'ingénieur : repères de revue (raccourci et/ou bouton du volant).
  */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { Bell, Bookmark, Gauge, Loader2, ShieldCheck, Volume2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { config, isTauri, type WheelBinding } from "@/lib/api";
 import {
@@ -139,29 +137,44 @@ function MarkBindings() {
   );
 }
 
-export function AnalysisExtrasSettings() {
+/** Préférences › « Détail des séances » : onglet Régularité et badge « tours comparables ». */
+export function SessionDetailSettings() {
   const { t } = useTranslation();
   return (
-    <Card className="space-y-3 p-4">
+    <div className="space-y-2">
       <div>
-        <h3 className="font-semibold">{t("extras.title")}</h3>
-        <p className="text-sm text-muted-foreground">{t("extras.desc")}</p>
+        <h3 className="font-semibold">{t("extras.detailTitle")}</h3>
+        <p className="text-xs text-muted-foreground">{t("extras.detailDesc")}</p>
       </div>
       <FlagRow flag={FLAG_REGULARITY} icon={<Gauge className="h-4 w-4" />} title={t("extras.regTitle")} desc={t("extras.regDesc")} />
       <FlagRow flag={FLAG_COMPARABLE} icon={<ShieldCheck className="h-4 w-4" />} title={t("extras.cmpTitle")} desc={t("extras.cmpDesc")} />
-      <FlagRow flag={FLAG_RECORD_BEEPS} icon={<Bell className="h-4 w-4" />} title={t("extras.beepsTitle")} desc={t("extras.beepsDesc")}>
-        <div className="flex flex-wrap gap-2 pl-7">
-          {([1, 2, 3] as const).map((n) => (
-            <Button key={n} size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={() => recordBeeps(n)}>
-              <Volume2 className="h-3 w-3" />
-              {t(`extras.beepTest${n}`)}
-            </Button>
-          ))}
-        </div>
-      </FlagRow>
-      <FlagRow flag={FLAG_REVIEW_MARKS} icon={<Bookmark className="h-4 w-4" />} title={t("extras.marksSettingTitle")} desc={t("extras.marksSettingDesc")}>
-        <MarkBindings />
-      </FlagRow>
-    </Card>
+    </div>
+  );
+}
+
+/** Audio / Voix › Annonces : records au volant (phrase de l'ingénieur ou bips). */
+export function RecordAnnounceSetting() {
+  const { t } = useTranslation();
+  return (
+    <FlagRow flag={FLAG_RECORD_BEEPS} icon={<Bell className="h-4 w-4" />} title={t("extras.beepsTitle")} desc={t("extras.beepsDesc")}>
+      <div className="flex flex-wrap gap-2 pl-7">
+        {([1, 2, 3] as const).map((n) => (
+          <Button key={n} size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={() => recordBeeps(n)}>
+            <Volume2 className="h-3 w-3" />
+            {t(`extras.beepTest${n}`)}
+          </Button>
+        ))}
+      </div>
+    </FlagRow>
+  );
+}
+
+/** Audio / Voix › Parler à l'ingénieur : repères de revue (raccourci et bouton du volant). */
+export function ReviewMarksSetting() {
+  const { t } = useTranslation();
+  return (
+    <FlagRow flag={FLAG_REVIEW_MARKS} icon={<Bookmark className="h-4 w-4" />} title={t("extras.marksSettingTitle")} desc={t("extras.marksSettingDesc")}>
+      <MarkBindings />
+    </FlagRow>
   );
 }

@@ -2952,8 +2952,8 @@ export default {
     settingDesc: "Pendant une séance en ligne, affiche sous le classement Live le meilleur tour, le rang et le niveau des adversaires qui partagent leurs tours avec la communauté. Pour les retrouver, les noms des pilotes de la séance sont envoyés au serveur communautaire ; les pilotes anonymes n'apparaissent jamais.",
   },
   extras: {
-    title: "Analyse : nouveautés",
-    desc: "Chaque option est désactivée par défaut.",
+    detailTitle: "Détail des séances",
+    detailDesc: "Ce qui s'affiche quand tu ouvres une séance (page Sessions). Désactivé par défaut.",
     regTitle: "Onglet « Régularité » des séances",
     regDesc: "Dans le détail d'une séance : écart-type de tes tours, part des tours proches de ton meilleur et secteur le moins régulier.",
     tabRegularity: "Régularité",

@@ -2951,8 +2951,8 @@ export default {
     settingDesc: "Zeigt während einer Online-Session unter der Live-Wertung beste Runde, Rang und Stufe der Gegner, die ihre Runden mit der Community teilen. Um sie zu finden, werden die Namen der Session-Fahrer an den Community-Server gesendet; anonyme Fahrer erscheinen nie.",
   },
   extras: {
-    title: "Analyse: Neuheiten",
-    desc: "Jede Option ist standardmäßig aus.",
+    detailTitle: "Sitzungsdetails",
+    detailDesc: "Was beim Öffnen einer Sitzung angezeigt wird (Seite Sitzungen). Standardmäßig aus.",
     regTitle: "Tab „Konstanz“ in Sessions",
     regDesc: "In den Session-Details: Standardabweichung deiner Runden, Anteil der Runden nahe deiner besten und unbeständigster Sektor.",
     tabRegularity: "Konstanz",

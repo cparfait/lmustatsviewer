@@ -2946,8 +2946,8 @@ export default {
     settingDesc: "During an online session, shows under the Live standings the best lap, rank and level of opponents who share their laps with the community. To find them, the names of the session's drivers are sent to the community server; anonymous drivers never appear.",
   },
   extras: {
-    title: "Analysis: new features",
-    desc: "Each option is off by default.",
+    detailTitle: "Session details",
+    detailDesc: "What shows when you open a session (Sessions page). Off by default.",
     regTitle: "“Consistency” tab in sessions",
     regDesc: "In a session's details: standard deviation of your laps, share of laps close to your best and least consistent sector.",
     tabRegularity: "Consistency",

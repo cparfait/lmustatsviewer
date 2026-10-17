@@ -452,6 +452,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Settings: the “Analysis: new features” block is gone, each option now sits where it acts — Preferences › Session details (Regularity tab, “comparable laps” badge), Audio / Voice › Announcements (record announcements, also usable with beeps only), Audio / Voice › Talk to the engineer (review marks).",
+              fr: "Configuration : le bloc « Analyse : nouveautés » disparaît, chaque option est rangée là où elle agit — Préférences › Détail des séances (onglet Régularité, badge « tours comparables »), Audio / Voix › Annonces (annonces de record, utilisables aussi avec les seuls bips), Audio / Voix › Parler à l'ingénieur (repères de revue).",
+              es: "Configuración: desaparece el bloque «Análisis: novedades» y cada opción se coloca donde actúa — Preferencias › Detalle de las sesiones (pestaña Regularidad, insignia «vueltas comparables»), Audio / Voz › Anuncios (anuncios de récord, también solo con pitidos), Audio / Voz › Hablar con el ingeniero (marcas de revisión).",
+              de: "Einstellungen: Der Block „Analyse: Neuheiten“ entfällt, jede Option steht dort, wo sie wirkt — Präferenzen › Sitzungsdetails (Tab Regelmäßigkeit, Abzeichen „vergleichbare Runden“), Audio / Stimme › Ansagen (Rekord-Ansagen, auch nur mit Pieptönen), Audio / Stimme › Mit dem Ingenieur sprechen (Review-Markierungen).",
+              it: "Impostazioni: il blocco «Analisi: novità» sparisce, ogni opzione è dove agisce — Preferenze › Dettaglio delle sessioni (scheda Regolarità, badge «giri comparabili»), Audio / Voce › Annunci (annunci di record, anche solo con i bip), Audio / Voce › Parla con l'ingegnere (segnalibri di revisione).",
+            },
+          },
+          {
+            text: {
               en: "Settings: every option now sits in its own box with a coloured icon and its description, like the “Analysis: new features” block, instead of plain lines. “Menu modules” moves under Preferences and is folded by default.",
               fr: "Configuration : chaque réglage est désormais présenté dans son encadré, avec une icône en couleur et sa description, comme le bloc « Analyse : nouveautés », au lieu de simples lignes. « Modules du menu » passe sous Préférences et est replié par défaut.",
               es: "Configuración: cada ajuste aparece ahora en su propio recuadro, con un icono en color y su descripción, como el bloque «Análisis: novedades», en lugar de simples líneas. «Módulos del menú» pasa debajo de Preferencias y aparece plegado por defecto.",

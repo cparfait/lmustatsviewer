@@ -2950,8 +2950,8 @@ export default {
     settingDesc: "Durante una sesión online, muestra bajo la clasificación Live la mejor vuelta, la posición y el nivel de los rivales que comparten sus vueltas con la comunidad. Para encontrarlos, los nombres de los pilotos de la sesión se envían al servidor de la comunidad; los pilotos anónimos nunca aparecen.",
   },
   extras: {
-    title: "Análisis: novedades",
-    desc: "Cada opción está desactivada por defecto.",
+    detailTitle: "Detalle de las sesiones",
+    detailDesc: "Lo que aparece al abrir una sesión (página Sesiones). Desactivado por defecto.",
     regTitle: "Pestaña «Regularidad» de las sesiones",
     regDesc: "En el detalle de una sesión: desviación típica de tus vueltas, porcentaje de vueltas cercanas a tu mejor y sector menos regular.",
     tabRegularity: "Regularidad",

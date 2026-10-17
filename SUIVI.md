@@ -913,6 +913,15 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Bloc « Analyse : nouveautés » supprimé, options rangées où elles agissent
+
+- ✅ `AnalysisExtrasSettings.tsx` découpé : `SessionDetailSettings` (Préférences › « Détail des
+  séances » : Régularité, tours comparables), `RecordAnnounceSetting` (Audio / Voix › Annonces,
+  affiché même sans annonces vocales puisque les bips marchent seuls), `ReviewMarksSetting`
+  (Audio / Voix › Parler à l'ingénieur, section après les raccourcis sans parler). Clés i18n
+  `extras.title/desc` remplacées par `extras.detailTitle/detailDesc`. Mêmes drapeaux de config :
+  aucun réglage perdu.
+
 ### 2026-10-17 — Configuration au style du bloc « Analyse : nouveautés »
 
 - ✅ `SettingRow` / `ToggleRow` (ConfigV2) : chaque réglage dans un encadré (`rounded-md border

@@ -452,6 +452,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Settings: every option now sits in its own box with a coloured icon and its description, like the “Analysis: new features” block, instead of plain lines. “Menu modules” moves under Preferences and is folded by default.",
+              fr: "Configuration : chaque réglage est désormais présenté dans son encadré, avec une icône en couleur et sa description, comme le bloc « Analyse : nouveautés », au lieu de simples lignes. « Modules du menu » passe sous Préférences et est replié par défaut.",
+              es: "Configuración: cada ajuste aparece ahora en su propio recuadro, con un icono en color y su descripción, como el bloque «Análisis: novedades», en lugar de simples líneas. «Módulos del menú» pasa debajo de Preferencias y aparece plegado por defecto.",
+              de: "Einstellungen: Jede Option steht jetzt in einem eigenen Kasten mit farbigem Symbol und Beschreibung, wie der Block „Analyse: Neuheiten“, statt in einfachen Zeilen. „Menümodule“ steht unter den Präferenzen und ist standardmäßig eingeklappt.",
+              it: "Impostazioni: ogni opzione è ora presentata in un riquadro con icona colorata e descrizione, come il blocco «Analisi: novità», invece di semplici righe. «Moduli del menu» passa sotto Preferenze ed è chiuso di default.",
+            },
+          },
+          {
+            text: {
               en: "Guided tour on the real app: each step opens its page, circles the button or menu entry it talks about (the rest of the screen is dimmed) and shows the explanation right next to it. New steps for the steering-wheel button and VR.",
               fr: "Visite guidée sur l'app réelle : chaque étape ouvre sa page, entoure le bouton ou l'entrée de menu dont elle parle (le reste de l'écran est assombri) et affiche l'explication juste à côté. Nouvelles étapes pour le bouton volant et la VR.",
               es: "Visita guiada sobre la app real: cada paso abre su página, rodea el botón o la entrada de menú de la que habla (el resto de la pantalla se oscurece) y muestra la explicación justo al lado. Nuevos pasos para el botón del volante y la VR.",

@@ -23,7 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+/** Entre deux réglages encadrés : un espacement plutôt qu'un trait. */
+const Separator = (_: { className?: string }) => <div className="h-2" aria-hidden />;
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -986,12 +987,127 @@ export function ConfigV2() {
             {cat === "display" && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="mb-1 text-sm font-medium text-primary">
-                    {t("config.menuModules")}
+                  <h3 className="mb-2 font-semibold">
+                    {t("config.preferences")}
                   </h3>
-                  <p className="mb-2 text-xs text-muted-foreground/80">
-                    {t("config.menuModulesDesc")}
-                  </p>
+                  <SettingRow icon={<Sun className="h-4 w-4" />} label={t("config.theme")} tip={t("config.themeTip")}>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setTheme("light")}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
+                          theme === "light"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-transparent text-muted-foreground border-border hover:bg-muted/50",
+                        )}
+                      >
+                        <Sun className="h-3.5 w-3.5" />
+                        {t("config.themeLight")}
+                      </button>
+                      <button
+                        onClick={() => setTheme("dark")}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
+                          theme === "dark"
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-transparent text-muted-foreground border-border hover:bg-muted/50",
+                        )}
+                      >
+                        <Moon className="h-3.5 w-3.5" />
+                        {t("config.themeDark")}
+                      </button>
+                    </div>
+                  </SettingRow>
+                  <Separator />
+                  <SettingRow icon={<Globe className="h-4 w-4" />} label={t("config.language")} tip={t("config.languageTip")}>
+                    {(() => {
+                      const current =
+                        LANGUAGES.find((l) => i18n.language?.startsWith(l.code)) ??
+                        LANGUAGES[0];
+                      return (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 min-w-[140px] justify-between gap-2 font-normal"
+                            >
+                              <span className="flex items-center gap-2">
+                                <img
+                                  src={current.flag}
+                                  alt={current.code}
+                                  className="h-3.5 w-auto rounded-[2px]"
+                                />
+                                {current.label}
+                              </span>
+                              <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="min-w-[160px]">
+                            {LANGUAGES.map((l) => (
+                              <DropdownMenuItem
+                                key={l.code}
+                                onSelect={() => i18n.changeLanguage(l.code)}
+                                className="gap-2 cursor-pointer"
+                              >
+                                <img
+                                  src={l.flag}
+                                  alt={l.code}
+                                  className="h-3.5 w-auto rounded-[2px]"
+                                />
+                                {l.label}
+                                {current.code === l.code && (
+                                  <Check className="h-3.5 w-3.5 ml-auto text-primary" />
+                                )}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      );
+                    })()}
+                  </SettingRow>
+                  <Separator />
+                  <SettingRow
+                    icon={<span className="text-sm">🕐</span>}
+                    label={t("config.timezone")}
+                    desc={t("config.timezoneDesc")}
+                    tip={t("config.timezoneTip")}
+                  >
+                    <Select
+                      value={timezone}
+                      onValueChange={(v) => useAppStore.getState().setTimezone(v)}
+                      ariaLabel={t("config.timezone")}
+                      className="h-8 max-w-[200px] px-2.5"
+                      options={[
+                        { value: "", label: t("config.timezoneSystem") },
+                        ...TIMEZONES.map((tz) => ({ value: tz, label: tz })),
+                      ]}
+                    />
+                  </SettingRow>
+                  <Separator />
+                  <ToggleRow
+                    icon={<Settings2 className="h-4 w-4" />}
+                    label={t("config.systemTray")}
+                    desc={t("config.systemTrayDesc")}
+                    tip={t("config.systemTrayTip")}
+                    checked={systemTray}
+                    onChange={(v) => useAppStore.getState().setSystemTray(v)}
+                  />
+                  <Separator />
+                  <ToggleRow
+                    icon={<Film className="h-4 w-4" />}
+                    label={t("config.launchIntro")}
+                    desc={t("config.launchIntroDesc")}
+                    tip={t("config.launchIntroTip")}
+                    checked={launchIntro}
+                    onChange={(v) => useAppStore.getState().setLaunchIntro(v)}
+                  />
+                </div>
+
+                <CollapsibleSection
+                  title={t("config.menuModules")}
+                  desc={t("config.menuModulesDesc")}
+                >
                   {MENU_MODULE_KEYS.map((key, i) => (
                     <Fragment key={key}>
                       {i > 0 && <Separator />}
@@ -1116,127 +1232,7 @@ export function ConfigV2() {
                   <p className="px-1 pt-2 text-xs text-muted-foreground">
                     {t("config.menuModulesNote")}
                   </p>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="mb-2 text-sm font-medium text-primary">
-                    {t("config.preferences")}
-                  </h3>
-                  <SettingRow icon={<Sun className="h-4 w-4" />} label={t("config.theme")} tip={t("config.themeTip")}>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setTheme("light")}
-                        className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
-                          theme === "light"
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-transparent text-muted-foreground border-border hover:bg-muted/50",
-                        )}
-                      >
-                        <Sun className="h-3.5 w-3.5" />
-                        {t("config.themeLight")}
-                      </button>
-                      <button
-                        onClick={() => setTheme("dark")}
-                        className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
-                          theme === "dark"
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-transparent text-muted-foreground border-border hover:bg-muted/50",
-                        )}
-                      >
-                        <Moon className="h-3.5 w-3.5" />
-                        {t("config.themeDark")}
-                      </button>
-                    </div>
-                  </SettingRow>
-                  <Separator />
-                  <SettingRow icon={<Globe className="h-4 w-4" />} label={t("config.language")} tip={t("config.languageTip")}>
-                    {(() => {
-                      const current =
-                        LANGUAGES.find((l) => i18n.language?.startsWith(l.code)) ??
-                        LANGUAGES[0];
-                      return (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 min-w-[140px] justify-between gap-2 font-normal"
-                            >
-                              <span className="flex items-center gap-2">
-                                <img
-                                  src={current.flag}
-                                  alt={current.code}
-                                  className="h-3.5 w-auto rounded-[2px]"
-                                />
-                                {current.label}
-                              </span>
-                              <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="min-w-[160px]">
-                            {LANGUAGES.map((l) => (
-                              <DropdownMenuItem
-                                key={l.code}
-                                onSelect={() => i18n.changeLanguage(l.code)}
-                                className="gap-2 cursor-pointer"
-                              >
-                                <img
-                                  src={l.flag}
-                                  alt={l.code}
-                                  className="h-3.5 w-auto rounded-[2px]"
-                                />
-                                {l.label}
-                                {current.code === l.code && (
-                                  <Check className="h-3.5 w-3.5 ml-auto text-primary" />
-                                )}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      );
-                    })()}
-                  </SettingRow>
-                  <Separator />
-                  <SettingRow
-                    icon={<span className="text-sm">🕐</span>}
-                    label={t("config.timezone")}
-                    desc={t("config.timezoneDesc")}
-                    tip={t("config.timezoneTip")}
-                  >
-                    <Select
-                      value={timezone}
-                      onValueChange={(v) => useAppStore.getState().setTimezone(v)}
-                      ariaLabel={t("config.timezone")}
-                      className="h-8 max-w-[200px] px-2.5"
-                      options={[
-                        { value: "", label: t("config.timezoneSystem") },
-                        ...TIMEZONES.map((tz) => ({ value: tz, label: tz })),
-                      ]}
-                    />
-                  </SettingRow>
-                  <Separator />
-                  <ToggleRow
-                    icon={<Settings2 className="h-4 w-4" />}
-                    label={t("config.systemTray")}
-                    desc={t("config.systemTrayDesc")}
-                    tip={t("config.systemTrayTip")}
-                    checked={systemTray}
-                    onChange={(v) => useAppStore.getState().setSystemTray(v)}
-                  />
-                  <Separator />
-                  <ToggleRow
-                    icon={<Film className="h-4 w-4" />}
-                    label={t("config.launchIntro")}
-                    desc={t("config.launchIntroDesc")}
-                    tip={t("config.launchIntroTip")}
-                    checked={launchIntro}
-                    onChange={(v) => useAppStore.getState().setLaunchIntro(v)}
-                  />
-                </div>
+                </CollapsibleSection>
               </div>
             )}
 
@@ -2765,18 +2761,18 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between py-2">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
+      <div className="flex min-w-0 items-start gap-2.5">
         {tip ? (
           <Tip content={tip} side="right">
-            <span className="text-muted-foreground cursor-help">{icon}</span>
+            <span className="mt-0.5 shrink-0 cursor-help text-primary">{icon}</span>
           </Tip>
         ) : (
-          <span className="text-muted-foreground">{icon}</span>
+          <span className="mt-0.5 shrink-0 text-primary">{icon}</span>
         )}
-        <div>
+        <div className="min-w-0 space-y-0.5">
           <div className="text-sm font-medium">{label}</div>
-          {desc && <div className="text-xs text-muted-foreground/70">{desc}</div>}
+          {desc && <div className="text-xs text-muted-foreground">{desc}</div>}
         </div>
       </div>
       {children}
@@ -2856,6 +2852,36 @@ function ShortcutCapture({
 }
 
 /** Sous-menu repliable (déroulant) pour les options d'un module. Fermé par défaut. */
+/** Bloc à titre, replié par défaut (ex. « Modules du menu »). */
+function CollapsibleSection({
+  title,
+  desc,
+  children,
+}: {
+  title: string;
+  desc?: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-md border border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-start gap-2 p-3 text-left"
+      >
+        <ChevronDown className={cn("mt-0.5 h-4 w-4 shrink-0 text-primary transition-transform", !open && "-rotate-90")} />
+        <div className="min-w-0">
+          <div className="font-semibold">{title}</div>
+          {desc && <div className="text-xs text-muted-foreground">{desc}</div>}
+        </div>
+      </button>
+      {open && <div className="px-3 pb-3">{children}</div>}
+    </div>
+  );
+}
+
 function Disclosure({
   title,
   children,
@@ -3182,20 +3208,20 @@ function ToggleRow({
   return (
     <div
       className={cn(
-        "flex items-center justify-between py-2 gap-3",
+        "flex items-center justify-between gap-4 rounded-md border border-border p-3",
         disabled && "opacity-50",
       )}
     >
-      <div className="flex items-start gap-2 min-w-0">
+      <div className="flex min-w-0 items-start gap-2.5">
         <Tip content={tip ?? ""} side="right">
-          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+          <span className="mt-0.5 shrink-0 cursor-help text-primary">
             {icon}
           </span>
         </Tip>
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-0.5">
           <div className="text-sm font-medium leading-tight">{label}</div>
           {desc && (
-            <div className="text-xs text-muted-foreground/80 mt-0.5">{desc}</div>
+            <div className="text-xs text-muted-foreground">{desc}</div>
           )}
         </div>
       </div>

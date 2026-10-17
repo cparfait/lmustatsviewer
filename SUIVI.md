@@ -913,6 +913,16 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Configuration au style du bloc « Analyse : nouveautés »
+
+- ✅ `SettingRow` / `ToggleRow` (ConfigV2) : chaque réglage dans un encadré (`rounded-md border
+  p-3`), icône en couleur d'accent, description en clair ; les `Separator` de la page
+  deviennent un espacement (alias local). Toutes les catégories en profitent (composants
+  communs). « Modules du menu » déplacé sous Préférences, dans un bloc repliable
+  (`CollapsibleSection`, fermé par défaut). Vérifié dans le navigateur (page Préférences).
+- 📋 **Prochaine étape** : passer les autres catégories en revue dans l'app (Audio / Voix,
+  Coach IA) pour les blocs qui ne passent pas par `SettingRow` / `ToggleRow`.
+
 ### 2026-10-17 — Aide, visite guidée sur l'app réelle, bouton volant, outils en cartes
 
 - ✅ **Aide** (`HelpModal`) rendue par portail dans `document.body` : l'en-tête (`backdrop-blur`)

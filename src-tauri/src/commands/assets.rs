@@ -86,6 +86,9 @@ pub struct AssetInfo {
     pub installed: bool,
     /// Vrai pour la voix par défaut de la langue (`<code>.onnx`).
     pub is_default: bool,
+    /// Présent dans le dossier des téléchargements de l'app, donc supprimable (une voix
+    /// lue ailleurs — ressources de l'app, dossier du projet en dev — ne l'est pas).
+    pub deletable: bool,
 }
 
 /// Progression poussée au frontend pendant `asset_download`.
@@ -145,6 +148,8 @@ fn stt_model_installed(app: &tauri::AppHandle, code: &str) -> bool {
 /// Catalogue des modèles téléchargeables + leur état d'installation.
 #[tauri::command]
 pub fn assets_catalog(app: tauri::AppHandle) -> Vec<AssetInfo> {
+    let tts_dir = tts_download_dir(&app).ok();
+    let stt_dir = stt_download_dir(&app).ok();
     let installed_voices: HashSet<String> = super::tts::voice_files(&app)
         .iter()
         .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
@@ -159,6 +164,7 @@ pub fn assets_catalog(app: tauri::AppHandle) -> Vec<AssetInfo> {
             size_mb: (v.size / 1_048_576) as u32 + 1,
             installed: installed_voices.contains(v.id),
             is_default: v.id == v.lang,
+            deletable: tts_dir.as_ref().is_some_and(|d| d.join(format!("{}.onnx", v.id)).is_file()),
         })
         .collect();
     out.extend(STT_MODELS.iter().map(|m| AssetInfo {
@@ -169,6 +175,7 @@ pub fn assets_catalog(app: tauri::AppHandle) -> Vec<AssetInfo> {
         size_mb: (m.size / 1_048_576) as u32 + 1,
         installed: stt_model_installed(&app, m.lang),
         is_default: true,
+        deletable: stt_dir.as_ref().is_some_and(|d| d.join(m.lang).is_dir()),
     }));
     out
 }

@@ -1542,6 +1542,8 @@ export interface AssetInfo {
   installed: boolean;
   /** Vrai pour la voix par défaut de la langue. */
   is_default: boolean;
+  /** Téléchargé dans le dossier de l'app : supprimable (faux pour une voix fournie avec l'app). */
+  deletable: boolean;
 }
 
 /** Progression d'un téléchargement (`assets::AssetProgress`). */

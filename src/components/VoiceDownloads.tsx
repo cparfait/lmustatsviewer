@@ -189,6 +189,7 @@ export function VoiceDownloads({
                   <Check className="h-3.5 w-3.5" />
                   {t("config.assetInstalled")}
                 </span>
+                {a.deletable && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -199,6 +200,7 @@ export function VoiceDownloads({
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
+                )}
               </>
             ) : busyId === a.id ? (
               progressBar

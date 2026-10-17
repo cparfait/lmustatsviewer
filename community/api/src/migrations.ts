@@ -139,6 +139,23 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       alter table installs add column avatar_off boolean not null default false;
     `,
   },
+  {
+    id: 6,
+    name: "rival_week",
+    sql: `
+      -- Rival de la semaine (opt-in, désactivé par défaut) : un duel par semaine entre
+      -- pilotes de rythme proche. Une ligne par pilote et par semaine (lundi UTC) ;
+      -- rival_id null = en attente d'un partenaire.
+      alter table installs add column rival_opt_in boolean not null default false;
+      create table rival_pairs (
+        week date not null,
+        install_id uuid not null references installs(id) on delete cascade,
+        rival_id uuid references installs(id) on delete set null,
+        created_at timestamptz not null default now(),
+        primary key (week, install_id)
+      );
+    `,
+  },
 ];
 
 export async function migrate(db: Db): Promise<number[]> {

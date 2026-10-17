@@ -48,6 +48,7 @@ import {
   type ComboKey,
   type Filters,
 } from "./stats.js";
+import { briefing, carIndex, patchEffect, rivalStatus, tierReferences, TIER_TOP_N } from "./insights.js";
 
 export interface Limits {
   register: Limit;
@@ -313,25 +314,33 @@ export function createApp(db: Db, opts: AppOptions = {}) {
           nationality: z.string().regex(/^[A-Za-z]{2,3}$/).nullable().optional(),
           // Avatar Steam affiché (défaut) ou retiré ; false efface aussi le SteamID64.
           avatar: z.boolean().optional(),
+          // Rival de la semaine (opt-in, désactivé par défaut).
+          rival: z.boolean().optional(),
         })
         .strict()
         .refine((b) => Object.keys(b).length > 0)
         .safeParse(await c.req.json().catch(() => null));
       if (!body.success) return c.json({ error: "bad_request" }, 400);
       const id = c.get("install").id;
-      const { anonymous, nationality, avatar } = body.data;
+      const { anonymous, nationality, avatar, rival } = body.data;
+      if (rival !== undefined) await db.query("update installs set rival_opt_in = $2 where id = $1", [id, rival]);
       if (anonymous !== undefined) await db.query("update installs set anonymous = $2 where id = $1", [id, anonymous]);
       if (nationality !== undefined) await db.query("update installs set nationality = $2 where id = $1", [id, nationality?.toUpperCase() ?? null]);
       if (avatar === false)
         await db.query("update installs set avatar_off = true, steam_id = null, avatar = null, avatar_checked_at = null where id = $1", [id]);
       // Réactiver : le SteamID sera repris à la prochaine connexion Steam (mode « avatar »).
       if (avatar === true) await db.query("update installs set avatar_off = false where id = $1", [id]);
-      const [me] = await db.query<{ anonymous: boolean; avatar: boolean; avatar_ready: boolean }>(
-        "select anonymous, not avatar_off as avatar, steam_id is not null as avatar_ready from installs where id = $1",
+      const [me] = await db.query<{ anonymous: boolean; avatar: boolean; avatar_ready: boolean; rival: boolean }>(
+        "select anonymous, not avatar_off as avatar, steam_id is not null as avatar_ready, rival_opt_in as rival from installs where id = $1",
         [id],
       );
-      return c.json({ anonymous: me.anonymous, steam_linked: c.get("install").steam_linked, avatar: me.avatar, avatar_ready: me.avatar_ready });
+      return c.json({ anonymous: me.anonymous, steam_linked: c.get("install").steam_linked, avatar: me.avatar, avatar_ready: me.avatar_ready, rival: me.rival });
     },
+  );
+
+  // Rival de la semaine : duel en cours et bilan des semaines passées.
+  v1.get("/rival", auth, limit("writePerInstall", (c) => c.get("install").id), async (c) =>
+    c.json(await rivalStatus(db, c.get("install").id, (ingestOpts.today ?? (() => new Date().toISOString().slice(0, 10)))())),
   );
 
   v1.delete("/me", auth, async (c) => {
@@ -440,6 +449,58 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     if (!p || !t.success) return c.json({ error: "bad_request" }, 400);
     const pos = await position(db, p.key, p.f, t.data);
     return pos ? c.json(pos) : c.json({ error: "not_found" }, 404);
+  });
+
+  // ── Vues dérivées (paliers, voitures, patch, briefing) ───────────────────
+  const viewFilters = z.object({
+    aids: z.enum(["clean", "all"]).optional(),
+    conditions: z.enum(["dry", "wet"]).optional(),
+    mode: z.enum(["online", "offline"]).optional(),
+    session: z.enum(["race", "qualify", "practice"]).optional(),
+  });
+  const filtersOf = (q: z.infer<typeof viewFilters>): Filters => ({
+    aids: q.aids ?? DEFAULT_FILTERS.aids,
+    conditions: q.conditions ?? DEFAULT_FILTERS.conditions,
+    mode: q.mode,
+    session: q.session,
+  });
+
+  v1.get("/tiers", publicRead, async (c) => {
+    const q = viewFilters.safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "bad_request" }, 400);
+    return c.json({ top_n: TIER_TOP_N, references: await tierReferences(db, filtersOf(q.data)) });
+  });
+
+  v1.get("/cars", publicRead, async (c) => {
+    const q = viewFilters.extend({ class: z.string().min(1).max(32) }).safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "bad_request" }, 400);
+    return c.json(await carIndex(db, q.data.class, filtersOf(q.data)));
+  });
+
+  v1.get("/patch", publicRead, async (c) => {
+    const v = z.string().regex(/^\d{1,2}\.\d{2}$/);
+    const q = viewFilters
+      .extend({ class: z.string().min(1).max(32).optional(), from: v.optional(), to: v.optional() })
+      .safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "bad_request" }, 400);
+    return c.json(await patchEffect(db, { from: q.data.from, to: q.data.to, carClass: q.data.class }, filtersOf(q.data)));
+  });
+
+  // Briefing des adversaires : noms vus dans une séance (corps, pas d'adresse : ce sont
+  // des noms de joueurs). Seuls les pilotes partagés sous leur nom sont renvoyés.
+  v1.post("/briefing", bodyLimit({ maxSize: 8 * 1024 }), publicRead, async (c) => {
+    const body = z
+      .object({
+        track: z.string().min(1).max(120),
+        course: z.string().min(1).max(120),
+        class: z.string().min(1).max(32).optional(),
+        names: z.array(z.string().trim().min(1).max(64)).min(1).max(64),
+      })
+      .strict()
+      .safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return c.json({ error: "bad_request" }, 400);
+    const { track, course, names } = body.data;
+    return c.json(await briefing(db, names, { track, course, carClass: body.data.class }));
   });
 
   v1.get("/drivers", publicRead, async (c) => {

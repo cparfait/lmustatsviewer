@@ -238,8 +238,12 @@ export async function exportInstall(db: Db, install: Install) {
      from sessions where install_id = $1 order by played_on desc, id desc`,
     [install.id],
   );
-  const [profile] = await db.query<{ nationality: string | null; steam_id: string | null; avatar: string | null }>(
-    "select nationality, steam_id, avatar from installs where id = $1",
+  const [profile] = await db.query<{ nationality: string | null; steam_id: string | null; avatar: string | null; rival_opt_in: boolean }>(
+    "select nationality, steam_id, avatar, rival_opt_in from installs where id = $1",
+    [install.id],
+  );
+  const rival_weeks = await db.query(
+    "select week::text as week, rival_id is not null as paired from rival_pairs where install_id = $1 order by week desc",
     [install.id],
   );
   return {
@@ -251,6 +255,8 @@ export async function exportInstall(db: Db, install: Install) {
     nationality: profile?.nationality ?? null,
     steam_id: profile?.steam_id ?? null,
     avatar: profile?.avatar ?? null,
+    rival_opt_in: profile?.rival_opt_in ?? false,
+    rival_weeks,
     sessions,
   };
 }

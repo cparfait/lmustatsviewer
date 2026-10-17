@@ -1012,9 +1012,21 @@ la reconnaissance vocale échouait (`useCoachVoice.ts`).
   vérifications : causes, rappel unique, 3 variantes courtes par langue). `tsc -b`, ESLint,
   `npm test` (3767) propres. Travail sur `feat/veille-pistes` (demande de la session
   principale), non commité.
-- 📋 **Prochaine étape** : essai en jeu avec le modèle retiré (on doit entendre le rappel
-  modèle, puis « Pas de réponse pour l'instant… », avec le toast détaillé) ; commit après
-  accord de l'utilisateur.
+- ✅ **Fausses détections du mot déclencheur** (retour utilisateur : « je ne lui parle pas
+  et Piper me dit qu'il ne peut pas répondre »). Le guet Vosk à grammaire fermée
+  `[mot, "[unk]"]` prend souvent une autre voix pour le mot ; la dictée libre qui suit
+  (« douze pour cent ») partait quand même, car `after_wake` renvoyait la dictée entière
+  sans le mot. `after_wake` → `Option` : `None` si le mot (à « s/e/es » près) n'est pas
+  dans la dictée libre → `wake-timeout`, rien n'est envoyé (voice_input.rs + test Rust).
+- ✅ **Voix IA en ligne** : accusés `coach.voiceAck1-3`, `voiceUnclear`, `voiceUnavailable`,
+  `voiceHintModel/Key` ajoutés à « Préparer la voix » (`CLOUD_PREP_ANSWER_KEYS`, clés i18n
+  complètes) ; les phrases d'échec passent par `announceAnswer` (voix en ligne, cache
+  sinon direct) ; l'accusé reste `announce` (instantané : préparé → voix IA, sinon Piper).
+- ✅ **Validé par l'utilisateur** (app de dev) : plus de réponse fantôme quand il ne parle
+  pas ; « ingénieur… raclette » → phrase courte + toast détaillé (modèle retiré).
+- 📋 **Prochaine étape** : mettre à jour le modèle du Coach IA (Configuration → Coach IA →
+  Modèle) ; relancer « Préparer la voix » pour que les réponses de l'ingénieur passent en
+  voix IA.
 
 ### 2026-10-17 — Records et repères dits par l'ingénieur, lien de téléchargement OpenKneeboard
 

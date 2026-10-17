@@ -18,6 +18,7 @@ import { route } from "@/lib/engineer/router";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
 import {
   CLOUD_PREP_ALERT_KEYS,
+  CLOUD_PREP_ANSWER_KEYS,
   CLOUD_PREP_KEYS,
   CLOUD_PREP_EXTRA_KEYS,
   cloudModeFor,
@@ -280,6 +281,13 @@ function radioErrorsSuite() {
     for (const k of ["voiceHintModel", "voiceHintKey"]) {
       const s = b.coach[k] ?? "";
       ok(!!s && splitVariants(s).length === 1 && s.length <= 90, `${lang} coach.${k} : rappel court, sans variante`);
+    }
+    // « Préparer la voix » : chaque formulation devient une phrase fixe préparée
+    // (sinon Piper la dit à la place de la voix en ligne).
+    for (const k of CLOUD_PREP_ANSWER_KEYS) {
+      const [ns, key] = k.split(".");
+      const tpl = (b as unknown as Record<string, Record<string, string>>)[ns]?.[key] ?? "";
+      eq(fixedPhrases([tpl], (x) => x).length, splitVariants(tpl).length, `${lang} ${k} : toutes les formulations préparables`);
     }
   }
 }

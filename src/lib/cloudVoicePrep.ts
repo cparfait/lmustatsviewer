@@ -105,6 +105,22 @@ export const CLOUD_PREP_EXTRA_KEYS: readonly string[] = [
   "vReviewMark",
 ];
 
+/**
+ * Phrases de l'ingénieur quand on lui parle (accusé, « pas compris », coach
+ * indisponible, rappels de cause) : clés i18n **complètes**, hors `live.*` (non
+ * personnalisables). Dites en réponse (`announceAnswer` : en direct si absentes),
+ * préparées pour partir sans délai dans la voix en ligne plutôt qu'en Piper.
+ */
+export const CLOUD_PREP_ANSWER_KEYS: readonly string[] = [
+  "coach.voiceAck1",
+  "coach.voiceAck2",
+  "coach.voiceAck3",
+  "coach.voiceUnclear",
+  "coach.voiceUnavailable",
+  "coach.voiceHintModel",
+  "coach.voiceHintKey",
+];
+
 /** Gabarits à préparer : l'information, plus les phrases urgentes sauf « alertes en voix locale ». */
 export function cloudPrepKeys(alertsLocal: boolean): string[] {
   const info = [...CLOUD_PREP_KEYS, ...CLOUD_PREP_EXTRA_KEYS];

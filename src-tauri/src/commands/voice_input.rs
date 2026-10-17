@@ -166,18 +166,36 @@ pub(crate) fn has_wake(text: &str, word: &str) -> bool {
     !w.is_empty() && format!(" {t} ").contains(&format!(" {w} "))
 }
 
+/// Mot de la dictée libre égal au mot attendu, à une marque d'accord près
+/// (« ingénieurs », « ingénieure » : même son, autre orthographe).
+fn same_word(heard: &str, want: &str) -> bool {
+    heard == want || ["s", "e", "es"].iter().any(|x| heard.strip_suffix(x) == Some(want))
+}
+
 /// Ce qui suit le mot déclencheur dans une dictée (« ingénieur juste l'essentiel »
-/// → « juste l'essentiel »). Sans mot reconnu, la dictée entière.
-pub(crate) fn after_wake(text: &str, word: &str) -> String {
+/// → « juste l'essentiel »). `None` si la dictée libre ne contient pas le mot :
+/// fausse détection. Le guet (grammaire fermée « mot | inconnu ») prend souvent
+/// une autre voix pour le mot (radio, jeu, quelqu'un dans la pièce) ; sans cette
+/// vérification, la phrase entendue partait à l'ingénieur comme une question.
+pub(crate) fn after_wake(text: &str, word: &str) -> Option<String> {
     let w = norm_words(word);
+    let want: Vec<&str> = w.split(' ').filter(|s| !s.is_empty()).collect();
+    if want.is_empty() {
+        return None;
+    }
     let words: Vec<&str> = text.split_whitespace().collect();
-    let n = w.split(' ').count();
+    let n = want.len();
     for i in 0..words.len() {
-        if i + n <= words.len() && norm_words(&words[i..i + n].join(" ")) == w {
-            return words[i + n..].join(" ");
+        if i + n <= words.len()
+            && words[i..i + n]
+                .iter()
+                .zip(&want)
+                .all(|(h, w)| same_word(&norm_words(h), w))
+        {
+            return Some(words[i + n..].join(" "));
         }
     }
-    text.trim().to_string()
+    None
 }
 
 /// Index du micro voulu dans la liste des noms : nom exact d'abord, puis sans
@@ -610,12 +628,19 @@ fn run(
                 let long = buf.len() as f32 / SR as f32 >= WAKE_MAX_S + RING_S;
                 if vad.silence_s().is_some_and(|s| s >= WAKE_END_SILENCE_S) || long {
                     let text = recognize_free_samples(&app, &lang, &buf).unwrap_or_default();
-                    let rest = after_wake(&text, w);
-                    if rest.is_empty() {
-                        Wake::Awaiting { since: now, buf: Vec::new(), vad: Vad::new() }
-                    } else {
-                        let _ = app.emit("wake-utterance", UtterancePayload { text: rest });
-                        Wake::Idle { hits: 0 }
+                    match after_wake(&text, w) {
+                        // Fausse détection : rien n'est envoyé, la radio reprend.
+                        None => {
+                            let _ = app.emit("wake-timeout", ());
+                            Wake::Idle { hits: 0 }
+                        }
+                        Some(rest) if rest.is_empty() => {
+                            Wake::Awaiting { since: now, buf: Vec::new(), vad: Vad::new() }
+                        }
+                        Some(rest) => {
+                            let _ = app.emit("wake-utterance", UtterancePayload { text: rest });
+                            Wake::Idle { hits: 0 }
+                        }
                     }
                 } else {
                     Wake::Armed { buf, vad }
@@ -851,10 +876,15 @@ mod tests {
         assert!(!has_wake("ingénieurs", "ingénieur"));
         assert!(!has_wake("", "ingénieur"));
         assert!(has_wake("radio check", "radio check"));
-        assert_eq!(after_wake("ingénieur juste l'essentiel", "ingénieur"), "juste l'essentiel");
-        assert_eq!(after_wake("euh ingénieur on se bat", "Ingénieur"), "on se bat");
-        assert_eq!(after_wake("ingénieur", "ingénieur"), "");
-        assert_eq!(after_wake("on se bat", "ingénieur"), "on se bat");
+        assert_eq!(after_wake("ingénieur juste l'essentiel", "ingénieur").as_deref(), Some("juste l'essentiel"));
+        assert_eq!(after_wake("euh ingénieur on se bat", "Ingénieur").as_deref(), Some("on se bat"));
+        assert_eq!(after_wake("ingénieur", "ingénieur").as_deref(), Some(""));
+        assert_eq!(after_wake("ingénieurs état des pneus", "ingénieur").as_deref(), Some("état des pneus"));
+        assert_eq!(after_wake("radio check carburant", "Radio check").as_deref(), Some("carburant"));
+        // Mot absent de la dictée libre : fausse détection, rien n'est envoyé.
+        assert_eq!(after_wake("douze pour cent", "ingénieur"), None);
+        assert_eq!(after_wake("", "ingénieur"), None);
+        assert_eq!(after_wake("ingénieux", "ingénieur"), None);
     }
 
     #[test]

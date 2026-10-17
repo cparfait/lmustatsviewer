@@ -18,7 +18,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useAppStore } from "@/stores/app";
 import { isTauri } from "@/lib/api";
-import { announce, setDriverTalking } from "@/lib/voice";
+import { announceAnswer, setDriverTalking } from "@/lib/voice";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { pttBeep } from "@/lib/radioFx";
 import { friendlyError } from "@/lib/ai/coach";
@@ -177,7 +177,7 @@ export function useCoachVoice() {
         // Capture ou reconnaissance en échec : le détail à l'écran, « pas
         // compris » (court, à variantes) à la radio.
         toastError(friendlyError(e, tRef.current));
-        announce(radioLine(tRef.current, "coach.voiceUnclear"), lang);
+        announceAnswer(radioLine(tRef.current, "coach.voiceUnclear"), lang);
         return;
       }
       await answerQuestion(free, strict);

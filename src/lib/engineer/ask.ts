@@ -191,7 +191,7 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
 
   if (!heard) {
     const text = radioLine(t, "coach.voiceUnclear");
-    if (!gone()) announce(text, lang);
+    if (!gone()) announceAnswer(text, lang);
     return { text, via: "none" };
   }
   // La question reconnue s'affiche (l'utilisateur voit si la dictée a mal compris).
@@ -305,7 +305,7 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     const text = friendlyError(e, t);
     if (!gone()) {
       toastError(text);
-      announce(radioLine(t, radioErrorKey(aiErrorKind(errorMessage(e)).kind, hintedErrors)), lang);
+      announceAnswer(radioLine(t, radioErrorKey(aiErrorKind(errorMessage(e)).kind, hintedErrors)), lang);
     }
     return { text, via: "none" };
   }

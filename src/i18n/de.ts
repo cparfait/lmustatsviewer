@@ -229,7 +229,7 @@ export default {
       desc: "Deine Widgets erscheinen dank OpenKneeboard im Headset: transparent schweben sie über dem Spiel. Wähle sie unten aus und kopiere ihre Adresse.",
       step1: "Installiere OpenKneeboard und starte es vor LMU.",
       step2: "Klicke auf der Karte eines Widgets auf „VR-Adresse kopieren“.",
-      step3: "In OpenKneeboard: Einstellungen › Tabs › Hinzufügen › „Web Dashboard“, Adresse einfügen und Transparenz aktiviert lassen. Ein Tab pro Widget.",
+      step3: "In OpenKneeboard: Zahnrad unten links (Einstellungen) › Karte „Tabs“ › Schaltfläche „+ Add a tab“ › „Web Dashboard“. Adresse einfügen und Transparenz aktiviert lassen. Ein Tab pro Widget.",
       step4: "Platziere und skaliere das Widget in VR in OpenKneeboard. Inhalt und Farbe stellst du hier ein, per Klick auf seine Karte.",
       copy: "VR-Adresse kopieren",
     },

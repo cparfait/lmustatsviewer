@@ -229,7 +229,7 @@ export default {
       desc: "Tus widgets se ven en el casco gracias a OpenKneeboard: transparentes, flotan sobre el juego. Elígelos abajo y copia su dirección.",
       step1: "Instala OpenKneeboard y ábrelo antes de LMU.",
       step2: "En la tarjeta de un widget, pulsa «Copiar dirección VR».",
-      step3: "En OpenKneeboard: Ajustes › Pestañas › Añadir › «Web Dashboard», pega la dirección y deja la transparencia activada. Una pestaña por widget.",
+      step3: "En OpenKneeboard: rueda dentada abajo a la izquierda (Ajustes) › tarjeta «Tabs» › botón «+ Add a tab» › «Web Dashboard». Pega la dirección y deja activada la transparencia. Una pestaña por widget.",
       step4: "En VR, coloca y dimensiona el widget en OpenKneeboard. Su contenido y su color se ajustan aquí, pulsando su tarjeta.",
       copy: "Copiar dirección VR",
     },

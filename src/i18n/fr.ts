@@ -229,7 +229,7 @@ export default {
       desc: "Tes widgets s'affichent dans le casque grâce à OpenKneeboard : transparents, ils flottent au-dessus du jeu. Choisis-les ci-dessous et copie leur adresse.",
       step1: "Installe OpenKneeboard et lance-le avant LMU.",
       step2: "Sur la carte d'un widget, clique « Copier l'adresse VR ».",
-      step3: "Dans OpenKneeboard : Réglages › Onglets › Ajouter › « Web Dashboard », colle l'adresse et laisse la transparence activée. Un onglet par widget.",
+      step3: "Dans OpenKneeboard : roue dentée en bas à gauche (Paramètres) › carte « Tabs » › bouton « + Add a tab » › « Web Dashboard ». Colle l'adresse et laisse la transparence activée. Un onglet par widget.",
       step4: "En VR, place et dimensionne le widget dans OpenKneeboard. Son contenu et sa couleur se règlent ici, en cliquant sa carte.",
       copy: "Copier l'adresse VR",
     },

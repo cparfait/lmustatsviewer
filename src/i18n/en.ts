@@ -229,7 +229,7 @@ export default {
       desc: "Your widgets show in the headset through OpenKneeboard: transparent, they float above the game. Pick them below and copy their address.",
       step1: "Install OpenKneeboard and start it before LMU.",
       step2: "On a widget's card, click “Copy VR address”.",
-      step3: "In OpenKneeboard: Settings › Tabs › Add › “Web Dashboard”, paste the address and leave transparency on. One tab per widget.",
+      step3: "In OpenKneeboard: cogwheel at the bottom left (Settings) › “Tabs” card › “+ Add a tab” button › “Web Dashboard”. Paste the address and leave transparency on. One tab per widget.",
       step4: "In VR, position and size the widget in OpenKneeboard. Its content and colour are set here, by clicking its card.",
       copy: "Copy VR address",
     },

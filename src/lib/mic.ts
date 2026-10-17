@@ -8,9 +8,14 @@
  * On utilise un `ScriptProcessorNode` (déprécié mais universellement supporté par
  * WebView2) plutôt qu'un `AudioWorklet` : pas de fichier worklet à charger, et la
  * latence n'a pas d'importance ici (on traite le buffer complet hors-ligne).
+ *
+ * Micro choisi dans la Config (`micDevice`, nom Windows) : retrouvé parmi les
+ * entrées de la WebView par son libellé (mêmes noms que Windows). Introuvable →
+ * micro par défaut, comme avant.
  */
 
 import { setDriverTalking } from "@/lib/voice";
+import { useAppStore } from "@/stores/app";
 
 const TARGET_RATE = 16000;
 
@@ -28,14 +33,18 @@ let active: Capture | null = null;
 /** Démarre la capture micro. Idempotent : un appel pendant une capture la remplace. */
 export async function startCapture(): Promise<void> {
   if (active) stopRaw(); // sécurité : pas de capture fantôme
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      channelCount: 1,
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-    },
-  });
+  const wanted = useAppStore.getState().micDevice;
+  let id = await findInput(wanted);
+  let stream = await openMic(id);
+  // Libellés cachés tant que le micro n'a jamais été autorisé : on réessaie
+  // une fois le premier flux ouvert, et on bascule sur le bon micro.
+  if (wanted && !id) {
+    id = await findInput(wanted);
+    if (id && stream.getAudioTracks()[0]?.getSettings().deviceId !== id) {
+      stream.getTracks().forEach((tk) => tk.stop());
+      stream = await openMic(id);
+    }
+  }
   const ctx = new AudioContext();
   const source = ctx.createMediaStreamSource(stream);
   const processor = ctx.createScriptProcessor(4096, 1, 1);
@@ -53,6 +62,45 @@ export async function startCapture(): Promise<void> {
   active = { ctx, stream, source, processor, chunks, sampleRate: ctx.sampleRate };
   // Le pilote parle : la radio ne lui coupe pas la parole (annonces retenues).
   setDriverTalking(true);
+}
+
+/** Ouvre le micro `id` (null = défaut) ; repli sur le défaut s'il refuse. */
+async function openMic(id: string | null): Promise<MediaStream> {
+  const audio: MediaTrackConstraints = {
+    channelCount: 1,
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  };
+  if (id) {
+    try {
+      return await navigator.mediaDevices.getUserMedia({ audio: { ...audio, deviceId: { exact: id } } });
+    } catch {
+      /* débranché entre-temps : micro par défaut */
+    }
+  }
+  return navigator.mediaDevices.getUserMedia({ audio });
+}
+
+/**
+ * Identifiant WebView du micro nommé `wanted` (nom Windows), ou null (vide,
+ * introuvable, libellés pas encore visibles). Les entrées virtuelles « default »
+ * et « communications » sont ignorées : elles doublent un vrai micro.
+ */
+async function findInput(wanted: string): Promise<string | null> {
+  const w = wanted.trim().toLowerCase();
+  if (!w || !navigator.mediaDevices?.enumerateDevices) return null;
+  try {
+    const inputs = (await navigator.mediaDevices.enumerateDevices()).filter(
+      (d) => d.kind === "audioinput" && d.deviceId !== "default" && d.deviceId !== "communications" && d.label,
+    );
+    const label = (d: MediaDeviceInfo) => d.label.trim().toLowerCase();
+    // Libellé identique d'abord ; sinon libellé qui le contient (suffixe « (xxxx:yyyy) » des micros USB).
+    const hit = inputs.find((d) => label(d) === w) ?? inputs.find((d) => label(d).startsWith(w));
+    return hit?.deviceId ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Arrête et libère les ressources sans produire de résultat. */

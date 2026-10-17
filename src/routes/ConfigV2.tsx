@@ -1783,6 +1783,7 @@ export function ConfigV2() {
                         {spotterPttMode === "hold" ? t("config.spotterPttHoldDesc") : t("config.spotterPttToggleDesc")}
                       </p>
                       <WheelButtonRow />
+                      {isTauri() && <MicDeviceRow />}
                       <ToggleRow
                         icon={<Mic className="h-4 w-4" />}
                         label={t("config.micReady")}
@@ -2927,6 +2928,142 @@ function WheelButtonRow() {
           </Button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Micro proposé par le moteur d'écoute (nom Windows). */
+interface MicDeviceInfo {
+  name: string;
+  is_default: boolean;
+}
+
+/**
+ * Micro de l'ingénieur (écoute continue, push-to-talk, dictée) : « Micro par
+ * défaut de Windows » en premier (= comportement historique), puis les entrées
+ * vues par Windows. Un micro choisi mais débranché reste affiché (repli sur le
+ * défaut tant qu'il manque). Vumètre en dessous.
+ */
+function MicDeviceRow() {
+  const { t } = useTranslation();
+  const saved = useAppStore((s) => s.micDevice);
+  const [devices, setDevices] = useState<MicDeviceInfo[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      setDevices(await invoke<MicDeviceInfo[]>("voice_input_devices"));
+    } catch {
+      setDevices([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+  const list = devices ?? [];
+  const options = [
+    { value: "", label: t("config.micDeviceDefault") },
+    ...list.map((d) => ({
+      value: d.name,
+      label: d.is_default ? `${d.name} · ${t("config.micDeviceIsDefault")}` : d.name,
+    })),
+    ...(saved && devices && !list.some((d) => d.name === saved)
+      ? [{ value: saved, label: t("config.micDeviceAbsent", { name: saved }) }]
+      : []),
+  ];
+  return (
+    <div className="py-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start gap-2 min-w-0">
+          <Tip content={t("config.micDeviceTip")} side="right">
+            <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+              <Mic className="h-4 w-4" />
+            </span>
+          </Tip>
+          <div className="min-w-0">
+            <div className="text-sm font-medium leading-tight">{t("config.micDevice")}</div>
+            <div className="text-xs text-muted-foreground/80 mt-0.5">{t("config.micDeviceDesc")}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Select
+            value={saved}
+            onValueChange={(v) => void useAppStore.getState().setMicDevice(v)}
+            ariaLabel={t("config.micDevice")}
+            className="h-8 w-56 px-2.5"
+            options={options}
+          />
+          <Tip content={t("config.micDeviceRefresh")}>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              aria-label={t("config.micDeviceRefresh")}
+              onClick={() => void refresh()}
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            </Button>
+          </Tip>
+        </div>
+      </div>
+      <MicLevelMeter />
+    </div>
+  );
+}
+
+/**
+ * Vumètre du micro qui écoute (moteur natif) et son nom. Le moteur ne tourne
+ * qu'avec « Micro prêt » ou le mot déclencheur : sinon, une ligne d'aide.
+ */
+function MicLevelMeter() {
+  const { t } = useTranslation();
+  const [st, setSt] = useState<{ device: string; fallback: boolean; level: number } | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    const tick = () => {
+      invoke<{ device: string; fallback: boolean; level: number } | null>("voice_input_status")
+        .then((s) => alive && setSt(s))
+        .catch(() => alive && setSt(null));
+    };
+    tick();
+    const id = window.setInterval(tick, 120);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, []);
+  if (st === undefined) return null;
+  if (st === null) {
+    return <p className="text-mini text-muted-foreground/60 pl-6 mt-1">{t("config.micLevelOff")}</p>;
+  }
+  // Racine carrée : la voix normale remplit la moitié de la barre, pas un dixième.
+  const pct = Math.min(100, Math.round(Math.sqrt(st.level) * 100));
+  const label = !st.device
+    ? t("config.micDeviceNone")
+    : st.fallback
+      ? t("config.micInUseFallback", { name: st.device })
+      : t("config.micInUse", { name: st.device });
+  return (
+    <div className="flex items-center gap-2 pl-6 mt-1.5">
+      <div
+        className="h-1.5 w-40 shrink-0 rounded-full bg-muted overflow-hidden"
+        role="meter"
+        aria-label={t("config.micLevel")}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+      >
+        <div
+          className={cn("h-full rounded-full transition-[width] duration-100", pct >= 95 ? "bg-destructive" : "bg-primary")}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className={cn("text-mini truncate", st.fallback || !st.device ? "text-amber-500" : "text-muted-foreground/70")}>
+        {label}
+      </span>
     </div>
   );
 }

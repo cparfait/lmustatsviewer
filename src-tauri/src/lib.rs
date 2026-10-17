@@ -267,6 +267,8 @@ pub fn run() {
             commands::voice_input::voice_input_start,
             commands::voice_input::voice_input_stop,
             commands::voice_input::voice_input_running,
+            commands::voice_input::voice_input_devices,
+            commands::voice_input::voice_input_status,
             commands::voice_input::voice_input_set_muted,
             commands::voice_input::ptt_begin,
             commands::voice_input::ptt_end,

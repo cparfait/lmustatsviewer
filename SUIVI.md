@@ -913,6 +913,45 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Ingénieur vocal : choix du micro (écoute continue, push-to-talk, dictée)
+
+**Constat** : le moteur d'écoute natif (`voice_input.rs`, WASAPI via cpal) et la capture
+navigateur (`mic.ts`, `getUserMedia`) prenaient tous deux le micro par défaut de Windows.
+Les deux chemins sont concernés : `ptt_begin` / `ptt_end_dual` passent par le moteur quand
+« Micro prêt » ou le mot déclencheur est actif ; sinon (et pour le Coach IA et la fenêtre des
+commandes) la capture passe par la WebView.
+
+- ✅ **Clé `voice_input_device`** (store `micDevice`) : nom Windows du micro, vide = micro
+  par défaut de Windows (comportement historique, défaut).
+- ✅ **Rust** : `voice_input_devices` (liste, nom + `is_default`), `voice_input_status`
+  (micro qui écoute, repli, niveau crête pour le vumètre). `voice_input_start` prend
+  `device` (il entre dans la clé du moteur → relance à chaud au changement) et renvoie
+  `{ name, fallback, restarted }`. Micro choisi absent ou refusant de s'ouvrir → défaut.
+  **Micro perdu en route** (`StreamError::DeviceNotAvailable` ou plus aucun bloc pendant
+  3 s) → réouverture avec la même préférence, nouvel essai toutes les 2 s s'il n'y a plus
+  aucun micro ; événement `voice-input-device` (`fallback` / `reconnected` / `none`)
+  seulement si quelque chose a changé. **En repli**, le retour du micro choisi est guetté
+  toutes les 2 s (`wanted_present`) : passage absent → présent = réouverture sur lui (un
+  micro présent qui refuse de s'ouvrir n'est pas retenté en boucle). Briques pures
+  testées : `pick_device` (nom exact, puis sans casse), `peak_level`.
+- ✅ **Navigateur** (`mic.ts`) : micro retrouvé par son libellé dans `enumerateDevices`
+  (mêmes noms que Windows ; entrées virtuelles `default`/`communications` ignorées) →
+  `deviceId: { exact }` ; libellés cachés avant la 1ʳᵉ autorisation → nouvel essai après
+  ouverture puis bascule ; introuvable → défaut.
+- ✅ **Config › Audio / Voix** : ligne « Micro » (Radix `Select`, « Micro par défaut de
+  Windows » en premier, micro choisi débranché affiché « (débranché) », bouton
+  Actualiser) + vumètre (sondage de `voice_input_status` à 120 ms, seulement quand le
+  moteur tourne ; sinon ligne d'aide). Toasts : repli, reconnexion, plus aucun micro.
+- ✅ 5 langues, changelog 1.0.10 (dev). `tsc -b`, ESLint, `npm test` (3834) propres ;
+  `cargo test --lib` OK (111, puis les 5 tests `voice_input` après la dernière retouche),
+  lancé avec un `CARGO_TARGET_DIR` temporaire : l'app de dev verrouille une DLL de
+  `resources\stt\lib` dans `target\debug` (os error 32). Travail sur `feat/veille-pistes`
+  (choix de l'utilisateur), non commité.
+- 📋 **Prochaine étape** : essai réel avec deux micros (casque USB + micro webcam) :
+  changer de micro moteur lancé, débrancher le micro choisi en séance (toast de repli,
+  l'écoute continue), le rebrancher (toast « Micro de l'ingénieur : … ») ; vérifier aussi le
+  push-to-talk « Micro prêt » décoché (chemin navigateur). Commit après accord.
+
 ### 2026-10-17 — Les 13 pistes de la veille, en une passe, sur `feat/veille-pistes`
 
 **Demande** : « fais tout sur une branche séparée, en une passe ; pose les questions

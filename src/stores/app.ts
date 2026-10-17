@@ -197,6 +197,11 @@ interface AppState {
   wakeWordEnabled: boolean;
   /** Mot déclencheur choisi ("" = mot par défaut de la langue). */
   wakeWord: string;
+  /**
+   * Micro de l'ingénieur (nom Windows) : écoute continue, push-to-talk et dictée.
+   * "" = micro par défaut de Windows (historique).
+   */
+  micDevice: string;
 
   // AI Coach
   /** Coach IA activé : si false, le coach disparaît de toutes les pages. */
@@ -332,6 +337,7 @@ interface AppState {
   setMicReady: (v: boolean) => Promise<void>;
   setWakeWordEnabled: (v: boolean) => Promise<void>;
   setWakeWord: (v: string) => Promise<void>;
+  setMicDevice: (v: string) => Promise<void>;
   setOverlayToggleKey: (accel: string) => Promise<void>;
   setAICoachEnabled: (v: boolean) => Promise<void>;
   setAIProvider: (v: string) => Promise<void>;
@@ -417,6 +423,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   micReady: true,
   wakeWordEnabled: false,
   wakeWord: "",
+  micDevice: "",
   overlayToggleKey: "",
   aiCoachEnabled: true,
   aiProvider: "google",
@@ -653,6 +660,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       micReady: cfg.mic_ready !== "false",
       wakeWordEnabled: cfg.wake_word_enabled === "true",
       wakeWord: cfg.wake_word ?? "",
+      micDevice: cfg.voice_input_device ?? "",
       aiCoachEnabled: cfg.ai_coach_enabled !== "false",
       aiProvider: cfg.ai_provider || "google",
       aiProviderList,
@@ -1117,6 +1125,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     const w = v.trim().slice(0, 30);
     await config.set("wake_word", w);
     set({ wakeWord: w });
+  },
+
+  setMicDevice: async (v) => {
+    const d = v.trim();
+    await config.set("voice_input_device", d);
+    set({ micDevice: d });
   },
 
   setOverlayToggleKey: async (accel) => {

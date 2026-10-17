@@ -15,6 +15,12 @@
 //!
 //! Rien n'est enregistré ni envoyé : hors appui et hors mot déclencheur, l'audio ne
 //! fait que traverser un tampon circulaire de 1,5 s en mémoire.
+//!
+//! **Micro choisi** (clé `voice_input_device`, vide = micro par défaut de Windows) :
+//! retrouvé par son nom à l'ouverture du flux. Absent (débranché) ou impossible à
+//! ouvrir → repli sur le micro par défaut, signalé à l'appelant. Micro perdu en
+//! cours de route (erreur du flux ou plus aucun son reçu) → réouverture à chaud
+//! avec la même préférence, événement `voice-input-device`.
 
 use crate::commands::stt::{get_model, recognize_free_samples, recognize_grammar_samples};
 use crate::error::{AppError, AppResult};
@@ -25,7 +31,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 use vosk::Recognizer;
 
@@ -49,6 +55,10 @@ const WAKE_MAX_S: f32 = 8.0;
 const WAKE_AWAIT_S: f32 = 6.0;
 /// Lectures partielles consécutives contenant le mot avant de déclencher.
 const WAKE_CONFIRM: u32 = 2;
+/// Plus aucun bloc audio pendant ce délai (s) → micro considéré comme perdu.
+const STALL_S: u64 = 3;
+/// Micro perdu et aucun disponible : nouvel essai d'ouverture toutes les… (s).
+const REOPEN_RETRY_S: u64 = 2;
 
 // ── Briques pures (testées) ──────────────────────────────────────────────────
 
@@ -170,6 +180,25 @@ pub(crate) fn after_wake(text: &str, word: &str) -> String {
     text.trim().to_string()
 }
 
+/// Index du micro voulu dans la liste des noms : nom exact d'abord, puis sans
+/// tenir compte de la casse ni des espaces autour. `None` si absent (ou si
+/// `wanted` est vide = micro par défaut).
+pub(crate) fn pick_device(names: &[String], wanted: &str) -> Option<usize> {
+    let w = wanted.trim();
+    if w.is_empty() {
+        return None;
+    }
+    names
+        .iter()
+        .position(|n| n == w)
+        .or_else(|| names.iter().position(|n| n.trim().to_lowercase() == w.to_lowercase()))
+}
+
+/// Niveau crête (0..1) d'un bloc 16 bits, pour le vumètre de la Config.
+pub(crate) fn peak_level(samples: &[i16]) -> f32 {
+    samples.iter().map(|&s| (s as i32).unsigned_abs()).max().unwrap_or(0) as f32 / 32768.0
+}
+
 // ── Moteur ───────────────────────────────────────────────────────────────────
 
 /// Capture push-to-talk en cours.
@@ -188,6 +217,18 @@ struct Control {
     ptt: Option<PttCapture>,
     /// Échantillons vus depuis le démarrage (horloge du moteur).
     clock: usize,
+    /// Micro réellement ouvert (nom Windows) ; vide tant qu'aucun n'est ouvert.
+    device: String,
+    /// Le micro choisi est introuvable : c'est le micro par défaut qui écoute.
+    fallback: bool,
+    /// Niveau crête récent (0..1), décroissant, pour le vumètre.
+    level: f32,
+}
+
+impl Control {
+    fn new() -> Self {
+        Self { ring: VecDeque::new(), muted: false, ptt: None, clock: 0, device: String::new(), fallback: false, level: 0.0 }
+    }
 }
 
 struct Engine {
@@ -221,16 +262,105 @@ struct ErrorPayload {
     message: String,
 }
 
-/// Ouvre le micro par défaut et pousse des blocs mono f32 dans `tx`.
-fn open_stream(tx: mpsc::Sender<Vec<f32>>) -> Result<(cpal::Stream, u32), String> {
+/// Micro réellement ouvert.
+#[derive(Clone, Serialize)]
+pub struct MicOpened {
+    /// Nom Windows du micro qui écoute.
+    name: String,
+    /// Le micro choisi est introuvable (ou refuse de s'ouvrir) : repli sur le défaut.
+    fallback: bool,
+    /// `false` : le moteur tournait déjà avec ces réglages (rien n'a changé).
+    restarted: bool,
+}
+
+/// Événement `voice-input-device` : le micro a changé en cours de route.
+#[derive(Clone, Serialize)]
+struct DevicePayload {
+    /// `"fallback"` (micro choisi perdu → défaut), `"reconnected"` (autre micro
+    /// ou retour du micro choisi), `"none"` (plus aucun micro, nouvel essai régulier).
+    kind: &'static str,
+    /// Micro qui écoute maintenant (vide pour `"none"`).
+    name: String,
+    /// Micro choisi dans la Config (vide = défaut de Windows).
+    wanted: String,
+}
+
+/// Flux ouvert : à garder en vie (le relâcher ferme le micro).
+struct Opened {
+    _stream: cpal::Stream,
+    rate: u32,
+    name: String,
+    fallback: bool,
+}
+
+/// Ouvre le micro choisi (`wanted`, nom Windows ; vide = défaut) ; s'il manque ou
+/// refuse de s'ouvrir, le micro par défaut. `lost` passe à `true` si le flux
+/// signale que le périphérique a disparu.
+fn open_stream(tx: &mpsc::Sender<Vec<f32>>, wanted: &str, lost: &Arc<AtomicBool>) -> Result<Opened, String> {
     let host = cpal::default_host();
+    if !wanted.trim().is_empty() {
+        let devices: Vec<cpal::Device> = host.input_devices().map(|d| d.collect()).unwrap_or_default();
+        let names: Vec<String> = devices.iter().map(|d| d.name().unwrap_or_default()).collect();
+        if let Some(i) = pick_device(&names, wanted) {
+            match open_device(&devices[i], tx.clone(), lost.clone()) {
+                Ok((stream, rate)) => {
+                    return Ok(Opened { _stream: stream, rate, name: names[i].clone(), fallback: false })
+                }
+                Err(e) => eprintln!("[voice_input] micro « {wanted} » : {e} → micro par défaut"),
+            }
+        } else {
+            eprintln!("[voice_input] micro « {wanted} » introuvable → micro par défaut");
+        }
+    }
     let device = host.default_input_device().ok_or("aucun micro")?;
+    let name = device.name().unwrap_or_default();
+    let (stream, rate) = open_device(&device, tx.clone(), lost.clone())?;
+    Ok(Opened { _stream: stream, rate, name, fallback: !wanted.trim().is_empty() })
+}
+
+/// Le micro choisi est-il branché (vu par Windows) ?
+fn wanted_present(wanted: &str) -> bool {
+    let names: Vec<String> = cpal::default_host()
+        .input_devices()
+        .map(|ds| ds.filter_map(|d| d.name().ok()).collect())
+        .unwrap_or_default();
+    pick_device(&names, wanted).is_some()
+}
+
+/// Liste les micros (entrées) vus par Windows.
+fn list_devices() -> Vec<MicDevice> {
+    let host = cpal::default_host();
+    let default = host.default_input_device().and_then(|d| d.name().ok()).unwrap_or_default();
+    let mut out: Vec<MicDevice> = Vec::new();
+    if let Ok(devices) = host.input_devices() {
+        for d in devices {
+            let Ok(name) = d.name() else { continue };
+            if name.is_empty() || out.iter().any(|m| m.name == name) {
+                continue;
+            }
+            out.push(MicDevice { is_default: name == default, name });
+        }
+    }
+    out
+}
+
+/// Ouvre un micro et pousse des blocs mono f32 dans `tx`.
+fn open_device(
+    device: &cpal::Device,
+    tx: mpsc::Sender<Vec<f32>>,
+    lost: Arc<AtomicBool>,
+) -> Result<(cpal::Stream, u32), String> {
     let cfg = device.default_input_config().map_err(|e| e.to_string())?;
     let channels = cfg.channels().max(1) as usize;
     let rate = cfg.sample_rate().0;
     let format = cfg.sample_format();
     let sc: cpal::StreamConfig = cfg.into();
-    let err = |e: cpal::StreamError| eprintln!("[voice_input] flux micro : {e}");
+    let err = move |e: cpal::StreamError| {
+        eprintln!("[voice_input] flux micro : {e}");
+        if matches!(e, cpal::StreamError::DeviceNotAvailable) {
+            lost.store(true, Ordering::SeqCst);
+        }
+    };
     fn mono<T: Copy>(data: &[T], ch: usize, f: impl Fn(T) -> f32) -> Vec<f32> {
         data.chunks(ch).map(|c| c.iter().map(|&x| f(x)).sum::<f32>() / c.len() as f32).collect()
     }
@@ -280,22 +410,36 @@ fn run(
     app: AppHandle,
     lang: String,
     wake_word: Option<String>,
+    wanted: String,
     stop: Arc<AtomicBool>,
     ctl: Arc<Mutex<Control>>,
-    ready: mpsc::Sender<Result<(), String>>,
+    ready: mpsc::Sender<Result<(String, bool), String>>,
 ) {
     let (tx, rx) = mpsc::channel::<Vec<f32>>();
-    let (_stream, rate) = match open_stream(tx) {
-        Ok(v) => {
-            let _ = ready.send(Ok(()));
-            v
+    let lost = Arc::new(AtomicBool::new(false));
+    let mut opened = match open_stream(&tx, &wanted, &lost) {
+        Ok(o) => {
+            {
+                let mut c = ctl.lock().unwrap();
+                c.device = o.name.clone();
+                c.fallback = o.fallback;
+            }
+            let _ = ready.send(Ok((o.name.clone(), o.fallback)));
+            Some(o)
         }
         Err(e) => {
             let _ = ready.send(Err(e));
             return;
         }
     };
-    let mut rs = Resampler::new(rate);
+    let mut rs = Resampler::new(opened.as_ref().map_or(SR as u32, |o| o.rate));
+    let mut last_block = Instant::now();
+    // Micro perdu : prochain essai de réouverture ; « aucun micro » déjà signalé.
+    let mut next_try = Instant::now();
+    let mut none_signaled = false;
+    // Repli sur le défaut : on guette le retour du micro choisi.
+    let mut next_probe = Instant::now() + Duration::from_secs(REOPEN_RETRY_S);
+    let mut wanted_absent = opened.as_ref().is_some_and(|o| o.fallback) && !wanted_present(&wanted);
     let ring_cap = (RING_S * SR as f32) as usize;
     let preroll = (PREROLL_S * SR as f32) as usize;
     let max_cap = (MAX_CAPTURE_S * SR as f32) as usize;
@@ -317,9 +461,79 @@ fn run(
     let mut chunk: Vec<i16> = Vec::with_capacity(4096);
 
     while !stop.load(Ordering::SeqCst) {
+        // Repli en cours : le micro choisi est-il revenu (rebranché) ? Seul le
+        // passage absent → présent rouvre : un micro présent qui refuse de
+        // s'ouvrir n'est pas retenté en boucle.
+        if opened.as_ref().is_some_and(|o| o.fallback) && Instant::now() >= next_probe {
+            next_probe = Instant::now() + Duration::from_secs(REOPEN_RETRY_S);
+            let present = wanted_present(&wanted);
+            if present && wanted_absent {
+                lost.store(true, Ordering::SeqCst);
+            }
+            wanted_absent = !present;
+        }
+        // Micro perdu (débranché, pilote coupé, plus aucun son) : on referme et on
+        // rouvre avec la même préférence ; repli sur le défaut si le choisi manque.
+        let stalled = opened.is_some() && last_block.elapsed() >= Duration::from_secs(STALL_S);
+        if lost.swap(false, Ordering::SeqCst) || stalled {
+            if let Some(o) = opened.take() {
+                eprintln!("[voice_input] micro « {} » perdu : réouverture", o.name);
+            }
+            // Un push-to-talk en cours garde ce qu'il a déjà capté.
+            if let Some(r) = rec.as_mut() {
+                r.reset();
+            }
+            wake = Wake::Idle { hits: 0 };
+            next_try = Instant::now();
+        }
+        if opened.is_none() {
+            if Instant::now() < next_try {
+                std::thread::sleep(Duration::from_millis(200));
+                continue;
+            }
+            match open_stream(&tx, &wanted, &lost) {
+                Ok(o) => {
+                    let changed = {
+                        let mut c = ctl.lock().unwrap();
+                        let changed = none_signaled || c.device != o.name || c.fallback != o.fallback;
+                        c.device = o.name.clone();
+                        c.fallback = o.fallback;
+                        changed
+                    };
+                    // Même micro rouvert après un simple hoquet : rien à signaler.
+                    if changed {
+                        let kind = if o.fallback { "fallback" } else { "reconnected" };
+                        let _ = app.emit(
+                            "voice-input-device",
+                            DevicePayload { kind, name: o.name.clone(), wanted: wanted.clone() },
+                        );
+                    }
+                    none_signaled = false;
+                    wanted_absent = o.fallback && !wanted_present(&wanted);
+                    rs = Resampler::new(o.rate);
+                    last_block = Instant::now();
+                    opened = Some(o);
+                }
+                Err(e) => {
+                    next_try = Instant::now() + Duration::from_secs(REOPEN_RETRY_S);
+                    // Signalé une seule fois par coupure ; nouvel essai régulier.
+                    if !none_signaled {
+                        none_signaled = true;
+                        eprintln!("[voice_input] aucun micro : {e}");
+                        ctl.lock().unwrap().device.clear();
+                        let _ = app.emit(
+                            "voice-input-device",
+                            DevicePayload { kind: "none", name: String::new(), wanted: wanted.clone() },
+                        );
+                    }
+                }
+            }
+            continue;
+        }
         let Ok(block) = rx.recv_timeout(Duration::from_millis(200)) else {
             continue;
         };
+        last_block = Instant::now();
         chunk.clear();
         rs.process(&block, &mut chunk);
         if chunk.is_empty() {
@@ -329,6 +543,7 @@ fn run(
         // Tampon circulaire + capture push-to-talk.
         let (muted, now, ptt_event) = {
             let mut c = ctl.lock().unwrap();
+            c.level = peak_level(&chunk).max(c.level * 0.94);
             c.clock += chunk.len();
             c.ring.extend(chunk.iter().copied());
             while c.ring.len() > ring_cap {
@@ -434,27 +649,68 @@ fn run(
     }
 }
 
-/// Démarre (ou reconfigure) le moteur. `wake_word` = `None` : push-to-talk seul.
+/// Micro proposé dans la Config.
+#[derive(Clone, Serialize)]
+pub struct MicDevice {
+    /// Nom Windows (stable d'une session à l'autre) : c'est lui qui est enregistré.
+    name: String,
+    /// Micro par défaut de Windows en ce moment.
+    is_default: bool,
+}
+
+/// Micros (entrées) disponibles, dans l'ordre de Windows.
 #[tauri::command(async)]
-pub fn voice_input_start(app: AppHandle, lang: String, wake_word: Option<String>) -> AppResult<()> {
-    let key = format!("{}|{}", lang, wake_word.clone().unwrap_or_default());
+pub fn voice_input_devices() -> Vec<MicDevice> {
+    list_devices()
+}
+
+/// État du moteur pour la Config (micro qui écoute + vumètre).
+#[derive(Serialize)]
+pub struct MicStatus {
+    /// Micro qui écoute ; vide s'il n'y en a plus (réouverture en cours).
+    device: String,
+    fallback: bool,
+    /// Niveau crête récent (0..1).
+    level: f32,
+}
+
+/// `None` si le moteur ne tourne pas (micro ouvert à l'appui seulement).
+#[tauri::command]
+pub fn voice_input_status() -> Option<MicStatus> {
+    let slot = engine().lock().unwrap();
+    let c = slot.as_ref()?.ctl.lock().unwrap();
+    Some(MicStatus { device: c.device.clone(), fallback: c.fallback, level: c.level })
+}
+
+/// Démarre (ou reconfigure) le moteur. `wake_word` = `None` : push-to-talk seul.
+/// `device` : nom Windows du micro (vide / `None` = micro par défaut de Windows).
+#[tauri::command(async)]
+pub fn voice_input_start(
+    app: AppHandle,
+    lang: String,
+    wake_word: Option<String>,
+    device: Option<String>,
+) -> AppResult<MicOpened> {
+    let device = device.unwrap_or_default().trim().to_string();
+    let key = format!("{}|{}|{}", lang, wake_word.clone().unwrap_or_default(), device);
     let mut slot = engine().lock().unwrap();
-    if slot.as_ref().is_some_and(|e| e.key == key) {
-        return Ok(());
+    if let Some(e) = slot.as_ref().filter(|e| e.key == key) {
+        let c = e.ctl.lock().unwrap();
+        return Ok(MicOpened { name: c.device.clone(), fallback: c.fallback, restarted: false });
     }
-    *slot = None; // arrête l'ancien (Drop)
+    *slot = None; // arrête l'ancien (Drop) : le micro est libéré avant d'ouvrir le nouveau
     let stop = Arc::new(AtomicBool::new(false));
-    let ctl = Arc::new(Mutex::new(Control { ring: VecDeque::new(), muted: false, ptt: None, clock: 0 }));
+    let ctl = Arc::new(Mutex::new(Control::new()));
     let (ready_tx, ready_rx) = mpsc::channel();
     let (s2, c2) = (stop.clone(), ctl.clone());
     let join = std::thread::Builder::new()
         .name("voice-input".into())
-        .spawn(move || run(app, lang, wake_word, s2, c2, ready_tx))
+        .spawn(move || run(app, lang, wake_word, device, s2, c2, ready_tx))
         .map_err(|e| AppError::Internal(e.to_string()))?;
     match ready_rx.recv_timeout(Duration::from_secs(5)) {
-        Ok(Ok(())) => {
+        Ok(Ok((name, fallback))) => {
             *slot = Some(Engine { stop, ctl, key, join: Some(join) });
-            Ok(())
+            Ok(MicOpened { name, fallback, restarted: true })
         }
         Ok(Err(e)) => Err(AppError::Internal(format!("micro indisponible : {e}"))),
         Err(_) => {
@@ -599,5 +855,29 @@ mod tests {
         assert_eq!(after_wake("euh ingénieur on se bat", "Ingénieur"), "on se bat");
         assert_eq!(after_wake("ingénieur", "ingénieur"), "");
         assert_eq!(after_wake("on se bat", "ingénieur"), "on se bat");
+    }
+
+    #[test]
+    fn device_picking() {
+        let names: Vec<String> =
+            ["Microphone (Realtek(R) Audio)", "Casque (HyperX Cloud)", "casque (hyperx cloud)"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect();
+        assert_eq!(pick_device(&names, ""), None);
+        assert_eq!(pick_device(&names, "   "), None);
+        assert_eq!(pick_device(&names, "Casque (HyperX Cloud)"), Some(1));
+        // Le nom exact l'emporte sur la casse.
+        assert_eq!(pick_device(&names, "casque (hyperx cloud)"), Some(2));
+        assert_eq!(pick_device(&names, " MICROPHONE (REALTEK(R) AUDIO) "), Some(0));
+        assert_eq!(pick_device(&names, "Micro USB débranché"), None);
+    }
+
+    #[test]
+    fn peak_level_range() {
+        assert_eq!(peak_level(&[]), 0.0);
+        assert_eq!(peak_level(&[0, 0]), 0.0);
+        assert!((peak_level(&[100, -16384, 200]) - 0.5).abs() < 1e-6);
+        assert!((peak_level(&[i16::MIN]) - 1.0).abs() < 1e-6);
     }
 }

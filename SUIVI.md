@@ -993,6 +993,28 @@ la reconnaissance vocale échouait (`useCoachVoice.ts`).
 - 📋 **Prochaine étape** : en jeu, voix active : battre son record perso (phrase dite, pas
   de bip), poser un repère (« Repère noté ») ; voix coupée : retour des bips.
 
+### 2026-10-17 — Veille : comment sont dessinés les overlays RaceLab (REA, aucun code modifié)
+
+- ✅ **Méthode** : REA `analyze_javascript_application` (overlay_host_window + chunks) ; le
+  `css-loader` a laissé le **SCSS d'origine** dans les source maps → 290 fichiers de style
+  relus (hors dépôt, `C:\tmp\rl_design_out\scss`, lecture seule, rien à reprendre tel quel).
+  Capture REA en direct impossible : les overlays reçoivent leurs données par
+  `ws://localhost:19302`, ouvert seulement quand on démarre les layouts dans RaceLab.
+- ✅ **Système visuel observé** : React + SCSS ; unité unique `pxToEmRel(px)` (= px/14 em,
+  2 341 usages) → tout l'overlay se met à l'échelle avec `font-size` ; thèmes par variables
+  CSS (`data-theme`), densités compact/comfortable/cosy (26/30/34 px de ligne) ; police
+  quasi unique Montserrat (graisses), chiffres `tabular-nums` (130) ; palette serrée
+  (rouge marque, cyan, violet record de séance `#dd61ff`, vert record perso `#81ff61`, rouge
+  `#ff4747`, gris 101010→e0e0e0) ; **texture « carbone »** = 2 `linear-gradient` à ±45° de
+  4,24 px en pseudo-éléments, masqués en fondu vertical ; **lignes « Lumina »** : fond
+  `linear-gradient(108deg, couleur de classe → fond)` sur ~90 px, liseré 1 px blanc 10 % en
+  haut et 1 px noir 90 % en bas ; rayons 1-2 px (pas d'arrondis larges) ; animations de record
+  (fond qui se remplit en largeur puis vire au vert/violet), apparition glissée 1,5 s ;
+  graphes Delta Trace / pédales en **Canvas 2D maison** (HiDPI, dégradés, `shadowBlur`),
+  carte en SVG + `drop-shadow`.
+- 📋 **Prochaine étape** : choix utilisateur des pistes graphiques (rapport du 2026-10-17 en
+  chat) ; rien n'est implémenté.
+
 ### 2026-10-17 — Les 13 pistes de la veille, en une passe, sur `feat/veille-pistes`
 
 **Demande** : « fais tout sur une branche séparée, en une passe ; pose les questions

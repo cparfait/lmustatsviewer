@@ -1635,9 +1635,109 @@ export const community = {
       route,
       query: Object.entries(query).map(([k, v]) => [k, String(v)]),
     }),
+  /** Briefing : pilotes d'une séance partagés sous leur nom (jamais les anonymes). */
+  briefing: (track: string, course: string, carClass: string | null, names: string[]) =>
+    invoke<CommunityBriefing>("community_briefing", { track, course, carClass, names }),
+  /** Rival de la semaine (`null` sans partage). */
+  rival: () => invoke<CommunityRival | null>("community_rival"),
+  /** Inscription au rival de la semaine (désactivée par défaut). */
+  setRival: (on: boolean) => invoke<boolean>("community_set_rival", { on }),
 };
 
-export type CommunityRoute = "stats" | "combos" | "combos/detail" | "combos/leaderboard" | "combos/position" | "combos/compare";
+export type CommunityRoute =
+  | "stats"
+  | "combos"
+  | "combos/detail"
+  | "combos/leaderboard"
+  | "combos/position"
+  | "combos/compare"
+  | "tiers"
+  | "cars"
+  | "patch";
+
+/** Pilote tel qu'affiché publiquement (anonyme : repère seul). */
+export interface CommunityPublicDriver {
+  name: string | null;
+  tag: string;
+  homonym: boolean;
+  country: string | null;
+  avatar: string | null;
+}
+
+/** Référence de rythme d'un combo (moyenne des 5 meilleurs pilotes, version récente). */
+export interface CommunityTierReference {
+  track: string;
+  track_course: string;
+  car_class: string;
+  version: string;
+  reference: number;
+  drivers: number;
+  provisional: boolean;
+}
+
+export interface CommunityTiers {
+  top_n: number;
+  references: CommunityTierReference[];
+}
+
+/** Index des voitures d'une classe (100 % = la plus rapide du tracé). */
+export interface CommunityCarIndex {
+  car_class: string;
+  top_n: number;
+  layouts: { track: string; track_course: string }[];
+  cars: {
+    car_model: string;
+    avg_pct: number;
+    worst_pct: number;
+    tracks: number;
+    cells: ({ time: number; pct: number; drivers: number } | null)[];
+  }[];
+}
+
+/** Effet d'un patch : écart médian par pilote entre deux versions. */
+export interface CommunityPatchEffect {
+  from: string | null;
+  to: string | null;
+  versions: string[];
+  pairs: number;
+  drivers: number;
+  median_delta: number | null;
+  median_pct: number | null;
+  combos: { track: string; track_course: string; car_class: string; drivers: number; median_delta: number; median_pct: number }[];
+}
+
+export interface CommunityBriefing {
+  reference: number | null;
+  provisional?: boolean;
+  drivers: number;
+  found: {
+    query: string;
+    driver: CommunityPublicDriver;
+    best: number | null;
+    car_model: string | null;
+    rank: number | null;
+    top_pct: number | null;
+    pct: number | null;
+  }[];
+}
+
+export interface CommunityRivalDuel {
+  combos: { track: string; track_course: string; car_class: string; mine: number; theirs: number }[];
+  wins: number;
+  losses: number;
+  ties: number;
+  points: number | null;
+}
+
+export interface CommunityRival {
+  opted_in: boolean;
+  week: string;
+  week_end: string;
+  rival: CommunityPublicDriver | null;
+  current: (CommunityRivalDuel & { rival: CommunityPublicDriver | null }) | null;
+  history: { week: string; rival: CommunityPublicDriver | null; wins: number; losses: number; ties: number; points: number | null }[];
+  points: number;
+}
 
 /** Filtres de la page Classements (session/mode : mêmes règles que le serveur). */
 export interface MyCombosFilter {

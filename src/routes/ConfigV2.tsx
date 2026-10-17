@@ -33,6 +33,7 @@ import {
 import { MENU_MODULE_KEYS } from "@/components/layout/Header";
 import { ReplayBenchPanel } from "@/components/ReplayBenchPanel";
 import { RegieSettings } from "@/components/RegieSettings";
+import { InsightsToggle, TierSourceSelect } from "@/components/ClassementOptions";
 import {
   FolderOpen,
   RefreshCw,
@@ -1061,6 +1062,8 @@ export function ConfigV2() {
                                 {t("config.ohneSpeedDesc")}
                               </p>
                             </div>
+                            <TierSourceSelect />
+                            <InsightsToggle />
                             <div className="space-y-1">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="text-xs font-medium">

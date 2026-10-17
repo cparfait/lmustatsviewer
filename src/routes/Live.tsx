@@ -66,6 +66,7 @@ import { playerClassPosition } from "@/lib/livePosition";
 import { flagFromPhase, type FlagKind } from "@/lib/engineer/useRaceEngineer";
 import type { Tr } from "@/i18n";
 import { IncidentDots } from "@/components/IncidentDots";
+import { BriefingPanel } from "@/components/BriefingPanel";
 
 /**
  * Estimation « carburant pour finir » :
@@ -1039,6 +1040,9 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
           >
             <StandingsTable standings={data.standings} />
           </Panel>
+          <div className="mt-4">
+            <BriefingPanel data={data} />
+          </div>
         </div>
       )}
 

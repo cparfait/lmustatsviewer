@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import {
   community,
+  config,
   isTauri,
   type CommunityCompare,
   type CommunityDetail,
@@ -35,6 +36,7 @@ import { useAppStore } from "@/stores/app";
 import { TierBadge } from "@/components/TierBadge";
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { References } from "@/routes/References";
+import { CarIndexTab, INSIGHTS_KEY, PatchTab, RivalTab } from "@/routes/ClassementInsights";
 import { AvatarFetch } from "@/components/CommunitySettings";
 
 const RANKED_MIN = 20;
@@ -936,23 +938,44 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
  * et onglet « Références OhneSpeed » (la page Références, inchangée). Si l'option
  * OhneSpeed est désactivée, ni onglet ni colonne : la page Classement seule.
  */
+type ClassementTab = "position" | "references" | "cars" | "patch" | "rival";
+const TAB_LABEL: Record<ClassementTab, string> = {
+  position: "leaderboard.tabMine",
+  references: "leaderboard.tabRefs",
+  cars: "insights.tabCars",
+  patch: "insights.tabPatch",
+  rival: "insights.tabRival",
+};
+
 export function Classement() {
   const { t } = useTranslation();
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
+  // Onglets communautaires avancés : désactivés par défaut (Configuration › Sessions).
+  const [insights, setInsights] = useState(false);
+  useEffect(() => {
+    if (!isTauri()) return;
+    void config.get(INSIGHTS_KEY).then((v) => setInsights(v === "1")).catch(() => {});
+  }, []);
   const [params, setParams] = useSearchParams();
+  const available: ClassementTab[] = [
+    "position",
+    ...(showOhneSpeed ? (["references"] as const) : []),
+    ...(insights ? (["cars", "patch", "rival"] as const) : []),
+  ];
   // Sans `?tab=` (entrée par le menu), on rouvre le dernier onglet consulté.
-  const [lastTab, setLastTab] = usePageState<"position" | "references">("classement.tab", "position");
-  const tab = showOhneSpeed && (params.get("tab") ?? lastTab) === "references" ? "references" : "position";
-  const setTab = (v: "position" | "references") => {
+  const [lastTab, setLastTab] = usePageState<ClassementTab>("classement.tab", "position");
+  const wanted = (params.get("tab") ?? lastTab) as ClassementTab;
+  const tab: ClassementTab = available.includes(wanted) ? wanted : "position";
+  const setTab = (v: ClassementTab) => {
     setLastTab(v);
-    setParams(v === "references" ? { tab: v } : {}, { replace: true });
+    setParams(v === "position" ? {} : { tab: v }, { replace: true });
   };
 
   return (
     <div className="flex flex-col gap-4">
-      {showOhneSpeed && (
-        <div className="inline-flex rounded-lg border border-border/60 bg-card p-1">
-          {(["position", "references"] as const).map((v) => (
+      {available.length > 1 && (
+        <div className="inline-flex flex-wrap rounded-lg border border-border/60 bg-card p-1">
+          {available.map((v) => (
             <button
               key={v}
               type="button"
@@ -961,12 +984,22 @@ export function Classement() {
                 tab === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t(v === "position" ? "leaderboard.tabMine" : "leaderboard.tabRefs")}
+              {t(TAB_LABEL[v])}
             </button>
           ))}
         </div>
       )}
-      {tab === "references" ? <References /> : <MyPosition showOhne={showOhneSpeed} />}
+      {tab === "references" ? (
+        <References />
+      ) : tab === "cars" ? (
+        <CarIndexTab />
+      ) : tab === "patch" ? (
+        <PatchTab />
+      ) : tab === "rival" ? (
+        <RivalTab />
+      ) : (
+        <MyPosition showOhne={showOhneSpeed} />
+      )}
     </div>
   );
 }

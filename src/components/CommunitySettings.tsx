@@ -12,6 +12,7 @@
  *   un record personnel. Rien n'est partagé tant que le joueur n'a pas cliqué « Activer
  *   le partage » (consentement explicite) : le bouton est seulement mis en avant.
  */
+import { useBriefingSetting } from "@/components/BriefingPanel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Eye, Loader2, Send, ShieldCheck, Trash2, X, Lock, AlertTriangle, Trophy, Link2 } from "lucide-react";
@@ -65,6 +66,7 @@ export function CommunitySettings() {
   const [activateOpen, setActivateOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const steam = useSteamLogin();
+  const [briefingOn, setBriefingOn] = useBriefingSetting();
 
   const refresh = useCallback(() => {
     if (!isTauri()) return;
@@ -313,6 +315,10 @@ export function CommunitySettings() {
           )}
         </Row>
       )}
+
+      <Row title={t("briefing.settingTitle")} desc={t("briefing.settingDesc")}>
+        <Switch checked={briefingOn} onCheckedChange={(v: boolean) => setBriefingOn(v)} />
+      </Row>
 
       <Row title={t("community.previewTitle")} desc={t("community.previewDesc")}>
         <Button size="sm" variant="outline" className="gap-1.5" onClick={openPreview}>

@@ -1031,13 +1031,17 @@ async fn sync_inner(db: &DbState) -> Result<SyncReport, AppError> {
 // ── Lectures publiques (page « Classement », lot 4) ──────────────────────────
 
 /// Routes publiques autorisées (agrégats seulement ; aucune donnée personnelle).
-const PUBLIC_ROUTES: [&str; 6] = [
+const PUBLIC_ROUTES: [&str; 9] = [
     "stats",
     "combos",
     "combos/detail",
     "combos/leaderboard",
     "combos/position",
     "combos/compare",
+    // Vues dérivées : paliers calculés sur la base, index des voitures, effet d'un patch.
+    "tiers",
+    "cars",
+    "patch",
 ];
 
 /// Lecture publique du service (sans jeton). `null` si le combo n'existe pas (404).
@@ -1065,6 +1069,58 @@ async fn public_inner(db: &DbState, route: &str, query: &[(String, String)]) -> 
         200 => resp.json().await.map_err(net_err),
         404 => Ok(Value::Null),
         code => Err(AppError::Internal(format!("serveur : HTTP {code}"))),
+    }
+}
+
+/// Briefing des adversaires : noms vus dans la séance → pilotes partagés sous leur nom
+/// (le serveur ne renvoie jamais un anonyme). Envoyés dans le corps, pas dans l'adresse.
+#[tauri::command]
+pub async fn community_briefing(
+    track: String,
+    course: String,
+    car_class: Option<String>,
+    names: Vec<String>,
+    db: State<'_, DbState>,
+) -> Result<Value, AppError> {
+    let names: Vec<String> = names
+        .into_iter()
+        .map(|n| truncate(n.trim(), 64))
+        .filter(|n| !n.is_empty())
+        .take(64)
+        .collect();
+    if names.is_empty() {
+        return Ok(json!({ "reference": null, "drivers": 0, "found": [] }));
+    }
+    let mut body = json!({ "track": track, "course": course, "names": names });
+    if let Some(c) = car_class.filter(|c| !c.is_empty()) {
+        body["class"] = json!(c);
+    }
+    let base = api_base(&db)?;
+    let resp = client(&base)?.post(format!("{base}/briefing")).json(&body).send().await.map_err(net_err)?;
+    match resp.status().as_u16() {
+        200 => resp.json().await.map_err(net_err),
+        code => Err(AppError::Internal(format!("serveur : HTTP {code}"))),
+    }
+}
+
+/// Rival de la semaine : duel en cours et bilan (jeton requis). `null` sans partage.
+#[tauri::command]
+pub async fn community_rival(db: State<'_, DbState>) -> Result<Value, AppError> {
+    let Some(tok) = token(&db)? else { return Ok(Value::Null) };
+    let base = api_base(&db)?;
+    let resp = client(&base)?.get(format!("{base}/rival")).bearer_auth(tok).send().await.map_err(net_err)?;
+    match resp.status().as_u16() {
+        200 => resp.json().await.map_err(net_err),
+        code => Err(AppError::Internal(format!("serveur : HTTP {code}"))),
+    }
+}
+
+/// Inscription au rival de la semaine (désactivée par défaut).
+#[tauri::command]
+pub async fn community_set_rival(on: bool, db: State<'_, DbState>) -> Result<bool, AppError> {
+    match patch_me(&db, json!({ "rival": on })).await? {
+        (c, v) if (200..300).contains(&c) => Ok(v["rival"].as_bool().unwrap_or(on)),
+        (c, _) => Err(AppError::Internal(format!("serveur : HTTP {c}"))),
     }
 }
 

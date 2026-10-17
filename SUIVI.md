@@ -913,6 +913,19 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Onglet Régularité lisible ; « session » partout (FR, DE)
+
+- ✅ **Régularité** (`SessionExtras.tsx`) : phrase d'explication, verdict sous l'écart-type
+  (< 0,4 s très régulier, < 0,8 s régulier, < 1,5 s irrégulier, sinon très irrégulier), aide sous
+  le tour médian et les bandes, secteurs en cartes (« le plus stable » / « à travailler »),
+  couleurs lisibles en thème clair, libellés sur une ligne. **Bug** : largeur des barres
+  `"25 %"` (avec espace) ignorée par le navigateur → barres toujours pleines ; corrigé.
+  Onglet déplacé avant « Coach IA ».
+- ✅ **Vocabulaire** : « séance(s) » → « session(s) » dans `fr.ts` (34) et les lignes FR de la
+  1.0.10 ; allemand « Sitzung » → « Session » (composés « Session-Details », « Session-Zeit »…).
+  ES / IT / EN disaient déjà « sesión / sessione / session » (« tanda larga » = relais, gardé).
+  Description du badge « tours comparables » réécrite (5 langues). Règle mémorisée.
+
 ### 2026-10-17 — Bloc « Analyse : nouveautés » supprimé, options rangées où elles agissent
 
 - ✅ `AnalysisExtrasSettings.tsx` découpé : `SessionDetailSettings` (Préférences › « Détail des

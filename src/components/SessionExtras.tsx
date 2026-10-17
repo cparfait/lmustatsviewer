@@ -1,6 +1,6 @@
 /**
  * Encarts du détail d'une séance ajoutés par la veille du 2026-10-17, chacun derrière
- * son interrupteur (Configuration › Préférences › Analyse), désactivés par défaut :
+ * son interrupteur (Configuration › Préférences › Détail des séances), désactivés par défaut :
  * - `ComparableBadge` : la séance se prête-t-elle à la comparaison (en ligne, serveur
  *   dédié, sans aide au freinage ni à la direction) ;
  * - `RegularityPanel` : régularité du joueur (écart-type, tours proches du meilleur,
@@ -54,14 +54,23 @@ function pct(v: number): string {
   return `${Math.round(v * 100)} %`;
 }
 
+/** Verdict lisible à partir de l'écart-type des tours (s). */
+function verdict(std: number): { key: string; cls: string } {
+  if (std < 0.4) return { key: "regVerdict1", cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" };
+  if (std < 0.8) return { key: "regVerdict2", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" };
+  if (std < 1.5) return { key: "regVerdict3", cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300" };
+  return { key: "regVerdict4", cls: "bg-red-500/15 text-red-700 dark:text-red-300" };
+}
+
 export function RegularityPanel({ laps }: { laps: LapRow[] }) {
   const { t } = useTranslation();
   const r = useMemo(() => computeRegularity(laps), [laps]);
   if (!r) return <p className="py-6 text-center text-sm text-muted-foreground">{t("extras.regNotEnough")}</p>;
+  const v = verdict(r.stdDev);
   const stats = [
     { label: t("extras.regBest"), value: formatTime(r.best) },
-    { label: t("extras.regMedian"), value: formatTime(r.median) },
-    { label: t("extras.regStd"), value: `± ${r.stdDev.toFixed(3)} s` },
+    { label: t("extras.regMedian"), value: formatTime(r.median), hint: t("extras.regMedianHint") },
+    { label: t("extras.regStd"), value: `± ${r.stdDev.toFixed(3)} s`, badge: v },
     { label: t("extras.regLaps"), value: String(r.laps) },
   ];
   const bands = [
@@ -70,36 +79,69 @@ export function RegularityPanel({ laps }: { laps: LapRow[] }) {
     { d: "1.0", v: r.within["1.0"] },
   ];
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* À quoi sert l'onglet */}
+      <p className="rounded-md bg-muted/40 px-3 py-2 text-sm text-muted-foreground">{t("extras.regIntro")}</p>
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
           <div key={s.label} className="rounded-md border border-border p-3">
             <p className="text-micro uppercase tracking-widest text-muted-foreground">{s.label}</p>
             <p className="text-lg font-semibold tabular-nums">{s.value}</p>
+            {s.badge && (
+              <span className={cn("mt-1 inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold", s.badge.cls)}>
+                {t(`extras.${s.badge.key}`)}
+              </span>
+            )}
+            {s.hint && <p className="mt-1 text-[11px] text-muted-foreground">{s.hint}</p>}
           </div>
         ))}
       </div>
+
       <div className="space-y-2">
-        <p className="text-sm font-semibold">{t("extras.regWithinTitle")}</p>
+        <div>
+          <p className="text-sm font-semibold">{t("extras.regWithinTitle")}</p>
+          <p className="text-xs text-muted-foreground">{t("extras.regWithinHint")}</p>
+        </div>
         {bands.map((b) => (
           <div key={b.d} className="flex items-center gap-3 text-sm">
-            <span className="w-24 text-muted-foreground">{t("extras.regWithin", { d: b.d.replace(".", ",") })}</span>
+            <span className="w-32 shrink-0 whitespace-nowrap text-muted-foreground">
+              {t("extras.regWithin", { d: b.d.replace(".", ",") })}
+            </span>
             <div className="h-2 flex-1 overflow-hidden rounded bg-muted">
-              <div className="h-full bg-emerald-500/70" style={{ width: pct(b.v) }} />
+              {/* Largeur CSS sans espace (« 25% ») : « 25 % » est ignoré par le navigateur. */}
+              <div className="h-full bg-emerald-500/70" style={{ width: `${Math.round(b.v * 100)}%` }} />
             </div>
             <span className="w-12 text-right tabular-nums">{pct(b.v)}</span>
           </div>
         ))}
       </div>
-      {r.sectorStd.some((v) => v != null) && (
-        <div className="space-y-1 text-sm">
-          <p className="font-semibold">{t("extras.regSectors")}</p>
-          <div className="flex flex-wrap gap-4">
-            {r.sectorStd.map((v, i) => (
-              <span key={i} className={cn("tabular-nums", r.unstableSector === i + 1 && "text-amber-300", r.stableSector === i + 1 && "text-emerald-300")}>
-                S{i + 1} : {v == null ? "—" : `± ${v.toFixed(3)} s`}
-              </span>
-            ))}
+
+      {r.sectorStd.some((x) => x != null) && (
+        <div className="space-y-2">
+          <div>
+            <p className="text-sm font-semibold">{t("extras.regSectors")}</p>
+            <p className="text-xs text-muted-foreground">{t("extras.regSectorsHint")}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {r.sectorStd.map((x, i) => {
+              const unstable = r.unstableSector === i + 1;
+              const stable = r.stableSector === i + 1;
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "rounded-md border p-3",
+                    unstable ? "border-amber-500/50 bg-amber-500/5" : stable ? "border-emerald-500/50 bg-emerald-500/5" : "border-border",
+                  )}
+                >
+                  <p className="text-micro uppercase tracking-widest text-muted-foreground">S{i + 1}</p>
+                  <p className="text-base font-semibold tabular-nums">{x == null ? "—" : `± ${x.toFixed(3)} s`}</p>
+                  {unstable && <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">{t("extras.regUnstable")}</p>}
+                  {stable && <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">{t("extras.regStable")}</p>}
+                </div>
+              );
+            })}
           </div>
           {r.unstableSector && <p className="text-xs text-muted-foreground">{t("extras.regWork", { n: r.unstableSector })}</p>}
         </div>

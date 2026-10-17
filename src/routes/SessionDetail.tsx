@@ -828,11 +828,11 @@ function SessionView({ data }: { data: SessionDetailData }) {
               {t("sessionDetail.tabTrackLimits")} ({trackLimitEvents.length})
             </TabsTrigger>
           )}
-          {aiCoachEnabled && (
-            <TabsTrigger value="coach">{t("sessionDetail.tabCoach")}</TabsTrigger>
-          )}
           {showRegularity && playerName && (
             <TabsTrigger value="regularity">{t("extras.tabRegularity")}</TabsTrigger>
+          )}
+          {aiCoachEnabled && (
+            <TabsTrigger value="coach">{t("sessionDetail.tabCoach")}</TabsTrigger>
           )}
         </TabsList>
 

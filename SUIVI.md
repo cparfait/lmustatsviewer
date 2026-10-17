@@ -913,6 +913,14 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Carte « Widgets par adresse » recentrée sur OBS et le 2ᵉ écran
+
+- ✅ Destination « Casque VR » retirée de la carte (doublon du mode VR) : une ligne
+  « Pour la VR, utilise le mode VR » + bouton « Passer en mode VR » (active le mode et remonte
+  en haut de la page). Titre « Widgets par adresse : OBS, 2ᵉ écran », explication réécrite,
+  destination par défaut OBS, interrupteur « Fond opaque » toujours visible. `vr3` neutre
+  (« Colle l'adresse du widget voulu ») : il sert aussi à la page d'index des widgets servis.
+
 ### 2026-10-17 — Page Overlays : bouton « VR » (mode VR en un clic)
 
 - ✅ **Bouton « VR »** dans la barre du haut (`usePageState("overlays.vr")`) : démarre le serveur

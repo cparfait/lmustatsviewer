@@ -651,7 +651,12 @@ export function Overlays() {
       </div>
 
       <div className="mt-6">
-        <WidgetServerSettings />
+        <WidgetServerSettings
+          onVrMode={() => {
+            setVrMode(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
       </div>
 
       {showLook && <OverlayLookDialog onClose={() => setShowLook(false)} />}

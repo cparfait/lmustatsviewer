@@ -2,9 +2,10 @@
  * Widgets par adresse locale (page Overlays) : chaque widget s'ouvre seul dans
  * OpenKneeboard (VR), OBS ou un navigateur du même PC.
  *
- * Présenté en trois étapes : ① activer, ② choisir où l'afficher (casque VR, OBS,
- * 2ᵉ écran — chacun avec son mode d'emploi), ③ choisir le widget et copier SON
- * adresse. La liste de toutes les adresses et le port restent dans « Plus d'options ».
+ * Présenté en trois étapes : ① activer, ② choisir où l'afficher (OBS ou 2ᵉ écran,
+ * chacun avec son mode d'emploi), ③ choisir le widget et copier SON adresse. La VR a
+ * son propre mode (bouton « VR » de la page Overlays) : la carte y renvoie. La liste de
+ * toutes les adresses et le port restent dans « Plus d'options ».
  *
  * Désactivé par défaut. Le serveur n'écoute que sur 127.0.0.1 et en lecture
  * seule (`src-tauri/src/commands/widget_server.rs`). `useWidgetServerAutostart`
@@ -29,8 +30,6 @@ import {
   widgetServer,
   widgetServerPort,
   widgetUrl,
-  openExternal,
-  OPENKNEEBOARD_URL,
   WIDGET_SERVER_DEFAULT_PORT,
   WIDGET_SERVER_ENABLED_KEY,
   WIDGET_SERVER_PORT_KEY,
@@ -40,9 +39,8 @@ import {
 const SCALES = [1, 1.25, 1.5, 2];
 
 /** Destinations proposées : chacune a son mode d'emploi. */
-type Target = "vr" | "obs" | "screen";
+type Target = "obs" | "screen";
 const TARGETS: { id: Target; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "vr", icon: Glasses },
   { id: "obs", icon: Radio },
   { id: "screen", icon: MonitorUp },
 ];
@@ -62,7 +60,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-export function WidgetServerSettings() {
+export function WidgetServerSettings({ onVrMode }: { onVrMode?: () => void }) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<WidgetServerStatus | null>(null);
   const [port, setPort] = useState(String(WIDGET_SERVER_DEFAULT_PORT));
@@ -73,7 +71,7 @@ export function WidgetServerSettings() {
   const [copied, setCopied] = useState("");
   // Carte repliée par défaut : seuls le titre et « à quoi ça sert » sont visibles.
   const [expanded, setExpanded] = useState(false);
-  const [target, setTarget] = useState<Target>("vr");
+  const [target, setTarget] = useState<Target>("obs");
   // Widget proposé d'abord : un de ceux affichés à l'écran, sinon le classement.
   const overlays = useOverlaysStore((s) => s.cfg.overlays);
   const [widget, setWidget] = useState<OverlayId>(
@@ -163,6 +161,19 @@ export function WidgetServerSettings() {
 
       {expanded && (
         <div className="space-y-3">
+          {/* La VR a son propre mode (bouton « VR » en haut de la page). */}
+          {onVrMode && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+              <span className="flex items-center gap-2 text-sm">
+                <Glasses className="h-4 w-4 shrink-0 text-primary" />
+                {t("overlays.web.vrHint")}
+              </span>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={onVrMode}>
+                <Glasses className="h-4 w-4" />
+                {t("overlays.web.vrGo")}
+              </Button>
+            </div>
+          )}
           {/* ① Activer */}
           <Step n={1} title={t("overlays.web.step1")}>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -196,26 +207,6 @@ export function WidgetServerSettings() {
               ))}
             </div>
             <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
-              {target === "vr" && (
-                <>
-                  <ol className="list-decimal space-y-1 pl-5">
-                    <li>
-                      {t("overlays.web.vr1")}{" "}
-                      <button
-                        type="button"
-                        className="font-medium text-primary hover:underline"
-                        onClick={() => openExternal(OPENKNEEBOARD_URL)}
-                      >
-                        {t("overlays.web.okbDownload")}
-                      </button>
-                    </li>
-                    <li>{t("overlays.web.vr2")}</li>
-                    <li>{t("overlays.web.vr3")}</li>
-                    <li>{t("overlays.web.vr4")}</li>
-                  </ol>
-                  <p className="mt-1.5">{t("overlays.web.vrUac")}</p>
-                </>
-              )}
               {target === "obs" && (
                 <ol className="list-decimal space-y-1 pl-5">
                   <li>{t("overlays.web.obs1")}</li>
@@ -272,13 +263,10 @@ export function WidgetServerSettings() {
                       options={SCALES.map((s) => ({ value: String(s), label: `${s}×` }))}
                     />
                   </label>
-                  {/* En VR, le widget doit rester transparent au-dessus du jeu : pas de fond opaque. */}
-                  {target !== "vr" && (
-                    <label className="flex items-center gap-2" title={t("overlays.web.opaqueHint")}>
-                      <Switch checked={opaque} onCheckedChange={(v: boolean) => setOpaque(v)} />
-                      {t("overlays.web.opaque")}
-                    </label>
-                  )}
+                  <label className="flex items-center gap-2" title={t("overlays.web.opaqueHint")}>
+                    <Switch checked={opaque} onCheckedChange={(v: boolean) => setOpaque(v)} />
+                    {t("overlays.web.opaque")}
+                  </label>
                   <span className="text-muted-foreground">{t("overlays.web.clients", { count: status.clients })}</span>
                 </div>
               </>

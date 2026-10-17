@@ -1900,6 +1900,7 @@ export default {
     voiceTabRadio: "Parler à l'ingénieur",
     voiceTabSpotter: "Spotter",
     voiceTabCoach: "Coach par virage",
+    voiceOffHint: "Active « Annonces vocales » pour régler la voix, les annonces, l'ingénieur et le coach par virage. Ces deux réglages marchent aussi sans voix, avec des bips :",
     voiceTabNeedsVoice: "Active « Annonces vocales » ci-dessus pour régler cette partie.",
     voiceSpeaker: "Locuteur",
     voiceSpeakerDesc: "Cette voix contient plusieurs locuteurs : choisis-en un puis teste.",

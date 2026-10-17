@@ -1279,6 +1279,7 @@ export function ConfigV2() {
                   />
                 )}
                 {/* Sous-onglets d'« Audio / Voix » (la page était devenue trop longue). */}
+                {voiceAnnouncements && (
                 <div className="flex flex-wrap gap-1 border-b border-border/50 pb-2 pt-1" role="tablist">
                   {(
                     [
@@ -1305,8 +1306,9 @@ export function ConfigV2() {
                     </button>
                   ))}
                 </div>
+                )}
                 {/* Records au volant : marche aussi sans annonces vocales (bips). */}
-                {voiceTab === "announces" && (
+                {voiceTab === "announces" && voiceAnnouncements && (
                   <div className="py-2">
                     <RecordAnnounceSetting />
                   </div>
@@ -1334,8 +1336,12 @@ export function ConfigV2() {
       </div>
                   </div>
                 )}
-                {!voiceAnnouncements && (voiceTab === "voice" || voiceTab === "announces" || voiceTab === "coach") && (
-                  <p className="py-2 text-xs text-muted-foreground/80">{t("config.voiceTabNeedsVoice")}</p>
+                {!voiceAnnouncements && (
+                  <div className="space-y-2 py-2">
+                    <p className="text-xs text-muted-foreground">{t("config.voiceOffHint")}</p>
+                    <RecordAnnounceSetting />
+                    <ReviewMarksSetting />
+                  </div>
                 )}
                 {/* Onglet « Voix » : moteur, voix IA en ligne, voix, vitesse, volume,
                     effet radio, bips, téléchargements, personnalisation. */}
@@ -1735,7 +1741,7 @@ export function ConfigV2() {
                 {/* Onglet « Parler à l'ingénieur » (fusion ingénieur + spotter) :
                     une seule logique de réponse (`askEngineer`), une liste de
                     commandes commune, des raccourcis directs sans parler. */}
-                {voiceTab === "radio" && (
+                {voiceTab === "radio" && voiceAnnouncements && (
                   <div className="space-y-5 py-2">
                     {/* 1. Parler */}
                     <section className="space-y-1.5">

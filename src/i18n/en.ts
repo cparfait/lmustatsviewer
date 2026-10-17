@@ -1894,6 +1894,7 @@ export default {
     voiceTabRadio: "Talk to the engineer",
     voiceTabSpotter: "Spotter",
     voiceTabCoach: "Corner coach",
+    voiceOffHint: "Turn on “Voice announcements” to set up the voice, announcements, the engineer and the corner coach. These two settings also work without voice, with beeps:",
     voiceTabNeedsVoice: "Turn on \"Voice announcements\" above to set this part.",
     voiceSpeaker: "Speaker",
     voiceSpeakerDesc: "This voice has several speakers: pick one then test.",

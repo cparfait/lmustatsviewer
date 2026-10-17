@@ -1894,6 +1894,7 @@ export default {
     voiceTabRadio: "Parla con l'ingegnere",
     voiceTabSpotter: "Spotter",
     voiceTabCoach: "Coach per curva",
+    voiceOffHint: "Attiva «Annunci vocali» per regolare voce, annunci, ingegnere e coach per curva. Queste due impostazioni funzionano anche senza voce, con dei bip:",
     voiceTabNeedsVoice: "Attiva «Annunci vocali» qui sopra per regolare questa parte.",
     voiceSpeaker: "Speaker",
     voiceSpeakerDesc: "Questa voce ha più speaker: scegline uno, poi prova.",

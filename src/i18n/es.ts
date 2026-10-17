@@ -1898,6 +1898,7 @@ export default {
     voiceTabRadio: "Hablar con el ingeniero",
     voiceTabSpotter: "Spotter",
     voiceTabCoach: "Coach por curva",
+    voiceOffHint: "Activa «Anuncios de voz» para ajustar la voz, los anuncios, el ingeniero y el coach por curva. Estos dos ajustes también funcionan sin voz, con pitidos:",
     voiceTabNeedsVoice: "Activa «Anuncios de voz» arriba para ajustar esta parte.",
     voiceSpeaker: "Locutor",
     voiceSpeakerDesc: "Esta voz tiene varios locutores: elige uno y prueba.",

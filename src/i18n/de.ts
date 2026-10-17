@@ -1899,6 +1899,7 @@ export default {
     voiceTabRadio: "Mit dem Ingenieur sprechen",
     voiceTabSpotter: "Spotter",
     voiceTabCoach: "Kurven-Coach",
+    voiceOffHint: "Aktiviere „Sprachansagen“, um Stimme, Ansagen, Ingenieur und Kurven-Coach einzustellen. Diese zwei Einstellungen funktionieren auch ohne Stimme, mit Pieptönen:",
     voiceTabNeedsVoice: "Schalte oben „Sprachansagen“ ein, um diesen Teil einzustellen.",
     voiceSpeaker: "Sprecher",
     voiceSpeakerDesc: "Diese Stimme hat mehrere Sprecher: einen wählen und testen.",

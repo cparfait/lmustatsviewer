@@ -461,6 +461,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Audio / Voice: with voice announcements off, the sub-tabs are hidden; only the record beeps and review marks remain, since they also work with beeps.",
+              fr: "Audio / Voix : annonces vocales coupées, les sous-onglets sont masqués ; seuls restent les bips de record et les repères de revue, qui marchent aussi avec des bips.",
+              es: "Audio / Voz: con los anuncios de voz desactivados, se ocultan las subpestañas; solo quedan los pitidos de récord y las marcas de revisión, que también funcionan con pitidos.",
+              de: "Audio / Stimme: Bei ausgeschalteten Sprachansagen sind die Unter-Tabs ausgeblendet; nur Rekord-Pieptöne und Review-Markierungen bleiben, da sie auch mit Pieptönen funktionieren.",
+              it: "Audio / Voce: con gli annunci vocali disattivati, le sotto-schede sono nascoste; restano solo i bip dei record e i segnalibri di revisione, che funzionano anche con i bip.",
+            },
+          },
+          {
+            text: {
               en: "Neural voices: pick and test a voice right in the download list (one line per voice, the two UPMC voices Jessica and Pierre listed under it); the separate “Voice” drop-down only remains for the System voice.",
               fr: "Voix neuronales : on choisit et on teste la voix directement dans la liste des téléchargements (une ligne par voix, les deux voix d'UPMC, Jessica et Pierre, listées en dessous) ; la liste « Voix » séparée ne reste que pour la voix Système.",
               es: "Voces neuronales: se elige y se prueba la voz directamente en la lista de descargas (una línea por voz; las dos voces de UPMC, Jessica y Pierre, debajo); la lista «Voz» aparte solo queda para la voz Sistema.",

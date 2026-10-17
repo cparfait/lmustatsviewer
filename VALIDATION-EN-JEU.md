@@ -12,6 +12,23 @@ colle pas est à signaler (capture d'écran + moment de la séance).
 
 ---
 
+## 0. Veille 2026-10-17 (branche `feat/veille-pistes`, options à activer)
+
+- [ ] `/overlays` › Widgets par adresse : activer, ouvrir une adresse dans un navigateur
+      pendant une séance → le widget bouge en direct ; dans OpenKneeboard (onglet Web
+      Dashboard) le panneau prend la taille du widget ; dans OBS (source Navigateur) le
+      fond est **transparent**.
+- [ ] Configuration › Préférences › Analyse : bips de record (1 bip après un record perso,
+      2 si meilleur tour de la classe en séance) ; aucun bip après un tour avec limites de
+      piste ou passage aux stands.
+- [ ] Repère de revue : bouton du volant assigné **et** push-to-talk toujours fonctionnel ;
+      le repère apparaît dans Séances › détail › Incidents.
+- [ ] Live › Classement › Briefing (Configuration › Communauté) : le bon tracé et la bonne
+      classe sont reconnus (titre de l'encart) sur 3 circuits différents.
+- [ ] Configuration › Outils & diagnostic : « Plein écran exclusif » / « Sans bordure »
+      correspondent bien au réglage du jeu ; un outil ajouté se lance au démarrage de LMU.
+- [ ] Séance en ligne réindexée : badge « Comparable » avec le nom du serveur.
+
 ## 1. Au garage (essais, voitures IA en piste)
 
 - [ ] Page Live : point « API du jeu » **vert** ; l'infobulle indique les sources.

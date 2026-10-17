@@ -46,7 +46,8 @@ Construire la **V3** de LMU Stats Viewer :
 | **Langue de travail** | Réponses + docs en FR ; code/variables/fichiers en anglais. |
 | **Cadence** | Développement autonome jusqu'à blocage ou point de décision. |
 | **Pas de données mockées** | **Aucune donnée d'exemple/simulée.** On travaille uniquement sur les données de production (vrais fichiers du jeu). Supprimer `mockData.ts`, `webMock.ts` et tous les fallbacks web du bridge IPC. Pas de « mode web » avec données simulées. Tests faits sur les fichiers réels de `D:\SteamLibrary\...`. |
-| **Overlays en VR** | 🧪 **Décidé (2026-09-23), en attente de validation anti-triche** — la VR passe par **OpenKneeboard** (signé, OpenXR + SteamVR) via ses **Web Dashboards** : l'app sert chaque widget sur une URL locale (fond transparent, données live par WebSocket). **Pas de couche OpenXR maison** tant qu'on n'a pas de certificat de signature de code : une DLL non signée chargée dans LMU se heurterait à Easy Anti-Cheat (actif depuis LMU 1.2). Cibles de test : Pimax (Pimax Play OpenXR) + Quest 3 (Virtual Desktop / VDXR). Rouvre partiellement la Phase 9. |
+| **Overlays en VR** | 🧪 **Décidé (2026-09-23), en attente de validation anti-triche** — la VR passe par **OpenKneeboard** (signé, OpenXR + SteamVR) via ses **Web Dashboards** : l'app sert chaque widget sur une URL locale (fond transparent, données live par WebSocket). **Pas de couche OpenXR maison** tant qu'on n'a pas de certificat de signature de code : une DLL non signée chargée dans LMU se heurterait à Easy Anti-Cheat (actif depuis LMU 1.2). Cibles de test : Pimax (Pimax Play OpenXR) + Quest 3 (Virtual Desktop / VDXR). Rouvre partiellement la Phase 9. **Étape 1 livrée (2026-10-17, branche `feat/veille-pistes`)** : widgets servis par adresse locale + WebSocket (`widget_server.rs`, section « Widgets par adresse » de `/overlays`), aussi pour OBS et un 2ᵉ écran. |
+| **Nouveautés issues de la veille** | **Décidé (2026-10-17)** — tout ce qui vient de la veille RaceLab / pitlane / MySIMRace est **désactivé par défaut** et s'active dans la Configuration ; l'existant ne change pas (paliers ohne_speed par défaut, aucune lecture/écriture supplémentaire de l'API du jeu). VR : OpenKneeboard seul (pas de couche OpenXR maison). Développé sur la branche `feat/veille-pistes`, à fusionner après validation. |
 | **Veille concurrents** | **Décidé (2026-09-25)** — on s'inspire des idées et des réglages d'outils concurrents, mais **aucun nom de concurrent dans le code** (identifiants, commentaires, textes UI, changelog) et aucune ligne de leur code reprise. Les analyses restent dans `SUIVI.md` (doc de veille). |
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
@@ -266,6 +267,18 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 ---
 
 ## 7. Notes / points ouverts
+
+- ⏳ **Branche `feat/veille-pistes` (2026-10-17)** : 6 commits non fusionnés dans `main`,
+  rien poussé. Avant fusion : validation en jeu (`VALIDATION-EN-JEU.md` § Veille) et
+  **déploiement du serveur communautaire** (migration 6 `rival_week` + routes `/tiers`,
+  `/cars`, `/patch`, `POST /briefing`, `/rival`) — sans lui, les onglets Index voitures /
+  Effet du patch / Rival et le briefing restent vides (l'app reste fonctionnelle).
+- ℹ️ **Règles de cut** : absentes des XML de résultats (vérifié sur les fichiers réels) ;
+  le badge « tours comparables » ne les vérifie pas. Lecture REST possible
+  (`SESSSET_cut_rules`) mais non validée en jeu → non faite (prudence plantages LMU).
+- ℹ️ **Correspondance live → base** (briefing, bips) : `mTrackName` / classe brute vs
+  `TrackVenue`/`TrackCourse` / classe normalisée, par heuristique (`lib/briefing.ts`) — à
+  vérifier circuit par circuit en jeu.
 
 - ⏳ **VR / anti-triche — nouvel indice** (2026-10-17, journal §8) : un concurrent livre une
   couche OpenXR implicite **signée** (Sectigo) et annonce LMU compatible en VR → EAC semble
@@ -899,6 +912,47 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-17 — Les 13 pistes de la veille, en une passe, sur `feat/veille-pistes`
+
+**Demande** : « fais tout sur une branche séparée, en une passe ; pose les questions
+avant ». Réponses : les 13 pistes ; VR = OpenKneeboard seul (piste 3, couche OpenXR
+maison, **exclue**) ; branche + un commit par lot ; tout désactivé par défaut.
+
+- ✅ `64a0a4f` **Pistes 1-2** — widgets servis par adresse locale (127.0.0.1:8791,
+  WebSocket RFC 6455 maison, lecture seule), page widget autonome `?w=<id>` (fond
+  transparent/opaque, échelle, `SetPreferredPixelSize` pour OpenKneeboard), section
+  « Widgets par adresse » de `/overlays` avec pas-à-pas OpenKneeboard et OBS.
+- ✅ `04eee9a` **Serveur communautaire** — `insights.ts` : `/tiers` (référence = moyenne
+  des 5 meilleurs pilotes, version la plus récente), `/cars` (index voitures, moyenne des
+  3 meilleurs par voiture), `/patch` (écart médian par pilote entre 2 versions),
+  `POST /briefing` (noms dans le corps ; anonymes jamais renvoyés), `/rival` + opt-in
+  `PATCH /me {rival}` (migration 6 `rival_pairs`, appariement hebdo par indice de rythme,
+  3/1/0 points sur 12 semaines, export RGPD). 51 tests PGlite.
+- ✅ `4103b36` **Pistes 4-5-11-13 (app)** — source des paliers au choix (ohne_speed par
+  défaut, base communautaire avec repli sur la feuille), onglets Classement « Index
+  voitures », « Effet du patch », « Rival de la semaine » (option `community_insights`),
+  briefing des adversaires dans Live › Classement (option `live_briefing`).
+- ✅ `fe9fe6a` **Piste 7** — « Points faibles du tour » en télémétrie (1 à 5 zones,
+  `analyzeLap(…, {focusCount})`, défaut 3 = inchangé), bouton « comparer à mon meilleur
+  tour » (la référence reste choisie par l'utilisateur).
+- ✅ `9aa475a` **Pistes 6-8-9-10-12** — `<ServerName>`/`<Dedicated>` lus et stockés
+  (`xml_index`, migration + schéma), badge « tours comparables » ; onglet « Régularité » ;
+  bips de record (1/2/3, `recordBeeps`) ; repères de revue (raccourci + 2ᵉ bouton volant
+  via `wheel_watch_mark`, sans toucher au PTT ; stockés `review_marks`, listés dans
+  Incidents) ; catégorie Configuration « Outils & diagnostic » (`tools.rs` : lanceur avec
+  LMU via ToolHelp32, fermeture douce des seuls outils lancés ; diagnostic en lecture seule
+  : dossier, plugin présent+activé, `Config_DX11.ini` WindowedMode/Borderless/VSyncMode,
+  API REST si le jeu tourne, OpenKneeboard, versions). Options dans Configuration ›
+  Préférences (`lib/configFlag.ts`).
+- ✅ Vérifié : `npm test` 3725 (suite `veille` ajoutée), `cargo test --lib` 109, tests
+  serveur 51 + typecheck, `npx tsc -b`, ESLint, `npm run build`.
+- ⏳ Non vérifié : rien en jeu ni dans l'app réelle (une instance de l'app tournait :
+  `cargo clippy`/`cargo check` complets bloqués par une DLL verrouillée, os 32 — les
+  tests compilent toute la lib). Mapping Config_DX11 → modes du jeu déduit ; chemins
+  d'installation d'OpenKneeboard non confirmés (pas installé ici). Serveur à déployer.
+- 📋 **Prochaine étape** : relecture par l'utilisateur ; tests en jeu
+  (`VALIDATION-EN-JEU.md` § Veille) ; déployer le serveur ; puis fusion dans `main`.
 
 ### 2026-10-17 — Veille : MySIMRace (site + MSR Connector 3.0.95) — analyse REA, aucun code modifié
 

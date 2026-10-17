@@ -91,6 +91,7 @@ export function Header() {
               key={item.to}
               to={item.to}
               end={item.end}
+              data-tour={`nav-${item.key}`}
               className={({ isActive }) =>
                 cn(
                   "relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
@@ -112,6 +113,7 @@ export function Header() {
             size="icon"
             onClick={() => setHelpOpen(true)}
             aria-label={t("help.title")}
+            data-tour="help"
           >
             <HelpCircle className="h-4 w-4" />
           </Button>

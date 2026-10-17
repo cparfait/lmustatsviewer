@@ -452,6 +452,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Guided tour on the real app: each step opens its page, circles the button or menu entry it talks about (the rest of the screen is dimmed) and shows the explanation right next to it. New steps for the steering-wheel button and VR.",
+              fr: "Visite guidée sur l'app réelle : chaque étape ouvre sa page, entoure le bouton ou l'entrée de menu dont elle parle (le reste de l'écran est assombri) et affiche l'explication juste à côté. Nouvelles étapes pour le bouton volant et la VR.",
+              es: "Visita guiada sobre la app real: cada paso abre su página, rodea el botón o la entrada de menú de la que habla (el resto de la pantalla se oscurece) y muestra la explicación justo al lado. Nuevos pasos para el botón del volante y la VR.",
+              de: "Geführte Tour in der echten App: Jeder Schritt öffnet seine Seite, umrandet die Schaltfläche oder den Menüeintrag, um den es geht (der Rest des Bildschirms wird abgedunkelt), und zeigt die Erklärung direkt daneben. Neue Schritte für die Lenkrad-Schaltfläche und VR.",
+              it: "Visita guidata sull'app reale: ogni passo apre la sua pagina, cerchia il pulsante o la voce di menu di cui parla (il resto dello schermo è oscurato) e mostra la spiegazione proprio accanto. Nuovi passi per il pulsante volante e la VR.",
+            },
+          },
+          {
+            text: {
               en: "Tools & diagnostics: programs found on your PC (OpenKneeboard, SimHub, Crew Chief) appear as cards with what they do and an Add button, above a clear “Add another program…” button.",
               fr: "Outils & diagnostic : les programmes trouvés sur ton PC (OpenKneeboard, SimHub, Crew Chief) s'affichent en cartes, avec leur rôle et un bouton Ajouter, au-dessus d'un bouton « Ajouter un autre programme… » bien visible.",
               es: "Herramientas y diagnóstico: los programas encontrados en tu PC (OpenKneeboard, SimHub, Crew Chief) aparecen en tarjetas con su función y un botón Añadir, encima de un botón «Añadir otro programa…» bien visible.",

@@ -65,6 +65,7 @@ export function PlayLmuButton() {
       disabled={busy}
       aria-label={label}
       title={label}
+      data-tour="play"
       className="relative"
     >
       {busy ? (

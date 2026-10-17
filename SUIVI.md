@@ -913,6 +913,22 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Aide, visite guidée sur l'app réelle, bouton volant, outils en cartes
+
+- ✅ **Aide** (`HelpModal`) rendue par portail dans `document.body` : l'en-tête (`backdrop-blur`)
+  servait de cadre aux éléments `fixed` → fenêtre coupée en haut à gauche. Deux colonnes
+  (raccourcis + « Régler les raccourcis », prérequis avec lien « Ouvrir » vers le bon écran),
+  prérequis VR (OpenKneeboard, UAC) et classements (partage), fournisseurs IA à jour.
+- ✅ **Visite guidée** (`GuidedTour`) sur l'app réelle : chaque étape ouvre sa page (`route`),
+  entoure l'élément `data-tour` (entrées de menu `nav-<clé>`, `play`, `help`) avec un anneau
+  qui pulse et le reste assombri (ombre portée 9999 px), bulle placée dessous/dessus avec
+  flèche ; élément absent (module masqué) → bulle centrée. Nouvelle étape « Lancer le jeu »,
+  point VR dans Overlays. Vérifié dans le navigateur (en-tête + visite montés, 10 étapes).
+- ✅ **Bouton Jouer** : icône volant (SVG maison, pas de volant dans lucide).
+- ✅ **Outils & diagnostic** : programmes trouvés en cartes (rôle, chemin, Ajouter), section
+  « Tes outils », bouton « Ajouter un autre programme… » pleine largeur.
+- 📋 **Prochaine étape** : faire la visite dans l'app (vraie taille de fenêtre, menus masqués).
+
 ### 2026-10-17 — Bouton « Jouer » (lancer LMU) dans l'en-tête ; port des adresses locales à l'étape 1
 
 - ✅ **Bouton Jouer** (icône Play, en-tête, avant l'aide ; seulement dans l'app et si le dossier

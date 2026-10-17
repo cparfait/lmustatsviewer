@@ -130,7 +130,10 @@ export function ToolsSettings() {
     }
   };
 
-  const suggestions = known.filter((k) => !cfg.tools.some((x) => samePath(x.path, k.path)));
+  // Outils trouvés sur le PC, par ordre alphabétique.
+  const suggestions = known
+    .filter((k) => !cfg.tools.some((x) => samePath(x.path, k.path)))
+    .sort((a, b) => a.name.localeCompare(b.name));
   const launchedPids = new Map((status?.launched ?? []).map((l) => [l.path.toLowerCase(), l.pid]));
 
   return (

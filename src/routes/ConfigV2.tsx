@@ -140,6 +140,7 @@ import type { ModelInfo } from "@/lib/ai/types";
 import { AiModelPicker } from "@/components/AiModelPicker";
 import { AiProvidersPanel } from "@/components/AiProvidersPanel";
 import { CloudVoiceSettings } from "@/components/CloudVoiceSettings";
+import { CloudVoiceGuide } from "@/components/CloudVoiceGuide";
 import { EngineerTester } from "@/components/EngineerTester";
 import { VoiceCoachConfig } from "@/components/VoiceCoachConfig";
 import { AiCoachHelpModal } from "@/components/AiCoachHelpModal";
@@ -354,6 +355,7 @@ export function ConfigV2() {
   const [emptyPlayer, setEmptyPlayer] = useState<number | null>(null);
 
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [cloudGuideOpen, setCloudGuideOpen] = useState(false);
   // Modale d'intro aux annonces vocales (explication + téléchargement de la
   // voix de la langue) — ouverte à l'activation du toggle si la voix manque.
   const [voiceIntroOpen, setVoiceIntroOpen] = useState(false);
@@ -1351,7 +1353,7 @@ export function ConfigV2() {
                     )}
                     {(
                       <div className="pr-1 pb-1 pt-1 space-y-3">
-                        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("config.voiceGroupVoice")}</p>
+                        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("cloudGuide.localTitle")}</p>
                         <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
@@ -1451,7 +1453,20 @@ export function ConfigV2() {
                           </div>
                         )}
                         {/* Voix en ligne avec la clé de l'utilisateur (bêta, désactivée par défaut). */}
-                        {voiceEngine === "piper" && isTauri() && <CloudVoiceSettings />}
+                        {voiceEngine === "piper" && isTauri() && (
+                          <>
+                            <div className="flex items-center justify-between gap-3 pt-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                {t("cloudGuide.cloudTitle")}
+                              </p>
+                              <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => setCloudGuideOpen(true)}>
+                                <HelpCircle className="h-3.5 w-3.5" />
+                                {t("cloudGuide.button")}
+                              </Button>
+                            </div>
+                            <CloudVoiceSettings />
+                          </>
+                        )}
                         <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("config.voiceGroupSound")}</p>
                         <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="text-sm font-medium leading-tight">
@@ -2719,6 +2734,7 @@ export function ConfigV2() {
         </div>
       )}
 
+      {cloudGuideOpen && <CloudVoiceGuide onClose={() => setCloudGuideOpen(false)} />}
       {voiceModalOpen && (
         <VoiceMessagesModal onClose={() => setVoiceModalOpen(false)} />
       )}

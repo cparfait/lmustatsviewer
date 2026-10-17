@@ -452,6 +452,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Audio / Voice: a “Local voice (on your PC)” block, then an “Online AI voice” block with a “How does it work?” button: a step-by-step guide (like the tour) on live phrases, “Prepare the voice”, urgent alerts, announcements with numbers and cost.",
+              fr: "Audio / Voix : un bloc « Voix locale (sur ton PC) », puis un bloc « Voix IA en ligne » avec un bouton « Comment ça marche ? » : une aide pas à pas (comme la visite guidée) sur les phrases dites en direct, « Préparer la voix », les alertes urgentes, les annonces chiffrées et le coût.",
+              es: "Audio / Voz: un bloque «Voz local (en tu PC)» y luego un bloque «Voz IA en línea» con un botón «¿Cómo funciona?»: una ayuda paso a paso (como la visita guiada) sobre las frases en directo, «Preparar la voz», las alertas urgentes, los anuncios con cifras y el coste.",
+              de: "Audio / Stimme: ein Block „Lokale Stimme (auf deinem PC)“, dann ein Block „Online-KI-Stimme“ mit der Schaltfläche „Wie funktioniert das?“: eine Schritt-für-Schritt-Hilfe (wie die Tour) zu Live-Sätzen, „Stimme vorbereiten“, dringenden Warnungen, Ansagen mit Zahlen und Kosten.",
+              it: "Audio / Voce: un blocco «Voce locale (sul tuo PC)», poi un blocco «Voce IA online» con un pulsante «Come funziona?»: un aiuto passo passo (come la visita guidata) su frasi in diretta, «Prepara la voce», avvisi urgenti, annunci con numeri e costo.",
+            },
+          },
+          {
+            text: {
               en: "Audio / Voice settings in a logical order: engine and voice (download, then choose and test), online AI voice apart, then sound and radio effect. Push-to-talk beeps move to “Talk to the engineer”, “Customise announcements” to “Announcements”.",
               fr: "Réglages Audio / Voix dans un ordre logique : moteur et voix (télécharger, puis choisir et tester), voix IA en ligne à part, puis son et effet radio. Les bips du push-to-talk passent dans « Parler à l'ingénieur », « Personnaliser les annonces » dans « Annonces ».",
               es: "Ajustes de Audio / Voz en un orden lógico: motor y voz (descargar, luego elegir y probar), voz IA en línea aparte, después sonido y efecto de radio. Los pitidos del push-to-talk pasan a «Hablar con el ingeniero» y «Personalizar los anuncios» a «Anuncios».",

@@ -431,7 +431,11 @@ export default {
     reopen: "Vedi l'analisi",
     stopGen: "Stop",
     speak: "Parla (dettatura)",
-    voiceUnclear: "Non ho capito.",
+    voiceUnclear: "Scusa, non ho capito | Ripeti? | Non ho capito, ridimmelo",
+    voiceUnavailable:
+      "Per ora nessuna risposta | Adesso non posso risponderti su questo | Coach non disponibile, ne parliamo ai box",
+    voiceHintModel: "Coach non disponibile: controlla il modello del coach nelle impostazioni",
+    voiceHintKey: "Coach non disponibile: controlla la chiave API del coach nelle impostazioni",
     voiceNotConfigured: "Coach vocale incompleto: scegli un modello nelle impostazioni.",
     voiceLocalFallback: "Senza IA, ti do il punto:",
     voiceNoAi: "Non ho una risposta pronta. Per le domande aperte, configura il Coach IA.",

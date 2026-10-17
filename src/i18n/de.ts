@@ -431,7 +431,11 @@ export default {
     reopen: "Analyse ansehen",
     stopGen: "Stopp",
     speak: "Sprechen (Diktat)",
-    voiceUnclear: "Ich habe das nicht verstanden.",
+    voiceUnclear: "Sorry, nicht verstanden | Nochmal? | Hab ich nicht verstanden, sag's nochmal",
+    voiceUnavailable:
+      "Gerade keine Antwort | Dazu kann ich dir gerade nichts sagen | Coach nicht verfügbar, das klären wir an der Box",
+    voiceHintModel: "Coach nicht verfügbar: prüf das Coach-Modell in den Einstellungen",
+    voiceHintKey: "Coach nicht verfügbar: prüf den API-Schlüssel des Coachs in den Einstellungen",
     voiceNotConfigured: "Sprach-Coach unvollständig: Wähle ein Modell in den Einstellungen.",
     voiceLocalFallback: "Ohne KI gebe ich dir den Stand:",
     voiceNoAi: "Darauf habe ich keine fertige Antwort. Für offene Fragen richte den KI-Coach ein.",

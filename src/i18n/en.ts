@@ -431,7 +431,11 @@ export default {
     reopen: "View analysis",
     stopGen: "Stop",
     speak: "Speak (dictation)",
-    voiceUnclear: "I didn't catch that.",
+    voiceUnclear: "Sorry, didn't catch that | Say again? | Didn't get that, say it again",
+    voiceUnavailable:
+      "No answer right now | Can't answer that one at the moment | Coach unavailable, we'll sort it out in the pits",
+    voiceHintModel: "Coach unavailable: check the coach model in the settings",
+    voiceHintKey: "Coach unavailable: check the coach API key in the settings",
     voiceNotConfigured: "Voice coach incomplete: pick a model in the settings.",
     voiceLocalFallback: "No AI set up, so here's the update:",
     voiceNoAi: "I don't have a ready answer for that. For open questions, set up the AI Coach.",

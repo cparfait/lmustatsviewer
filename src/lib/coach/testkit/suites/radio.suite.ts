@@ -10,6 +10,8 @@ import { BrakeMap, driverBusy, QUIET_BEFORE_BRAKE_M } from "@/lib/engineer/focus
 import { RadioPolicy, classOf, rivalOf, type PolicyCtx } from "@/lib/engineer/policy";
 import { RadioArbiter, TEXT_REPEAT_LAPS, type Candidate } from "@/lib/engineer/arbiter";
 import { VariantPicker, NameDoser, splitVariants, NAME_GAP_S } from "@/lib/engineer/variants";
+import { radioErrorKey } from "@/lib/engineer/radioErrors";
+import { aiErrorKind, type AiErrorKind } from "@/lib/ai/errorKind";
 import { ProximitySpotter, occupiedSides } from "@/lib/engineer/proximity";
 import { route } from "@/lib/engineer/router";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
@@ -243,6 +245,40 @@ function variantTemplatesSuite() {
   const ref = [...withVariants.fr].sort().join(",");
   for (const lang of ["en", "es", "de", "it"]) {
     eq([...withVariants[lang]].sort().join(","), ref, `${lang} : mêmes gabarits à variantes qu'en français`);
+  }
+}
+
+// Échec d'une réponse : la radio dit une phrase courte (jamais le message
+// technique de l'écran), le rappel modèle / clé une seule fois.
+function radioErrorsSuite() {
+  section("radio — phrases d'échec (pas compris, coach indisponible)");
+  eq(aiErrorKind("HTTP 404: {\"error\":\"models/x is not found\"}").kind, "model", "404 → modèle");
+  eq(aiErrorKind("HTTP 400: model is no longer available to new users").kind, "model", "modèle retiré (400)");
+  eq(aiErrorKind("HTTP 401: invalid key").kind, "key", "401 → clé");
+  eq(aiErrorKind("HTTP 429: slow down").kind, "rate", "429 → limite");
+  eq(aiErrorKind("HTTP 503: busy").code, "503", "5xx : code gardé pour l'écran");
+  eq(aiErrorKind("error sending request for url").kind, "network", "réseau");
+  eq(aiErrorKind("Pas de données live").kind, "other", "autre");
+
+  const hinted = new Set<AiErrorKind>();
+  eq(radioErrorKey("model", hinted), "coach.voiceHintModel", "1er échec de modèle : rappel");
+  eq(radioErrorKey("model", hinted), "coach.voiceUnavailable", "ensuite : phrase courte");
+  eq(radioErrorKey("key", hinted), "coach.voiceHintKey", "clé : son propre rappel");
+  eq(radioErrorKey("network", new Set()), "coach.voiceUnavailable", "réseau : jamais de rappel");
+  hinted.clear();
+  eq(radioErrorKey("model", hinted), "coach.voiceHintModel", "après une réponse réussie : rappel de nouveau");
+
+  const bundles = { fr, en, es, de, it } as unknown as Record<string, { coach: Record<string, string> }>;
+  for (const [lang, b] of Object.entries(bundles)) {
+    for (const k of ["voiceUnclear", "voiceUnavailable"]) {
+      const v = splitVariants(b.coach[k] ?? "");
+      ok(v.length === 3, `${lang} coach.${k} : 3 variantes`);
+      ok(v.every((x) => x.length <= 70 && !x.includes("→")), `${lang} coach.${k} : phrases radio courtes`);
+    }
+    for (const k of ["voiceHintModel", "voiceHintKey"]) {
+      const s = b.coach[k] ?? "";
+      ok(!!s && splitVariants(s).length === 1 && s.length <= 90, `${lang} coach.${k} : rappel court, sans variante`);
+    }
   }
 }
 
@@ -669,6 +705,7 @@ export function run() {
   arbiterSuite();
   variantsSuite();
   variantTemplatesSuite();
+  radioErrorsSuite();
   proximitySuite();
   rigorSuite();
   commandsSuite();

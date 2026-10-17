@@ -952,6 +952,31 @@ commandes) la capture passe par la WebView.
   l'écoute continue), le rebrancher (toast « Micro de l'ingénieur : … ») ; vérifier aussi le
   push-to-talk « Micro prêt » décoché (chemin navigateur). Commit après accord.
 
+### 2026-10-17 — Ingénieur vocal : plus de message d'erreur technique lu à la radio
+
+**Constat** : une question libre partait au Coach IA, l'appel échouait (modèle retiré,
+404) et `ask.ts` lisait à la radio le message écran `coach.errModel` (« … Configuration →
+Coach IA → Modèle (lien …) »). Rien ne s'affichait à l'écran. Même chose quand la capture ou
+la reconnaissance vocale échouait (`useCoachVoice.ts`).
+
+- ✅ **Tri des causes, module pur** `src/lib/ai/errorKind.ts` (`aiErrorKind` : model, key,
+  quota, rate, server, network, other) ; `friendlyError` (coach.ts) s'en sert, messages
+  inchangés.
+- ✅ **Radio** : phrases courtes à variantes « A | B | C » (`VariantPicker`), via
+  `radioLine` (ask.ts) : `coach.voiceUnclear` (rien reconnu, transcription vide, capture en
+  échec) et `coach.voiceUnavailable` (coach IA en échec). **Rappel de cause dit une seule
+  fois** pour modèle (`coach.voiceHintModel`) et clé (`coach.voiceHintKey`)
+  (`src/lib/engineer/radioErrors.ts`) ; redit seulement après une réponse IA réussie.
+- ✅ **Écran** : le message détaillé passe en `toastError` (rien de perdu) ; le testeur
+  « Tester l'ingénieur » de la Config affiche toujours ce détail.
+- ✅ 5 langues, changelog 1.0.10 (corrigé), test `radio — phrases d'échec` (42
+  vérifications : causes, rappel unique, 3 variantes courtes par langue). `tsc -b`, ESLint,
+  `npm test` (3767) propres. Travail sur `feat/veille-pistes` (demande de la session
+  principale), non commité.
+- 📋 **Prochaine étape** : essai en jeu avec le modèle retiré (on doit entendre le rappel
+  modèle, puis « Pas de réponse pour l'instant… », avec le toast détaillé) ; commit après
+  accord de l'utilisateur.
+
 ### 2026-10-17 — Les 13 pistes de la veille, en une passe, sur `feat/veille-pistes`
 
 **Demande** : « fais tout sur une branche séparée, en une passe ; pose les questions

@@ -22,9 +22,9 @@ import { announce, setDriverTalking } from "@/lib/voice";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { pttBeep } from "@/lib/radioFx";
 import { friendlyError } from "@/lib/ai/coach";
-import { askEngineer } from "@/lib/engineer/ask";
+import { askEngineer, radioLine } from "@/lib/engineer/ask";
 import { buildGrammar } from "@/lib/spotterCommands";
-import { toast } from "@/stores/dialogs";
+import { toast, toastError } from "@/stores/dialogs";
 
 export function useCoachVoice() {
   const { t, i18n } = useTranslation();
@@ -174,7 +174,10 @@ export function useCoachVoice() {
           strict = await invoke<string>("stt_recognize", { pcmBase64, lang, grammar }).catch(() => "");
         }
       } catch (e) {
-        announce(friendlyError(e, tRef.current), lang);
+        // Capture ou reconnaissance en échec : le détail à l'écran, « pas
+        // compris » (court, à variantes) à la radio.
+        toastError(friendlyError(e, tRef.current));
+        announce(radioLine(tRef.current, "coach.voiceUnclear"), lang);
         return;
       }
       await answerQuestion(free, strict);

@@ -20,7 +20,10 @@ import { live, type LiveData } from "@/lib/api";
 import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, announceAnswer, cancelSpeech, repeatLast } from "@/lib/voice";
 import { getProvider } from "@/lib/ai/providers";
-import { askCoachVoice, classifyIntent, friendlyError } from "@/lib/ai/coach";
+import { askCoachVoice, classifyIntent, errorMessage, friendlyError } from "@/lib/ai/coach";
+import { aiErrorKind, type AiErrorKind } from "@/lib/ai/errorKind";
+import { VariantPicker } from "@/lib/engineer/variants";
+import { radioErrorKey } from "@/lib/engineer/radioErrors";
 import { buildStatus } from "@/lib/spotter";
 import { route, INTENT_HELP, extractEntities, normalize, type AnswerIntent } from "@/lib/engineer/router";
 import { radioLog, type Rating } from "@/lib/engineer/radioFeedback";
@@ -35,9 +38,19 @@ import { answerIntent, registerWatch } from "@/lib/engineer/answers";
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
-import { toast, toastSuccess } from "@/stores/dialogs";
+import { toast, toastError, toastSuccess } from "@/stores/dialogs";
 import { factsBlock } from "@/lib/ai/facts";
 import { radioCard } from "@/lib/ai/knowledge/engineering-cards";
+
+// Phrases radio d'échec (« pas compris », coach indisponible) : variantes
+// « A | B | C » en rotation ; rappels de cause déjà dits (cf. `radioErrorKey`).
+const radioPicker = new VariantPicker();
+const hintedErrors = new Set<AiErrorKind>();
+
+/** Une formulation de la phrase radio `key` (gabarit à variantes). */
+export function radioLine(t: TFunction, key: string): string {
+  return radioPicker.pick(key, t(key));
+}
 
 /**
  * Fournisseur / modèle / clé réellement utilisés par le coach **vocal**.
@@ -177,7 +190,7 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   };
 
   if (!heard) {
-    const text = t("coach.voiceUnclear");
+    const text = radioLine(t, "coach.voiceUnclear");
     if (!gone()) announce(text, lang);
     return { text, via: "none" };
   }
@@ -283,10 +296,17 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
       contextText: ctx,
       systemOverride: useAppStore.getState().aiSystemPromptByLang[lang.slice(0, 2).toLowerCase()] ?? "",
     });
+    // Le coach répond de nouveau : un futur échec de modèle / clé sera rappelé.
+    hintedErrors.clear();
     return say(stripMd(answer), "ai");
   } catch (e) {
+    // Écran : le message détaillé (quoi corriger). Radio : une phrase courte,
+    // jamais le texte technique.
     const text = friendlyError(e, t);
-    if (!gone()) announce(text, lang);
+    if (!gone()) {
+      toastError(text);
+      announce(radioLine(t, radioErrorKey(aiErrorKind(errorMessage(e)).kind, hintedErrors)), lang);
+    }
     return { text, via: "none" };
   }
 }

@@ -2998,7 +2998,7 @@ export default {
     rank: "Posición",
     level: "Nivel",
     note: "{{shared}} de {{total}} piloto(s) comparten sus vueltas con su nombre. Los pilotos anónimos nunca aparecen.",
-    settingTitle: "Briefing de rivales de la comunidad",
+    settingTitle: "Briefing de rivales de la comunidad (página Live)",
     settingDesc: "Durante una sesión online, muestra bajo la clasificación Live la mejor vuelta, la posición y el nivel de los rivales que comparten sus vueltas con la comunidad. Para encontrarlos, los nombres de los pilotos de la sesión se envían al servidor de la comunidad; los pilotos anónimos nunca aparecen.",
   },
   extras: {

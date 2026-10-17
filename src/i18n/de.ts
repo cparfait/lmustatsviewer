@@ -2999,7 +2999,7 @@ export default {
     rank: "Rang",
     level: "Stufe",
     note: "{{shared}} von {{total}} Fahrer(n) teilen ihre Runden unter ihrem Namen. Anonyme Fahrer erscheinen nie.",
-    settingTitle: "Community-Gegner-Briefing",
+    settingTitle: "Community-Gegner-Briefing (Live-Seite)",
     settingDesc: "Zeigt während einer Online-Session unter der Live-Wertung beste Runde, Rang und Stufe der Gegner, die ihre Runden mit der Community teilen. Um sie zu finden, werden die Namen der Session-Fahrer an den Community-Server gesendet; anonyme Fahrer erscheinen nie.",
   },
   extras: {

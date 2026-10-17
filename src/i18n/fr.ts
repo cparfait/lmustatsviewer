@@ -3000,7 +3000,7 @@ export default {
     rank: "Rang",
     level: "Niveau",
     note: "{{shared}} pilote(s) sur {{total}} partagent leurs tours sous leur nom. Les pilotes anonymes n'apparaissent jamais.",
-    settingTitle: "Briefing adversaires de la communauté",
+    settingTitle: "Briefing adversaires de la communauté (page Live)",
     settingDesc: "Pendant une session en ligne, affiche sous le classement Live le meilleur tour, le rang et le niveau des adversaires qui partagent leurs tours avec la communauté. Pour les retrouver, les noms des pilotes de la session sont envoyés au serveur communautaire ; les pilotes anonymes n'apparaissent jamais.",
   },
   extras: {

@@ -2994,7 +2994,7 @@ export default {
     rank: "Rank",
     level: "Level",
     note: "{{shared}} of {{total}} driver(s) share their laps under their name. Anonymous drivers never appear.",
-    settingTitle: "Community opponent briefing",
+    settingTitle: "Community opponent briefing (Live page)",
     settingDesc: "During an online session, shows under the Live standings the best lap, rank and level of opponents who share their laps with the community. To find them, the names of the session's drivers are sent to the community server; anonymous drivers never appear.",
   },
   extras: {

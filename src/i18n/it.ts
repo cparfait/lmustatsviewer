@@ -2994,7 +2994,7 @@ export default {
     rank: "Posizione",
     level: "Livello",
     note: "{{shared}} su {{total}} pilota/i condividono i giri con il loro nome. I piloti anonimi non compaiono mai.",
-    settingTitle: "Briefing avversari della community",
+    settingTitle: "Briefing avversari della community (pagina Live)",
     settingDesc: "Durante una sessione online, mostra sotto la classifica Live il giro migliore, la posizione e il livello degli avversari che condividono i giri con la community. Per trovarli, i nomi dei piloti della sessione vengono inviati al server della community; i piloti anonimi non compaiono mai.",
   },
   extras: {

@@ -913,6 +913,19 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Audio / Voix : onglets en sections repliables, aide des variables
+
+- ✅ Onglets Annonces, Parler à l'ingénieur, Coach par virage : `CollapsibleSection` (option
+  `defaultOpen`), réglages encadrés (débit, chronos, prénom, ghost, enregistrement compris).
+  Parler : bips PTT dans « Parler », repères dans « Raccourcis sans parler », « Réponses
+  instantanées sans IA » dans « Commandes reconnues ». Coach : Conseils en roulant / Phrases du
+  coach / Outils. Sous-onglets masqués quand les annonces vocales sont coupées (bips de record
+  et repères gardés).
+- ✅ Personnaliser les annonces : encart « Comment écrire une annonce » et exemple de valeur
+  par variable (`def.sample`). Le `{{n}}` des textes d'aide est passé en valeur (sinon
+  i18next l'interpole).
+- ✅ Bouton « Personnaliser » : icône stylo. Titres des widgets « LMU · <nom> ».
+
 ### 2026-10-17 — Voix : choix dans la liste, test radio sur la voix active, « médium », titres des widgets
 
 - ✅ Liste des voix neuronales : choix (radio) et « Tester » sur chaque voix installée, locuteurs

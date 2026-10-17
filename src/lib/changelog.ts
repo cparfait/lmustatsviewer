@@ -461,6 +461,24 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Talk to the engineer and Corner coach tabs: settings grouped into folding sections, like the Announcements tab (the “Talk” and “Tips while driving” sections open by default); push-to-talk beeps join “Talk”, review marks join the shortcuts without talking, and “Instant answers without AI” moves next to the recognised commands.",
+              fr: "Onglets Parler à l'ingénieur et Coach par virage : réglages regroupés en sections repliables, comme l'onglet Annonces (« Parler » et « Conseils en roulant » ouvertes par défaut) ; les bips du push-to-talk rejoignent « Parler », les repères de revue les raccourcis sans parler, et « Réponses instantanées sans IA » passe à côté des commandes reconnues.",
+              es: "Pestañas Hablar con el ingeniero y Coach por curva: ajustes agrupados en secciones plegables, como Anuncios («Hablar» y «Consejos en pista» abiertas por defecto); los pitidos del push-to-talk pasan a «Hablar», las marcas de revisión a los atajos sin hablar, y «Respuestas instantáneas sin IA» junto a los comandos reconocidos.",
+              de: "Tabs Mit dem Ingenieur sprechen und Kurven-Coach: Einstellungen in einklappbaren Abschnitten wie bei Ansagen („Sprechen“ und „Tipps während der Fahrt“ standardmäßig offen); Push-to-talk-Pieptöne zu „Sprechen“, Review-Markierungen zu den Tastenkürzeln ohne Sprechen, „Sofortantworten ohne KI“ neben die erkannten Befehle.",
+              it: "Schede Parla con l'ingegnere e Coach per curva: impostazioni raggruppate in sezioni richiudibili, come Annunci («Parlare» e «Consigli in pista» aperte di default); i bip del push-to-talk vanno in «Parlare», i segnalibri di revisione nelle scorciatoie senza parlare, e «Risposte istantanee senza IA» accanto ai comandi riconosciuti.",
+            },
+          },
+          {
+            text: {
+              en: "Customise announcements: a short guide on wordings separated by |, variables in braces (to keep, but movable), listening and reset; each variable shows an example value (“{n} → 3”).",
+              fr: "Personnaliser les annonces : un mode d'emploi sur les formulations séparées par |, les variables entre accolades (à garder, mais déplaçables), l'écoute et la réinitialisation ; chaque variable affiche un exemple de valeur (« {n} → 3 »).",
+              es: "Personalizar los anuncios: una breve guía sobre las formulaciones separadas por |, las variables entre llaves (a conservar, pero movibles), la escucha y el restablecimiento; cada variable muestra un valor de ejemplo («{n} → 3»).",
+              de: "Ansagen anpassen: eine kurze Anleitung zu mit | getrennten Formulierungen, Variablen in geschweiften Klammern (behalten, aber verschiebbar), Anhören und Zurücksetzen; jede Variable zeigt einen Beispielwert („{n} → 3“).",
+              it: "Personalizza gli annunci: una breve guida sulle formulazioni separate da |, le variabili tra graffe (da tenere, ma spostabili), l'ascolto e il ripristino; ogni variabile mostra un valore di esempio («{n} → 3»).",
+            },
+          },
+          {
+            text: {
               en: "Announcements tab: settings grouped into folding sections — “When the engineer speaks”, “What he says”, “Proximity spotter” — each setting in its box.",
               fr: "Onglet Annonces : réglages regroupés en sections repliables — « Quand l'ingénieur parle », « Ce qu'il dit », « Spotter de proximité » — chaque réglage dans son encadré.",
               es: "Pestaña Anuncios: ajustes agrupados en secciones plegables — «Cuándo habla el ingeniero», «Qué dice», «Spotter de proximidad» — cada ajuste en su recuadro.",

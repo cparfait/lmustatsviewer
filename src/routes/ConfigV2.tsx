@@ -1747,12 +1747,10 @@ export function ConfigV2() {
                     une seule logique de réponse (`askEngineer`), une liste de
                     commandes commune, des raccourcis directs sans parler. */}
                 {voiceTab === "radio" && voiceAnnouncements && (
-                  <div className="space-y-5 py-2">
+                  <div className="space-y-2 py-2">
                     {/* 1. Parler */}
-                    <section className="space-y-1.5">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecTalk")}
-                      </div>
+                    <CollapsibleSection title={t("config.radioSecTalk")} defaultOpen>
+                      <div className="space-y-2">
                       <p className="text-xs text-muted-foreground/70">{t("config.engineerKeyDesc")}</p>
                       <ShortcutCapture
                         label={t("config.engineerKey")}
@@ -1808,14 +1806,6 @@ export function ConfigV2() {
                         onChange={(v) => void useAppStore.getState().setWakeWordEnabled(v)}
                       />
                       {wakeWordEnabled && <WakeWordRow />}
-                      <ToggleRow
-                        icon={<Zap className="h-4 w-4" />}
-                        label={t("config.localAnswers")}
-                        desc={t("config.localAnswersDesc")}
-                        tip={t("config.localAnswersTip")}
-                        checked={localAnswers}
-                        onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
-                      />
                       <div className="flex items-center justify-between gap-3 py-1">
                         <div className="min-w-0">
                           <div className="text-sm font-medium leading-tight">{t("config.pttRecognition")}</div>
@@ -1843,11 +1833,6 @@ export function ConfigV2() {
                           ))}
                         </div>
                       </div>
-                    </section>
-
-                    {/* Bips du push-to-talk : ce qu'on entend quand on parle à l'ingénieur. */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
-    {/* Bips du push-to-talk (ouverture 1000 Hz / envoi 700 Hz). */}
     <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
       <div className="min-w-0">
         <div className="text-sm font-medium leading-tight">
@@ -1869,20 +1854,19 @@ export function ConfigV2() {
         className="shrink-0"
       />
     </div>
-                    </section>
-                    {/* 2. Tester (avec / sans IA) */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecTest")}
                       </div>
+                    </CollapsibleSection>
+
+                    {/* 2. Tester (avec / sans IA) */}
+                    <CollapsibleSection title={t("config.radioSecTest")}>
+                      <div className="space-y-2">
                       <EngineerTester />
-                    </section>
+                      </div>
+                    </CollapsibleSection>
 
                     {/* 3. Raccourcis sans parler (Statut / Mute / Répète) */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecDirect")}
-                      </div>
+                    <CollapsibleSection title={t("config.radioSecDirect")}>
+                      <div className="space-y-2">
                       <ToggleRow
                         icon={<Radio className="h-4 w-4" />}
                         label={t("config.directKeys")}
@@ -1915,18 +1899,22 @@ export function ConfigV2() {
                           />
                         </div>
                       )}
-                    </section>
-
-                    {/* 3 bis. Repères de revue : un bouton en roulant marque « ce moment ». */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
                       <ReviewMarksSetting />
-                    </section>
+                      </div>
+                    </CollapsibleSection>
+
 
                     {/* 4. Commandes reconnues (liste commune, modifiable) */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecCommands")}
-                      </div>
+                    <CollapsibleSection title={t("config.radioSecCommands")}>
+                      <div className="space-y-2">
+                      <ToggleRow
+                        icon={<Zap className="h-4 w-4" />}
+                        label={t("config.localAnswers")}
+                        desc={t("config.localAnswersDesc")}
+                        tip={t("config.localAnswersTip")}
+                        checked={localAnswers}
+                        onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
+                      />
                       <p className="text-xs text-muted-foreground/80">{t("config.radioSecCommandsDesc")}</p>
                       <div className="flex flex-wrap gap-x-1 gap-y-1 cursor-default">
                         {INTENTS.map((intent, idx) => (
@@ -1945,13 +1933,12 @@ export function ConfigV2() {
                         <Radio className="h-3.5 w-3.5" />
                         {t("config.spotterCmdOpen")}
                       </Button>
-                    </section>
+                      </div>
+                    </CollapsibleSection>
 
                     {/* 5. Calculs utilisés par les réponses */}
-                    <section className="space-y-2 border-t border-border/50 pt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecCalc")}
-                      </div>
+                    <CollapsibleSection title={t("config.radioSecCalc")}>
+                      <div className="space-y-2">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-xs text-muted-foreground/80">{t("config.pitLoss")}</div>
@@ -1982,14 +1969,13 @@ export function ConfigV2() {
                           className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
                         />
                       </div>
-                    </section>
+                      </div>
+                    </CollapsibleSection>
 
                     {/* 6. Modèle de reconnaissance vocale */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {t("config.radioSecStt")}
-                        </div>
+                    <CollapsibleSection title={t("config.radioSecStt")}>
+                      <div className="space-y-2">
+                      <div className="flex items-center justify-end">
                         <span className={cn("text-mini", sttOk === false ? "text-amber-500" : "text-success")}>
                           {sttOk === null
                             ? "…"
@@ -1999,15 +1985,16 @@ export function ConfigV2() {
                         </span>
                       </div>
                       <VoiceDownloads kind="stt" onInstalled={() => setAssetsVersion((v) => v + 1)} />
-                    </section>
+                      </div>
+                    </CollapsibleSection>
                   </div>
                 )}
                 {/* Coach par virage — modes avancés (mêmes réglages que Config V1,
                     gated sur les annonces vocales). Intertitre pour distinguer ce
                     coach déterministe du Coach IA (onglet dédié, LLM). */}
                 {voiceTab === "coach" && voiceAnnouncements && (
-                  <>
-                    <div className="mt-3 border-t border-border/50 pt-3">
+                  <div className="space-y-2">
+                    <div className="pt-2">
                       <div className="text-sm font-semibold">
                         {t("config.coachSectionTitle")}
                       </div>
@@ -2015,6 +2002,8 @@ export function ConfigV2() {
                         {t("config.coachSectionDesc")}
                       </p>
                     </div>
+                    <CollapsibleSection title={t("config.coachGroupDrive")} desc={t("config.coachGroupDriveDesc")} defaultOpen>
+                      <div className="space-y-2">
                     <ToggleRow
                       icon={<Scale className="h-4 w-4" />}
                       label={t("config.coachRigor")}
@@ -2047,6 +2036,10 @@ export function ConfigV2() {
                       checked={coachRisk}
                       onChange={(v) => void useAppStore.getState().setCoachRisk(v)}
                     />
+                      </div>
+                    </CollapsibleSection>
+                    <CollapsibleSection title={t("config.coachGroupPhrases")} desc={t("config.coachGroupPhrasesDesc")}>
+                      <div className="space-y-2">
                     <ToggleRow
                       icon={<MessagesSquare className="h-4 w-4" />}
                       label={t("config.coachPhrasebank")}
@@ -2103,11 +2096,14 @@ export function ConfigV2() {
                         </Button>
                       </div>
                     )}
-                    {/* Import d'un ghost (.duckdb / .ld MoTeC) pour le combo actif. */}
-                    <div className="flex items-center justify-between gap-3 py-2">
+                      </div>
+                    </CollapsibleSection>
+                    <CollapsibleSection title={t("config.coachGroupTools")} desc={t("config.coachGroupToolsDesc")}>
+                      <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                       <div className="flex min-w-0 items-start gap-2">
                         <Tip content={t("config.coachGhostTip")} side="right">
-                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
+                          <span className="mt-0.5 shrink-0 cursor-help text-primary">
                             <Upload className="h-4 w-4" />
                           </span>
                         </Tip>
@@ -2169,13 +2165,10 @@ export function ConfigV2() {
                         {t("config.ghostImport")}
                       </Button>
                     </div>
-                    {/* Enregistrement d'un corpus réel (§14.1) — outil de
-                        diagnostic : rejouable ensuite dans le moteur pur pour
-                        valider les seuils du coach sur de vraies données. */}
-                    <div className="flex items-center justify-between gap-3 py-2">
+                    <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                       <div className="flex min-w-0 items-start gap-2">
                         <Tip content={t("config.coachRecordTip")} side="right">
-                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
+                          <span className="mt-0.5 shrink-0 cursor-help text-primary">
                             <Disc className="h-4 w-4" />
                           </span>
                         </Tip>
@@ -2226,7 +2219,9 @@ export function ConfigV2() {
                           : t("config.coachRecordStart")}
                       </Button>
                     </div>
-                  </>
+                      </div>
+                    </CollapsibleSection>
+                  </div>
                 )}
               </div>
             )}
@@ -2887,13 +2882,15 @@ function ShortcutCapture({
 function CollapsibleSection({
   title,
   desc,
+  defaultOpen = false,
   children,
 }: {
   title: string;
   desc?: string;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-md border border-border">
       <button

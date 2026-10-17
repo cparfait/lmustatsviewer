@@ -452,6 +452,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Tools & diagnostics: programs found on your PC (OpenKneeboard, SimHub, Crew Chief) appear as cards with what they do and an Add button, above a clear “Add another program…” button.",
+              fr: "Outils & diagnostic : les programmes trouvés sur ton PC (OpenKneeboard, SimHub, Crew Chief) s'affichent en cartes, avec leur rôle et un bouton Ajouter, au-dessus d'un bouton « Ajouter un autre programme… » bien visible.",
+              es: "Herramientas y diagnóstico: los programas encontrados en tu PC (OpenKneeboard, SimHub, Crew Chief) aparecen en tarjetas con su función y un botón Añadir, encima de un botón «Añadir otro programa…» bien visible.",
+              de: "Tools & Diagnose: Auf deinem PC gefundene Programme (OpenKneeboard, SimHub, Crew Chief) erscheinen als Karten mit ihrer Funktion und einer Hinzufügen-Schaltfläche, darunter gut sichtbar „Anderes Programm hinzufügen…“.",
+              it: "Strumenti e diagnostica: i programmi trovati sul tuo PC (OpenKneeboard, SimHub, Crew Chief) appaiono in schede con il loro ruolo e un pulsante Aggiungi, sopra un pulsante «Aggiungi un altro programma…» ben visibile.",
+            },
+          },
+          {
+            text: {
               en: "Widgets by address, simpler: three steps — turn on, choose where to show it (OBS or a second screen, each with its own how-to), then pick the widget and copy its single address. For VR, the card points to the new VR mode. The port sits next to the on/off switch and the list of all addresses is under “All addresses”; on a second screen the opaque background is suggested automatically.",
               fr: "Widgets par adresse, plus simple : trois étapes — activer, choisir où l'afficher (OBS ou 2ᵉ écran, chacun avec son mode d'emploi), puis choisir le widget et copier son adresse unique. Pour la VR, la carte renvoie vers le nouveau mode VR. Le port est à côté de l'interrupteur et la liste de toutes les adresses passe dans « Toutes les adresses » ; sur un 2ᵉ écran, le fond opaque est proposé d'office.",
               es: "Widgets por dirección, más sencillo: tres pasos — activar, elegir dónde mostrarlo (OBS o 2.ª pantalla, cada uno con sus instrucciones) y elegir el widget para copiar su única dirección. Para la VR, la tarjeta remite al nuevo modo VR. El puerto está junto al interruptor y la lista de todas las direcciones pasa a «Todas las direcciones»; en una 2.ª pantalla se propone el fondo opaco automáticamente.",

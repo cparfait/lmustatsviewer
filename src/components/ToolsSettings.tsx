@@ -166,9 +166,13 @@ export function ToolsSettings() {
           </p>
         )}
 
+        {/* Tes outils : ceux que l'app ouvrira avec LMU. */}
         <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("tools.yours")}</p>
           {cfg.tools.length === 0 && (
-            <p className="text-sm text-muted-foreground italic">{t("tools.empty")}</p>
+            <p className="rounded-md border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
+              {suggestions.length > 0 ? t("tools.emptyWithFound") : t("tools.empty")}
+            </p>
           )}
           {cfg.tools.map((tool) => {
             const pid = launchedPids.get(tool.path.trim().toLowerCase());
@@ -222,23 +226,44 @@ export function ToolsSettings() {
           })}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => void pickExe()}>
-            <Plus />
-            {t("tools.add")}
-          </Button>
-          {suggestions.length > 0 && (
-            <>
-              <span className="text-xs text-muted-foreground ml-2">{t("tools.suggestions")}</span>
+        {/* Trouvés sur ton PC : une carte par outil connu, ajout en un clic. */}
+        {suggestions.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("tools.suggestions")}</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {suggestions.map((s) => (
-                <Button key={s.id} variant="secondary" size="sm" title={s.path} onClick={() => addPath(s.path)}>
-                  <Plus />
-                  {s.name}
-                </Button>
+                <div key={s.id} className="flex flex-col gap-2 rounded-md border border-border p-3">
+                  <div className="flex items-start gap-2.5">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-sm font-bold text-primary">
+                      {s.name.charAt(0)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{s.name}</p>
+                      <p className="text-xs text-muted-foreground">{t(`tools.role_${s.id}`)}</p>
+                    </div>
+                  </div>
+                  <p className="truncate font-mono text-[11px] text-muted-foreground/80" title={s.path}>
+                    {s.path}
+                  </p>
+                  <Button size="sm" variant="outline" className="mt-auto w-full" onClick={() => addPath(s.path)}>
+                    <Plus />
+                    {t("tools.addThis")}
+                  </Button>
+                </div>
               ))}
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full border-dashed"
+          onClick={() => void pickExe()}
+        >
+          <Plus />
+          {t("tools.add")}
+        </Button>
 
         {status?.last_error && (
           <p className="text-sm text-destructive">{t("tools.lastError", { error: errorText(status.last_error) })}</p>

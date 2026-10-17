@@ -11,6 +11,7 @@ pub mod live;
 pub mod lmu_rest;
 pub mod minisectors;
 pub mod regie;
+pub mod widget_server;
 pub mod lmu_rest_write;
 pub mod track_align;
 pub mod overlay;

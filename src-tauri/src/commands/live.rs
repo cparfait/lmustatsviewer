@@ -2245,6 +2245,14 @@ pub fn last_frame() -> Option<LiveData> {
     (at.elapsed() <= LAST_FRAME_MAX_AGE).then(|| d.clone())
 }
 
+/// Comme `last_frame`, avec l'heure de la trame (serveur de widgets : ne
+/// rediffuser qu'une trame nouvelle).
+pub fn last_frame_stamped() -> Option<(Instant, LiveData)> {
+    let g = LAST_FRAME.lock().ok()?;
+    let (at, d) = g.as_ref()?;
+    (at.elapsed() <= LAST_FRAME_MAX_AGE).then(|| (*at, d.clone()))
+}
+
 #[tauri::command]
 pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), AppError> {
     acquire(&app, window.label())

@@ -40,6 +40,7 @@ import { useCoachVoice } from "@/lib/useCoachVoice";
 import { useCornerCoach } from "@/lib/useCornerCoach";
 import { RaceEngineerHost } from "@/components/RaceEngineerHost";
 import { useRegieAutostart } from "@/lib/regie";
+import { useWidgetServerAutostart } from "@/lib/widgetServer";
 import { useRadioFeedback } from "@/lib/engineer/useRadioFeedback";
 import { CommunityInvite } from "@/components/CommunitySettings";
 import { useOverlayShortcut } from "@/lib/useOverlayShortcut";
@@ -67,6 +68,7 @@ export default function App() {
   // Benchmark automatique du temps perdu au stand (T13 #152) → alimente #151.
   usePitLoss();
   useRegieAutostart();
+  useWidgetServerAutostart();
   useRadioFeedback();
   // Programme d'essais : préparation de course cochée toute seule (circuit × voiture).
   useRacePrep();

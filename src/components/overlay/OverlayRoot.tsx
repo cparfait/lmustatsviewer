@@ -12,27 +12,11 @@ import { useTranslation } from "react-i18next";
 import { Check } from "lucide-react";
 import { useOverlaysStore, OVERLAYS_SRC, type OverlaysConfig } from "@/stores/overlays";
 import { OVERLAY_DEFS } from "@/lib/overlays";
-import { overlay as overlayApi, type LiveData } from "@/lib/api";
-import { useOverlayData } from "./useOverlayData";
+import { overlay as overlayApi } from "@/lib/api";
+import { EMPTY_LIVE_DATA, useOverlayData } from "./useOverlayData";
 import { OverlayFrame } from "./OverlayFrame";
 import { WIDGETS } from "./widgets";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-
-/** Instantané vide : les widgets s'affichent (placeholders « — ») même hors jeu. */
-const EMPTY_LIVE_DATA: LiveData = {
-  connected: false,
-  paused: false,
-  telemetry: null,
-  player: null,
-  session: null,
-  standings: [],
-  weather: null,
-  flags: null,
-  extended: null,
-  track_layout: null,
-  track_points: [],
-  track_dists: [],
-};
 
 export function OverlayRoot() {
   const { t } = useTranslation();

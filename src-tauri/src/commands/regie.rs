@@ -162,7 +162,7 @@ pub fn read_request<R: Read>(stream: R) -> Option<Request> {
     Some(Request { method, path, headers, body })
 }
 
-fn respond(mut s: impl Write, status: &str, ctype: &str, body: &[u8], extra: &str) {
+pub(crate) fn respond(mut s: impl Write, status: &str, ctype: &str, body: &[u8], extra: &str) {
     let head = format!(
         "HTTP/1.1 {status}\r\nContent-Type: {ctype}\r\nContent-Length: {}\r\nCache-Control: no-store\r\n\
          X-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n{extra}\r\n",

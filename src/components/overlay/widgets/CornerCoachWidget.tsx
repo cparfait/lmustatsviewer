@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { onAppEvent } from "@/lib/widgetLink";
 import { Waypoints } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
 import type { CoachCornerEvent } from "@/lib/coach";
@@ -37,8 +37,8 @@ export function CornerCoachWidget({ accent, t }: WidgetProps) {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     let hideTimer: ReturnType<typeof setTimeout> | undefined;
-    listen<CoachCornerEvent>("coach-corner", (e) => {
-      setEv(e.payload);
+    onAppEvent<CoachCornerEvent>("coach-corner", (payload) => {
+      setEv(payload);
       if (hideTimer) clearTimeout(hideTimer);
       hideTimer = setTimeout(() => setEv(null), 15000);
     }).then((fn) => {

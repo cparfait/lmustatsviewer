@@ -55,7 +55,9 @@ const WAKE_MAX_S: f32 = 8.0;
 const WAKE_AWAIT_S: f32 = 6.0;
 /// Lectures partielles consécutives contenant le mot avant de déclencher.
 const WAKE_CONFIRM: u32 = 2;
-/// Plus aucun bloc audio pendant ce délai (s) → micro considéré comme perdu.
+/// File audio **vide** depuis ce délai (s) → micro considéré comme perdu. Jugé à
+/// l'attente d'un bloc, jamais au temps passé à traiter : une dictée (mot
+/// déclencheur) peut prendre plus de 3 s pendant que le micro continue d'envoyer.
 const STALL_S: u64 = 3;
 /// Micro perdu et aucun disponible : nouvel essai d'ouverture toutes les… (s).
 const REOPEN_RETRY_S: u64 = 2;
@@ -452,6 +454,7 @@ fn run(
     };
     let mut rs = Resampler::new(opened.as_ref().map_or(SR as u32, |o| o.rate));
     let mut last_block = Instant::now();
+    let mut queue_stalled = false;
     // Micro perdu : prochain essai de réouverture ; « aucun micro » déjà signalé.
     let mut next_try = Instant::now();
     let mut none_signaled = false;
@@ -492,7 +495,7 @@ fn run(
         }
         // Micro perdu (débranché, pilote coupé, plus aucun son) : on referme et on
         // rouvre avec la même préférence ; repli sur le défaut si le choisi manque.
-        let stalled = opened.is_some() && last_block.elapsed() >= Duration::from_secs(STALL_S);
+        let stalled = std::mem::take(&mut queue_stalled) && opened.is_some();
         if lost.swap(false, Ordering::SeqCst) || stalled {
             if let Some(o) = opened.take() {
                 eprintln!("[voice_input] micro « {} » perdu : réouverture", o.name);
@@ -549,6 +552,9 @@ fn run(
             continue;
         }
         let Ok(block) = rx.recv_timeout(Duration::from_millis(200)) else {
+            // File vide : plus rien n'arrive du micro depuis STALL_S → perdu. (Après
+            // un long traitement, les blocs en attente arrivent tout de suite.)
+            queue_stalled = last_block.elapsed() >= Duration::from_secs(STALL_S);
             continue;
         };
         last_block = Instant::now();

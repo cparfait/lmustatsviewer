@@ -15,6 +15,15 @@ export const RADIO_HINT_KEYS: Partial<Record<AiErrorKind, string>> = {
   key: "coach.voiceHintKey",
 };
 
+/**
+ * Question sans réponse locale et sans Coach IA utilisable : « pas compris » si le
+ * coach est coupé (ou en test « sans IA ») ; s'il est activé mais incomplet, la
+ * même phrase que pour un coach injoignable (« vérifie qu'il est bien branché »).
+ */
+export function noAnswerKey(aiCoachEnabled: boolean, mode: "auto" | "local" | "ai"): string {
+  return aiCoachEnabled && mode !== "local" ? "coach.voiceUnavailable" : "coach.voiceNotUnderstood";
+}
+
 /** Clé i18n de la phrase radio pour une erreur du coach IA ; note le rappel dit. */
 export function radioErrorKey(kind: AiErrorKind, hinted: Set<AiErrorKind>): string {
   const hint = RADIO_HINT_KEYS[kind];

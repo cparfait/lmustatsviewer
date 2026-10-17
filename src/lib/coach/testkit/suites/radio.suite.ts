@@ -10,7 +10,7 @@ import { BrakeMap, driverBusy, QUIET_BEFORE_BRAKE_M } from "@/lib/engineer/focus
 import { RadioPolicy, classOf, rivalOf, type PolicyCtx } from "@/lib/engineer/policy";
 import { RadioArbiter, TEXT_REPEAT_LAPS, type Candidate } from "@/lib/engineer/arbiter";
 import { VariantPicker, NameDoser, splitVariants, NAME_GAP_S } from "@/lib/engineer/variants";
-import { radioErrorKey } from "@/lib/engineer/radioErrors";
+import { noAnswerKey, radioErrorKey } from "@/lib/engineer/radioErrors";
 import { SIDE_CALLOUT_KEYS } from "@/lib/engineer/sideCallouts";
 import { aiErrorKind, type AiErrorKind } from "@/lib/ai/errorKind";
 import { ProximitySpotter, occupiedSides } from "@/lib/engineer/proximity";
@@ -268,12 +268,16 @@ function radioErrorsSuite() {
   eq(radioErrorKey("model", hinted), "coach.voiceUnavailable", "ensuite : phrase courte");
   eq(radioErrorKey("key", hinted), "coach.voiceHintKey", "clé : son propre rappel");
   eq(radioErrorKey("network", new Set()), "coach.voiceUnavailable", "réseau : jamais de rappel");
+  // Sans réponse locale : « pas compris » sans coach IA, « vérifie qu'il est branché » s'il est activé.
+  eq(noAnswerKey(false, "auto"), "coach.voiceNotUnderstood", "coach IA coupé : pas compris");
+  eq(noAnswerKey(true, "auto"), "coach.voiceUnavailable", "coach IA activé mais incomplet : vérifier le branchement");
+  eq(noAnswerKey(true, "local"), "coach.voiceNotUnderstood", "test « sans IA » : pas compris");
   hinted.clear();
   eq(radioErrorKey("model", hinted), "coach.voiceHintModel", "après une réponse réussie : rappel de nouveau");
 
   const bundles = { fr, en, es, de, it } as unknown as Record<string, { coach: Record<string, string> }>;
   for (const [lang, b] of Object.entries(bundles)) {
-    for (const k of ["voiceUnclear", "voiceUnavailable"]) {
+    for (const k of ["voiceUnclear", "voiceUnavailable", "voiceNotUnderstood"]) {
       const v = splitVariants(b.coach[k] ?? "");
       ok(v.length === 3, `${lang} coach.${k} : 3 variantes`);
       ok(v.every((x) => x.length <= 70 && !x.includes("→")), `${lang} coach.${k} : phrases radio courtes`);

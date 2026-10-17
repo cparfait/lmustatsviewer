@@ -9,7 +9,8 @@
  *  3. **liste des commandes** (phrases éditables de la Config) : sur la dictée
  *     libre, puis sur la reconnaissance stricte de la même prise de parole ;
  *  4. Coach IA pour une question ouverte, s'il est configuré ;
- *  5. sans IA : meilleure supposition locale, sinon le point de course.
+ *  5. sans IA : meilleure supposition locale, sinon « pas compris » (ou « vérifie
+ *     que le coach IA est bien branché » s'il est activé mais incomplet).
  * La reconnaissance « stricte seule » reproduit l'ancienne touche du spotter.
  */
 
@@ -23,7 +24,7 @@ import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, classifyIntent, errorMessage, friendlyError } from "@/lib/ai/coach";
 import { aiErrorKind, type AiErrorKind } from "@/lib/ai/errorKind";
 import { VariantPicker } from "@/lib/engineer/variants";
-import { radioErrorKey } from "@/lib/engineer/radioErrors";
+import { noAnswerKey, radioErrorKey } from "@/lib/engineer/radioErrors";
 import { buildStatus } from "@/lib/spotter";
 import { route, INTENT_HELP, extractEntities, normalize, type AnswerIntent } from "@/lib/engineer/router";
 import { radioLog, type Rating } from "@/lib/engineer/radioFeedback";
@@ -265,7 +266,12 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     if (card) return say(card, "local");
     const guess = r.ambiguous && r.candidates.length ? r.candidates[0] : r.guess;
     if (guess && !isAction(guess)) return runIntent(guess, "local");
-    return say(`${t("coach.voiceLocalFallback")} ${buildStatus(data, t, st0.classPositions)}`, "fallback");
+    // Rien de local : l'ingénieur dit qu'il ne comprend pas (ou que le coach IA
+    // n'est pas branché) ; l'explication reste dans le toast ci-dessus. Le point de
+    // course reste à la demande (« le point », touche Statut).
+    const text = radioLine(t, noAnswerKey(st0.aiCoachEnabled, mode));
+    if (!gone()) announceAnswer(text, lang);
+    return { text, via: "fallback" };
   }
 
   // ── 4. Coach IA ─────────────────────────────────────────────────────────────

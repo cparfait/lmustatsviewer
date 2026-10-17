@@ -456,11 +456,12 @@ export default {
     speak: "Speak (dictation)",
     voiceUnclear: "Sorry, didn't catch that | Say again? | Didn't get that, say it again",
     voiceUnavailable:
-      "No answer right now | Can't answer that one at the moment | Coach unavailable, we'll sort it out in the pits",
+      "Can't answer, check the AI coach is connected | No answer, check the AI coach connection | AI coach unreachable, check it's connected",
+    voiceNotUnderstood:
+      "Sorry, I don't get the question | Can't answer that one | Didn't get it, ask me another way",
     voiceHintModel: "Coach unavailable: check the coach model in the settings",
     voiceHintKey: "Coach unavailable: check the coach API key in the settings",
     voiceNotConfigured: "Voice coach incomplete: pick a model in the settings.",
-    voiceLocalFallback: "No AI set up, so here's the update:",
     voiceNoAi: "I don't have a ready answer for that. For open questions, set up the AI Coach.",
     voiceAck1: "Copy, checking",
     voiceAck2: "Stand by, looking at it",

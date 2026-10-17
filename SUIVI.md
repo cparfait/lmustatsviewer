@@ -913,6 +913,44 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Ingénieur sans réponse : « pas compris » / « vérifie que le coach IA est branché »
+
+**Demande utilisateur** : sans Coach IA actif (hors phrases locales), une phrase qui dit
+qu'il ne comprend pas ; coach IA activé mais qui ne répond pas → « vérifie que ton
+connecteur est bien branché ».
+
+- ✅ `ask.ts` étape 5 (sans IA, rien de local) : plus le point de course précédé de
+  `coach.voiceLocalFallback` (clé retirée des 5 langues), mais `radioLine(noAnswerKey(…))` :
+  `coach.voiceNotUnderstood` (« Désolé, je comprends pas la question »…) si le coach est coupé
+  ou en test « sans IA », `coach.voiceUnavailable` s'il est activé mais incomplet. Le toast
+  explicatif (`voiceNoAi` / `voiceNotConfigured`) reste. Le point de course reste à la demande
+  (« le point », touche Statut) ; le mode « reconnaissance stricte seule » garde son repli
+  sur le point (ancienne touche du spotter).
+- ✅ `coach.voiceUnavailable` réécrit (5 langues) : « Je peux pas te répondre, vérifie que le
+  coach IA est bien branché | Pas de réponse, vérifie la connexion du coach IA | Coach IA
+  injoignable, vérifie qu'il est bien branché ». Rappels uniques modèle / clé inchangés.
+- ✅ `noAnswerKey` pur (`radioErrors.ts`) + tests ; `voiceNotUnderstood` dans « Préparer la
+  voix ». Changelog 1.0.10 (citations mises à jour + nouvelle entrée). `tsc -b`, ESLint,
+  `npm test` (3887) OK.
+- 📋 **Prochaine étape** : essai vocal (coach IA coupé : « raclette » → « pas compris » ;
+  activé avec modèle retiré → rappel modèle puis « vérifie… branché ») ; commit après accord.
+
+### 2026-10-17 — Micro de l'ingénieur : plus de réouvertures en boucle
+
+- ❌ **Constat** (journal `tauri dev`) : « [voice_input] micro « … RØDE NT-USB Mini » perdu :
+  réouverture » ~1 fois toutes les 20 s (83 en une demi-heure), sans erreur du flux.
+- ✅ **Cause** : le micro était déclaré perdu quand la boucle du moteur n'avait **consommé**
+  aucun bloc depuis `STALL_S` (3 s). Or cette boucle transcrit elle-même la dictée après le
+  mot déclencheur (`recognize_free_samples`, plusieurs secondes en build de dev) : le micro
+  continuait d'envoyer, la file se remplissait, et le moteur le rouvrait quand même — en
+  coupant la phrase en cours.
+- ✅ **Correctif** (`voice_input.rs`) : la panne n'est jugée qu'à l'attente d'un bloc
+  (`recv_timeout` sans rien, et rien reçu depuis 3 s) ; après un long traitement, les blocs
+  en attente arrivent tout de suite. Vérifié : 0 réouverture en 4 min après relance (contre
+  ~12 attendues). `cargo test voice_input` (5) OK. Changelog 1.0.10.
+- 📋 **Prochaine étape** : surveiller le journal en roulage (wake word + push-to-talk) ;
+  commit après accord de l'utilisateur.
+
 ### 2026-10-17 — Apparence des overlays : style Instrument et options d'affichage
 
 **Contexte** : suite de la veille du jour sur le dessin des overlays tiers. Demande explicite de

@@ -456,11 +456,12 @@ export default {
     speak: "Parla (dettatura)",
     voiceUnclear: "Scusa, non ho capito | Ripeti? | Non ho capito, ridimmelo",
     voiceUnavailable:
-      "Per ora nessuna risposta | Adesso non posso risponderti su questo | Coach non disponibile, ne parliamo ai box",
+      "Non posso risponderti, controlla che il coach IA sia collegato | Nessuna risposta, controlla la connessione del coach IA | Coach IA irraggiungibile, controlla che sia collegato",
+    voiceNotUnderstood:
+      "Scusa, non capisco la domanda | A questa non so rispondere | Non ho capito, chiedimelo in un altro modo",
     voiceHintModel: "Coach non disponibile: controlla il modello del coach nelle impostazioni",
     voiceHintKey: "Coach non disponibile: controlla la chiave API del coach nelle impostazioni",
     voiceNotConfigured: "Coach vocale incompleto: scegli un modello nelle impostazioni.",
-    voiceLocalFallback: "Senza IA, ti do il punto:",
     voiceNoAi: "Non ho una risposta pronta. Per le domande aperte, configura il Coach IA.",
     voiceAck1: "Ricevuto, controllo",
     voiceAck2: "Attendi, sto guardando",

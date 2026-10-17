@@ -117,6 +117,7 @@ export const CLOUD_PREP_ANSWER_KEYS: readonly string[] = [
   "coach.voiceAck3",
   "coach.voiceUnclear",
   "coach.voiceUnavailable",
+  "coach.voiceNotUnderstood",
   "coach.voiceHintModel",
   "coach.voiceHintKey",
 ];

@@ -131,7 +131,7 @@ import { VoiceIntroModal } from "@/components/VoiceIntroModal";
 import { SpotterCommandsModal } from "@/components/SpotterCommandsModal";
 import { INTENTS } from "@/lib/spotterCommands";
 import { Tip, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { getProvider } from "@/lib/ai/providers";
+import { getProvider, isForeignModel } from "@/lib/ai/providers";
 import { fetchModels } from "@/lib/ai/models";
 import { testConnection, chat, friendlyError } from "@/lib/ai/coach";
 import { systemPrompt } from "@/lib/ai/prompts/system";
@@ -373,7 +373,18 @@ export function ConfigV2() {
     setAiModelsLoading(true);
     try {
       const models = await fetchModels(provider, aiEffectiveKey(aiProvider));
+      // Réponse arrivée après un changement de fournisseur : la liste (et l'amorçage)
+      // de l'ancien fournisseur ne doivent pas atterrir chez le nouveau — c'est ainsi
+      // qu'un modèle Gemini se retrouvait choisi avec Ollama.
+      if (useAppStore.getState().aiProvider !== provider.id) return;
       setAiModels(models);
+      // Modèle enregistré qui appartient visiblement à un AUTRE fournisseur (dans ses
+      // modèles connus, absent de la liste de celui-ci) : état hérité du bug ci-dessus,
+      // on le remet à zéro pour ré-amorcer.
+      const current = useAppStore.getState().aiModel;
+      if (current && !models.some((m) => m.id === current) && isForeignModel(current, provider.id)) {
+        await useAppStore.getState().setAIModel("");
+      }
       // Amorçage SEULEMENT si aucun modèle n'est encore choisi. On ne remplace
       // jamais une valeur existante : l'endpoint `/models` est incomplet chez
       // plusieurs fournisseurs (modèle tout juste sorti, id saisi à la main,

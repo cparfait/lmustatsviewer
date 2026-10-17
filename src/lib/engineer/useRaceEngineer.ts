@@ -45,7 +45,7 @@ import { applyLapPref, parseLapPrefs, questionDue, sessionKind } from "./prefs";
 import { onTrack, slowerPackAhead, fasterBehind } from "./traffic";
 import { RivalPitWatcher } from "./rivalPits";
 import { BatteryWatcher, CRITICAL_PCT } from "./battery";
-import { VigieTracker } from "./vigie";
+import { VigieTracker, type VigieEvent } from "./vigie";
 import { BOX_CRITICAL_LAPS } from "./pitWindow";
 import { consistentWithLive, parseWet, pickWetFile, wetSession } from "./forecast";
 import { engineer } from "./state";
@@ -163,7 +163,20 @@ const PREWARM_KEYS = [
   "live.vPuncture",
   "live.vPitLaneLimiter",
   "live.vLimiterForgotten",
+  "live.vPitEntryLimiter",
+  "live.vPitExitLimiterOn",
 ];
+
+/** En dessous, pas d'annonce d'écart devant / derrière (voiture arrêtée ou au ralenti) (km/h). */
+const GAP_MIN_SPEED_KMH = 60;
+
+/** Phrase de l'ingénieur pour chaque alerte de la vigie (limiteur). */
+const VIGIE_PHRASE: Record<VigieEvent, string> = {
+  pitLaneNoLimiter: "live.vPitLaneLimiter",
+  limiterForgotten: "live.vLimiterForgotten",
+  pitEntryNoLimiter: "live.vPitEntryLimiter",
+  pitExitLimiterOn: "live.vPitExitLimiterOn",
+};
 
 /** Seuil de surchauffe historique (pic instantané, débit Complet) (°C). */
 const BRAKE_HOT_C = 750;
@@ -699,7 +712,10 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       // ── Rivaux — écart au pilote devant / sous attaque ───────────────────
       // Les écarts < 1 s ne sont annoncés qu'après **au moins 1 tour bouclé** :
       // sur la grille ET pendant tout le 1er tour, le peloton est collé.
-      const gapsReady = warmedUp && player.total_laps >= 1;
+      // Ni à l'arrêt ni au ralenti (accident, tête-à-queue, retour lent) : les voitures
+      // qui passent ne sont pas un écart à annoncer.
+      const rolling = (tel?.speed_kmh ?? 0) >= GAP_MIN_SPEED_KMH;
+      const gapsReady = warmedUp && player.total_laps >= 1 && rolling;
       if (inPits) {
         gapAheadWarned.current = false;
         underAttackWarned.current = false;
@@ -1090,7 +1106,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
           },
           nowS,
         )) {
-          say(`vigie:${ev}`, t(ev === "pitLaneNoLimiter" ? "live.vPitLaneLimiter" : "live.vLimiterForgotten"), "critical");
+          say(`vigie:${ev}`, t(VIGIE_PHRASE[ev]), "critical");
         }
       }
 

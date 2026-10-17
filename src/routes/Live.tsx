@@ -52,6 +52,7 @@ import {
   Settings2,
   Volume2,
   VolumeX,
+  Tablet,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { Header } from "@/components/layout/Header";
@@ -703,6 +704,13 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
               <Moon className="h-3.5 w-3.5" />
             )}
           </button>
+          {/* Régie tablette : le même live sur une tablette ou un 2ᵉ écran du réseau local. */}
+          <Link
+            to="/config?cat=regie"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-accent/60"
+          >
+            <Tablet className="h-3.5 w-3.5" /> {t("config.regieNav")}
+          </Link>
           <button
             onClick={() => document.documentElement.requestFullscreen?.()}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-accent/60"

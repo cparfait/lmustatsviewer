@@ -168,6 +168,8 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vBoxBox", vars: [] },
       { key: "vPitLaneLimiter", vars: [] },
       { key: "vLimiterForgotten", vars: [] },
+      { key: "vPitEntryLimiter", vars: [] },
+      { key: "vPitExitLimiterOn", vars: [] },
     ],
   },
   {

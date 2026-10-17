@@ -74,6 +74,24 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Pit limiter reminders from the engineer: entering the pit lane without the limiter (“Pit entry, limiter on”), and back on track with the limiter still on (“Limiter off!”). Once per pass, nothing when leaving the garage.",
+              fr: "Rappels du limiteur par l'ingénieur : entrée dans la voie des stands sans limiteur (« Entrée des stands, mets le limiteur ») et retour en piste avec le limiteur encore actif (« Enlève le limiteur ! »). Une fois par passage, rien au départ du garage.",
+              es: "Recordatorios del limitador por el ingeniero: entrada en el pit lane sin limitador («Entrada a boxes, pon el limitador») y vuelta a pista con el limitador aún puesto («¡Quita el limitador!»). Una vez por paso, nada al salir del garaje.",
+              de: "Begrenzer-Erinnerungen vom Ingenieur: Einfahrt in die Boxengasse ohne Begrenzer („Boxeneinfahrt, Begrenzer rein“) und zurück auf der Strecke mit noch aktivem Begrenzer („Begrenzer raus!“). Einmal pro Durchfahrt, nichts beim Verlassen der Garage.",
+              it: "Promemoria del limitatore dall'ingegnere: ingresso in pit lane senza limitatore («Ingresso box, inserisci il limitatore») e ritorno in pista con il limitatore ancora inserito («Togli il limitatore!»). Una volta per passaggio, niente all'uscita dal garage.",
+            },
+          },
+          {
+            text: {
+              en: "Live page: a “Tablet race control” button in the top bar opens its settings directly.",
+              fr: "Page Live : un bouton « Régie tablette » dans la barre du haut ouvre directement ses réglages.",
+              es: "Página Live: un botón «Dirección en tableta» en la barra superior abre directamente sus ajustes.",
+              de: "Live-Seite: Eine Schaltfläche „Rennleitung auf Tablet“ in der oberen Leiste öffnet direkt ihre Einstellungen.",
+              it: "Pagina Live: un pulsante «Direzione gara su tablet» nella barra in alto apre direttamente le sue impostazioni.",
+            },
+          },
+          {
+            text: {
               en: "Overlay appearance (“Appearance” button at the top of the Overlays page, with a live preview on sample data; everything off by default; the Classic style stays the default): a new Instrument style with sharp corners, relief lines, colours that always mean the same thing (green = gain, purple = session best, red = loss), standings rows tinted by class with three densities, and throttle/brake graphs drawn in high definition. Options for all styles: display font with fixed-width digits, sharp scaling (text stays crisp at 150 % or 200 %), fibre texture, and a short animation when you set a personal or class best.",
               fr: "Apparence des overlays (bouton « Apparence » en haut de la page Overlays, avec un aperçu en direct sur des données d'exemple ; tout désactivé par défaut ; le style Classique reste celui d'origine) : nouveau style Instrument aux angles vifs, filets de relief, couleurs qui ont toujours le même sens (vert = gain, violet = meilleur de la séance, rouge = perte), lignes du classement teintées par classe avec trois densités, graphes accélérateur/frein dessinés en haute définition. Options pour tous les styles : police d'affichage à chiffres fixes, agrandissement net (textes nets à 150 % ou 200 %), texture fibrée, courte animation quand tombe un record perso ou de la classe.",
               es: "Apariencia de los overlays (botón «Apariencia» arriba en la página Overlays, con vista previa en directo sobre datos de ejemplo; todo desactivado por defecto; el estilo Clásico sigue siendo el de origen): nuevo estilo Instrumento con esquinas vivas, filetes en relieve, colores que siempre significan lo mismo (verde = ganancia, violeta = mejor de la sesión, rojo = pérdida), filas de la clasificación teñidas por clase con tres densidades y gráficos de acelerador/freno en alta definición. Opciones para todos los estilos: fuente con cifras de ancho fijo, ampliación nítida (textos nítidos al 150 % o 200 %), textura de fibra y una breve animación al lograr un récord personal o de la clase.",
@@ -416,6 +434,33 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Rankings page shows at once: your positions are loaded in the background when the app starts (and after each new session), instead of when you open the page.",
+              fr: "La page Classements s'affiche tout de suite : tes positions sont chargées en arrière-plan au lancement de l'app (et après chaque nouvelle séance), au lieu de l'ouverture de la page.",
+              es: "La página Clasificaciones aparece al instante: tus posiciones se cargan en segundo plano al iniciar la app (y tras cada nueva sesión), en lugar de al abrir la página.",
+              de: "Die Ranglisten-Seite erscheint sofort: Deine Positionen werden beim Start der App (und nach jeder neuen Sitzung) im Hintergrund geladen statt beim Öffnen der Seite.",
+              it: "La pagina Classifiche appare subito: le tue posizioni vengono caricate in background all'avvio dell'app (e dopo ogni nuova sessione), invece che all'apertura della pagina.",
+            },
+          },
+          {
+            text: {
+              en: "Tablet race control: your car pinned at the top of the timing page, swipe left/right to change page (dots show where you are), full screen on first touch or with the button, and the Map page now shows only the map, turned to fill a portrait screen.",
+              fr: "Régie tablette : ta voiture épinglée en tête du classement, balayage gauche/droite pour changer de page (des points indiquent où tu es), plein écran au premier toucher ou par le bouton, et la page Carte n'affiche plus que la carte, tournée pour remplir un écran en portrait.",
+              es: "Dirección en tableta: tu coche fijado arriba en la clasificación, desliza a izquierda/derecha para cambiar de página (unos puntos indican dónde estás), pantalla completa al primer toque o con el botón, y la página Mapa muestra solo el mapa, girado para llenar una pantalla vertical.",
+              de: "Rennleitung auf Tablet: Dein Auto oben in der Zeitenliste angeheftet, nach links/rechts wischen zum Seitenwechsel (Punkte zeigen die Seite), Vollbild bei der ersten Berührung oder per Schaltfläche, und die Kartenseite zeigt nur noch die Karte, gedreht für ein Hochformat-Display.",
+              it: "Direzione gara su tablet: la tua auto fissata in cima alla classifica, scorri a sinistra/destra per cambiare pagina (dei punti indicano dove sei), schermo intero al primo tocco o con il pulsante, e la pagina Mappa mostra solo la mappa, ruotata per riempire uno schermo verticale.",
+            },
+          },
+          {
+            text: {
+              en: "Pit exit message: “keep the limiter on to the line” instead of a vague “watch the limiter”.",
+              fr: "Message de sortie des stands : « garde le limiteur jusqu'à la ligne » au lieu d'un vague « attention au limiteur ».",
+              es: "Mensaje de salida de boxes: «mantén el limitador hasta la línea» en lugar de un vago «atención al limitador».",
+              de: "Boxenausfahrt-Meldung: „Begrenzer bis zur Linie drin lassen“ statt eines vagen „Achtung auf den Begrenzer“.",
+              it: "Messaggio di uscita box: «tieni il limitatore fino alla linea» invece di un vago «occhio al limitatore».",
+            },
+          },
+          {
+            text: {
               en: "Overlays page: the “Widgets by address” card is folded by default and now says what it is for (VR headset, OBS stream, second screen); the page no longer changes width for a moment each time a setting is saved.",
               fr: "Page Overlays : la carte « Widgets par adresse » est repliée par défaut et dit à quoi elle sert (casque VR, stream OBS, 2ᵉ écran) ; la page ne change plus de largeur un instant à chaque réglage enregistré.",
               es: "Página Overlays: la tarjeta «Widgets por dirección» aparece plegada por defecto y explica para qué sirve (casco de VR, stream de OBS, 2.ª pantalla); la página ya no cambia de ancho un instante cada vez que se guarda un ajuste.",
@@ -579,6 +624,24 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "The engineer no longer says you are within a second of the car ahead (or under attack) when you are stopped or crawling: crash, spin, slow return to the pits.",
+              fr: "L'ingénieur ne dit plus que tu es dans la seconde de celui devant (ou sous attaque) quand tu es arrêté ou au ralenti : accident, tête-à-queue, retour lent aux stands.",
+              es: "El ingeniero ya no dice que estás a menos de un segundo del de delante (o bajo ataque) cuando estás parado o muy lento: accidente, trompo, vuelta lenta a boxes.",
+              de: "Der Ingenieur sagt nicht mehr, dass du unter einer Sekunde hinter dem Vordermann bist (oder angegriffen wirst), wenn du stehst oder schleichst: Unfall, Dreher, langsame Rückkehr an die Box.",
+              it: "L'ingegnere non dice più che sei entro un secondo da chi ti precede (o sotto attacco) quando sei fermo o lentissimo: incidente, testacoda, rientro lento ai box.",
+            },
+          },
+          {
+            text: {
+              en: "AI settings: a model from another provider (e.g. a Gemini model with Ollama) could be selected after switching provider; it is now reset and replaced by a model of the active provider.",
+              fr: "Réglages IA : un modèle d'un autre fournisseur (par exemple un Gemini avec Ollama) pouvait rester choisi après un changement de fournisseur ; il est maintenant remis à zéro et remplacé par un modèle du fournisseur actif.",
+              es: "Ajustes de IA: un modelo de otro proveedor (por ejemplo un Gemini con Ollama) podía quedar elegido tras cambiar de proveedor; ahora se reinicia y se sustituye por un modelo del proveedor activo.",
+              de: "KI-Einstellungen: Nach einem Anbieterwechsel konnte ein Modell eines anderen Anbieters (z. B. ein Gemini mit Ollama) ausgewählt bleiben; es wird jetzt zurückgesetzt und durch ein Modell des aktiven Anbieters ersetzt.",
+              it: "Impostazioni IA: dopo un cambio di fornitore poteva restare selezionato un modello di un altro fornitore (ad esempio un Gemini con Ollama); ora viene azzerato e sostituito da un modello del fornitore attivo.",
+            },
+          },
           {
             text: {
               en: "Talking to the engineer: when an answer fails (AI Coach model removed, key refused, quota, network, nothing recognised), the radio no longer reads out the technical error message. It says a short line instead, with variations (“Sorry, didn't catch that”, “No answer, check the AI coach connection”…) and, the first time only, a reminder to check the coach model or API key in the settings. The detailed message now appears on screen so you know what to fix.",

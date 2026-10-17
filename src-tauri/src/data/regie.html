@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0e1a">
 <title>LMU Stats Viewer — Régie</title>
 <style>
   :root { --bg:#0a0e1a; --panel:#121828; --line:#1f2a40; --fg:#e5e7eb; --mute:#8b95a8; --acc:#ffb400; --ok:#34d399; --bad:#f87171; }
@@ -41,6 +44,19 @@
   .bar { height:8px; border-radius:4px; background:var(--line); overflow:hidden; }
   .bar > i { display:block; height:100%; background:var(--ok); }
   .flag { display:inline-block; padding:2px 10px; border-radius:6px; font-weight:800; color:#000; }
+  #app { min-height:100%; touch-action:pan-y; }
+  #fs { background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:14px; }
+  :fullscreen #fs, .standalone #fs { display:none; }
+  #dots { display:flex; justify-content:center; gap:8px; padding:6px 0 10px; }
+  #dots i { width:8px; height:8px; border-radius:50%; background:var(--line); }
+  #dots i.on { background:var(--acc); }
+  /* Ma voiture épinglée en tête du classement. */
+  .mine { border-color:var(--acc); margin-bottom:10px; }
+  .mine table td { font-size:17px; font-weight:700; }
+  .mine tr.me td { background:transparent; }
+  /* Page Carte : la carte seule, sur toute la hauteur disponible. */
+  .mapOnly { padding:4px; }
+  .mapOnly svg { margin:0 auto; }
 </style>
 </head>
 <body>
@@ -56,8 +72,10 @@
     <span class="title" data-t="title"></span>
     <span id="hdr" class="meta"></span>
     <nav id="tabs"></nav>
+    <button id="fs" type="button" data-t="fullscreen"></button>
   </header>
   <main id="view"></main>
+  <div id="dots"></div>
 </div>
 <script>
 (() => {
@@ -67,23 +85,23 @@
     fr: { title:"Régie", enterCode:"Entrez le code à 6 chiffres affiché dans LMU Stats Viewer (Configuration › Régie tablette).", connect:"Se connecter", badCode:"Code incorrect.", locked:"Trop d'essais : réessayez dans une minute.", offline:"Jeu non connecté.", lost:"Connexion perdue…",
       t_timing:"Classement", t_engineer:"Ingénieur", t_map:"Carte", t_duel:"Duel", t_tv:"TV",
       pos:"Pos", cls:"Classe", driver:"Pilote", gap:"Écart", int:"Interv.", last:"Dernier", best:"Meilleur", laps:"Tours", pits:"Arrêts",
-      remaining:"Restant", lap:"Tour", fuel:"Carburant", lapsLeft:"tours", energy:"Énergie virt.", tyres:"Pneus", pads:"Plaquettes", weather:"Météo", air:"Air", track:"Piste", rain:"Pluie", ahead:"Devant", behind:"Derrière", none:"—", inPit:"STAND", leader:"Leaders", noPlayer:"Pas de voiture joueur." },
+      remaining:"Restant", lap:"Tour", fuel:"Carburant", lapsLeft:"tours", energy:"Énergie virt.", tyres:"Pneus", pads:"Plaquettes", weather:"Météo", air:"Air", track:"Piste", rain:"Pluie", ahead:"Devant", behind:"Derrière", none:"—", inPit:"STAND", leader:"Leaders", noPlayer:"Pas de voiture joueur.", fullscreen:"Plein écran", mine:"Ma voiture" },
     en: { title:"Race control", enterCode:"Enter the 6-digit code shown in LMU Stats Viewer (Settings › Tablet race control).", connect:"Connect", badCode:"Wrong code.", locked:"Too many attempts: try again in a minute.", offline:"Game not connected.", lost:"Connection lost…",
       t_timing:"Timing", t_engineer:"Engineer", t_map:"Map", t_duel:"Duel", t_tv:"TV",
       pos:"Pos", cls:"Class", driver:"Driver", gap:"Gap", int:"Int.", last:"Last", best:"Best", laps:"Laps", pits:"Stops",
-      remaining:"Remaining", lap:"Lap", fuel:"Fuel", lapsLeft:"laps", energy:"Virtual energy", tyres:"Tyres", pads:"Pads", weather:"Weather", air:"Air", track:"Track", rain:"Rain", ahead:"Ahead", behind:"Behind", none:"—", inPit:"PIT", leader:"Leaders", noPlayer:"No player car." },
+      remaining:"Remaining", lap:"Lap", fuel:"Fuel", lapsLeft:"laps", energy:"Virtual energy", tyres:"Tyres", pads:"Pads", weather:"Weather", air:"Air", track:"Track", rain:"Rain", ahead:"Ahead", behind:"Behind", none:"—", inPit:"PIT", leader:"Leaders", noPlayer:"No player car.", fullscreen:"Full screen", mine:"My car" },
     es: { title:"Dirección de carrera", enterCode:"Introduce el código de 6 cifras que muestra LMU Stats Viewer (Configuración › Dirección en tableta).", connect:"Conectar", badCode:"Código incorrecto.", locked:"Demasiados intentos: vuelve a probar en un minuto.", offline:"Juego no conectado.", lost:"Conexión perdida…",
       t_timing:"Clasificación", t_engineer:"Ingeniero", t_map:"Mapa", t_duel:"Duelo", t_tv:"TV",
       pos:"Pos", cls:"Clase", driver:"Piloto", gap:"Dif.", int:"Interv.", last:"Última", best:"Mejor", laps:"Vueltas", pits:"Paradas",
-      remaining:"Restante", lap:"Vuelta", fuel:"Combustible", lapsLeft:"vueltas", energy:"Energía virtual", tyres:"Neumáticos", pads:"Pastillas", weather:"Meteo", air:"Aire", track:"Pista", rain:"Lluvia", ahead:"Delante", behind:"Detrás", none:"—", inPit:"BOX", leader:"Líderes", noPlayer:"Sin coche del jugador." },
+      remaining:"Restante", lap:"Vuelta", fuel:"Combustible", lapsLeft:"vueltas", energy:"Energía virtual", tyres:"Neumáticos", pads:"Pastillas", weather:"Meteo", air:"Aire", track:"Pista", rain:"Lluvia", ahead:"Delante", behind:"Detrás", none:"—", inPit:"BOX", leader:"Líderes", noPlayer:"Sin coche del jugador.", fullscreen:"Pantalla completa", mine:"Mi coche" },
     de: { title:"Rennleitung", enterCode:"Gib den 6-stelligen Code aus LMU Stats Viewer ein (Einstellungen › Rennleitung auf Tablet).", connect:"Verbinden", badCode:"Falscher Code.", locked:"Zu viele Versuche: in einer Minute erneut versuchen.", offline:"Spiel nicht verbunden.", lost:"Verbindung verloren…",
       t_timing:"Zeitenliste", t_engineer:"Ingenieur", t_map:"Karte", t_duel:"Duell", t_tv:"TV",
       pos:"Pos", cls:"Klasse", driver:"Fahrer", gap:"Abstand", int:"Int.", last:"Letzte", best:"Beste", laps:"Runden", pits:"Stopps",
-      remaining:"Verbleibend", lap:"Runde", fuel:"Kraftstoff", lapsLeft:"Runden", energy:"Virtuelle Energie", tyres:"Reifen", pads:"Beläge", weather:"Wetter", air:"Luft", track:"Strecke", rain:"Regen", ahead:"Vorne", behind:"Hinten", none:"—", inPit:"BOX", leader:"Führende", noPlayer:"Kein Spielerauto." },
+      remaining:"Verbleibend", lap:"Runde", fuel:"Kraftstoff", lapsLeft:"Runden", energy:"Virtuelle Energie", tyres:"Reifen", pads:"Beläge", weather:"Wetter", air:"Luft", track:"Strecke", rain:"Regen", ahead:"Vorne", behind:"Hinten", none:"—", inPit:"BOX", leader:"Führende", noPlayer:"Kein Spielerauto.", fullscreen:"Vollbild", mine:"Mein Auto" },
     it: { title:"Direzione gara", enterCode:"Inserisci il codice a 6 cifre mostrato in LMU Stats Viewer (Impostazioni › Direzione gara su tablet).", connect:"Connetti", badCode:"Codice errato.", locked:"Troppi tentativi: riprova tra un minuto.", offline:"Gioco non connesso.", lost:"Connessione persa…",
       t_timing:"Classifica", t_engineer:"Ingegnere", t_map:"Mappa", t_duel:"Duello", t_tv:"TV",
       pos:"Pos", cls:"Classe", driver:"Pilota", gap:"Distacco", int:"Interv.", last:"Ultimo", best:"Migliore", laps:"Giri", pits:"Soste",
-      remaining:"Rimanente", lap:"Giro", fuel:"Carburante", lapsLeft:"giri", energy:"Energia virtuale", tyres:"Gomme", pads:"Pastiglie", weather:"Meteo", air:"Aria", track:"Pista", rain:"Pioggia", ahead:"Davanti", behind:"Dietro", none:"—", inPit:"BOX", leader:"Leader", noPlayer:"Nessuna auto del giocatore." },
+      remaining:"Rimanente", lap:"Giro", fuel:"Carburante", lapsLeft:"giri", energy:"Energia virtuale", tyres:"Gomme", pads:"Pastiglie", weather:"Meteo", air:"Aria", track:"Pista", rain:"Pioggia", ahead:"Davanti", behind:"Dietro", none:"—", inPit:"BOX", leader:"Leader", noPlayer:"Nessuna auto del giocatore.", fullscreen:"Schermo intero", mine:"La mia auto" },
   };
   const lang = (navigator.language || "en").slice(0, 2).toLowerCase();
   const T = L[lang] || L.en;
@@ -126,10 +144,35 @@
   }
   function showLogin() { if (timer) { clearInterval(timer); timer = null; } $("app").classList.add("hidden"); $("login").classList.remove("hidden"); $("code").focus(); }
 
+  function setTpl(k) { tpl = k; localStorage.setItem("regie_tpl", tpl); tabs(); render(); }
   function tabs() {
     $("tabs").innerHTML = TPLS.map((k) => `<button data-k="${k}" class="${k === tpl ? "on" : ""}">${esc(T["t_" + k])}</button>`).join("");
-    $("tabs").querySelectorAll("button").forEach((b) => b.onclick = () => { tpl = b.dataset.k; localStorage.setItem("regie_tpl", tpl); tabs(); render(); });
+    $("tabs").querySelectorAll("button").forEach((b) => b.onclick = () => setTpl(b.dataset.k));
+    $("dots").innerHTML = TPLS.map((k) => `<i class="${k === tpl ? "on" : ""}"></i>`).join("");
   }
+
+  // Plein écran : au premier toucher (geste requis par le navigateur) et par le bouton.
+  // Ajoutée à l'écran d'accueil, la page s'ouvre déjà sans barre du navigateur.
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  if (standalone) document.documentElement.classList.add("standalone");
+  function goFullscreen() {
+    const el = document.documentElement;
+    if (standalone || document.fullscreenElement || document.webkitFullscreenElement) return;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req) Promise.resolve(req.call(el)).catch(() => {});
+  }
+  $("fs").onclick = goFullscreen;
+  $("app").addEventListener("click", goFullscreen, { once: true });
+
+  // Balayage horizontal : page suivante / précédente (le défilement vertical reste libre).
+  let sx = 0, sy = 0, st = 0;
+  $("app").addEventListener("touchstart", (e) => { const t0 = e.touches[0]; sx = t0.clientX; sy = t0.clientY; st = Date.now(); }, { passive: true });
+  $("app").addEventListener("touchend", (e) => {
+    const t1 = e.changedTouches[0]; const dx = t1.clientX - sx, dy = t1.clientY - sy;
+    if (Date.now() - st > 800 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const i = TPLS.indexOf(tpl);
+    setTpl(TPLS[(i + (dx < 0 ? 1 : TPLS.length - 1)) % TPLS.length]);
+  }, { passive: true });
 
   async function tick() {
     try {
@@ -142,15 +185,17 @@
       if (String(e && e.message) !== "auth" && ++fails > 3) $("hdr").textContent = T.lost;
     }
   }
+  addEventListener("resize", () => { if (last) render(); });
   function start() { $("login").classList.add("hidden"); $("app").classList.remove("hidden"); tabs(); tick(); if (!timer) timer = setInterval(tick, 1000); }
 
-  // ── Carte : axe principal du tracé à l'horizontale (« plus large que haut ») ──
+  // ── Carte : axe principal du tracé dans le sens de l'écran (paysage / portrait) ──
   function mapSvg(d, maxH) {
     const pts = (track && track.track_points) || [];
     if (pts.length < 8) return `<div class="meta">${T.none}</div>`;
     let mx = 0, mz = 0; for (const p of pts) { mx += p[0]; mz += p[1]; } mx /= pts.length; mz /= pts.length;
     let sxx = 0, szz = 0, sxz = 0; for (const p of pts) { const x = p[0] - mx, z = p[1] - mz; sxx += x * x; szz += z * z; sxz += x * z; }
-    const ang = 0.5 * Math.atan2(2 * sxz, sxx - szz);
+    // Écran tenu en hauteur (tablette en portrait) : axe principal à la verticale.
+    const ang = 0.5 * Math.atan2(2 * sxz, sxx - szz) + (innerHeight > innerWidth ? Math.PI / 2 : 0);
     const ca = Math.cos(-ang), sa = Math.sin(-ang);
     const rot = (p) => { const x = p[0] - mx, z = p[1] - mz; return [x * ca - z * sa, -(x * sa + z * ca)]; };
     const pit = (track && track.pit_lane_points) || [];
@@ -184,8 +229,12 @@
         `<td class="r">${lapT(s.last_lap_time)}</td><td class="r">${lapT(s.best_lap_time)}</td><td class="r">${s.total_laps}</td><td class="r">${s.num_pitstops}</td></tr>`).join("") + `</table>`;
   }
 
-  // 1. Classement complet (multiclasse, couleurs de classe).
-  const tplTiming = (d) => `<div class="card">${timingTable(d, d.standings || [])}</div>`;
+  // 1. Classement complet (multiclasse, couleurs de classe), ma voiture épinglée en tête.
+  function tplTiming(d) {
+    const p = me(d);
+    const mine = p ? `<div class="card mine"><div class="lbl">${T.mine}</div>${timingTable(d, [p])}</div>` : "";
+    return `${mine}<div class="card">${timingTable(d, d.standings || [])}</div>`;
+  }
 
   // 2. Ingénieur : tout ce qui concerne la voiture du joueur.
   function tplEngineer(d) {
@@ -207,12 +256,8 @@
     </div><div class="card" style="margin-top:10px"><div class="lbl">${T.tyres}</div><div class="grid" style="grid-template-columns:repeat(4,1fr)">${wheels}</div></div>`;
   }
 
-  // 3. Carte : tracé + voitures colorées par classe, classement de la classe du joueur.
-  function tplMap(d) {
-    const p = me(d); const cls = p ? p.vehicle_class : null;
-    const rows = (d.standings || []).filter((s) => !cls || s.vehicle_class === cls).slice(0, 12);
-    return `<div class="grid g2"><div class="card">${mapSvg(d, "70vh")}</div><div class="card">${timingTable(d, rows)}</div></div>`;
-  }
+  // 3. Carte : le tracé et les voitures colorées par classe, rien d'autre.
+  const tplMap = (d) => `<div class="card mapOnly">${mapSvg(d, "calc(100vh - 110px)")}</div>`;
 
   // 4. Duel : le joueur face aux voitures devant et derrière dans sa classe.
   function tplDuel(d) {

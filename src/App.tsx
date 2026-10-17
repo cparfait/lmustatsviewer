@@ -11,7 +11,7 @@ import { Dashboard } from "@/routes/Dashboard";
 import { Sessions } from "@/routes/Sessions";
 import { SessionDetail } from "@/routes/SessionDetail";
 import { Records } from "@/routes/Records";
-import { Classement } from "@/routes/Classement";
+import { Classement, preloadMyPositions } from "@/routes/Classement";
 import { Setups } from "@/routes/Setups";
 import { SetupDetail } from "@/routes/SetupDetail";
 import { SetupCompare } from "@/routes/SetupCompare";
@@ -65,6 +65,18 @@ export default function App() {
   useEffect(() => {
     fetchBenchmarks().catch(() => {});
   }, []);
+
+  // Préchargement de la page Classements (onglet « Ma position ») : au lancement, puis
+  // après chaque nouvelle donnée indexée (attente de 3 s pour regrouper les rafales),
+  // jamais pendant le Live. La page s'affiche ensuite sans attente.
+  const dataVersion = useAppStore((s) => s.dataVersion);
+  useEffect(() => {
+    if (!configLoaded || !isConfigured) return;
+    const id = setTimeout(() => {
+      if (!window.location.pathname.startsWith("/live")) preloadMyPositions();
+    }, 3000);
+    return () => clearTimeout(id);
+  }, [configLoaded, isConfigured, dataVersion]);
 
   // Spotter « à la demande » : raccourcis globaux Statut / Mute / Répète.
   useSpotter();

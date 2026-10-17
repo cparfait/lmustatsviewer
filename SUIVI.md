@@ -913,6 +913,34 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Classements préchargés, rappels limiteur, Régie tablette, correctifs ingénieur / IA
+
+- ✅ **Classements préchargés** : `fetchMyPositions` sorti de l'effet de `MyPosition`
+  (Classement.tsx), cache mémoire par filtres + `dataVersion` (8 jeux max), requêtes en vol
+  partagées ; `preloadMyPositions()` appelé par `App.tsx` 3 s après le chargement de la
+  config et après chaque `dataVersion`, jamais sur `/live`. La page affiche le cache tout de
+  suite et ne recharge que si la donnée a plus d'une minute.
+- ✅ **Rappels limiteur** (`vigie.ts`) : `pitEntryNoLimiter` (entrée dans la voie, pas de
+  limiteur après 1,5 s) et `pitExitLimiterOn` (retour en piste, limiteur encore actif après
+  1 s), sur passage de ligne `in_pits` (rien au départ du garage), une fois par passage ;
+  coupent les doublons « voie sans limiteur » / « limiteur oublié ». Phrases à variantes
+  `vPitEntryLimiter`, `vPitExitLimiterOn` (5 langues, `vmWhen`, catalogue, préchauffage) ;
+  `vPitExitLimiter` reformulée (« garde le limiteur jusqu'à la ligne »). 8 cas de test.
+- ✅ **Écart devant / sous attaque** : plus d'annonce sous 60 km/h (accident, arrêt).
+- ✅ **Modèle IA d'un autre fournisseur** (Gemini avec Ollama) : réponse `/models` d'un ancien
+  fournisseur ignorée (course entre deux sondages qui ré-amorçait le modèle) ; modèle connu
+  d'un autre fournisseur remis à zéro (`isForeignModel`).
+- ✅ **Lien Régie tablette** sur la page Live (barre du haut → `/config?cat=regie`).
+- ✅ **Régie tablette** (`regie.html`) : ma voiture épinglée en tête du classement, balayage
+  gauche/droite entre les pages + points, plein écran au premier toucher ou par bouton (et
+  méta « web app » pour l'écran d'accueil), page Carte réduite à la carte, orientée dans le
+  sens de l'écran (portrait = axe vertical). Vérifié dans le navigateur (données factices).
+- ℹ️ Questions de l'utilisateur : la demande orale libre part au Coach IA (le routeur ne
+  reconnaît pas « que me conseilles-tu comme pneus et pression ») ; « 2 spotters » : une seule
+  instance de l'app, CrewChief (spotter actif par défaut) tournait aussi.
+- 📋 **Prochaine étape** : essai en piste des rappels limiteur (entrée / sortie des stands) et
+  de la Régie sur une vraie tablette (plein écran iPad / Android, balayage).
+
 ### 2026-10-17 — Ingénieur sans réponse : « pas compris » / « vérifie que le coach IA est branché »
 
 **Demande utilisateur** : sans Coach IA actif (hors phrases locales), une phrase qui dit

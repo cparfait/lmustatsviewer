@@ -303,8 +303,43 @@ export function cancelRadio() {
 // La voix système (Web Speech) ne passe pas par Web Audio → elle garde le profil
 // classique.
 
-export type RadioStyle = "classic" | "pitwall";
+export type RadioStyle = "classic" | "pitwall" | "walkie" | "dirty" | "broken";
+/** Ordre d'affichage dans la liste (défaut en tête, historique à la fin). */
+export const RADIO_STYLES: readonly RadioStyle[] = ["pitwall", "walkie", "dirty", "broken", "classic"];
 let style: RadioStyle = "pitwall";
+
+/** Profil reconnu, sinon le défaut « Radio stand ». */
+export function toRadioStyle(v: string | null | undefined): RadioStyle {
+  return (RADIO_STYLES as readonly string[]).includes(v ?? "") ? (v as RadioStyle) : "pitwall";
+}
+
+/**
+ * Habillage appliqué au tampon de la voix Piper, par profil (« classic » n'habille
+ * pas la voix : il garde le lit de souffle continu historique).
+ * - `crushStep` / `bits` : échantillonnage dégradé (tenue d'échantillon) et quantification ;
+ * - `dropout` : probabilité qu'un bloc de 40 ms s'effondre (signal qui décroche) ;
+ * - `crackle` : craquements par seconde (impulsions brèves).
+ */
+interface RadioProfile {
+  low: number;
+  high: number;
+  drive: number;
+  hiss: number;
+  crushStep?: number;
+  bits?: number;
+  dropout?: number;
+  crackle?: number;
+}
+const PROFILES: Record<Exclude<RadioStyle, "classic">, RadioProfile> = {
+  // Radio stand (défaut, inchangé).
+  pitwall: { low: 250, high: 4800, drive: 2.6, hiss: 0.02 },
+  // Talkie de piste : bande plus étroite, plus de saturation et de souffle.
+  walkie: { low: 400, high: 3000, drive: 4.5, hiss: 0.045 },
+  // Radio saturée : poussée à fond, numérique dégradé.
+  dirty: { low: 500, high: 2600, drive: 9, hiss: 0.07, crushStep: 3, bits: 6 },
+  // Signal faible : crachotements, décrochages, craquements.
+  broken: { low: 650, high: 2300, drive: 6, hiss: 0.1, crushStep: 2, bits: 7, dropout: 0.06, crackle: 6 },
+};
 
 export function setRadioStyle(s: RadioStyle) {
   style = s;
@@ -315,14 +350,10 @@ export function radioStyle(): RadioStyle {
   return style;
 }
 export function pitwallActive(): boolean {
-  return enabled && style === "pitwall";
+  return enabled && style !== "classic";
 }
 
-const TM_LOW_HZ = 250;
-const TM_HIGH_HZ = 4800;
-const TM_DRIVE = 2.6;
 const TM_PEAK = 0.9;
-const TM_HISS = 0.02;
 const TM_CLICK_S = 0.03;
 const TM_CLICK_AMP = 0.06;
 const TM_GAP_S = 0.03;
@@ -349,6 +380,7 @@ function peakOf(a: Float32Array): number {
  */
 export async function styleVoiceBuffer(c: AudioContext, buf: AudioBuffer): Promise<AudioBuffer> {
   if (!pitwallActive() || typeof OfflineAudioContext === "undefined") return buf;
+  const pr = PROFILES[style as Exclude<RadioStyle, "classic">] ?? PROFILES.pitwall;
   try {
     const sr = buf.sampleRate;
     const n = buf.length;
@@ -367,10 +399,10 @@ export async function styleVoiceBuffer(c: AudioContext, buf: AudioBuffer): Promi
     src.buffer = srcBuf;
     let node: AudioNode = src;
     for (const [type, f] of [
-      ["highpass", TM_LOW_HZ],
-      ["highpass", TM_LOW_HZ],
-      ["lowpass", TM_HIGH_HZ],
-      ["lowpass", TM_HIGH_HZ],
+      ["highpass", pr.low],
+      ["highpass", pr.low],
+      ["lowpass", pr.high],
+      ["lowpass", pr.high],
     ] as const) {
       const bq = offline.createBiquadFilter();
       bq.type = type;
@@ -387,10 +419,42 @@ export async function styleVoiceBuffer(c: AudioContext, buf: AudioBuffer): Promi
 
     // Saturation douce : crête normalisée → tanh(drive) → rattrapage.
     const p = peakOf(v) || 1;
-    for (let i = 0; i < n; i++) v[i] = Math.tanh((v[i] / p) * TM_DRIVE);
+    for (let i = 0; i < n; i++) v[i] = Math.tanh((v[i] / p) * pr.drive);
     const p2 = peakOf(v) || 1;
     const hp = peakOf(hiss) || 1;
-    for (let i = 0; i < n; i++) v[i] = (v[i] / p2) * TM_PEAK + (hiss[i] / hp) * TM_HISS;
+    for (let i = 0; i < n; i++) v[i] = (v[i] / p2) * TM_PEAK + (hiss[i] / hp) * pr.hiss;
+
+    // Numérique dégradé : tenue d'échantillon puis quantification.
+    if (pr.crushStep && pr.crushStep > 1) {
+      for (let i = 0; i < n; i++) if (i % pr.crushStep) v[i] = v[i - (i % pr.crushStep)];
+    }
+    if (pr.bits) {
+      const q = 2 ** (pr.bits - 1);
+      for (let i = 0; i < n; i++) v[i] = Math.round(v[i] * q) / q;
+    }
+    // Décrochages : blocs de 40 ms effondrés (rampes de 5 ms), seul le souffle reste.
+    if (pr.dropout) {
+      const blk = Math.round(0.04 * sr);
+      const ramp = Math.max(1, Math.round(0.005 * sr));
+      for (let b = blk; b + blk < n; b += blk) {
+        if (Math.random() >= pr.dropout) continue;
+        for (let i = 0; i < blk; i++) {
+          const edge = Math.min(i, blk - 1 - i);
+          const g = edge < ramp ? 1 - (edge / ramp) * 0.88 : 0.12;
+          v[b + i] = v[b + i] * g + (hiss[b + i] / hp) * pr.hiss * (1 - g);
+        }
+      }
+    }
+    // Craquements : impulsions brèves à décroissance rapide.
+    if (pr.crackle) {
+      const count = Math.round((n / sr) * pr.crackle);
+      const len = Math.round(0.004 * sr);
+      for (let c2 = 0; c2 < count; c2++) {
+        const at = Math.floor(Math.random() * Math.max(1, n - len));
+        const amp = 0.18 + Math.random() * 0.25;
+        for (let i = 0; i < len; i++) v[at + i] += gaussian() * amp * Math.exp(-i / (len / 4));
+      }
+    }
 
     // Squelch : clic + silence avant, silence + clic après.
     const click = Math.round(TM_CLICK_S * sr);

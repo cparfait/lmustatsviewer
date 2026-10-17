@@ -74,6 +74,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Radio effect: profiles in a drop-down list, with three new, dirtier ones — “Track walkie-talkie”, “Overdriven radio” (degraded digital sound) and “Weak signal” (crackles and dropouts) — and a “Test” button that plays a phrase with the chosen profile. “Pit radio” stays the default, “Classic” is still there.",
+              fr: "Effet radio : profils dans une liste déroulante, avec trois nouveaux plus sales — « Talkie de piste », « Radio saturée » (son numérique dégradé) et « Signal faible » (crachotements et décrochages) — et un bouton « Tester » qui joue une phrase avec le profil choisi. « Radio stand » reste le défaut, « Classique » est toujours là.",
+              es: "Efecto de radio: perfiles en una lista desplegable, con tres nuevos más sucios — «Walkie de pista», «Radio saturada» (sonido digital degradado) y «Señal débil» (chisporroteos y cortes) — y un botón «Probar» que reproduce una frase con el perfil elegido. «Radio de box» sigue por defecto y «Clásico» sigue disponible.",
+              de: "Funkeffekt: Profile in einer Auswahlliste, mit drei neuen, schmutzigeren — „Streckenfunkgerät“, „Übersteuerter Funk“ (verschlechterter Digitalklang) und „Schwaches Signal“ (Knistern und Aussetzer) — und einer Schaltfläche „Testen“, die einen Satz mit dem gewählten Profil abspielt. „Boxenfunk“ bleibt Standard, „Klassisch“ gibt es weiterhin.",
+              it: "Effetto radio: profili in un elenco a discesa, con tre nuovi più sporchi — «Walkie di pista», «Radio saturata» (suono digitale degradato) e «Segnale debole» (gracchii e cadute) — e un pulsante «Prova» che riproduce una frase con il profilo scelto. «Radio box» resta il predefinito, «Classico» è sempre disponibile.",
+            },
+          },
+          {
+            text: {
               en: "Steering-wheel button in the top bar: launches Le Mans Ultimate through Steam (as from your library), or from the detected game folder if Steam does not respond. A green dot shows when the game is already running.",
               fr: "Bouton volant dans la barre du haut : lance Le Mans Ultimate par Steam (comme depuis ta bibliothèque), ou depuis le dossier du jeu détecté si Steam ne répond pas. Une pastille verte indique que le jeu tourne déjà.",
               es: "Botón del volante en la barra superior: inicia Le Mans Ultimate a través de Steam (como desde tu biblioteca) o desde la carpeta del juego detectada si Steam no responde. Un punto verde indica que el juego ya está en marcha.",

@@ -913,6 +913,25 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-17 — Audio / Voix : ordre logique, aide voix IA, suppression des voix, profils radio
+
+- ✅ Onglet Voix : bloc « Voix locale (sur ton PC) » (moteur → téléchargement → choix), bloc
+  « Voix IA en ligne » + bouton « Comment ça marche ? » (`CloudVoiceGuide`, 6 étapes : deux voix,
+  direct, préparation, alertes urgentes, annonces chiffrées, coût), puis « Son et effet radio ».
+  Bips PTT → « Parler à l'ingénieur » ; « Personnaliser les annonces » → « Annonces ».
+- ✅ Moteur de synthèse : une ligne par moteur (nom en gras), repli dessous, liste alignée en
+  haut ; « Embarqué » → « Piper (voix neuronale) » (il faut la télécharger).
+- ✅ Suppression d'une voix / d'un modèle Vosk téléchargé : commande `asset_delete` (id du
+  catalogue seulement, dossier des téléchargements seulement ; `in_use` si Windows garde le
+  fichier ouvert, `not_downloaded` pour une voix fournie avec l'app), poubelle + confirmation.
+- ✅ Effet radio : profils paramétrés (`radioFx.ts`, `PROFILES`) — « Radio stand » inchangé, +
+  `walkie`, `dirty` (tenue d'échantillon ×3, 6 bits), `broken` (décrochages de 40 ms, craquements) ;
+  liste déroulante + « Tester » (remplace « Comparer ») ; config `voice_radio_style` validée par
+  `toRadioStyle`. Vérifié : 5 profils rendus sans NaN ni dépassement.
+- ℹ️ « Alertes en voix locale » est déjà désactivé par défaut (`DEFAULTS.alertsLocal = false`) ;
+  activé chez l'utilisateur par son réglage (ou reprise de `scope: "info"`), laissé tel quel.
+- 📋 **Prochaine étape** : écoute réelle des nouveaux profils radio en course.
+
 ### 2026-10-17 — Onglet Régularité lisible ; « session » partout (FR, DE)
 
 - ✅ **Régularité** (`SessionExtras.tsx`) : phrase d'explication, verdict sous l'écart-type

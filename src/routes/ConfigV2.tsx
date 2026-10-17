@@ -100,6 +100,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
+import { RADIO_STYLES, toRadioStyle } from "@/lib/radioFx";
 import { useTheme } from "@/stores/theme";
 import { system, config as configApi, indexer, queries } from "@/lib/api";
 import { isTauri, type WheelBinding } from "@/lib/api";
@@ -124,7 +125,6 @@ import {
   previewVoice,
   announceAnswer,
   speechSupported,
-  compareRadioStyles,
 } from "@/lib/voice";
 import { MAX_VOICE_VOLUME, pttBeep } from "@/lib/radioFx";
 import { VoiceMessagesModal } from "@/components/VoiceMessagesModal";
@@ -313,7 +313,6 @@ export function ConfigV2() {
   const wakeWordEnabled = useAppStore((s) => s.wakeWordEnabled);
   const radioStyleSetting = useAppStore((s) => s.radioStyle);
   const pttBeeps = useAppStore((s) => s.pttBeeps);
-  const [comparing, setComparing] = useState<"classic" | "pitwall" | null>(null);
   const indexing = useAppStore((s) => s.indexing);
   const indexReport = useAppStore((s) => s.indexReport);
 
@@ -1557,40 +1556,23 @@ export function ConfigV2() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <div className="flex rounded-md border border-input overflow-hidden">
-                                {(["pitwall", "classic"] as const).map((s) => (
-                                  <button
-                                    key={s}
-                                    type="button"
-                                    onClick={() => void useAppStore.getState().setRadioStyleSetting(s)}
-                                    className={cn(
-                                      "px-2.5 py-1 text-xs transition-colors",
-                                      radioStyleSetting === s
-                                        ? "bg-primary text-primary-foreground"
-                                        : "bg-transparent hover:bg-accent",
-                                    )}
-                                  >
-                                    {t(s === "classic" ? "config.radioStyleClassic" : "config.radioStylePitwall")}
-                                  </button>
-                                ))}
-                              </div>
+                              <Select
+                                value={radioStyleSetting}
+                                onValueChange={(v) => void useAppStore.getState().setRadioStyleSetting(toRadioStyle(v))}
+                                ariaLabel={t("config.radioStyle")}
+                                className="h-8 w-48 px-2.5 text-xs"
+                                options={RADIO_STYLES.map((rs) => ({ value: rs, label: t(`config.radioStyle_${rs}`) }))}
+                              />
+                              {/* Joue une phrase avec le profil choisi (voix Piper). */}
                               <Button
                                 size="sm"
                                 variant="outline"
-                                disabled={comparing !== null || voiceEngine !== "piper"}
+                                disabled={voiceEngine !== "piper"}
                                 onClick={() =>
-                                  compareRadioStyles(
-                                    t("config.radioCompareSample"),
-                                    i18n.language,
-                                    setComparing,
-                                  )
+                                  previewVoice(t("config.radioCompareSample"), i18n.language, { localOnly: true })
                                 }
                               >
-                                {comparing === "classic"
-                                  ? t("config.radioComparingA")
-                                  : comparing === "pitwall"
-                                    ? t("config.radioComparingB")
-                                    : t("config.radioCompare")}
+                                {t("config.voiceTest")}
                               </Button>
                             </div>
                           </div>

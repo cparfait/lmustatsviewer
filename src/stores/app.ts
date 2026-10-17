@@ -14,7 +14,7 @@ import { configureVoice, setCloudSegmentSource, setSpeechReplay, setTalkSilence 
 import { initCloudVoice } from "@/lib/cloudVoice";
 import { initVoiceOverrides, segmentTemplates } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
-import { setRadioEnabled, setRadioStyle, MAX_VOICE_VOLUME } from "@/lib/radioFx";
+import { setRadioEnabled, setRadioStyle, toRadioStyle, MAX_VOICE_VOLUME, type RadioStyle } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
 import {
   setCustomProviders,
@@ -159,8 +159,8 @@ interface AppState {
    * position au général (comportement historique).
    */
   classPositions: boolean;
-  /** Profil de l'effet radio : `pitwall` « Radio stand » (défaut) ou `classic` (historique). */
-  radioStyle: "classic" | "pitwall";
+  /** Profil de l'effet radio : `pitwall` « Radio stand » (défaut), profils plus sales, ou `classic` (historique). */
+  radioStyle: RadioStyle;
   /** Bips du push-to-talk (1000 Hz ouverture / 700 Hz envoi). */
   pttBeeps: boolean;
   /**
@@ -322,7 +322,7 @@ interface AppState {
   setPttRecognition: (v: "dual" | "strict") => Promise<void>;
   setAnnounceEverywhere: (v: boolean) => Promise<void>;
   setClassPositions: (v: boolean) => Promise<void>;
-  setRadioStyleSetting: (s: "classic" | "pitwall") => Promise<void>;
+  setRadioStyleSetting: (s: RadioStyle) => Promise<void>;
   setPttBeeps: (v: boolean) => Promise<void>;
   setRadioQuietZones: (v: boolean) => Promise<void>;
   setRadioPhases: (v: boolean) => Promise<void>;
@@ -507,7 +507,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         : 1;
     const voiceRadio = cfg.voice_radio !== "false";
     // « Radio stand » par défaut ; « Classique » seulement si choisi explicitement.
-    const radioStyle: "classic" | "pitwall" = cfg.voice_radio_style === "classic" ? "classic" : "pitwall";
+    const radioStyle: RadioStyle = toRadioStyle(cfg.voice_radio_style);
     const voiceEngine = cfg.voice_engine === "system" ? "system" : "piper";
     // Fournisseurs custom : définitions (JSON non secret) + clé chiffrée chacun.
     const aiCustomProviders: CustomProviderDef[] = (() => {

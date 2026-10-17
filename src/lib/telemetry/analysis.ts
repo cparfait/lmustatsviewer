@@ -39,10 +39,24 @@ export interface LapAnalysis {
   hasRef: boolean;
 }
 
-/** Nombre de focus zones mises en avant. */
-const FOCUS_COUNT = 3;
+/** Nombre de focus zones mises en avant par défaut. */
+export const FOCUS_COUNT = 3;
+/** Bornes du nombre de focus zones réglable (« Points faibles du tour »). */
+export const FOCUS_COUNT_MIN = 1;
+export const FOCUS_COUNT_MAX = 5;
 /** Perte minimale (s) pour qu'un virage soit considéré comme focus zone (anti-bruit). */
-const FOCUS_MIN_LOSS = 0.03;
+export const FOCUS_MIN_LOSS = 0.03;
+
+export interface AnalyzeLapOptions {
+  /** Nombre de focus zones à classer (borné à 1–5 ; défaut `FOCUS_COUNT` = 3). */
+  focusCount?: number;
+}
+
+/** Borne un nombre de focus zones demandé à [FOCUS_COUNT_MIN, FOCUS_COUNT_MAX]. */
+export function clampFocusCount(v: number | null | undefined): number {
+  if (v == null || !isFinite(v)) return FOCUS_COUNT;
+  return Math.max(FOCUS_COUNT_MIN, Math.min(FOCUS_COUNT_MAX, Math.round(v)));
+}
 
 export function analyzeLap(
   corners: Corner[],
@@ -52,7 +66,9 @@ export function analyzeLap(
   refSpeed: number[] | null,
   brake?: number[] | null,
   throttle?: number[] | null,
+  opts?: AnalyzeLapOptions,
 ): LapAnalysis {
+  const focusCount = clampFocusCount(opts?.focusCount);
   const n = rawSpeed.length;
   const hasRef = !!delta && !!refSpeed && delta.length === n && refSpeed.length === n;
 
@@ -124,7 +140,7 @@ export function analyzeLap(
     [...analyzed]
       .filter((c) => (c.timeLost ?? 0) >= FOCUS_MIN_LOSS)
       .sort((a, b) => (b.timeLost ?? 0) - (a.timeLost ?? 0))
-      .slice(0, FOCUS_COUNT)
+      .slice(0, focusCount)
       .forEach((c, idx) => {
         c.focusRank = idx + 1;
       });

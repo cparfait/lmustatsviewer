@@ -71,6 +71,13 @@ Rust) et par une capture synthétique rejouée, pas dans le jeu.
 - [ ] CSP (`tauri.conf.json`) : sur une version **installée**, toutes les pages
       s'affichent, la voix marche, le classement communautaire et ohne_speed se
       chargent. En cas de souci : remettre `"csp": null` et le signaler.
+      *2026-10-18 — test de fumée sur un build compilé (`tauri build --debug
+      --no-bundle`, CSP de prod, `http://tauri.localhost`) : aucune violation CSP ;
+      toutes les pages s'affichent (télémétrie 2D/3D comprise), classement
+      communautaire et ohne_speed chargés, réglages Annonces / Son / Parler, rapport
+      de bug, capture et rejeu, widget Radio (aussi par adresse) OK. Reste à
+      vérifier : version **installée**, voix (Piper et IA) et voyants de la page Live
+      en jeu.*
 
 ---
 

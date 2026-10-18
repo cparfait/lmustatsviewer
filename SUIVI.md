@@ -921,6 +921,13 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Test de fumée de la CSP sur un build compilé (`feat/radio-parity`)
+
+- ✅ Build `npx tauri build --debug --no-bundle` dans un dossier cible séparé, servi en `http://tauri.localhost` avec la CSP de `security.csp`. Pilotage par le débogage distant de WebView2 (`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=…`), écouteur `securitypolicyviolation` injecté avant chargement.
+- ✅ Aucune violation CSP : toutes les routes, télémétrie 2D/3D, classement communautaire et ohne_speed, Configuration › Audio / Voix (Annonces, Son, Parler), Maintenance › Diagnostic (rapport zip dans `reports\`, capture `.lmurec`, rejeu), widget Radio dans /overlays et par adresse. IPC par le protocole personnalisé (le repli postMessage ne se produit que lors d'un rechargement forcé).
+- ⏳ Non vérifié : voyants de la page Live (ils ne s'affichent que dans la vue live active, pas sur l'écran « Jeu en pause »), voix Piper/IA, fenêtre d'overlay, version installée.
+- 📋 Prochaine étape : installer l'installeur NSIS de la branche et cocher la ligne CSP de `VALIDATION-EN-JEU.md` § 00 après un essai de la voix.
+
 ### 2026-10-18 — Limites de piste situées dans le tour (virage estimé)
 
 - ✅ **Découverte** : l'attribut `Lap` des `<TrackLimits>` compte les tours BOUCLÉS (0 pendant le 1er

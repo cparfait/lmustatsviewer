@@ -21,6 +21,8 @@ await build({
   logLevel: "warning",
   // esbuild lit `compilerOptions.paths` du tsconfig → l'alias `@/*` est résolu.
   tsconfig: resolve(root, "tsconfig.json"),
+  // Constante injectée par Vite (`vite.config.ts`) : le journal des versions la lit.
+  define: { __APP_VERSION__: JSON.stringify("0.0.0-test") },
 });
 
 let code = 0;

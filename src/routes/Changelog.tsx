@@ -1,33 +1,17 @@
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Languages } from "lucide-react";
+import { ArrowLeft, Languages, Sparkles } from "lucide-react";
 import {
+  APP_VERSION,
   CHANGELOG,
   type ChangelogEntry,
   normalizeItem,
   pickLang,
 } from "@/lib/changelog";
-import type { ChangelogSectionKind } from "@/lib/changelog";
+import { SECTION_META, leadSep, splitLead } from "@/lib/changelogView";
+import { useWhatsNewStore } from "@/stores/whatsNew";
 import { cn } from "@/lib/utils";
-
-/** Sépare un libellé « Titre : description » pour mettre le titre en gras. */
-function splitLead(text: string): { lead: string | null; rest: string } {
-  const idx = text.search(/[:：]/);
-  if (idx <= 0 || idx > 40) return { lead: null, rest: text };
-  return { lead: text.slice(0, idx), rest: text.slice(idx + 1).trim() };
-}
-
-const SECTION_META: Record<
-  ChangelogSectionKind,
-  { icon: string; color: string }
-> = {
-  added: { icon: "✅", color: "text-success" },
-  improved: { icon: "⬆️", color: "text-sky-400" },
-  fixed: { icon: "🐛", color: "text-yellow-500" },
-  changed: { icon: "♻️", color: "text-purple" },
-  removed: { icon: "🗑️", color: "text-destructive" },
-};
 
 const LANG_MAP: Record<string, string> = {
   fr: "fr",
@@ -73,7 +57,7 @@ export function Changelog() {
         </p>
       </div>
 
-      {CHANGELOG.map((entry) => (
+      {CHANGELOG.map((entry, index) => (
         <Card key={entry.version} className="overflow-hidden">
           <div className="flex items-center gap-3 px-4 py-3 border-b border-border/60 bg-primary/5">
             <span
@@ -94,6 +78,18 @@ export function Changelog() {
                 {t("changelog.dev")}
               </span>
             )}
+            {/* Aperçu de la fenêtre « Mise à jour installée » : version installée et
+                dernière version du journal. */}
+            {(index === 0 || entry.version === APP_VERSION) && (
+              <button
+                onClick={() => useWhatsNewStore.getState().show(true, entry.version)}
+                className="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                title={t("whatsNew.previewTip")}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {t("whatsNew.preview")}
+              </button>
+            )}
             {!entry.localized && (
               <button
                 onClick={() => translateEntry(entry, i18n.language)}
@@ -106,6 +102,16 @@ export function Changelog() {
             )}
           </div>
           <CardContent className="p-4 flex flex-col gap-4">
+            {(entry.headline || entry.intro) && (
+              <div>
+                {entry.headline && (
+                  <h2 className="text-base font-bold">{pickLang(entry.headline, i18n.language)}</h2>
+                )}
+                {entry.intro && (
+                  <p className="text-sm text-muted-foreground mt-0.5">{pickLang(entry.intro, i18n.language)}</p>
+                )}
+              </div>
+            )}
             {entry.sections.map((section) => {
               const meta = SECTION_META[section.kind];
               return (
@@ -136,7 +142,8 @@ export function Changelog() {
                             <span className="text-foreground/90">
                               {lead && (
                                 <span className="font-bold text-primary">
-                                  {lead} :{" "}
+                                  {lead}
+                                  {leadSep(i18n.language)}
                                 </span>
                               )}
                               {lead ? rest : text}

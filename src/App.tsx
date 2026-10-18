@@ -29,6 +29,8 @@ import { NotFound } from "@/routes/NotFound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DialogHost } from "@/components/DialogHost";
 import { LaunchIntro } from "@/components/LaunchIntro";
+import { WhatsNewHost } from "@/components/WhatsNewModal";
+import { useWhatsNewStore } from "@/stores/whatsNew";
 import { useAppStore } from "@/stores/app";
 import { fetchBenchmarks } from "@/lib/ohne_speed";
 import { useSpotter } from "@/lib/useSpotter";
@@ -56,6 +58,7 @@ export default function App() {
   const navigate = useNavigate();
   const isLive = location.pathname.startsWith("/live");
   const { configLoaded, isConfigured, onboardingSkipped, init } = useAppStore();
+  const whatsNewOpen = useWhatsNewStore((s) => s.open);
 
   useEffect(() => {
     init();
@@ -200,8 +203,10 @@ export default function App() {
       {!isLive && !needsOnboarding && <ScrollToTop />}
       {/* Visite guidée — ouverte à la fin de l'onboarding ou depuis l'aide « ? ». */}
       {!isLive && <GuidedTour />}
+      {/* Nouveautés : au premier lancement qui suit une mise à jour (ou depuis le journal). */}
+      <WhatsNewHost blocked={isLive || needsOnboarding} />
       {/* Invitation au partage communautaire : au lancement, puis une fois après un record. */}
-      <CommunityInvite blocked={isLive || needsOnboarding} />
+      <CommunityInvite blocked={isLive || needsOnboarding || whatsNewOpen} />
     </div>
     </TooltipProvider>
   );

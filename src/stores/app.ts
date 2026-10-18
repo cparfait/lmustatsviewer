@@ -17,6 +17,7 @@ import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled, setRadioStyle, toRadioStyle, MAX_VOICE_VOLUME, type RadioStyle } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
 import { logError } from "@/lib/log";
+import { APP_VERSION } from "@/lib/changelog";
 import {
   parseExtras,
   parsePreset,
@@ -92,6 +93,10 @@ interface AppState {
   pitAutoEnergy: boolean;
   /** Courte animation (volet + titre) au lancement de l'app. */
   launchIntro: boolean;
+  /** Fenêtre « Mise à jour installée » au premier lancement après une mise à jour. */
+  whatsNew: boolean;
+  /** Dernière version dont le pilote a vu les nouveautés ("" = avant ce suivi). */
+  lastSeenVersion: string;
   /** Pont REST : interroger aussi les écrans du jeu au garage, en pause et aux
    *  menus (ancien comportement ; off par défaut, LMU y plante parfois). */
   restPollOffTrack: boolean;
@@ -325,6 +330,8 @@ interface AppState {
   setGameWrites: (v: boolean) => Promise<void>;
   setPitAutoEnergy: (v: boolean) => Promise<void>;
   setLaunchIntro: (v: boolean) => Promise<void>;
+  setWhatsNew: (v: boolean) => Promise<void>;
+  setLastSeenVersion: (v: string) => Promise<void>;
   setRestPollOffTrack: (v: boolean) => Promise<void>;
   setOverlayTargetTier: (v: string) => Promise<void>;
   setMenuModule: (key: string, value: boolean) => Promise<void>;
@@ -421,6 +428,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   gameWrites: false,
   pitAutoEnergy: false,
   launchIntro: true,
+  whatsNew: true,
+  lastSeenVersion: "",
   restPollOffTrack: false,
   overlayTargetTier: "competitive",
   menuModules: {},
@@ -508,6 +517,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     const resultsDir = cfg.results_dir ?? "";
     const telemetryDir = cfg.telemetry_dir ?? "";
     const isConfigured = resultsDir.length > 0;
+    // Nouveautés : à la première installation, rien à montrer → on retient la version
+    // courante. Une installation déjà configurée sans ce suivi (mise à jour depuis une
+    // version qui ne l'avait pas) garde "" → elle verra les nouveautés de cette version.
+    let lastSeenVersion = cfg.last_seen_version ?? "";
+    if (!lastSeenVersion && !isConfigured) {
+      lastSeenVersion = APP_VERSION;
+      await config.set("last_seen_version", APP_VERSION).catch(() => {});
+    }
     const timezone = cfg.timezone ?? "";
     const autoIndex = cfg.auto_index !== "false";
     // voice_uri : JSON `{ fr: "uri", en: "uri", … }` (ancien format string ignoré).
@@ -645,6 +662,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       gameWrites: cfg.game_writes === "true",
       pitAutoEnergy: cfg.pit_auto_energy === "true",
       launchIntro: cfg.launch_intro !== "false",
+      whatsNew: cfg.whats_new !== "false",
+      lastSeenVersion,
       restPollOffTrack: cfg.rest_poll_off_track === "true",
       overlayTargetTier: cfg.overlay_target_tier || "competitive",
       menuModules,
@@ -921,6 +940,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLaunchIntro: async (v) => {
     await config.set("launch_intro", v ? "true" : "false");
     set({ launchIntro: v });
+  },
+
+  setWhatsNew: async (v) => {
+    await config.set("whats_new", v ? "true" : "false");
+    set({ whatsNew: v });
+  },
+
+  setLastSeenVersion: async (v) => {
+    // En mémoire d'abord : si l'écriture échoue, la fenêtre des nouveautés ne se
+    // rouvre pas en boucle pendant ce lancement.
+    set({ lastSeenVersion: v });
+    await config.set("last_seen_version", v);
   },
 
   setRestPollOffTrack: async (v) => {

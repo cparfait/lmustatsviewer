@@ -39,6 +39,11 @@ export interface ChangelogEntry {
   dev?: boolean;
   /** Entrée déjà traduite dans les langues de l'app → masque le bouton « Traduire ». */
   localized?: boolean;
+  /** Titre court de la version (« La radio au bon moment »), en tête de la fenêtre
+   *  des nouveautés et de la carte du journal. Facultatif. */
+  headline?: LocalizedText;
+  /** Une ou deux phrases d'accroche sous le titre. Facultatif. */
+  intro?: LocalizedText;
   sections: ChangelogSection[];
 }
 
@@ -68,10 +73,33 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-10-06",
     dev: true,
     localized: true,
+    headline: {
+      en: "The engineer reads the game",
+      fr: "L'ingénieur lit le jeu",
+      es: "El ingeniero lee el juego",
+      de: "Der Ingenieur liest das Spiel",
+      it: "L'ingegnere legge il gioco",
+    },
+    intro: {
+      en: "Penalties, safety car, track limits: the engineer now calls what the game reports, and can set up your pit stop by voice. New screens too, for VR, OBS and a tablet.",
+      fr: "Pénalités, voiture de sécurité, limites de piste : l'ingénieur annonce maintenant ce que le jeu signale, et peut régler ton arrêt au stand à la voix. Nouveaux écrans aussi pour la VR, OBS et la tablette.",
+      es: "Penalizaciones, coche de seguridad, límites de pista: el ingeniero avisa ahora de lo que señala el juego y puede preparar tu parada en boxes por voz. También hay pantallas nuevas para la VR, OBS y la tablet.",
+      de: "Strafen, Safety-Car, Track Limits: Der Ingenieur sagt jetzt an, was das Spiel meldet, und kann deinen Boxenstopp per Stimme einstellen. Dazu neue Ansichten für VR, OBS und Tablet.",
+      it: "Penalità, safety car, limiti della pista: l'ingegnere ora annuncia ciò che segnala il gioco e può impostare la tua sosta ai box a voce. Anche nuove schermate per VR, OBS e tablet.",
+    },
     sections: [
       {
         kind: "added",
         items: [
+          {
+            text: {
+              en: "What's new after an update: on the first launch of a new version, a window sums up what changes (the version's title, the main highlights, the rest in brief, and a link to the full log). Nothing shows on a first install. Setting in Settings › Preferences, and a “Preview” button in the release notes to see it again.",
+              fr: "Nouveautés après une mise à jour : au premier lancement d'une nouvelle version, une fenêtre résume ce qui change (titre de la version, nouveautés principales, le reste en bref et un lien vers le journal complet). Rien ne s'affiche à la première installation. Réglage dans Configuration › Préférences, et bouton « Aperçu » dans les notes de version pour la revoir.",
+              es: "Novedades tras una actualización: al primer inicio de una nueva versión, una ventana resume lo que cambia (título de la versión, novedades principales, el resto en breve y un enlace al registro completo). No aparece nada en una primera instalación. Ajuste en Configuración › Preferencias y botón «Vista previa» en las notas de versión para volver a verla.",
+              de: "Neuigkeiten nach einem Update: Beim ersten Start einer neuen Version fasst ein Fenster zusammen, was sich ändert (Titel der Version, wichtigste Neuerungen, der Rest in Kürze und ein Link zum vollständigen Protokoll). Bei einer Erstinstallation erscheint nichts. Einstellung unter Einstellungen › Präferenzen, und eine Schaltfläche „Vorschau“ in den Versionshinweisen, um es erneut anzuzeigen.",
+              it: "Novità dopo un aggiornamento: al primo avvio di una nuova versione, una finestra riassume cosa cambia (titolo della versione, novità principali, il resto in breve e un link al registro completo). Alla prima installazione non compare nulla. Impostazione in Impostazioni › Preferenze e pulsante «Anteprima» nelle note di versione per rivederla.",
+            },
+          },
           {
             text: {
               en: "Track limits: the session details tab gets a “Where (estimated)” column — the nearest corner, worked out from the time of the event, the lap and sector times and the track layout the app knows (shipped with it or learnt while you drive; more precise with the session's telemetry). Without a known layout, the sector. The AI Coach receives the same location for your track-limit warnings and your hardest contacts.",

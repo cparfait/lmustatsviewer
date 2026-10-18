@@ -247,6 +247,7 @@ export function ConfigV2() {
   const systemTray = useAppStore((s) => s.systemTray);
   const autoUpdate = useAppStore((s) => s.autoUpdate);
   const launchIntro = useAppStore((s) => s.launchIntro);
+  const whatsNew = useAppStore((s) => s.whatsNew);
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
   const mapIncidents = useAppStore((s) => s.mapIncidents);
   const mapNorthUp = useAppStore((s) => s.mapNorthUp);
@@ -1117,6 +1118,15 @@ export function ConfigV2() {
                     tip={t("config.launchIntroTip")}
                     checked={launchIntro}
                     onChange={(v) => useAppStore.getState().setLaunchIntro(v)}
+                  />
+                  <Separator />
+                  <ToggleRow
+                    icon={<Sparkles className="h-4 w-4" />}
+                    label={t("config.whatsNew")}
+                    desc={t("config.whatsNewDesc")}
+                    tip={t("config.whatsNewTip")}
+                    checked={whatsNew}
+                    onChange={(v) => useAppStore.getState().setWhatsNew(v)}
                   />
                 </div>
 

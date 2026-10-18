@@ -921,6 +921,194 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Fenêtre « Mise à jour installée » (nouveautés après une mise à jour)
+
+**Demande** : un affichage des nouveautés quand les gens mettent l'app à jour, sur le modèle
+de la fenêtre vue chez un concurrent (capture fournie).
+
+- ✅ **`components/WhatsNewModal.tsx`** : `WhatsNewHost` ouvre la fenêtre au premier
+  lancement dont la version (`APP_VERSION`) dépasse la dernière vue ; ni pendant
+  l'onboarding, ni en Live, ni pendant la visite guidée. L'invitation communautaire attend
+  qu'elle soit fermée. Contenu tiré de `lib/changelog.ts` : titre et accroche de la version
+  (nouveaux champs facultatifs `headline` / `intro`, 5 langues), nouveautés `featured`
+  complétées par les premiers ajouts jusqu'à 5 items, le reste compté par type (« Et aussi :
+  51 ajouts · 53 améliorations · 29 corrections »), lien vers le journal, lien Discord.
+  Au plus 3 versions si le pilote en a sauté plusieurs.
+- ✅ **Dernière version vue** : `last_seen_version` dans la config (`stores/app.ts`).
+  Première installation : rien n'est montré, la version courante est retenue. Installation
+  déjà configurée sans ce suivi : elle voit les nouveautés de la version installée. Retenue
+  en mémoire avant l'écriture (pas de réouverture en boucle si l'écriture échoue).
+- ✅ **Réglage** « Nouveautés après une mise à jour » (Configuration › Préférences, actif
+  par défaut, `whats_new`). Coupé : la version est marquée vue en silence (le réactiver ne
+  ressort pas l'historique). Bouton **« Aperçu »** sur la dernière carte et la carte de la
+  version installée de la page Notes de version (revoir la fenêtre sans rien marquer).
+- ✅ Logique pure dans `lib/whatsNew.ts`, présentation partagée dans `lib/changelogView.ts`
+  (au passage : deux-points sans espace avant hors français, sur la page Notes de version
+  aussi). Suite `whatsnew.suite.ts` (+ `__APP_VERSION__` défini dans le banc) : 4 938 tests OK.
+  Vérifié à l'écran via une page d'essai temporaire (supprimée) : FR / EN / DE, ouverture
+  automatique, fermeture, défilement d'une grosse version (1.0.10).
+- ✅ 1.0.10 (en développement) : titre « L'ingénieur lit le jeu » + accroche (5 langues),
+  entrée du changelog pour la fenêtre.
+- ⏳ Pas vu dans l'app Tauri elle-même (l'app ne s'affiche pas hors Tauri).
+- 📋 **Prochaine étape** : à chaque version publiée, écrire `headline` / `intro` et marquer
+  2-4 items `featured` : c'est ce qui fait la fenêtre. Relire le titre proposé pour 1.0.10.
+
+### 2026-10-18 — Veille TrackMind 0.9.2 (build 283) : ce qui change pour l'IA, les phrases et le débrief (aucun code modifié)
+
+**Demande** : « relance l'analyse, il y a une mise à jour de TrackMind ». Comparaison statique
+`pack_278` → `pack_283` (158 fichiers modifiés, 32 nouveaux), cible jamais exécutée. Ne liste
+que le nouveau par rapport à l'entrée de la 5ᵉ passe ci-dessous. Idées seulement.
+
+- ✅ **IA : les promesses deviennent des outils.** Cinq outils s'ajoutent à la réponse avec
+  outils : quantité de radio (plus / moins), voix (vitesse / volume), annonce à chaque tour
+  (liste fermée de 8 sujets, **seulement ceux que le pilote nomme**), spotter, fichier de setup
+  (enregistrer / charger). Le prompt dit « sans l'outil, ne promets jamais ». Nouveaux blocs :
+  annonces déjà en place, setup en place (ce qui a été changé, pour ne plus répondre « je n'ai
+  rien modifié »), position du pilote toujours fournie (distance, tiers, prochain freinage),
+  plan d'arrêts unique (le relais ne contredit plus le plan) ; le mot « flotte » et la source
+  des repères ne se disent jamais. **Seul le moteur parle setup** : toute prescription de
+  réglage par l'IA est écartée et le moteur la redit lui-même.
+- ✅ **Contrôles de sortie élargis** (`garde_invention_ia`, motifs « fait » et « accusé ») :
+  action promise ou dite faite sur un objet de setup ou de stand (verbe × objet, une
+  observation ou une question passent) → « je ne peux pas faire ça d'ici » en variantes ;
+  « c'est fait » sur un réglage ; promesse de mémoire (« noté pour les prochaines fois »),
+  de fonction en direct, de voix (« je ralentis ») ; spotter nié. **Accusé à vide** : un « Reçu. »
+  servi à une question, une demande ou un problème (46 cas relevés, dont 26 sans réponse) est
+  remplacé par une demande de précision, ou par « entrée, milieu ou sortie ? » pour un
+  symptôme sans endroit. Un « Reçu. » à une demande d'alerte sans alerte armée devient
+  « rien n'est posé : je surveille quoi ? ».
+- ✅ **Transcription** : seuil de confiance du moteur distant (0,6, mode observation par
+  défaut), jamais sous 3 mots → « je n'ai peut-être pas bien entendu » ; noms de virage dits
+  par le pilote (alias « la parabolique », « Lesmo un ») et correspondance phonétique ≥ 0,85
+  (« théâtre rouge » → Tertre Rouge), réservée aux phrases qui parlent déjà d'un virage.
+- ✅ **Dossier du modèle maison** : « besoins avant collecte », seuls les champs qu'exige la
+  demande sont lus (catalogue fermé de modes : acquittement, chrono, pneus, setup, virage,
+  clarifier…) ; « aucun besoin », « besoin inconnu » et « besoin sans valeur » ne se confondent
+  jamais.
+- ✅ **Phrases et parole** : la phrase ne démarre que si sa durée estimée (débit, chiffres
+  comptés triples) + latence + 1 s tient avant le prochain freinage appris, dans toutes les
+  sessions, revérifié au moment de jouer, jetée après 60 s ; **une seule voix au stand**
+  (`porte_box` : un ordre de rentrer en couvre d'autres de même cause, « reste dehors » après
+  « tu peux rentrer » devient « pas ce tour », pas de contrordre pendant 75 s, un tour d'arrêt
+  nommé tient 3 tours) ; limites de piste en 4 paliers de ton (< 40 %, ≥ 40 %, ≥ 75 %, et
+  rythme de consommation trop rapide) ; « ça va ? » posé une fois ; 59 nouvelles familles de
+  variantes (339 en tout) et une **anti-redite par tournure** (gabarit reconnu chiffres compris,
+  écarté pendant 5 tours) ; modules `sens_*` (lecteurs de sens fermés : parole, voix, coupure,
+  abonnement, spotter, stand, fichier setup) ; silence de l'entrée des stands à la fin du tour
+  de sortie.
+- ✅ **Débrief et mémoire** : au damier, la **première phrase porte le résultat** (la radio
+  ne lisait que « damier ! » sur 727 arrivées de ~1 400), tirée de variantes, place absente →
+  phrase sans place ; si le pilote a parlé en course, une question « bien compris ? » (10 s)
+  précède le bilan ; la comparaison aux premiers ne cite plus sa source. Course **quittée**
+  (≥ 2 tours) gardée en mémoire jusqu'à la prochaine course finie ; le **record seul** suffit
+  au rappel ; mémoire et carrière rangées par **tracé** (Bahrain Outer ≠ International).
+- ✅ **Stratégie de base** : phrase d'arrivée « devant ça tourne en X ; un arrêt coûte Y s »
+  (silence sous 5 courses) ; coût d'arrêt par circuit et classe = transit + fixe + s/L × litres
+  + pneus × n/4, avec seuils d'échantillon et bandes plausibles (erreur médiane 5,8 s contre
+  15,6 s) ; coût d'un doublage (Hyper → GT3 0,26 s) ; usure par circuit / classe / gomme ; **un
+  seul calcul du tour d'arrêt** pour tous les écrans ; référence d'essais écartée si la course
+  consomme > 1,4 × ; plus d'objectif demandé (« on va chercher le maximum ») et « ton rythme te
+  fait remonter / te garde à ta place » (dès le tour 8, ≥ 3 rivaux mesurés, jamais une place
+  promise).
+- ✅ **Nouveaux écrans** : « Dojo » (programme tracé + voiture, rang face aux autres pilotes,
+  4 setups, étapes mesurées : coaching / progression) ; audio des messages du pilote gardé 7
+  jours en local (qualité de transcription) ; conseils de formulation radio (1 par course).
+- ✅ **Chez nous** (code du coach inchangé depuis la 5ᵉ passe) : l'IA vocale n'a aucun outil,
+  les commandes passent par le routeur local avant elle (alerte, silence…), donc rien ne
+  l'empêche de promettre ce qu'elle ne fera pas ; aucune confiance de transcription utilisée ;
+  pas de débrief calculé.
+- 📋 **Idées ㊻–㊿** (s'ajoutent à ㉟–㊺) : ㊻ détecter l'accusé à vide et l'action promise ou
+  dite faite dans la réponse de l'IA (complète ㊲) ; ㊼ confiance de la transcription Whisper →
+  faire répéter au lieu d'envoyer à l'IA ; ㊽ alias et correspondance phonétique des noms de
+  virage dits par le pilote (complète ㊴) ; ㊾ phrase de résultat calculée en tête du débrief +
+  courses quittées gardées en mémoire, par tracé (complète ㊶ / ㊹) ; ㊿ coût d'arrêt et usure
+  tirés des sessions par circuit et classe (seuils, bandes plausibles), indication de rythme
+  sans place promise.
+- 📋 **Prochaine étape** : arbitrage de l'utilisateur. Recommandation inchangée : ㉟ + ㊱ + ㊲
+  (avec ㊻ dans le même lot, même fichier), puis ㊷ avec ㊾.
+
+### 2026-10-18 — Veille TrackMind, 5ᵉ passe REA : prompts IA, phrases toutes faites, débrief algorithmique (aucun code modifié)
+
+**Demande** : « avec REA regarde ce que fait TrackMind au niveau du prompt du coach IA et les
+phrases déjà faites », puis « creuse le débrief restant purement algorithmique ». Lecture
+statique du pack OTA actif `pack_278` (v0.8.27, sources `.py` en clair) ; cible jamais
+exécutée. Code propriétaire : idées seulement, rien de repris, aucun nom de concurrent dans
+le code.
+
+- ✅ **IA = radio seulement** : tous les appels de modèle sont dans `conversation.py`. Haiku
+  pour la Q-R, Sonnet pour les questions de plan et le stratège « en ombre ». **Aucune IA
+  après la course** : notre analyse rapide / complète n'a pas d'équivalent chez eux.
+- ✅ **Prompt assemblé à chaque question**, pas un texte fixe, dans cet ordre : rôle +
+  langue + 1-2 phrases / 1-2 chiffres ; stratège prioritaire, à relayer sans recalcul ;
+  domaine large (refus en dernier recours, une phrase abîmée par la transcription → faire
+  répéter) ; rival désigné par son numéro ; noms de virage **seulement** depuis une liste
+  vérifiée ; geste de pilotage **seulement** s'il est mesuré ; lexique pneus LMU ; « voix
+  d'équipe » (dire « on », jamais la mécanique interne) ; touche humaine bornée ; périmètre
+  « ce que tu fais, et rien d'autre » ; état de course ; virages ; profil circuit ; mémoire
+  du pilote ; trajectoire mesurée ; virage courant (lent = mécanique, rapide = aéro) ;
+  doctrine de réglages ; carnet ; fil radio (anti-contradiction) ; état de la conversation ;
+  concision ; **verrou de langue en dernier** (effet de récence).
+- ✅ **9 appels spécialisés** : réponse libre, réponse avec outils (3 allers-retours au
+  plus), verdict ancré (seuls les chiffres vérifiés, 1 phrase, 80 jetons), conseil
+  stratégique (règles numérotées, branches si → alors préparées, objectif hors d'atteinte,
+  appétit du pilote, ~20 mots, 30 au plus), stratège en ombre (JSON à verbe fermé),
+  classifieur de symptôme (étiquette fermée), ordres de stand (JSON, température 0), seuil
+  d'alerte. Exemples de format écrits **dans la langue de la session**.
+- ✅ **Contrôles après la réponse** : `garde_invention_ia` écarte une réponse qui contient
+  un chiffre absent de ce que l'IA a reçu, affirme la sécurité sans lecture, s'attribue une
+  action, fait une promesse, invente le circuit ou change de langue (garde des chiffres
+  active par défaut, 0,5 % de rejets) ; filet « voix d'équipe » + markdown retiré ; phrase
+  coupée par la limite de jetons ramenée à la dernière phrase complète ; franglais corrigé ;
+  accents rétablis. Relances bornées à 2, puis « meilleure lecture » au lieu d'une 3ᵉ question.
+- ✅ **Phrases toutes faites** : variantes déterministes par situation (anti-perroquet),
+  « je répète » reformulé pour les ordres qui insistent, touche chaleureuse jamais sur une
+  mauvaise nouvelle, phrases découpées en nom / valeur / consigne pour réutiliser l'audio,
+  24 fiches de savoir (radio / détail / contexte IA, confiance, source, date de relecture).
+  Ils entraînent aussi des modèles maison (7B / 9B) en ombre sur un dossier typé préparé
+  sans IA.
+- ✅ **Débrief 100 % calculé** (`cerveau/debrief.py`, `carnet.py`, `memoire_pilote.py`,
+  `moments.py`, `carriere.py`) :
+  - **au damier, une phrase radio** : cri si podium, place en classe « sur N », objectif
+    annoncé tenu ou manqué, places gagnées (seulement si la grille est fiable), arrêts +
+    meilleur tour, coût de l'usure au dernier relais (≥ 8 tours propres), 2 dernières
+    inflexions du plan, contrefactuel d'arrêt (seulement si l'arrêt du rival est observé,
+    jamais sur un podium, jamais « tu aurais dû », sans pourcentage), comparaison aux
+    premiers de la classe (muette si identique). Abandon / disqualification : phrase sans
+    chiffres. Retente 45 s si la radio est occupée ; un faux abandon (retour au garage) est
+    rouvert ;
+  - **carnet écrit** (`.json` neutre + `.txt` rendu dans la langue) : résultat, plan prévu
+    / réalisé, bascules de position ≥ 2 places étiquetées par le moment fort du même tour,
+    overcuts, décisions par rival, pic de pluie, graphes ASCII, équipage ;
+  - **4 familles de défaut fermées** (abandon, objectif manqué, ≥ 2 places perdues, secteur
+    faible tenu jusqu'au damier) avec leurs faits ; « rien vu » ≠ « pas regardé » ;
+  - **mémoire par circuit** relue à la session suivante (« je te connais ici » + LA chose
+    à reprendre : réglage en cours > défaut signalé > réglage validé), aussi dans le prompt ;
+  - **défaut récurrent** (carrière) : ≥ 5 courses diagnostiquées, ≥ 3 occurrences et
+    ≥ 30 %, tendance sur deux fenêtres pleines de 5 (± 20 points), preuves datées ;
+  - **calibration** : issue réelle de chaque conseil d'arrêt, score de Brier local ;
+  - **débriefs de tour** : secteur à reprendre en qualif (muet sous 0,1 s), écart à la
+    pole (gardes de plausibilité), zone dominante du fantôme ; bilan de session setup.
+- ✅ **Comparé chez nous** : prompt unique pour la radio et l'analyse (`prompts/system.ts`),
+  langue dite seulement au début, contexte en anglais ; `stripMd` sur la voix mais **aucun
+  contrôle des chiffres** de la réponse ; pas de fil de ce que l'ingénieur local a déjà dit
+  dans la question vocale ; ingénieur **muet au damier** ; analyse après la course 100 % IA
+  (rien de rédigé sans clé IA) ; déjà présents : dossier de faits (`facts.ts`), classifieur
+  d'intention, fiches avec confiance, verdicts pneus calculés (`insights.ts`), rapport
+  « 1+1+1 » du coach par virage, tendance de progression.
+- 📋 **Idées ㉟–㊺** : ㉟ prompt radio court et dédié, distinct du prompt d'analyse ;
+  ㊱ rappel de langue en fin de prompt + 2-3 exemples par langue ; ㊲ contrôle de la réponse
+  (chiffres absents du contexte, langue, promesses d'action) ; ㊳ règles voix (ne jamais
+  refuser une phrase mal transcrite, 2 relances au plus, proposer deux lectures, ne pas
+  citer les noms de sections) ; ㊴ liste fermée des noms de virage + lexique pneus + unité
+  énergie / litres selon la classe (à vérifier en jeu pour LMGT3) ; ㊵ ce que l'ingénieur a
+  déjà dit joint à la question vocale ; ㊶ bilan calculé dit au damier ; ㊷ débrief écrit
+  calculé sur la page Session, joint à l'analyse IA comme seule source des chiffres ;
+  ㊸ familles de défaut fermées + défaut récurrent avec seuils ; ㊹ mémoire par circuit
+  relue à l'arrivée ; ㊺ plan prévu / réalisé + contrefactuel d'arrêt.
+- 📋 **Prochaine étape** : arbitrage de l'utilisateur. Recommandation : ㉟ + ㊱ + ㊲ ensemble
+  (fiabilité du Coach IA, effort faible), puis ㊷ (débrief calculé), qui sert de base à ㊶,
+  ㊸ et ㊹. L'analyse IA actuelle reste intacte (règle « ne jamais perdre de fonctionnalité »).
+
 ### 2026-10-18 — Coach IA : prompt système réécrit
 
 - ✅ `prompts/system.ts` (5 langues, même structure) : rôle ; règles absolues (chiffres seulement issus des sections « ## … », calcul montré, donnée absente → comment l'obtenir, connaissances générales seulement pour expliquer) ; méthode ordonnée (situer, rythme, pertes par secteur puis virage classées en secondes, cause mesurée/supposée, action chiffrée, priorité, tours non représentatifs écartés) ; lecture des données LMU (énergie virtuelle avec calcul de marge, hybride, TC / TC Cut / TC Slip indépendants, ABS/carto/répartition un changement à la fois, limites de piste, pénalités, pneus, multiclasse, setup, communauté sans aides d'autrui) ; formats par demande (radio, rapide, complète + JSON, conversation, unités) ; vérification finale. ~5,7 k caractères (≈ 1,5 k jetons, contre 2,2 k caractères avant). Test : 5 sections et repères clés par langue, taille < 6 500.

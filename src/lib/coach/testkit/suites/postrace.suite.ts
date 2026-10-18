@@ -9,6 +9,7 @@ import { buildPostRaceContext, buildPlayerEventsText } from "@/lib/ai/context/po
 import { parseTelemetryFilename, pickSessionTelemetry, sessionLetter } from "@/lib/ai/context/session-telemetry";
 import { summarizeCommunityReference } from "@/lib/ai/context/community-context";
 import { systemPrompt } from "@/lib/ai/prompts/system";
+import { ollamaProvider, OLLAMA_NUM_CTX } from "@/lib/ai/providers/ollama";
 import type { SessionDetail, TelemetryFileInfo } from "@/lib/api";
 import { locateInLap, describeLocation, nearestCorner } from "@/lib/trackLimitsLocate";
 import { trackLimitLap } from "@/lib/eventLocator";
@@ -244,4 +245,8 @@ export function run(): void {
     ok(p.length < 6500, `${lang} : prompt compact (${p.length} caractères)`);
   }
   eq(systemPrompt("pt"), systemPrompt("en"), "langue inconnue → anglais");
+  // Ollama : fenêtre de contexte fixée (sinon défaut d'Ollama, prompt système coupé).
+  const body = ollamaProvider.buildBody([{ role: "user", content: "x" }], "gemma", 400) as { options: Record<string, number> };
+  eq(body.options.num_ctx, OLLAMA_NUM_CTX, "Ollama : num_ctx envoyé");
+  eq(OLLAMA_NUM_CTX, 16384, "Ollama : 16 384 jetons");
 }

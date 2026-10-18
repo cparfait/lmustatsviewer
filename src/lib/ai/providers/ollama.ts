@@ -11,6 +11,15 @@ import type { AIProvider, ModelInfo } from "../types";
 
 const BASE = "http://localhost:11434";
 
+/**
+ * Fenêtre de contexte demandée à Ollama (jetons). Sans elle, Ollama garde sa
+ * valeur par défaut (souvent 4 096) : une analyse complète (prompt système +
+ * tours + télémétrie + communauté) la dépasse et Ollama coupe le **début**, donc
+ * les instructions du coach. Même valeur pour tous les appels : un changement de
+ * fenêtre forcerait Ollama à recharger le modèle.
+ */
+export const OLLAMA_NUM_CTX = 16384;
+
 interface OllamaChatResponse {
   message?: { content?: string };
   done?: boolean;
@@ -42,7 +51,7 @@ export const ollamaProvider: AIProvider = {
     model,
     messages, // Ollama accepte le rôle "system" tel quel.
     stream,
-    options: { num_predict: maxTokens + 1024 },
+    options: { num_predict: maxTokens + 1024, num_ctx: OLLAMA_NUM_CTX },
   }),
 
   parseResponse: (raw) => {

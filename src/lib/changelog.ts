@@ -589,6 +589,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "AI Coach with Ollama: the app now asks for a 16,384-token context window; with Ollama's default, a full analysis could exceed it and the coach's instructions were cut off.",
+              fr: "Coach IA avec Ollama : l'app demande désormais une fenêtre de contexte de 16 384 jetons ; avec la valeur par défaut d'Ollama, une analyse complète pouvait la dépasser et les instructions du coach étaient coupées.",
+              es: "Coach IA con Ollama: la app pide ahora una ventana de contexto de 16 384 tokens; con el valor por defecto de Ollama, un análisis completo podía superarla y se cortaban las instrucciones del coach.",
+              de: "KI-Coach mit Ollama: Die App fordert jetzt ein Kontextfenster von 16.384 Token an; mit dem Standardwert von Ollama konnte eine vollständige Analyse es überschreiten und die Anweisungen des Coachs wurden abgeschnitten.",
+              it: "Coach IA con Ollama: l'app ora richiede una finestra di contesto di 16.384 token; con il valore predefinito di Ollama un'analisi completa poteva superarla e le istruzioni del coach venivano tagliate.",
+            },
+          },
+          {
+            text: {
               en: "AI Coach: much more thorough default instructions — step-by-step analysis method (pace, where time is lost by sector and corner, cause, quantified action, priority), how to read LMU data (virtual energy, hybrid, TC / TC Cut / TC Slip, track limits, tyres, multi-class), a format per request (radio, quick, full, conversation) and a final check that every number comes from your data.",
               fr: "Coach IA : instructions par défaut beaucoup plus poussées — méthode d'analyse pas à pas (rythme, où se perd le temps par secteur et par virage, cause, action chiffrée, priorité), lecture des données LMU (énergie virtuelle, hybride, TC / TC Cut / TC Slip, limites de piste, pneus, multiclasse), un format par demande (radio, rapide, complète, conversation) et une vérification finale : chaque chiffre vient de tes données.",
               es: "Coach IA: instrucciones por defecto mucho más completas — método de análisis paso a paso (ritmo, dónde se pierde tiempo por sector y por curva, causa, acción cuantificada, prioridad), lectura de los datos de LMU (energía virtual, híbrido, TC / TC Cut / TC Slip, límites de pista, neumáticos, multiclase), un formato por petición (radio, rápido, completo, conversación) y una comprobación final: cada cifra sale de tus datos.",

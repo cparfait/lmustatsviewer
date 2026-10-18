@@ -924,7 +924,7 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ### 2026-10-18 — Coach IA : prompt système réécrit
 
 - ✅ `prompts/system.ts` (5 langues, même structure) : rôle ; règles absolues (chiffres seulement issus des sections « ## … », calcul montré, donnée absente → comment l'obtenir, connaissances générales seulement pour expliquer) ; méthode ordonnée (situer, rythme, pertes par secteur puis virage classées en secondes, cause mesurée/supposée, action chiffrée, priorité, tours non représentatifs écartés) ; lecture des données LMU (énergie virtuelle avec calcul de marge, hybride, TC / TC Cut / TC Slip indépendants, ABS/carto/répartition un changement à la fois, limites de piste, pénalités, pneus, multiclasse, setup, communauté sans aides d'autrui) ; formats par demande (radio, rapide, complète + JSON, conversation, unités) ; vérification finale. ~5,7 k caractères (≈ 1,5 k jetons, contre 2,2 k caractères avant). Test : 5 sections et repères clés par langue, taille < 6 500.
-- ⚠️ **Ollama** : `num_ctx` n'est pas réglé (défaut d'Ollama, souvent 4 096 jetons) ; une analyse complète peut dépasser et Ollama coupe le début (le prompt système). À trancher avec le mainteneur.
+- ✅ **Ollama** : `num_ctx` = 16 384 (`OLLAMA_NUM_CTX`) dans **tous** les appels (même valeur partout, sinon Ollama recharge le modèle), validé par le mainteneur. Avant : défaut d'Ollama (souvent 4 096), le début du prompt (instructions) était coupé sur une analyse complète. Mémoire GPU un peu plus haute pour le cache de contexte.
 - 📋 Prochaine étape : comparer une analyse complète avant / après sur une même session (Ollama gemma 12B).
 
 ### 2026-10-18 — Voix IA : « Phrases avec des chiffres » réécrit

@@ -589,6 +589,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "AI voice: the “Announcements with numbers” setting becomes “Phrases with numbers”, with an example and choices that say what happens (joined from prepared pieces, generated online, or Piper for alerts).",
+              fr: "Voix IA : le réglage « Annonces chiffrées » devient « Phrases avec des chiffres », avec un exemple et des choix qui disent ce qui se passe (recollées à partir de morceaux préparés, générées en ligne, ou Piper pour les alertes).",
+              es: "Voz IA: el ajuste «Avisos con cifras» pasa a ser «Frases con cifras», con un ejemplo y opciones que dicen lo que ocurre (unidas a partir de fragmentos preparados, generadas en línea o Piper para las alertas).",
+              de: "KI-Stimme: Die Einstellung „Ansagen mit Zahlen“ heißt jetzt „Sätze mit Zahlen“, mit einem Beispiel und Auswahlmöglichkeiten, die sagen, was passiert (aus vorbereiteten Stücken zusammengesetzt, online erzeugt oder Piper für Warnungen).",
+              it: "Voce IA: l'impostazione «Annunci con numeri» diventa «Frasi con numeri», con un esempio e scelte che dicono cosa succede (unite da pezzi preparati, generate online o Piper per gli avvisi).",
+            },
+          },
+          {
+            text: {
               en: "Telemetry: sessions without a complete lap and under 2 minutes (leaving the garage, back to the pits…) are hidden by default; a box shows them again. Long recordings without a lap line crossing stay visible.",
               fr: "Télémétrie : les sessions sans tour complet de moins de 2 minutes (sortie du garage, retour au stand…) sont masqués par défaut ; une case les réaffiche. Les longs enregistrements sans passage sur la ligne restent visibles.",
               es: "Telemetría: las sesiones sin vuelta completa de menos de 2 minutos (salida del garaje, vuelta al box…) se ocultan por defecto; una casilla las vuelve a mostrar. Las grabaciones largas sin paso por la línea siguen visibles.",

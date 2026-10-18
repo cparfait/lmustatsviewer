@@ -921,6 +921,10 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Voix IA : « Phrases avec des chiffres » réécrit
+
+- ✅ Réglage `numbers` jugé incompréhensible par le mainteneur : titre « Phrases avec des chiffres », description avec exemple, choix « Alertes et coach recollés, le reste en ligne » (`alerts`, défaut), « Tout recollé (instantané) » (`all`), « Rien de recollé (alertes par Piper) » (`off` ; l'ancien libellé « Piper (ancien comportement) » laissait croire que tout passait par Piper, alors que l'information reste générée en ligne). Banc d'écoute et guide de la voix IA alignés. 5 langues, aucune logique changée.
+
 ### 2026-10-18 — Télémétrie : fragments masqués ; banc d'écoute uniforme
 
 - ✅ **Télémétrie** : fragment = aucun tour complet **et** moins de 2 min (`duration_s` ajouté à `TelemetryFileInfo`, bornes GPS déjà lues). Masqués par défaut, case « Masquer les sessions sans tour complet (N) » (libellé demandé par le mainteneur) (mémorisée le temps que l'app tourne). Mesuré sur les 25 fichiers du poste : 18 fragments de 0 à 11 s (+ un tour de sortie de 103 s), les 7 vraies sessions restent visibles, dont 17 min à Paul Ricard sans passage sur la ligne (le critère « sans meilleur tour » seul l'aurait masquée).

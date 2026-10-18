@@ -8,6 +8,7 @@ import { section, eq, ok } from "../assert";
 import { buildPostRaceContext, buildPlayerEventsText } from "@/lib/ai/context/postrace-context";
 import { parseTelemetryFilename, pickSessionTelemetry, sessionLetter } from "@/lib/ai/context/session-telemetry";
 import { summarizeCommunityReference } from "@/lib/ai/context/community-context";
+import { systemPrompt } from "@/lib/ai/prompts/system";
 import type { SessionDetail, TelemetryFileInfo } from "@/lib/api";
 import { locateInLap, describeLocation, nearestCorner } from "@/lib/trackLimitsLocate";
 import { trackLimitLap } from "@/lib/eventLocator";
@@ -232,4 +233,15 @@ export function run(): void {
   ok(txt.includes("avg of the 3 driver(s) just ahead"), "palier : pilotes devant, sa ligne exclue");
   ok(/biggest: S\d/.test(txt), "secteur où gagner le plus");
   ok(txt.includes("Best with the same car (BMW M4 LMGT3): 2:23.500"), "même voiture");
+
+  section("coach — prompt système");
+  for (const lang of ["fr", "en", "es", "de", "it"]) {
+    const p = systemPrompt(lang);
+    // Mêmes repères dans chaque langue : sections, noms des réglages, renvoi aux données manquantes.
+    ok(p.split("\n# ").length - 1 === 5, `${lang} : 5 sections (règles, méthode, données LMU, formats, vérification)`);
+    for (const k of ["TC Cut", "TC Slip", "## Not available", "m:ss.mmm", "S1/S2/S3", "(+0.412 s)"]) ok(p.includes(k), `${lang} : « ${k} »`);
+    // Petit modèle local : le prompt doit laisser la place aux données.
+    ok(p.length < 6500, `${lang} : prompt compact (${p.length} caractères)`);
+  }
+  eq(systemPrompt("pt"), systemPrompt("en"), "langue inconnue → anglais");
 }

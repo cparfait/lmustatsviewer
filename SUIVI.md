@@ -921,6 +921,12 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Coach IA : prompt système réécrit
+
+- ✅ `prompts/system.ts` (5 langues, même structure) : rôle ; règles absolues (chiffres seulement issus des sections « ## … », calcul montré, donnée absente → comment l'obtenir, connaissances générales seulement pour expliquer) ; méthode ordonnée (situer, rythme, pertes par secteur puis virage classées en secondes, cause mesurée/supposée, action chiffrée, priorité, tours non représentatifs écartés) ; lecture des données LMU (énergie virtuelle avec calcul de marge, hybride, TC / TC Cut / TC Slip indépendants, ABS/carto/répartition un changement à la fois, limites de piste, pénalités, pneus, multiclasse, setup, communauté sans aides d'autrui) ; formats par demande (radio, rapide, complète + JSON, conversation, unités) ; vérification finale. ~5,7 k caractères (≈ 1,5 k jetons, contre 2,2 k caractères avant). Test : 5 sections et repères clés par langue, taille < 6 500.
+- ⚠️ **Ollama** : `num_ctx` n'est pas réglé (défaut d'Ollama, souvent 4 096 jetons) ; une analyse complète peut dépasser et Ollama coupe le début (le prompt système). À trancher avec le mainteneur.
+- 📋 Prochaine étape : comparer une analyse complète avant / après sur une même session (Ollama gemma 12B).
+
 ### 2026-10-18 — Voix IA : « Phrases avec des chiffres » réécrit
 
 - ✅ Réglage `numbers` jugé incompréhensible par le mainteneur : titre « Phrases avec des chiffres », description avec exemple, choix « Alertes et coach recollés, le reste en ligne » (`alerts`, défaut), « Tout recollé (instantané) » (`all`), « Rien de recollé (alertes par Piper) » (`off` ; l'ancien libellé « Piper (ancien comportement) » laissait croire que tout passait par Piper, alors que l'information reste générée en ligne). Banc d'écoute et guide de la voix IA alignés. 5 langues, aucune logique changée. Description corrigée ensuite : noms propres et phrases non reconnues générés **en ligne**, seules les alertes passent par Piper (l'ancienne phrase « … : Piper » était fausse pour l'information et les réponses).

@@ -57,6 +57,21 @@ export async function buildComboHistoryText(args: {
   if (!hasHistory) return "";
 
   const st = prog.stats;
+  // Dernier PB, daté par rapport à la session analysée (pas à aujourd'hui : on peut
+  // relire une vieille session — « no PB for 88 days » alors qu'elle EST le PB).
+  const lastPb = [...pts].reverse().find((p) => p.is_pb) ?? null;
+  const current = currentSessionId != null ? pts.find((p) => p.session_id === currentSessionId) ?? null : null;
+  const pbIsCurrent = !!lastPb && !!current && lastPb.session_id === current.session_id;
+  const daysBetween = (a: number, b: number) => Math.round((b - a) / 86400);
+  const lastPbText = !lastPb
+    ? ""
+    : pbIsCurrent
+      ? "set in this session"
+      : current
+        ? `${day(lastPb.timestamp)} (${daysBetween(lastPb.timestamp, current.timestamp)} days before this session)`
+        : st.days_since_pb != null
+          ? `${day(lastPb.timestamp)} (${st.days_since_pb} days ago)`
+          : day(lastPb.timestamp);
   const lines: string[] = [];
   lines.push("## Driver history on this combo (local database)");
   lines.push(
@@ -64,7 +79,7 @@ export async function buildComboHistoryText(args: {
   );
   lines.push(
     `All-time PB: ${formatTime(st.all_time_pb)} · PB improvements: ${st.nb_pb}` +
-      (st.days_since_pb != null ? ` · last PB ${st.days_since_pb} days ago` : ""),
+      (lastPbText ? ` · last PB: ${lastPbText}` : ""),
   );
   if (currentBest && currentBest > 0) {
     const gap = currentBest - st.all_time_pb;
@@ -77,7 +92,9 @@ export async function buildComboHistoryText(args: {
   for (const p of recent) {
     const tag =
       currentSessionId != null && p.session_id === currentSessionId
-        ? "  ← this session"
+        ? p.is_pb
+          ? "  ← this session (PB)"
+          : "  ← this session"
         : p.is_pb
           ? "  (PB)"
           : "";
@@ -129,7 +146,7 @@ export async function buildComboHistoryText(args: {
     lines.push("");
     lines.push(
       `Progress trend: ${trend} — last 3 sessions avg ${formatTime(recentAvg)} vs previous 3 ${formatTime(prevAvg)}` +
-        (st.days_since_pb != null ? ` · no PB for ${st.days_since_pb} days` : "") +
+        (pbIsCurrent ? " · this session set a PB" : lastPbText ? ` · last PB: ${lastPbText}` : "") +
         ".",
     );
   }

@@ -20,6 +20,7 @@ import { run as runPlan } from "./suites/plan.suite";
 import { run as runVoice } from "./suites/voice.suite";
 import { run as runVeille } from "./suites/veille.suite";
 import { run as runRace } from "./suites/race.suite";
+import { run as runPostRace } from "./suites/postrace.suite";
 
 runPure();
 runCoach();
@@ -33,6 +34,7 @@ runMaps();
 runStrategy();
 runPlan();
 runRace();
+runPostRace();
 void (async () => {
   await runVoice();
   runVeille();

@@ -921,6 +921,34 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Coach IA post-course : unités justes, événements, télémétrie et communauté
+
+- ✅ **Unités** (`postrace-context.ts`) : carburant = fraction du réservoir (start/finish déjà ×100 par
+  l'indexeur) → texte en % + conso par tour (`fuel_used` 0…0,15, ravitaillement < 0) et autonomie ;
+  `track_length` en mètres → km ; `session_laps` ≥ 1 000 000 (INT_MAX) → « no lap limit ».
+- ✅ **Régularité** : médiane / écart-type du backend (tous tours chronométrés, départ arrêté inclus)
+  remplacés par `computeRegularity` (valides, hors stands, ≤ 107 %) ; < 3 tours → consigne explicite
+  « ne pas juger la régularité ». Gomme(s) utilisée(s) ajoutée(s).
+- ✅ **Événements** (`buildPlayerEventsText`) : limites de piste du joueur (tour, heure de session,
+  points), pénalités le nommant, contacts (mur vs voiture, 5 plus forts). Le XML ne donne pas le virage.
+- ✅ **Historique** (`driver-history-context.ts`) : dernier PB daté par rapport à la session analysée
+  (« set in this session », « N days before this session ») ; tag « ← this session (PB) ».
+- ✅ **Télémétrie de la session** (`session-telemetry.ts`) : fichier `.duckdb` retrouvé par lettre de
+  session + heure UTC du nom de fichier (fenêtre −10 min / +8 h autour de `sessions.timestamp`, qui est
+  le début de l'événement, commun Q/R), circuit, voiture ; plusieurs candidats (redémarrages) → meilleur
+  tour le plus proche du résultat. Chargeurs `load*Text` partagés avec le coach de la page Télémétrie
+  (code dupliqué retiré d'`AICoachPanel`). Météo de l'enregistrement transmise.
+- ✅ **Communauté** (`community-context.ts`) : routes publiques existantes `combos/position` +
+  `combos/leaderboard` (aucun changement serveur) → rang / percentile, « palier au-dessus » = moyenne des
+  secteurs des ≤ 5 pilotes juste devant (sa propre ligne exclue par repère), meilleurs secteurs de la
+  communauté, meilleur temps avec la même voiture. Filtres serveur par défaut (sec, aides propres).
+- ✅ Palier ohne « Offline » précisé au modèle (= plus lent que le palier tail-ender).
+- ✅ Suite `postrace.suite.ts` (23 vérifications) ; 4765 tests verts, `tsc` et ESLint propres.
+- ⏳ Non vérifié dans l'app : chargement réel d'une télémétrie et réponse du serveur communautaire.
+- 📋 **Prochaine étape** : ouvrir le Coach IA d'une session avec télémétrie (ex. Sebring R du 08/06/2026)
+  et relire le contexte envoyé ; envisager de localiser l'événement de limite de piste dans le tour via
+  les temps de tour si le jeu ne donne toujours pas le virage.
+
 ### 2026-10-17 — Guides vidéo : Barcelone, Paul Ricard, Silverstone, LMP3, choix par tracé
 
 - ✅ **Sources revues** (navigateur + `ytInitialData`, chaque ID vérifié via oEmbed) : playlist

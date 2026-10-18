@@ -26,7 +26,6 @@ import {
   estimateCostUsd,
   fixedPhrases,
   isFixedPhrase,
-  segmentsWanted,
 } from "@/lib/cloudVoicePrep";
 import {
   assembleSegments,
@@ -465,8 +464,7 @@ function cloudPrepSuite() {
     ok(CLOUD_PREP_ALERT_KEYS.includes(m[1]), `spotter ${m[1]} préparé`);
   }
   ok(CLOUD_PREP_ALERT_KEYS.every((k) => !CLOUD_PREP_KEYS.includes(k)), "aucune clé dans les deux listes");
-  eq(cloudPrepKeys(true), [...CLOUD_PREP_KEYS, ...CLOUD_PREP_EXTRA_KEYS], "alertes en voix locale : seulement l'information");
-  eq(cloudPrepKeys(false).length, CLOUD_PREP_KEYS.length + CLOUD_PREP_EXTRA_KEYS.length + CLOUD_PREP_ALERT_KEYS.length, "sinon : information + urgentes");
+  eq(cloudPrepKeys().length, CLOUD_PREP_KEYS.length + CLOUD_PREP_EXTRA_KEYS.length + CLOUD_PREP_ALERT_KEYS.length, "tout est préparé : information + urgentes, quel que soit le réglage");
   eq([...CLOUD_PREP_EXTRA_KEYS], [...SIDE_CALLOUT_KEYS], "records et repères : tous préparés");
   ok(CLOUD_PREP_EXTRA_KEYS.every((k) => !CLOUD_PREP_KEYS.includes(k) && !CLOUD_PREP_ALERT_KEYS.includes(k)), "records et repères : dans une seule liste");
 
@@ -640,11 +638,6 @@ function cloudSegmentsSuite() {
     }
   }
 
-  // Réglage : morceaux à préparer selon « Annonces chiffrées » et « Alertes en voix locale ».
-  eq(segmentsWanted("alerts", false), true, "alertes assemblées : morceaux préparés");
-  eq(segmentsWanted("alerts", true), false, "alertes en voix locale : rien à assembler");
-  eq(segmentsWanted("all", true), true, "tout assemblé : l'information en a besoin");
-  eq(segmentsWanted("off", false), false, "ancien comportement : rien à préparer");
 
   // Recollage : silence rogné, pause insérée, fondu aux bords.
   const sr = 1000;

@@ -589,6 +589,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "AI voice: “Prepare the voice” now generates everything (safety alerts, spotter, coach and the pieces of announcements with numbers), whatever the settings. “Alerts in local voice” only decides which voice speaks them in the race.",
+              fr: "Voix IA : « Préparer la voix » génère désormais tout (alertes de sécurité, spotter, coach et morceaux des annonces chiffrées), quels que soient les réglages. « Alertes en voix locale » ne décide plus que de la voix qui les dit en course.",
+              es: "Voz IA: «Preparar la voz» ahora lo genera todo (alertas de seguridad, spotter, coach y fragmentos de los avisos con cifras), sea cual sea el ajuste. «Alertas en voz local» solo decide qué voz las dice en carrera.",
+              de: "KI-Stimme: „Stimme vorbereiten“ erzeugt jetzt alles (Sicherheitswarnungen, Spotter, Coach und die Stücke der Ansagen mit Zahlen), unabhängig von den Einstellungen. „Warnungen in lokaler Stimme“ bestimmt nur noch, welche Stimme sie im Rennen spricht.",
+              it: "Voce IA: «Prepara la voce» ora genera tutto (avvisi di sicurezza, spotter, coach e pezzi degli annunci con numeri), qualunque sia l'impostazione. «Avvisi in voce locale» decide solo quale voce li dice in gara.",
+            },
+          },
+          {
+            text: {
               en: "Live data reading is lighter: the game's shared memory stays mapped instead of being reopened 20 times a second, only the cars actually on track are copied, and a frame caught mid-write is read again instead of being dropped.",
               fr: "Lecture des données live allégée : la mémoire partagée du jeu reste ouverte au lieu d'être rouverte 20 fois par seconde, seules les voitures réellement en piste sont copiées, et une trame lue pendant une écriture est relue au lieu d'être perdue.",
               es: "Lectura de datos en vivo más ligera: la memoria compartida del juego permanece abierta en vez de reabrirse 20 veces por segundo, solo se copian los coches realmente en pista, y un fotograma leído durante una escritura se vuelve a leer en vez de perderse.",

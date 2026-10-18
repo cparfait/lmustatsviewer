@@ -18,7 +18,7 @@ import {
   subscribeCloudVoice,
   type CloudPrepPlan,
 } from "@/lib/cloudVoice";
-import { CLOUD_PREP_ANSWER_KEYS, cloudPrepKeys, estimateCostUsd, segmentsWanted } from "@/lib/cloudVoicePrep";
+import { CLOUD_PREP_ANSWER_KEYS, cloudPrepKeys, estimateCostUsd } from "@/lib/cloudVoicePrep";
 import { getMessageText } from "@/lib/voiceMessages";
 import { isTauri } from "@/lib/api";
 import { cloudPrepTexts, cloudSegmentPrepTexts } from "@/lib/voice";
@@ -58,14 +58,14 @@ export function PrepareVoice() {
     let alive = true;
     const { code, rate: r, texts } = cloudPrepTexts(
       [
-        ...cloudPrepKeys(settings.alertsLocal).map((k) => getMessageText(lang, k)),
+        ...cloudPrepKeys().map((k) => getMessageText(lang, k)),
         // Réponses de l'ingénieur quand on lui parle (accusé, « pas compris »…).
         ...CLOUD_PREP_ANSWER_KEYS.map((k) => t(k, { lng: lang })),
       ],
       lang,
     );
-    // Annonces chiffrées : leurs morceaux (nombres, parties fixes) entrent dans le devis.
-    const segments = segmentsWanted(settings.numbers, settings.alertsLocal) ? cloudSegmentPrepTexts(lang) : [];
+    // Annonces chiffrées : leurs morceaux (nombres, parties fixes) sont toujours préparés.
+    const segments = cloudSegmentPrepTexts(lang);
     setSegmentCount(segments.length);
     planCloudPrep([...new Set([...texts, ...segments])], code, r)
       .then((p) => alive && setPlan(p))

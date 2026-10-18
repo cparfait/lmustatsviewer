@@ -148,19 +148,13 @@ export const CLOUD_PREP_ANSWER_KEYS: readonly string[] = [
   "coach.voiceHintKey",
 ];
 
-/** Gabarits à préparer : l'information, plus les phrases urgentes sauf « alertes en voix locale ». */
-export function cloudPrepKeys(alertsLocal: boolean): string[] {
-  const info = [...CLOUD_PREP_KEYS, ...CLOUD_PREP_EXTRA_KEYS];
-  return alertsLocal ? info : [...info, ...CLOUD_PREP_ALERT_KEYS];
-}
-
 /**
- * Morceaux des annonces chiffrées à préparer ? Oui si le réglage « Annonces
- * chiffrées » les lit pour l'information (`all`) ou pour les alertes (`alerts`,
- * sauf « Alertes en voix locale » : elles restent alors sur Piper).
+ * Gabarits à préparer : tout (information, alertes, spotter, coach), quels que
+ * soient « Alertes en voix locale » et « Annonces chiffrées » (décision du
+ * mainteneur, 2026-10-18). Ces réglages ne changent que ce qui est dit en course.
  */
-export function segmentsWanted(numbers: CloudNumbersMode, alertsLocal: boolean): boolean {
-  return numbers === "all" || (numbers === "alerts" && !alertsLocal);
+export function cloudPrepKeys(): string[] {
+  return [...CLOUD_PREP_KEYS, ...CLOUD_PREP_EXTRA_KEYS, ...CLOUD_PREP_ALERT_KEYS];
 }
 
 /**

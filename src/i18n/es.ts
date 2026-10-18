@@ -526,8 +526,8 @@ export default {
     objectives: "Objetivos propuestos",
   },
   telemetry: {
-    hideNoLap: "Ocultar fragmentos sin vuelta completa ({{count}})",
-    hideNoLapTip: "Grabaciones de menos de 2 minutos sin ninguna vuelta completada (salida del garaje, vuelta al box…). Desmarca para mostrarlas.",
+    hideNoLap: "Ocultar sesiones sin vuelta completa ({{count}})",
+    hideNoLapTip: "Sesiones de menos de 2 minutos sin ninguna vuelta completada (salida del garaje, vuelta al box…). Desmarca para mostrarlas.",
     loadingList: "Leyendo tus grabaciones de telemetría…",
     loadingListSlow: "Con muchas grabaciones puede tardar un poco: se abre cada archivo para leer el circuito, el coche y la mejor vuelta.",
     loadingView: "Abriendo la grabación…",

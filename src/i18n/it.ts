@@ -525,8 +525,8 @@ export default {
     objectives: "Obiettivi suggeriti",
   },
   telemetry: {
-    hideNoLap: "Nascondi i frammenti senza un giro completo ({{count}})",
-    hideNoLapTip: "Registrazioni di meno di 2 minuti senza alcun giro completato (uscita dal garage, rientro ai box…). Togli la spunta per mostrarle.",
+    hideNoLap: "Nascondi le sessioni senza un giro completo ({{count}})",
+    hideNoLapTip: "Sessioni di meno di 2 minuti senza alcun giro completato (uscita dal garage, rientro ai box…). Togli la spunta per mostrarle.",
     loadingList: "Lettura delle tue registrazioni di telemetria…",
     loadingListSlow: "Con molte registrazioni può volerci un po': ogni file viene aperto per leggere circuito, auto e giro migliore.",
     loadingView: "Apertura della registrazione…",

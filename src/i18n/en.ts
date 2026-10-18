@@ -525,8 +525,8 @@ export default {
     objectives: "Suggested objectives",
   },
   telemetry: {
-    hideNoLap: "Hide fragments without a complete lap ({{count}})",
-    hideNoLapTip: "Recordings under 2 minutes without a single completed lap (leaving the garage, back to the pits…). Untick to show them.",
+    hideNoLap: "Hide sessions without a complete lap ({{count}})",
+    hideNoLapTip: "Sessions under 2 minutes without a single completed lap (leaving the garage, back to the pits…). Untick to show them.",
     loadingList: "Reading your telemetry recordings…",
     loadingListSlow: "With many recordings this can take a while: each file is opened to read the track, car and best lap.",
     loadingView: "Opening the recording…",

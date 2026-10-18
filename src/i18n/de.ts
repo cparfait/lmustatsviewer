@@ -525,8 +525,8 @@ export default {
     objectives: "Vorgeschlagene Ziele",
   },
   telemetry: {
-    hideNoLap: "Fragmente ohne vollständige Runde ausblenden ({{count}})",
-    hideNoLapTip: "Aufzeichnungen unter 2 Minuten ohne eine einzige beendete Runde (Ausfahrt aus der Garage, zurück an die Box…). Haken entfernen, um sie anzuzeigen.",
+    hideNoLap: "Sessions ohne vollständige Runde ausblenden ({{count}})",
+    hideNoLapTip: "Sessions unter 2 Minuten ohne eine einzige beendete Runde (Ausfahrt aus der Garage, zurück an die Box…). Haken entfernen, um sie anzuzeigen.",
     loadingList: "Deine Telemetrie-Aufzeichnungen werden gelesen…",
     loadingListSlow: "Bei vielen Aufzeichnungen kann das etwas dauern: Jede Datei wird geöffnet, um Strecke, Auto und beste Runde zu lesen.",
     loadingView: "Aufzeichnung wird geöffnet…",

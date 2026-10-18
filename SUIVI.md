@@ -923,7 +923,7 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 ### 2026-10-18 — Télémétrie : fragments masqués ; banc d'écoute uniforme
 
-- ✅ **Télémétrie** : fragment = aucun tour complet **et** moins de 2 min (`duration_s` ajouté à `TelemetryFileInfo`, bornes GPS déjà lues). Masqués par défaut, case « Masquer les fragments sans tour complet (N) » (mémorisée le temps que l'app tourne). Mesuré sur les 25 fichiers du poste : 18 fragments de 0 à 11 s (+ un tour de sortie de 103 s), les 7 vraies sessions restent visibles, dont 17 min à Paul Ricard sans passage sur la ligne (le critère « sans meilleur tour » seul l'aurait masquée).
+- ✅ **Télémétrie** : fragment = aucun tour complet **et** moins de 2 min (`duration_s` ajouté à `TelemetryFileInfo`, bornes GPS déjà lues). Masqués par défaut, case « Masquer les sessions sans tour complet (N) » (libellé demandé par le mainteneur) (mémorisée le temps que l'app tourne). Mesuré sur les 25 fichiers du poste : 18 fragments de 0 à 11 s (+ un tour de sortie de 103 s), les 7 vraies sessions restent visibles, dont 17 min à Paul Ricard sans passage sur la ligne (le critère « sans meilleur tour » seul l'aurait masquée).
 - ✅ **Banc d'écoute** : sous « Alertes en voix locale », même présentation que les autres phrases (état de la voix IA) + note « en course : Piper ». Remplace le repère ajouté juste avant.
 - 📋 Prochaine étape : vérifier dans l'app de dev la case de la Télémétrie et le banc d'écoute.
 

@@ -526,8 +526,8 @@ export default {
     objectives: "Objectifs proposés",
   },
   telemetry: {
-    hideNoLap: "Masquer les fragments sans tour complet ({{count}})",
-    hideNoLapTip: "Enregistrements de moins de 2 minutes sans aucun tour bouclé (sortie du garage, retour au stand…). Décoche pour les afficher.",
+    hideNoLap: "Masquer les sessions sans tour complet ({{count}})",
+    hideNoLapTip: "Sessions de moins de 2 minutes sans aucun tour bouclé (sortie du garage, retour au stand…). Décoche pour les afficher.",
     loadingList: "Lecture de tes enregistrements de télémétrie…",
     loadingListSlow: "Avec beaucoup d'enregistrements, ça peut prendre un moment : chaque fichier est ouvert pour lire le circuit, la voiture et le meilleur tour.",
     loadingView: "Ouverture de l'enregistrement…",

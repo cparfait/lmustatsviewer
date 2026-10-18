@@ -589,11 +589,11 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
-              en: "Telemetry: fragments without a complete lap and under 2 minutes (leaving the garage, back to the pits…) are hidden by default; a box shows them again. Long recordings without a lap line crossing stay visible.",
-              fr: "Télémétrie : les fragments sans tour complet de moins de 2 minutes (sortie du garage, retour au stand…) sont masqués par défaut ; une case les réaffiche. Les longs enregistrements sans passage sur la ligne restent visibles.",
-              es: "Telemetría: los fragmentos sin vuelta completa de menos de 2 minutos (salida del garaje, vuelta al box…) se ocultan por defecto; una casilla los vuelve a mostrar. Las grabaciones largas sin paso por la línea siguen visibles.",
-              de: "Telemetrie: Fragmente ohne vollständige Runde unter 2 Minuten (Ausfahrt aus der Garage, zurück an die Box…) werden standardmäßig ausgeblendet; ein Kästchen zeigt sie wieder an. Lange Aufzeichnungen ohne Überfahren der Linie bleiben sichtbar.",
-              it: "Telemetria: i frammenti senza un giro completo sotto i 2 minuti (uscita dal garage, rientro ai box…) sono nascosti di default; una casella li mostra di nuovo. Le registrazioni lunghe senza passaggio sulla linea restano visibili.",
+              en: "Telemetry: sessions without a complete lap and under 2 minutes (leaving the garage, back to the pits…) are hidden by default; a box shows them again. Long recordings without a lap line crossing stay visible.",
+              fr: "Télémétrie : les sessions sans tour complet de moins de 2 minutes (sortie du garage, retour au stand…) sont masqués par défaut ; une case les réaffiche. Les longs enregistrements sans passage sur la ligne restent visibles.",
+              es: "Telemetría: las sesiones sin vuelta completa de menos de 2 minutos (salida del garaje, vuelta al box…) se ocultan por defecto; una casilla las vuelve a mostrar. Las grabaciones largas sin paso por la línea siguen visibles.",
+              de: "Telemetrie: Sessions ohne vollständige Runde unter 2 Minuten (Ausfahrt aus der Garage, zurück an die Box…) werden standardmäßig ausgeblendet; ein Kästchen zeigt sie wieder an. Lange Aufzeichnungen ohne Überfahren der Linie bleiben sichtbar.",
+              it: "Telemetria: le sessioni senza un giro completo sotto i 2 minuti (uscita dal garage, rientro ai box…) sono nascoste di default; una casella le mostra di nuovo. Le registrazioni lunghe senza passaggio sulla linea restano visibili.",
             },
           },
           {

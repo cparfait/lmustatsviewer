@@ -1,5 +1,6 @@
 mod commands;
 mod db;
+mod mic_permission;
 mod error;
 mod models;
 pub mod xml_parser;
@@ -356,6 +357,11 @@ pub fn run() {
                     .flatten()
                     .is_some_and(|v| v == "true"),
             );
+
+            // Micro accordé d'office aux pages de l'app : plus de demande WebView2.
+            if let Some(win) = app.get_webview_window("main") {
+                mic_permission::allow_app_microphone(&win);
+            }
 
             Ok(())
         })

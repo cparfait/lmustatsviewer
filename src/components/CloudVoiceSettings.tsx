@@ -16,6 +16,7 @@ import { Combobox } from "@/components/ui/combobox";
 import {
   CLOUD_VOICE_PROVIDERS,
   getCloudVoiceProvider,
+  providerDefaultVoice,
   type CloudVoiceOption,
   type CloudVoiceProviderId,
 } from "@/lib/cloudVoiceProviders";
@@ -165,7 +166,8 @@ function VoicePicker() {
           <div className="text-xs text-muted-foreground/80 mt-0.5">{desc}</div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {current && (
+          {/* Seulement si la voix choisie n'est pas déjà celle par défaut (sinon le clic ne change rien). */}
+          {current && current !== providerDefaultVoice(provider, lang) && (
             <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => commit("")}>
               {t("config.cloudVoiceVoiceReset")}
             </Button>

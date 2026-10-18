@@ -589,11 +589,38 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
-              en: "AI voice: “Prepare the voice” now generates everything (safety alerts, spotter, coach and the pieces of announcements with numbers), whatever the settings. “Alerts in local voice” only decides which voice speaks them in the race.",
+              en: "Telemetry: a waiting message while recordings load, explaining why it can take a while when you have many of them (with the elapsed time).",
+              fr: "Télémétrie : message d'attente pendant le chargement des enregistrements, qui explique pourquoi c'est long quand il y en a beaucoup (avec le temps écoulé).",
+              es: "Telemetría: mensaje de espera mientras se cargan las grabaciones, que explica por qué tarda cuando hay muchas (con el tiempo transcurrido).",
+              de: "Telemetrie: Wartehinweis beim Laden der Aufzeichnungen, der erklärt, warum es bei vielen davon dauert (mit verstrichener Zeit).",
+              it: "Telemetria: messaggio di attesa durante il caricamento delle registrazioni, che spiega perché ci vuole tempo quando sono tante (con il tempo trascorso).",
+            },
+          },
+          {
+            text: {
+              en: "Microphone: no more WebView2 permission prompt (“tauri.localhost wants to use your microphones”); the app's own pages get the microphone directly, Windows privacy settings still apply.",
+              fr: "Micro : plus de demande WebView2 (« tauri.localhost souhaite utiliser vos microphones ») ; les pages de l'app ont directement accès au micro, les réglages de confidentialité de Windows s'appliquent toujours.",
+              es: "Micrófono: se acabó el aviso de WebView2 («tauri.localhost quiere usar tus micrófonos»); las páginas de la app acceden directamente al micrófono, los ajustes de privacidad de Windows siguen aplicándose.",
+              de: "Mikrofon: keine WebView2-Abfrage mehr („tauri.localhost möchte deine Mikrofone verwenden“); die Seiten der App erhalten direkt Zugriff, die Datenschutzeinstellungen von Windows gelten weiterhin.",
+              it: "Microfono: niente più richiesta di WebView2 («tauri.localhost vuole usare i tuoi microfoni»); le pagine dell'app accedono direttamente al microfono, le impostazioni privacy di Windows restano valide.",
+            },
+          },
+          {
+            text: {
+              en: "AI voice listening bench: phrases spoken by Piper because of “Alerts on the local voice” now also show whether they are ready in the AI voice cache.",
+              fr: "Banc d'écoute de la voix IA : les phrases dites par Piper à cause de « Alertes en voix locale » indiquent aussi si elles sont prêtes dans le cache de la voix IA.",
+              es: "Banco de escucha de la voz IA: las frases dichas por Piper por «Alertas con voz local» indican también si están listas en la caché de la voz IA.",
+              de: "Hörtest der KI-Stimme: Sätze, die wegen „Warnungen mit lokaler Stimme“ Piper spricht, zeigen jetzt auch, ob sie im Cache der KI-Stimme bereitliegen.",
+              it: "Banco di ascolto della voce IA: le frasi dette da Piper per «Avvisi con voce locale» indicano anche se sono pronte nella cache della voce IA.",
+            },
+          },
+          {
+            text: {
+              en: "AI voice: “Prepare the voice” now generates everything (safety alerts, spotter, coach and the pieces of announcements with numbers), whatever the settings. “Alerts on the local voice” only decides which voice speaks them in the race.",
               fr: "Voix IA : « Préparer la voix » génère désormais tout (alertes de sécurité, spotter, coach et morceaux des annonces chiffrées), quels que soient les réglages. « Alertes en voix locale » ne décide plus que de la voix qui les dit en course.",
-              es: "Voz IA: «Preparar la voz» ahora lo genera todo (alertas de seguridad, spotter, coach y fragmentos de los avisos con cifras), sea cual sea el ajuste. «Alertas en voz local» solo decide qué voz las dice en carrera.",
-              de: "KI-Stimme: „Stimme vorbereiten“ erzeugt jetzt alles (Sicherheitswarnungen, Spotter, Coach und die Stücke der Ansagen mit Zahlen), unabhängig von den Einstellungen. „Warnungen in lokaler Stimme“ bestimmt nur noch, welche Stimme sie im Rennen spricht.",
-              it: "Voce IA: «Prepara la voce» ora genera tutto (avvisi di sicurezza, spotter, coach e pezzi degli annunci con numeri), qualunque sia l'impostazione. «Avvisi in voce locale» decide solo quale voce li dice in gara.",
+              es: "Voz IA: «Preparar la voz» ahora lo genera todo (alertas de seguridad, spotter, coach y fragmentos de los avisos con cifras), sea cual sea el ajuste. «Alertas con voz local» solo decide qué voz las dice en carrera.",
+              de: "KI-Stimme: „Stimme vorbereiten“ erzeugt jetzt alles (Sicherheitswarnungen, Spotter, Coach und die Stücke der Ansagen mit Zahlen), unabhängig von den Einstellungen. „Warnungen mit lokaler Stimme“ bestimmt nur noch, welche Stimme sie im Rennen spricht.",
+              it: "Voce IA: «Prepara la voce» ora genera tutto (avvisi di sicurezza, spotter, coach e pezzi degli annunci con numeri), qualunque sia l'impostazione. «Avvisi con voce locale» decide solo quale voce li dice in gara.",
             },
           },
           {
@@ -1004,6 +1031,24 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "AI voice: “Prepare the voice” now also covers “Follow the safety car” and the switch-to-wets / switch-to-slicks calls, which were left out.",
+              fr: "Voix IA : « Préparer la voix » couvre aussi « Suis la voiture de sécurité » et les conseils de passage aux pneus pluie / slicks, qui étaient oubliés.",
+              es: "Voz IA: «Preparar la voz» incluye también «Sigue al coche de seguridad» y los avisos de cambio a lluvia / slicks, que se habían quedado fuera.",
+              de: "KI-Stimme: „Stimme vorbereiten“ deckt jetzt auch „Folge dem Safety Car“ und die Hinweise zum Wechsel auf Regen- / Slickreifen ab, die fehlten.",
+              it: "Voce IA: «Prepara la voce» copre anche «Segui la safety car» e i consigli di passaggio a gomme da pioggia / slick, che mancavano.",
+            },
+          },
+          {
+            text: {
+              en: "AI voice: the “Default” button next to the voice is hidden when the chosen voice already is the default one (it did nothing).",
+              fr: "Voix IA : le bouton « Par défaut » à côté de la voix est masqué quand la voix choisie est déjà celle par défaut (il ne faisait rien).",
+              es: "Voz IA: el botón «Por defecto» junto a la voz se oculta cuando la voz elegida ya es la predeterminada (no hacía nada).",
+              de: "KI-Stimme: Die Schaltfläche „Standard“ neben der Stimme wird ausgeblendet, wenn die gewählte Stimme bereits die Standardstimme ist (sie bewirkte nichts).",
+              it: "Voce IA: il pulsante «Predefinita» accanto alla voce è nascosto quando la voce scelta è già quella predefinita (non faceva nulla).",
+            },
+          },
           {
             text: {
               en: "Audio / Voice: a voice downloaded from the list now also clears the “Download” banner at the top (it used to offer the same download again), and a download started in one place shows its progress in the other.",

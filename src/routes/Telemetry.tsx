@@ -24,7 +24,7 @@ import { telemetry } from "@/lib/api";
 import type { TelemetryFileInfo } from "@/lib/api";
 import { usePageState, useChangeEffect } from "@/lib/usePageState";
 import { formatDateTime, formatTime } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { TelemetryLoading } from "@/components/telemetry/TelemetryLoading";
 
 const PAGE_SIZE_KEY = "telemetry-page-size";
 
@@ -166,9 +166,7 @@ export function Telemetry() {
   // ── Rendu ────────────────────────────────────────────────────────────────────
   if (files === null) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <TelemetryLoading what="list" />
     );
   }
 

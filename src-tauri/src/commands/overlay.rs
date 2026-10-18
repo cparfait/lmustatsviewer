@@ -99,6 +99,7 @@ pub async fn open_overlay_window(app: AppHandle) -> Result<(), AppError> {
     .focused(false)
     .build()
     .map_err(|e| AppError::Internal(format!("création fenêtre overlay : {e}")))?;
+    crate::mic_permission::allow_app_microphone(&win);
 
     // Couvre TOUS les écrans (taille + position physiques). Se limiter au moniteur
     // principal enfermait les widgets dessus : on ne pouvait pas en déposer un sur

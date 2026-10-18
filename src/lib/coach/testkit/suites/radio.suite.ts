@@ -12,6 +12,7 @@ import { RadioArbiter, TEXT_REPEAT_LAPS, type Candidate } from "@/lib/engineer/a
 import { VariantPicker, NameDoser, splitVariants, NAME_GAP_S } from "@/lib/engineer/variants";
 import { noAnswerKey, radioErrorKey } from "@/lib/engineer/radioErrors";
 import { SIDE_CALLOUT_KEYS } from "@/lib/engineer/sideCallouts";
+import { VOICE_MESSAGE_GROUPS } from "@/lib/voiceMessages";
 import { aiErrorKind, type AiErrorKind } from "@/lib/ai/errorKind";
 import { ProximitySpotter, occupiedSides } from "@/lib/engineer/proximity";
 import { route } from "@/lib/engineer/router";
@@ -430,17 +431,26 @@ function commandsSuite() {
 function cloudPrepSuite() {
   section("radio — préparer la voix en ligne");
   // Priorité de chaque gabarit sans variable dit par l'ingénieur, relue dans le
-  // source : la 1re priorité littérale qui suit `t("live.vX")` dans l'instruction.
+  // source : la 1re priorité littérale qui suit `"live.vX"` dans l'instruction, ou
+  // dans la suivante (texte choisi d'abord, puis `say(…)`). Seuls les littéraux
+  // passés à `t(…)`, y compris en ternaire, comptent (pas les listes ni les tables).
   const src = readFileSync("src/lib/engineer/useRaceEngineer.ts", "utf8");
   const prios = new Map<string, Set<string>>();
-  for (const m of src.matchAll(/t\("live\.(v\w+)"\)/g)) {
+  const PRIO = /"(spotter|critical|normal|chatty|coach)"/;
+  for (const m of src.matchAll(/"live\.(v\w+)"(?=\s*[):])/g)) {
     const rest = src.slice(m.index! + m[0].length);
     const end = rest.search(/;|\},/);
     const stmt = end < 0 ? rest : rest.slice(0, end);
-    const p = /"(spotter|critical|normal|chatty|coach)"/.exec(stmt)?.[1] ?? "?";
+    const next = end < 0 ? "" : rest.slice(end + 1, end + 1 + Math.max(0, rest.slice(end + 1).search(/;|\},/)));
+    const p = PRIO.exec(stmt)?.[1] ?? PRIO.exec(next)?.[1] ?? "?";
     if (!prios.has(m[1])) prios.set(m[1], new Set());
     prios.get(m[1])!.add(p);
   }
+  // Phrases fixes = sans variable dans le catalogue des annonces. Exceptions :
+  // jamais dites seules (suivies d'un temps au tour, préfixe de « Répète ») ou plus dites.
+  const NOT_ALONE = new Set(["vBestLap", "vLastLap", "vRepeatPrefix", "vCornerWatching"]);
+  const catalog = new Map(VOICE_MESSAGE_GROUPS.flatMap((g) => g.items.map((m) => [m.key, m] as const)));
+  for (const k of [...prios.keys()]) if (catalog.get(k)?.vars.length || NOT_ALONE.has(k)) prios.delete(k);
   const cloudOnly = (k: string) => [...(prios.get(k) ?? [])].every((p) => p === "normal" || p === "chatty");
   for (const k of CLOUD_PREP_KEYS) {
     ok(prios.has(k), `${k} est dit par l'ingénieur`);
@@ -467,6 +477,11 @@ function cloudPrepSuite() {
   eq(cloudPrepKeys().length, CLOUD_PREP_KEYS.length + CLOUD_PREP_EXTRA_KEYS.length + CLOUD_PREP_ALERT_KEYS.length, "tout est préparé : information + urgentes, quel que soit le réglage");
   eq([...CLOUD_PREP_EXTRA_KEYS], [...SIDE_CALLOUT_KEYS], "records et repères : tous préparés");
   ok(CLOUD_PREP_EXTRA_KEYS.every((k) => !CLOUD_PREP_KEYS.includes(k) && !CLOUD_PREP_ALERT_KEYS.includes(k)), "records et repères : dans une seule liste");
+  // Toute phrase fixe du catalogue des annonces est préparée, même dite hors de l'ingénieur.
+  const prepared = new Set(cloudPrepKeys());
+  for (const g of VOICE_MESSAGE_GROUPS)
+    for (const m of g.items)
+      if (!m.vars.length && !NOT_ALONE.has(m.key)) ok(prepared.has(m.key), `${m.key} (phrase fixe du catalogue) est préparée`);
 
   // Voix en ligne : en direct pour l'information et les réponses, depuis le cache
   // pour l'urgent, jamais pour l'urgent avec « alertes en voix locale ».

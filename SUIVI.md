@@ -921,6 +921,15 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Micro sans demande WebView2, attente Télémétrie, phrases oubliées de la préparation
+
+- ✅ **Micro** (`mic_permission.rs`) : `PermissionRequested` de WebView2 accordé pour le **micro seulement** et pour les **pages de l'app seulement** (`http(s)://tauri.localhost`, `http://localhost:5173`, origine exacte), fenêtre principale et overlay. Plus de « tauri.localhost souhaite utiliser vos microphones » (déclenché par la liste « Sortie audio de la radio », qui ouvre le micro pour lire les noms des sorties). Dépendances directes `webview2-com 0.38` / `windows-core 0.61` (mêmes versions que wry). Test Rust des origines.
+- ✅ **Télémétrie** : `TelemetryLoading` (liste et ouverture d'un enregistrement) : message tout de suite, explication et temps écoulé après 3 s.
+- ✅ **Préparer la voix** : `vFoFollowSc`, `vTyresToWets`, `vTyresToSlicks` manquaient (le relevé du source ratait les ternaires et le texte choisi avant `say`). Relevé élargi + nouveau test : toute phrase fixe du catalogue `VOICE_MESSAGE_GROUPS` est préparée (exceptions motivées : `vBestLap`, `vLastLap`, `vRepeatPrefix`, `vCornerWatching`).
+- ✅ **Banc d'écoute** : repère « prête en voix IA (cache) » / « pas encore préparée » sur les phrases dites par Piper à cause de « Alertes en voix locale ». Bouton « Par défaut » masqué quand la voix choisie est déjà la voix par défaut. Libellés du réglage corrigés dans l'infobulle et le changelog (EN/ES/DE/IT).
+- ✅ tsc, eslint, 4 870 tests TS, 137 tests Rust. Changelog 1.0.10 (5 langues).
+- 📋 Prochaine étape : vérifier dans une version **installée** que la demande micro ne revient pas (origine `tauri.localhost`).
+
 ### 2026-10-18 — « Préparer la voix » génère tout, quels que soient les réglages
 
 - ✅ Demande du mainteneur : alertes de sécurité, spotter, coach et morceaux des annonces chiffrées sont toujours préparés (`cloudPrepKeys()` sans paramètre, `segmentsWanted` supprimée). « Alertes en voix locale » et « Annonces chiffrées » ne changent que ce qui est dit en course. Infobulle du bouton et texte du guide de la voix IA (`s4P3`) corrigés, changelog 1.0.10 (5 langues). tsc, eslint, 4 776 tests verts.

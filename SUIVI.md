@@ -921,6 +921,13 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Coach IA : la question posée après une analyse restait hors de vue
+
+- ✅ Cause : la fenêtre se rouvrait en haut (sur l'analyse) et la réponse s'écrivait en bas sans
+  défilement — le fil lui-même était correct. `AICoachPanel` : `lastUserRef` sur la dernière question +
+  `scrollIntoView` à chaque envoi (`scrollTick`), après ouverture de la fenêtre.
+- 📋 **Prochaine étape** : virage des limites de piste (entrée suivante).
+
 ### 2026-10-18 — Coach IA post-course : unités justes, événements, télémétrie et communauté
 
 - ✅ **Unités** (`postrace-context.ts`) : carburant = fraction du réservoir (start/finish déjà ×100 par

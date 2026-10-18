@@ -318,6 +318,10 @@ export function CoachPanel({
   const [notes, setNotes] = useState<CoachNote[]>([]); // objectifs épinglés du combo
   const [pinned, setPinned] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  // Dernière question du fil : la fenêtre défile jusqu'à elle à chaque envoi, sinon
+  // elle se rouvre en haut (sur l'analyse) et la réponse s'écrit hors de l'écran.
+  const lastUserRef = useRef<HTMLDivElement>(null);
+  const [scrollTick, setScrollTick] = useState(0);
   const cancelRef = useRef(false); // A2 : stop génération
   const spokenRef = useRef(0); // B2 : offset déjà lu à voix haute
 
@@ -430,6 +434,15 @@ export function CoachPanel({
   };
 
   useEffect(() => {
+    if (!open || scrollTick === 0) return;
+    // Après le rendu de la fenêtre (elle peut s'ouvrir à l'instant même).
+    const id = requestAnimationFrame(() =>
+      lastUserRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }),
+    );
+    return () => cancelAnimationFrame(id);
+  }, [scrollTick, open]);
+
+  useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeModal();
@@ -455,6 +468,7 @@ export function CoachPanel({
     cancelRef.current = false;
     spokenRef.current = 0;
     setThread([...nextThread, { role: "assistant", content: "" }]); // user + réponse en cours
+    setScrollTick((n) => n + 1);
     try {
       // Cap : on garde toujours le 1er message (qui porte le contexte) + la queue.
       const sent =
@@ -823,7 +837,11 @@ export function CoachPanel({
             <div className="flex-1 space-y-4 overflow-auto px-6 py-5">
               {thread.map((turn, i) =>
                 turn.role === "user" ? (
-                  <div key={i} className="flex justify-end">
+                  <div
+                    key={i}
+                    ref={i === thread.map((x) => x.role).lastIndexOf("user") ? lastUserRef : undefined}
+                    className="flex scroll-mt-2 justify-end"
+                  >
                     <div className="max-w-[80%] rounded-lg bg-primary/10 px-3 py-1.5 text-sm text-foreground">
                       {turn.display ?? turn.content}
                     </div>

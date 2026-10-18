@@ -1006,6 +1006,15 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
+              en: "AI Coach: asking a question after an analysis reopened the window at the top, on the analysis, while the answer was written further down out of sight. The window now scrolls to your question.",
+              fr: "Coach IA : poser une question après une analyse rouvrait la fenêtre en haut, sur l'analyse, pendant que la réponse s'écrivait plus bas hors de vue. La fenêtre défile maintenant jusqu'à ta question.",
+              es: "Coach IA: hacer una pregunta después de un análisis volvía a abrir la ventana arriba, en el análisis, mientras la respuesta se escribía más abajo sin verse. Ahora la ventana se desplaza hasta tu pregunta.",
+              de: "KI-Coach: Eine Frage nach einer Analyse öffnete das Fenster wieder oben bei der Analyse, während die Antwort weiter unten außer Sicht geschrieben wurde. Das Fenster scrollt jetzt zu deiner Frage.",
+              it: "Coach IA: fare una domanda dopo un'analisi riapriva la finestra in alto, sull'analisi, mentre la risposta veniva scritta più in basso fuori vista. Ora la finestra scorre fino alla tua domanda.",
+            },
+          },
+          {
+            text: {
               en: "AI Coach after a session: fuel was sent to the AI as litres when the game stores a share of the tank (it now reads “73% of tank”, plus the use per lap), the track length was 1000 times too long, “2147483647 laps” now reads “no lap limit”, consistency is only computed on clean laps (no more figure from the standing start), and the date of the last personal best is counted from the session being analysed, not from today.",
               fr: "Coach IA après une session : le carburant était transmis à l'IA en litres alors que le jeu stocke une part du réservoir (il lit maintenant « 73 % du réservoir », avec la conso par tour), la longueur du circuit était 1000 fois trop grande, « 2147483647 tours » devient « sans limite de tours », la régularité ne se calcule plus que sur les tours propres (plus de chiffre tiré du départ arrêté), et la date du dernier record se compte depuis la session analysée, pas depuis aujourd'hui.",
               es: "Coach IA después de una sesión: el combustible se enviaba a la IA en litros cuando el juego guarda una parte del depósito (ahora lee «73 % del depósito», con el consumo por vuelta), la longitud del circuito era 1000 veces demasiado grande, «2147483647 vueltas» pasa a «sin límite de vueltas», la regularidad solo se calcula con vueltas limpias (ya no sale del arranque parado) y la fecha del último récord se cuenta desde la sesión analizada, no desde hoy.",

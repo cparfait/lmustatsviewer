@@ -213,6 +213,7 @@ pub fn run() {
             commands::ai::coach_note_delete,
             // Live timing — shared memory rF2/LMU
             commands::live::get_live_data,
+            commands::live::track_outline,
             commands::live::list_weather_files,
             commands::live::is_sim_running,
             commands::live::start_live_polling,

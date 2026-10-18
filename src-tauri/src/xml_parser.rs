@@ -88,6 +88,8 @@ pub struct ParsedDriver {
 pub struct ParsedLap {
     pub lap_num: i32,
     pub position: i32, // attribut 'p'
+    /// Heure de session au DÉBUT du tour (attribut `et` ; `--.---` = inconnue).
+    pub et: Option<f64>,
     pub lap_time: f64, // 0.0 si tour invalide (`--.----`)
     pub s1: Option<f64>,
     pub s2: Option<f64>,
@@ -583,6 +585,7 @@ fn build_lap(attrs: Attributes) -> ParsedLap {
     ParsedLap {
         lap_num: attr_i32(attrs.clone(), b"num"),
         position: attr_i32(attrs.clone(), b"p"),
+        et: attr_f64(attrs.clone(), b"et").filter(|v| v.is_finite() && *v >= 0.0),
         lap_time: 0.0,
         s1: attr_f64(attrs.clone(), b"s1").filter(|&v| v > 0.0),
         s2: attr_f64(attrs.clone(), b"s2").filter(|&v| v > 0.0),

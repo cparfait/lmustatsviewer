@@ -613,8 +613,8 @@ fn insert_driver(
             "INSERT INTO laps
                 (result_id, session_id, driver_name, lap_num, position, lap_time,
                  s1, s2, s3, top_speed, fuel, fuel_used, twfl, twfr, twrl, twrr,
-                 fcompound, rcompound, is_pit, is_valid)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20)",
+                 fcompound, rcompound, is_pit, is_valid, et)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)",
             params![
                 result_id,
                 session_id,
@@ -636,6 +636,7 @@ fn insert_driver(
                 lap.rcompound,
                 lap.is_pit as i32,
                 lap.is_valid as i32,
+                lap.et,
             ],
         )
         .map_err(|e| AppError::Database(format!("insert lap: {e}")))?;

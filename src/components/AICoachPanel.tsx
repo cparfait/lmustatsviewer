@@ -51,6 +51,7 @@ import {
   loadTheoreticalBestText,
 } from "@/lib/ai/context/session-telemetry";
 import { buildCommunityReferenceText } from "@/lib/ai/context/community-context";
+import { loadEventLocator, type EventLocator } from "@/lib/eventLocator";
 import { summarizeLapAnalysis, type LapAnalysis } from "@/lib/telemetry/analysis";
 import {
   postRacePrompt,
@@ -1001,6 +1002,19 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
     };
   }, [detail]);
 
+  // Situe limites de piste et contacts dans le tour (tracé connu, télémétrie éventuelle).
+  const [locate, setLocate] = useState<EventLocator | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    setLocate(undefined);
+    loadEventLocator(detail)
+      .then((fn) => !cancelled && setLocate(() => fn))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [detail]);
+
   // Références de la communauté (lecture publique) : rang, palier au-dessus, secteurs.
   const [communityText, setCommunityText] = useState("");
   useEffect(() => {
@@ -1029,8 +1043,17 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
 
   const ctx = useMemo(
     () =>
-      buildPostRaceContext(detail, setupText, alienText, historyText, knowledgeText, telemetryText, communityText),
-    [detail, setupText, alienText, historyText, knowledgeText, telemetryText, communityText],
+      buildPostRaceContext(
+        detail,
+        setupText,
+        alienText,
+        historyText,
+        knowledgeText,
+        telemetryText,
+        communityText,
+        locate,
+      ),
+    [detail, setupText, alienText, historyText, knowledgeText, telemetryText, communityText, locate],
   );
   const player = detail.results.find((r) => r.is_player);
   const combo = player

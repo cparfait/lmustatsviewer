@@ -17,6 +17,8 @@
 import { formatTime, formatSectorSeconds } from "../../utils";
 import type { SessionDetail, LapRow, ResultRow, StreamEventRow } from "../../api";
 import { computeRegularity } from "../../regularity";
+import { describeLocation } from "../../trackLimitsLocate";
+import { trackLimitLap, type EventLocator } from "../../eventLocator";
 
 const MAX_LAPS_IN_TABLE = 40;
 /** Événements de piste listés au plus (incidents les plus forts, limites de piste). */
@@ -96,25 +98,34 @@ function sessionClock(et: number): string {
 
 /**
  * Limites de piste, pénalités et contacts du joueur, depuis le flux d'événements du
- * fichier de résultats. TrackLimits : texte « Tour|PointsAvert.|PointsCourants|Pilote|Résolution ».
- * Contact : « Nom(id) reported contact (force) with Cible ». Vide si rien.
+ * fichier de résultats. TrackLimits : texte « ToursBouclés|PointsAvert.|PointsCourants|Pilote|Résolution »
+ * (le 1er champ vaut 0 pendant le 1er tour). Contact : « Nom(id) reported contact (force) with Cible ».
+ * `locate` situe l'événement dans le tour (virage estimé) ; sans lui, tour seul. Vide si rien.
  */
-export function buildPlayerEventsText(stream: StreamEventRow[], player: string): string {
+export function buildPlayerEventsText(stream: StreamEventRow[], player: string, locate?: EventLocator): string {
   if (!player) return "";
   const lines: string[] = [];
+  let located = false;
+  const where = (et: number, hint: number | null) => {
+    const loc = locate ? locate(player, et, hint) : null;
+    const txt = describeLocation(loc);
+    if (txt) located = true;
+    return { lap: loc?.lap ?? hint, txt };
+  };
 
   const limits = stream
     .filter((e) => e.event_type === "TrackLimits")
     .map((e) => {
       const [lap, warn, cur, driver, ...rest] = e.text.split("|");
-      return { et: e.et, lap, warn, cur, driver: (driver ?? "").trim(), what: rest.join("|").trim() };
+      return { et: e.et, lap: trackLimitLap(lap), warn, cur, driver: (driver ?? "").trim(), what: rest.join("|").trim() };
     })
     .filter((e) => e.driver === player);
   if (limits.length > 0) {
     lines.push(`Track-limit events: ${limits.length}`);
     for (const e of limits.slice(0, MAX_EVENTS)) {
       const pts = e.cur ? ` · points ${e.cur}${e.warn && e.warn !== "0" ? ` (warning at ${e.warn})` : ""}` : "";
-      lines.push(`- L${e.lap || "?"} at ${sessionClock(e.et)}: ${e.what || "track limits"}${pts}`);
+      const w = where(e.et, e.lap);
+      lines.push(`- L${w.lap ?? "?"} at ${sessionClock(e.et)}${w.txt ? ` — ${w.txt}` : ""}: ${e.what || "track limits"}${pts}`);
     }
     if (limits.length > MAX_EVENTS) lines.push(`… (${limits.length - MAX_EVENTS} more)`);
   }
@@ -144,14 +155,19 @@ export function buildPlayerEventsText(stream: StreamEventRow[], player: string):
       .slice(0, 5)
       .sort((a, b) => a.et - b.et);
     for (const c of hardest) {
-      lines.push(`- ${sessionClock(c.et)}: force ${c.force.toFixed(0)} with ${/^immovable$/i.test(c.target) ? "wall/barrier" : c.target}`);
+      const w = where(c.et, null);
+      lines.push(
+        `- ${w.lap ? `L${w.lap} ` : ""}${sessionClock(c.et)}${w.txt ? ` — ${w.txt}` : ""}: force ${c.force.toFixed(0)} with ${/^immovable$/i.test(c.target) ? "wall/barrier" : c.target}`,
+      );
     }
   }
 
   if (lines.length === 0) return "";
   return [
     "## Track limits, penalties & contacts (yours, from the results file)",
-    "Times are session clock (m:ss); the file does not give the corner — match with lap/sector timing.",
+    located
+      ? "Times are session clock (m:ss). Location (sector, distance into the lap, nearest official corner) is ESTIMATED from lap/sector timing on the known track layout — about ±150 m; \"rough\" = proportional to the lap only. Use it to name the likely corner, not as certainty."
+      : "Times are session clock (m:ss); the file does not give the corner and no track layout is known here.",
     ...lines,
   ].join("\n");
 }
@@ -170,6 +186,8 @@ export function buildPostRaceContext(
   telemetryText?: string,
   /** Références de la communauté sur le combo (via `buildCommunityReferenceText`). */
   communityText?: string,
+  /** Situe les événements dans le tour (via `loadEventLocator`), si chargé. */
+  locate?: EventLocator,
 ): PostRaceContext {
   const s = detail.session;
   const player = detail.results.find((r) => r.is_player) ?? null;
@@ -274,7 +292,7 @@ export function buildPostRaceContext(
   }
 
   // Limites de piste, pénalités, contacts : explique les tours invalides.
-  const events = buildPlayerEventsText(detail.stream ?? [], player.driver_name);
+  const events = buildPlayerEventsText(detail.stream ?? [], player.driver_name, locate);
   if (events) {
     lines.push("");
     lines.push(events);

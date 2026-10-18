@@ -2798,6 +2798,8 @@ export default {
     colWarningPtsTip: "Verwarnungspunkte für dieses Ereignis",
     colTotalPtsTip: "Gesamte aufgelaufene Punkte für diesen Fahrer",
     colResolutionTip: "Art der angewendeten Sanktion",
+    colWhere: "Ort (geschätzt)",
+    colWhereTip: "Nächste Kurve, geschätzt aus der Zeit des Ereignisses, den Runden- und Sektorzeiten und dem bekannten Streckenverlauf (etwa ±150 m). Ohne bekannten Streckenverlauf: nur der Sektor.",
   },
   onboarding: {
     welcome: "Willkommen bei LMU Stats Viewer",

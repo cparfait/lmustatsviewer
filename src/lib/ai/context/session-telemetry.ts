@@ -155,21 +155,37 @@ export async function loadTheoreticalBestText(meta: TelemetryMeta): Promise<stri
   return summarizeTheoreticalBest(compareToBestApex(fast.corners, valid.map((v) => v.corners)));
 }
 
-/**
- * Section « télémétrie de la session » du contexte post-course ; "" si aucun
- * enregistrement ne correspond (ou lecture impossible).
- */
-export async function buildSessionTelemetryText(detail: SessionDetail): Promise<string> {
+/** Enregistrement télémétrie de la session (voiture du joueur), ou null. */
+export async function findSessionTelemetryFile(detail: SessionDetail): Promise<TelemetryFileInfo | null> {
   const player = detail.results.find((r) => r.is_player);
-  if (!player) return "";
+  if (!player) return null;
   const files = await telemetry.listFiles();
-  const file = pickSessionTelemetry(files, {
+  return pickSessionTelemetry(files, {
     track: detail.session.track,
     session_type: detail.session.session_type,
     timestamp: detail.session.timestamp,
     car: player.unique_car_name || player.car_type,
     best_lap: player.best_lap,
   });
+}
+
+/** Profil temps → distance du tour le plus rapide enregistré (situer un événement dans le tour). */
+export async function loadSessionLapProfile(detail: SessionDetail): Promise<{ time: number[]; dist: number[] } | null> {
+  const file = await findSessionTelemetryFile(detail);
+  if (!file) return null;
+  const meta = await telemetry.getMeta(file.path);
+  const fastest = fastestLap(meta);
+  if (!fastest) return null;
+  const d = await telemetry.getChannels(meta.info.path, ["Ground Speed"], fastest.lap, 4000);
+  return d.time.length > 0 ? { time: d.time, dist: d.dist } : null;
+}
+
+/**
+ * Section « télémétrie de la session » du contexte post-course ; "" si aucun
+ * enregistrement ne correspond (ou lecture impossible).
+ */
+export async function buildSessionTelemetryText(detail: SessionDetail): Promise<string> {
+  const file = await findSessionTelemetryFile(detail);
   if (!file) return "";
   const meta = await telemetry.getMeta(file.path);
   const [elec, lap, theo] = await Promise.all([

@@ -921,6 +921,29 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Limites de piste situées dans le tour (virage estimé)
+
+- ✅ **Découverte** : l'attribut `Lap` des `<TrackLimits>` compte les tours BOUCLÉS (0 pendant le 1er
+  tour, vérifié sur Spa 21/07/2026 et un essai du 16/10) → onglet et coach décalés d'un tour, corrigé
+  (`trackLimitLap` = Lap + 1).
+- ✅ **Début de chaque tour** : attribut `et` du `<Lap>` = heure de session au DÉBUT du tour (et(5) −
+  et(4) = temps du tour 4). Parse (`ParsedLap.et`), colonne `laps.et` (schéma + migration), insertion ;
+  sessions déjà indexées complétées à la 1ʳᵉ lecture du détail (`backfill_lap_starts`, relit le XML).
+- ✅ **Commande `track_outline`** (`live.rs`) : tracé livré + appris (`tracks/<slug>.json`), points
+  20 m, bornes S1/S2 apprises en roulant. Slug = `track_course`, puis `track`.
+- ✅ **Calcul** (`trackLimitsLocate.ts`, pur) : tour par l'heure, secteur (temps du tour, sinon meilleur
+  tour à l'échelle de la durée réelle), distance par 1) bornes de secteurs + profil télémétrie,
+  2) bornes de secteurs linéaire, 3) profil seul au prorata, 4) longueur au prorata (« rough », sans
+  virage nommé). Virage = repère officiel le plus proche (`officialCornerLabels` : seulement si le compte
+  colle au tracé — règle « pas de donnée fausse »). `eventLocator.ts` assemble (tracé, profil, tours).
+- ✅ Onglet Limites de piste : colonne « Lieu (estimé) » (i18n 5 langues) ; Coach IA : lieu sur les
+  limites de piste et les 5 contacts les plus forts, avec mention d'estimation (±150 m).
+- ✅ 15 vérifications ajoutées (4781 tests verts), 136 tests Rust verts, `tsc` / ESLint propres.
+- ⏳ Spa : l'utilisateur n'a que le tracé « Endurance » appris → la course sur le tracé principal reste
+  au secteur / prorata (aucun tracé d'un autre layout utilisé). Non vérifié dans l'app.
+- 📋 **Prochaine étape** : ouvrir l'onglet Limites de piste d'une session Road Atlanta ou Laguna Seca
+  (tracés connus) et contrôler les virages proposés.
+
 ### 2026-10-18 — Coach IA : la question posée après une analyse restait hors de vue
 
 - ✅ Cause : la fenêtre se rouvrait en haut (sur l'analyse) et la réponse s'écrivait en bas sans

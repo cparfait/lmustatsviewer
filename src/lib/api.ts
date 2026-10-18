@@ -333,6 +333,8 @@ export interface LapRow {
   rcompound: string;
   is_pit: boolean;
   is_valid: boolean;
+  /** Heure de session au début du tour (s) ; null si inconnue. */
+  et: number | null;
 }
 
 export interface StreamEventRow {
@@ -1087,6 +1089,19 @@ export interface TelemetryChannelData {
   dist: number[];
   channels: TelemetryChannelSeries[];
 }
+
+/** Tracé connu d'un circuit (`live::TrackOutline`) : points tous les 20 m, bornes de secteurs. */
+export interface TrackOutline {
+  points: [number, number][];
+  dists: number[];
+  s1: number | null;
+  s2: number | null;
+}
+
+export const tracks = {
+  /** Tracé livré avec l'app ou appris en roulant ; null si inconnu. `track` = nom du tracé. */
+  outline: (track: string) => invoke<TrackOutline | null>("track_outline", { track }),
+};
 
 export const telemetry = {
   /** Liste les enregistrements `.duckdb` du dossier UserData/Telemetry. */

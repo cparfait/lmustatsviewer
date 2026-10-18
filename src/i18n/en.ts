@@ -2793,6 +2793,8 @@ export default {
     colWarningPtsTip: "Warning points for this event",
     colTotalPtsTip: "Total accumulated points for this driver",
     colResolutionTip: "Type of sanction applied",
+    colWhere: "Where (estimated)",
+    colWhereTip: "Nearest corner, estimated from the event time, the lap and sector times and the known track layout (about ±150 m). Without a known layout: the sector only.",
   },
   onboarding: {
     welcome: "Welcome to LMU Stats Viewer",

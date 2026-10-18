@@ -1497,6 +1497,39 @@ fn load_sectors(dir: &Path, slug: &str) -> [(f64, u32); 2] {
     out
 }
 
+/// Tracé d'un circuit hors live (page Détail de session) : points tous les 20 m dans
+/// l'ordre du tour, distance de chaque point, bornes de secteurs apprises en roulant.
+#[derive(Debug, Serialize)]
+pub struct TrackOutline {
+    pub points: Vec<[f64; 2]>,
+    pub dists: Vec<f64>,
+    pub s1: Option<f64>,
+    pub s2: Option<f64>,
+}
+
+/// Tracé connu d'un circuit (livré avec l'app, recouvert par celui de l'utilisateur) ;
+/// `None` tant qu'il n'a pas assez de points. `track` = nom du tracé (`track_course`).
+#[tauri::command]
+pub fn track_outline(app: AppHandle, track: String) -> Result<Option<TrackOutline>, AppError> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::Internal(format!("dossier de l'app : {e}")))?
+        .join("tracks");
+    let slug = track_slug(&track);
+    let buckets = load_track(&dir, &slug);
+    if buckets.len() < 30 {
+        return Ok(None);
+    }
+    let mut keys: Vec<i64> = buckets.keys().copied().collect();
+    keys.sort_unstable();
+    let points = keys.iter().map(|k| buckets[k].0).collect();
+    let dists = keys.iter().map(|k| *k as f64 * 20.0 + 10.0).collect();
+    let sectors = load_sectors(&dir, &slug);
+    let bound = |i: usize| (sectors[i].1 > 0 && sectors[i].0 > 0.0).then_some(sectors[i].0);
+    Ok(Some(TrackOutline { points, dists, s1: bound(0), s2: bound(1) }))
+}
+
 /// Sauvegarde le tracé accumulé (écriture atomique).
 fn save_track(
     dir: &Path,

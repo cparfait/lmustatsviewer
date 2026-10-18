@@ -74,6 +74,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Track limits: the session details tab gets a “Where (estimated)” column — the nearest corner, worked out from the time of the event, the lap and sector times and the track layout the app knows (shipped with it or learnt while you drive; more precise with the session's telemetry). Without a known layout, the sector. The AI Coach receives the same location for your track-limit warnings and your hardest contacts.",
+              fr: "Limites de piste : l'onglet du détail de session gagne une colonne « Lieu (estimé) » — le virage le plus proche, calculé à partir de l'heure de l'événement, des temps de tour et de secteurs et du tracé que l'app connaît (fourni avec elle ou appris en roulant ; plus précis avec la télémétrie de la session). Sans tracé connu, le secteur. Le Coach IA reçoit le même lieu pour tes limites de piste et tes contacts les plus forts.",
+              es: "Límites de pista: la pestaña del detalle de sesión gana una columna «Lugar (estimado)» — la curva más cercana, calculada a partir de la hora del evento, los tiempos de vuelta y de sector y el trazado que la app conoce (incluido con ella o aprendido mientras conduces; más preciso con la telemetría de la sesión). Sin trazado conocido, el sector. El Coach IA recibe el mismo lugar para tus límites de pista y tus contactos más fuertes.",
+              de: "Track Limits: Der Tab in den Session-Details erhält eine Spalte „Ort (geschätzt)“ — die nächste Kurve, berechnet aus der Zeit des Ereignisses, den Runden- und Sektorzeiten und dem Streckenverlauf, den die App kennt (mitgeliefert oder beim Fahren gelernt; mit der Telemetrie der Session genauer). Ohne bekannten Streckenverlauf der Sektor. Der KI-Coach erhält denselben Ort für deine Track-Limits-Verstöße und deine stärksten Kontakte.",
+              it: "Limiti della pista: la scheda del dettaglio sessione ottiene una colonna «Dove (stimato)» — la curva più vicina, calcolata dall'ora dell'evento, dai tempi sul giro e di settore e dal tracciato che l'app conosce (fornito con essa o appreso guidando; più preciso con la telemetria della sessione). Senza tracciato noto, il settore. Il Coach IA riceve lo stesso luogo per i tuoi limiti della pista e i tuoi contatti più forti.",
+            },
+          },
+          {
+            text: {
               en: "AI Coach after a session: when the game's telemetry was on, the matching recording is found automatically and the coach gets your fastest lap corner by corner (braking points, apex speeds, inputs, ABS/TC/brake bias) plus the weather — so it can compare your braking with the reference markers. It also receives your track-limit warnings, penalties and contacts (which lap, when), and, from the community database, your rank on the combo, the sectors of the drivers just ahead of you and the best time with the same car.",
               fr: "Coach IA après une session : si la télémétrie du jeu était activée, l'enregistrement de la session est retrouvé tout seul et le coach reçoit ton tour le plus rapide virage par virage (points de freinage, vitesses d'apex, entrées, ABS/TC/répartition) et la météo — il peut donc comparer tes freinages aux repères. Il reçoit aussi tes limites de piste, pénalités et contacts (quel tour, à quel moment) et, depuis la base communautaire, ton rang sur le combo, les secteurs des pilotes juste devant toi et le meilleur temps avec la même voiture.",
               es: "Coach IA después de una sesión: si la telemetría del juego estaba activada, la grabación de la sesión se encuentra sola y el coach recibe tu vuelta más rápida curva a curva (puntos de frenada, velocidades en el vértice, mandos, ABS/TC/reparto de frenada) y la meteorología — así puede comparar tus frenadas con las referencias. También recibe tus límites de pista, penalizaciones y contactos (qué vuelta, en qué momento) y, desde la base de la comunidad, tu posición en el combo, los sectores de los pilotos justo delante de ti y el mejor tiempo con el mismo coche.",
@@ -1002,6 +1011,15 @@ export const CHANGELOG: ChangelogEntry[] = [
               es: "Una base local ilegible ya no impide que la app arranque: se aparta y se reconstruye a partir de los archivos del juego.",
               de: "Eine unlesbare lokale Datenbank verhindert den Start der App nicht mehr: Sie wird beiseitegelegt und aus den Spieldateien neu aufgebaut.",
               it: "Un database locale illeggibile non impedisce più l'avvio dell'app: viene messo da parte e ricostruito dai file del gioco.",
+            },
+          },
+          {
+            text: {
+              en: "Track limits tab: the lap number was one too low (the game counts completed laps, so the first lap showed “—”). It now shows the lap the event happened in.",
+              fr: "Onglet Limites de piste : le numéro de tour était décalé d'un tour (le jeu compte les tours bouclés, le 1er tour affichait donc « — »). Il indique maintenant le tour où l'événement a eu lieu.",
+              es: "Pestaña Límites de pista: el número de vuelta era uno menos (el juego cuenta las vueltas completadas, así que la 1.ª vuelta mostraba «—»). Ahora indica la vuelta en la que ocurrió el evento.",
+              de: "Tab Track Limits: Die Rundennummer war um eins zu niedrig (das Spiel zählt abgeschlossene Runden, die 1. Runde zeigte daher „—“). Sie zeigt jetzt die Runde, in der das Ereignis stattfand.",
+              it: "Scheda Limiti della pista: il numero del giro era uno in meno (il gioco conta i giri completati, quindi il 1° giro mostrava «—»). Ora indica il giro in cui è avvenuto l'evento.",
             },
           },
           {

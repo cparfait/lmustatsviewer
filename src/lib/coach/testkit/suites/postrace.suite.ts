@@ -9,6 +9,8 @@ import { buildPostRaceContext, buildPlayerEventsText } from "@/lib/ai/context/po
 import { parseTelemetryFilename, pickSessionTelemetry, sessionLetter } from "@/lib/ai/context/session-telemetry";
 import { summarizeCommunityReference } from "@/lib/ai/context/community-context";
 import type { SessionDetail, TelemetryFileInfo } from "@/lib/api";
+import { locateInLap, describeLocation, nearestCorner } from "@/lib/trackLimitsLocate";
+import { trackLimitLap } from "@/lib/eventLocator";
 
 const lap = (n: number, t: number | null, o: { valid?: boolean; used?: number; fuel?: number } = {}) => ({
   driver_name: "Cris Tof",
@@ -138,10 +140,59 @@ export function run(): void {
   section("post-course — limites de piste et contacts");
   const ev = buildPlayerEventsText(detail([]).stream, "Cris Tof");
   ok(ev.includes("Track-limit events: 1"), "seules les limites du joueur");
-  ok(ev.includes("L2 at 5:12.4: Invalid Lap Off Track · points 1"), "tour, heure, points");
+  ok(ev.includes("L3 at 5:12.4: Invalid Lap Off Track · points 1"), "champ Lap = tours bouclés → tour 3");
   ok(ev.includes("Contacts: 2 (1 with walls/barriers, 1 with cars"), "contacts mur / voiture");
   ok(ev.includes("with Other Guy"), "contact subi : l'autre pilote est nommé");
   eq(buildPlayerEventsText([], "Cris Tof"), "", "rien → section absente");
+
+  section("post-course — limite de piste située dans le tour");
+  eq(trackLimitLap("0"), 1, "0 tour bouclé → 1er tour");
+  eq(trackLimitLap("x"), null, "champ illisible → rien");
+  // Course réelle (Spa GT3, 21/07/2026) : débuts de tour lus dans le fichier.
+  const spa = [
+    { lap_num: 1, et: 70.48, lap_time: 163.771, s1: 52.126, s2: 70.002 },
+    { lap_num: 2, et: 234.2532, lap_time: null, s1: 40.3256, s2: null },
+    { lap_num: 3, et: 381.2225, lap_time: null, s1: null, s2: null },
+    { lap_num: 4, et: 530.3024, lap_time: 146.707, s1: 39.3898, s2: 66.2374 },
+    { lap_num: 5, et: 677.0093, lap_time: null, s1: 39.7083, s2: null },
+  ];
+  const ref = {
+    length: 7000,
+    s1: 2000,
+    s2: 4500,
+    corners: [
+      { dist: 400, label: "T1 La Source" },
+      { dist: 1400, label: "T4 Raidillon" },
+      { dist: 3000, label: "T10 Pouhon" },
+      { dist: 6800, label: "T19 Bus Stop" },
+    ],
+    bestSectors: [39.3898, 66.2374, 41.0797] as [number, number, number],
+  };
+  const l3 = locateInLap(409.4, spa, ref, 754.69, 3);
+  eq(l3?.lap, 3, "heure 409,4 s → tour 3 (débuté à 381,2 s)");
+  eq(l3?.sector, 1, "28 s dans un tour sans secteurs → S1 (secteurs du meilleur tour à l'échelle)");
+  eq(l3?.corner, "T4 Raidillon", "≈ 1,4 km → Raidillon");
+  ok(describeLocation(l3).startsWith("near T4 Raidillon (S1"), "texte pour le coach");
+  const l4 = locateInLap(530.3 + 39.39 + 30, spa, ref, 754.69, null);
+  eq(l4?.sector, 2, "30 s dans S2 du tour 4");
+  eq(l4?.method, "sectors", "bornes de secteurs du tracé");
+  const prof = {
+    time: Array.from({ length: 30 }, (_, i) => (i * 146.7) / 29),
+    dist: Array.from({ length: 30 }, (_, i) => (i * 7000) / 29),
+  };
+  const lp = locateInLap(530.3 + 39.39 + 30, spa, { ...ref, profile: prof }, 754.69, null);
+  eq(lp?.method, "telemetry", "profil de télémétrie utilisé");
+  eq(locateInLap(10, spa, ref, null, 1)?.lap, 1, "avant le 1er début de tour connu → tour du fichier");
+  eq(locateInLap(409.4, spa, { length: 7000 }, 754.69, 3)?.method, "lap", "sans tracé : au prorata du tour");
+  eq(locateInLap(409.4, spa, { length: 7000 }, 754.69, 3)?.corner, null, "au prorata : pas de virage nommé");
+  eq(nearestCorner(ref.corners, 6990, 7000), "T19 Bus Stop", "tour fermé : la fin rejoint le début");
+  const located = buildPlayerEventsText(
+    [{ event_type: "TrackLimits", et: 409.4, text: "2|0.5|0.75|Cris Tof|Warning" }],
+    "Cris Tof",
+    (_d, et, hint) => locateInLap(et, spa, ref, 754.69, hint),
+  );
+  ok(located.includes("L3 at 6:49.4 — near T4 Raidillon"), "événement situé dans le texte du coach");
+  ok(located.includes("ESTIMATED"), "estimation signalée au coach");
 
   section("post-course — télémétrie de la session");
   eq(sessionLetter("Qualify"), "Q", "Qualify → Q");

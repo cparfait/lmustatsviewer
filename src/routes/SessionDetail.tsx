@@ -19,6 +19,7 @@ import { TableTitle } from "@/components/TableTitle";
 import { ClassBadge } from "@/components/ClassBadge";
 import { Tip } from "@/components/ui/tooltip";
 import { CarLogo } from "@/components/CarLogo";
+import { loadEventLocator, trackLimitLap, type EventLocator } from "@/lib/eventLocator";
 import { CarNumber } from "@/components/CarNumber";
 import { TrackFlag } from "@/components/TrackFlag";
 import {
@@ -917,6 +918,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
             events={trackLimitEvents}
             playerName={playerName}
             numberByDriver={numberByDriver}
+            detail={data}
           />
         </TabsContent>
 
@@ -2141,7 +2143,8 @@ function parseTrackLimitEvent(ev: SessionDetailData["stream"][number]): TrackLim
     if (parts.length >= 5) {
       return {
         et: ev.et,
-        lap: parseInt(parts[0]) || null,
+        // Le fichier compte les tours BOUCLÉS (0 pendant le 1er tour).
+        lap: trackLimitLap(parts[0]),
         warningPts: parseFloat(parts[1]) || null,
         totalPts: parseFloat(parts[2]) || null,
         driver: parts[3] || null,
@@ -2164,13 +2167,28 @@ function TrackLimitsTab({
   events,
   playerName,
   numberByDriver,
+  detail,
 }: {
   events: SessionDetailData["stream"];
   playerName: string;
   /** Nom du pilote → numéro de voiture (le flux ne fournit que le nom). */
   numberByDriver: Map<string, number>;
+  /** Session complète : situe chaque événement dans le tour (virage estimé). */
+  detail: SessionDetailData;
 }) {
   const { t } = useTranslation();
+  const [locate, setLocate] = useState<EventLocator | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setLocate(null);
+    if (events.length === 0) return;
+    loadEventLocator(detail)
+      .then((fn) => !cancelled && setLocate(() => fn))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [detail, events.length]);
 
   if (events.length === 0) {
     return (
@@ -2214,6 +2232,9 @@ function TrackLimitsTab({
                     <Tip content={t("sessionDetail.colTotalPtsTip")}>{t("sessionDetail.colTotalPts")}</Tip>
                   </TableHead>
                   <TableHead>{t("sessionDetail.colDriver")}</TableHead>
+                  <TableHead>
+                    <Tip content={t("sessionDetail.colWhereTip")}>{t("sessionDetail.colWhere")}</Tip>
+                  </TableHead>
                 </>
               )}
               <TableHead>
@@ -2229,6 +2250,17 @@ function TrackLimitsTab({
                 r.driver.includes(playerName.split(" ")[0] ?? "");
               const isCut = r.resolution.toLowerCase().includes("cut") ||
                 r.resolution.toLowerCase().includes("invalid");
+              // Lieu estimé : virage officiel le plus proche, sinon secteur + distance.
+              const loc = locate && r.driver ? locate(r.driver.trim(), r.et, r.lap) : null;
+              const where = loc
+                ? loc.corner ??
+                  [
+                    loc.sector ? `S${loc.sector}` : "",
+                    loc.dist != null && loc.method !== "lap" ? `≈ ${(loc.dist / 1000).toFixed(2)} km` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "";
               return (
                 <TableRow
                   key={i}
@@ -2245,7 +2277,7 @@ function TrackLimitsTab({
                   {hasStructured && (
                     <>
                       <TableCell className="text-center font-mono">
-                        {r.lap ?? "—"}
+                        {loc?.lap ?? r.lap ?? "—"}
                       </TableCell>
                       <TableCell className="text-right font-mono text-amber-500">
                         {r.warningPts != null ? r.warningPts.toFixed(2) : "—"}
@@ -2269,6 +2301,9 @@ function TrackLimitsTab({
                         ) : (
                           "—"
                         )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {where || "—"}
                       </TableCell>
                     </>
                   )}

@@ -143,7 +143,8 @@ CREATE TABLE IF NOT EXISTS laps (
     fcompound    TEXT    NOT NULL DEFAULT '',
     rcompound    TEXT    NOT NULL DEFAULT '',
     is_pit       INTEGER NOT NULL DEFAULT 0,
-    is_valid     INTEGER NOT NULL DEFAULT 1
+    is_valid     INTEGER NOT NULL DEFAULT 1,
+    et           REAL                          -- heure de session au début du tour
 );
 
 -- Événements de flux par session : chat, pénalités, incidents (détails de course).
@@ -394,6 +395,9 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
     // -1 = inconnu (fichier indexé avant l'ajout : une réindexation le complète).
     let _ = conn.execute("ALTER TABLE xml_index ADD COLUMN server_name TEXT NOT NULL DEFAULT ''", []);
     let _ = conn.execute("ALTER TABLE xml_index ADD COLUMN dedicated INTEGER NOT NULL DEFAULT -1", []);
+    // Heure de session au début de chaque tour : situe un événement (limite de piste)
+    // dans le tour. NULL pour une base existante : complété à la lecture du détail.
+    let _ = conn.execute("ALTER TABLE laps ADD COLUMN et REAL", []);
     // Migration : création de la table `purged_files` si elle manque (base existante).
     let _ = conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS purged_files (

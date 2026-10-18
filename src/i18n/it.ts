@@ -2793,6 +2793,8 @@ export default {
     colWarningPtsTip: "Punti di avviso per questo evento",
     colTotalPtsTip: "Totale dei punti accumulati da questo pilota",
     colResolutionTip: "Tipo di sanzione applicata",
+    colWhere: "Dove (stimato)",
+    colWhereTip: "Curva più vicina, stimata dall'ora dell'evento, dai tempi sul giro e di settore e dal tracciato noto del circuito (circa ±150 m). Senza tracciato noto: solo il settore.",
   },
   onboarding: {
     welcome: "Benvenuto in LMU Stats Viewer",

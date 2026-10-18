@@ -22,6 +22,8 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  Palette,
+  Glasses,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,6 +31,12 @@ import { ColorPicker } from "@/components/ui/color-picker";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { WidgetServerSettings } from "@/components/WidgetServerSettings";
+import { OverlayLookDialog } from "@/components/OverlayLookSettings";
+import { OverlayThumb } from "@/components/overlay/OverlayThumb";
+import { VrBanner, VrCopyButton } from "@/components/OverlayVr";
+import { useVrBase } from "@/lib/widgetServer";
+import { usePageState } from "@/lib/usePageState";
 import { cn } from "@/lib/utils";
 import { overlay as overlayApi, type OverlayScreen } from "@/lib/api";
 import { toastError } from "@/stores/dialogs";
@@ -100,6 +108,10 @@ export function Overlays() {
 
   const [selected, setSelected] = useState<OverlayId | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showLook, setShowLook] = useState(false);
+  // Mode VR : adresses à copier dans OpenKneeboard à la place des interrupteurs.
+  const [vrMode, setVrMode] = usePageState("overlays.vr", false);
+  const vr = useVrBase(vrMode);
   // Mémorise qu'on a ouvert la config depuis le mode Édition (clic ⚙) afin d'y
   // revenir automatiquement au retour, sans avoir à recliquer « Mode Édition ».
   const returnToEditRef = useRef(false);
@@ -431,19 +443,39 @@ export function Overlays() {
   return (
     <div>
       {/* Barre d'actions */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-y-2">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">{t("overlays.title")}</h1>
           <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
             {t("overlays.activeCount", { count: activeCount })}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {savedFlash && (
-            <span className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-emerald-500 transition-opacity">
-              <Check className="h-3.5 w-3.5" /> {t("overlays.saved")}
-            </span>
-          )}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* Place toujours réservée : l'indicateur ne pousse plus les boutons à chaque
+              réglage modifié (la page changeait de largeur). */}
+          <span
+            aria-hidden={!savedFlash}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-emerald-500 transition-opacity",
+              savedFlash ? "opacity-100" : "opacity-0",
+            )}
+          >
+            <Check className="h-3.5 w-3.5" /> {t("overlays.saved")}
+          </span>
+          <Button
+            variant={vrMode ? "default" : "outline"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setVrMode(!vrMode)}
+            title={t("overlays.vr.buttonHint")}
+          >
+            <Glasses className="h-4 w-4" />
+            {t("overlays.vr.button")}
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowLook(true)}>
+            <Palette className="h-4 w-4" />
+            {t("overlays.look.button")}
+          </Button>
           {/* Tout activer / Tout désactiver : bascule l'état ON/OFF de tous les overlays. */}
           <Button
             variant="outline"
@@ -558,6 +590,8 @@ export function Overlays() {
         </div>
       </div>
 
+      {vrMode && <VrBanner base={vr.base} error={vr.error} />}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {OVERLAY_DEFS.map((def) => {
           const s = cfg.overlays[def.id];
@@ -576,15 +610,15 @@ export function Overlays() {
               )}
               style={s.enabled ? { boxShadow: `0 0 0 1px ${def.accent}66` } : undefined}
             >
-              <div className="mb-3 flex items-start justify-between">
-                <div
-                  className="grid h-9 w-9 place-items-center rounded-lg"
+              {/* Aperçu du vrai widget (données d'exemple, apparence choisie). */}
+              <OverlayThumb id={def.id} content={s.content} accent={s.accent ?? def.accent} />
+              <div className="mb-0.5 mt-3 flex items-center gap-2 font-semibold">
+                <span
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-md"
                   style={{ background: `${def.accent}22`, color: def.accent }}
                 >
-                  <Icon className="h-4.5 w-4.5" />
-                </div>
-              </div>
-              <div className="mb-0.5 font-semibold">
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
                 {t(`overlays.items.${def.id}.title`)}
               </div>
               <div className="text-xs font-medium text-muted-foreground">
@@ -593,22 +627,39 @@ export function Overlays() {
               <div className="mb-3 mt-1 text-[11px] leading-snug text-muted-foreground/70">
                 {t(`overlays.items.${def.id}.tip`)}
               </div>
-              <div
-                className="flex items-center justify-between border-t border-border pt-2.5"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {activeLabel(s)}
-                </span>
-                <Switch
-                  checked={s.enabled}
-                  onCheckedChange={() => handleToggle(def.id)}
-                />
-              </div>
+              {vrMode ? (
+                <div className="border-t border-border pt-2.5" onClick={(e) => e.stopPropagation()}>
+                  <VrCopyButton base={vr.base} id={def.id} />
+                </div>
+              ) : (
+                <div
+                  className="flex items-center justify-between border-t border-border pt-2.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {activeLabel(s)}
+                  </span>
+                  <Switch
+                    checked={s.enabled}
+                    onCheckedChange={() => handleToggle(def.id)}
+                  />
+                </div>
+              )}
             </Card>
           );
         })}
       </div>
+
+      <div className="mt-6">
+        <WidgetServerSettings
+          onVrMode={() => {
+            setVrMode(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+      </div>
+
+      {showLook && <OverlayLookDialog onClose={() => setShowLook(false)} />}
 
       {showCreate && (
         <CreateProfileModal

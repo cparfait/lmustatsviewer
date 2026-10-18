@@ -165,6 +165,16 @@ export function VoiceMessagesModal({ onClose }: { onClose: () => void }) {
 
         {/* ── Corps ── */}
         <div className="overflow-y-auto px-5 py-4 space-y-5">
+          {/* Mode d'emploi : formulations, variables, écoute, réinitialisation. */}
+          <details className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs" open>
+            <summary className="cursor-pointer select-none font-semibold text-foreground">{t("live.vmHelpTitle")}</summary>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+              <li>{t("live.vmHelpVariants")}</li>
+              <li>{t("live.vmHelpVars", { example: "{{n}}" })}</li>
+              <li>{t("live.vmHelpTest")}</li>
+              <li>{t("live.vmHelpReset")}</li>
+            </ul>
+          </details>
           {VOICE_MESSAGE_GROUPS.map((group) => {
             const Icon = GROUP_ICON[group.id];
             return (
@@ -187,11 +197,19 @@ export function VoiceMessagesModal({ onClose }: { onClose: () => void }) {
                             <span className="text-xs text-muted-foreground">
                               {t(`live.vmWhen.${def.key}`)}
                             </span>
-                            {def.vars.length > 0 && (
-                              <span className="text-micro font-mono text-primary/70">
-                                {def.vars.map((v) => `{{${v}}}`).join(" ")}
+                            {/* Variables avec un exemple de valeur (« {{n}} → 3 »). */}
+                            {def.vars.map((v) => (
+                              <span
+                                key={v}
+                                className="rounded bg-primary/10 px-1 text-micro font-mono text-primary"
+                                title={t("live.vmVarTitle", { v: `{{${v}}}` })}
+                              >
+                                {`{{${v}}}`}
+                                {def.sample?.[v] !== undefined && (
+                                  <span className="text-muted-foreground"> → {String(def.sample[v])}</span>
+                                )}
                               </span>
-                            )}
+                            ))}
                             {changed && (
                               <span className="text-micro text-amber-500">
                                 ● {t("live.vmModified")}

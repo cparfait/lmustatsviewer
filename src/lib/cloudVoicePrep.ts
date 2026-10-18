@@ -62,6 +62,20 @@ export const CLOUD_PREP_KEYS: readonly string[] = [
   "vRainHeavier",
   "vRefuelNeeded",
   "vAskLapPref",
+  // Annonces de course (sans variable, information).
+  "vPenaltyServed",
+  "vPitsClosed",
+  "vPitsOpen",
+  "vFoCatchUpSc",
+  "vPressureOk",
+  "vTyresDirty",
+  "vCrashCheck",
+  "vCrashResume",
+  "vLapAllowance",
+  "vTooSlow",
+  "vUnsportsmanlike",
+  "vHeadlights",
+  "vCrewReady",
 ];
 
 /**
@@ -83,6 +97,8 @@ export const CLOUD_PREP_ALERT_KEYS: readonly string[] = [
   "vBrakeOverheat",
   "vPitLaneLimiter",
   "vLimiterForgotten",
+  "vPitEntryLimiter",
+  "vPitExitLimiterOn",
   "vSpotLeft",
   "vSpotRight",
   "vSpotThree",
@@ -92,11 +108,50 @@ export const CLOUD_PREP_ALERT_KEYS: readonly string[] = [
   "vSpotStill",
   "vStintLiftCoast",
   "vStintOutLap",
+  // Annonces de course urgentes (sans variable).
+  "vScOut",
+  "vScIn",
+  "vRestart",
+  "vFoNoPassSc",
+  "vExitTraffic",
+  "vWrongWay",
+  "vBlueWarning",
+  "vPenOneLap",
+  "vPenEnterPits",
+];
+
+/**
+ * Gabarits d'information dits hors de `useRaceEngineer.ts` (records au volant,
+ * repères de revue : `engineer/sideCallouts.ts`), sans variable, en priorité `normal`.
+ */
+export const CLOUD_PREP_EXTRA_KEYS: readonly string[] = [
+  "vRecordPersonal",
+  "vRecordClass",
+  "vRecordCommunity",
+  "vReviewMark",
+];
+
+/**
+ * Phrases de l'ingénieur quand on lui parle (accusé, « pas compris », coach
+ * indisponible, rappels de cause) : clés i18n **complètes**, hors `live.*` (non
+ * personnalisables). Dites en réponse (`announceAnswer` : en direct si absentes),
+ * préparées pour partir sans délai dans la voix en ligne plutôt qu'en Piper.
+ */
+export const CLOUD_PREP_ANSWER_KEYS: readonly string[] = [
+  "coach.voiceAck1",
+  "coach.voiceAck2",
+  "coach.voiceAck3",
+  "coach.voiceUnclear",
+  "coach.voiceUnavailable",
+  "coach.voiceNotUnderstood",
+  "coach.voiceHintModel",
+  "coach.voiceHintKey",
 ];
 
 /** Gabarits à préparer : l'information, plus les phrases urgentes sauf « alertes en voix locale ». */
 export function cloudPrepKeys(alertsLocal: boolean): string[] {
-  return alertsLocal ? [...CLOUD_PREP_KEYS] : [...CLOUD_PREP_KEYS, ...CLOUD_PREP_ALERT_KEYS];
+  const info = [...CLOUD_PREP_KEYS, ...CLOUD_PREP_EXTRA_KEYS];
+  return alertsLocal ? info : [...info, ...CLOUD_PREP_ALERT_KEYS];
 }
 
 /**

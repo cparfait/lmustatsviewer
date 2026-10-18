@@ -11,7 +11,7 @@ import { Dashboard } from "@/routes/Dashboard";
 import { Sessions } from "@/routes/Sessions";
 import { SessionDetail } from "@/routes/SessionDetail";
 import { Records } from "@/routes/Records";
-import { Classement } from "@/routes/Classement";
+import { Classement, preloadMyPositions } from "@/routes/Classement";
 import { Setups } from "@/routes/Setups";
 import { SetupDetail } from "@/routes/SetupDetail";
 import { SetupCompare } from "@/routes/SetupCompare";
@@ -40,6 +40,11 @@ import { useCoachVoice } from "@/lib/useCoachVoice";
 import { useCornerCoach } from "@/lib/useCornerCoach";
 import { RaceEngineerHost } from "@/components/RaceEngineerHost";
 import { useRegieAutostart } from "@/lib/regie";
+import { useToolLauncher } from "@/lib/toolLauncher";
+import { useWidgetServerAutostart } from "@/lib/widgetServer";
+import { useRecordBeeps } from "@/lib/useRecordBeeps";
+import { useReviewMarks } from "@/lib/reviewMarks";
+import { useRadioAudio } from "@/lib/useRadioAudio";
 import { useRadioFeedback } from "@/lib/engineer/useRadioFeedback";
 import { CommunityInvite } from "@/components/CommunitySettings";
 import { useOverlayShortcut } from "@/lib/useOverlayShortcut";
@@ -62,11 +67,28 @@ export default function App() {
     fetchBenchmarks().catch(() => {});
   }, []);
 
+  // Préchargement de la page Classements (onglet « Ma position ») : au lancement, puis
+  // après chaque nouvelle donnée indexée (attente de 3 s pour regrouper les rafales),
+  // jamais pendant le Live. La page s'affiche ensuite sans attente.
+  const dataVersion = useAppStore((s) => s.dataVersion);
+  useEffect(() => {
+    if (!configLoaded || !isConfigured) return;
+    const id = setTimeout(() => {
+      if (!window.location.pathname.startsWith("/live")) preloadMyPositions();
+    }, 3000);
+    return () => clearTimeout(id);
+  }, [configLoaded, isConfigured, dataVersion]);
+
   // Spotter « à la demande » : raccourcis globaux Statut / Mute / Répète.
   useSpotter();
   // Benchmark automatique du temps perdu au stand (T13 #152) → alimente #151.
   usePitLoss();
   useRegieAutostart();
+  useToolLauncher();
+  useWidgetServerAutostart();
+  useRecordBeeps();
+  useReviewMarks();
+  useRadioAudio();
   useRadioFeedback();
   // Programme d'essais : préparation de course cochée toute seule (circuit × voiture).
   useRacePrep();

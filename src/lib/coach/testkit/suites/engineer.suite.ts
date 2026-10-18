@@ -277,6 +277,29 @@ export function run(): void {
     const out = { inPits: false, pitState: 0, limiter: true, speedKmh: 80, brake: 0, throttle: 1, pitLimitKmh: 60 };
     v2.update(out, 0);
     eq(v2.update(out, 3.2), ["limiterForgotten"], "limiteur oublié en piste");
+
+    // Rappels au passage des lignes de la voie des stands.
+    const track = { inPits: false, pitState: 0, limiter: false, speedKmh: 150, brake: 0, throttle: 0.6, pitLimitKmh: 60 };
+    const v3 = new VigieTracker();
+    v3.update(track, 0);
+    const entering = { ...track, inPits: true, pitState: 2, speedKmh: 58, brake: 0.3 };
+    eq(v3.update(entering, 1), [], "entrée : délai pour mettre le limiteur");
+    eq(v3.update(entering, 2.6), ["pitEntryNoLimiter"], "entrée des stands sans limiteur");
+    eq(v3.update({ ...entering, speedKmh: 90, brake: 0 }, 6), [], "pas de 2ᵉ rappel limiteur dans le même passage");
+    const v4 = new VigieTracker();
+    v4.update(track, 0);
+    eq(v4.update({ ...entering, limiter: true }, 1), [], "limiteur mis à temps : rien");
+    eq(v4.update({ ...entering, limiter: true }, 3), [], "toujours rien");
+    const exiting = { ...track, inPits: false, pitState: 0, limiter: true, speedKmh: 60, throttle: 1 };
+    eq(v4.update(exiting, 10), [], "sortie : délai pour couper le limiteur");
+    eq(v4.update(exiting, 11.2), ["pitExitLimiterOn"], "sortie des stands avec le limiteur");
+    eq(v4.update(exiting, 15), [], "l'alerte « limiteur oublié » ne se répète pas");
+    const v5 = new VigieTracker();
+    v5.update({ ...entering, limiter: true }, 0);
+    eq(v5.update({ ...exiting, limiter: false }, 1), [], "limiteur coupé en sortie : rien");
+    const v6 = new VigieTracker();
+    eq(v6.update({ ...entering, limiter: false, speedKmh: 20 }, 0), [], "départ du garage : pas de rappel d'entrée");
+    eq(v6.update({ ...entering, limiter: false, speedKmh: 20 }, 5), [], "toujours pas (aucun passage de ligne)");
   }
 
   // ── Alertes « préviens-moi » ──

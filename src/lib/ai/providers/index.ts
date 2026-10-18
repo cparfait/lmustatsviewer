@@ -28,6 +28,16 @@ export function allProviders(): AIProvider[] {
   return [...PROVIDERS, ...getCustomProviders()];
 }
 
+/**
+ * Vrai si `modelId` fait partie des modèles connus d'un AUTRE fournisseur que
+ * `providerId` (et pas des siens) : un id resté d'un ancien fournisseur.
+ */
+export function isForeignModel(modelId: string, providerId: string): boolean {
+  const own = getProvider(providerId);
+  if (own?.fallbackModels.some((m) => m.id === modelId)) return false;
+  return allProviders().some((p) => p.id !== providerId && p.fallbackModels.some((m) => m.id === modelId));
+}
+
 export function getProvider(id: string): AIProvider | undefined {
   return allProviders().find((p) => p.id === id);
 }

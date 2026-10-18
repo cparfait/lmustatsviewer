@@ -9,8 +9,25 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { live as liveApi, type LiveData, type LiveTelemetry } from "@/lib/api";
+import { isTauri, live as liveApi, type LiveData, type LiveTelemetry } from "@/lib/api";
+import { widgetLink } from "@/lib/widgetLink";
 import type { UnlistenFn } from "@tauri-apps/api/event";
+
+/** Instantané vide : les widgets s'affichent (placeholders « — ») même hors jeu. */
+export const EMPTY_LIVE_DATA: LiveData = {
+  connected: false,
+  paused: false,
+  telemetry: null,
+  player: null,
+  session: null,
+  standings: [],
+  weather: null,
+  flags: null,
+  extended: null,
+  track_layout: null,
+  track_points: [],
+  track_dists: [],
+};
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -57,22 +74,30 @@ export function useOverlayData(highFps: boolean): LiveData | null {
     // jeu). On ne relâche que si le démarrage a effectivement abouti, pour ne
     // pas décrémenter un compteur qu'on n'a jamais incrémenté.
     let polling = false;
-    liveApi
-      .startPolling()
-      .then(() => {
-        polling = true;
-        // Démonté pendant l'appel → on relâche tout de suite.
-        if (!mounted) liveApi.stopPolling().catch(() => {});
-      })
-      .catch(() => {});
-    liveApi
-      .onData((d) => {
-        latestRef.current = d;
-      })
-      .then((fn) => {
-        if (mounted) unlisten = fn;
-        else fn();
+    if (isTauri()) {
+      liveApi
+        .startPolling()
+        .then(() => {
+          polling = true;
+          // Démonté pendant l'appel → on relâche tout de suite.
+          if (!mounted) liveApi.stopPolling().catch(() => {});
+        })
+        .catch(() => {});
+      liveApi
+        .onData((d) => {
+          latestRef.current = d;
+        })
+        .then((fn) => {
+          if (mounted) unlisten = fn;
+          else fn();
+        });
+    } else {
+      // Page de widget servie (VR, OBS…) : trames reçues par WebSocket ; le
+      // serveur garde lui-même le flux live actif tant qu'une page est ouverte.
+      unlisten = widgetLink.onLive((d) => {
+        latestRef.current = d ?? EMPTY_LIVE_DATA;
       });
+    }
 
     const tick = () => {
       const target = latestRef.current;

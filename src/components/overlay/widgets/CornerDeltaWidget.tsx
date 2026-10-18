@@ -11,6 +11,7 @@ import type { Tr } from "@/i18n";
 import { useLiveDelta } from "./useLiveDelta";
 import { useAlienTarget, type TierKey } from "./useAlienTarget";
 import type { WidgetProps } from "./types";
+import { toneColor, useOverlayLook, type OverlayLook } from "@/components/overlay/look";
 
 function fmt(d: number): string {
   return `${d >= 0 ? "+" : ""}${d.toFixed(2)}`;
@@ -27,12 +28,13 @@ function tierLabel(t: Tr, tier: TierKey): string {
   return key[tier] ? t(key[tier]) : tier;
 }
 
-function deltaColor(d: number | null): string {
+function deltaColor(d: number | null, look: OverlayLook): string {
   if (d == null || d === 0) return "white";
-  return d < 0 ? "#4ade80" : "#f87171";
+  return d < 0 ? toneColor(look, "gain", "#4ade80") : toneColor(look, "loss", "#f87171");
 }
 
 export function CornerDeltaWidget({ data, content, accent, t }: WidgetProps) {
+  const look = useOverlayLook();
   const live = useLiveDelta(data);
   const target = useAlienTarget(data);
   const delta = live.delta;
@@ -54,7 +56,7 @@ export function CornerDeltaWidget({ data, content, accent, t }: WidgetProps) {
           <>
             <div
               className="mb-1 text-center font-mono text-2xl font-black tabular-nums"
-              style={{ color: deltaColor(delta) }}
+              style={{ color: deltaColor(delta, look) }}
             >
               {delta == null ? "—.——" : fmt(delta)}
             </div>
@@ -66,7 +68,7 @@ export function CornerDeltaWidget({ data, content, accent, t }: WidgetProps) {
                   style={{
                     left: pct < 0 ? `${50 + pct}%` : "50%",
                     width: `${Math.abs(pct)}%`,
-                    background: ahead ? "#4ade80" : "#f87171",
+                    background: ahead ? toneColor(look, "gain", "#4ade80") : toneColor(look, "loss", "#f87171"),
                   }}
                 />
               )}
@@ -87,7 +89,7 @@ export function CornerDeltaWidget({ data, content, accent, t }: WidgetProps) {
             {target.gapToTargetS != null && (
               <span
                 className="font-mono text-[11px] font-semibold tabular-nums"
-                style={{ color: target.gapToTargetS <= 0 ? "#4ade80" : "#f87171" }}
+                style={{ color: target.gapToTargetS <= 0 ? toneColor(look, "gain", "#4ade80") : toneColor(look, "loss", "#f87171") }}
               >
                 {target.gapToTargetS >= 0 ? "+" : ""}
                 {target.gapToTargetS.toFixed(1)}s
@@ -105,7 +107,7 @@ export function CornerDeltaWidget({ data, content, accent, t }: WidgetProps) {
                 </div>
                 <div
                   className="font-mono text-[11px] font-semibold tabular-nums"
-                  style={{ color: deltaColor(c.delta) }}
+                  style={{ color: deltaColor(c.delta, look) }}
                 >
                   {fmt(c.delta)}
                 </div>

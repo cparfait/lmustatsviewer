@@ -11,30 +11,33 @@ import type { Tr } from "../../i18n";
 import type { AIMessage, AIProvider } from "./types";
 import { systemPrompt } from "./prompts/system";
 import { stripThinking, ThinkingStreamFilter } from "./thinking";
+import { aiErrorKind } from "./errorKind";
 
 /** Rend lisible (et traduite) une erreur de proxy (`HTTP 401: …`). */
 export function friendlyError(e: unknown, t: Tr): string {
-  const msg = e instanceof Error ? e.message : String(e);
-  // Modèle inconnu, retiré ou hors périmètre de la clé : 404 chez Google comme
-  // chez OpenAI, parfois 400 avec un libellé explicite (« no longer available
-  // to new users » pour les Gemini 2.5). Sans ce cas, l'utilisateur voyait le
-  // JSON brut du fournisseur sans comprendre qu'il doit changer de modèle.
-  if (/no longer available|not found for API version|model.*(not found|does not exist)/i.test(msg)) {
-    return t("coach.errModel");
+  const msg = errorMessage(e);
+  const { kind, code } = aiErrorKind(msg);
+  switch (kind) {
+    case "model":
+      return t("coach.errModel");
+    case "key":
+      return t("coach.errKey");
+    case "quota":
+      return t("coach.errQuota");
+    case "rate":
+      return t("coach.errRate");
+    case "server":
+      return t("coach.errServer", { code });
+    case "network":
+      return t("coach.errNetwork");
+    default:
+      return msg;
   }
-  const m = /HTTP (\d{3})/.exec(msg);
-  if (m) {
-    const code = m[1];
-    if (code === "401" || code === "403") return t("coach.errKey");
-    if (code === "402") return t("coach.errQuota");
-    if (code === "404") return t("coach.errModel");
-    if (code === "429") return t("coach.errRate");
-    if (code.startsWith("5")) return t("coach.errServer", { code });
-  }
-  if (/error sending request|connect|dns|timed out|timeout/i.test(msg)) {
-    return t("coach.errNetwork");
-  }
-  return msg;
+}
+
+/** Message brut d'une erreur (Error ou valeur rejetée par `invoke`). */
+export function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
 }
 
 /** Appel chat complet (non-streaming) → texte de la réponse. */

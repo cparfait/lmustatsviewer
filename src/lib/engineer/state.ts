@@ -16,6 +16,10 @@ import { PadWearTracker } from "@/lib/lmuRest";
 import { StintRegistry } from "./rivalStints";
 import { TyreWearTracker, WarmupTracker, WetnessTrend } from "./tyres";
 import type { LapPref, LapPrefs, SessionKind } from "./prefs";
+import { PenaltyTracker } from "./penalties";
+import { PressureWatcher } from "./pressures";
+import { PitTrafficWatcher } from "./pitTraffic";
+import { AlarmClock } from "./alarm";
 
 export interface ForecastState {
   data: WetData;
@@ -70,6 +74,16 @@ class EngineerState {
   brakes = new BrakeMap();
   /** Dernier état de pilotage vu (garde « pilote occupé » de la file vocale). */
   driver: DriverSnapshot | null = null;
+  /** Pénalités (compteur + centre de messages du jeu) — réponses « ai-je une pénalité ? ». */
+  penalties = new PenaltyTracker();
+  /** Pressions des pneus (perte de pression, fenêtre). */
+  pressures = new PressureWatcher();
+  /** Box partagé et trafic à la sortie des stands. */
+  pitTraffic = new PitTrafficWatcher();
+  /** Réveil radio (heure du PC) : survit aux changements de session. */
+  alarms = new AlarmClock();
+  /** Un autre ingénieur radio tourne (mode cohabitation actif). */
+  otherEngineer = false;
 
   /** Nouvelle session : repart de zéro (les alertes posées sont effacées). */
   resetSession(): void {
@@ -87,6 +101,9 @@ class EngineerState {
     this.lap = 0;
     this.pitstops = 0;
     this.policy.reset();
+    this.penalties.reset();
+    this.pressures.reset();
+    this.pitTraffic.reset();
     // Les freinages appris restent : ils appartiennent au circuit, pas à la
     // session (essais → qualif → course). `brakes.setTrack` repart de zéro au
     // changement de circuit.

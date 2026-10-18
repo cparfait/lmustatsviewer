@@ -13,6 +13,7 @@ import { create } from "zustand";
 import { emit } from "@tauri-apps/api/event";
 import { config, overlay as overlayApi } from "@/lib/api";
 import { OVERLAY_DEFS, type OverlayId } from "@/lib/overlays";
+import { DEFAULT_LOOK, mergeLook, type OverlayLook } from "@/components/overlay/look";
 
 const CONFIG_KEY = "overlays_config";
 /** Identifiant unique de cette fenêtre (anti-écho des broadcasts). */
@@ -50,6 +51,8 @@ export interface OverlaysConfig {
   profiles: Record<string, OverlayProfile>;
   /** Profil actif ("" = aucun). */
   activeProfile: string;
+  /** Apparence de tous les overlays (style Classique par défaut). */
+  look: OverlayLook;
 }
 
 /** Construit la config par défaut depuis le registre. */
@@ -75,6 +78,7 @@ function defaults(): OverlaysConfig {
     globalOpacity: 1,
     profiles: {},
     activeProfile: "",
+    look: DEFAULT_LOOK,
   };
 }
 
@@ -111,6 +115,7 @@ function merge(stored: Partial<OverlaysConfig> | null): OverlaysConfig {
     globalOpacity: stored.globalOpacity ?? base.globalOpacity,
     profiles: stored.profiles ?? {},
     activeProfile: stored.activeProfile ?? "",
+    look: mergeLook(stored.look),
   };
 }
 
@@ -153,6 +158,8 @@ interface OverlaysStore {
   /** Interrupteur global : ferme/ouvre la fenêtre overlay (conserve l'état). */
   setMasterEnabled: (v: boolean) => Promise<void>;
   setGlobalOpacity: (v: number) => void;
+  /** Apparence des overlays (fusion partielle). */
+  setLook: (patch: Partial<OverlayLook>) => void;
   /** Profils. */
   saveProfile: (name: string) => void;
   /** Crée un profil neuf (réglages par défaut) avec uniquement les overlays
@@ -272,6 +279,9 @@ export const useOverlaysStore = create<OverlaysStore>((set, get) => ({
 
   setGlobalOpacity: (v) =>
     mutate(set, get, { ...get().cfg, globalOpacity: v }),
+
+  setLook: (patch) =>
+    mutate(set, get, { ...get().cfg, look: mergeLook({ ...get().cfg.look, ...patch }) }),
 
   saveProfile: (name) => {
     const cfg = get().cfg;

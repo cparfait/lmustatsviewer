@@ -1,10 +1,9 @@
 /** Overlay Coach IA : dernière question vocale reconnue + réponse, dans le HUD. */
 
 import { useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
 import { MessageSquare } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
-import { config } from "@/lib/api";
+import { appSetting, onAppEvent } from "@/lib/widgetLink";
 import type { WidgetProps } from "./types";
 
 interface CoachExchange {
@@ -17,8 +16,7 @@ export function CoachWidget({ accent, t }: WidgetProps) {
   // Touche push-to-talk configurée → affichée dans le message au repos.
   const [key, setKey] = useState("Alt+C");
   useEffect(() => {
-    config
-      .get("spotter_key_coach")
+    appSetting("spotter_key_coach")
       .then((k) => k && setKey(k))
       .catch(() => {});
   }, []);
@@ -29,10 +27,10 @@ export function CoachWidget({ accent, t }: WidgetProps) {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     let hideTimer: ReturnType<typeof setTimeout> | undefined;
-    listen<CoachExchange>("coach-voice", (e) => {
-      setEx(e.payload);
+    onAppEvent<CoachExchange>("coach-voice", (payload) => {
+      setEx(payload);
       if (hideTimer) clearTimeout(hideTimer);
-      if (e.payload.answer) hideTimer = setTimeout(() => setEx(null), 15000);
+      if (payload.answer) hideTimer = setTimeout(() => setEx(null), 15000);
     }).then((fn) => {
       unlisten = fn;
     });

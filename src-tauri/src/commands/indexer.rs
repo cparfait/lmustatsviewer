@@ -181,7 +181,7 @@ pub fn purge_empty_sessions(
         }
     }
     if files_removed != to_purge.len() as u32 {
-        eprintln!(
+        crate::app_warn!(
             "[purge] {files_removed}/{} fichier(s) supprimé(s) du disque (les autres \
              étaient absents ou verrouillés)",
             to_purge.len()
@@ -463,8 +463,8 @@ fn index_one_file(
             (filename, file_path, mtime, timestamp, time_string, track, track_course,
              track_event, setting, game_version, race_laps, race_time, track_length,
              mech_fail_rate, damage_mult, fuel_mult, tire_mult, vehicles_allowed,
-             has_any_laps, event_id, indexed_at)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)",
+             has_any_laps, event_id, indexed_at, server_name, dedicated)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23)",
         params![
             filename,
             path.to_string_lossy(),
@@ -487,6 +487,8 @@ fn index_one_file(
             has_any_laps as i32,
             h.timestamp, // event_id provisoire = timestamp, recalculé ensuite
             now,
+            h.server_name,
+            h.dedicated,
         ],
     )
     .map_err(|e| AppError::Database(format!("insert xml_index: {e}")))?;
@@ -611,8 +613,8 @@ fn insert_driver(
             "INSERT INTO laps
                 (result_id, session_id, driver_name, lap_num, position, lap_time,
                  s1, s2, s3, top_speed, fuel, fuel_used, twfl, twfr, twrl, twrr,
-                 fcompound, rcompound, is_pit, is_valid)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20)",
+                 fcompound, rcompound, is_pit, is_valid, et)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21)",
             params![
                 result_id,
                 session_id,
@@ -634,6 +636,7 @@ fn insert_driver(
                 lap.rcompound,
                 lap.is_pit as i32,
                 lap.is_valid as i32,
+                lap.et,
             ],
         )
         .map_err(|e| AppError::Database(format!("insert lap: {e}")))?;
@@ -862,7 +865,7 @@ mod tests {
             r"D:\SteamLibrary\steamapps\common\Le Mans Ultimate\UserData\Log\Results",
         );
         if !dir.is_dir() {
-            eprintln!("[skip] dossier Results introuvable : {}", dir.display());
+            crate::app_warn!("[skip] dossier Results introuvable : {}", dir.display());
             return;
         }
         // Détermine le joueur = nom de pilote le plus fréquent (règle V1).

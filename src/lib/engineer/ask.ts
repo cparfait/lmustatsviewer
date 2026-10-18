@@ -9,7 +9,8 @@
  *  3. **liste des commandes** (phrases éditables de la Config) : sur la dictée
  *     libre, puis sur la reconnaissance stricte de la même prise de parole ;
  *  4. Coach IA pour une question ouverte, s'il est configuré ;
- *  5. sans IA : meilleure supposition locale, sinon le point de course.
+ *  5. sans IA : meilleure supposition locale, sinon « pas compris » (ou « vérifie
+ *     que le coach IA est bien branché » s'il est activé mais incomplet).
  * La reconnaissance « stricte seule » reproduit l'ancienne touche du spotter.
  */
 
@@ -20,7 +21,11 @@ import { live, type LiveData } from "@/lib/api";
 import { effectivePitLoss } from "@/lib/lmuRest";
 import { announce, announceAnswer, cancelSpeech, repeatLast } from "@/lib/voice";
 import { getProvider } from "@/lib/ai/providers";
-import { askCoachVoice, classifyIntent, friendlyError } from "@/lib/ai/coach";
+import { askCoachVoice, classifyIntent, errorMessage, friendlyError } from "@/lib/ai/coach";
+import { sampleLiveData } from "@/components/overlay/sampleData";
+import { aiErrorKind, type AiErrorKind } from "@/lib/ai/errorKind";
+import { VariantPicker } from "@/lib/engineer/variants";
+import { noAnswerKey, radioErrorKey } from "@/lib/engineer/radioErrors";
 import { buildStatus } from "@/lib/spotter";
 import { route, INTENT_HELP, extractEntities, normalize, type AnswerIntent } from "@/lib/engineer/router";
 import { radioLog, type Rating } from "@/lib/engineer/radioFeedback";
@@ -35,9 +40,23 @@ import { answerIntent, registerWatch } from "@/lib/engineer/answers";
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { coachRecentDiagnostics, type RecentDiag } from "@/lib/coach";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
-import { toast, toastSuccess } from "@/stores/dialogs";
+import { toast, toastError, toastSuccess } from "@/stores/dialogs";
 import { factsBlock } from "@/lib/ai/facts";
 import { radioCard } from "@/lib/ai/knowledge/engineering-cards";
+import { PIT_CMDS, runPitCommand, type PitCmd } from "@/lib/engineer/pitVoice";
+import { parseAlarm } from "@/lib/engineer/alarm";
+import { engineer } from "@/lib/engineer/state";
+import { saveNoteHere } from "@/lib/useVoiceNotes";
+
+// Phrases radio d'échec (« pas compris », coach indisponible) : variantes
+// « A | B | C » en rotation ; rappels de cause déjà dits (cf. `radioErrorKey`).
+const radioPicker = new VariantPicker();
+const hintedErrors = new Set<AiErrorKind>();
+
+/** Une formulation de la phrase radio `key` (gabarit à variantes). */
+export function radioLine(t: TFunction, key: string): string {
+  return radioPicker.pick(key, t(key));
+}
 
 /**
  * Fournisseur / modèle / clé réellement utilisés par le coach **vocal**.
@@ -127,6 +146,8 @@ export interface AskResult {
   text: string;
   /** Qui a répondu. */
   via: "command" | "local" | "phrases" | "ai" | "fallback" | "none";
+  /** Test sans session en cours : la réponse repose sur la course d'exemple. */
+  sample?: boolean;
 }
 
 /** Libellé d'une commande pour le test (« Commande reconnue : … »). */
@@ -167,18 +188,20 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   const heard = free || strict;
   const gone = () => o.disposed?.() ?? false;
 
+  // Test sans rouler : sans session en cours, la course d'exemple prend le relais.
+  let sample = false;
   const say = (text: string, via: AskResult["via"]): AskResult => {
     if (!gone() && text) {
       announceAnswer(text, lang);
       toastSuccess(text);
       void emit("coach-voice", { question: heard, answer: text });
     }
-    return { text, via };
+    return sample ? { text, via, sample } : { text, via };
   };
 
   if (!heard) {
-    const text = t("coach.voiceUnclear");
-    if (!gone()) announce(text, lang);
+    const text = radioLine(t, "coach.voiceUnclear");
+    if (!gone()) announceAnswer(text, lang);
     return { text, via: "none" };
   }
   // La question reconnue s'affiche (l'utilisateur voit si la dictée a mal compris).
@@ -186,6 +209,12 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   void emit("coach-voice", { question: heard, answer: null });
   const r = route(free, lang);
   let data = await live.getData().catch(() => null);
+  // Configuration › Tester l'ingénieur : sans session en cours, une course d'exemple
+  // (celle des aperçus d'overlays) donne des réponses réalistes au lieu de « pas de session ».
+  if (o.dryRun && (!data || !data.connected || !data.session)) {
+    data = sampleLiveData(300);
+    sample = true;
+  }
   if (aboutPads(r)) data = await withGamePads(data);
 
   const norm = r.norm || normalize(strict, lang);
@@ -194,9 +223,27 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     pitLossSec: effectivePitLoss(data, st0.pitLossSeconds, st0.pitLaneLoss),
     fuelReserveLaps: st0.fuelReserveLaps,
     classPositions: st0.classPositions,
+    pressureUnit: st0.pressureUnit,
     entities: r.norm ? r.entities : extractEntities(norm, lang),
     norm,
   };
+
+  // Actions asynchrones : menu des stands (écritures dans le jeu), réveil, note vocale.
+  if (r.intent && (PIT_CMDS.has(r.intent) || r.intent === "alarm" || r.intent === "voiceNote")) {
+    if (o.dryRun) return say(t("config.engineerTestCommand", { name: commandLabel(t, r.intent) }), "command");
+    if (r.intent === "alarm") {
+      const a = parseAlarm(norm, Date.now());
+      if (!a) return say(t("live.spAlarmUnknown"), "command");
+      engineer.alarms.add(a);
+      return say(t("live.spAlarmSet", { label: a.label }), "command");
+    }
+    if (r.intent === "voiceNote") return say(await saveNoteHere(t), "command");
+    const text = await runPitCommand(r.intent as PitCmd, data, norm, t, {
+      allowed: st0.gameWrites,
+      reserveLaps: st0.fuelReserveLaps,
+    });
+    return say(text, "command");
+  }
 
   // Exécute (ou, en test, annonce seulement) une intention locale.
   const runIntent = (id: AnswerIntent, via: AskResult["via"]): AskResult => {
@@ -252,7 +299,12 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     if (card) return say(card, "local");
     const guess = r.ambiguous && r.candidates.length ? r.candidates[0] : r.guess;
     if (guess && !isAction(guess)) return runIntent(guess, "local");
-    return say(`${t("coach.voiceLocalFallback")} ${buildStatus(data, t, st0.classPositions)}`, "fallback");
+    // Rien de local : l'ingénieur dit qu'il ne comprend pas (ou que le coach IA
+    // n'est pas branché) ; l'explication reste dans le toast ci-dessus. Le point de
+    // course reste à la demande (« le point », touche Statut).
+    const text = radioLine(t, noAnswerKey(st0.aiCoachEnabled, mode));
+    if (!gone()) announceAnswer(text, lang);
+    return { text, via: "fallback" };
   }
 
   // ── 4. Coach IA ─────────────────────────────────────────────────────────────
@@ -283,10 +335,17 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
       contextText: ctx,
       systemOverride: useAppStore.getState().aiSystemPromptByLang[lang.slice(0, 2).toLowerCase()] ?? "",
     });
+    // Le coach répond de nouveau : un futur échec de modèle / clé sera rappelé.
+    hintedErrors.clear();
     return say(stripMd(answer), "ai");
   } catch (e) {
+    // Écran : le message détaillé (quoi corriger). Radio : une phrase courte,
+    // jamais le texte technique.
     const text = friendlyError(e, t);
-    if (!gone()) announce(text, lang);
+    if (!gone()) {
+      toastError(text);
+      announceAnswer(radioLine(t, radioErrorKey(aiErrorKind(errorMessage(e)).kind, hintedErrors)), lang);
+    }
     return { text, via: "none" };
   }
 }

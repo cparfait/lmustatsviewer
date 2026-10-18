@@ -18,13 +18,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useAppStore } from "@/stores/app";
 import { isTauri } from "@/lib/api";
-import { announce, setDriverTalking } from "@/lib/voice";
+import { announceAnswer, setDriverTalking } from "@/lib/voice";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { pttBeep } from "@/lib/radioFx";
 import { friendlyError } from "@/lib/ai/coach";
-import { askEngineer } from "@/lib/engineer/ask";
+import { askEngineer, radioLine } from "@/lib/engineer/ask";
 import { buildGrammar } from "@/lib/spotterCommands";
-import { toast } from "@/stores/dialogs";
+import { toast, toastError } from "@/stores/dialogs";
 
 export function useCoachVoice() {
   const { t, i18n } = useTranslation();
@@ -35,6 +35,7 @@ export function useCoachVoice() {
   const micReady = useAppStore((s) => s.micReady);
   const wakeOn = useAppStore((s) => s.wakeWordEnabled);
   const wakeWord = useAppStore((s) => s.wakeWord);
+  const micDevice = useAppStore((s) => s.micDevice);
   const lang = i18n.language;
   // La touche écoute dès qu'elle est définie. La configuration IA (activation,
   // fournisseur, modèle, clé) est relue au moment d'une question ouverte
@@ -60,11 +61,32 @@ export function useCoachVoice() {
       return;
     }
     const word = wakeOn ? wakeWord.trim() || t("live.wakeWordDefault") : null;
-    invoke("voice_input_start", { lang, wakeWord: word }).catch((e) => {
-      // Micro indisponible : la touche retombe sur la capture à l'appui.
-      toast(`${t("config.micEngineError")} ${String(e)}`);
+    // Changer de micro relance le moteur à chaud (clé différente côté Rust).
+    invoke<{ name: string; fallback: boolean; restarted: boolean }>("voice_input_start", {
+      lang,
+      wakeWord: word,
+      device: micDevice || null,
+    })
+      .then((r) => {
+        if (r.restarted && r.fallback) toast(t("config.micDeviceFallback", { wanted: micDevice, name: r.name }));
+      })
+      .catch((e) => {
+        // Micro indisponible : la touche retombe sur la capture à l'appui.
+        toast(`${t("config.micEngineError")} ${String(e)}`);
+      });
+  }, [micReady, wakeOn, wakeWord, micDevice, lang, t]);
+  // Micro perdu en cours de route (débranché) : le moteur rouvre seul, on prévient.
+  useEffect(() => {
+    if (!isTauri()) return;
+    const off = listen<{ kind: string; name: string; wanted: string }>("voice-input-device", (e) => {
+      const { kind, name, wanted } = e.payload ?? { kind: "", name: "", wanted: "" };
+      const tt = tRef.current;
+      if (kind === "none") toast(tt("config.micDeviceNone"));
+      else if (kind === "fallback") toast(tt("config.micDeviceFallback", { wanted, name }));
+      else if (kind === "reconnected") toast(tt("config.micDeviceReconnected", { name }));
     });
-  }, [micReady, wakeOn, wakeWord, lang, t]);
+    return () => void off.then((f) => f()).catch(() => {});
+  }, []);
   useEffect(
     () => () => {
       if (isTauri()) invoke("voice_input_stop").catch(() => {});
@@ -152,7 +174,10 @@ export function useCoachVoice() {
           strict = await invoke<string>("stt_recognize", { pcmBase64, lang, grammar }).catch(() => "");
         }
       } catch (e) {
-        announce(friendlyError(e, tRef.current), lang);
+        // Capture ou reconnaissance en échec : le détail à l'écran, « pas
+        // compris » (court, à variantes) à la radio.
+        toastError(friendlyError(e, tRef.current));
+        announceAnswer(radioLine(tRef.current, "coach.voiceUnclear"), lang);
         return;
       }
       await answerQuestion(free, strict);

@@ -4,7 +4,9 @@ import { BrowserRouter } from "react-router";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import App from "./App";
 import { OverlayApp } from "./components/overlay/OverlayApp";
+import { WidgetIndex, WidgetPage } from "./components/overlay/WidgetPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { isTauri } from "./lib/api";
 import { i18nReady } from "./i18n";
 import "./index.css";
 
@@ -24,7 +26,16 @@ function currentWindowLabel(): string {
 // translated strings — never raw keys.
 i18nReady.then(() => {
   const root = createRoot(document.getElementById("root")!);
-  if (currentWindowLabel() === "overlay") {
+  if (!isTauri()) {
+    // Hors de l'app : page servie par le serveur de widgets (VR OpenKneeboard,
+    // OBS, navigateur) — un widget seul (`?w=<id>`) ou la liste des widgets.
+    const w = new URLSearchParams(location.search).get("w");
+    root.render(
+      <StrictMode>
+        <ErrorBoundary fallback={null}>{w ? <WidgetPage id={w} /> : <WidgetIndex />}</ErrorBoundary>
+      </StrictMode>,
+    );
+  } else if (currentWindowLabel() === "overlay") {
     // Filet de sécurité : un crash de rendu ne doit pas laisser la fenêtre
     // overlay transparente et gelée pendant toute la course. Repli = rien
     // (`null`) plutôt que la carte plein écran de l'app principale.

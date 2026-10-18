@@ -50,7 +50,10 @@ CREATE TABLE IF NOT EXISTS xml_index (
     vehicles_allowed TEXT    NOT NULL DEFAULT '',
     has_any_laps     INTEGER NOT NULL DEFAULT 0,
     event_id         INTEGER NOT NULL DEFAULT 0,
-    indexed_at       INTEGER NOT NULL DEFAULT 0
+    indexed_at       INTEGER NOT NULL DEFAULT 0,
+    -- Serveur de la séance (`<ServerName>`, `<Dedicated>` : 1 dédié, 0 joueur, -1 inconnu).
+    server_name      TEXT    NOT NULL DEFAULT '',
+    dedicated        INTEGER NOT NULL DEFAULT -1
 );
 
 -- Une ligne par session (Practice1 / Qualify / Race) d'un fichier XML.
@@ -140,7 +143,8 @@ CREATE TABLE IF NOT EXISTS laps (
     fcompound    TEXT    NOT NULL DEFAULT '',
     rcompound    TEXT    NOT NULL DEFAULT '',
     is_pit       INTEGER NOT NULL DEFAULT 0,
-    is_valid     INTEGER NOT NULL DEFAULT 1
+    is_valid     INTEGER NOT NULL DEFAULT 1,
+    et           REAL                          -- heure de session au début du tour
 );
 
 -- Événements de flux par session : chat, pénalités, incidents (détails de course).
@@ -334,6 +338,22 @@ CREATE INDEX IF NOT EXISTS idx_corner_hist_combo ON corner_history(track, car_mo
 CREATE INDEX IF NOT EXISTS idx_phrasebank_combo   ON coach_phrasebank(track, car_model);
 ";
 
+/// Met de côté une base illisible (`lmu_cache.db` → `lmu_cache.db.corrupt-<date>`,
+/// avec ses fichiers WAL/SHM) pour que `init_db` reparte d'une base neuve. Rien
+/// n'est effacé : le fichier reste disponible pour un rapport de bug.
+pub fn quarantine_db(app_handle: &tauri::AppHandle) {
+    let Ok(dir) = app_handle.path().app_data_dir() else {
+        return;
+    };
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    for name in ["lmu_cache.db", "lmu_cache.db-wal", "lmu_cache.db-shm"] {
+        let from = dir.join(name);
+        if from.exists() {
+            let _ = std::fs::rename(&from, dir.join(format!("{name}.corrupt-{stamp}")));
+        }
+    }
+}
+
 pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
     let app_data_dir = app_handle
         .path()
@@ -371,6 +391,13 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
         "ALTER TABLE setups ADD COLUMN source TEXT NOT NULL DEFAULT 'game'",
         [],
     );
+    // Serveur de la séance (`<ServerName>`, `<Dedicated>`) : tours « comparables ».
+    // -1 = inconnu (fichier indexé avant l'ajout : une réindexation le complète).
+    let _ = conn.execute("ALTER TABLE xml_index ADD COLUMN server_name TEXT NOT NULL DEFAULT ''", []);
+    let _ = conn.execute("ALTER TABLE xml_index ADD COLUMN dedicated INTEGER NOT NULL DEFAULT -1", []);
+    // Heure de session au début de chaque tour : situe un événement (limite de piste)
+    // dans le tour. NULL pour une base existante : complété à la lecture du détail.
+    let _ = conn.execute("ALTER TABLE laps ADD COLUMN et REAL", []);
     // Migration : création de la table `purged_files` si elle manque (base existante).
     let _ = conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS purged_files (

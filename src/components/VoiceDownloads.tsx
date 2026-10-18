@@ -16,26 +16,66 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, Check, Download, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Download, Loader2, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { assets, isTauri, type AssetInfo } from "@/lib/api";
-import { toastError, toastSuccess } from "@/stores/dialogs";
+import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
+
+/** Choix de la voix Piper dans la liste (voix installées, une ligne par locuteur). */
+export interface PiperPick {
+  options: { voiceId: string; value: string; label: string }[];
+  /** Valeur choisie (`""` = aucune choisie : la voix par défaut de la langue). */
+  value: string;
+  onSelect: (value: string) => void;
+  /** Sélectionne la voix puis joue une phrase d'essai. */
+  onTest: (value: string) => void;
+}
 
 export function VoiceDownloads({
   kind,
   variant = "list",
   onInstalled,
+  pick,
 }: {
   kind: "tts" | "stt";
   variant?: "banner" | "list";
   /** Appelé après une installation réussie (pour rafraîchir tts/stt_available). */
   onInstalled?: () => void;
+  /** Voix TTS : choisir et écouter directement dans la liste. */
+  pick?: PiperPick;
 }) {
   const { t, i18n } = useTranslation();
   const [catalog, setCatalog] = useState<AssetInfo[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pct, setPct] = useState(0);
   const mounted = useRef(true);
+
+  /** Supprime un modèle téléchargé, après confirmation (place disque récupérée). */
+  const remove = async (a: AssetInfo) => {
+    const name = kind === "tts" ? a.label : t("config.assetSttModel");
+    const ok = await confirmDialog({
+      title: t("config.assetDeleteTitle", { name }),
+      message: t("config.assetDeleteMsg", { size: a.size_mb }),
+      confirmLabel: t("config.assetDelete"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await assets.remove(kind, a.id);
+      toastSuccess(t("config.assetDeleted", { name }));
+      refresh();
+      onInstalled?.();
+    } catch (e) {
+      const code = String(e);
+      toastError(
+        code.includes("in_use")
+          ? t("config.assetDeleteInUse")
+          : code.includes("not_downloaded")
+            ? t("config.assetDeleteBundled")
+            : t("config.assetDeleteError", { error: code }),
+      );
+    }
+  };
 
   const refresh = () => {
     if (!isTauri()) return;
@@ -145,9 +185,15 @@ export function VoiceDownloads({
       <p className="text-xs text-muted-foreground/80">
         {t(kind === "tts" ? "config.assetVoicesHint" : "config.assetSttHint")}
       </p>
-      {rows.map((a) => (
-        <div key={a.id} className="flex items-center justify-between gap-3 py-0.5">
-          <div className="min-w-0 text-sm">
+      {rows.map((a) => {
+        // Voix installée : un choix par locuteur (UPMC = Jessica et Pierre).
+        const speakers = pick && a.installed ? pick.options.filter((o) => o.voiceId === a.id) : [];
+        const single = speakers.length === 1 ? speakers[0] : null;
+        return (
+        <div key={a.id}>
+        <div className="flex items-center justify-between gap-3 py-0.5">
+          <div className="flex min-w-0 items-center gap-2 text-sm">
+            {single && pick && <Radio checked={pick.value === single.value} onClick={() => pick.onSelect(single.value)} />}
             {kind === "tts" ? a.label : t("config.assetSttModel")}
             {a.is_default && kind === "tts" && (
               <span className="ml-1.5 text-mini text-muted-foreground">
@@ -156,11 +202,26 @@ export function VoiceDownloads({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {single && pick && <TestButton onClick={() => pick.onTest(single.value)} />}
             {a.installed ? (
-              <span className="flex items-center gap-1 text-xs text-success">
-                <Check className="h-3.5 w-3.5" />
-                {t("config.assetInstalled")}
-              </span>
+              <>
+                <span className="flex items-center gap-1 text-xs text-success">
+                  <Check className="h-3.5 w-3.5" />
+                  {t("config.assetInstalled")}
+                </span>
+                {a.deletable && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  aria-label={t("config.assetDelete")}
+                  title={t("config.assetDelete")}
+                  onClick={() => void remove(a)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+                )}
+              </>
             ) : busyId === a.id ? (
               progressBar
             ) : (
@@ -168,7 +229,73 @@ export function VoiceDownloads({
             )}
           </div>
         </div>
-      ))}
+        {speakers.length > 1 && pick && (
+          <div className="ml-4 border-l border-border pl-3">
+            {speakers.map((o) => (
+              <PickRow
+                key={o.value}
+                label={o.label}
+                selected={pick.value === o.value}
+                onSelect={() => pick.onSelect(o.value)}
+                onTest={() => pick.onTest(o.value)}
+              />
+            ))}
+          </div>
+        )}
+        </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Bouton radio de choix de voix. */
+function Radio({ checked, onClick }: { checked: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={checked}
+      onClick={onClick}
+      className="grid h-4 w-4 shrink-0 place-items-center rounded-full border border-primary"
+    >
+      {checked && <span className="h-2 w-2 rounded-full bg-primary" />}
+    </button>
+  );
+}
+
+function TestButton({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={onClick}>
+      <Play className="h-3 w-3" />
+      {t("config.voiceTest")}
+    </Button>
+  );
+}
+
+/** Ligne de choix seule (Automatique, locuteurs d'une voix à plusieurs voix). */
+function PickRow({
+  label,
+  hint,
+  selected,
+  onSelect,
+  onTest,
+}: {
+  label: string;
+  hint?: string;
+  selected: boolean;
+  onSelect: () => void;
+  onTest: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-0.5">
+      <div className="flex min-w-0 items-center gap-2 text-sm">
+        <Radio checked={selected} onClick={onSelect} />
+        <span>{label}</span>
+        {hint && <span className="text-mini text-muted-foreground">{hint}</span>}
+      </div>
+      <TestButton onClick={onTest} />
     </div>
   );
 }

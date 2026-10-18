@@ -1,4 +1,5 @@
 import type { CarClass } from "./staticData";
+import { community, config, isTauri, type CommunityTiers } from "./api";
 
 export type OhneSpeedTier = "Alien" | "Competitive" | "Good" | "Midpack" | "Tail-ender" | "Offline";
 
@@ -21,6 +22,13 @@ export interface PaceBenchmark {
   fastestCar: string;
   fastestLapTimeMs: number;
   weightedAvgMs: number;
+  /** Origine de la référence : feuille ohne_speed (défaut) ou base communautaire. */
+  source?: "ohne" | "community";
+  /** Base communautaire : noms du jeu (`TrackVenue`, `TrackCourse`), pour un appariement exact. */
+  gameTrack?: string;
+  gameCourse?: string;
+  /** Base communautaire : moins de 5 pilotes, référence encore instable. */
+  provisional?: boolean;
 }
 
 /** Colonnes de tiers, dans l'ordre d'affichage (100 % → 107 %), avec couleur. */
@@ -249,11 +257,84 @@ function parseCSV(text: string): PaceBenchmark[] {
 
 let cachedBenchmarks: PaceBenchmark[] | null = null;
 
+/**
+ * Source des paliers : la feuille ohne_speed (défaut, comportement historique) ou la
+ * base communautaire (référence = moyenne des 5 meilleurs pilotes du combo sur la
+ * version la plus récente, recalée seule après chaque patch). Clé `tier_source`.
+ */
+export type TierSource = "ohne" | "community";
+export const TIER_SOURCE_KEY = "tier_source";
+let tierSource: TierSource | null = null;
+
+/** Change la source (réglage) : les paliers seront relus au prochain chargement. */
+export function setTierSource(src: TierSource): void {
+  tierSource = src;
+  cachedBenchmarks = null;
+}
+
+async function currentTierSource(): Promise<TierSource> {
+  if (tierSource) return tierSource;
+  let v: string | null = null;
+  if (isTauri()) v = await config.get(TIER_SOURCE_KEY).catch(() => null);
+  tierSource = v === "community" ? "community" : "ohne";
+  return tierSource;
+}
+
+/** Paliers « 100 % → 107 % » d'une référence (même grille que la feuille ohne_speed). */
+function paceFromReference(refMs: number): PaceBenchmark["racePaceMs"] {
+  const at = (pct: number) => Math.round((refMs * pct) / 100);
+  return {
+    alien: at(100),
+    competitive: at(101),
+    good: at(102),
+    pct103: at(103),
+    midpack: at(104),
+    pct105: at(105),
+    tailEnder: at(106),
+    offline: at(107),
+  };
+}
+
+/** Références de la base communautaire, au format des paliers ohne_speed. */
+export async function fetchCommunityBenchmarks(): Promise<PaceBenchmark[]> {
+  const res = await community.get<CommunityTiers>("tiers");
+  const out: PaceBenchmark[] = [];
+  for (const r of res?.references ?? []) {
+    const cls = OHNE_CLASS[r.car_class] as CarClass | undefined;
+    if (!cls) continue;
+    const refMs = Math.round(r.reference * 1000);
+    out.push({
+      track: mapTrackName(r.track, r.track_course) ?? `${r.track} / ${r.track_course}`,
+      carClass: cls,
+      patch: r.version,
+      hotlapTimeMs: refMs,
+      racePaceMs: paceFromReference(refMs),
+      fastestCar: "",
+      fastestLapTimeMs: 0,
+      weightedAvgMs: refMs,
+      source: "community",
+      gameTrack: r.track,
+      gameCourse: r.track_course,
+      provisional: r.provisional,
+    });
+  }
+  return out;
+}
+
 export async function fetchBenchmarks(): Promise<PaceBenchmark[]> {
   // Ne pas servir un cache vide : si la précédente tentative avait échoué
   // (réseau hors-ligne, bug de parsing) l'appel suivant re-tente le fetch.
   if (cachedBenchmarks && cachedBenchmarks.length > 0) {
     return cachedBenchmarks;
+  }
+
+  if ((await currentTierSource()) === "community") {
+    // Base injoignable ou vide : repli sur la feuille, pour ne jamais perdre les paliers.
+    const fromBase = await fetchCommunityBenchmarks().catch(() => []);
+    if (fromBase.length > 0) {
+      cachedBenchmarks = fromBase;
+      return cachedBenchmarks;
+    }
   }
 
   const res = await fetch(SHEET_CSV_URL);
@@ -269,10 +350,17 @@ export function findBenchmark(
   carClass: string,
   layoutFromDb?: string,
 ): PaceBenchmark | null {
+  const mappedClass = carClass as CarClass;
+  // Base communautaire : noms du jeu identiques à ceux de la base locale.
+  const course = layoutFromDb || trackFromDb;
+  const direct = benchmarks.find(
+    (b) => b.gameTrack === trackFromDb && b.gameCourse === course && b.carClass === mappedClass,
+  );
+  if (direct) return direct;
+
   const mappedTrack = mapTrackName(trackFromDb, layoutFromDb);
   if (!mappedTrack) return null;
 
-  const mappedClass = carClass as CarClass;
   return (
     benchmarks.find(
       (b) => b.track === mappedTrack && b.carClass === mappedClass,

@@ -86,6 +86,9 @@ pub struct AssetInfo {
     pub installed: bool,
     /// Vrai pour la voix par défaut de la langue (`<code>.onnx`).
     pub is_default: bool,
+    /// Présent dans le dossier des téléchargements de l'app, donc supprimable (une voix
+    /// lue ailleurs — ressources de l'app, dossier du projet en dev — ne l'est pas).
+    pub deletable: bool,
 }
 
 /// Progression poussée au frontend pendant `asset_download`.
@@ -145,6 +148,8 @@ fn stt_model_installed(app: &tauri::AppHandle, code: &str) -> bool {
 /// Catalogue des modèles téléchargeables + leur état d'installation.
 #[tauri::command]
 pub fn assets_catalog(app: tauri::AppHandle) -> Vec<AssetInfo> {
+    let tts_dir = tts_download_dir(&app).ok();
+    let stt_dir = stt_download_dir(&app).ok();
     let installed_voices: HashSet<String> = super::tts::voice_files(&app)
         .iter()
         .filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
@@ -159,6 +164,7 @@ pub fn assets_catalog(app: tauri::AppHandle) -> Vec<AssetInfo> {
             size_mb: (v.size / 1_048_576) as u32 + 1,
             installed: installed_voices.contains(v.id),
             is_default: v.id == v.lang,
+            deletable: tts_dir.as_ref().is_some_and(|d| d.join(format!("{}.onnx", v.id)).is_file()),
         })
         .collect();
     out.extend(STT_MODELS.iter().map(|m| AssetInfo {
@@ -169,6 +175,7 @@ pub fn assets_catalog(app: tauri::AppHandle) -> Vec<AssetInfo> {
         size_mb: (m.size / 1_048_576) as u32 + 1,
         installed: stt_model_installed(&app, m.lang),
         is_default: true,
+        deletable: stt_dir.as_ref().is_some_and(|d| d.join(m.lang).is_dir()),
     }));
     out
 }
@@ -399,6 +406,58 @@ pub async fn asset_download(
         }
     }
     Ok(())
+}
+
+/// Efface un fichier ou un dossier téléchargé. `Ok(false)` s'il n'existe pas ;
+/// `in_use` si Windows le garde ouvert (voix en cours d'utilisation).
+fn remove_path(p: &Path) -> AppResult<bool> {
+    if !p.exists() {
+        return Ok(false);
+    }
+    let r = if p.is_dir() { std::fs::remove_dir_all(p) } else { std::fs::remove_file(p) };
+    match r {
+        Ok(()) => Ok(true),
+        // 32 = ERROR_SHARING_VIOLATION (fichier ouvert par un autre processus).
+        Err(e) if e.raw_os_error() == Some(32) || e.kind() == std::io::ErrorKind::PermissionDenied => {
+            Err(AppError::Internal("in_use".into()))
+        }
+        Err(e) => Err(e.into()),
+    }
+}
+
+/// Supprime un modèle **téléchargé** (voix Piper ou modèle Vosk) du dossier de données
+/// de l'app. L'identifiant doit appartenir au catalogue (aucun chemin arbitraire) et les
+/// fichiers fournis avec l'app (ressources) ne sont jamais touchés. Erreurs :
+/// `not_downloaded` (rien dans le dossier des téléchargements), `in_use`, `unknown`.
+#[tauri::command]
+pub fn asset_delete(app: tauri::AppHandle, kind: String, id: String) -> AppResult<()> {
+    match kind.as_str() {
+        "tts" => {
+            let v = TTS_VOICES
+                .iter()
+                .find(|v| v.id == id)
+                .ok_or_else(|| AppError::Internal("unknown".into()))?;
+            let dir = tts_download_dir(&app)?;
+            // Le modèle d'abord : s'il est ouvert, rien n'est effacé.
+            let onnx = remove_path(&dir.join(format!("{}.onnx", v.id)))?;
+            let json = remove_path(&dir.join(format!("{}.onnx.json", v.id)))?;
+            if !onnx && !json {
+                return Err(AppError::Internal("not_downloaded".into()));
+            }
+            Ok(())
+        }
+        "stt" => {
+            let m = STT_MODELS
+                .iter()
+                .find(|m| m.lang == id)
+                .ok_or_else(|| AppError::Internal("unknown".into()))?;
+            if !remove_path(&stt_download_dir(&app)?.join(m.lang))? {
+                return Err(AppError::Internal("not_downloaded".into()));
+            }
+            Ok(())
+        }
+        _ => Err(AppError::Internal("unknown".into())),
+    }
 }
 
 #[cfg(test)]

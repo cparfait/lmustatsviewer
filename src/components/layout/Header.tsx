@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router";
 import { Flag, Moon, Sun, Globe, User, Check, HelpCircle } from "lucide-react";
 import { HelpModal } from "@/components/HelpModal";
+import { PlayLmuButton } from "@/components/layout/PlayLmuButton";
 import { useTheme } from "@/stores/theme";
 import { useAppStore } from "@/stores/app";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,7 @@ export function Header() {
               key={item.to}
               to={item.to}
               end={item.end}
+              data-tour={`nav-${item.key}`}
               className={({ isActive }) =>
                 cn(
                   "relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
@@ -105,11 +107,13 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
+          <PlayLmuButton />
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setHelpOpen(true)}
             aria-label={t("help.title")}
+            data-tour="help"
           >
             <HelpCircle className="h-4 w-4" />
           </Button>

@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { isTauri, live as liveApi, type LiveData } from "@/lib/api";
 import { useAppStore } from "@/stores/app";
 import { useVoiceCallouts } from "@/lib/engineer/useRaceEngineer";
+import { useVoiceNotes } from "@/lib/useVoiceNotes";
 
 export function RaceEngineerHost() {
   const { t, i18n } = useTranslation();
@@ -63,5 +64,6 @@ export function RaceEngineerHost() {
   }, [active]);
 
   useVoiceCallouts(data, active, i18n.language, t);
+  useVoiceNotes(data, active, i18n.language, t);
   return null;
 }

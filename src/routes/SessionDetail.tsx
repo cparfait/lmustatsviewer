@@ -19,6 +19,7 @@ import { TableTitle } from "@/components/TableTitle";
 import { ClassBadge } from "@/components/ClassBadge";
 import { Tip } from "@/components/ui/tooltip";
 import { CarLogo } from "@/components/CarLogo";
+import { loadEventLocator, trackLimitLap, type EventLocator } from "@/lib/eventLocator";
 import { CarNumber } from "@/components/CarNumber";
 import { TrackFlag } from "@/components/TrackFlag";
 import {
@@ -65,6 +66,8 @@ import type {
 } from "@/lib/api";
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { TierBadge } from "@/components/TierBadge";
+import { ComparableBadge, RegularityPanel, ReviewMarksPanel } from "@/components/SessionExtras";
+import { FLAG_REGULARITY, useConfigFlag } from "@/lib/configFlag";
 import { AICoachPanel } from "@/components/AICoachPanel";
 import { useAppStore } from "@/stores/app";
 import type { Tr } from "@/i18n";
@@ -149,6 +152,7 @@ const VALID_TABS = [
   "chat",
   "tracklimits",
   "coach",
+  "regularity",
 ];
 const isValidTab = (v: string | null): v is string =>
   !!v && VALID_TABS.includes(v);
@@ -287,6 +291,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
     () => results.find((r) => r.is_player) ?? null,
     [results]
   );
+  const showRegularity = useConfigFlag(FLAG_REGULARITY);
   // Classes uniques présentes dans cette session (multi-classes : LMP2 + GT3
   // par exemple). Triées suivant l'ordre canonique V1 (Hyper → LMP2 → GT3 …).
   const sessionClasses = useMemo(() => {
@@ -433,6 +438,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
               <span className="text-muted-foreground">
                 · {formatDateTime(session.timestamp)}
               </span>
+              <ComparableBadge session={session} player={playerResult} />
               {showOhneSpeed && playerResult.best_lap != null && !ohneOffline && (
                 <TierBadge
                   benchmarks={benchmarks}
@@ -823,10 +829,19 @@ function SessionView({ data }: { data: SessionDetailData }) {
               {t("sessionDetail.tabTrackLimits")} ({trackLimitEvents.length})
             </TabsTrigger>
           )}
+          {showRegularity && playerName && (
+            <TabsTrigger value="regularity">{t("extras.tabRegularity")}</TabsTrigger>
+          )}
           {aiCoachEnabled && (
             <TabsTrigger value="coach">{t("sessionDetail.tabCoach")}</TabsTrigger>
           )}
         </TabsList>
+
+        {showRegularity && playerName && (
+          <TabsContent value="regularity">
+            <RegularityPanel laps={lapsByDriver.get(playerName) ?? []} />
+          </TabsContent>
+        )}
 
         <TabsContent value="result">
           <ClassificationTab
@@ -865,6 +880,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
         </TabsContent>
 
         <TabsContent value="incidents">
+          <ReviewMarksPanel session={session} isRace={isRace} />
           <SessionMoments
             track={session.track}
             timestamp={session.timestamp}
@@ -902,6 +918,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
             events={trackLimitEvents}
             playerName={playerName}
             numberByDriver={numberByDriver}
+            detail={data}
           />
         </TabsContent>
 
@@ -1480,13 +1497,19 @@ function LapsTab({
               title={
                 <span className="inline-flex items-center gap-2">
                   <ClassBadge carClass={r.car_class} solid />
-                  <CarNumber n={r.car_number} />
+                  <CarNumber
+                    n={r.car_number}
+                    className="border-primary-foreground/40 bg-primary-foreground/15 text-primary-foreground"
+                  />
                   {r.driver_name}
-                  <span className="inline-flex items-center gap-1.5 text-muted-foreground font-normal">
+                  {/* Bandeau couleur primaire : logo dans ses couleurs sur une
+                      pastille blanche (lisible quelle que soit la marque), nom en
+                      blanc atténué. */}
+                  <span className="inline-flex items-center gap-1.5 text-primary-foreground/85 font-normal">
                     <span>—</span>
                     <CarLogo
                       carName={r.unique_car_name || r.car_type}
-                      className="h-3.5 w-auto object-contain opacity-70 shrink-0"
+                      className="h-4 w-auto rounded-[3px] bg-white px-0.5 py-px object-contain shrink-0"
                     />
                     {r.unique_car_name || r.car_type}
                   </span>
@@ -2120,7 +2143,8 @@ function parseTrackLimitEvent(ev: SessionDetailData["stream"][number]): TrackLim
     if (parts.length >= 5) {
       return {
         et: ev.et,
-        lap: parseInt(parts[0]) || null,
+        // Le fichier compte les tours BOUCLÉS (0 pendant le 1er tour).
+        lap: trackLimitLap(parts[0]),
         warningPts: parseFloat(parts[1]) || null,
         totalPts: parseFloat(parts[2]) || null,
         driver: parts[3] || null,
@@ -2143,13 +2167,28 @@ function TrackLimitsTab({
   events,
   playerName,
   numberByDriver,
+  detail,
 }: {
   events: SessionDetailData["stream"];
   playerName: string;
   /** Nom du pilote → numéro de voiture (le flux ne fournit que le nom). */
   numberByDriver: Map<string, number>;
+  /** Session complète : situe chaque événement dans le tour (virage estimé). */
+  detail: SessionDetailData;
 }) {
   const { t } = useTranslation();
+  const [locate, setLocate] = useState<EventLocator | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setLocate(null);
+    if (events.length === 0) return;
+    loadEventLocator(detail)
+      .then((fn) => !cancelled && setLocate(() => fn))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [detail, events.length]);
 
   if (events.length === 0) {
     return (
@@ -2193,6 +2232,9 @@ function TrackLimitsTab({
                     <Tip content={t("sessionDetail.colTotalPtsTip")}>{t("sessionDetail.colTotalPts")}</Tip>
                   </TableHead>
                   <TableHead>{t("sessionDetail.colDriver")}</TableHead>
+                  <TableHead>
+                    <Tip content={t("sessionDetail.colWhereTip")}>{t("sessionDetail.colWhere")}</Tip>
+                  </TableHead>
                 </>
               )}
               <TableHead>
@@ -2208,6 +2250,17 @@ function TrackLimitsTab({
                 r.driver.includes(playerName.split(" ")[0] ?? "");
               const isCut = r.resolution.toLowerCase().includes("cut") ||
                 r.resolution.toLowerCase().includes("invalid");
+              // Lieu estimé : virage officiel le plus proche, sinon secteur + distance.
+              const loc = locate && r.driver ? locate(r.driver.trim(), r.et, r.lap) : null;
+              const where = loc
+                ? loc.corner ??
+                  [
+                    loc.sector ? `S${loc.sector}` : "",
+                    loc.dist != null && loc.method !== "lap" ? `≈ ${(loc.dist / 1000).toFixed(2)} km` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "";
               return (
                 <TableRow
                   key={i}
@@ -2224,7 +2277,7 @@ function TrackLimitsTab({
                   {hasStructured && (
                     <>
                       <TableCell className="text-center font-mono">
-                        {r.lap ?? "—"}
+                        {loc?.lap ?? r.lap ?? "—"}
                       </TableCell>
                       <TableCell className="text-right font-mono text-amber-500">
                         {r.warningPts != null ? r.warningPts.toFixed(2) : "—"}
@@ -2248,6 +2301,9 @@ function TrackLimitsTab({
                         ) : (
                           "—"
                         )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {where || "—"}
                       </TableCell>
                     </>
                   )}

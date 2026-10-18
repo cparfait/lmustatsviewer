@@ -84,9 +84,14 @@ Toutes les classes de Le Mans Ultimate sont supportées :
 - **Annonces automatiques** : drapeaux, carburant (3/2/1 tours, ravitaillement à prévoir), pneus (froids / usure / crevaison), surchauffes, dégâts, positions, podium, sous attaque, drapeau bleu, record perso, secteur violet, **débrief du pire secteur du tour**, delta, pluie, mi-course / dernier tour…
 - **Catalogue personnalisable** : modifiez le texte de chaque annonce et testez-la, par langue
 - **Voix neuronale offline** (Piper) avec **effet radio** (bips + filtre), repli sur la voix système, file d'annonces à priorités
+- **Annonces lues dans le jeu** : type et cause exacts des pénalités, « pénalité purgée », mauvais sens, phares obligatoires, drapeau bleu avant pénalité, limites de piste comptées (« 2 sur 4 »)
+- **Voiture de sécurité et ordre figé** : qui suivre, dans quelle colonne, « recolle », « laisse passer », relance
+- **Stands à la voix** (opt-in) : « plein jusqu'à la fin », « quatre pneus », « répare tout »… chaque réglage relu dans le jeu
+- Pressions des pneus, box partagé, trafic à la sortie des stands, « attaque / défends » en fin de course, notes vocales par virage, réveil radio
+- **Son** : choix de la sortie audio de la radio, son du jeu baissé pendant la radio (opt-in), boutons du volant par action, préréglages Sprint / Endurance / En ligne
 
 ### 🎮 Overlays in-game
-- **23 overlays** translucides au-dessus du jeu : relatif, chronos, delta, secteurs, pneus, carburant, météo, dégâts, rival, radar, carte du circuit, G-force, coach, endurance, vitesse…
+- **24 overlays** translucides au-dessus du jeu : relatif, chronos, delta, secteurs, pneus, carburant, météo, dégâts, rival, radar, carte du circuit, G-force, coach, radio (sous-titres), endurance, vitesse…
 - Fenêtre unique click-through, **mode édition** par glisser-déposer, opacité globale, **profils** sauvegardés, interrupteur global
 
 ### 👤 Profil
@@ -217,7 +222,7 @@ src/
 │   ├── telemetry/       ← analyse : virages, métriques par phase, meilleur théorique
 │   └── ...              ← spotter, voice (file à priorités), radioFx, voiceMessages, ohne_speed
 ├── stores/              ← état global Zustand (app.ts, theme.ts)
-└── i18n/                ← traductions (fr.ts, en.ts, es.ts, de.ts)
+└── i18n/                ← traductions (fr.ts, en.ts, es.ts, de.ts, it.ts)
 
 src-tauri/
 ├── src/
@@ -288,7 +293,7 @@ cargo check             # compilation Rust (dans src-tauri/)
 - **Coach IA** multi-fournisseurs : analyses post-course / télémétrie / live, conversation en streaming, question vocale push-to-talk, mémoire du pilote (historique du combo) et objectifs épinglés vérifiés à la session suivante
 - **Spotter vocal** hors-ligne (commandes Vosk 5 langues) + annonces de course automatiques personnalisables — voix neuronale Piper avec effet radio
 - **Télémétrie `.duckdb`** : dashboard multi-canaux, cartes 2D/3D, analyse par virage, meilleur théorique, comparaison inter-sessions
-- **Overlays in-game** : 16 widgets, mode édition par glisser-déposer, profils, opacité
+- **Overlays in-game** : 24 widgets, mode édition par glisser-déposer, profils, opacité
 - **Profil** : heatmap d'activité et indicateurs de régularité
 
 ### 1.0 — Réécriture native (V3)

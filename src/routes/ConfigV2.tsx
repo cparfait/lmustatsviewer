@@ -23,7 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+/** Entre deux réglages encadrés : un espacement plutôt qu'un trait. */
+const Separator = (_: { className?: string }) => <div className="h-2" aria-hidden />;
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +34,9 @@ import {
 import { MENU_MODULE_KEYS } from "@/components/layout/Header";
 import { ReplayBenchPanel } from "@/components/ReplayBenchPanel";
 import { RegieSettings } from "@/components/RegieSettings";
+import { ToolsSettings } from "@/components/ToolsSettings";
+import { InsightsToggle, TierSourceSelect } from "@/components/ClassementOptions";
+import { RecordAnnounceSetting, ReviewMarksSetting, SessionDetailSettings } from "@/components/AnalysisExtrasSettings";
 import {
   FolderOpen,
   RefreshCw,
@@ -76,6 +80,7 @@ import {
   Upload,
   Users,
   Tablet,
+  Hammer,
   Trophy,
   Ear,
   Flag,
@@ -92,9 +97,11 @@ import {
   PenLine,
   BatteryCharging,
   Film,
+  Pencil,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { VoiceDownloads } from "@/components/VoiceDownloads";
+import { RADIO_STYLES, toRadioStyle } from "@/lib/radioFx";
 import { useTheme } from "@/stores/theme";
 import { system, config as configApi, indexer, queries } from "@/lib/api";
 import { isTauri, type WheelBinding } from "@/lib/api";
@@ -119,7 +126,6 @@ import {
   previewVoice,
   announceAnswer,
   speechSupported,
-  compareRadioStyles,
 } from "@/lib/voice";
 import { MAX_VOICE_VOLUME, pttBeep } from "@/lib/radioFx";
 import { VoiceMessagesModal } from "@/components/VoiceMessagesModal";
@@ -127,7 +133,14 @@ import { VoiceIntroModal } from "@/components/VoiceIntroModal";
 import { SpotterCommandsModal } from "@/components/SpotterCommandsModal";
 import { INTENTS } from "@/lib/spotterCommands";
 import { Tip, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { getProvider } from "@/lib/ai/providers";
+import {
+  DiagnosticsRows,
+  RadioPresetAndExtras,
+  RadioSoundRows,
+  SpotterTuningRows,
+  WheelActionsRows,
+} from "@/components/config/RadioExtrasSettings";
+import { getProvider, isForeignModel } from "@/lib/ai/providers";
 import { fetchModels } from "@/lib/ai/models";
 import { testConnection, chat, friendlyError } from "@/lib/ai/coach";
 import { systemPrompt } from "@/lib/ai/prompts/system";
@@ -135,6 +148,7 @@ import type { ModelInfo } from "@/lib/ai/types";
 import { AiModelPicker } from "@/components/AiModelPicker";
 import { AiProvidersPanel } from "@/components/AiProvidersPanel";
 import { CloudVoiceSettings } from "@/components/CloudVoiceSettings";
+import { CloudVoiceGuide } from "@/components/CloudVoiceGuide";
 import { EngineerTester } from "@/components/EngineerTester";
 import { VoiceCoachConfig } from "@/components/VoiceCoachConfig";
 import { AiCoachHelpModal } from "@/components/AiCoachHelpModal";
@@ -197,6 +211,7 @@ type CatId =
   | "coach"
   | "community"
   | "regie"
+  | "tools"
   | "maintenance"
   | "credits";
 
@@ -207,6 +222,7 @@ const SIDEBAR: { id: CatId; icon: typeof User; labelKey: string }[] = [
   { id: "coach", icon: Brain, labelKey: "config.aiCoach" },
   { id: "community", icon: Users, labelKey: "config.community" },
   { id: "regie", icon: Tablet, labelKey: "config.regieNav" },
+  { id: "tools", icon: Hammer, labelKey: "config.toolsNav" },
   { id: "maintenance", icon: Wrench, labelKey: "config.maintenance" },
   { id: "credits", icon: Heart, labelKey: "config.credits" },
 ];
@@ -305,7 +321,6 @@ export function ConfigV2() {
   const wakeWordEnabled = useAppStore((s) => s.wakeWordEnabled);
   const radioStyleSetting = useAppStore((s) => s.radioStyle);
   const pttBeeps = useAppStore((s) => s.pttBeeps);
-  const [comparing, setComparing] = useState<"classic" | "pitwall" | null>(null);
   const indexing = useAppStore((s) => s.indexing);
   const indexReport = useAppStore((s) => s.indexReport);
 
@@ -347,6 +362,7 @@ export function ConfigV2() {
   const [emptyPlayer, setEmptyPlayer] = useState<number | null>(null);
 
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [cloudGuideOpen, setCloudGuideOpen] = useState(false);
   // Modale d'intro aux annonces vocales (explication + téléchargement de la
   // voix de la langue) — ouverte à l'activation du toggle si la voix manque.
   const [voiceIntroOpen, setVoiceIntroOpen] = useState(false);
@@ -367,7 +383,18 @@ export function ConfigV2() {
     setAiModelsLoading(true);
     try {
       const models = await fetchModels(provider, aiEffectiveKey(aiProvider));
+      // Réponse arrivée après un changement de fournisseur : la liste (et l'amorçage)
+      // de l'ancien fournisseur ne doivent pas atterrir chez le nouveau — c'est ainsi
+      // qu'un modèle Gemini se retrouvait choisi avec Ollama.
+      if (useAppStore.getState().aiProvider !== provider.id) return;
       setAiModels(models);
+      // Modèle enregistré qui appartient visiblement à un AUTRE fournisseur (dans ses
+      // modèles connus, absent de la liste de celui-ci) : état hérité du bug ci-dessus,
+      // on le remet à zéro pour ré-amorcer.
+      const current = useAppStore.getState().aiModel;
+      if (current && !models.some((m) => m.id === current) && isForeignModel(current, provider.id)) {
+        await useAppStore.getState().setAIModel("");
+      }
       // Amorçage SEULEMENT si aucun modèle n'est encore choisi. On ne remplace
       // jamais une valeur existante : l'endpoint `/models` est incomplet chez
       // plusieurs fournisseurs (modèle tout juste sorti, id saisi à la main,
@@ -571,12 +598,14 @@ export function ConfigV2() {
     .flatMap((v) =>
       v.num_speakers > 1
         ? Array.from({ length: v.num_speakers }, (_, i) => ({
+            voiceId: v.id,
             value: `${v.id}${SPK_SEP}${i}`,
+            // Affichés sous leur voix dans la liste (« UPMC » › « Jessica », « Pierre »).
             label: v.speakers[i]
               ? cap(v.speakers[i])
               : `${v.label} ${t("config.voiceSpeakerN", { n: i })}`,
           }))
-        : [{ value: v.id, label: v.label }],
+        : [{ voiceId: v.id, value: v.id, label: v.label }],
     );
   const piperVoiceValue = piperVoiceCur
     ? piperNumSpeakers > 1
@@ -589,6 +618,11 @@ export function ConfigV2() {
     void useAppStore
       .getState()
       .setPiperSpeaker(i18n.language, sp ? Number(sp) : 0);
+  };
+  /** Choisit la voix puis joue la phrase d'essai (liste des voix neuronales). */
+  const testPiperVoice = (value: string) => {
+    onPiperVoiceChange(value);
+    setTimeout(() => previewVoice(t("config.voiceTestPhrase"), i18n.language, { localOnly: true }), 150);
   };
 
   const refreshEmptyCounts = () => {
@@ -969,140 +1003,7 @@ export function ConfigV2() {
             {cat === "display" && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="mb-1 text-sm font-medium text-primary">
-                    {t("config.menuModules")}
-                  </h3>
-                  <p className="mb-2 text-xs text-muted-foreground/80">
-                    {t("config.menuModulesDesc")}
-                  </p>
-                  {MENU_MODULE_KEYS.map((key, i) => (
-                    <Fragment key={key}>
-                      {i > 0 && <Separator />}
-                      <ToggleRow
-                        icon={<LayoutGrid className="h-4 w-4" />}
-                        label={t(`nav.${key}`)}
-                        tip={t("config.menuModuleTip")}
-                        checked={menuModules[key] !== false}
-                        onChange={(v) =>
-                          useAppStore.getState().setMenuModule(key, v)
-                        }
-                      />
-                      {key === "overlays" && (
-                        <Disclosure title={t("config.moduleOptions")}>
-                          <SettingRow
-                            icon={<Monitor className="h-4 w-4" />}
-                            label={t("config.overlayToggleKey")}
-                            desc={t("config.overlayToggleKeyDesc")}
-                          >
-                            <ShortcutCapture
-                              label=""
-                              value={overlayToggleKey || t("config.shortcutNone")}
-                              onChange={(a) =>
-                                useAppStore.getState().setOverlayToggleKey(a)
-                              }
-                              onClear={() =>
-                                useAppStore.getState().setOverlayToggleKey("")
-                              }
-                            />
-                          </SettingRow>
-                        </Disclosure>
-                      )}
-                      {key === "live" && (
-                        <Disclosure title={t("config.moduleOptions")}>
-                          <ToggleRow
-                            icon={<MapPin className="h-4 w-4" />}
-                            label={t("config.mapIncidents")}
-                            tip={t("config.mapIncidentsTip")}
-                            checked={mapIncidents}
-                            onChange={(v) => void useAppStore.getState().setMapIncidents(v)}
-                          />
-                          <ToggleRow
-                            icon={<MapPin className="h-4 w-4" />}
-                            label={t("config.mapNorthUp")}
-                            tip={t("config.mapNorthUpTip")}
-                            checked={mapNorthUp}
-                            onChange={(v) => void useAppStore.getState().setMapNorthUp(v)}
-                          />
-                          <ToggleRow
-                            icon={<PenLine className="h-4 w-4" />}
-                            label={t("config.gameWrites")}
-                            tip={t("config.gameWritesTip")}
-                            checked={gameWrites}
-                            onChange={(v) => void useAppStore.getState().setGameWrites(v)}
-                          />
-                          <ToggleRow
-                            icon={<BatteryCharging className="h-4 w-4" />}
-                            label={t("config.pitAutoEnergy")}
-                            tip={t("config.pitAutoEnergyTip")}
-                            checked={pitAutoEnergy}
-                            disabled={!gameWrites}
-                            onChange={(v) => void useAppStore.getState().setPitAutoEnergy(v)}
-                          />
-                        </Disclosure>
-                      )}
-                      {key === "sessions" && (
-                        <>
-                          <Separator />
-                          <ToggleRow
-                            icon={<BarChart2 className="h-4 w-4" />}
-                            label={t("nav.references")}
-                            tip={t("config.referencesTip")}
-                            checked={showOhneSpeed}
-                            onChange={(v) =>
-                              useAppStore.getState().setShowOhneSpeed(v)
-                            }
-                          />
-                          <Disclosure title={t("config.moduleOptions")}>
-                            <div>
-                              <div className="text-xs font-medium">
-                                {t("config.ohneSpeed")}
-                              </div>
-                              <p className="text-[11px] leading-snug text-muted-foreground">
-                                {t("config.ohneSpeedDesc")}
-                              </p>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="text-xs font-medium">
-                                  {t("config.overlayTarget")}
-                                </div>
-                                <Select
-                                  value={overlayTargetTier}
-                                  onValueChange={(v) =>
-                                    useAppStore.getState().setOverlayTargetTier(v)
-                                  }
-                                  ariaLabel={t("config.overlayTarget")}
-                                  className="h-8 max-w-[180px]"
-                                  options={[
-                                    { value: "alien", label: t("config.targetAlien") },
-                                    {
-                                      value: "competitive",
-                                      label: t("config.targetCompetitive"),
-                                    },
-                                    { value: "good", label: t("config.targetGood") },
-                                    { value: "midpack", label: t("config.targetMidpack") },
-                                  ]}
-                                />
-                              </div>
-                              <p className="text-[11px] leading-snug text-muted-foreground">
-                                {t("config.overlayTargetDesc")}
-                              </p>
-                            </div>
-                          </Disclosure>
-                        </>
-                      )}
-                    </Fragment>
-                  ))}
-                  <Separator />
-                  <p className="px-1 pt-2 text-xs text-muted-foreground">
-                    {t("config.menuModulesNote")}
-                  </p>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="mb-2 text-sm font-medium text-primary">
+                  <h3 className="mb-2 font-semibold">
                     {t("config.preferences")}
                   </h3>
                   <SettingRow icon={<Sun className="h-4 w-4" />} label={t("config.theme")} tip={t("config.themeTip")}>
@@ -1218,6 +1119,142 @@ export function ConfigV2() {
                     onChange={(v) => useAppStore.getState().setLaunchIntro(v)}
                   />
                 </div>
+
+                <CollapsibleSection
+                  title={t("config.menuModules")}
+                  desc={t("config.menuModulesDesc")}
+                >
+                  {MENU_MODULE_KEYS.map((key, i) => (
+                    <Fragment key={key}>
+                      {i > 0 && <Separator />}
+                      <ToggleRow
+                        icon={<LayoutGrid className="h-4 w-4" />}
+                        label={t(`nav.${key}`)}
+                        tip={t("config.menuModuleTip")}
+                        checked={menuModules[key] !== false}
+                        onChange={(v) =>
+                          useAppStore.getState().setMenuModule(key, v)
+                        }
+                      />
+                      {key === "overlays" && (
+                        <Disclosure title={t("config.moduleOptions")}>
+                          <SettingRow
+                            icon={<Monitor className="h-4 w-4" />}
+                            label={t("config.overlayToggleKey")}
+                            desc={t("config.overlayToggleKeyDesc")}
+                          >
+                            <ShortcutCapture
+                              label=""
+                              value={overlayToggleKey || t("config.shortcutNone")}
+                              onChange={(a) =>
+                                useAppStore.getState().setOverlayToggleKey(a)
+                              }
+                              onClear={() =>
+                                useAppStore.getState().setOverlayToggleKey("")
+                              }
+                            />
+                          </SettingRow>
+                        </Disclosure>
+                      )}
+                      {key === "live" && (
+                        <Disclosure title={t("config.moduleOptions")}>
+                          <ToggleRow
+                            icon={<MapPin className="h-4 w-4" />}
+                            label={t("config.mapIncidents")}
+                            tip={t("config.mapIncidentsTip")}
+                            checked={mapIncidents}
+                            onChange={(v) => void useAppStore.getState().setMapIncidents(v)}
+                          />
+                          <ToggleRow
+                            icon={<MapPin className="h-4 w-4" />}
+                            label={t("config.mapNorthUp")}
+                            tip={t("config.mapNorthUpTip")}
+                            checked={mapNorthUp}
+                            onChange={(v) => void useAppStore.getState().setMapNorthUp(v)}
+                          />
+                          <ToggleRow
+                            icon={<PenLine className="h-4 w-4" />}
+                            label={t("config.gameWrites")}
+                            tip={t("config.gameWritesTip")}
+                            checked={gameWrites}
+                            onChange={(v) => void useAppStore.getState().setGameWrites(v)}
+                          />
+                          <ToggleRow
+                            icon={<BatteryCharging className="h-4 w-4" />}
+                            label={t("config.pitAutoEnergy")}
+                            tip={t("config.pitAutoEnergyTip")}
+                            checked={pitAutoEnergy}
+                            disabled={!gameWrites}
+                            onChange={(v) => void useAppStore.getState().setPitAutoEnergy(v)}
+                          />
+                        </Disclosure>
+                      )}
+                      {key === "sessions" && (
+                        <>
+                          <Separator />
+                          <ToggleRow
+                            icon={<BarChart2 className="h-4 w-4" />}
+                            label={t("nav.references")}
+                            tip={t("config.referencesTip")}
+                            checked={showOhneSpeed}
+                            onChange={(v) =>
+                              useAppStore.getState().setShowOhneSpeed(v)
+                            }
+                          />
+                          <Disclosure title={t("config.moduleOptions")}>
+                            <div>
+                              <div className="text-xs font-medium">
+                                {t("config.ohneSpeed")}
+                              </div>
+                              <p className="text-[11px] leading-snug text-muted-foreground">
+                                {t("config.ohneSpeedDesc")}
+                              </p>
+                            </div>
+                            <TierSourceSelect />
+                            <InsightsToggle />
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="text-xs font-medium">
+                                  {t("config.overlayTarget")}
+                                </div>
+                                <Select
+                                  value={overlayTargetTier}
+                                  onValueChange={(v) =>
+                                    useAppStore.getState().setOverlayTargetTier(v)
+                                  }
+                                  ariaLabel={t("config.overlayTarget")}
+                                  className="h-8 max-w-[180px]"
+                                  options={[
+                                    { value: "alien", label: t("config.targetAlien") },
+                                    {
+                                      value: "competitive",
+                                      label: t("config.targetCompetitive"),
+                                    },
+                                    { value: "good", label: t("config.targetGood") },
+                                    { value: "midpack", label: t("config.targetMidpack") },
+                                  ]}
+                                />
+                              </div>
+                              <p className="text-[11px] leading-snug text-muted-foreground">
+                                {t("config.overlayTargetDesc")}
+                              </p>
+                            </div>
+                          </Disclosure>
+                        </>
+                      )}
+                    </Fragment>
+                  ))}
+                  <Separator />
+                  <p className="px-1 pt-2 text-xs text-muted-foreground">
+                    {t("config.menuModulesNote")}
+                  </p>
+                </CollapsibleSection>
+              </div>
+            )}
+
+            {cat === "display" && (
+              <div className="mt-4">
+                <SessionDetailSettings />
               </div>
             )}
 
@@ -1250,6 +1287,7 @@ export function ConfigV2() {
                   />
                 )}
                 {/* Sous-onglets d'« Audio / Voix » (la page était devenue trop longue). */}
+                {voiceAnnouncements && (
                 <div className="flex flex-wrap gap-1 border-b border-border/50 pb-2 pt-1" role="tablist">
                   {(
                     [
@@ -1276,8 +1314,42 @@ export function ConfigV2() {
                     </button>
                   ))}
                 </div>
-                {!voiceAnnouncements && (voiceTab === "voice" || voiceTab === "announces" || voiceTab === "coach") && (
-                  <p className="py-2 text-xs text-muted-foreground/80">{t("config.voiceTabNeedsVoice")}</p>
+                )}
+                {/* Records au volant : marche aussi sans annonces vocales (bips). */}
+                {voiceTab === "announces" && voiceAnnouncements && (
+                  <div className="py-2">
+                    <RecordAnnounceSetting />
+                  </div>
+                )}
+                {voiceTab === "announces" && voiceAnnouncements && (
+                  <div className="pb-2">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+        <div className="min-w-0">
+          <div className="text-sm font-medium leading-tight">
+            {t("live.vmTitle")}
+          </div>
+          <div className="text-xs text-muted-foreground/80 mt-0.5">
+            {t("live.vmSubtitle")}
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 shrink-0"
+          onClick={() => setVoiceModalOpen(true)}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          {t("live.vmOpen")}
+        </Button>
+      </div>
+                  </div>
+                )}
+                {!voiceAnnouncements && (
+                  <div className="space-y-2 py-2">
+                    <p className="text-xs text-muted-foreground">{t("config.voiceOffHint")}</p>
+                    <RecordAnnounceSetting />
+                    <ReviewMarksSetting />
+                  </div>
                 )}
                 {/* Onglet « Voix » : moteur, voix IA en ligne, voix, vitesse, volume,
                     effet radio, bips, téléchargements, personnalisation. */}
@@ -1301,13 +1373,21 @@ export function ConfigV2() {
                     )}
                     {(
                       <div className="pr-1 pb-1 pt-1 space-y-3">
-                        <div className="flex items-center justify-between gap-3 pt-1">
+                        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("cloudGuide.localTitle")}</p>
+                        <div className="flex items-start justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
                               {t("config.voiceEngine")}
                             </div>
-                            <div className="text-xs text-muted-foreground/80 mt-0.5">
-                              {t("config.voiceEngineDesc")}
+                            {/* Une ligne par moteur (nom en gras), puis le repli. */}
+                            <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                              <p>
+                                <strong className="font-semibold text-foreground">Piper</strong> : {t("config.voiceEnginePiperDesc")}
+                              </p>
+                              <p>
+                                <strong className="font-semibold text-foreground">{t("config.voiceEngineSystemShort")}</strong> : {t("config.voiceEngineSystemDesc")}
+                              </p>
+                              <p className="pt-1 text-muted-foreground/80">{t("config.voiceEngineAutoFallback")}</p>
                             </div>
                           </div>
                           <Select
@@ -1325,9 +1405,22 @@ export function ConfigV2() {
                             ]}
                           />
                         </div>
-                        {/* Voix en ligne avec la clé de l'utilisateur (bêta, désactivée par défaut). */}
-                        {voiceEngine === "piper" && isTauri() && <CloudVoiceSettings />}
-                        <div className="flex items-center justify-between gap-3 pt-1">
+                        {voiceEngine === "piper" && (
+                          <>
+                            <div className="rounded-md border border-border p-3"><VoiceDownloads
+                              kind="tts"
+                              onInstalled={() => setAssetsVersion((v) => v + 1)}
+                              pick={{
+                                options: piperOptions,
+                                value: piperVoiceValue,
+                                onSelect: onPiperVoiceChange,
+                                onTest: testPiperVoice,
+                              }}
+                            /></div>
+                          </>
+                        )}
+                        {voiceEngine === "system" && (
+                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
                               {t("config.voiceVoice")}
@@ -1337,21 +1430,6 @@ export function ConfigV2() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            {voiceEngine === "piper" ? (
-                              <Select
-                                value={piperVoiceValue}
-                                onValueChange={onPiperVoiceChange}
-                                ariaLabel={t("config.voiceVoice")}
-                                className="h-8 max-w-[220px] px-2.5"
-                                options={[
-                                  { value: "", label: t("config.voiceAuto") },
-                                  ...piperOptions.map((o) => ({
-                                    value: o.value,
-                                    label: o.label,
-                                  })),
-                                ]}
-                              />
-                            ) : (
                               <Select
                                 value={voiceUri}
                                 onValueChange={(v) =>
@@ -1371,7 +1449,6 @@ export function ConfigV2() {
                                   })),
                                 ]}
                               />
-                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -1388,12 +1465,29 @@ export function ConfigV2() {
                             </Button>
                           </div>
                         </div>
+                        )}
                         {voiceEngine === "system" && voiceList.length === 0 && (
                           <div className="text-xs text-muted-foreground/70">
                             {t("config.voiceNoneFound")}
                           </div>
                         )}
-                        <div className="flex items-center justify-between gap-3">
+                        {/* Voix en ligne avec la clé de l'utilisateur (bêta, désactivée par défaut). */}
+                        {voiceEngine === "piper" && isTauri() && (
+                          <>
+                            <div className="flex items-center justify-between gap-3 pt-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                {t("cloudGuide.cloudTitle")}
+                              </p>
+                              <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => setCloudGuideOpen(true)}>
+                                <HelpCircle className="h-3.5 w-3.5" />
+                                {t("cloudGuide.button")}
+                              </Button>
+                            </div>
+                            <CloudVoiceSettings />
+                          </>
+                        )}
+                        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("config.voiceGroupSound")}</p>
+                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="text-sm font-medium leading-tight">
                             {t("config.voiceRate")}
                           </div>
@@ -1416,7 +1510,7 @@ export function ConfigV2() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
                               {t("config.voiceVolume")}
@@ -1444,7 +1538,7 @@ export function ConfigV2() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
                               {t("config.voiceRadio")}
@@ -1463,7 +1557,7 @@ export function ConfigV2() {
                         </div>
                         {/* Profil de l'effet radio + comparaison à l'écoute (A puis B). */}
                         {voiceRadio && (
-                          <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                             <div className="min-w-0">
                               <div className="text-sm font-medium leading-tight">
                                 {t("config.radioStyle")}
@@ -1475,105 +1569,39 @@ export function ConfigV2() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <div className="flex rounded-md border border-input overflow-hidden">
-                                {(["pitwall", "classic"] as const).map((s) => (
-                                  <button
-                                    key={s}
-                                    type="button"
-                                    onClick={() => void useAppStore.getState().setRadioStyleSetting(s)}
-                                    className={cn(
-                                      "px-2.5 py-1 text-xs transition-colors",
-                                      radioStyleSetting === s
-                                        ? "bg-primary text-primary-foreground"
-                                        : "bg-transparent hover:bg-accent",
-                                    )}
-                                  >
-                                    {t(s === "classic" ? "config.radioStyleClassic" : "config.radioStylePitwall")}
-                                  </button>
-                                ))}
-                              </div>
+                              <Select
+                                value={radioStyleSetting}
+                                onValueChange={(v) => void useAppStore.getState().setRadioStyleSetting(toRadioStyle(v))}
+                                ariaLabel={t("config.radioStyle")}
+                                className="h-8 w-48 px-2.5 text-xs"
+                                options={RADIO_STYLES.map((rs) => ({ value: rs, label: t(`config.radioStyle_${rs}`) }))}
+                              />
+                              {/* Joue une phrase avec le profil choisi, dans la voix active (Piper ou IA). */}
                               <Button
                                 size="sm"
                                 variant="outline"
-                                disabled={comparing !== null || voiceEngine !== "piper"}
-                                onClick={() =>
-                                  compareRadioStyles(
-                                    t("config.radioCompareSample"),
-                                    i18n.language,
-                                    setComparing,
-                                  )
-                                }
+                                onClick={() => previewVoice(t("config.radioCompareSample"), i18n.language)}
                               >
-                                {comparing === "classic"
-                                  ? t("config.radioComparingA")
-                                  : comparing === "pitwall"
-                                    ? t("config.radioComparingB")
-                                    : t("config.radioCompare")}
+                                {t("config.voiceTest")}
                               </Button>
                             </div>
                           </div>
                         )}
-                        {/* Bips du push-to-talk (ouverture 1000 Hz / envoi 700 Hz). */}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium leading-tight">
-                              {t("config.pttBeeps")}
-                            </div>
-                            <div className="text-xs text-muted-foreground/80 mt-0.5">
-                              {t("config.pttBeepsDesc")}
-                            </div>
-                          </div>
-                          <Switch
-                            checked={pttBeeps}
-                            onCheckedChange={(v) => {
-                              void useAppStore.getState().setPttBeeps(v);
-                              if (v) {
-                                pttBeep("open");
-                                setTimeout(() => pttBeep("send"), 450);
-                              }
-                            }}
-                            className="shrink-0"
-                          />
-                        </div>
-                        {voiceEngine === "piper" && (
-                          <>
-                            <Separator className="my-1" />
-                            <VoiceDownloads
-                              kind="tts"
-                              onInstalled={() => setAssetsVersion((v) => v + 1)}
-                            />
-                          </>
-                        )}
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium leading-tight">
-                              {t("live.vmTitle")}
-                            </div>
-                            <div className="text-xs text-muted-foreground/80 mt-0.5">
-                              {t("live.vmSubtitle")}
-                            </div>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1.5 shrink-0"
-                            onClick={() => setVoiceModalOpen(true)}
-                          >
-                            <Volume2 className="h-3.5 w-3.5" />
-                            {t("live.vmOpen")}
-                          </Button>
-                        </div>
+                        <RadioSoundRows />
                       </div>
                     )}
                   </div>
                 )}
-                {/* Débit des annonces : ingénieur (arbitré) ou complet (historique).
-                    Mêmes annonces dans les deux modes — seul le filtrage change. */}
+                {/* Réglages des annonces regroupés en sections repliables (chaque réglage
+                    garde l'ancien comportement accessible : décoché = comme avant). */}
                 {voiceTab === "announces" && voiceAnnouncements && (
-                  <div className="flex items-center justify-between py-2 gap-3">
+                  <div className="space-y-2 pt-1">
+                    <CollapsibleSection title={t("config.announceGroupWhen")} desc={t("config.announceGroupWhenDesc")}>
+                      <div className="space-y-2">
+<div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                     <div className="flex items-start gap-2 min-w-0">
                       <Tip content={t("config.radioModeTip")} side="right">
-                        <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+                        <span className="text-primary cursor-help mt-0.5 shrink-0">
                           <Radio className="h-4 w-4" />
                         </span>
                       </Tip>
@@ -1606,9 +1634,7 @@ export function ConfigV2() {
                       ))}
                     </div>
                   </div>
-                )}
-                {voiceTab === "announces" && voiceAnnouncements && (
-                  <ToggleRow
+<ToggleRow
                     icon={<Monitor className="h-4 w-4" />}
                     label={t("config.announceEverywhere")}
                     desc={t("config.announceEverywhereDesc")}
@@ -1616,22 +1642,7 @@ export function ConfigV2() {
                     checked={announceEverywhere}
                     onChange={(v) => void useAppStore.getState().setAnnounceEverywhere(v)}
                   />
-                )}
-                {voiceTab === "announces" && voiceAnnouncements && (
-                  <ToggleRow
-                    icon={<Trophy className="h-4 w-4" />}
-                    label={t("config.classPositions")}
-                    desc={t("config.classPositionsDesc")}
-                    tip={t("config.classPositionsTip")}
-                    checked={classPositions}
-                    onChange={(v) => void useAppStore.getState().setClassPositions(v)}
-                  />
-                )}
-                {/* Diffusion de la radio : chaque réglage garde l'ancien
-                    comportement accessible (décoché = comme avant). */}
-                {voiceTab === "announces" && voiceAnnouncements && (
-                  <>
-                    <ToggleRow
+<ToggleRow
                       icon={<Ear className="h-4 w-4" />}
                       label={t("config.radioQuietZones")}
                       desc={t("config.radioQuietZonesDesc")}
@@ -1639,7 +1650,7 @@ export function ConfigV2() {
                       checked={radioQuietZones}
                       onChange={(v) => void useAppStore.getState().setRadioQuietZones(v)}
                     />
-                    <ToggleRow
+<ToggleRow
                       icon={<Flag className="h-4 w-4" />}
                       label={t("config.radioPhases")}
                       desc={t("config.radioPhasesDesc")}
@@ -1648,7 +1659,7 @@ export function ConfigV2() {
                       onChange={(v) => void useAppStore.getState().setRadioPhases(v)}
                       disabled={radioMode === "full"}
                     />
-                    <ToggleRow
+<ToggleRow
                       icon={<Gauge className="h-4 w-4" />}
                       label={t("config.radioBudgets")}
                       desc={t("config.radioBudgetsDesc")}
@@ -1657,7 +1668,15 @@ export function ConfigV2() {
                       onChange={(v) => void useAppStore.getState().setRadioBudgets(v)}
                       disabled={radioMode === "full"}
                     />
-                    <ToggleRow
+<ToggleRow
+                      icon={<Repeat className="h-4 w-4" />}
+                      label={t("config.radioReplay")}
+                      desc={t("config.radioReplayDesc")}
+                      tip={t("config.radioReplayTip")}
+                      checked={radioReplay}
+                      onChange={(v) => void useAppStore.getState().setRadioReplay(v)}
+                    />
+<ToggleRow
                       icon={<MessageCircleQuestion className="h-4 w-4" />}
                       label={t("config.radioAskPrefs")}
                       desc={t("config.radioAskPrefsDesc")}
@@ -1666,18 +1685,22 @@ export function ConfigV2() {
                       onChange={(v) => void useAppStore.getState().setRadioAskPrefs(v)}
                       disabled={radioMode === "full"}
                     />
-                    <ToggleRow
-                      icon={<Repeat className="h-4 w-4" />}
-                      label={t("config.radioReplay")}
-                      desc={t("config.radioReplayDesc")}
-                      tip={t("config.radioReplayTip")}
-                      checked={radioReplay}
-                      onChange={(v) => void useAppStore.getState().setRadioReplay(v)}
-                    />
-                    <div className="flex items-center justify-between py-2 gap-3">
+                      </div>
+                    </CollapsibleSection>
+                    <CollapsibleSection title={t("config.announceGroupWhat")} desc={t("config.announceGroupWhatDesc")}>
+                      <div className="space-y-2">
+<ToggleRow
+                    icon={<Trophy className="h-4 w-4" />}
+                    label={t("config.classPositions")}
+                    desc={t("config.classPositionsDesc")}
+                    tip={t("config.classPositionsTip")}
+                    checked={classPositions}
+                    onChange={(v) => void useAppStore.getState().setClassPositions(v)}
+                  />
+<div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                       <div className="flex items-start gap-2 min-w-0">
                         <Tip content={t("config.voiceLapPrecisionTip")} side="right">
-                          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+                          <span className="text-primary cursor-help mt-0.5 shrink-0">
                             <Timer className="h-4 w-4" />
                           </span>
                         </Tip>
@@ -1709,7 +1732,11 @@ export function ConfigV2() {
                       </div>
                     </div>
                     <DriverNameRow />
-                    <ToggleRow
+                      </div>
+                    </CollapsibleSection>
+                    <CollapsibleSection title={t("config.announceGroupSpotter")} desc={t("config.announceGroupSpotterDesc")}>
+                      <div className="space-y-2">
+<ToggleRow
                       icon={<ArrowLeftRight className="h-4 w-4" />}
                       label={t("config.proximitySpotter")}
                       desc={t("config.proximitySpotterDesc")}
@@ -1717,7 +1744,11 @@ export function ConfigV2() {
                       checked={proximitySpotter}
                       onChange={(v) => void useAppStore.getState().setProximitySpotter(v)}
                     />
-                  </>
+                    {proximitySpotter && <SpotterTuningRows />}
+                      </div>
+                    </CollapsibleSection>
+                    <RadioPresetAndExtras />
+                  </div>
                 )}
                 {/* « Parler à l'ingénieur » : push-to-talk indépendant de l'IA
                     (commandes radio, questions de course, « coach-moi » en local ;
@@ -1725,13 +1756,11 @@ export function ConfigV2() {
                 {/* Onglet « Parler à l'ingénieur » (fusion ingénieur + spotter) :
                     une seule logique de réponse (`askEngineer`), une liste de
                     commandes commune, des raccourcis directs sans parler. */}
-                {voiceTab === "radio" && (
-                  <div className="space-y-5 py-2">
+                {voiceTab === "radio" && voiceAnnouncements && (
+                  <div className="space-y-2 py-2">
                     {/* 1. Parler */}
-                    <section className="space-y-1.5">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecTalk")}
-                      </div>
+                    <CollapsibleSection title={t("config.radioSecTalk")} defaultOpen>
+                      <div className="space-y-2">
                       <p className="text-xs text-muted-foreground/70">{t("config.engineerKeyDesc")}</p>
                       <ShortcutCapture
                         label={t("config.engineerKey")}
@@ -1769,6 +1798,7 @@ export function ConfigV2() {
                         {spotterPttMode === "hold" ? t("config.spotterPttHoldDesc") : t("config.spotterPttToggleDesc")}
                       </p>
                       <WheelButtonRow />
+                      {isTauri() && <MicDeviceRow />}
                       <ToggleRow
                         icon={<Mic className="h-4 w-4" />}
                         label={t("config.micReady")}
@@ -1786,14 +1816,6 @@ export function ConfigV2() {
                         onChange={(v) => void useAppStore.getState().setWakeWordEnabled(v)}
                       />
                       {wakeWordEnabled && <WakeWordRow />}
-                      <ToggleRow
-                        icon={<Zap className="h-4 w-4" />}
-                        label={t("config.localAnswers")}
-                        desc={t("config.localAnswersDesc")}
-                        tip={t("config.localAnswersTip")}
-                        checked={localAnswers}
-                        onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
-                      />
                       <div className="flex items-center justify-between gap-3 py-1">
                         <div className="min-w-0">
                           <div className="text-sm font-medium leading-tight">{t("config.pttRecognition")}</div>
@@ -1821,21 +1843,40 @@ export function ConfigV2() {
                           ))}
                         </div>
                       </div>
-                    </section>
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+      <div className="min-w-0">
+        <div className="text-sm font-medium leading-tight">
+          {t("config.pttBeeps")}
+        </div>
+        <div className="text-xs text-muted-foreground/80 mt-0.5">
+          {t("config.pttBeepsDesc")}
+        </div>
+      </div>
+      <Switch
+        checked={pttBeeps}
+        onCheckedChange={(v) => {
+          void useAppStore.getState().setPttBeeps(v);
+          if (v) {
+            pttBeep("open");
+            setTimeout(() => pttBeep("send"), 450);
+          }
+        }}
+        className="shrink-0"
+      />
+    </div>
+                      </div>
+                    </CollapsibleSection>
 
                     {/* 2. Tester (avec / sans IA) */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecTest")}
-                      </div>
+                    <CollapsibleSection title={t("config.radioSecTest")}>
+                      <div className="space-y-2">
                       <EngineerTester />
-                    </section>
+                      </div>
+                    </CollapsibleSection>
 
                     {/* 3. Raccourcis sans parler (Statut / Mute / Répète) */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecDirect")}
-                      </div>
+                    <CollapsibleSection title={t("config.radioSecDirect")}>
+                      <div className="space-y-2">
                       <ToggleRow
                         icon={<Radio className="h-4 w-4" />}
                         label={t("config.directKeys")}
@@ -1868,13 +1909,23 @@ export function ConfigV2() {
                           />
                         </div>
                       )}
-                    </section>
+                      <ReviewMarksSetting />
+                      <WheelActionsRows />
+                      </div>
+                    </CollapsibleSection>
+
 
                     {/* 4. Commandes reconnues (liste commune, modifiable) */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecCommands")}
-                      </div>
+                    <CollapsibleSection title={t("config.radioSecCommands")}>
+                      <div className="space-y-2">
+                      <ToggleRow
+                        icon={<Zap className="h-4 w-4" />}
+                        label={t("config.localAnswers")}
+                        desc={t("config.localAnswersDesc")}
+                        tip={t("config.localAnswersTip")}
+                        checked={localAnswers}
+                        onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
+                      />
                       <p className="text-xs text-muted-foreground/80">{t("config.radioSecCommandsDesc")}</p>
                       <div className="flex flex-wrap gap-x-1 gap-y-1 cursor-default">
                         {INTENTS.map((intent, idx) => (
@@ -1893,13 +1944,12 @@ export function ConfigV2() {
                         <Radio className="h-3.5 w-3.5" />
                         {t("config.spotterCmdOpen")}
                       </Button>
-                    </section>
+                      </div>
+                    </CollapsibleSection>
 
                     {/* 5. Calculs utilisés par les réponses */}
-                    <section className="space-y-2 border-t border-border/50 pt-3">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.radioSecCalc")}
-                      </div>
+                    <CollapsibleSection title={t("config.radioSecCalc")}>
+                      <div className="space-y-2">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-xs text-muted-foreground/80">{t("config.pitLoss")}</div>
@@ -1930,14 +1980,13 @@ export function ConfigV2() {
                           className="h-8 w-16 shrink-0 rounded-md border border-input bg-transparent px-2 text-sm tabular-nums"
                         />
                       </div>
-                    </section>
+                      </div>
+                    </CollapsibleSection>
 
                     {/* 6. Modèle de reconnaissance vocale */}
-                    <section className="space-y-1.5 border-t border-border/50 pt-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {t("config.radioSecStt")}
-                        </div>
+                    <CollapsibleSection title={t("config.radioSecStt")}>
+                      <div className="space-y-2">
+                      <div className="flex items-center justify-end">
                         <span className={cn("text-mini", sttOk === false ? "text-amber-500" : "text-success")}>
                           {sttOk === null
                             ? "…"
@@ -1947,15 +1996,16 @@ export function ConfigV2() {
                         </span>
                       </div>
                       <VoiceDownloads kind="stt" onInstalled={() => setAssetsVersion((v) => v + 1)} />
-                    </section>
+                      </div>
+                    </CollapsibleSection>
                   </div>
                 )}
                 {/* Coach par virage — modes avancés (mêmes réglages que Config V1,
                     gated sur les annonces vocales). Intertitre pour distinguer ce
                     coach déterministe du Coach IA (onglet dédié, LLM). */}
                 {voiceTab === "coach" && voiceAnnouncements && (
-                  <>
-                    <div className="mt-3 border-t border-border/50 pt-3">
+                  <div className="space-y-2">
+                    <div className="pt-2">
                       <div className="text-sm font-semibold">
                         {t("config.coachSectionTitle")}
                       </div>
@@ -1963,6 +2013,8 @@ export function ConfigV2() {
                         {t("config.coachSectionDesc")}
                       </p>
                     </div>
+                    <CollapsibleSection title={t("config.coachGroupDrive")} desc={t("config.coachGroupDriveDesc")} defaultOpen>
+                      <div className="space-y-2">
                     <ToggleRow
                       icon={<Scale className="h-4 w-4" />}
                       label={t("config.coachRigor")}
@@ -1995,6 +2047,10 @@ export function ConfigV2() {
                       checked={coachRisk}
                       onChange={(v) => void useAppStore.getState().setCoachRisk(v)}
                     />
+                      </div>
+                    </CollapsibleSection>
+                    <CollapsibleSection title={t("config.coachGroupPhrases")} desc={t("config.coachGroupPhrasesDesc")}>
+                      <div className="space-y-2">
                     <ToggleRow
                       icon={<MessagesSquare className="h-4 w-4" />}
                       label={t("config.coachPhrasebank")}
@@ -2051,11 +2107,14 @@ export function ConfigV2() {
                         </Button>
                       </div>
                     )}
-                    {/* Import d'un ghost (.duckdb / .ld MoTeC) pour le combo actif. */}
-                    <div className="flex items-center justify-between gap-3 py-2">
+                      </div>
+                    </CollapsibleSection>
+                    <CollapsibleSection title={t("config.coachGroupTools")} desc={t("config.coachGroupToolsDesc")}>
+                      <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                       <div className="flex min-w-0 items-start gap-2">
                         <Tip content={t("config.coachGhostTip")} side="right">
-                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
+                          <span className="mt-0.5 shrink-0 cursor-help text-primary">
                             <Upload className="h-4 w-4" />
                           </span>
                         </Tip>
@@ -2117,13 +2176,10 @@ export function ConfigV2() {
                         {t("config.ghostImport")}
                       </Button>
                     </div>
-                    {/* Enregistrement d'un corpus réel (§14.1) — outil de
-                        diagnostic : rejouable ensuite dans le moteur pur pour
-                        valider les seuils du coach sur de vraies données. */}
-                    <div className="flex items-center justify-between gap-3 py-2">
+                    <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                       <div className="flex min-w-0 items-start gap-2">
                         <Tip content={t("config.coachRecordTip")} side="right">
-                          <span className="mt-0.5 shrink-0 cursor-help text-muted-foreground">
+                          <span className="mt-0.5 shrink-0 cursor-help text-primary">
                             <Disc className="h-4 w-4" />
                           </span>
                         </Tip>
@@ -2174,7 +2230,9 @@ export function ConfigV2() {
                           : t("config.coachRecordStart")}
                       </Button>
                     </div>
-                  </>
+                      </div>
+                    </CollapsibleSection>
+                  </div>
                 )}
               </div>
             )}
@@ -2420,8 +2478,6 @@ export function ConfigV2() {
             {/* ── Maintenance (+ version / mises à jour) ── */}
             {cat === "maintenance" && (
               <div className="space-y-1">
-                <ReplayBenchPanel />
-                <Separator />
                 <ToggleRow
                   icon={<Zap className="h-4 w-4" />}
                   label={t("config.autoIndex")}
@@ -2604,6 +2660,14 @@ export function ConfigV2() {
                     {t("updater.error")}
                   </p>
                 )}
+                <Separator />
+                <CollapsibleSection title={t("config.diagTitle")} desc={t("config.diagDesc")}>
+                  <DiagnosticsRows />
+                </CollapsibleSection>
+                {/* Outils réservés au développement (banc de rejeu de l'ingénieur) : repliés. */}
+                <CollapsibleSection title={t("config.devTools")} desc={t("config.devToolsDesc")}>
+                  <ReplayBenchPanel />
+                </CollapsibleSection>
               </div>
             )}
 
@@ -2612,6 +2676,9 @@ export function ConfigV2() {
 
             {/* ── Régie tablette (lecture seule, opt-in) ── */}
             {cat === "regie" && <RegieSettings />}
+
+            {/* ── Outils & diagnostic (lanceur opt-in, diagnostic en lecture seule) ── */}
+            {cat === "tools" && <ToolsSettings />}
 
             {/* ── Crédits ── */}
             {cat === "credits" && (
@@ -2675,6 +2742,7 @@ export function ConfigV2() {
         </div>
       )}
 
+      {cloudGuideOpen && <CloudVoiceGuide onClose={() => setCloudGuideOpen(false)} />}
       {voiceModalOpen && (
         <VoiceMessagesModal onClose={() => setVoiceModalOpen(false)} />
       )}
@@ -2736,18 +2804,18 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between py-2">
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-4 rounded-md border border-border p-3">
+      <div className="flex min-w-0 items-start gap-2.5">
         {tip ? (
           <Tip content={tip} side="right">
-            <span className="text-muted-foreground cursor-help">{icon}</span>
+            <span className="mt-0.5 shrink-0 cursor-help text-primary">{icon}</span>
           </Tip>
         ) : (
-          <span className="text-muted-foreground">{icon}</span>
+          <span className="mt-0.5 shrink-0 text-primary">{icon}</span>
         )}
-        <div>
+        <div className="min-w-0 space-y-0.5">
           <div className="text-sm font-medium">{label}</div>
-          {desc && <div className="text-xs text-muted-foreground/70">{desc}</div>}
+          {desc && <div className="text-xs text-muted-foreground">{desc}</div>}
         </div>
       </div>
       {children}
@@ -2827,6 +2895,38 @@ function ShortcutCapture({
 }
 
 /** Sous-menu repliable (déroulant) pour les options d'un module. Fermé par défaut. */
+/** Bloc à titre, replié par défaut (ex. « Modules du menu »). */
+function CollapsibleSection({
+  title,
+  desc,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  desc?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-md border border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-start gap-2 p-3 text-left"
+      >
+        <ChevronDown className={cn("mt-0.5 h-4 w-4 shrink-0 text-primary transition-transform", !open && "-rotate-90")} />
+        <div className="min-w-0">
+          <div className="font-semibold">{title}</div>
+          {desc && <div className="text-xs text-muted-foreground">{desc}</div>}
+        </div>
+      </button>
+      {open && <div className="px-3 pb-3">{children}</div>}
+    </div>
+  );
+}
+
 function Disclosure({
   title,
   children,
@@ -2914,6 +3014,142 @@ function WheelButtonRow() {
   );
 }
 
+/** Micro proposé par le moteur d'écoute (nom Windows). */
+interface MicDeviceInfo {
+  name: string;
+  is_default: boolean;
+}
+
+/**
+ * Micro de l'ingénieur (écoute continue, push-to-talk, dictée) : « Micro par
+ * défaut de Windows » en premier (= comportement historique), puis les entrées
+ * vues par Windows. Un micro choisi mais débranché reste affiché (repli sur le
+ * défaut tant qu'il manque). Vumètre en dessous.
+ */
+function MicDeviceRow() {
+  const { t } = useTranslation();
+  const saved = useAppStore((s) => s.micDevice);
+  const [devices, setDevices] = useState<MicDeviceInfo[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      setDevices(await invoke<MicDeviceInfo[]>("voice_input_devices"));
+    } catch {
+      setDevices([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+  const list = devices ?? [];
+  const options = [
+    { value: "", label: t("config.micDeviceDefault") },
+    ...list.map((d) => ({
+      value: d.name,
+      label: d.is_default ? `${d.name} · ${t("config.micDeviceIsDefault")}` : d.name,
+    })),
+    ...(saved && devices && !list.some((d) => d.name === saved)
+      ? [{ value: saved, label: t("config.micDeviceAbsent", { name: saved }) }]
+      : []),
+  ];
+  return (
+    <div className="py-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start gap-2 min-w-0">
+          <Tip content={t("config.micDeviceTip")} side="right">
+            <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+              <Mic className="h-4 w-4" />
+            </span>
+          </Tip>
+          <div className="min-w-0">
+            <div className="text-sm font-medium leading-tight">{t("config.micDevice")}</div>
+            <div className="text-xs text-muted-foreground/80 mt-0.5">{t("config.micDeviceDesc")}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Select
+            value={saved}
+            onValueChange={(v) => void useAppStore.getState().setMicDevice(v)}
+            ariaLabel={t("config.micDevice")}
+            className="h-8 w-56 px-2.5"
+            options={options}
+          />
+          <Tip content={t("config.micDeviceRefresh")}>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              aria-label={t("config.micDeviceRefresh")}
+              onClick={() => void refresh()}
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            </Button>
+          </Tip>
+        </div>
+      </div>
+      <MicLevelMeter />
+    </div>
+  );
+}
+
+/**
+ * Vumètre du micro qui écoute (moteur natif) et son nom. Le moteur ne tourne
+ * qu'avec « Micro prêt » ou le mot déclencheur : sinon, une ligne d'aide.
+ */
+function MicLevelMeter() {
+  const { t } = useTranslation();
+  const [st, setSt] = useState<{ device: string; fallback: boolean; level: number } | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    const tick = () => {
+      invoke<{ device: string; fallback: boolean; level: number } | null>("voice_input_status")
+        .then((s) => alive && setSt(s))
+        .catch(() => alive && setSt(null));
+    };
+    tick();
+    const id = window.setInterval(tick, 120);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, []);
+  if (st === undefined) return null;
+  if (st === null) {
+    return <p className="text-mini text-muted-foreground/60 pl-6 mt-1">{t("config.micLevelOff")}</p>;
+  }
+  // Racine carrée : la voix normale remplit la moitié de la barre, pas un dixième.
+  const pct = Math.min(100, Math.round(Math.sqrt(st.level) * 100));
+  const label = !st.device
+    ? t("config.micDeviceNone")
+    : st.fallback
+      ? t("config.micInUseFallback", { name: st.device })
+      : t("config.micInUse", { name: st.device });
+  return (
+    <div className="flex items-center gap-2 pl-6 mt-1.5">
+      <div
+        className="h-1.5 w-40 shrink-0 rounded-full bg-muted overflow-hidden"
+        role="meter"
+        aria-label={t("config.micLevel")}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+      >
+        <div
+          className={cn("h-full rounded-full transition-[width] duration-100", pct >= 95 ? "bg-destructive" : "bg-primary")}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className={cn("text-mini truncate", st.fallback || !st.device ? "text-amber-500" : "text-muted-foreground/70")}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
 /** Mot déclencheur (bêta) : vide = mot par défaut de la langue. */
 function WakeWordRow() {
   const { t } = useTranslation();
@@ -2954,10 +3190,10 @@ function DriverNameRow() {
     if (draft.trim() !== saved) void useAppStore.getState().setRadioDriverName(draft);
   };
   return (
-    <div className="flex items-center justify-between py-2 gap-3">
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
       <div className="flex items-start gap-2 min-w-0">
         <Tip content={t("config.radioDriverNameTip")} side="right">
-          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+          <span className="text-primary cursor-help mt-0.5 shrink-0">
             <User className="h-4 w-4" />
           </span>
         </Tip>
@@ -3017,20 +3253,20 @@ function ToggleRow({
   return (
     <div
       className={cn(
-        "flex items-center justify-between py-2 gap-3",
+        "flex items-center justify-between gap-4 rounded-md border border-border p-3",
         disabled && "opacity-50",
       )}
     >
-      <div className="flex items-start gap-2 min-w-0">
+      <div className="flex min-w-0 items-start gap-2.5">
         <Tip content={tip ?? ""} side="right">
-          <span className="text-muted-foreground cursor-help mt-0.5 shrink-0">
+          <span className="mt-0.5 shrink-0 cursor-help text-primary">
             {icon}
           </span>
         </Tip>
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-0.5">
           <div className="text-sm font-medium leading-tight">{label}</div>
           {desc && (
-            <div className="text-xs text-muted-foreground/80 mt-0.5">{desc}</div>
+            <div className="text-xs text-muted-foreground">{desc}</div>
           )}
         </div>
       </div>

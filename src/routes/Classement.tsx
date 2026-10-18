@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import {
   community,
+  config,
   isTauri,
   type CommunityCompare,
   type CommunityDetail,
@@ -35,6 +36,7 @@ import { useAppStore } from "@/stores/app";
 import { TierBadge } from "@/components/TierBadge";
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { References } from "@/routes/References";
+import { CarIndexTab, INSIGHTS_KEY, PatchTab, RivalTab } from "@/routes/ClassementInsights";
 import { AvatarFetch } from "@/components/CommunitySettings";
 
 const RANKED_MIN = 20;
@@ -936,23 +938,44 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
  * et onglet « Références OhneSpeed » (la page Références, inchangée). Si l'option
  * OhneSpeed est désactivée, ni onglet ni colonne : la page Classement seule.
  */
+type ClassementTab = "position" | "references" | "cars" | "patch" | "rival";
+const TAB_LABEL: Record<ClassementTab, string> = {
+  position: "leaderboard.tabMine",
+  references: "leaderboard.tabRefs",
+  cars: "insights.tabCars",
+  patch: "insights.tabPatch",
+  rival: "insights.tabRival",
+};
+
 export function Classement() {
   const { t } = useTranslation();
   const showOhneSpeed = useAppStore((s) => s.showOhneSpeed);
+  // Onglets communautaires avancés : désactivés par défaut (Configuration › Sessions).
+  const [insights, setInsights] = useState(false);
+  useEffect(() => {
+    if (!isTauri()) return;
+    void config.get(INSIGHTS_KEY).then((v) => setInsights(v === "1")).catch(() => {});
+  }, []);
   const [params, setParams] = useSearchParams();
+  const available: ClassementTab[] = [
+    "position",
+    ...(showOhneSpeed ? (["references"] as const) : []),
+    ...(insights ? (["cars", "patch", "rival"] as const) : []),
+  ];
   // Sans `?tab=` (entrée par le menu), on rouvre le dernier onglet consulté.
-  const [lastTab, setLastTab] = usePageState<"position" | "references">("classement.tab", "position");
-  const tab = showOhneSpeed && (params.get("tab") ?? lastTab) === "references" ? "references" : "position";
-  const setTab = (v: "position" | "references") => {
+  const [lastTab, setLastTab] = usePageState<ClassementTab>("classement.tab", "position");
+  const wanted = (params.get("tab") ?? lastTab) as ClassementTab;
+  const tab: ClassementTab = available.includes(wanted) ? wanted : "position";
+  const setTab = (v: ClassementTab) => {
     setLastTab(v);
-    setParams(v === "references" ? { tab: v } : {}, { replace: true });
+    setParams(v === "position" ? {} : { tab: v }, { replace: true });
   };
 
   return (
     <div className="flex flex-col gap-4">
-      {showOhneSpeed && (
-        <div className="inline-flex rounded-lg border border-border/60 bg-card p-1">
-          {(["position", "references"] as const).map((v) => (
+      {available.length > 1 && (
+        <div className="inline-flex flex-wrap rounded-lg border border-border/60 bg-card p-1">
+          {available.map((v) => (
             <button
               key={v}
               type="button"
@@ -961,14 +984,166 @@ export function Classement() {
                 tab === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t(v === "position" ? "leaderboard.tabMine" : "leaderboard.tabRefs")}
+              {t(TAB_LABEL[v])}
             </button>
           ))}
         </div>
       )}
-      {tab === "references" ? <References /> : <MyPosition showOhne={showOhneSpeed} />}
+      {tab === "references" ? (
+        <References />
+      ) : tab === "cars" ? (
+        <CarIndexTab />
+      ) : tab === "patch" ? (
+        <PatchTab />
+      ) : tab === "rival" ? (
+        <RivalTab />
+      ) : (
+        <MyPosition showOhne={showOhneSpeed} />
+      )}
     </div>
   );
+}
+
+/** Données de l'onglet « Ma position », gardées en mémoire pour un affichage immédiat. */
+interface MyPositionsData {
+  stats: CommunityStats | null;
+  rows: Row[];
+  offline: boolean;
+  /** Horodatage du chargement (ms). */
+  at: number;
+}
+
+interface MyPositionsQuery {
+  dataVersion: number;
+  session: "" | "race" | "qualify" | "practice";
+  mode: "" | "online" | "offline";
+  version: string | null;
+  versionExact: boolean;
+}
+
+const positionsCache = new Map<string, MyPositionsData>();
+const positionsInflight = new Map<string, Promise<MyPositionsData>>();
+const positionsKey = (q: MyPositionsQuery) =>
+  JSON.stringify([q.dataVersion, q.session, q.mode, q.version, q.versionExact]);
+/** En dessous de cet âge, une donnée en cache n'est pas rechargée en arrivant sur la page. */
+const POSITIONS_FRESH_MS = 60_000;
+
+async function fetchMyPositions({
+  session: fSession,
+  mode: fMode,
+  version: selectedVersion,
+  versionExact,
+}: MyPositionsQuery): Promise<MyPositionsData> {
+  const mine = await community
+    .myCombos({
+      session: fSession || undefined,
+      mode: fMode || undefined,
+      version: selectedVersion,
+      version_exact: versionExact,
+    })
+    .catch(() => [] as MyCombo[]);
+  // Filtres serveur équivalents. Version : « = v » → sa version mineure ; « ≥ v » → toutes
+  // les versions du serveur à partir de celle-là ; aucune → la plus récente de chaque combo.
+  const extra: Record<string, string> = {};
+  if (fSession) extra.session = fSession;
+  if (fMode) extra.mode = fMode;
+  let st: CommunityStats | null = null;
+  try {
+    st = await community.get<CommunityStats>("stats");
+    if (selectedVersion) {
+      const min = gameMinor(selectedVersion);
+      const list = versionExact
+        ? [min]
+        : ((await community.get<{ versions: { version: string }[] }>("combos"))?.versions ?? [])
+            .map((v) => v.version)
+            .filter((v) => v.localeCompare(min, undefined, { numeric: true }) >= 0);
+      extra.version = (list.length ? list : [min]).join(",");
+    }
+  } catch {
+    return {
+      stats: null,
+      rows: mine.map((combo) => ({ combo, pos: null, q: { ...comboQuery(combo), ...extra } })),
+      offline: true,
+      at: Date.now(),
+    };
+  }
+  // Pilote du record de chaque combo : une seule requête, mêmes filtres que les positions.
+  const leaders = new Map<string, RecordHolder>();
+  const records = new Map<string, number>();
+  type ServerCombo = { track: string; track_course: string; car_class: string; best: number; best_car: string; best_driver?: RecordHolder };
+  let serverCombos: ServerCombo[] = [];
+  try {
+    const list = await community.get<{ combos: ServerCombo[] }>("combos", extra);
+    serverCombos = list?.combos ?? [];
+    for (const c of serverCombos) {
+      const k = recordKey(c.track, c.track_course, c.car_class);
+      if (c.best_driver) leaders.set(k, c.best_driver);
+      records.set(k, c.best);
+    }
+  } catch {
+    /* colonne vide : les positions restent affichées */
+  }
+  // Positions par petits paquets (pas de rafale sur le serveur).
+  const out: Row[] = [];
+  for (let i = 0; i < mine.length; i += 4) {
+    const part = await Promise.all(
+      mine.slice(i, i + 4).map(async (combo) => {
+        const q = { ...comboQuery(combo), ...extra };
+        return {
+          combo,
+          q,
+          pos: await community.get<CommunityPosition>("combos/position", { ...q, time: combo.best }).catch(() => null),
+          leader: leaders.get(recordKey(combo.track, combo.track_course, combo.car_class)) ?? null,
+          record: records.get(recordKey(combo.track, combo.track_course, combo.car_class)) ?? null,
+        };
+      }),
+    );
+    out.push(...part);
+  }
+  // Tous les autres classements aussi (même circuits jamais roulés) : meilleurs temps de
+  // toutes les classes, sans place pour le joueur.
+  const mineKeys = new Set(mine.map((c) => recordKey(c.track, c.track_course, c.car_class)));
+  for (const c of serverCombos) {
+    const k = recordKey(c.track, c.track_course, c.car_class);
+    if (mineKeys.has(k)) continue;
+    out.push({
+      combo: { track: c.track, track_course: c.track_course, car_class: c.car_class, car_model: c.best_car, best: c.best, last_played: 0 },
+      q: { track: c.track, course: c.track_course, class: c.car_class, ...extra },
+      pos: null,
+      leader: c.best_driver ?? null,
+      record: c.best,
+      other: true,
+    });
+  }
+  return { stats: st, rows: out, offline: false, at: Date.now() };
+}
+
+/** Charge (ou rejoint le chargement en cours) les positions pour ces filtres. */
+function loadMyPositions(q: MyPositionsQuery): Promise<MyPositionsData> {
+  const key = positionsKey(q);
+  const running = positionsInflight.get(key);
+  if (running) return running;
+  const p = fetchMyPositions(q)
+    .then((d) => {
+      positionsCache.set(key, d);
+      // Quelques jeux de filtres seulement : on oublie les plus anciens.
+      while (positionsCache.size > 8) positionsCache.delete(positionsCache.keys().next().value!);
+      return d;
+    })
+    .finally(() => positionsInflight.delete(key));
+  positionsInflight.set(key, p);
+  return p;
+}
+
+/**
+ * Précharge l'onglet « Ma position » (filtres par défaut) en tâche de fond, pour que la
+ * page Classements s'affiche sans attente. Appelé par l'app au lancement et après
+ * chaque nouvelle donnée indexée.
+ */
+export function preloadMyPositions(): void {
+  if (!isTauri()) return;
+  const { dataVersion, selectedVersion, versionExact } = useAppStore.getState();
+  void loadMyPositions({ dataVersion, session: "", mode: "", version: selectedVersion, versionExact }).catch(() => {});
 }
 
 function MyPosition({ showOhne }: { showOhne: boolean }) {
@@ -1025,92 +1200,28 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   useEffect(() => {
     if (!isTauri()) return;
     let cancelled = false;
-    (async () => {
-      setOffline(false);
-      community.status().then((s) => !cancelled && setStatus(s)).catch(() => {});
-      const mine = await community
-        .myCombos({
-          session: fSession || undefined,
-          mode: fMode || undefined,
-          version: selectedVersion,
-          version_exact: versionExact,
-        })
-        .catch(() => [] as MyCombo[]);
-      // Filtres serveur équivalents. Version : « = v » → sa version mineure ; « ≥ v » → toutes
-      // les versions du serveur à partir de celle-là ; aucune → la plus récente de chaque combo.
-      const extra: Record<string, string> = {};
-      if (fSession) extra.session = fSession;
-      if (fMode) extra.mode = fMode;
-      let st: CommunityStats | null = null;
-      try {
-        st = await community.get<CommunityStats>("stats");
-        if (selectedVersion) {
-          const min = gameMinor(selectedVersion);
-          const list = versionExact
-            ? [min]
-            : ((await community.get<{ versions: { version: string }[] }>("combos"))?.versions ?? [])
-                .map((v) => v.version)
-                .filter((v) => v.localeCompare(min, undefined, { numeric: true }) >= 0);
-          extra.version = (list.length ? list : [min]).join(",");
-        }
-      } catch {
-        if (!cancelled) {
-          setOffline(true);
-          setRows(mine.map((combo) => ({ combo, pos: null, q: { ...comboQuery(combo), ...extra } })));
-        }
-        return;
-      }
-      if (!cancelled) setStats(st);
-      // Pilote du record de chaque combo : une seule requête, mêmes filtres que les positions.
-      const leaders = new Map<string, RecordHolder>();
-      const records = new Map<string, number>();
-      type ServerCombo = { track: string; track_course: string; car_class: string; best: number; best_car: string; best_driver?: RecordHolder };
-      let serverCombos: ServerCombo[] = [];
-      try {
-        const list = await community.get<{ combos: ServerCombo[] }>("combos", extra);
-        serverCombos = list?.combos ?? [];
-        for (const c of serverCombos) {
-          const k = recordKey(c.track, c.track_course, c.car_class);
-          if (c.best_driver) leaders.set(k, c.best_driver);
-          records.set(k, c.best);
-        }
-      } catch {
-        /* colonne vide : les positions restent affichées */
-      }
-      // Positions par petits paquets (pas de rafale sur le serveur).
-      const out: Row[] = [];
-      for (let i = 0; i < mine.length; i += 4) {
-        const part = await Promise.all(
-          mine.slice(i, i + 4).map(async (combo) => {
-            const q = { ...comboQuery(combo), ...extra };
-            return {
-              combo,
-              q,
-              pos: await community.get<CommunityPosition>("combos/position", { ...q, time: combo.best }).catch(() => null),
-              leader: leaders.get(recordKey(combo.track, combo.track_course, combo.car_class)) ?? null,
-              record: records.get(recordKey(combo.track, combo.track_course, combo.car_class)) ?? null,
-            };
-          }),
-        );
-        out.push(...part);
-      }
-      // Tous les autres classements aussi (même circuits jamais roulés) : meilleurs temps de
-      // toutes les classes, sans place pour le joueur.
-      const mineKeys = new Set(mine.map((c) => recordKey(c.track, c.track_course, c.car_class)));
-      for (const c of serverCombos) {
-        const k = recordKey(c.track, c.track_course, c.car_class);
-        if (mineKeys.has(k)) continue;
-        out.push({
-          combo: { track: c.track, track_course: c.track_course, car_class: c.car_class, car_model: c.best_car, best: c.best, last_played: 0 },
-          q: { track: c.track, course: c.track_course, class: c.car_class, ...extra },
-          pos: null,
-          leader: c.best_driver ?? null,
-          record: c.best,
-          other: true,
-        });
-      }
-      if (!cancelled) setRows(out);
-    })();
+    community.status().then((s) => !cancelled && setStatus(s)).catch(() => {});
+    const q: MyPositionsQuery = {
+      dataVersion,
+      session: fSession,
+      mode: fMode,
+      version: selectedVersion,
+      versionExact,
+    };
+    const apply = (d: MyPositionsData) => {
+      if (cancelled) return;
+      setOffline(d.offline);
+      if (d.stats) setStats(d.stats);
+      setRows(d.rows);
+    };
+    // Préchargé (lancement de l'app) ou déjà vu : affichage immédiat, puis rafraîchi
+    // en arrière-plan si la donnée a plus d'une minute.
+    const cached = positionsCache.get(positionsKey(q));
+    if (cached) apply(cached);
+    else setOffline(false);
+    if (!cached || Date.now() - cached.at > POSITIONS_FRESH_MS) {
+      loadMyPositions(q).then(apply).catch(() => {});
+    }
     return () => {
       cancelled = true;
     };

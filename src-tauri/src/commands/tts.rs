@@ -37,6 +37,74 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 #[cfg(target_os = "windows")]
 const BELOW_NORMAL_PRIORITY_CLASS: u32 = 0x0000_4000;
 
+/// Cœurs logiques laissés à Piper (au-delà de 4 cœurs sur la machine) : la
+/// synthèse d'une phrase n'en a pas besoin de plus, et onnxruntime en prend
+/// sinon autant qu'il y a de cœurs — en concurrence directe avec le jeu.
+const PIPER_CORES: u32 = 2;
+
+/// Masque d'affinité à donner à Piper : les `n` cœurs les plus hauts du masque
+/// du processus (les jeux chargent d'abord les premiers). Petite machine
+/// (≤ 2 × n cœurs) : masque inchangé.
+fn capped_affinity(system: usize, n: u32) -> usize {
+    if system.count_ones() <= 2 * n {
+        return system;
+    }
+    let mut out = 0usize;
+    let mut left = n;
+    for bit in (0..usize::BITS).rev() {
+        if left == 0 {
+            break;
+        }
+        if system & (1usize << bit) != 0 {
+            out |= 1usize << bit;
+            left -= 1;
+        }
+    }
+    out
+}
+
+/// Réglages du processus Piper (Windows) : cœurs bornés, priorité adaptée.
+#[cfg(target_os = "windows")]
+mod proc_ctl {
+    use std::os::windows::io::AsRawHandle;
+    use windows::Win32::Foundation::HANDLE;
+    use windows::Win32::System::Threading::{
+        GetCurrentProcess, GetProcessAffinityMask, SetPriorityClass, SetProcessAffinityMask,
+        BELOW_NORMAL_PRIORITY_CLASS, NORMAL_PRIORITY_CLASS,
+    };
+
+    fn handle(child: &std::process::Child) -> HANDLE {
+        HANDLE(child.as_raw_handle())
+    }
+
+    /// Phrase urgente (sécurité, spotter) : priorité normale le temps de la
+    /// synthèse — en priorité basse, sous forte charge, une phrase prenait 1 à 5 s.
+    pub fn set_urgent(child: &std::process::Child, urgent: bool) {
+        let class = if urgent { NORMAL_PRIORITY_CLASS } else { BELOW_NORMAL_PRIORITY_CLASS };
+        unsafe {
+            let _ = SetPriorityClass(handle(child), class);
+        }
+    }
+
+    pub fn cap_cores(child: &std::process::Child, n: u32) {
+        unsafe {
+            let (mut proc_mask, mut sys_mask) = (0usize, 0usize);
+            if GetProcessAffinityMask(GetCurrentProcess(), &mut proc_mask, &mut sys_mask).is_ok() {
+                let mask = super::capped_affinity(proc_mask, n);
+                if mask != 0 && mask != proc_mask {
+                    let _ = SetProcessAffinityMask(handle(child), mask);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+mod proc_ctl {
+    pub fn set_urgent(_child: &std::process::Child, _urgent: bool) {}
+    pub fn cap_cores(_child: &std::process::Child, _n: u32) {}
+}
+
 /// Voix Piper installée (exposée au frontend pour le sélecteur).
 #[derive(serde::Serialize)]
 pub struct PiperVoice {
@@ -362,6 +430,7 @@ fn spawn_worker(p: &SynthParams) -> std::io::Result<PiperWorker> {
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()?;
+    proc_ctl::cap_cores(&child, PIPER_CORES);
 
     let (stdin, stdout) = match (child.stdin.take(), child.stdout.take()) {
         (Some(i), Some(o)) => (i, o),
@@ -501,7 +570,7 @@ fn worker_request(w: &mut PiperWorker, text: &str, speaker: Option<u32>) -> Resu
 
 /// Synthèse via le worker persistant (démarré/remplacé si besoin). `None` = échec :
 /// le worker a été tué et l'appelant doit repasser par `synthesize_one_shot`.
-fn synthesize_with_worker(p: &SynthParams, text: &str) -> Option<Vec<u8>> {
+fn synthesize_with_worker(p: &SynthParams, text: &str, urgent: bool) -> Option<Vec<u8>> {
     let mut slot = worker_slot().lock().unwrap_or_else(|e| e.into_inner());
     if let Some(w) = slot.as_mut() {
         if !w.matches(p) || !w.is_alive() {
@@ -512,7 +581,14 @@ fn synthesize_with_worker(p: &SynthParams, text: &str) -> Option<Vec<u8>> {
         *slot = Some(spawn_worker(p).ok()?);
     }
     let w = slot.as_mut()?;
-    match worker_request(w, text, p.speaker) {
+    if urgent {
+        proc_ctl::set_urgent(&w.child, true);
+    }
+    let res = worker_request(w, text, p.speaker);
+    if urgent {
+        proc_ctl::set_urgent(&w.child, false);
+    }
+    match res {
         Ok(bytes) => Some(bytes),
         Err(_) => {
             *slot = None; // drop → kill
@@ -532,13 +608,14 @@ pub fn tts_synthesize(
     voice_id: Option<String>,
     rate: Option<f32>,
     speaker_id: Option<u32>,
+    urgent: Option<bool>,
 ) -> AppResult<String> {
     let p = prepare(&app, &lang, voice_id.as_deref(), rate, speaker_id)?;
     // Texte vide : comportement historique (pas de requête JSON vide au worker).
     let bytes = if text.trim().is_empty() {
         synthesize_one_shot(&p, &text)?
     } else {
-        match synthesize_with_worker(&p, &text) {
+        match synthesize_with_worker(&p, &text, urgent.unwrap_or(false)) {
             Some(b) => b,
             None => synthesize_one_shot(&p, &text)?,
         }
@@ -558,7 +635,7 @@ pub fn tts_warmup(
     speaker_id: Option<u32>,
 ) -> AppResult<()> {
     let p = prepare(&app, &lang, voice_id.as_deref(), rate, speaker_id)?;
-    synthesize_with_worker(&p, "ok")
+    synthesize_with_worker(&p, "ok", false)
         .map(|_| ())
         .ok_or_else(|| AppError::Internal("démarrage du worker Piper impossible".into()))
 }
@@ -586,4 +663,16 @@ pub(crate) fn base64_encode(data: &[u8]) -> String {
         });
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn piper_affinity_keeps_the_highest_cores() {
+        assert_eq!(capped_affinity(0b1111, 2), 0b1111, "4 cœurs : inchangé");
+        assert_eq!(capped_affinity(0xFFF, 2), 0xC00, "12 cœurs : les 2 plus hauts");
+        assert_eq!(capped_affinity(0b1010_1010_1010, 2), 0b1010_0000_0000, "masque troué");
+    }
 }

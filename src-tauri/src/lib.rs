@@ -192,6 +192,9 @@ pub fn run() {
             commands::community::community_set_avatar,
             commands::community::community_sync,
             commands::community::community_public,
+            commands::community::community_briefing,
+            commands::community::community_rival,
+            commands::community::community_set_rival,
             commands::community::community_my_combos,
             commands::coach::coach_ref_save,
             commands::coach::coach_ref_load,
@@ -210,6 +213,7 @@ pub fn run() {
             commands::ai::coach_note_delete,
             // Live timing — shared memory rF2/LMU
             commands::live::get_live_data,
+            commands::live::track_outline,
             commands::live::list_weather_files,
             commands::live::is_sim_running,
             commands::live::start_live_polling,
@@ -218,6 +222,18 @@ pub fn run() {
             commands::regie::regie_start,
             commands::regie::regie_stop,
             commands::regie::regie_status,
+            commands::tools::tools_detect_known,
+            commands::tools::tools_set_launcher,
+            commands::tools::tools_launcher_status,
+            commands::tools::tools_launch_now,
+            commands::tools::launch_lmu,
+            commands::tools::lmu_is_running,
+            commands::tools::pc_diagnostic,
+            commands::widget_server::widget_server_start,
+            commands::widget_server::widget_server_stop,
+            commands::widget_server::widget_server_status,
+            commands::widget_server::widget_server_set_language,
+            commands::widget_server::widget_server_set_titles,
             commands::lmu_rest_write::get_pit_menu,
             commands::lmu_rest_write::set_pit_menu_item,
             commands::queries::save_text_file,
@@ -244,6 +260,7 @@ pub fn run() {
             // Téléchargement à la demande des modèles vocaux (voix Piper, Vosk)
             commands::assets::assets_catalog,
             commands::assets::asset_download,
+            commands::assets::asset_delete,
             // Reconnaissance vocale par commandes (Vosk, spotter Couche 2)
             commands::stt::stt_available,
             commands::stt::stt_recognize,
@@ -251,14 +268,39 @@ pub fn run() {
             // Push-to-talk sur un bouton de volant (winmm + HID brut, hors focus)
             commands::wheel::wheel_capture,
             commands::wheel::wheel_watch,
+            commands::wheel::wheel_watch_mark,
+            commands::wheel::wheel_watch_actions,
             commands::voice_input::voice_input_start,
             commands::voice_input::voice_input_stop,
             commands::voice_input::voice_input_running,
+            commands::voice_input::voice_input_devices,
+            commands::voice_input::voice_input_status,
             commands::voice_input::voice_input_set_muted,
             commands::voice_input::ptt_begin,
             commands::voice_input::ptt_end,
             commands::voice_input::ptt_end_dual,
             commands::voice_input::ptt_cancel,
+            // Captures brutes de la mémoire partagée (enregistrement / rejeu)
+            commands::live::shm_record_start,
+            commands::live::shm_record_stop,
+            commands::live::shm_replay_start,
+            commands::live::shm_replay_stop,
+            commands::live::shm_status,
+            // Son du jeu baissé pendant que l'ingénieur parle
+            commands::audio_duck::duck_game_audio,
+            commands::audio_duck::unduck_game_audio,
+            commands::audio_duck::duck_status,
+            // Journal + rapport de bug local
+            commands::applog::log_write,
+            commands::applog::export_report,
+            // Notes vocales du pilote (par virage)
+            commands::voice_notes::voice_note_save_last,
+            commands::voice_notes::voice_note_list,
+            commands::voice_notes::voice_note_read,
+            commands::voice_notes::voice_note_delete,
+            commands::voice_notes::voice_note_clear,
+            // Cohabitation avec un autre ingénieur radio
+            commands::tools::other_engineer_running,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]
@@ -266,8 +308,31 @@ pub fn run() {
                 println!("[tauri] LMU Stats Viewer v3 — dev mode");
             }
 
-            let db_state = db::init_db(app.handle())
-                .expect("Échec de l'initialisation de la base de données");
+            // Journal de l'app en premier : tout ce qui suit peut y écrire.
+            if let Ok(dir) = app.path().app_data_dir() {
+                commands::applog::init(&dir);
+                commands::applog::install_panic_hook();
+            }
+            crate::app_info!("démarrage v{}", app.package_info().version);
+            // Son du jeu resté baissé après un arrêt brutal de l'app : rétabli.
+            commands::audio_duck::restore_after_crash(app.handle());
+
+            // Base locale : une base illisible (fichier abîmé) ne doit pas
+            // empêcher l'app de démarrer. On la met de côté et on repart d'une
+            // base neuve (l'index se reconstruit depuis les fichiers du jeu).
+            let db_state = match db::init_db(app.handle()) {
+                Ok(s) => s,
+                Err(e) => {
+                    crate::app_error!("base locale illisible : {e}");
+                    db::quarantine_db(app.handle());
+                    db::init_db(app.handle()).map_err(|e2| {
+                        crate::app_error!("base locale : échec après remise à zéro : {e2}");
+                        Box::<dyn std::error::Error>::from(format!(
+                            "Impossible d'ouvrir la base locale de l'application : {e2}"
+                        ))
+                    })?
+                }
+            };
             app.manage(db_state);
 
             // ── System tray ───────────────────────────────────────────────
@@ -320,6 +385,12 @@ pub fn run() {
                 }
             }
         })
-        .run(tauri::generate_context!())
-        .expect("erreur au démarrage de l'application Tauri");
+        .build(tauri::generate_context!())
+        .expect("erreur au démarrage de l'application Tauri")
+        .run(|app, event| {
+            // Fermeture de l'app : le son du jeu retrouve son volume.
+            if let tauri::RunEvent::Exit = event {
+                commands::audio_duck::restore_on_exit(app);
+            }
+        });
 }

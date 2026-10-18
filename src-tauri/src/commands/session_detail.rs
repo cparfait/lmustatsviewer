@@ -33,6 +33,10 @@ pub struct SessionInfo {
     pub tire_mult: f64,
     pub vehicles_allowed: String,
     pub filename: String,
+    /// Serveur de la séance (vide hors ligne).
+    pub server_name: String,
+    /// 1 = serveur dédié, 0 = hébergé par un joueur, -1 = inconnu.
+    pub dedicated: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -94,6 +98,8 @@ pub struct LapRow {
     pub rcompound: String,
     pub is_pit: bool,
     pub is_valid: bool,
+    /// Heure de session au début du tour (s) ; `None` si inconnue.
+    pub et: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -159,6 +165,58 @@ fn map_result(row: &Row) -> rusqlite::Result<ResultRow> {
     })
 }
 
+/// Complète l'heure de début des tours (`laps.et`) d'une session indexée avant l'ajout de
+/// la colonne, en relisant son fichier XML (une seule fois : ensuite les valeurs sont là).
+/// Sans fichier ou sans valeur dans le fichier : rien, sans erreur.
+fn backfill_lap_starts(conn: &rusqlite::Connection, session_id: i64, session_type: &str, timestamp: i64) {
+    let missing: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM laps WHERE session_id = ?1 AND et IS NULL",
+            [session_id],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+    let known: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM laps WHERE session_id = ?1 AND et IS NOT NULL",
+            [session_id],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+    if missing == 0 || known > 0 {
+        return;
+    }
+    let path: Option<String> = conn
+        .query_row(
+            "SELECT x.file_path FROM sessions s JOIN xml_index x ON x.id = s.xml_id WHERE s.id = ?1",
+            [session_id],
+            |r| r.get(0),
+        )
+        .ok();
+    let Some(path) = path else { return };
+    let Ok(parsed) = crate::xml_parser::parse_xml_file(std::path::Path::new(&path)) else { return };
+    let Some(ps) = parsed
+        .sessions
+        .iter()
+        .find(|s| s.session_type == session_type && s.timestamp == timestamp)
+        .or_else(|| parsed.sessions.iter().find(|s| s.session_type == session_type))
+    else {
+        return;
+    };
+    let Ok(tx) = conn.unchecked_transaction() else { return };
+    for d in &ps.drivers {
+        for lap in &d.laps {
+            if let Some(et) = lap.et {
+                let _ = tx.execute(
+                    "UPDATE laps SET et = ?1 WHERE session_id = ?2 AND driver_name = ?3 AND lap_num = ?4",
+                    rusqlite::params![et, session_id, d.name, lap.lap_num],
+                );
+            }
+        }
+    }
+    let _ = tx.commit();
+}
+
 #[tauri::command]
 pub fn get_session_detail(
     session_id: i64,
@@ -173,7 +231,7 @@ pub fn get_session_detail(
                     s.track_course, s.setting, s.game_version, s.participants,
                     s.session_laps, s.session_minutes, x.track_event, x.track_length,
                     x.race_time, x.mech_fail_rate, x.damage_mult, x.fuel_mult,
-                    x.tire_mult, x.vehicles_allowed, x.filename
+                    x.tire_mult, x.vehicles_allowed, x.filename, x.server_name, x.dedicated
              FROM sessions s JOIN xml_index x ON x.id = s.xml_id
              WHERE s.id = ?1",
             [session_id],
@@ -199,6 +257,8 @@ pub fn get_session_detail(
                     tire_mult: row.get(17)?,
                     vehicles_allowed: row.get(18)?,
                     filename: row.get(19)?,
+                    server_name: row.get(20)?,
+                    dedicated: row.get(21)?,
                 })
             },
         )
@@ -242,11 +302,13 @@ pub fn get_session_detail(
         .map_err(|e| AppError::Database(format!("results collect: {e}")))?;
 
     // --- Tours (tous les pilotes) ---
+    // Session indexée avant la colonne `et` : on la complète depuis le fichier.
+    backfill_lap_starts(&conn, session_id, &session.session_type, session.timestamp);
     let mut stmt_laps = conn
         .prepare(
             "SELECT driver_name, lap_num, position, lap_time, s1, s2, s3,
                     top_speed, fuel, fuel_used, twfl, twfr, twrl, twrr,
-                    fcompound, rcompound, is_pit, is_valid
+                    fcompound, rcompound, is_pit, is_valid, et
              FROM laps WHERE session_id = ?1 ORDER BY driver_name, lap_num",
         )
         .map_err(|e| AppError::Database(format!("laps: {e}")))?;
@@ -271,6 +333,7 @@ pub fn get_session_detail(
                 rcompound: row.get(15)?,
                 is_pit: row.get::<_, i64>(16)? != 0,
                 is_valid: row.get::<_, i64>(17)? != 0,
+                et: row.get(18)?,
             })
         })
         .map_err(|e| AppError::Database(format!("laps map: {e}")))?

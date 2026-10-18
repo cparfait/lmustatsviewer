@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
-import { telemetry, setups, live, ai } from "@/lib/api";
+import { setups, live, ai } from "@/lib/api";
 import type { SessionDetail, TelemetryMeta, CoachNote } from "@/lib/api";
 import { fetchBenchmarks, findBenchmark, computeTier } from "@/lib/ohne_speed";
 import { formatTime } from "@/lib/utils";
@@ -43,15 +43,16 @@ import { buildTrackKnowledgeText } from "@/lib/ai/knowledge/track-knowledge";
 import { getVideoGuide } from "@/lib/ai/knowledge/video-guides";
 import i18nGlobal from "@/i18n";
 import { buildSetupSummary } from "@/lib/ai/context/setup-context";
+import { buildTelemetryContext } from "@/lib/ai/context/telemetry-context";
 import {
-  buildTelemetryContext,
-  buildElectronicsSummary,
-  ELEC_CHANNELS,
-} from "@/lib/ai/context/telemetry-context";
-import { detectCorners, summarizeCorners, type Corner } from "@/lib/telemetry/corners";
+  buildSessionTelemetryText,
+  loadElectronicsText,
+  loadFastestLapTexts,
+  loadTheoreticalBestText,
+} from "@/lib/ai/context/session-telemetry";
+import { buildCommunityReferenceText } from "@/lib/ai/context/community-context";
+import { loadEventLocator, type EventLocator } from "@/lib/eventLocator";
 import { summarizeLapAnalysis, type LapAnalysis } from "@/lib/telemetry/analysis";
-import { computeLapMetrics, summarizeLapMetrics } from "@/lib/telemetry/lapMetrics";
-import { compareToBestApex, summarizeTheoreticalBest } from "@/lib/telemetry/theoreticalBest";
 import {
   postRacePrompt,
   POST_RACE_MAX_TOKENS,
@@ -318,6 +319,10 @@ export function CoachPanel({
   const [notes, setNotes] = useState<CoachNote[]>([]); // objectifs épinglés du combo
   const [pinned, setPinned] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  // Dernière question du fil : la fenêtre défile jusqu'à elle à chaque envoi, sinon
+  // elle se rouvre en haut (sur l'analyse) et la réponse s'écrit hors de l'écran.
+  const lastUserRef = useRef<HTMLDivElement>(null);
+  const [scrollTick, setScrollTick] = useState(0);
   const cancelRef = useRef(false); // A2 : stop génération
   const spokenRef = useRef(0); // B2 : offset déjà lu à voix haute
 
@@ -430,6 +435,15 @@ export function CoachPanel({
   };
 
   useEffect(() => {
+    if (!open || scrollTick === 0) return;
+    // Après le rendu de la fenêtre (elle peut s'ouvrir à l'instant même).
+    const id = requestAnimationFrame(() =>
+      lastUserRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }),
+    );
+    return () => cancelAnimationFrame(id);
+  }, [scrollTick, open]);
+
+  useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeModal();
@@ -455,6 +469,7 @@ export function CoachPanel({
     cancelRef.current = false;
     spokenRef.current = 0;
     setThread([...nextThread, { role: "assistant", content: "" }]); // user + réponse en cours
+    setScrollTick((n) => n + 1);
     try {
       // Cap : on garde toujours le 1er message (qui porte le contexte) + la queue.
       const sent =
@@ -823,7 +838,11 @@ export function CoachPanel({
             <div className="flex-1 space-y-4 overflow-auto px-6 py-5">
               {thread.map((turn, i) =>
                 turn.role === "user" ? (
-                  <div key={i} className="flex justify-end">
+                  <div
+                    key={i}
+                    ref={i === thread.map((x) => x.role).lastIndexOf("user") ? lastUserRef : undefined}
+                    className="flex scroll-mt-2 justify-end"
+                  >
                     <div className="max-w-[80%] rounded-lg bg-primary/10 px-3 py-1.5 text-sm text-foreground">
                       {turn.display ?? turn.content}
                     </div>
@@ -940,7 +959,7 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
           [
             "## Alien reference (ohne_speed, community — lap-time level only)",
             `Class ${player.car_class} · alien hotlap ${formatTime(bm.hotlapTimeMs / 1000)}`,
-            `Your best ${formatTime(player.best_lap!)} → ${deltaMs >= 0 ? "+" : ""}${(deltaMs / 1000).toFixed(3)}s (${percent.toFixed(1)}% of alien, tier: ${tier})`,
+            `Your best ${formatTime(player.best_lap!)} → ${deltaMs >= 0 ? "+" : ""}${(deltaMs / 1000).toFixed(3)}s (${percent.toFixed(1)}% of alien, tier: ${tier === "Offline" ? "Offline = slower than the tail-ender band" : tier})`,
           ].join("\n"),
         );
       })
@@ -969,6 +988,46 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
     };
   }, [detail]);
 
+  // Télémétrie de la session (fichier .duckdb du jeu retrouvé) : virages, entrées,
+  // électronique, météo. Absente si la télémétrie du jeu n'était pas activée.
+  const [telemetryText, setTelemetryText] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    setTelemetryText("");
+    buildSessionTelemetryText(detail)
+      .then((txt) => !cancelled && setTelemetryText(txt))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [detail]);
+
+  // Situe limites de piste et contacts dans le tour (tracé connu, télémétrie éventuelle).
+  const [locate, setLocate] = useState<EventLocator | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    setLocate(undefined);
+    loadEventLocator(detail)
+      .then((fn) => !cancelled && setLocate(() => fn))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [detail]);
+
+  // Références de la communauté (lecture publique) : rang, palier au-dessus, secteurs.
+  const [communityText, setCommunityText] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    setCommunityText("");
+    buildCommunityReferenceText(detail)
+      .then((txt) => !cancelled && setCommunityText(txt))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [detail]);
+
   // Connaissance circuit (référence statique) : freinages ApexPoints + guide
   // vidéo/transcription Unleashed Drivers, couplés en une seule rubrique.
   const lang = i18nGlobal.language;
@@ -983,8 +1042,18 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
   }, [detail, lang]);
 
   const ctx = useMemo(
-    () => buildPostRaceContext(detail, setupText, alienText, historyText, knowledgeText),
-    [detail, setupText, alienText, historyText, knowledgeText],
+    () =>
+      buildPostRaceContext(
+        detail,
+        setupText,
+        alienText,
+        historyText,
+        knowledgeText,
+        telemetryText,
+        communityText,
+        locate,
+      ),
+    [detail, setupText, alienText, historyText, knowledgeText, telemetryText, communityText, locate],
   );
   const player = detail.results.find((r) => r.is_player);
   const combo = player
@@ -1013,126 +1082,32 @@ export function TelemetryCoachPanel({
   meta: TelemetryMeta;
   analysis?: LapAnalysis | null;
 }) {
-  // Charge les canaux électroniques (ABS/TC/map/brake bias) pour permettre au
-  // coach de proposer des ajustements ancrés sur les valeurs réellement utilisées.
+  // Électronique (ABS/TC/map/brake bias), virages + métriques du tour le plus rapide,
+  // meilleur théorique « self » : chargeurs partagés avec le post-course
+  // (`session-telemetry.ts`).
   const [elecText, setElecText] = useState("");
-  useEffect(() => {
-    const names = ELEC_CHANNELS.filter((n) => meta.channels.some((c) => c.name === n));
-    if (names.length === 0) {
-      setElecText("");
-      return;
-    }
-    let cancelled = false;
-    telemetry
-      .getChannels(meta.info.path, names, null, 3000)
-      .then((d) => {
-        if (!cancelled) setElecText(buildElectronicsSummary(d));
-      })
-      .catch(() => {
-        if (!cancelled) setElecText("");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [meta]);
-
-  // Tour le plus rapide à pleine résolution → virages + métriques par phase.
   const [cornersText, setCornersText] = useState("");
   const [metricsText, setMetricsText] = useState("");
-  useEffect(() => {
-    const laps = meta.laps.filter((l) => l.duration > 0);
-    if (laps.length === 0) {
-      setCornersText("");
-      setMetricsText("");
-      return;
-    }
-    const fastest = laps.reduce((a, b) => (b.duration < a.duration ? b : a));
-    let cancelled = false;
-    const channels = [
-      "Ground Speed",
-      "Brake Pos",
-      "Throttle Pos",
-      "Steering Pos",
-      "Wheel Speed",
-      "SoC",
-      "Regen Rate",
-      "Virtual Energy",
-      "ABS",
-      "TC",
-    ].filter((c) => meta.channels.some((m) => m.name === c));
-    // maxPoints élevé → ≈ résolution native (métriques fines fiables).
-    telemetry
-      .getChannels(meta.info.path, channels, fastest.lap, 20000)
-      .then((d) => {
-        if (cancelled) return;
-        const get = (n: string) => d.channels.find((c) => c.name === n)?.values[0] ?? [];
-        const speed = get("Ground Speed");
-        const brake = get("Brake Pos");
-        const corners = detectCorners(speed, brake, d.dist);
-        setCornersText(summarizeCorners(corners));
-        setMetricsText(
-          summarizeLapMetrics(
-            computeLapMetrics(corners, {
-              time: d.time,
-              dist: d.dist,
-              speed,
-              brake,
-              throttle: get("Throttle Pos"),
-              steering: get("Steering Pos"),
-              wheelSpeed: get("Wheel Speed"),
-              soc: get("SoC"),
-              regen: get("Regen Rate"),
-              virtualEnergy: get("Virtual Energy"),
-              abs: get("ABS"),
-              tc: get("TC"),
-            }, { carClass: meta.info.car_class }),
-          ),
-        );
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setCornersText("");
-          setMetricsText("");
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [meta]);
-
-  // Référence « meilleur théorique self » : meilleure vitesse d'apex par virage
-  // sur tous les tours propres (sans tour de référence ni données pro).
   const [bestApexText, setBestApexText] = useState("");
   useEffect(() => {
-    const laps = meta.laps.filter((l) => l.duration > 0);
-    if (laps.length < 2 || !meta.channels.some((c) => c.name === "Ground Speed")) {
-      setBestApexText("");
-      return;
-    }
-    const fastest = laps.reduce((a, b) => (b.duration < a.duration ? b : a));
-    const clean = laps.filter((l) => l.duration <= fastest.duration * 1.08).slice(0, 10);
     let cancelled = false;
-    Promise.all(
-      clean.map((l) =>
-        telemetry
-          .getChannels(meta.info.path, ["Ground Speed", "Brake Pos"], l.lap, 4000)
-          .then((d) => {
-            const sp = d.channels.find((c) => c.name === "Ground Speed")?.values[0] ?? [];
-            const br = d.channels.find((c) => c.name === "Brake Pos")?.values[0] ?? [];
-            return { lap: l.lap, corners: detectCorners(sp, br, d.dist) };
-          })
-          .catch(() => null),
-      ),
-    ).then((results) => {
-      if (cancelled) return;
-      const valid = results.filter((r): r is { lap: number; corners: Corner[] } => r != null);
-      const fast = valid.find((r) => r.lap === fastest.lap);
-      if (!fast || fast.corners.length === 0) {
-        setBestApexText("");
-        return;
-      }
-      setBestApexText(summarizeTheoreticalBest(compareToBestApex(fast.corners, valid.map((v) => v.corners))));
-    });
+    setElecText("");
+    setCornersText("");
+    setMetricsText("");
+    setBestApexText("");
+    loadElectronicsText(meta)
+      .then((txt) => !cancelled && setElecText(txt))
+      .catch(() => {});
+    loadFastestLapTexts(meta)
+      .then((r) => {
+        if (cancelled) return;
+        setCornersText(r.corners);
+        setMetricsText(r.metrics);
+      })
+      .catch(() => {});
+    loadTheoreticalBestText(meta)
+      .then((txt) => !cancelled && setBestApexText(txt))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

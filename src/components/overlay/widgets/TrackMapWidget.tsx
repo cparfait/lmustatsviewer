@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Map as MapIcon } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
 import { liveClassColor } from "@/components/overlay/format";
-import { config, isTauri } from "@/lib/api";
+import { appSetting } from "@/lib/widgetLink";
 import { fitTransform, mapComplete, pathOfRuns, trackPaths, type Pt } from "@/lib/trackMapGeom";
 import type { WidgetProps } from "./types";
 
@@ -52,8 +52,7 @@ export function TrackMapWidget({ data, content, accent, t }: WidgetProps) {
   // son propre contexte : relue dans la configuration.
   const [northUp, setNorthUp] = useState(false);
   useEffect(() => {
-    if (!isTauri()) return;
-    void config.get("map_north_up").then((v) => setNorthUp(v === "true")).catch(() => {});
+    void appSetting("map_north_up").then((v) => setNorthUp(v === "true")).catch(() => {});
   }, []);
 
   // Tracé FIGÉ. On le construit pendant le 1er tour, puis on le gèle et on le

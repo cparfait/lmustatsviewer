@@ -364,7 +364,9 @@ function requeueCut(item: QueueItem) {
  * relâchement : la file repart.
  */
 export function setDriverTalking(on: boolean) {
+  const changed = driverTalking !== on;
   driverTalking = on;
+  if (changed) for (const cb of talkListeners) cb(on);
   if (on && talkSilence && current && current.rank < PRIORITY_RANK.critical) {
     const cut = current;
     cut.end(false);
@@ -395,6 +397,47 @@ function micMuted(on: boolean) {
   invoke("voice_input_set_muted", { muted: on }).catch(() => {
     /* moteur absent : rien à faire */
   });
+}
+
+// ── Évènements de parole (son du jeu baissé, sous-titres radio) ─────────────────
+
+/** Début ou fin d'une annonce réellement entendue. */
+export interface SpeechEvent {
+  type: "start" | "end";
+  /** Texte affichable (avant normalisation pour la synthèse). */
+  text: string;
+  priority: VoicePriority;
+}
+
+const speechListeners = new Set<(e: SpeechEvent) => void>();
+const talkListeners = new Set<(on: boolean) => void>();
+
+/** S'abonne aux prises / fins de parole du pilote (push-to-talk). */
+export function onDriverTalk(cb: (on: boolean) => void): () => void {
+  talkListeners.add(cb);
+  return () => talkListeners.delete(cb);
+}
+
+/** Une annonce est-elle en cours de lecture ? */
+export function isSpeaking(): boolean {
+  return current != null;
+}
+
+/** S'abonne aux débuts / fins de parole ; renvoie la fonction de désabonnement. */
+export function onSpeechEvent(cb: (e: SpeechEvent) => void): () => void {
+  speechListeners.add(cb);
+  return () => speechListeners.delete(cb);
+}
+
+function notifySpeech(type: SpeechEvent["type"], item: QueueItem) {
+  const e: SpeechEvent = { type, text: item.raw, priority: item.priority };
+  for (const cb of speechListeners) {
+    try {
+      cb(e);
+    } catch {
+      /* un abonné en erreur ne coupe pas la radio */
+    }
+  }
 }
 
 /** Marque le canal tenu (spotter) à la prise et à la fin de parole. */
@@ -452,10 +495,12 @@ function playSpeech(item: QueueItem) {
     else radioInterrupt();
     holdChannel(item);
     micMuted(false);
+    notifySpeech("end", item);
   };
   const pb: Playback = { text: item.text, rank: PRIORITY_RANK[item.priority], end, item };
   holdChannel(item);
   micMuted(true);
+  notifySpeech("start", item);
   u.onend = () => {
     end(true);
     item.onEnd?.();
@@ -502,10 +547,12 @@ function playBuffer(ctx: AudioContext, buffer: AudioBuffer, item: QueueItem) {
     else radioInterrupt();
     holdChannel(item);
     micMuted(false);
+    notifySpeech("end", item);
   };
   const pb: Playback = { text: item.text, rank: PRIORITY_RANK[item.priority], end, item };
   holdChannel(item);
   micMuted(true);
+  notifySpeech("start", item);
   src.onended = () => {
     end(true);
     item.onEnd?.();
@@ -536,6 +583,7 @@ async function synthBuffer(
   ctx: AudioContext,
   code: string,
   text: string,
+  urgent = false,
 ): Promise<AudioBuffer | null> {
   let b64: string;
   try {
@@ -545,6 +593,8 @@ async function synthBuffer(
       voiceId: preferredPiperByLang[code] || undefined,
       rate: speechRate,
       speakerId: preferredSpeakerByLang[code] || undefined,
+      // Sécurité / spotter : Piper passe en priorité normale le temps de la phrase.
+      urgent: urgent || undefined,
     });
   } catch {
     piperUnavailable.add(code); // évite de réessayer en boucle
@@ -917,7 +967,7 @@ async function trySynthAndPlay(job: InFlight): Promise<boolean> {
   const key = synthKey(code, item.text);
   if (!raw) raw = synthCache.get(key) ?? null;
   if (!raw) {
-    raw = await synthBuffer(ctx, code, item.text);
+    raw = await synthBuffer(ctx, code, item.text, PRIORITY_RANK[item.priority] >= PRIORITY_RANK.critical);
     if (raw && isFixedPhrase(item.text)) rememberPhrase(key, raw);
   }
   if (stale()) {
@@ -1018,6 +1068,11 @@ function normalizeForTts(text: string, lang: string): string {
   // Suffixe secondes « 0.5s » / « 34s » → « 0.5 secondes » (le point est
   // traité juste après).
   s = s.replace(/\b(\d+(?:[.,]\d+)?)\s?s\b/g, `$1 ${w.seconds}`);
+  // Prononciation française des gommes : « medium » est lu à l'anglaise par Piper ;
+  // « médium » donne la prononciation attendue (le texte affiché n'est pas touché).
+  if (norm(lang) === "fr") {
+    s = s.replace(/\b([Mm])edium(s?)\b/g, (_m, c: string, pl: string) => `${c}édium${pl}`);
+  }
   // Unités.
   s = s.replace(/\bkm\/h\b/gi, w.kmh);
   s = s.replace(/°\s?C\b/g, ` ${w.degrees}`);

@@ -31,6 +31,37 @@ export const STILL_EVERY_S = 5;
 /** Trames consécutives pour valider un changement d'état. */
 const STABLE_FRAMES = 2;
 
+/**
+ * Réglages exposés en Configuration (valeurs par défaut = constantes ci-dessus).
+ * `carLength` décale les deux seuils de chevauchement (voiture plus longue ou
+ * plus courte que la référence de 4,5 m) ; `clearFrames` retarde le « libre ».
+ */
+export interface SpotterTuning {
+  carLength: number;
+  clearFrames: number;
+  stillEveryS: number;
+  minSpeedKmh: number;
+}
+
+export const DEFAULT_SPOTTER: SpotterTuning = {
+  carLength: OVERLAP_FRONT_M,
+  clearFrames: STABLE_FRAMES,
+  stillEveryS: STILL_EVERY_S,
+  minSpeedKmh: MIN_SPEED_MS * 3.6,
+};
+
+/** Réglages bornés à des valeurs sûres (saisie utilisateur). */
+export function sanitizeTuning(t: Partial<SpotterTuning> | null | undefined): SpotterTuning {
+  const n = (v: unknown, d: number, lo: number, hi: number) =>
+    typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d;
+  return {
+    carLength: n(t?.carLength, DEFAULT_SPOTTER.carLength, 3.5, 6),
+    clearFrames: Math.round(n(t?.clearFrames, DEFAULT_SPOTTER.clearFrames, 1, 10)),
+    stillEveryS: n(t?.stillEveryS, DEFAULT_SPOTTER.stillEveryS, 2, 30),
+    minSpeedKmh: n(t?.minSpeedKmh, DEFAULT_SPOTTER.minSpeedKmh, 10, 120),
+  };
+}
+
 export type SpotCall = "left" | "right" | "three" | "clear" | "clearLeft" | "clearRight" | "still";
 
 interface Side {
@@ -39,17 +70,19 @@ interface Side {
 }
 
 /** Côtés occupés pour cette trame, avec hystérésis sur l'état précédent. */
-export function occupiedSides(cars: NearbyCar[], prev: Side): Side {
+export function occupiedSides(cars: NearbyCar[], prev: Side, carLength = OVERLAP_FRONT_M): Side {
   const out: Side = { left: false, right: false };
+  const d = carLength - OVERLAP_FRONT_M;
+  const front = OVERLAP_FRONT_M + d;
+  const rear = OVERLAP_REAR_M + d;
+  const exit = OVERLAP_EXIT_M + d;
   for (const c of cars) {
     if (Math.abs(c.dv) > MAX_DV_MS) continue;
     const a = Math.abs(c.lat);
     if (a < LAT_MIN_M || a > LAT_MAX_M) continue;
     const side = c.lat < 0 ? "left" : "right";
     const held = prev[side];
-    const inside = held
-      ? c.lon > -OVERLAP_EXIT_M && c.lon < OVERLAP_EXIT_M
-      : c.lon > -OVERLAP_REAR_M && c.lon < OVERLAP_FRONT_M;
+    const inside = held ? c.lon > -exit && c.lon < exit : c.lon > -rear && c.lon < front;
     if (inside) out[side] = true;
   }
   return out;
@@ -60,6 +93,12 @@ export class ProximitySpotter {
   private candidate: Side = { left: false, right: false };
   private stable = 0;
   private lastCallS = -Infinity;
+
+  constructor(private tuning: SpotterTuning = DEFAULT_SPOTTER) {}
+
+  setTuning(t: SpotterTuning): void {
+    this.tuning = t;
+  }
 
   reset(): void {
     this.state = { left: false, right: false };
@@ -73,23 +112,27 @@ export class ProximitySpotter {
    * côté n'est pas fiable → on se tait.
    */
   update(cars: NearbyCar[], speedMs: number, calibrated: boolean, nowS: number): SpotCall | null {
-    if (!calibrated || speedMs < MIN_SPEED_MS) {
+    if (!calibrated || speedMs < this.tuning.minSpeedKmh / 3.6) {
       this.reset();
       return null;
     }
-    const seen = occupiedSides(cars, this.state);
+    const seen = occupiedSides(cars, this.state, this.tuning.carLength);
     if (seen.left === this.candidate.left && seen.right === this.candidate.right) this.stable++;
     else {
       this.candidate = seen;
       this.stable = 1;
     }
     const prev = this.state;
-    if (this.stable >= STABLE_FRAMES && (seen.left !== prev.left || seen.right !== prev.right)) {
+    // « Libre » (côté qui se vide) validé sur `clearFrames`, l'arrivée d'une
+    // voiture toujours sur 2 trames : on n'annonce jamais une voiture en retard.
+    const clearing = (prev.left && !seen.left) || (prev.right && !seen.right);
+    const need = clearing ? this.tuning.clearFrames : STABLE_FRAMES;
+    if (this.stable >= need && (seen.left !== prev.left || seen.right !== prev.right)) {
       this.state = seen;
       this.lastCallS = nowS;
       return transition(prev, seen);
     }
-    if ((prev.left || prev.right) && nowS - this.lastCallS >= STILL_EVERY_S) {
+    if ((prev.left || prev.right) && nowS - this.lastCallS >= this.tuning.stillEveryS) {
       this.lastCallS = nowS;
       return "still";
     }

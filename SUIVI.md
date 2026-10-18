@@ -2,7 +2,7 @@
 
 > **Document de reprise du projet. À LIRE EN PREMIER.**
 > Mettre à jour la section « Journal de bord » à chaque session de travail.
-> Dernière mise à jour : 2026-07-07 (**Audit pré-V1.0 + corrections + nettoyage final** — MAJEUR & MINEUR traités, 84 clés + 20 exports morts retirés ; tout vert : build/cargo/eslint 0/121 tests/i18n 1736×4)
+> Dernière mise à jour : 2026-10-18 (**Annonces de course** sur `feat/radio-parity` — centre de messages du jeu, ordre figé, stands à la voix, son, diagnostic ; tout vert : tsc, eslint, 4 742 tests TS, 136 tests Rust)
 
 ---
 
@@ -46,7 +46,9 @@ Construire la **V3** de LMU Stats Viewer :
 | **Langue de travail** | Réponses + docs en FR ; code/variables/fichiers en anglais. |
 | **Cadence** | Développement autonome jusqu'à blocage ou point de décision. |
 | **Pas de données mockées** | **Aucune donnée d'exemple/simulée.** On travaille uniquement sur les données de production (vrais fichiers du jeu). Supprimer `mockData.ts`, `webMock.ts` et tous les fallbacks web du bridge IPC. Pas de « mode web » avec données simulées. Tests faits sur les fichiers réels de `D:\SteamLibrary\...`. |
-| **Overlays en VR** | 🧪 **Décidé (2026-09-23), en attente de validation anti-triche** — la VR passe par **OpenKneeboard** (signé, OpenXR + SteamVR) via ses **Web Dashboards** : l'app sert chaque widget sur une URL locale (fond transparent, données live par WebSocket). **Pas de couche OpenXR maison** tant qu'on n'a pas de certificat de signature de code : une DLL non signée chargée dans LMU se heurterait à Easy Anti-Cheat (actif depuis LMU 1.2). Cibles de test : Pimax (Pimax Play OpenXR) + Quest 3 (Virtual Desktop / VDXR). Rouvre partiellement la Phase 9. |
+| **Overlays en VR** | 🧪 **Décidé (2026-09-23), en attente de validation anti-triche** — la VR passe par **OpenKneeboard** (signé, OpenXR + SteamVR) via ses **Web Dashboards** : l'app sert chaque widget sur une URL locale (fond transparent, données live par WebSocket). **Pas de couche OpenXR maison** tant qu'on n'a pas de certificat de signature de code : une DLL non signée chargée dans LMU se heurterait à Easy Anti-Cheat (actif depuis LMU 1.2). Cibles de test : Pimax (Pimax Play OpenXR) + Quest 3 (Virtual Desktop / VDXR). Rouvre partiellement la Phase 9. **Étape 1 livrée (2026-10-17, branche `feat/veille-pistes`)** : widgets servis par adresse locale + WebSocket (`widget_server.rs`, section « Widgets par adresse » de `/overlays`), aussi pour OBS et un 2ᵉ écran. |
+| **Nouveautés issues de la veille** | **Décidé (2026-10-17)** — tout ce qui vient de la veille RaceLab / pitlane / MySIMRace est **désactivé par défaut** et s'active dans la Configuration ; l'existant ne change pas (paliers ohne_speed par défaut, aucune lecture/écriture supplémentaire de l'API du jeu). VR : OpenKneeboard seul (pas de couche OpenXR maison). Développé sur la branche `feat/veille-pistes`, à fusionner après validation. |
+| **Annonces de course (passe 2026-10-18)** | **Décidé (mainteneur, 2026-10-18)** — issues de l'analyse REA d'un ingénieur radio du marché (rapport hors dépôt, `C:\tmp\rea-crewchief\`). **Informations activées par défaut** (pénalités détaillées, limites de piste, avertissements du jeu, voiture de sécurité, pressions, stands, fin de course, pneus, choc, noms de virages et de rivaux, notes vocales), chacune désactivable (Configuration › Audio / Voix › Annonces). **Actions désactivées par défaut** : son du jeu baissé, écritures dans le jeu (menu des stands à la voix), mode cohabitation. Supersède, pour cette passe seulement, « Nouveautés issues de la veille : désactivé par défaut ». Lecture **seule** de deux nouvelles sources : zone « Rules » du plugin et dernier message du centre de messages (`Extended`). Aucune ligne de code tiers reprise : les comportements ont été réimplémentés ; les dispositions mémoire viennent du format public du plugin rF2. Développé sur `feat/radio-parity`, à fusionner après `VALIDATION-EN-JEU.md` § 00. |
 | **Veille concurrents** | **Décidé (2026-09-25)** — on s'inspire des idées et des réglages d'outils concurrents, mais **aucun nom de concurrent dans le code** (identifiants, commentaires, textes UI, changelog) et aucune ligne de leur code reprise. Les analyses restent dans `SUIVI.md` (doc de veille). |
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
@@ -267,11 +269,34 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 ## 7. Notes / points ouverts
 
+- ⏳ **Branche `feat/veille-pistes` (2026-10-17)** : 6 commits non fusionnés dans `main`,
+  rien poussé. Avant fusion : validation en jeu (`VALIDATION-EN-JEU.md` § Veille) et
+  **déploiement du serveur communautaire** (migration 6 `rival_week` + routes `/tiers`,
+  `/cars`, `/patch`, `POST /briefing`, `/rival`) — sans lui, les onglets Index voitures /
+  Effet du patch / Rival et le briefing restent vides (l'app reste fonctionnelle).
+- ℹ️ **Règles de cut** : absentes des XML de résultats (vérifié sur les fichiers réels) ;
+  le badge « tours comparables » ne les vérifie pas. Lecture REST possible
+  (`SESSSET_cut_rules`) mais non validée en jeu → non faite (prudence plantages LMU).
+- ℹ️ **Correspondance live → base** (briefing, bips) : `mTrackName` / classe brute vs
+  `TrackVenue`/`TrackCourse` / classe normalisée, par heuristique (`lib/briefing.ts`) — à
+  vérifier circuit par circuit en jeu.
+
+- ⏳ **VR / anti-triche — nouvel indice** (2026-10-17, journal §8) : un concurrent livre une
+  couche OpenXR implicite **signée** (Sectigo) et annonce LMU compatible en VR → EAC semble
+  tolérer une couche signée. La décision « Overlays en VR » (§2) reste OpenKneeboard tant que
+  le test Pimax n'est pas fait et qu'on n'a pas de certificat de signature de code ; à
+  rediscuter ensuite (couche maison = intégration plus fine).
 - ⏳ **Piper sous forte charge CPU** (2026-10-15, `voice-eval/README.md`) : avec 12 threads
   saturés, 1 à 5 s par phrase (medium) en priorité basse, car `piper.exe` ne borne pas ses
-  threads onnxruntime. Mesurer en jeu réel (et avec un encodage OBS en CPU). Si c'est
-  confirmé, deux pistes : faire tourner les modèles Piper via `ort` avec 2 threads, ou
-  passer le worker en priorité normale le temps de la synthèse.
+  threads onnxruntime. **Atténué le 2026-10-18** (`tts.rs`) : worker limité à 2 cœurs
+  (affinité, les plus hauts) et passé en priorité normale le temps d'une phrase urgente
+  (sécurité, spotter) ; nouvelles alertes urgentes pré-synthétisées. Reste à **mesurer en
+  jeu** (avec OBS en encodage CPU) ; piste suivante si insuffisant : `ort` avec 2 threads.
+- ⏳ **Branche `feat/radio-parity` (2026-10-18)** : annonces de course, stands à la voix,
+  son, diagnostic. Rien n'a roulé en jeu → `VALIDATION-EN-JEU.md` § 00 avant fusion. Points
+  à vérifier en priorité : textes du centre de messages traduits ou non par le jeu ; zone
+  « Rules » remplie en ligne ; libellés du menu des stands par classe ; CSP sur un build
+  installé (`tauri.conf.json`, retour à `"csp": null` si une page casse).
 - ⏳ **Voix par défaut IT / ES** (2026-10-15) : Serena et Sharvard sont nettement plus
   claires que Paola et DaveFX (transcription), et sont au catalogue. Passage en défaut à
   décider après écoute.
@@ -283,6 +308,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 - Le `.git` de `zz_V1` est verrouillé (fichiers `.lock` périmés) — non bloquant, le code est ailleurs.
 - ohne_speed : CSV public Google Sheets, mapping circuits/classes, calcul tier + delta vs Alien.
 - **Sources de référence circuit — à re-vérifier à chaque nouveau circuit / pack** (2026-09-25). Checklist : (1) feuille ohne_speed (`TRACK_MAP` avec le `TrackVenue` exact des XML) ; (2) playlist Unleashed Drivers `PLk_3Ekb3fRQgMjnknAxq5ZGiT3sUOyFA7` (lister avec `yt_dlp` en `extract_flat`) + transcriptions (`youtube_transcript_api`) ; (3) ApexPoints (app JS : navigateur, pas `fetch`) ; (4) `track_db.py` de LMU Telemetry Lab (profils d'altitude). Points ouverts :
+  - ℹ️ **Revu le 2026-10-17** : ApexPoints toujours 12 circuits, Paul Ricard toujours faux (rien repris) ; HYMO Academy / GO Setups couvrent Barcelone, Paul Ricard (1A-V2, 1A-V2 Short), Silverstone (WEC, ELMS) et la LMP3 (bloc manuel de `video-guides-data.ts`).
   - ⚠️ **ApexPoints Road Atlanta était faux** (données pré-sortie) → remplacé à la main le 2026-09-25. Si ApexPoints corrige sa fiche, re-comparer avant de reprendre sa donnée. **Ne pas régénérer `braking-guide-data.ts` à l'aveugle** : le générateur écraserait Road Atlanta + le bloc manuel et réintroduirait les 7 fiches retirées pour tracé erroné.
   - ⏳ **Décision mainteneur** : la seule vidéo LMU **commentée** de Road Atlanta (GT3, `Htt-UPpr9d8`, ~4 k caractères de conseils) est publiée par **GO Fast**, marque d'une app de télémétrie/coaching (concurrent potentiel) → non intégrée, faute de feu vert (règle « aucun nom de concurrent dans le code »). Hypercar/LMP2 Long Beach et Road Atlanta : aucune vidéo commentée trouvée (HYMO / GO Setups = hotlaps muets).
   - ⏳ **Bug ohne_speed pré-existant — layouts** : `mapTrackName` construit un `layoutMap` qu'il n'utilise jamais (il renvoie la base). COTA National, Monza Curva Grande, Fuji Classic, Sarthe Mulsanne, Bahrain Outer/Paddock… prennent donc le temps de référence du tracé **principal**. Les clés du `layoutMap` (« Curva Grande ») ne correspondent d'ailleurs pas aux `track_course` réels (« Monza Curva Grande Circuit »).
@@ -325,7 +351,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   **Cible retenue** : *push-to-talk + reconnaissance vocale par **commandes** (grammaire fermée), avec repli touche→statut*. Le vocabulaire restreint = beaucoup plus fiable/léger/hors-ligne que la dictée libre, et plus naturel que des touches seules.
   - **Couche 1 — MVP touches (facile, sans STT)** : ✅ **implémentée** — raccourcis globaux (`tauri-plugin-global-shortcut`) **Statut · Mute · Répète** → réponse parlée via la voix Piper à partir des données Live (`live.getData()` à la demande). Modules `src/lib/spotter.ts` (constructeur de phrases) + `src/lib/useSpotter.ts` (enregistrement). Touches configurables en Config.
   - **Couche 2 — reconnaissance par commandes** : ✅ **implémentée** avec **Vosk** en sidecar (offline, grammaire fermée). Push-to-talk (`spotterKeyTalk`, défaut `Alt+T`) : maintenir → capture micro (`src/lib/mic.ts`, `getUserMedia` → PCM 16 kHz Int16), relâcher → `stt_recognize` (Rust `commands/stt.rs`, modèle caché + `Recognizer::new_with_grammar`) → `matchIntent` (`src/lib/spotterCommands.ts`) → `buildAnswer` (`src/lib/spotter.ts`) → `announce`. Repli **Statut** si reco vide/échec. Assets via `scripts/fetch-vosk.ps1` (libvosk + modèles small FR/EN/ES/DE dans `resources/stt/`, gitignorés). Indicateur d'état `stt_available` en Config.
-    - ⚠️ **`vosk` est derrière une feature Cargo `stt` (OFF par défaut)** : l'app compile **sans** les assets. Pour activer la reco : fetch des assets puis `npm run tauri dev -- --features stt --config src-tauri/tauri.stt.conf.json` (l'overlay `tauri.stt.conf.json` ajoute les ressources de bundle). Sans la feature, les commandes `stt_*` n'existent pas → le frontend retombe sur le Statut.
+    - ~~`vosk` derrière une feature Cargo `stt`~~ : **obsolète** — `vosk` est désormais une dépendance standard (`Cargo.toml`, `MAINTENANCE.md` §4.4) ; seuls les modèles par langue se téléchargent à la demande.
     - **Linking Windows** : le crate lie `libvosk.lib`. Si l'archive ne fournit que la DLL, générer l'import lib (`lib /def:… /out:libvosk.lib /machine:x64`) — cf. en-tête de `fetch-vosk.ps1`.
   - **Commandes & réponses** (toutes calculables depuis `LiveData`) : **statut** · **écart** (`time_behind_next` joueur + suivant) · **carburant** (`fuel_laps_remaining`) · **pneus** (`wheels` temp/usure) · **position** (`time_behind_leader`) · **rythme** (`last_lap`/`best_lap`/`lap_delta`) · **restant** (`max_laps`/`end_et`) · **météo** (`weather`) ; + contrôle : **répète / mute**.
   - **Reste possible** : streaming continu (au lieu de batch au relâchement), variante « boutons radio » (1 touche/question), presets de phrases.
@@ -894,6 +920,797 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-18 — Test de fumée de la CSP sur un build compilé (`feat/radio-parity`)
+
+- ✅ Build `npx tauri build --debug --no-bundle` dans un dossier cible séparé, servi en `http://tauri.localhost` avec la CSP de `security.csp`. Pilotage par le débogage distant de WebView2 (`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=…`), écouteur `securitypolicyviolation` injecté avant chargement.
+- ✅ Aucune violation CSP : toutes les routes, télémétrie 2D/3D, classement communautaire et ohne_speed, Configuration › Audio / Voix (Annonces, Son, Parler), Maintenance › Diagnostic (rapport zip dans `reports\`, capture `.lmurec`, rejeu), widget Radio dans /overlays et par adresse. IPC par le protocole personnalisé (le repli postMessage ne se produit que lors d'un rechargement forcé).
+- ⏳ Non vérifié : voyants de la page Live (ils ne s'affichent que dans la vue live active, pas sur l'écran « Jeu en pause »), voix Piper/IA, fenêtre d'overlay, version installée.
+- 📋 Prochaine étape : installer l'installeur NSIS de la branche et cocher la ligne CSP de `VALIDATION-EN-JEU.md` § 00 après un essai de la voix.
+
+### 2026-10-18 — Limites de piste situées dans le tour (virage estimé)
+
+- ✅ **Découverte** : l'attribut `Lap` des `<TrackLimits>` compte les tours BOUCLÉS (0 pendant le 1er
+  tour, vérifié sur Spa 21/07/2026 et un essai du 16/10) → onglet et coach décalés d'un tour, corrigé
+  (`trackLimitLap` = Lap + 1).
+- ✅ **Début de chaque tour** : attribut `et` du `<Lap>` = heure de session au DÉBUT du tour (et(5) −
+  et(4) = temps du tour 4). Parse (`ParsedLap.et`), colonne `laps.et` (schéma + migration), insertion ;
+  sessions déjà indexées complétées à la 1ʳᵉ lecture du détail (`backfill_lap_starts`, relit le XML).
+- ✅ **Commande `track_outline`** (`live.rs`) : tracé livré + appris (`tracks/<slug>.json`), points
+  20 m, bornes S1/S2 apprises en roulant. Slug = `track_course`, puis `track`.
+- ✅ **Calcul** (`trackLimitsLocate.ts`, pur) : tour par l'heure, secteur (temps du tour, sinon meilleur
+  tour à l'échelle de la durée réelle), distance par 1) bornes de secteurs + profil télémétrie,
+  2) bornes de secteurs linéaire, 3) profil seul au prorata, 4) longueur au prorata (« rough », sans
+  virage nommé). Virage = repère officiel le plus proche (`officialCornerLabels` : seulement si le compte
+  colle au tracé — règle « pas de donnée fausse »). `eventLocator.ts` assemble (tracé, profil, tours).
+- ✅ Onglet Limites de piste : colonne « Lieu (estimé) » (i18n 5 langues) ; Coach IA : lieu sur les
+  limites de piste et les 5 contacts les plus forts, avec mention d'estimation (±150 m).
+- ✅ 15 vérifications ajoutées (4781 tests verts), 136 tests Rust verts, `tsc` / ESLint propres.
+- ⏳ Spa : l'utilisateur n'a que le tracé « Endurance » appris → la course sur le tracé principal reste
+  au secteur / prorata (aucun tracé d'un autre layout utilisé). Non vérifié dans l'app.
+- 📋 **Prochaine étape** : ouvrir l'onglet Limites de piste d'une session Road Atlanta ou Laguna Seca
+  (tracés connus) et contrôler les virages proposés.
+
+### 2026-10-18 — Coach IA : la question posée après une analyse restait hors de vue
+
+- ✅ Cause : la fenêtre se rouvrait en haut (sur l'analyse) et la réponse s'écrivait en bas sans
+  défilement — le fil lui-même était correct. `AICoachPanel` : `lastUserRef` sur la dernière question +
+  `scrollIntoView` à chaque envoi (`scrollTick`), après ouverture de la fenêtre.
+- 📋 **Prochaine étape** : virage des limites de piste (entrée suivante).
+
+### 2026-10-18 — Coach IA post-course : unités justes, événements, télémétrie et communauté
+
+- ✅ **Unités** (`postrace-context.ts`) : carburant = fraction du réservoir (start/finish déjà ×100 par
+  l'indexeur) → texte en % + conso par tour (`fuel_used` 0…0,15, ravitaillement < 0) et autonomie ;
+  `track_length` en mètres → km ; `session_laps` ≥ 1 000 000 (INT_MAX) → « no lap limit ».
+- ✅ **Régularité** : médiane / écart-type du backend (tous tours chronométrés, départ arrêté inclus)
+  remplacés par `computeRegularity` (valides, hors stands, ≤ 107 %) ; < 3 tours → consigne explicite
+  « ne pas juger la régularité ». Gomme(s) utilisée(s) ajoutée(s).
+- ✅ **Événements** (`buildPlayerEventsText`) : limites de piste du joueur (tour, heure de session,
+  points), pénalités le nommant, contacts (mur vs voiture, 5 plus forts). Le XML ne donne pas le virage.
+- ✅ **Historique** (`driver-history-context.ts`) : dernier PB daté par rapport à la session analysée
+  (« set in this session », « N days before this session ») ; tag « ← this session (PB) ».
+- ✅ **Télémétrie de la session** (`session-telemetry.ts`) : fichier `.duckdb` retrouvé par lettre de
+  session + heure UTC du nom de fichier (fenêtre −10 min / +8 h autour de `sessions.timestamp`, qui est
+  le début de l'événement, commun Q/R), circuit, voiture ; plusieurs candidats (redémarrages) → meilleur
+  tour le plus proche du résultat. Chargeurs `load*Text` partagés avec le coach de la page Télémétrie
+  (code dupliqué retiré d'`AICoachPanel`). Météo de l'enregistrement transmise.
+- ✅ **Communauté** (`community-context.ts`) : routes publiques existantes `combos/position` +
+  `combos/leaderboard` (aucun changement serveur) → rang / percentile, « palier au-dessus » = moyenne des
+  secteurs des ≤ 5 pilotes juste devant (sa propre ligne exclue par repère), meilleurs secteurs de la
+  communauté, meilleur temps avec la même voiture. Filtres serveur par défaut (sec, aides propres).
+- ✅ Palier ohne « Offline » précisé au modèle (= plus lent que le palier tail-ender).
+- ✅ Suite `postrace.suite.ts` (23 vérifications) ; 4765 tests verts, `tsc` et ESLint propres.
+- ⏳ Non vérifié dans l'app : chargement réel d'une télémétrie et réponse du serveur communautaire.
+- 📋 **Prochaine étape** : ouvrir le Coach IA d'une session avec télémétrie (ex. Sebring R du 08/06/2026)
+  et relire le contexte envoyé ; envisager de localiser l'événement de limite de piste dans le tour via
+  les temps de tour si le jeu ne donne toujours pas le virage.
+
+### 2026-10-17 — Guides vidéo : Barcelone, Paul Ricard, Silverstone, LMP3, choix par tracé
+
+- ✅ **Sources revues** (navigateur + `ytInitialData`, chaque ID vérifié via oEmbed) : playlist
+  Unleashed Drivers (3 nouveaux guides commentés : Long Beach Hypercar, Road Atlanta GT3 et
+  Hypercar → remplacent les ajouts HYMO du bloc manuel), HYMO Academy (Barcelone, Paul Ricard
+  1A-V2 / 1A-V2 Short, Silverstone WEC / ELMS en GT3 + Hypercar ; Hypercar Lusail / Imola /
+  Interlagos ; LMP3 sur 8 circuits dont Fuji Classic), GO Setups (COTA Hypercar). 70 entrées.
+  Titre sans variante = tracé principal (HYMO nomme toujours Outer / Paddock / Mulsanne / Classic).
+- ✅ `video-guides.ts` : mots-clés barcelona / paul-ricard / silverstone **avant** spa (« spain »
+  contient « spa »), classe `lmp3` (`/p3/` avant `/p2/`), `pickGuide` choisit la variante dont
+  le `layout` figure dans le `track_course` du jeu (le plus long gagne : 1A-V2-Short > 1A-V2 ;
+  alias `LAYOUT_COURSE_WORD` Sebring « Short » → school, Bahreïn « Short » → paddock), sinon
+  le principal, et **`null` sans principal** (Paul Ricard ELMS : aucun guide, jamais un autre
+  tracé). 9 cas ajoutés à `veille.suite.ts` ; 3962 tests OK, `tsc` propre.
+- ✅ **ApexPoints** : toujours 12 circuits (ni Barcelone, ni Silverstone, ni Lusail, ni les US).
+  Fiche Paul Ricard toujours fausse (Sainte-Baume en T1, « Club » et « Pont de Fos » inexistants)
+  → rien intégré, `braking-guide-data.ts` inchangé.
+- ✅ **Transcriptions** (2026-10-18) : sous-titres des 3 nouveaux guides Unleashed (Long Beach
+  Hypercar, Road Atlanta GT3 / Hypercar, 9 à 11 k caractères, vrais commentaires) ajoutés à
+  `video-transcripts-data.ts` via `youtube_transcript_api` ; test d'injection dans `veille.suite.ts`.
+- 📋 **Prochaine étape** : re-vérifier playlist Unleashed + ApexPoints au prochain pack de circuits.
+
+### 2026-10-17 — Logos et textes lisibles dans les bandeaux de couleur primaire
+
+- ✅ `SessionDetail.tsx` (cartes des tours, `TableTitle` orange) : logo voiture dans ses couleurs
+  sur une pastille blanche (`bg-white rounded px-0.5`), nom en `text-primary-foreground/85`, numéro
+  `CarNumber` en blanc — avant, `text-muted-foreground` + logo d'origine (souvent sombre, ex.
+  Genesis) étaient illisibles sur l'orange. Silhouette blanche (`brightness-0 invert`) essayée puis
+  écartée : les logos ronds (BMW) devenaient un simple disque blanc.
+- ✅ `Records.tsx` : compteur « (n) » du bandeau circuit, même correction.
+- 📋 **Prochaine étape** : règle à suivre — jamais `text-muted-foreground` ni logo en couleurs
+  d'origine dans un `TableTitle` variante `primary`.
+
+### 2026-10-18 — Annonces de course (`feat/radio-parity`), en une passe
+
+Issu de l'analyse REA (statique + décompilation vérifiée de 436 méthodes) d'un
+ingénieur radio du marché ; rapport et comparaison hors dépôt (`C:\tmp\rea-crewchief\`).
+Comportements réimplémentés, aucune ligne de code tiers, aucun nom de concurrent.
+
+- ✅ **Lecture live** (`shm.rs`, `live.rs`) : vues gardées ouvertes (refermées chaque
+  seconde pour voir la fermeture du jeu), copies partielles (voitures présentes), relecture
+  d'une trame déchirée, plage seule de `LMU_Data` + contrôle de taille et de **plausibilité**
+  (voyant « Données LMU » sur la page Live si une mise à jour du jeu déplace les offsets).
+  Zone **« Rules »** lue (taille 45 272 octets testée) ; **dernier message du centre de
+  messages** exposé (`history_message`, déjà déclaré mais jamais lu).
+- ✅ **Captures brutes** `.lmurec` (deflate, 10 min max) + **rejeu** à la place du jeu ;
+  test Rust : capture synthétique rejouée à travers `extract()`.
+- ✅ **Ingénieur** (modules purs testés) : `gameMessages`, `penalties` (type/cause,
+  purgée, limites de piste), `pressures`, `frozenOrder`, `pitTraffic` (box partagé, sortie),
+  `endgame` (attaque/défends, position finale), `tyreEvents` (pneus sales, blocage, choc),
+  `pitVoice` (menu des stands à la voix, écritures relues), `alarm`, `coexist`,
+  `cornerVoice` (numéro + nom officiels dans le coach). Spotter réglable. Routeur : 14
+  commandes de stand à motif strict (jamais déclenchées par une question), pressions,
+  pénalité, position finale, réveil, note vocale — 5 langues.
+- ✅ **Son** : sortie audio de la radio (`setSinkId`), son du jeu baissé (WASAPI, marqueur
+  de restauration après plantage), sous-titres radio (widget « Radio », relayé à OBS),
+  boutons du volant par action (`wheel_watch_actions`), notes vocales par virage.
+- ✅ **Dette** : journal fichier + panic hook + rapport de bug zip (`applog.rs`), base
+  illisible mise de côté au démarrage (plus de `expect`), job CI Windows `cargo test`,
+  CSP définie (dev : aucune), Piper borné à 2 cœurs + priorité normale pour l'urgent,
+  infobulle `voiceAnnounceTip` corrigée (5 langues, sans nom de concurrent), README.
+- ✅ **Bug trouvé en comparant les noms de virages** : « Jose Carlo**s Pa**ce » contenait
+  « spa » → Interlagos prenait la fiche de Spa. `cornerTableFor` garde désormais le
+  fragment le plus long. Aucune donnée de virage tierce reprise (comparaison seulement).
+- ⏳ Validation en jeu : `VALIDATION-EN-JEU.md` § 00 (rien n'a roulé).
+- 📋 Prochaine étape : rouler une course avec formation + FCY (capture brute activée),
+  vérifier les messages du jeu en interface française, puis fusionner.
+
+### 2026-10-17 — Audio / Voix : onglets en sections repliables, aide des variables
+
+- ✅ Onglets Annonces, Parler à l'ingénieur, Coach par virage : `CollapsibleSection` (option
+  `defaultOpen`), réglages encadrés (débit, chronos, prénom, ghost, enregistrement compris).
+  Parler : bips PTT dans « Parler », repères dans « Raccourcis sans parler », « Réponses
+  instantanées sans IA » dans « Commandes reconnues ». Coach : Conseils en roulant / Phrases du
+  coach / Outils. Sous-onglets masqués quand les annonces vocales sont coupées (bips de record
+  et repères gardés).
+- ✅ Personnaliser les annonces : encart « Comment écrire une annonce » et exemple de valeur
+  par variable (`def.sample`). Le `{{n}}` des textes d'aide est passé en valeur (sinon
+  i18next l'interpole).
+- ✅ Bouton « Personnaliser » : icône stylo. Titres des widgets « LMU · <nom> ».
+
+### 2026-10-17 — Voix : choix dans la liste, test radio sur la voix active, « médium », titres des widgets
+
+- ✅ Liste des voix neuronales : choix (radio) et « Tester » sur chaque voix installée, locuteurs
+  d'UPMC (Jessica, Pierre) en sous-lignes ; plus de ligne « Auto » ; bloc « Voix » réservé à la
+  voix Système. « Tester » de l'effet radio sans `localOnly` (l'habillage s'applique aussi à la
+  voix IA, `styleVoiceBuffer` sur tous les tampons).
+- ✅ `normalizeForTts` FR : « medium(s) » → « médium(s) » (prononciation Piper).
+- ✅ Coach IA : « Fournisseur et modèle vocal » → « IA des questions en course » (choisit le
+  modèle qui répond, pas une voix).
+- ✅ **Widgets servis** : `<title>` réécrit par le serveur (`titled_page`, noms envoyés par
+  l'interface via `widget_server_set_titles`) ; test Rust. ⚠️ En dev, les pages servies
+  viennent du paquet `dist` embarqué à la compilation : `npm run build` puis relancer l'app de
+  dev pour y voir les changements d'interface (le `dist` datait de 11 h 20, reconstruit).
+- ℹ️ Voix Piper non incluses dans l'installeur ; en dev, lues dans le dossier du projet
+  (donc « installées » et non supprimables, `deletable: false`).
+
+### 2026-10-17 — Audio / Voix : ordre logique, aide voix IA, suppression des voix, profils radio
+
+- ✅ Onglet Voix : bloc « Voix locale (sur ton PC) » (moteur → téléchargement → choix), bloc
+  « Voix IA en ligne » + bouton « Comment ça marche ? » (`CloudVoiceGuide`, 6 étapes : deux voix,
+  direct, préparation, alertes urgentes, annonces chiffrées, coût), puis « Son et effet radio ».
+  Bips PTT → « Parler à l'ingénieur » ; « Personnaliser les annonces » → « Annonces ».
+- ✅ Moteur de synthèse : une ligne par moteur (nom en gras), repli dessous, liste alignée en
+  haut ; « Embarqué » → « Piper (voix neuronale) » (il faut la télécharger).
+- ✅ Suppression d'une voix / d'un modèle Vosk téléchargé : commande `asset_delete` (id du
+  catalogue seulement, dossier des téléchargements seulement ; `in_use` si Windows garde le
+  fichier ouvert, `not_downloaded` pour une voix fournie avec l'app), poubelle + confirmation.
+- ✅ Effet radio : profils paramétrés (`radioFx.ts`, `PROFILES`) — « Radio stand » inchangé, +
+  `walkie`, `dirty` (tenue d'échantillon ×3, 6 bits), `broken` (décrochages de 40 ms, craquements) ;
+  liste déroulante + « Tester » (remplace « Comparer ») ; config `voice_radio_style` validée par
+  `toRadioStyle`. Vérifié : 5 profils rendus sans NaN ni dépassement.
+- ℹ️ « Alertes en voix locale » est déjà désactivé par défaut (`DEFAULTS.alertsLocal = false`) ;
+  activé chez l'utilisateur par son réglage (ou reprise de `scope: "info"`), laissé tel quel.
+- 📋 **Prochaine étape** : écoute réelle des nouveaux profils radio en course.
+
+### 2026-10-17 — Onglet Régularité lisible ; « session » partout (FR, DE)
+
+- ✅ **Régularité** (`SessionExtras.tsx`) : phrase d'explication, verdict sous l'écart-type
+  (< 0,4 s très régulier, < 0,8 s régulier, < 1,5 s irrégulier, sinon très irrégulier), aide sous
+  le tour médian et les bandes, secteurs en cartes (« le plus stable » / « à travailler »),
+  couleurs lisibles en thème clair, libellés sur une ligne. **Bug** : largeur des barres
+  `"25 %"` (avec espace) ignorée par le navigateur → barres toujours pleines ; corrigé.
+  Onglet déplacé avant « Coach IA ».
+- ✅ **Vocabulaire** : « séance(s) » → « session(s) » dans `fr.ts` (34) et les lignes FR de la
+  1.0.10 ; allemand « Sitzung » → « Session » (composés « Session-Details », « Session-Zeit »…).
+  ES / IT / EN disaient déjà « sesión / sessione / session » (« tanda larga » = relais, gardé).
+  Description du badge « tours comparables » réécrite (5 langues). Règle mémorisée.
+
+### 2026-10-17 — Bloc « Analyse : nouveautés » supprimé, options rangées où elles agissent
+
+- ✅ `AnalysisExtrasSettings.tsx` découpé : `SessionDetailSettings` (Préférences › « Détail des
+  séances » : Régularité, tours comparables), `RecordAnnounceSetting` (Audio / Voix › Annonces,
+  affiché même sans annonces vocales puisque les bips marchent seuls), `ReviewMarksSetting`
+  (Audio / Voix › Parler à l'ingénieur, section après les raccourcis sans parler). Clés i18n
+  `extras.title/desc` remplacées par `extras.detailTitle/detailDesc`. Mêmes drapeaux de config :
+  aucun réglage perdu.
+
+### 2026-10-17 — Configuration au style du bloc « Analyse : nouveautés »
+
+- ✅ `SettingRow` / `ToggleRow` (ConfigV2) : chaque réglage dans un encadré (`rounded-md border
+  p-3`), icône en couleur d'accent, description en clair ; les `Separator` de la page
+  deviennent un espacement (alias local). Toutes les catégories en profitent (composants
+  communs). « Modules du menu » déplacé sous Préférences, dans un bloc repliable
+  (`CollapsibleSection`, fermé par défaut). Vérifié dans le navigateur (page Préférences).
+- 📋 **Prochaine étape** : passer les autres catégories en revue dans l'app (Audio / Voix,
+  Coach IA) pour les blocs qui ne passent pas par `SettingRow` / `ToggleRow`.
+
+### 2026-10-17 — Aide, visite guidée sur l'app réelle, bouton volant, outils en cartes
+
+- ✅ **Aide** (`HelpModal`) rendue par portail dans `document.body` : l'en-tête (`backdrop-blur`)
+  servait de cadre aux éléments `fixed` → fenêtre coupée en haut à gauche. Deux colonnes
+  (raccourcis + « Régler les raccourcis », prérequis avec lien « Ouvrir » vers le bon écran),
+  prérequis VR (OpenKneeboard, UAC) et classements (partage), fournisseurs IA à jour.
+- ✅ **Visite guidée** (`GuidedTour`) sur l'app réelle : chaque étape ouvre sa page (`route`),
+  entoure l'élément `data-tour` (entrées de menu `nav-<clé>`, `play`, `help`) avec un anneau
+  qui pulse et le reste assombri (ombre portée 9999 px), bulle placée dessous/dessus avec
+  flèche ; élément absent (module masqué) → bulle centrée. Nouvelle étape « Lancer le jeu »,
+  point VR dans Overlays. Vérifié dans le navigateur (en-tête + visite montés, 10 étapes).
+- ✅ **Bouton Jouer** : icône volant (SVG maison, pas de volant dans lucide).
+- ✅ **Outils & diagnostic** : programmes trouvés en cartes (rôle, chemin, Ajouter), section
+  « Tes outils », bouton « Ajouter un autre programme… » pleine largeur.
+- 📋 **Prochaine étape** : faire la visite dans l'app (vraie taille de fenêtre, menus masqués).
+
+### 2026-10-17 — Bouton « Jouer » (lancer LMU) dans l'en-tête ; port des adresses locales à l'étape 1
+
+- ✅ **Bouton Jouer** (icône Play, en-tête, avant l'aide ; seulement dans l'app et si le dossier
+  LMU est connu) : commande `launch_lmu` (`tools.rs`) — `steam://rungameid/2399420` par
+  `cmd /C start` (Steam gère mises à jour, anti-triche, options de lancement ; AppID lu dans
+  `appmanifest_2399420.acf` chez l'utilisateur), repli sur `Le Mans Ultimate.exe` du dossier
+  détecté (même lancement sans élévation que les outils) ; rien si le jeu tourne déjà.
+  `lmu_is_running` sondé toutes les 5 s → pastille verte. Toasts 5 langues.
+- ✅ Port des adresses locales déplacé à côté de l'interrupteur (étape 1) ; « Plus d'options »
+  devient « Toutes les adresses ».
+- 📋 **Prochaine étape** : essai réel du bouton Jouer (Steam ouvert / fermé).
+
+### 2026-10-17 — Carte « Widgets par adresse » recentrée sur OBS et le 2ᵉ écran
+
+- ✅ Destination « Casque VR » retirée de la carte (doublon du mode VR) : une ligne
+  « Pour la VR, utilise le mode VR » + bouton « Passer en mode VR » (active le mode et remonte
+  en haut de la page). Titre « Widgets par adresse : OBS, 2ᵉ écran », explication réécrite,
+  destination par défaut OBS, interrupteur « Fond opaque » toujours visible. `vr3` neutre
+  (« Colle l'adresse du widget voulu ») : il sert aussi à la page d'index des widgets servis.
+
+### 2026-10-17 — Page Overlays : bouton « VR » (mode VR en un clic)
+
+- ✅ **Bouton « VR »** dans la barre du haut (`usePageState("overlays.vr")`) : démarre le serveur
+  de widgets s'il ne tourne pas (`ensureWidgetServer`, réglage retenu comme activé), affiche un
+  bandeau en 4 gestes (installer OpenKneeboard, copier, onglet « Web Dashboard » avec
+  transparence, placer en VR ; rappel UAC) et remplace l'interrupteur de chaque carte par
+  « Copier l'adresse VR » + ouvrir (adresse transparente, échelle 1). Nouveau clic = page normale.
+  Composants `components/OverlayVr.tsx`, hook `useVrBase` (`lib/widgetServer.ts`). Vérifié dans
+  le navigateur avec un serveur simulé (démarrage, réglage enregistré, bandeau, bouton actif).
+- ℹ️ La transparence en VR est assurée par OpenKneeboard (fenêtre de navigateur virtuelle
+  transparente, option par onglet activée par défaut) et par notre page widget (fond transparent).
+- 📋 **Prochaine étape** : essai dans le casque une fois l'UAC réactivé (OpenKneeboard).
+
+### 2026-10-17 — Widgets par adresse en 3 étapes ; rappels limiteur dans la préparation de la voix
+
+- ✅ **Carte « Widgets par adresse »** réécrite en étapes numérotées : ① activer ;
+  ② destination (Casque VR / OBS / 2ᵉ écran), le mode d'emploi affiché est celui de la
+  destination choisie (nouveau : 2ᵉ écran, fond opaque proposé d'office) ; ③ un sélecteur de
+  widget (affichés à l'écran en tête), **une seule adresse** + « Copier l'adresse » / « Ouvrir
+  dans le navigateur », échelle, fond opaque. Port et liste complète des 23 adresses dans
+  « Plus d'options » (rien de retiré). Vérifié dans le navigateur (serveur simulé).
+- ✅ **Préparation de la voix** : `vPitEntryLimiter` / `vPitExitLimiterOn` ajoutés à
+  `CLOUD_PREP_ALERT_KEYS` (oubli : la phrase passe par `VIGIE_PHRASE`, que le test de
+  couverture des alertes ne voit pas). Compte FR : 71 gabarits d'information préparés avec
+  « Alertes en voix locale », 102 sans (+ 8 réponses) — d'où « 85 phrases » chez l'utilisateur.
+- 📋 **Prochaine étape** : faire reconnaître `VIGIE_PHRASE` par le test de couverture des
+  alertes de la préparation de la voix.
+
+### 2026-10-17 — Overlays : vignettes animées dans les cartes, texture visible, option retirée
+
+- ✅ **Vignettes** : chaque carte de la page Overlays montre le vrai widget réduit
+  (`components/overlay/OverlayThumb.tsx`), animé sur des données d'exemple partagées
+  (`components/overlay/sampleData.ts` : course multiclasse sur un tracé fictif, pédales,
+  pneus, météo, aides, carburant, record en S2) et rendu avec l'apparence choisie. Une seule
+  horloge à 8 images/s pour toutes les vignettes, arrêtée quand aucune n'est affichée. Les
+  23 widgets vérifiés dans le navigateur. La fenêtre « Apparence » réutilise ces données.
+- ✅ **Texture fibrée** rendue visible (trame sur tout le panneau, plus forte en tête).
+- ✅ **Secteurs** : libellés « Tour complet / optimal » sur une ligne (colonne 88 px).
+- ✅ **« Agrandissement net » retiré** : comparé côte à côte à 150 / 200 %, `zoom` et
+  `transform: scale` donnent le même rendu dans WebView2 (le texte est déjà redessiné net).
+- ⏳ **Classements branchés sur un serveur de test** : la clé `community_url` vaut
+  `http://127.0.0.1:3080` dans la base de l'utilisateur (posée pour la démo locale) → la page
+  ne montre que ses combos et « personne n'a partagé ». À retirer par l'utilisateur (aucun
+  réglage dans l'interface ; modification refusée côté assistant).
+- 📋 **Prochaine étape** : retirer `community_url` puis vérifier la page Classements contre
+  le site ; éventuellement un réglage « Serveur communautaire » visible en mode développeur.
+
+### 2026-10-17 — Classements préchargés, rappels limiteur, Régie tablette, correctifs ingénieur / IA
+
+- ✅ **Classements préchargés** : `fetchMyPositions` sorti de l'effet de `MyPosition`
+  (Classement.tsx), cache mémoire par filtres + `dataVersion` (8 jeux max), requêtes en vol
+  partagées ; `preloadMyPositions()` appelé par `App.tsx` 3 s après le chargement de la
+  config et après chaque `dataVersion`, jamais sur `/live`. La page affiche le cache tout de
+  suite et ne recharge que si la donnée a plus d'une minute.
+- ✅ **Rappels limiteur** (`vigie.ts`) : `pitEntryNoLimiter` (entrée dans la voie, pas de
+  limiteur après 1,5 s) et `pitExitLimiterOn` (retour en piste, limiteur encore actif après
+  1 s), sur passage de ligne `in_pits` (rien au départ du garage), une fois par passage ;
+  coupent les doublons « voie sans limiteur » / « limiteur oublié ». Phrases à variantes
+  `vPitEntryLimiter`, `vPitExitLimiterOn` (5 langues, `vmWhen`, catalogue, préchauffage) ;
+  `vPitExitLimiter` reformulée (« garde le limiteur jusqu'à la ligne »). 8 cas de test.
+- ✅ **Écart devant / sous attaque** : plus d'annonce sous 60 km/h (accident, arrêt).
+- ✅ **Modèle IA d'un autre fournisseur** (Gemini avec Ollama) : réponse `/models` d'un ancien
+  fournisseur ignorée (course entre deux sondages qui ré-amorçait le modèle) ; modèle connu
+  d'un autre fournisseur remis à zéro (`isForeignModel`).
+- ✅ **Lien Régie tablette** sur la page Live (barre du haut → `/config?cat=regie`).
+- ✅ **Régie tablette** (`regie.html`) : ma voiture épinglée en tête du classement, balayage
+  gauche/droite entre les pages + points, plein écran au premier toucher ou par bouton (et
+  méta « web app » pour l'écran d'accueil), page Carte réduite à la carte, orientée dans le
+  sens de l'écran (portrait = axe vertical). Vérifié dans le navigateur (données factices).
+- ℹ️ Questions de l'utilisateur : la demande orale libre part au Coach IA (le routeur ne
+  reconnaît pas « que me conseilles-tu comme pneus et pression ») ; « 2 spotters » : une seule
+  instance de l'app, CrewChief (spotter actif par défaut) tournait aussi.
+- 📋 **Prochaine étape** : essai en piste des rappels limiteur (entrée / sortie des stands) et
+  de la Régie sur une vraie tablette (plein écran iPad / Android, balayage).
+
+### 2026-10-17 — Ingénieur sans réponse : « pas compris » / « vérifie que le coach IA est branché »
+
+**Demande utilisateur** : sans Coach IA actif (hors phrases locales), une phrase qui dit
+qu'il ne comprend pas ; coach IA activé mais qui ne répond pas → « vérifie que ton
+connecteur est bien branché ».
+
+- ✅ `ask.ts` étape 5 (sans IA, rien de local) : plus le point de course précédé de
+  `coach.voiceLocalFallback` (clé retirée des 5 langues), mais `radioLine(noAnswerKey(…))` :
+  `coach.voiceNotUnderstood` (« Désolé, je comprends pas la question »…) si le coach est coupé
+  ou en test « sans IA », `coach.voiceUnavailable` s'il est activé mais incomplet. Le toast
+  explicatif (`voiceNoAi` / `voiceNotConfigured`) reste. Le point de course reste à la demande
+  (« le point », touche Statut) ; le mode « reconnaissance stricte seule » garde son repli
+  sur le point (ancienne touche du spotter).
+- ✅ `coach.voiceUnavailable` réécrit (5 langues) : « Je peux pas te répondre, vérifie que le
+  coach IA est bien branché | Pas de réponse, vérifie la connexion du coach IA | Coach IA
+  injoignable, vérifie qu'il est bien branché ». Rappels uniques modèle / clé inchangés.
+- ✅ `noAnswerKey` pur (`radioErrors.ts`) + tests ; `voiceNotUnderstood` dans « Préparer la
+  voix ». Changelog 1.0.10 (citations mises à jour + nouvelle entrée). `tsc -b`, ESLint,
+  `npm test` (3887) OK.
+- 📋 **Prochaine étape** : essai vocal (coach IA coupé : « raclette » → « pas compris » ;
+  activé avec modèle retiré → rappel modèle puis « vérifie… branché ») ; commit après accord.
+
+### 2026-10-17 — Micro de l'ingénieur : plus de réouvertures en boucle
+
+- ❌ **Constat** (journal `tauri dev`) : « [voice_input] micro « … RØDE NT-USB Mini » perdu :
+  réouverture » ~1 fois toutes les 20 s (83 en une demi-heure), sans erreur du flux.
+- ✅ **Cause** : le micro était déclaré perdu quand la boucle du moteur n'avait **consommé**
+  aucun bloc depuis `STALL_S` (3 s). Or cette boucle transcrit elle-même la dictée après le
+  mot déclencheur (`recognize_free_samples`, plusieurs secondes en build de dev) : le micro
+  continuait d'envoyer, la file se remplissait, et le moteur le rouvrait quand même — en
+  coupant la phrase en cours.
+- ✅ **Correctif** (`voice_input.rs`) : la panne n'est jugée qu'à l'attente d'un bloc
+  (`recv_timeout` sans rien, et rien reçu depuis 3 s) ; après un long traitement, les blocs
+  en attente arrivent tout de suite. Vérifié : 0 réouverture en 4 min après relance (contre
+  ~12 attendues). `cargo test voice_input` (5) OK. Changelog 1.0.10.
+- 📋 **Prochaine étape** : surveiller le journal en roulage (wake word + push-to-talk) ;
+  commit après accord de l'utilisateur.
+
+### 2026-10-17 — Overlays : bouton « Apparence » avec aperçu, carte « Widgets par adresse » repliée
+
+**Retour de l'utilisateur** : réglages d'apparence perdus en bas de page, aucun effet visible
+(0 overlay actif), page qui change de largeur à chaque réglage, carte VR/OBS trop longue et
+peu claire.
+
+- ✅ **Bouton « Apparence »** dans la barre du haut de la page Overlays → fenêtre
+  `OverlayLookDialog` (réglages + **aperçu en direct** : Classement, Secteurs, Télémétrie sur
+  des données d'exemple multiclasse, pédales animées, record de classe en S2 toutes les 4 s
+  pour voir l'animation). La carte en bas de page est retirée.
+- ✅ **Saut de largeur** : l'indicateur « Enregistré » apparaissait/disparaissait dans la barre
+  d'actions (non repliable) à chaque sauvegarde → la barre débordait et la page s'élargissait.
+  Place désormais toujours réservée (opacité seulement) et barre en `flex-wrap`.
+- ✅ **Carte « Widgets par adresse »** repliée par défaut (`Afficher les réglages` / `Masquer`,
+  pastille « Actif » quand le serveur tourne) ; description réécrite « à quoi ça sert » (VR où
+  les overlays d'écran sont invisibles, OBS, 2ᵉ écran ; inutile sinon). 5 langues, changelog.
+- ⏳ **OpenKneeboard refuse de démarrer** chez l'utilisateur : UAC désactivé dans Windows
+  (exigence d'OpenKneeboard, pas de notre app). À réactiver par l'utilisateur (réglage de
+  sécurité Windows), puis redémarrage.
+- 📋 **Prochaine étape** : l'utilisateur précise le lien voulu sur la page Live (à côté de
+  « Régie tablette ») ; essai en jeu du style Instrument.
+
+### 2026-10-17 — Apparence des overlays : style Instrument et options d'affichage
+
+**Contexte** : suite de la veille du jour sur le dessin des overlays tiers. Demande explicite de
+l'utilisateur (« Fais tout ça ») : la phase 9 (overlays) est rouverte pour l'apparence seulement.
+Tout est désactivé par défaut ; le style **Classique** reste l'apparence d'origine, au pixel près
+(aucune règle CSS ne s'applique sans les classes `ov-instrument` / `ov-font-display` / `ov-texture`).
+
+- ✅ **Socle** `components/overlay/look.ts` + `look.css` : `OverlayLook` (style, police
+  d'affichage, agrandissement net, densité, texture, animations de record) rangé dans
+  `OverlaysConfig.look` (`mergeLook` : anciennes configs → défauts), setter `setLook`. Contexte
+  `OverlayLookContext` fourni par la fenêtre overlay (`OverlayRoot`) et par la page de widget
+  servie (`WidgetPage`) ; classes posées sur la racine (`lookClasses`).
+- ✅ **Style Instrument** : panneaux à angles de 3 px sans flou, filets de relief 1 px, bande
+  d'accent à gauche du titre ; palette sémantique `SEMANTIC` (gain / meilleur de la séance /
+  perte / accélérateur / frein) via `toneColor(look, tone, couleurClassique)` dans Delta,
+  Secteurs, Relatif, Delta virage, Vitesse, Carburant, G, Lift & coast, Télémétrie. Les couleurs
+  d'état (pneus, dégâts, drapeaux, radar) ne changent pas.
+- ✅ **Classement et relatif** : lignes `ov-row` teintées par la couleur de classe (dégradé en
+  biais), joueur en teinte d'accent, 3 densités (20 / 23 / 27 px) ; meilleur tour de la classe
+  en violet.
+- ✅ **Animations de record** (`RecordFlash`, ui.tsx) : remplissage bref puis couleur du record
+  (vert = perso, violet = classe), rejoué à chaque nouveau record, rien au montage ; Secteurs
+  (S1–S3 + tour, `is_class_best_s*` / `is_class_best_lap`) et meilleur tour du classement.
+  Respecte `prefers-reduced-motion`.
+- ✅ **Graphes HD** `components/overlay/TraceCanvas.tsx` : canvas dimensionné sur la taille
+  affichée × `devicePixelRatio` (net avec zoom ou scale), dégradé sous l'accélérateur, halo,
+  points de blocage ; Delta et Télémétrie en style Instrument (le SVG reste en Classique).
+- ✅ **Police d'affichage** : Bahnschrift (police de Windows, rien à télécharger) en chiffres
+  tabulaires, `.font-mono` compris. **Agrandissement net** : `zoom` au lieu de `transform: scale`
+  (cadre de l'overlay et page servie) ; la position et le glisser ne changent pas.
+- ✅ **Réglages** : carte « Apparence des overlays » (`components/OverlayLookSettings.tsx`) sur
+  la page Overlays ; densité et texture grisées hors style Instrument. i18n `overlays.look.*`
+  5 langues, changelog 1.0.10 (dev).
+- ✅ Aucun nom de logiciel tiers dans le code, les textes ou le changelog ; aucun code ni
+  ressource repris (sources de la veille lues seulement).
+- 📋 **Prochaine étape** : essai en jeu, style Instrument + police d'affichage + agrandissement
+  net à 150 % sur un écran 4K : lisibilité du classement en multiclasse, netteté des graphes,
+  animation au premier record perso ; puis dans OpenKneeboard (page servie).
+
+### 2026-10-17 — Ingénieur vocal : choix du micro (écoute continue, push-to-talk, dictée)
+
+**Constat** : le moteur d'écoute natif (`voice_input.rs`, WASAPI via cpal) et la capture
+navigateur (`mic.ts`, `getUserMedia`) prenaient tous deux le micro par défaut de Windows.
+Les deux chemins sont concernés : `ptt_begin` / `ptt_end_dual` passent par le moteur quand
+« Micro prêt » ou le mot déclencheur est actif ; sinon (et pour le Coach IA et la fenêtre des
+commandes) la capture passe par la WebView.
+
+- ✅ **Clé `voice_input_device`** (store `micDevice`) : nom Windows du micro, vide = micro
+  par défaut de Windows (comportement historique, défaut).
+- ✅ **Rust** : `voice_input_devices` (liste, nom + `is_default`), `voice_input_status`
+  (micro qui écoute, repli, niveau crête pour le vumètre). `voice_input_start` prend
+  `device` (il entre dans la clé du moteur → relance à chaud au changement) et renvoie
+  `{ name, fallback, restarted }`. Micro choisi absent ou refusant de s'ouvrir → défaut.
+  **Micro perdu en route** (`StreamError::DeviceNotAvailable` ou plus aucun bloc pendant
+  3 s) → réouverture avec la même préférence, nouvel essai toutes les 2 s s'il n'y a plus
+  aucun micro ; événement `voice-input-device` (`fallback` / `reconnected` / `none`)
+  seulement si quelque chose a changé. **En repli**, le retour du micro choisi est guetté
+  toutes les 2 s (`wanted_present`) : passage absent → présent = réouverture sur lui (un
+  micro présent qui refuse de s'ouvrir n'est pas retenté en boucle). Briques pures
+  testées : `pick_device` (nom exact, puis sans casse), `peak_level`.
+- ✅ **Navigateur** (`mic.ts`) : micro retrouvé par son libellé dans `enumerateDevices`
+  (mêmes noms que Windows ; entrées virtuelles `default`/`communications` ignorées) →
+  `deviceId: { exact }` ; libellés cachés avant la 1ʳᵉ autorisation → nouvel essai après
+  ouverture puis bascule ; introuvable → défaut.
+- ✅ **Config › Audio / Voix** : ligne « Micro » (Radix `Select`, « Micro par défaut de
+  Windows » en premier, micro choisi débranché affiché « (débranché) », bouton
+  Actualiser) + vumètre (sondage de `voice_input_status` à 120 ms, seulement quand le
+  moteur tourne ; sinon ligne d'aide). Toasts : repli, reconnexion, plus aucun micro.
+- ✅ 5 langues, changelog 1.0.10 (dev). `tsc -b`, ESLint, `npm test` (3834) propres ;
+  `cargo test --lib` OK (111, puis les 5 tests `voice_input` après la dernière retouche),
+  lancé avec un `CARGO_TARGET_DIR` temporaire : l'app de dev verrouille une DLL de
+  `resources\stt\lib` dans `target\debug` (os error 32). Travail sur `feat/veille-pistes`
+  (choix de l'utilisateur), non commité.
+- 📋 **Prochaine étape** : essai réel avec deux micros (casque USB + micro webcam) :
+  changer de micro moteur lancé, débrancher le micro choisi en séance (toast de repli,
+  l'écoute continue), le rebrancher (toast « Micro de l'ingénieur : … ») ; vérifier aussi le
+  push-to-talk « Micro prêt » décoché (chemin navigateur). Commit après accord.
+
+### 2026-10-17 — Ingénieur vocal : plus de message d'erreur technique lu à la radio
+
+**Constat** : une question libre partait au Coach IA, l'appel échouait (modèle retiré,
+404) et `ask.ts` lisait à la radio le message écran `coach.errModel` (« … Configuration →
+Coach IA → Modèle (lien …) »). Rien ne s'affichait à l'écran. Même chose quand la capture ou
+la reconnaissance vocale échouait (`useCoachVoice.ts`).
+
+- ✅ **Tri des causes, module pur** `src/lib/ai/errorKind.ts` (`aiErrorKind` : model, key,
+  quota, rate, server, network, other) ; `friendlyError` (coach.ts) s'en sert, messages
+  inchangés.
+- ✅ **Radio** : phrases courtes à variantes « A | B | C » (`VariantPicker`), via
+  `radioLine` (ask.ts) : `coach.voiceUnclear` (rien reconnu, transcription vide, capture en
+  échec) et `coach.voiceUnavailable` (coach IA en échec). **Rappel de cause dit une seule
+  fois** pour modèle (`coach.voiceHintModel`) et clé (`coach.voiceHintKey`)
+  (`src/lib/engineer/radioErrors.ts`) ; redit seulement après une réponse IA réussie.
+- ✅ **Écran** : le message détaillé passe en `toastError` (rien de perdu) ; le testeur
+  « Tester l'ingénieur » de la Config affiche toujours ce détail.
+- ✅ 5 langues, changelog 1.0.10 (corrigé), test `radio — phrases d'échec` (42
+  vérifications : causes, rappel unique, 3 variantes courtes par langue). `tsc -b`, ESLint,
+  `npm test` (3767) propres. Travail sur `feat/veille-pistes` (demande de la session
+  principale), non commité.
+- ✅ **Fausses détections du mot déclencheur** (retour utilisateur : « je ne lui parle pas
+  et Piper me dit qu'il ne peut pas répondre »). Le guet Vosk à grammaire fermée
+  `[mot, "[unk]"]` prend souvent une autre voix pour le mot ; la dictée libre qui suit
+  (« douze pour cent ») partait quand même, car `after_wake` renvoyait la dictée entière
+  sans le mot. `after_wake` → `Option` : `None` si le mot (à « s/e/es » près) n'est pas
+  dans la dictée libre → `wake-timeout`, rien n'est envoyé (voice_input.rs + test Rust).
+- ✅ **Voix IA en ligne** : accusés `coach.voiceAck1-3`, `voiceUnclear`, `voiceUnavailable`,
+  `voiceHintModel/Key` ajoutés à « Préparer la voix » (`CLOUD_PREP_ANSWER_KEYS`, clés i18n
+  complètes) ; les phrases d'échec passent par `announceAnswer` (voix en ligne, cache
+  sinon direct) ; l'accusé reste `announce` (instantané : préparé → voix IA, sinon Piper).
+- ✅ **Validé par l'utilisateur** (app de dev) : plus de réponse fantôme quand il ne parle
+  pas ; « ingénieur… raclette » → phrase courte + toast détaillé (modèle retiré).
+- 📋 **Prochaine étape** : mettre à jour le modèle du Coach IA (Configuration → Coach IA →
+  Modèle) ; relancer « Préparer la voix » pour que les réponses de l'ingénieur passent en
+  voix IA.
+
+### 2026-10-17 — Records et repères dits par l'ingénieur, lien de téléchargement OpenKneeboard
+
+- ✅ **Annonces** : avec les annonces vocales de l'ingénieur actives (même règle que
+  `RaceEngineerHost` : interrupteur, partout ou page Live), les records au volant (perso,
+  catégorie en séance, communauté) et la confirmation d'un repère de revue sont **dits**
+  (`live.vRecord*`, `live.vReviewMark`, 3 variantes, `engineer/sideCallouts.ts`) ; sinon
+  les bips d'avant restent. Ces 4 phrases sont dans « Préparer la voix » IA
+  (`CLOUD_PREP_EXTRA_KEYS`), tests de cohérence dans `radio.suite.ts`.
+- ✅ **OpenKneeboard** : lien vers sa page de téléchargement (Overlays → Widgets par adresse,
+  page `127.0.0.1:8791`, outil manquant dans Outils & diagnostic) + note : il exige l'UAC de
+  Windows activé (réglage laissé à l'utilisateur).
+- ✅ Commits sur `feat/veille-pistes`, un par sujet : micro, phrases radio, annonces
+  vocales / OpenKneeboard, analyse des overlays.
+- 📋 **Prochaine étape** : en jeu, voix active : battre son record perso (phrase dite, pas
+  de bip), poser un repère (« Repère noté ») ; voix coupée : retour des bips.
+
+### 2026-10-17 — Veille : comment sont dessinés les overlays RaceLab (REA, aucun code modifié)
+
+- ✅ **Méthode** : REA `analyze_javascript_application` (overlay_host_window + chunks) ; le
+  `css-loader` a laissé le **SCSS d'origine** dans les source maps → 290 fichiers de style
+  relus (hors dépôt, `C:\tmp\rl_design_out\scss`, lecture seule, rien à reprendre tel quel).
+  Capture REA en direct impossible : les overlays reçoivent leurs données par
+  `ws://localhost:19302`, ouvert seulement quand on démarre les layouts dans RaceLab.
+- ✅ **Système visuel observé** : React + SCSS ; unité unique `pxToEmRel(px)` (= px/14 em,
+  2 341 usages) → tout l'overlay se met à l'échelle avec `font-size` ; thèmes par variables
+  CSS (`data-theme`), densités compact/comfortable/cosy (26/30/34 px de ligne) ; police
+  quasi unique Montserrat (graisses), chiffres `tabular-nums` (130) ; palette serrée
+  (rouge marque, cyan, violet record de séance `#dd61ff`, vert record perso `#81ff61`, rouge
+  `#ff4747`, gris 101010→e0e0e0) ; **texture « carbone »** = 2 `linear-gradient` à ±45° de
+  4,24 px en pseudo-éléments, masqués en fondu vertical ; **lignes « Lumina »** : fond
+  `linear-gradient(108deg, couleur de classe → fond)` sur ~90 px, liseré 1 px blanc 10 % en
+  haut et 1 px noir 90 % en bas ; rayons 1-2 px (pas d'arrondis larges) ; animations de record
+  (fond qui se remplit en largeur puis vire au vert/violet), apparition glissée 1,5 s ;
+  graphes Delta Trace / pédales en **Canvas 2D maison** (HiDPI, dégradés, `shadowBlur`),
+  carte en SVG + `drop-shadow`.
+- 📋 **Prochaine étape** : choix utilisateur des pistes graphiques (rapport du 2026-10-17 en
+  chat) ; rien n'est implémenté.
+
+### 2026-10-17 — Les 13 pistes de la veille, en une passe, sur `feat/veille-pistes`
+
+**Demande** : « fais tout sur une branche séparée, en une passe ; pose les questions
+avant ». Réponses : les 13 pistes ; VR = OpenKneeboard seul (piste 3, couche OpenXR
+maison, **exclue**) ; branche + un commit par lot ; tout désactivé par défaut.
+
+- ✅ `64a0a4f` **Pistes 1-2** — widgets servis par adresse locale (127.0.0.1:8791,
+  WebSocket RFC 6455 maison, lecture seule), page widget autonome `?w=<id>` (fond
+  transparent/opaque, échelle, `SetPreferredPixelSize` pour OpenKneeboard), section
+  « Widgets par adresse » de `/overlays` avec pas-à-pas OpenKneeboard et OBS.
+- ✅ `04eee9a` **Serveur communautaire** — `insights.ts` : `/tiers` (référence = moyenne
+  des 5 meilleurs pilotes, version la plus récente), `/cars` (index voitures, moyenne des
+  3 meilleurs par voiture), `/patch` (écart médian par pilote entre 2 versions),
+  `POST /briefing` (noms dans le corps ; anonymes jamais renvoyés), `/rival` + opt-in
+  `PATCH /me {rival}` (migration 6 `rival_pairs`, appariement hebdo par indice de rythme,
+  3/1/0 points sur 12 semaines, export RGPD). 51 tests PGlite.
+- ✅ `4103b36` **Pistes 4-5-11-13 (app)** — source des paliers au choix (ohne_speed par
+  défaut, base communautaire avec repli sur la feuille), onglets Classement « Index
+  voitures », « Effet du patch », « Rival de la semaine » (option `community_insights`),
+  briefing des adversaires dans Live › Classement (option `live_briefing`).
+- ✅ `fe9fe6a` **Piste 7** — « Points faibles du tour » en télémétrie (1 à 5 zones,
+  `analyzeLap(…, {focusCount})`, défaut 3 = inchangé), bouton « comparer à mon meilleur
+  tour » (la référence reste choisie par l'utilisateur).
+- ✅ `9aa475a` **Pistes 6-8-9-10-12** — `<ServerName>`/`<Dedicated>` lus et stockés
+  (`xml_index`, migration + schéma), badge « tours comparables » ; onglet « Régularité » ;
+  bips de record (1/2/3, `recordBeeps`) ; repères de revue (raccourci + 2ᵉ bouton volant
+  via `wheel_watch_mark`, sans toucher au PTT ; stockés `review_marks`, listés dans
+  Incidents) ; catégorie Configuration « Outils & diagnostic » (`tools.rs` : lanceur avec
+  LMU via ToolHelp32, fermeture douce des seuls outils lancés ; diagnostic en lecture seule
+  : dossier, plugin présent+activé, `Config_DX11.ini` WindowedMode/Borderless/VSyncMode,
+  API REST si le jeu tourne, OpenKneeboard, versions). Options dans Configuration ›
+  Préférences (`lib/configFlag.ts`).
+- ✅ Vérifié : `npm test` 3725 (suite `veille` ajoutée), `cargo test --lib` 109, tests
+  serveur 51 + typecheck, `npx tsc -b`, ESLint, `npm run build`.
+- ⏳ Non vérifié : rien en jeu ni dans l'app réelle (une instance de l'app tournait :
+  `cargo clippy`/`cargo check` complets bloqués par une DLL verrouillée, os 32 — les
+  tests compilent toute la lib). Mapping Config_DX11 → modes du jeu déduit ; chemins
+  d'installation d'OpenKneeboard non confirmés (pas installé ici). Serveur à déployer.
+- 📋 **Prochaine étape** : relecture par l'utilisateur ; tests en jeu
+  (`VALIDATION-EN-JEU.md` § Veille) ; déployer le serveur ; puis fusion dans `main`.
+
+### 2026-10-17 — Veille : MySIMRace (site + MSR Connector 3.0.95) — analyse REA, aucun code modifié
+
+**Demande** : analyser en profondeur `mysimrace.com` (compte de l'utilisateur, lecture seule
+dans son Chrome) et l'exe installé (`%LOCALAPPDATA%\Programs\MSRConnector`).
+
+**Méthode** : bundle .NET single-file extrait par script (520 fichiers, rien exécuté) →
+REA `inspect_managed_members` sur les 7 assemblies `MsrConnector.*` ; site : 29 pages lues
+par requêtes GET same-origin (hors déconnexion, aucun formulaire soumis) + capture REA
+`capture_browser_scenario` non connectée (tout redirige vers le login, API publique
+`/api/stats.php`). Exe **non signé**, .NET 8, WinForms (fenêtre) + WPF (overlays) + WebView2.
+
+**MSR Connector** ([O] observé / [D] déduit) :
+- ✅ Données : **uniquement le plugin rF2** (`$rFactor2SMMP_Scoring/Telemetry/Extended$`), pas
+  `LMU_Data` ; il **installe lui-même** la DLL du plugin et patche `CustomPluginVariables.JSON`.
+  Pas de lecture des XML. Détection de tour par sondage 100 ms (`TotalLaps`/`LastLapTime`,
+  10 s ≤ tour ≤ 10 min) ; « valide » = simplement pas au stand [D].
+- ✅ **API REST du jeu** : lit `GetGameState`, `sessionInfo`, `SESSSET_cut_rules` et, au menu,
+  **écrit** `POST /rest/sessions/settings` pour forcer les règles de cut « Default/Strict » ;
+  tour bloqué si cuts laxistes. Le serveur classe officiel / non officiel (online, IP:port du
+  serveur, type de séance, aides TC/ABS/SC, version du jeu, pneus, carburant).
+- ✅ Envoi : file SQLite `pending_laps` (WAL, rejet permanent vs transitoire, N essais) →
+  `POST /api/submit_lap.php` (réponse : PB, record voiture, record de classe). Clé API
+  chiffrée DPAPI, en-tête `X-API-Key`, version minimale imposée (`X-Connector-Version`, 403).
+  ⚠️ Pas de signature des tours ; clé API aussi passée en clair dans des URL.
+- ✅ **Bips** au volant après chaque tour : 1 = record perso, 2 = record de catégorie,
+  3 = « MASTER » (meilleur chrono de la catégorie). Pas de TTS.
+- ✅ Overlays écran (7) : Pilote (dernier tour, PB, record de catégorie + détenteur, rang),
+  Meilleurs temps (autour de soi), Carrière, Connexion, **« Delta cover »** (rectangle opaque
+  qui masque le delta du jeu), **Race Control** et **Race Radio** (pages web distantes en
+  WebView2). Fenêtres transparentes topmost, pas de click-through.
+- ✅ **Direction de course en ligne** : flux **Mercure (SSE)** avec JWT court (drapeaux
+  verts/jaunes/FCY/VSC/rouge, pit ouvert/fermé, messages info/avertissement/pénalité) ;
+  **radio pilote ↔ direction de course** : push-to-talk sur bouton volant (DirectInput),
+  10 s max, upload `audio/webm` ; **relais de positions** : un seul client par course,
+  désigné par le serveur, envoie toutes les 500 ms les positions X/Z, vitesse, place, stand
+  de tous les pilotes → carte live de la direction de course.
+- ✅ **VR = OpenVR seulement** (`OpenVR.NET`, pas d'OpenXR) et **seulement Race Control + Race
+  Radio** : capture de la WebView2 ~3 fois/s (`CapturePreviewAsync` → PNG → `SetOverlayRaw`),
+  ancrage tête ou fixe (pose capturée au recentrage), largeur/avance/hauteur/côté réglables,
+  manifeste SteamVR enregistré. Rudimentaire comparé à une couche OpenXR.
+- ✅ Diagnostic auto-réparateur (DLL bloquée « Mark of the Web », copie « (1).dll », JSON mal
+  encodé, VC++ 2013, double install) + rapport envoyé au serveur ; démarrage avec Windows,
+  surveillance de LMU, canal testeur, normalisation des noms de voitures (regex).
+
+**Site mysimrace.com** (32 sections, PHP + API JSON `api/*.php`) :
+- Classement hotlap (catégories HY/P2/P2 ELMS/P3/GT3/GTE, filtres sec/pluie, online/local,
+  P/Q/R, **seuls les tours sur serveurs officiels comptent**, colonne règle de cut, tour
+  optimal, pneus ; demande de correction de voiture avec capture) ; records officiels,
+  palmarès, matrice, **infographies/cartes à partager** (MSR Cards) ; classement par nation
+  et par équipe.
+- **Rival** : duel hebdomadaire automatique entre pilotes de même niveau (appariement le
+  mardi, +3/+1/0, bonus Daily Race, 75 %/50 % si l'adversaire ne roule pas), classement
+  cumulé sur 12 semaines, « Rival Mates » entre amis.
+- **MSR Index** : indice pilote 0–999 (1 point = 0,01 % d'écart au temps de référence mondial,
+  dès 5 combos circuit + catégorie) et classement d'équipes (moyenne des 5 meilleurs).
+- **Progression** : pace, régularité (écart-type, % de tours à < 1 s du meilleur, conversion
+  < 0,3/0,5/1 s), stabilité par secteur, temps théorique, « pilote à battre », delta vs top 10 %,
+  « coach virtuel ». **Comparateur** pilote vs pilote. **BOP** : effet réel d'un patch
+  (V1.2.3 → V1.2.4) par comparaison pilote à pilote.
+- Défis hebdomadaires sur les courses officielles, calendrier des courses LMU (compte à
+  rebours), statistiques Steam du jeu, 34 tracés de circuits avec secteurs, OhneSpeed
+  (diffusé avec accord de l'auteur), **Guardian** (quarantaine des chronos suspects),
+  **pack vocal CrewChief en français**, Draft/Coop (recrutement d'équipes, endurance
+  6/12/24 h), gestion d'Opens et championnats, **Race Control Academy** (Rookie → Spotter →
+  Commissaire → Directeur de course), Event Crew, boîte aux lettres, suggestions avec votes,
+  profil (matériel, casque, réseaux, export RGPD, suppression de compte).
+
+**Ce qu'on peut en tirer** (au-delà de la liste RaceLab/pitlane ci-dessous) :
+1. **Bips de record** au volant (1/2/3) — trivial avec notre audio ; option dans la voix.
+2. **Tour « comparable »** : lire `SESSSET_cut_rules` / online / serveur (lecture seule, sans
+   rien imposer au jeu — notre REST reste en lecture) et étiqueter chaque tour ; filtre
+   « tours comparables » dans `/records` et `/classement`. À vérifier : ce qu'on stocke déjà.
+3. **Régularité / conversion** dans le profil ou le détail de session (écart-type, % de tours
+   à < 0,3/0,5/1 s du meilleur, secteur le plus instable) — si absent.
+4. **Rival hebdomadaire** sur notre base communautaire (appariement par palier).
+5. **Effet d'un patch** (BOP) : comparaison avant/après par pilote ayant roulé sur les deux
+   versions — nous stockons déjà la version du jeu.
+6. **Assistant de diagnostic** qui répare (plugin bloqué MOTW, JSON, doublons).
+7. **Cartes à partager** (image de record) depuis `/records`.
+- ℹ️ Notre avantage : ingénieur vocal complet, télémétrie DuckDB, données `LMU_Data`
+  (énergie virtuelle, ABS/TC…) que MSR n'utilise pas.
+- 📋 **Prochaine étape** : voir l'entrée RaceLab ci-dessous (choix des pistes par l'utilisateur).
+
+### 2026-10-17 — Veille : RaceLab 8.4.4 + RaceLab VR 3.0.12 + pitlane (classement) — analyse REA, aucun code modifié
+
+**Demande** : analyser RaceLab en profondeur avec REA (surtout la VR, pour l'ajouter à
+l'app), le complément « RaceLab VR » installé à part, la doc `garage.racelab.app/docs/vr`,
+la vidéo de présentation, et `lmulead.pitlane.gr` pour la partie classement ; en tirer
+des idées pour la communauté. Rien n'est repris de leur code (règle veille, §2).
+
+**Méthode** : REA `analyze_javascript_application` (app Electron, 112 fichiers, couverture
+partielle : main et grosses fenêtres en bytecode V8 `.jsc`) ; `inspect_pe_resources` +
+imports/exports/chaînes PE pour les binaires VR (pas de Ghidra installé → pas de
+pseudo-code, l'architecture se lit sans) ; `capture_browser_scenario` pour pitlane
+(réseau + accessibilité) ; doc et vidéo lues dans le navigateur (chapitres + description,
+sous-titres non récupérés).
+
+**RaceLab VR — comment ça marche** (observé dans les binaires, `C:\Program Files\Racelab VR`) :
+- ✅ **Deux pièces, toutes deux signées** (Authenticode valide, Sectigo, « Pace Engineering
+  GmbH ») : `racelab_vr.exe` (v3.0.12, process séparé) + `XR_APILAYER_app_racelab_Overlay64.dll`,
+  **couche OpenXR implicite** enregistrée dans `HKLM\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Implicit`
+  (manifeste JSON, `disable_environment` = `DISABLE_XR_APILAYER_app_racelab_Overlay`).
+- ✅ **Rendu** : `racelab_vr.exe` embarque **CEF** (Chromium 132, rendu hors écran
+  `OnAcceleratedPaint`) et charge **les mêmes pages web que les overlays écran/OBS**
+  (`http://localhost:8080/ui/#/overlays/<id>`), avec un JS injecté (`RacelabVRNative`,
+  évènement `racelabvr/editmode`) et une classe CSS `vrMode` (marges, sans ombres, bandeau
+  « TRANSFORM POSITION / ADJUST » en édition). Limite 60 FPS (`chromiumFrameRateLimit`),
+  `resolutionScale` (utile surtout Varjo).
+- ✅ **Transport vers le jeu** : mémoire partagée (PID du « feeder » + keepalive : la couche
+  retire les overlays si le process meurt) + **textures D3D11 partagées et fences**
+  (`DuplicateHandle`, `OpenSharedResource1`, `OpenSharedFence`). Dans `xrEndFrame`, la couche
+  crée un swapchain par overlay et **ajoute un `XrCompositionLayerQuad`** aux couches du jeu.
+  Espaces VIEW (head-locked) / LOCAL / STAGE (world-locked) ; option `useWorldLockedPositions`
+  = contournement d'un bug Varjo Base ≥ 4.4. **Jeux D3D11 uniquement** (« Game is not
+  supported: not D3D11 ») — LMU est en D3D11.
+- ✅ **SteamVR** : chemin séparé via `openvr_api.dll` / `IVROverlay` (`SetOverlayTransformAbsolute`,
+  `…TrackedDeviceRelative`, courbure, alpha). La doc annonce OpenXR + OpenVR + OpenComposite.
+- ✅ **Abonnement** : l'exe *et* la DLL vérifient l'abonnement « Professional » par WinHTTP ;
+  sinon un panneau « abonnement requis ». Traces ETW (`RacelabVR.wprp`), log `openxr-apilayer.log`.
+- ✅ **Origine** : licence tierce « OpenKneeboard » (Fred Emmott) **concédée uniquement pour
+  RaceLab** — même architecture qu'OpenKneeboard (process + couche OpenXR + SHM). Rien de
+  réutilisable chez nous.
+- ✅ **UX** (doc + traductions + vidéo « Introducing RacelabVR », 10 min) : bouton VR dans le
+  pied de page ; raccourcis **Toggle VR** et **Recentrer** (à mettre sur le volant, *même
+  bouton que le recentrage du jeu*) ; **mode édition** clavier/souris (Tab entrer, Espace
+  overlay suivant, M position/ajustement, molette = transparence, Échap ×5 = sortie de
+  secours qui libère les hooks) ; **overlay d'accueil** qui s'estompe ; **jeux d'overlays**
+  (« sets ») par jeu, commutables par raccourci même en course ; **transparence selon le
+  regard** (distance angulaire au rayon de vue, début/fin, opacité mini) ; démarrage auto
+  avec l'app ; réinitialisation. Config utilisateur : `%APPDATA%\RacelabApps\vr.json`.
+- ⚠️ **Indice anti-triche (inféré, non observé en ligne)** : RaceLab annonce LMU compatible VR
+  avec cette couche **signée** injectée dans le jeu → fort indice qu'Easy Anti-Cheat tolère
+  une couche OpenXR implicite **signée** dans LMU. Lève en partie l'inconnue de l'option A
+  (étude du 2026-09-23) *à condition d'avoir un certificat de signature de code*. À confirmer
+  par le test Pimax prévu (☐ toujours pas fait).
+
+**RaceLab 8.4.4 — le reste** (catalogue complet ; [O] observé / [D] déduit) :
+- Architecture : Electron + bytenode ; serveur local `:8080` (overlays par URL, `/api/command`,
+  `/api/status`, WebSocket `/ws/status` pour Stream Deck) ; QR code pour ouvrir un overlay sur
+  tablette ; chaque overlay = source navigateur OBS (double PC : remplacer `localhost` par l'IP).
+- LMU : plugin `RacelabLMUPlugin.dll` + `CustomPluginVariables.JSON` (désactive le plugin rF2
+  standard), mémoire `$lmuSMMP_*$` (Telemetry, Scoring, Rules, Extended, Graphics, PitInfo,
+  Weather…), API REST `:6397` (`/rest/watch/trackmap`, `/rest/strategy/usage`,
+  `/rest/garage/UIScreen/RepairAndRefuel`, `/rest/watch/focus`) ; borderless exigé (lecture
+  regex de `Config_DX11.ini`).
+- 45 overlays : Standings (multiclasse, SOF, **Virtual Energy NRG**, Race Briefing), Relative,
+  Track map (121 réglages), Mini/Flat map, Input telemetry (comparaison PB/ami/percentile),
+  **Delta Trace** (delta sur tout le tour + **« Weak Spot »** 1–5 zones à travailler), Delta bar,
+  Fuel calculator (+ **partage carburant** d'équipe par jeton), Pitbox helper, Head-to-head,
+  Radar / Blind spot / Overtake alert (classe plus rapide), Flags, Weather, G-meter, Data blocks
+  (~80 widgets)… ; aperçus non sortis : Trend chart, Race Control Info, Battle prediction.
+- **Race Events** : chronologie incidents / dépassements / sorties / stands / drapeaux +
+  **« Review Mark »** posé par raccourci, clic → saut dans le replay.
+- Communauté : amis, **driver tags** (CLEAN, DIRTY, RIVAL… + notes, vus dans Standings/Relative),
+  layouts communautaires publiables.
+- Layouts : éditeur par écran, **règles d'activation auto** (classe, voiture, type de session,
+  spectateur). **Tools Manager** : lance/ferme SimHub, Crew Chief, Fanatec, MOZA… avec la sim.
+- `graphics.exe` : lit (sans modifier) les réglages GPU NVIDIA/AMD par jeu (VSync, low latency,
+  G-Sync, limiteur) dont `Le Mans Ultimate.exe` → diagnostic « Game Setup ».
+- Streaming : chat Twitch/YouTube, StatBot `!rl`, Chat Race, garage cover, visualiseur micro.
+- **Aucun spotter vocal ni TTS** (Crew Chief seulement en outil externe) → notre ingénieur
+  vocal reste un net avantage.
+- Modèle : gratuit limité / **Pro** (tous overlays, layouts, Race Briefing, fuel sharing,
+  **VR**). 17 langues. Mode démo par enregistrement iRacing rejoué (`demodata/race.json`).
+
+**pitlane (lmulead.pitlane.gr) — classement** (capture REA, API JSON publique) :
+- ✅ API : `/api/v1/meta` (saisons, classes, circuits/variantes, paliers), `/api/v1/board?track&layout&class`
+  (lignes : pilote Steam, vérifié, voiture, tour + S1/S2/S3, écart, **air/piste/pluie/mouillé/grip**,
+  version du jeu, date), `/api/v1/tiers?class`, `/api/v1/cars?class`, `/api/v1/me` ; connexion Steam.
+- ✅ **Paliers auto** : référence = **moyenne des 5 meilleurs tours valides** de la classe sur la
+  variante (se recale seule après chaque patch) ; seuils ALIEN 100,5 % · COMPETITIVE 101,5 % ·
+  GOOD 102,5 % · MIDPACK 104 % · TAIL-ENDER 107 % ; « PROVISIONAL » si trop peu de pilotes ;
+  calculateur « tape ton temps → ton palier » sans uploader.
+- ✅ **Car Index** : chaque voiture d'une classe sur chaque circuit en % de la plus rapide,
+  moyenne + pire circuit → quelle voiture choisir.
+- ✅ Tour optimal (meilleurs secteurs), vues Tour / Podium / Cartes, saisons (« Season 1 »
+  depuis le 2026-10-14), uploader tray de 80 Ko non signé qui lit les XML de résultats.
+  Volume encore faible (4–14 entrées par circuit).
+- ℹ️ Notre `/classement` couvre déjà : paliers (ohne_speed), percentiles/distribution,
+  comparaison avec tour optimal, filtre version, provisoire. Manquent : paliers *calculés sur
+  notre base*, Car Index, conditions du tour, calculateur manuel.
+
+**Pistes retenues pour nous** (classées par effet pour la communauté — à valider) :
+1. **Widgets servis par URL locale + WebSocket** (déjà prévu 2026-09-23) : une seule brique
+   débloque **la VR (OpenKneeboard Web Dashboards)**, **OBS** (streamers), **tablette/2ᵉ écran**
+   (la régie existe déjà en HTTP pur, port 8790 → y ajouter une route par widget, loopback, et
+   un push WebSocket de `live-data`) + une classe `vr` (marges, pas d'ombres, contraste).
+2. **VR niveau 1 = OpenKneeboard** (zéro DLL chez nous) : section « VR » dans `/overlays` avec
+   URLs à copier, guide pas à pas, raccourcis Recentrer / Afficher-masquer, lancement auto
+   d'OpenKneeboard avec LMU.
+3. **VR niveau 2 = compagnon natif signé** (seulement si certificat + test EAC OK) : process
+   séparé qui rend les widgets hors écran + couche OpenXR implicite D3D11 (un quad par widget,
+   textures partagées + fences, keepalive) + overlay OpenVR pour SteamVR ; mode édition,
+   sets, transparence selon le regard, overlay d'accueil, sortie de secours.
+4. Classement : **paliers calculés sur notre base** (top N, recalage par version, l'ancien
+   barème ohne_speed reste choisissable), **Index voitures**, conditions du tour,
+   calculateur de palier manuel.
+5. **Points faibles du tour** (style « Weak Spot ») : 1–5 zones où l'on perd le plus face à la
+   référence — à recouper avec le coach par virage existant.
+6. **Repères de revue** : bouton volant « marquer ce moment » pendant la course → liste
+   horodatée dans le détail de session (avec incidents, limites de piste, stands).
+7. **Briefing adversaires** : palier communautaire / historique des pilotes du lobby avant la
+   course (base communautaire opt-in).
+8. **Notes sur les pilotes** (propre / dangereux / rival) visibles dans le live.
+9. **Partage énergie/carburant d'équipe** en endurance (relié à T15 Social).
+10. **Lanceur d'outils** (OpenKneeboard, SimHub, Crew Chief… avec LMU) et **diagnostic PC**
+    (borderless, VSync, limiteur) en lecture seule.
+- ❌ Écarté : mode démo à données simulées (décision « pas de données mockées » ; un rejeu
+  de *vraies* sessions reste possible via le banc de rejeu).
+- 📋 **Prochaine étape** : choix utilisateur des pistes ; pour la VR, faire enfin le test
+  EAC sur le Pimax (OpenKneeboard *et*, pour comparaison, RaceLab VR qui est installé), puis
+  implémenter la piste 1 (prérequis commun à toutes les variantes VR).
 
 ### 2026-10-16 — Tout fusionné dans `main` ; on ne travaille plus que sur `main`
 

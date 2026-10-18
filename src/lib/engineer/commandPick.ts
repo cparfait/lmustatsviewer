@@ -6,9 +6,20 @@
 
 import { matchIntent } from "@/lib/spotterCommands";
 import { RADIO_COMMANDS, type AnswerIntent } from "@/lib/engineer/router";
+import { PIT_CMDS } from "@/lib/engineer/pitVoice";
 
 /** Intentions qui **agissent** (et ne se contentent pas de répondre). */
-const ACTIONS = new Set<string>(["ackBox", "stayOut", "watchCancel", "watch", "mute", "repeat"]);
+const ACTIONS = new Set<string>([
+  "ackBox",
+  "stayOut",
+  "watchCancel",
+  "watch",
+  "mute",
+  "repeat",
+  "alarm",
+  "voiceNote",
+  ...PIT_CMDS,
+]);
 
 export function isAction(id: string): boolean {
   return ACTIONS.has(id) || RADIO_COMMANDS.has(id as AnswerIntent);

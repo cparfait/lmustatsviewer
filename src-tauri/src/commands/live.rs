@@ -17,12 +17,14 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use super::lmu_rest;
 use super::minisectors::MiniSectors;
+use super::shm;
 use super::track_align::{self, Polyline};
 use crate::error::AppError;
 
 const TELEMETRY_MAP: &str = "$rFactor2SMMP_Telemetry$";
 const SCORING_MAP: &str = "$rFactor2SMMP_Scoring$";
 const EXTENDED_MAP: &str = "$rFactor2SMMP_Extended$";
+const RULES_MAP: &str = "$rFactor2SMMP_Rules$";
 const MAX_VEH: usize = 128;
 
 // ── Mémoire partagée NATIVE LMU (« LMU_Data ») ───────────────────────────────
@@ -90,41 +92,97 @@ struct LmuElectronics {
     gap_behind: f32,
 }
 
-/// Lit les maps ABS/TC réelles du joueur depuis la mémoire native LMU.
-/// Best-effort : `None` si la map n'existe pas (LMU non lancé / interface
-/// désactivée) ou si le joueur n'a pas de véhicule actif.
-fn read_lmu_electronics() -> Option<LmuElectronics> {
-    let buf = read_shm(LMU_DATA_MAP, LMU_DATA_SIZE)?;
-    let has: u8 = unsafe { read_at(&buf, LMU_PLAYER_HAS_OFF)? };
-    if has == 0 {
-        return None;
+/// État de la mémoire native LMU pour le diagnostic (`LiveDiag.lmu_data`).
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum LmuDataState {
+    Absent,
+    Ok,
+    /// Région plus petite que la structure attendue : version non prise en charge.
+    Size,
+    /// Valeurs hors bornes : disposition déplacée par une mise à jour du jeu.
+    Implausible,
+}
+
+impl LmuDataState {
+    fn label(self) -> &'static str {
+        match self {
+            LmuDataState::Absent => "absent",
+            LmuDataState::Ok => "ok",
+            LmuDataState::Size => "size",
+            LmuDataState::Implausible => "implausible",
+        }
     }
-    let idx: u8 = unsafe { read_at(&buf, LMU_PLAYER_IDX_OFF)? };
-    let veh = LMU_TELEMINFO_OFF + (idx as usize) * LMU_VEH_STRIDE;
-    Some(LmuElectronics {
-        tc: unsafe { read_at(&buf, veh + LMU_OFF_TC)? },
-        tc_max: unsafe { read_at(&buf, veh + LMU_OFF_TC_MAX)? },
-        tc_slip: unsafe { read_at(&buf, veh + LMU_OFF_TC_SLIP)? },
-        tc_slip_max: unsafe { read_at(&buf, veh + LMU_OFF_TC_SLIP_MAX)? },
-        tc_cut: unsafe { read_at(&buf, veh + LMU_OFF_TC_CUT)? },
-        tc_cut_max: unsafe { read_at(&buf, veh + LMU_OFF_TC_CUT_MAX)? },
-        abs: unsafe { read_at(&buf, veh + LMU_OFF_ABS)? },
-        abs_max: unsafe { read_at(&buf, veh + LMU_OFF_ABS_MAX)? },
-        motor_map: unsafe { read_at(&buf, veh + LMU_OFF_MOTOR_MAP)? },
-        virtual_energy: unsafe { read_at(&buf, veh + LMU_OFF_VIRTUAL_ENERGY)? },
-        state_of_charge: unsafe { read_at(&buf, veh + LMU_OFF_SOC)? },
-        regen: unsafe { read_at(&buf, veh + LMU_OFF_REGEN)? },
-        battery_charge: unsafe {
-            read_at::<f64>(&buf, veh + LMU_OFF_BATTERY)? as f32
-        },
-        boost_state: unsafe { read_at(&buf, veh + LMU_OFF_BOOST_STATE)? },
-        delta_best: unsafe { read_at::<f64>(&buf, veh + LMU_OFF_DELTA_BEST)? as f32 },
-        lift_coast: unsafe { read_at(&buf, veh + LMU_OFF_LIFT_COAST)? },
-        track_limits: unsafe { read_at(&buf, veh + LMU_OFF_TRACK_LIMITS)? },
-        track_limits_per_penalty: unsafe { read_at(&buf, LMU_OFF_TL_PER_PENALTY)? },
-        gap_ahead: unsafe { read_at(&buf, veh + LMU_OFF_GAP_AHEAD)? },
-        gap_behind: unsafe { read_at(&buf, veh + LMU_OFF_GAP_BEHIND)? },
-    })
+}
+
+/// Les valeurs lues ont-elles un sens ? Les offsets bruts de `LMU_Data` cassent
+/// quand une mise à jour du jeu insère un champ : on lit alors des octets
+/// voisins (TC à 200, énergie à 3 000 %…). Mieux vaut ne rien afficher.
+fn lmu_plausible(e: &LmuElectronics) -> bool {
+    let small = |v: u8| v <= 30;
+    small(e.tc_max)
+        && e.tc <= e.tc_max.max(1)
+        && small(e.abs_max)
+        && e.abs <= e.abs_max.max(1)
+        && small(e.motor_map)
+        && e.boost_state <= 3
+        && (-0.01..=1.5).contains(&e.virtual_energy)
+        && (-1.0..=105.0).contains(&e.state_of_charge)
+        && (-0.01..=1.01).contains(&e.battery_charge)
+        && e.delta_best.is_finite()
+        && e.delta_best.abs() < 600.0
+        && (e.track_limits_per_penalty as u32) <= 100
+}
+
+/// Lit les maps ABS/TC réelles du joueur depuis la mémoire native LMU (seulement
+/// les octets utiles : en-tête du bloc télémétrie + bloc du joueur).
+fn read_lmu_electronics(shm: &mut shm::ShmReader) -> (Option<LmuElectronics>, LmuDataState) {
+    let Some(len) = shm.region_len(LMU_DATA_MAP) else {
+        return (None, LmuDataState::Absent);
+    };
+    if len < LMU_DATA_SIZE {
+        return (None, LmuDataState::Size);
+    }
+    let decode = |shm: &mut shm::ShmReader| -> Option<LmuElectronics> {
+        let head = shm.read_range(LMU_DATA_MAP, LMU_TELEM_BASE, 4)?;
+        let has = head[LMU_PLAYER_HAS_OFF - LMU_TELEM_BASE];
+        if has == 0 {
+            return None;
+        }
+        let idx = head[LMU_PLAYER_IDX_OFF - LMU_TELEM_BASE] as usize;
+        if idx >= MAX_VEH {
+            return None;
+        }
+        let veh_off = LMU_TELEMINFO_OFF + idx * LMU_VEH_STRIDE;
+        let v = shm.read_range(LMU_DATA_MAP, veh_off, LMU_VEH_STRIDE)?;
+        let tl_pen: u8 = shm.read_range(LMU_DATA_MAP, LMU_OFF_TL_PER_PENALTY, 1)?[0];
+        Some(LmuElectronics {
+            tc: unsafe { read_at(&v, LMU_OFF_TC)? },
+            tc_max: unsafe { read_at(&v, LMU_OFF_TC_MAX)? },
+            tc_slip: unsafe { read_at(&v, LMU_OFF_TC_SLIP)? },
+            tc_slip_max: unsafe { read_at(&v, LMU_OFF_TC_SLIP_MAX)? },
+            tc_cut: unsafe { read_at(&v, LMU_OFF_TC_CUT)? },
+            tc_cut_max: unsafe { read_at(&v, LMU_OFF_TC_CUT_MAX)? },
+            abs: unsafe { read_at(&v, LMU_OFF_ABS)? },
+            abs_max: unsafe { read_at(&v, LMU_OFF_ABS_MAX)? },
+            motor_map: unsafe { read_at(&v, LMU_OFF_MOTOR_MAP)? },
+            virtual_energy: unsafe { read_at(&v, LMU_OFF_VIRTUAL_ENERGY)? },
+            state_of_charge: unsafe { read_at(&v, LMU_OFF_SOC)? },
+            regen: unsafe { read_at(&v, LMU_OFF_REGEN)? },
+            battery_charge: unsafe { read_at::<f64>(&v, LMU_OFF_BATTERY)? as f32 },
+            boost_state: unsafe { read_at(&v, LMU_OFF_BOOST_STATE)? },
+            delta_best: unsafe { read_at::<f64>(&v, LMU_OFF_DELTA_BEST)? as f32 },
+            lift_coast: unsafe { read_at(&v, LMU_OFF_LIFT_COAST)? },
+            track_limits: unsafe { read_at(&v, LMU_OFF_TRACK_LIMITS)? },
+            track_limits_per_penalty: tl_pen,
+            gap_ahead: unsafe { read_at(&v, LMU_OFF_GAP_AHEAD)? },
+            gap_behind: unsafe { read_at(&v, LMU_OFF_GAP_BEHIND)? },
+        })
+    };
+    match decode(shm) {
+        Some(e) if lmu_plausible(&e) => (Some(e), LmuDataState::Ok),
+        Some(_) => (None, LmuDataState::Implausible),
+        None => (None, LmuDataState::Ok),
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -425,6 +483,82 @@ struct Extended {
     m_current_pit_speed_limit: f32,
 }
 
+// ── Règles de piste (zone « Rules » du plugin, format public rF2 3.8) ─────────
+// Voiture de sécurité, tour de formation, ordre figé sous neutralisation : qui
+// suivre, dans quelle colonne. Taille vérifiée par un test (45 272 octets).
+
+#[repr(C, packed(4))]
+#[derive(Clone, Copy)]
+struct TrackRulesAction {
+    m_command: i32,
+    m_id: i32,
+    m_et: f64,
+}
+
+#[repr(C, packed(4))]
+#[derive(Clone, Copy)]
+struct TrackRulesParticipant {
+    m_id: i32,
+    m_frozen_order: i16,
+    m_place: i16,
+    m_yellow_severity: f32,
+    m_current_relative_distance: f64,
+    m_relative_laps: i32,
+    m_column_assignment: i32,
+    m_position_assignment: i32,
+    m_pits_open: u8,
+    m_up_to_speed: u8,
+    m_unused: [u8; 2],
+    m_goal_relative_distance: f64,
+    m_message: [u8; 96],
+    m_expansion: [u8; 192],
+}
+
+#[repr(C, packed(4))]
+#[derive(Clone, Copy)]
+struct TrackRules {
+    m_current_et: f64,
+    m_stage: i32,
+    m_pole_column: i32,
+    m_num_actions: i32,
+    pointer1: [u8; 8],
+    m_num_participants: i32,
+    m_yellow_flag_detected: u8,
+    m_yellow_flag_laps_was_overridden: u8,
+    m_safety_car_exists: u8,
+    m_safety_car_active: u8,
+    m_safety_car_laps: i32,
+    m_safety_car_threshold: f32,
+    m_safety_car_lap_dist: f64,
+    m_safety_car_lap_dist_at_start: f32,
+    m_pit_lane_start_dist: f32,
+    m_teleport_lap_dist: f32,
+    m_input_expansion: [u8; 256],
+    m_yellow_flag_state: i8,
+    m_yellow_flag_laps: i16,
+    m_safety_car_instruction: i32,
+    m_safety_car_speed: f32,
+    m_safety_car_minimum_spacing: f32,
+    m_safety_car_maximum_spacing: f32,
+    m_minimum_column_spacing: f32,
+    m_maximum_column_spacing: f32,
+    m_minimum_speed: f32,
+    m_maximum_speed: f32,
+    m_message: [u8; 96],
+    pointer2: [u8; 8],
+    m_input_output_expansion: [u8; 256],
+}
+
+#[repr(C, packed(4))]
+struct Rules {
+    _begin: i32,
+    _end: i32,
+    _hint: i32,
+    m_track_rules: TrackRules,
+    m_actions: [TrackRulesAction; MAX_VEH],
+    m_participants: [TrackRulesParticipant; MAX_VEH],
+}
+
 // Conteneurs (jamais instanciés — uniquement pour `offset_of!`).
 #[repr(C, packed(4))]
 struct Telemetry {
@@ -670,6 +804,71 @@ pub struct LiveExtended {
     /// Build du jeu (`Extended.mVersion`, ex. "1.2.3.4"). Sert de critère de
     /// péremption des références du coach (un patch change la physique).
     pub game_version: String,
+    /// Dernier message du centre de messages du jeu (`mLastHistoryMessage`) :
+    /// type et cause des pénalités, « Wrong Way », phares obligatoires,
+    /// avertissement drapeau bleu… Textes anglais du jeu, lus côté front.
+    #[serde(default)]
+    pub history_message: String,
+    /// Horodatage (ticks) de sa dernière mise à jour : un même texte répété par
+    /// le jeu change d'horodatage, c'est donc un nouvel évènement.
+    #[serde(default)]
+    pub history_ticks: f64,
+}
+
+/// Voiture du règlement de piste (ordre figé) — seulement hors course normale.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LiveRulesParticipant {
+    /// Identifiant de la voiture (`mID`, comme `LiveStanding.id`).
+    pub id: i32,
+    pub place: i16,
+    /// Tours d'écart avec la voiture de sécurité.
+    pub relative_laps: i32,
+    /// Colonne attribuée (numérotation LMU : 0 gauche, 1 milieu, 2 droite,
+    /// 3 invalide, 4 libre, 5 en attente).
+    pub column: i32,
+    /// Place attribuée (0 = tête) dans la colonne, ou dans la file unique.
+    pub position_assignment: i32,
+    pub pits_open: bool,
+}
+
+/// Règlement de piste en cours (zone « Rules » du plugin).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LiveRules {
+    /// 0 formation (init), 1 formation, 2 course normale, 3 neutralisation
+    /// (init), 4 neutralisation.
+    pub stage: i32,
+    pub pole_column: i32,
+    pub safety_car_exists: bool,
+    pub safety_car_active: bool,
+    pub safety_car_laps: i32,
+    /// Distance-tour de la voiture de sécurité (m).
+    pub safety_car_lap_dist: f64,
+    /// Vitesse de la voiture de sécurité (m/s).
+    pub safety_car_speed: f32,
+    pub pit_lane_start_dist: f32,
+    pub yellow_flag_state: i8,
+    pub yellow_flag_laps: i16,
+    /// Message global du règlement (texte du jeu).
+    pub message: String,
+    /// Message du règlement adressé au joueur.
+    pub player_message: String,
+    /// Ordre figé : toutes les voitures, vide en course normale.
+    pub participants: Vec<LiveRulesParticipant>,
+}
+
+/// État des sources de données (diagnostic affiché sur la page Live).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LiveDiag {
+    /// Mémoire native LMU : « ok », « absent », « size » (taille inattendue :
+    /// version du jeu non prise en charge) ou « implausible » (valeurs hors
+    /// bornes : disposition changée par une mise à jour).
+    pub lmu_data: String,
+    /// Zone « Rules » du plugin lue (voiture de sécurité, ordre figé).
+    pub rules: bool,
+    /// Données venant d'une capture rejouée, pas du jeu.
+    pub replay: bool,
+    /// Capture brute en cours d'enregistrement.
+    pub recording: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -723,7 +922,14 @@ pub struct LiveData {
     /// Dernier instantané du pont REST du jeu (`lmu_rest.rs`), copié sans
     /// attendre le réseau. `None` hors flux live.
     #[serde(default, skip_deserializing)]
-    pub rest: Option<lmu_rest::LmuRestLive>,    /// Voiture du joueur dans son box de garage (`mInGarageStall`). Interne :
+    pub rest: Option<lmu_rest::LmuRestLive>,
+    /// Règlement de piste (voiture de sécurité, ordre figé), si le plugin le publie.
+    #[serde(default)]
+    pub rules: Option<LiveRules>,
+    /// État des sources de données.
+    #[serde(default)]
+    pub diag: LiveDiag,
+    /// Voiture du joueur dans son box de garage (`mInGarageStall`). Interne :
     /// sert seulement à suspendre le pont REST hors piste (`set_player_spot`).
     #[serde(skip)]
     pub player_in_garage_stall: bool,
@@ -752,6 +958,8 @@ impl Default for LiveData {
             sector_dists: Vec::new(),
             track_from_game: false,
             rest: None,
+            rules: None,
+            diag: LiveDiag::default(),
             player_in_garage_stall: false,
         }
     }
@@ -1069,6 +1277,8 @@ struct PollState {
     sector_challengers: [(f64, u32); 2],
     /// Mesures de secteurs déjà écrites sur disque.
     sectors_saved: u32,
+    /// Accès à la mémoire partagée (vues ouvertes, capture, rejeu).
+    shm: shm::ShmReader,
 }
 
 impl PollState {
@@ -1105,6 +1315,7 @@ impl PollState {
             sector_bounds: [(0.0, 0); 2],
             sector_challengers: [(0.0, 0); 2],
             sectors_saved: 0,
+            shm: shm::ShmReader::new(),
         }
     }
 
@@ -1286,6 +1497,39 @@ fn load_sectors(dir: &Path, slug: &str) -> [(f64, u32); 2] {
     out
 }
 
+/// Tracé d'un circuit hors live (page Détail de session) : points tous les 20 m dans
+/// l'ordre du tour, distance de chaque point, bornes de secteurs apprises en roulant.
+#[derive(Debug, Serialize)]
+pub struct TrackOutline {
+    pub points: Vec<[f64; 2]>,
+    pub dists: Vec<f64>,
+    pub s1: Option<f64>,
+    pub s2: Option<f64>,
+}
+
+/// Tracé connu d'un circuit (livré avec l'app, recouvert par celui de l'utilisateur) ;
+/// `None` tant qu'il n'a pas assez de points. `track` = nom du tracé (`track_course`).
+#[tauri::command]
+pub fn track_outline(app: AppHandle, track: String) -> Result<Option<TrackOutline>, AppError> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::Internal(format!("dossier de l'app : {e}")))?
+        .join("tracks");
+    let slug = track_slug(&track);
+    let buckets = load_track(&dir, &slug);
+    if buckets.len() < 30 {
+        return Ok(None);
+    }
+    let mut keys: Vec<i64> = buckets.keys().copied().collect();
+    keys.sort_unstable();
+    let points = keys.iter().map(|k| buckets[k].0).collect();
+    let dists = keys.iter().map(|k| *k as f64 * 20.0 + 10.0).collect();
+    let sectors = load_sectors(&dir, &slug);
+    let bound = |i: usize| (sectors[i].1 > 0 && sectors[i].0 > 0.0).then_some(sectors[i].0);
+    Ok(Some(TrackOutline { points, dists, s1: bound(0), s2: bound(1) }))
+}
+
 /// Sauvegarde le tracé accumulé (écriture atomique).
 fn save_track(
     dir: &Path,
@@ -1337,8 +1581,28 @@ fn smooth_loop(pts: &[[f64; 2]], win: usize) -> Vec<[f64; 2]> {
 // ═══════════════════════════════════════════════════════════════════════════
 
 fn extract(state: &mut PollState) -> LiveData {
-    // Tente de lire le buffer de scoring complet.
-    let scor_buf_raw = read_shm(SCORING_MAP, size_of::<Scoring>());
+    let mut data = extract_frame(state);
+    data.diag.replay = state.shm.replaying();
+    data.diag.recording = state.shm.recording().is_some();
+    state.shm.end_frame();
+    data
+}
+
+fn extract_frame(state: &mut PollState) -> LiveData {
+    // Rejeu : trame suivante de la capture ; fin de capture → retour au jeu.
+    if !state.shm.begin_frame() {
+        state.shm.stop_replay();
+        set_shm_status(&state.shm);
+        state.shm.begin_frame();
+    }
+    // Scoring : en-tête + voitures présentes (compteur `mNumVehicles`).
+    let scor_buf_raw = state.shm.read_counted(
+        SCORING_MAP,
+        offset_of!(Scoring, m_vehicles),
+        offset_of!(Scoring, m_scoring_info) + offset_of!(ScoringInfo, m_num_vehicles),
+        size_of::<VehicleScoring>(),
+        MAX_VEH,
+    );
 
     // La map n'existe pas → jeu non lancé (ou plugin absent du dossier Plugins/).
     let Some(scor_buf_raw) = scor_buf_raw else {
@@ -1365,7 +1629,16 @@ fn extract(state: &mut PollState) -> LiveData {
     }
 
     let scor_buf = scor_buf_raw;
-    let tele_buf = read_shm(TELEMETRY_MAP, size_of::<Telemetry>())
+    // Télémétrie : en-tête + voitures présentes (compteur `mNumVehicles` du bloc).
+    let tele_buf = state
+        .shm
+        .read_counted(
+            TELEMETRY_MAP,
+            offset_of!(Telemetry, m_vehicles),
+            offset_of!(Telemetry, _num),
+            size_of::<VehicleTelemetry>(),
+            MAX_VEH,
+        )
         .filter(|b| version_ok(b));
 
     // Lecture brute de la map Extended (sans filtre de version) : sert à détecter
@@ -1373,16 +1646,28 @@ fn extract(state: &mut PollState) -> LiveData {
     // FIGE le buffer Scoring avec les dernières valeurs (mCurrentET reste > 0, les
     // véhicules restent présents) → les gardes n/current_et ne suffisent pas. Le
     // plugin, lui, met `m_session_started` à 0 dans son callback EndSession.
-    let ext_raw = read_shm(EXTENDED_MAP, size_of::<Extended>());
+    let ext_raw = state.shm.read_full(EXTENDED_MAP, size_of::<Extended>());
     let session_started: Option<u8> = ext_raw
         .as_ref()
         .and_then(|b| unsafe { read_at(b, offset_of!(Extended, m_session_started)) });
     // Version cohérente requise seulement pour la lecture fine (physics, dégâts…).
     let ext_buf = ext_raw.filter(|b| version_ok(b));
 
+    // Règlement de piste (voiture de sécurité, ordre figé) : en-tête + voitures.
+    let rules_buf = state
+        .shm
+        .read_counted(
+            RULES_MAP,
+            offset_of!(Rules, m_participants),
+            offset_of!(Rules, m_track_rules) + offset_of!(TrackRules, m_num_participants),
+            size_of::<TrackRulesParticipant>(),
+            MAX_VEH,
+        )
+        .filter(|b| version_ok(b));
+
     // Maps électroniques embarquées (ABS/TC réels) depuis la mémoire native LMU :
     // le bloc rF2 ci-dessus ne les contient pas (seules les aides de difficulté).
-    let lmu_elec = read_lmu_electronics();
+    let (lmu_elec, lmu_state) = read_lmu_electronics(&mut state.shm);
 
     let scor_info: ScoringInfo =
         match unsafe { read_at(&scor_buf, offset_of!(Scoring, m_scoring_info)) } {
@@ -1981,6 +2266,12 @@ fn extract(state: &mut PollState) -> LiveData {
             unsafe { read_at(buf, offset_of!(Extended, m_current_pit_speed_limit))? };
         let status: [u8; 128] =
             unsafe { read_at(buf, offset_of!(Extended, m_status_message))? };
+        let history: [u8; 128] =
+            unsafe { read_at(buf, offset_of!(Extended, m_last_history_message))? };
+        let history_ticks: f64 = unsafe {
+            read_at(buf, offset_of!(Extended, m_ticks_last_history_message_updated))
+        }
+        .unwrap_or(0.0);
         let version: [u8; 12] =
             unsafe { read_at(buf, offset_of!(Extended, m_version))? };
         let (dmg_max, dmg_accum) = if player_id >= 0 && (player_id as usize) < 512 {
@@ -2034,8 +2325,13 @@ fn extract(state: &mut PollState) -> LiveData {
             damage_max_impact: dmg_max,
             damage_accum_impact: dmg_accum,
             game_version: c_str(&version),
+            history_message: c_str(&history),
+            history_ticks,
         })
     });
+
+    // ── Règlement de piste ───────────────────────────────────────────────────
+    let rules = rules_buf.as_ref().and_then(|buf| extract_rules(buf, player_id));
 
     let wind = scor_info.m_wind;
     LiveData {
@@ -2081,8 +2377,190 @@ fn extract(state: &mut PollState) -> LiveData {
         sector_dists: state.sector_dists(),
         track_from_game: state.game_filled,
         rest: None,
+        diag: LiveDiag {
+            lmu_data: lmu_state.label().to_string(),
+            rules: rules.is_some(),
+            ..Default::default()
+        },
+        rules,
         player_in_garage_stall: player_scor.is_some_and(|p| p.m_in_garage_stall != 0),
     }
+}
+
+/// Règlement de piste lu dans la zone « Rules ». Les participants (ordre figé)
+/// ne sont transmis que hors course normale (`stage` ≠ 2) : inutiles en course,
+/// ils alourdiraient chaque trame.
+fn extract_rules(buf: &[u8], player_id: i32) -> Option<LiveRules> {
+    let tr: TrackRules = unsafe { read_at(buf, offset_of!(Rules, m_track_rules))? };
+    let n = (tr.m_num_participants.max(0) as usize).min(MAX_VEH);
+    let base = offset_of!(Rules, m_participants);
+    let stride = size_of::<TrackRulesParticipant>();
+    let mut participants = Vec::new();
+    let mut player_message = String::new();
+    for i in 0..n {
+        let Some(p) = (unsafe { read_at::<TrackRulesParticipant>(buf, base + i * stride) }) else {
+            break;
+        };
+        if p.m_id == player_id {
+            player_message = c_str(&p.m_message);
+        }
+        if tr.m_stage != 2 {
+            participants.push(LiveRulesParticipant {
+                id: p.m_id,
+                place: p.m_place,
+                relative_laps: p.m_relative_laps,
+                column: p.m_column_assignment,
+                position_assignment: p.m_position_assignment,
+                pits_open: p.m_pits_open != 0,
+            });
+        }
+    }
+    Some(LiveRules {
+        stage: tr.m_stage,
+        pole_column: tr.m_pole_column,
+        safety_car_exists: tr.m_safety_car_exists != 0,
+        safety_car_active: tr.m_safety_car_active != 0,
+        safety_car_laps: tr.m_safety_car_laps,
+        safety_car_lap_dist: tr.m_safety_car_lap_dist,
+        safety_car_speed: tr.m_safety_car_speed,
+        pit_lane_start_dist: tr.m_pit_lane_start_dist,
+        yellow_flag_state: tr.m_yellow_flag_state,
+        yellow_flag_laps: tr.m_yellow_flag_laps,
+        message: c_str(&tr.m_message),
+        player_message,
+        participants,
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Captures brutes : enregistrement et rejeu (cf. `shm.rs`)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Ordre transmis au thread de lecture (il possède le lecteur).
+enum ShmCmd {
+    Record(PathBuf),
+    StopRecord,
+    Replay(PathBuf),
+    StopReplay,
+}
+
+static SHM_CMDS: Mutex<Vec<ShmCmd>> = Mutex::new(Vec::new());
+
+/// État des captures, publié par le thread de lecture (`shm_status`).
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct ShmStatus {
+    pub recording: Option<String>,
+    pub recording_s: f32,
+    pub replaying: Option<String>,
+    /// Dernière capture terminée.
+    pub last_capture: Option<String>,
+    pub error: Option<String>,
+}
+
+static SHM_STATUS: Mutex<Option<ShmStatus>> = Mutex::new(None);
+
+fn set_shm_status(shm: &shm::ShmReader) {
+    if let Ok(mut g) = SHM_STATUS.lock() {
+        let st = g.get_or_insert_with(ShmStatus::default);
+        st.recording = shm.recording().map(|(p, _)| p.display().to_string());
+        st.recording_s = shm.recording().map(|(_, d)| d.as_secs_f32()).unwrap_or(0.0);
+        st.replaying = shm.replay_path().map(|p| p.display().to_string());
+    }
+}
+
+fn note_shm_result(last: Option<PathBuf>, error: Option<String>) {
+    if let Ok(mut g) = SHM_STATUS.lock() {
+        let st = g.get_or_insert_with(ShmStatus::default);
+        if last.is_some() {
+            st.last_capture = last.map(|p| p.display().to_string());
+        }
+        st.error = error;
+    }
+}
+
+/// Applique les ordres en attente (appelé par le thread de lecture à chaque trame).
+fn apply_shm_cmds(shm: &mut shm::ShmReader) {
+    let cmds: Vec<ShmCmd> = match SHM_CMDS.try_lock() {
+        Ok(mut g) if !g.is_empty() => std::mem::take(&mut *g),
+        _ => {
+            if shm.recording().is_some() {
+                set_shm_status(shm);
+            }
+            return;
+        }
+    };
+    for cmd in cmds {
+        match cmd {
+            ShmCmd::Record(path) => match shm::Recorder::create(&path) {
+                Ok(r) => {
+                    let _ = shm.stop_recording();
+                    shm.start_recording(r);
+                    note_shm_result(None, None);
+                }
+                Err(e) => note_shm_result(None, Some(format!("capture : {e}"))),
+            },
+            ShmCmd::StopRecord => {
+                let done = shm.stop_recording();
+                note_shm_result(done, None);
+            }
+            ShmCmd::Replay(path) => match shm::Replay::open(&path) {
+                Ok(r) => {
+                    shm.start_replay(r);
+                    note_shm_result(None, None);
+                }
+                Err(e) => note_shm_result(None, Some(format!("rejeu : {e}"))),
+            },
+            ShmCmd::StopReplay => shm.stop_replay(),
+        }
+    }
+    set_shm_status(shm);
+}
+
+fn push_shm_cmd(cmd: ShmCmd) -> Result<(), AppError> {
+    SHM_CMDS
+        .lock()
+        .map_err(|e| AppError::Internal(format!("shm cmds: {e}")))?
+        .push(cmd);
+    Ok(())
+}
+
+/// Démarre une capture brute (10 min max) dans `<app_data>/replays/`. Elle ne
+/// tourne que pendant que le flux live est actif (page Live, overlays, régie).
+#[tauri::command]
+pub fn shm_record_start(app: AppHandle) -> Result<String, AppError> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| AppError::Internal(format!("app data: {e}")))?
+        .join("replays");
+    let path = shm::new_capture_path(&dir);
+    push_shm_cmd(ShmCmd::Record(path.clone()))?;
+    Ok(path.display().to_string())
+}
+
+#[tauri::command]
+pub fn shm_record_stop() -> Result<(), AppError> {
+    push_shm_cmd(ShmCmd::StopRecord)
+}
+
+/// Rejoue une capture à la place du jeu (le pont REST reste coupé pendant le rejeu).
+#[tauri::command]
+pub fn shm_replay_start(path: String) -> Result<(), AppError> {
+    let p = PathBuf::from(&path);
+    if !p.is_file() {
+        return Err(AppError::NotFound(format!("capture introuvable : {path}")));
+    }
+    push_shm_cmd(ShmCmd::Replay(p))
+}
+
+#[tauri::command]
+pub fn shm_replay_stop() -> Result<(), AppError> {
+    push_shm_cmd(ShmCmd::StopReplay)
+}
+
+#[tauri::command]
+pub fn shm_status() -> ShmStatus {
+    SHM_STATUS.lock().ok().and_then(|g| g.clone()).unwrap_or_default()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2245,6 +2723,14 @@ pub fn last_frame() -> Option<LiveData> {
     (at.elapsed() <= LAST_FRAME_MAX_AGE).then(|| d.clone())
 }
 
+/// Comme `last_frame`, avec l'heure de la trame (serveur de widgets : ne
+/// rediffuser qu'une trame nouvelle).
+pub fn last_frame_stamped() -> Option<(Instant, LiveData)> {
+    let g = LAST_FRAME.lock().ok()?;
+    let (at, d) = g.as_ref()?;
+    (at.elapsed() <= LAST_FRAME_MAX_AGE).then(|| (*at, d.clone()))
+}
+
 #[tauri::command]
 pub fn start_live_polling(app: AppHandle, window: tauri::Window) -> Result<(), AppError> {
     acquire(&app, window.label())
@@ -2285,12 +2771,14 @@ pub fn acquire(app: &AppHandle, label: &str) -> Result<(), AppError> {
         while LIVE_POLLING.load(Ordering::SeqCst)
             && LIVE_GEN.load(Ordering::SeqCst) == generation
         {
+            apply_shm_cmds(&mut state.shm);
             let mut data = extract(&mut state);
             // Pont REST : le thread dédié lit le jeu ; ici on copie seulement.
             // Il n'interroge qu'une séance chargée (une pause ne l'interrompt
             // pas) — jamais les menus ni le lancement du jeu (plantage relevé).
+            // Rejeu d'une capture : les données ne viennent pas du jeu, il se tait.
             in_session = data.session.is_some() || (data.paused && in_session);
-            lmu_rest::set_sim_present(data.connected && in_session);
+            lmu_rest::set_sim_present(data.connected && in_session && !data.diag.replay);
             // Écrans du jeu (garage/*, tracé) interrogés seulement en piste :
             // LMU plante quand on le sollicite au garage, en pause ou aux menus.
             lmu_rest::set_player_spot(if data.paused {
@@ -2460,6 +2948,127 @@ mod spotter_tests {
         assert_eq!(c.forward.sign(), Some(1.0));
         assert_eq!(c.right, AxisVote::default());
         assert!(!c.calibrated());
+    }
+}
+
+#[cfg(test)]
+mod shm_tests {
+    use super::*;
+
+    #[test]
+    fn rules_layout_matches_plugin() {
+        // Tailles du format public du plugin 3.8 (rF2State.h).
+        assert_eq!(size_of::<TrackRulesAction>(), 16);
+        assert_eq!(size_of::<TrackRulesParticipant>(), 332);
+        assert_eq!(size_of::<TrackRules>(), 716);
+        assert_eq!(size_of::<Rules>(), 45272);
+    }
+
+    unsafe fn put<T: Copy>(buf: &mut [u8], off: usize, v: T) {
+        assert!(off + size_of::<T>() <= buf.len());
+        std::ptr::write_unaligned(buf.as_mut_ptr().add(off) as *mut T, v);
+    }
+
+    fn name<const N: usize>(s: &str) -> [u8; N] {
+        let mut out = [0u8; N];
+        out[..s.len()].copy_from_slice(s.as_bytes());
+        out
+    }
+
+    /// Zone Scoring synthétique : une voiture (le joueur), session de course.
+    fn scoring_buf(et: f64) -> Vec<u8> {
+        let info = offset_of!(Scoring, m_scoring_info);
+        let veh = offset_of!(Scoring, m_vehicles);
+        let mut b = vec![0u8; veh + size_of::<VehicleScoring>()];
+        unsafe {
+            put(&mut b, 0, 7i32);
+            put(&mut b, 4, 7i32);
+            put(&mut b, info + offset_of!(ScoringInfo, m_track_name), name::<64>("Sebring"));
+            put(&mut b, info + offset_of!(ScoringInfo, m_session), 10i32);
+            put(&mut b, info + offset_of!(ScoringInfo, m_current_et), et);
+            put(&mut b, info + offset_of!(ScoringInfo, m_lap_dist), 6000.0f64);
+            put(&mut b, info + offset_of!(ScoringInfo, m_num_vehicles), 1i32);
+            put(&mut b, info + offset_of!(ScoringInfo, m_game_phase), 5u8);
+            put(&mut b, veh + offset_of!(VehicleScoring, m_id), 3i32);
+            put(&mut b, veh + offset_of!(VehicleScoring, m_driver_name), name::<32>("Test Pilote"));
+            put(&mut b, veh + offset_of!(VehicleScoring, m_vehicle_class), name::<32>("GT3"));
+            put(&mut b, veh + offset_of!(VehicleScoring, m_is_player), 1u8);
+            put(&mut b, veh + offset_of!(VehicleScoring, m_place), 1u8);
+            put(&mut b, veh + offset_of!(VehicleScoring, m_lap_dist), 1200.0f64);
+        }
+        b
+    }
+
+    /// Zone Rules synthétique : voiture de sécurité en piste, ordre figé.
+    fn rules_buf() -> Vec<u8> {
+        let tr = offset_of!(Rules, m_track_rules);
+        let parts = offset_of!(Rules, m_participants);
+        let stride = size_of::<TrackRulesParticipant>();
+        let mut b = vec![0u8; parts + 2 * stride];
+        unsafe {
+            put(&mut b, 0, 2i32);
+            put(&mut b, 4, 2i32);
+            put(&mut b, tr + offset_of!(TrackRules, m_stage), 4i32);
+            put(&mut b, tr + offset_of!(TrackRules, m_num_participants), 2i32);
+            put(&mut b, tr + offset_of!(TrackRules, m_safety_car_exists), 1u8);
+            put(&mut b, tr + offset_of!(TrackRules, m_safety_car_active), 1u8);
+            put(&mut b, tr + offset_of!(TrackRules, m_safety_car_speed), 33.0f32);
+            put(&mut b, parts + offset_of!(TrackRulesParticipant, m_id), 3i32);
+            put(&mut b, parts + offset_of!(TrackRulesParticipant, m_position_assignment), 1i32);
+            put(&mut b, parts + offset_of!(TrackRulesParticipant, m_message), name::<96>("Follow car #7"));
+            put(&mut b, parts + stride + offset_of!(TrackRulesParticipant, m_id), 9i32);
+        }
+        b
+    }
+
+    #[test]
+    fn extract_from_a_replayed_capture() {
+        let dir = std::env::temp_dir().join("lmusv-live-tests");
+        let path = dir.join("synthetic.lmurec");
+        let mut rec = shm::Recorder::create(&path).unwrap();
+        for i in 0..3 {
+            rec.push_frame(&vec![
+                (SCORING_MAP.to_string(), scoring_buf(100.0 + i as f64 * 0.05)),
+                (RULES_MAP.to_string(), rules_buf()),
+            ])
+            .unwrap();
+        }
+        rec.finish().unwrap();
+
+        let mut st = PollState::new();
+        st.shm = shm::ShmReader::from_replay(shm::Replay::open(&path).unwrap());
+        let d = extract(&mut st);
+        assert!(d.connected && d.diag.replay);
+        assert_eq!(d.standings.len(), 1);
+        assert_eq!(d.standings[0].driver, "Test Pilote");
+        assert_eq!(d.player.as_ref().map(|p| p.position), Some(1));
+        assert_eq!(d.session.as_ref().map(|s| s.track.as_str()), Some("Sebring"));
+        assert_eq!(d.diag.lmu_data, "absent", "LMU_Data absente de la capture");
+        let r = d.rules.expect("règlement lu");
+        assert!(r.safety_car_active);
+        assert_eq!(r.stage, 4);
+        assert_eq!(r.participants.len(), 2);
+        assert_eq!(r.player_message, "Follow car #7");
+        assert!((r.safety_car_speed - 33.0).abs() < 1e-6);
+        // Trames suivantes, puis fin de capture → retour au jeu (lancé ou non
+        // sur la machine de test : seul le mode compte).
+        assert!(extract(&mut st).diag.replay);
+        assert!(extract(&mut st).diag.replay);
+        assert!(!extract(&mut st).diag.replay);
+    }
+
+    #[test]
+    fn lmu_plausibility_rejects_shifted_layout() {
+        let ok = LmuElectronics {
+            tc: 3, tc_max: 11, tc_slip: 0, tc_slip_max: 0, tc_cut: 0, tc_cut_max: 0,
+            abs: 2, abs_max: 9, motor_map: 1, virtual_energy: 0.62, state_of_charge: 48.0,
+            regen: 0.0, battery_charge: 0.5, boost_state: 2, delta_best: -0.3, lift_coast: 0,
+            track_limits: 2, track_limits_per_penalty: 4, gap_ahead: 1.2, gap_behind: 0.8,
+        };
+        assert!(lmu_plausible(&ok));
+        assert!(!lmu_plausible(&LmuElectronics { tc: 200, tc_max: 211, ..ok }));
+        assert!(!lmu_plausible(&LmuElectronics { virtual_energy: 31.0, ..ok }));
+        assert!(!lmu_plausible(&LmuElectronics { delta_best: f32::NAN, ..ok }));
     }
 }
 

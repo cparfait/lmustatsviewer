@@ -1,9 +1,11 @@
 /**
  * Référence vidéo (lap guides) par circuit pour le Coach IA.
  *
- * S'appuie sur `video-guides-data.ts` (playlist « Le Mans Ultimate Lap Guides »).
- * On n'injecte QUE le pointeur (titre + URL) vers la vidéo du combo — pas son
- * contenu — pour que le coach puisse renvoyer le pilote vers le guide visuel.
+ * S'appuie sur `video-guides-data.ts` (playlist « Le Mans Ultimate Lap Guides »,
+ * complétée par HYMO Academy / GO Setups). On n'injecte QUE le pointeur (titre +
+ * URL) vers la vidéo du combo — pas son contenu — pour que le coach puisse
+ * renvoyer le pilote vers le guide visuel. Le tracé du jeu choisit la variante ;
+ * jamais la vidéo d'un autre tracé quand le combo n'a pas de guide principal.
  */
 
 import { VIDEO_GUIDES, type VideoGuide } from "./video-guides-data";
@@ -16,6 +18,10 @@ const TRANSCRIPT_CAP = 16000;
 
 /** Mots-clés de reconnaissance circuit → trackId vidéo (nom DB + layout). */
 const TRACK_KEYWORDS: Record<string, string[]> = {
+  // En tête : « spa » (Spa) est contenu dans « spain » / « espana ».
+  barcelona: ["barcelona", "catalunya"],
+  "paul-ricard": ["paul ricard", "ricard", "castellet"],
+  silverstone: ["silverstone"],
   "le-mans": ["le mans", "sarthe"],
   monza: ["monza"],
   spa: ["spa", "francorchamps"],
@@ -38,9 +44,10 @@ const TRACK_KEYWORDS: Record<string, string[]> = {
   indianapolis: ["indianapolis", "indy"],
 };
 
-/** Classe DB → classe vidéo (gte/gt3/hypercar/lmp2). Ordre = priorité. */
+/** Classe DB → classe vidéo (gte/gt3/hypercar/lmp2/lmp3). Ordre = priorité. */
 const CLASS_RULES: { test: RegExp; id: string }[] = [
   { test: /hyper|lmh|lmdh|lmp1/i, id: "hypercar" },
+  { test: /p3/i, id: "lmp3" },
   { test: /p2/i, id: "lmp2" },
   { test: /gte/i, id: "gte" },
   { test: /gt3|lmgt3|gt/i, id: "gt3" },
@@ -67,20 +74,36 @@ function matchClassId(carClass: string): string | null {
 }
 
 /**
- * Vidéo retenue parmi celles du combo : layout principal d'abord, puis la
- * variante de spec LMP2 (ELMS / WEC) qui correspond à la classe DB — Daytona a
- * un guide par spec. Sans variante ELMS, retombe sur la première entrée.
+ * Mot du nom de tracé du jeu (`track_course`) par variante quand le `layout` de
+ * la playlist ne s'y retrouve pas (« Short » = « Sebring School Circuit »…).
  */
-function pickGuide(matches: VideoGuide[], carClass: string): VideoGuide {
+const LAYOUT_COURSE_WORD: Record<string, string> = {
+  "sebring:Short": "school",
+  "bahrain:Short": "paddock",
+};
+
+/**
+ * Vidéo retenue parmi celles du combo : la variante dont le nom figure dans le
+ * tracé du jeu (« Paul Ricard - 1A-V2-Short » → « 1A-V2-Short », le plus long
+ * l'emporte), sinon le layout principal, puis la variante de spec LMP2
+ * (ELMS / WEC) qui correspond à la classe DB — Daytona a un guide par spec.
+ * Sans layout principal (Paul Ricard ELMS), `null` : jamais un autre tracé.
+ */
+function pickGuide(matches: VideoGuide[], carClass: string, trackCourse?: string): VideoGuide | null {
+  const course = norm(trackCourse ?? "");
+  const variant = matches
+    .filter((v) => v.layout && course.includes(norm(LAYOUT_COURSE_WORD[`${v.trackId}:${v.layout}`] ?? v.layout)))
+    .sort((a, b) => (b.layout?.length ?? 0) - (a.layout?.length ?? 0))[0];
+  if (variant) return variant;
   const main = matches.filter((v) => !v.layout);
-  const pool = main.length > 0 ? main : matches;
+  if (main.length === 0) return null;
   const elms = /elms/i.test(carClass);
-  return pool.find((v) => /elms/i.test(v.title) === elms) ?? pool[0];
+  return main.find((v) => /elms/i.test(v.title) === elms) ?? main[0];
 }
 
 /**
  * Vidéo (titre + URL) correspondant au combo, pour affichage UI. Préfère le
- * layout principal. `null` si aucune vidéo ne couvre le combo.
+ * variante du tracé du jeu, sinon le principal. `null` si aucune vidéo ne couvre le combo.
  */
 export function getVideoGuide(
   track: string,
@@ -92,13 +115,13 @@ export function getVideoGuide(
   if (!tid || !cid) return null;
   const matches = VIDEO_GUIDES.filter((v) => v.trackId === tid && v.classId === cid);
   if (matches.length === 0) return null;
-  const pick = pickGuide(matches, carClass);
-  return { title: pick.title, url: pick.url };
+  const pick = pickGuide(matches, carClass, trackCourse);
+  return pick ? { title: pick.title, url: pick.url } : null;
 }
 
 /**
  * Section de contexte « guide vidéo » pour le combo courant.
- * Renvoie "" si aucune vidéo ne correspond. Préfère le layout principal.
+ * Renvoie "" si aucune vidéo ne correspond (variante du tracé, sinon principal).
  */
 export function buildVideoGuideText(args: {
   track: string;
@@ -111,7 +134,8 @@ export function buildVideoGuideText(args: {
 
   const matches = VIDEO_GUIDES.filter((v) => v.trackId === tid && v.classId === cid);
   if (matches.length === 0) return "";
-  const pick = pickGuide(matches, args.carClass);
+  const pick = pickGuide(matches, args.carClass, args.trackCourse);
+  if (!pick) return "";
 
   const lines: string[] = [
     "## Video lap guide reference",

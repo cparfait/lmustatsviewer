@@ -24,6 +24,7 @@ import { SectorsWidget } from "./SectorsWidget";
 import { TrackLimitsWidget } from "./TrackLimitsWidget";
 import { CoachWidget } from "./CoachWidget";
 import { CornerCoachWidget } from "./CornerCoachWidget";
+import { RadioWidget } from "./RadioWidget";
 
 export const WIDGETS: Record<OverlayId, FC<WidgetProps>> = {
   telemetry: TelemetryWidget,
@@ -49,4 +50,5 @@ export const WIDGETS: Record<OverlayId, FC<WidgetProps>> = {
   tracklimits: TrackLimitsWidget,
   coach: CoachWidget,
   cornercoach: CornerCoachWidget,
+  radio: RadioWidget,
 };

@@ -5,10 +5,13 @@ import { Triangle } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
 import { fmtDelta } from "@/components/overlay/format";
 import type { WidgetProps } from "./types";
+import { toneColor, useOverlayLook } from "@/components/overlay/look";
+import { TraceCanvas } from "@/components/overlay/TraceCanvas";
 
 const TRACE_LEN = 140;
 
 export function DeltaWidget({ data, content, accent, t }: WidgetProps) {
+  const look = useOverlayLook();
   const delta = data.player?.lap_delta ?? 0;
   const ahead = delta < 0; // négatif = plus rapide
 
@@ -47,7 +50,7 @@ export function DeltaWidget({ data, content, accent, t }: WidgetProps) {
         {content.bar !== false && (
           <>
             <div className="mb-1 text-center font-mono text-2xl font-black tabular-nums"
-              style={{ color: ahead ? "#4ade80" : delta > 0 ? "#f87171" : "white" }}
+              style={{ color: ahead ? toneColor(look, "gain", "#4ade80") : delta > 0 ? toneColor(look, "loss", "#f87171") : "white" }}
             >
               {fmtDelta(delta)}
             </div>
@@ -58,17 +61,29 @@ export function DeltaWidget({ data, content, accent, t }: WidgetProps) {
                 style={{
                   left: pct < 0 ? `${50 + pct}%` : "50%",
                   width: `${Math.abs(pct)}%`,
-                  background: ahead ? "#4ade80" : "#f87171",
+                  background: ahead ? toneColor(look, "gain", "#4ade80") : toneColor(look, "loss", "#f87171"),
                 }}
               />
             </div>
           </>
         )}
-        {content.trace !== false && (
+        {content.trace !== false && look.style === "instrument" && (
+          <div className="mt-2">
+            <TraceCanvas
+              throttle={thr.current}
+              brake={brk.current}
+              length={TRACE_LEN}
+              height={H}
+              throttleColor={toneColor(look, "throttle", "#22c55e")}
+              brakeColor={toneColor(look, "brake", "#ef4444")}
+            />
+          </div>
+        )}
+        {content.trace !== false && look.style !== "instrument" && (
           <svg width={W} height={H} className="mt-2 w-full">
             <rect x={0} y={0} width={W} height={H} fill="rgba(255,255,255,0.04)" rx={4} />
-            <path d={toPath(thr.current)} fill="none" stroke="#22c55e" strokeWidth={1.5} />
-            <path d={toPath(brk.current)} fill="none" stroke="#ef4444" strokeWidth={1.5} />
+            <path d={toPath(thr.current)} fill="none" stroke={toneColor(look, "throttle", "#22c55e")} strokeWidth={1.5} />
+            <path d={toPath(brk.current)} fill="none" stroke={toneColor(look, "brake", "#ef4444")} strokeWidth={1.5} />
           </svg>
         )}
       </div>

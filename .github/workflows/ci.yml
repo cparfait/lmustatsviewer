@@ -2,13 +2,11 @@ name: CI
 
 # Contrôles rapides sur chaque push / pull request de `main`.
 #
-# Volontairement SANS Rust : `cargo` recompile DuckDB depuis les sources
-# (feature `bundled`), soit ~25 min — beaucoup trop pour un retour à chaque
-# commit. La compilation Rust reste validée par le job `release`, qui exécute
-# aussi ces mêmes contrôles avant de construire l'installeur.
-#
-# Ubuntu suffit : lint, typage et tests du coach sont indépendants de la
-# plateforme (le coach est du TypeScript pur, cf. COACH-LIVE-SPEC.md §14).
+# Le job `checks` (Ubuntu) reste rapide : lint, typage et tests du coach sont
+# indépendants de la plateforme (le coach est du TypeScript pur, cf.
+# COACH-LIVE-SPEC.md §14). Les tests Rust tournent dans un job Windows séparé
+# (`rust`, en parallèle) : `cargo` recompile DuckDB depuis les sources (feature
+# `bundled`), ~25 min à froid, quelques minutes une fois le cache Cargo chaud.
 
 on:
   push:
@@ -46,6 +44,57 @@ jobs:
 
       - name: Coach tests
         run: npm test
+
+  # Tests Rust (lecture live, mémoire partagée, captures, pont REST, volant…).
+  # Job séparé et parallèle : il ne retarde pas le retour des contrôles rapides
+  # ci-dessus. Le 1er passage recompile DuckDB (~25 min) ; ensuite le cache Cargo
+  # le ramène à quelques minutes. Même image et mêmes drapeaux C++ que la release.
+  rust:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          # Clé propre au job de tests (profil `test`, distinct de la release).
+          shared-key: ci-tests
+
+      - name: Cache voice assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            src-tauri/resources/stt/lib
+            src-tauri/resources/stt/models
+          key: voice-assets-stt-${{ hashFiles('scripts/fetch-vosk.ps1') }}
+
+      # libvosk est liée à la compilation (crate `vosk`).
+      - name: Fetch Vosk library
+        shell: pwsh
+        run: ./scripts/fetch-vosk.ps1
+
+      # `generate_context!` embarque l'interface construite : `dist/` doit exister.
+      - name: Build frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Rust tests
+        working-directory: src-tauri
+        env:
+          CXXFLAGS: "/EHsc /std:c++17"
+        run: cargo test --lib
 
   # Service communautaire (community/ : API + site de lmu.cparfait.ovh). Tests sur un
   # vrai Postgres embarqué (PGlite) : rien à provisionner. Le déploiement sur le VPS

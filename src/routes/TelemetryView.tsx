@@ -11,8 +11,17 @@ import { SessionBadge } from "@/components/SessionBadge";
 import { TelemetryCoachPanel } from "@/components/AICoachPanel";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { detectCorners } from "@/lib/telemetry/corners";
-import { analyzeLap, lapLossHeatColors } from "@/lib/telemetry/analysis";
+import {
+  analyzeLap,
+  clampFocusCount,
+  lapLossHeatColors,
+  FOCUS_COUNT,
+  FOCUS_COUNT_MAX,
+  FOCUS_COUNT_MIN,
+  FOCUS_MIN_LOSS,
+} from "@/lib/telemetry/analysis";
 import { useAppStore } from "@/stores/app";
+import { usePageState } from "@/lib/usePageState";
 import { TrackMap } from "@/components/telemetry/TrackMap";
 import { SteeringWheel } from "@/components/telemetry/SteeringWheel";
 import { TyreCard } from "@/components/telemetry/TyreCard";
@@ -41,6 +50,7 @@ import type {
   TelemetryMeta,
   TelemetryChannelData,
   TelemetryFileInfo,
+  TelemetryLapInfo,
 } from "@/lib/api";
 import { useTheme } from "@/stores/theme";
 import { formatGap, formatDateTime, formatTime } from "@/lib/utils";
@@ -148,6 +158,26 @@ function dominantPhaseKey(
   return arr[0][1] > 0 ? arr[0][0] : null;
 }
 
+/** Choix du nombre de « points faibles du tour » (1 → 5). */
+const WEAK_COUNTS = Array.from(
+  { length: FOCUS_COUNT_MAX - FOCUS_COUNT_MIN + 1 },
+  (_, k) => FOCUS_COUNT_MIN + k,
+);
+
+/**
+ * Tour le plus rapide d'un fichier : hors dernier segment (toujours partiel) et
+ * hors tours de moins de 30 s (bouts de tour / sorties des stands).
+ * `null` si aucun tour complet.
+ */
+function fastestLap(laps: TelemetryLapInfo[]): TelemetryLapInfo | null {
+  let best: TelemetryLapInfo | null = null;
+  for (let i = 0; i < laps.length - 1; i++) {
+    const l = laps[i];
+    if (l.duration > 30 && (!best || l.duration < best.duration)) best = l;
+  }
+  return best;
+}
+
 /**
  * Fenêtre de zoom (unités de `dist`, m) centrée sur un virage : de 40 m avant le
  * point de freinage à 150 m après l'apex (entrée → apex → début de sortie).
@@ -183,6 +213,13 @@ export function TelemetryView() {
   const [refMeta, setRefMeta] = useState<TelemetryMeta | null>(null);
   const [refLap, setRefLap] = useState<number | null>(null);
   const [refData, setRefData] = useState<TelemetryChannelData | null>(null);
+  // Tour de référence imposé au prochain chargement de `refPath` (bouton
+  // « Comparer à mon meilleur tour ») ; sinon défaut = 1er tour ≠ tour principal.
+  const pendingRefLap = useRef<number | null>(null);
+  // « Points faibles du tour » : nombre de zones à mettre en avant (1–5, défaut 3).
+  // Pilote aussi les 🔥 de la carte Analyse / carte / sélecteur de virage.
+  const [weakCountRaw, setWeakCount] = usePageState<number>("telemetry.weakCount", FOCUS_COUNT);
+  const weakCount = clampFocusCount(weakCountRaw);
 
   // Tête de lecture.
   const [idx, setIdx] = useState(0);
@@ -247,6 +284,7 @@ export function TelemetryView() {
     setRefMeta(null);
     setRefLap(null);
     setRefData(null);
+    pendingRefLap.current = null;
     telemetry
       .getMeta(path)
       .then((m) => {
@@ -293,13 +331,7 @@ export function TelemetryView() {
       return;
     }
     // Tour le plus rapide (hors dernier segment, toujours partiel).
-    let best: { lap: number; duration: number } | null = null;
-    for (let i = 0; i < meta.laps.length - 1; i++) {
-      const l = meta.laps[i];
-      if (l.duration > 30 && (!best || l.duration < best.duration)) {
-        best = { lap: l.lap, duration: l.duration };
-      }
-    }
+    const best = fastestLap(meta.laps);
     if (!best) {
       setTrackSurface(null);
       return;
@@ -345,7 +377,14 @@ export function TelemetryView() {
       .then((m) => {
         if (cancelled) return;
         setRefMeta(m);
-        // Défaut : 1er tour de la référence (≠ tour principal si même fichier).
+        // Tour imposé (meilleur tour) s'il existe dans ce fichier…
+        const wanted = pendingRefLap.current;
+        pendingRefLap.current = null;
+        if (wanted != null && m.laps.some((l) => l.lap === wanted)) {
+          setRefLap(wanted);
+          return;
+        }
+        // … sinon défaut : 1er tour de la référence (≠ tour principal si même fichier).
         const first = m.laps.find((l) => !(refPath === path && l.lap === lap)) ?? m.laps[0];
         setRefLap(first ? first.lap : null);
       })
@@ -550,8 +589,25 @@ export function TelemetryView() {
     const refSpeed = comparing && compare ? (compare.map["Ground Speed"] ?? null) : null;
     const brake = data.channels.find((c) => c.name === "Brake Pos")?.values[0] ?? null;
     const throttle = data.channels.find((c) => c.name === "Throttle Pos")?.values[0] ?? null;
-    return analyzeLap(corners, speed, data.dist, delta, refSpeed, brake, throttle);
-  }, [data, corners, comparing, compare]);
+    return analyzeLap(corners, speed, data.dist, delta, refSpeed, brake, throttle, {
+      focusCount: weakCount,
+    });
+  }, [data, corners, comparing, compare, weakCount]);
+
+  // ── Points faibles du tour : focus zones classées + part de l'écart total ──
+  const weak = useMemo(() => {
+    if (!analysis || !analysis.hasRef || !compare) return null;
+    const zones = analysis.corners
+      .filter((c) => c.focusRank != null)
+      .sort((a, b) => (a.focusRank ?? 0) - (b.focusRank ?? 0));
+    const total = zones.reduce((s, c) => s + Math.max(0, c.timeLost ?? 0), 0);
+    // Écart total au tour de référence = variation du delta cumulé sur le tour
+    // (même base que `timeLost`, qui est une différence de delta).
+    const d = compare.delta;
+    const gap = d.length > 1 ? (d[d.length - 1] ?? 0) - (d[0] ?? 0) : null;
+    const share = gap != null && gap > 0.0005 ? (total / gap) * 100 : null;
+    return { zones, total, gap, share };
+  }, [analysis, compare]);
 
   // ── Heatmap des pertes (P5.1) : couleur par index de trace selon le temps perdu ──
   const lossHeat = useMemo(
@@ -658,6 +714,19 @@ export function TelemetryView() {
     if (win) {
       setZoom(win);
       setFocusCorner(c.n);
+    }
+  };
+  // « Comparer à mon meilleur tour » : prend le tour le plus rapide du MÊME
+  // fichier comme référence (action explicite ; la référence reste `null` sinon).
+  const bestLap = fastestLap(meta.laps);
+  const bestIsRef = !!bestLap && refPath === path && refLap === bestLap.lap;
+  const compareToBest = () => {
+    if (!bestLap || lap === null || bestLap.lap === lap) return;
+    if (refPath === path) {
+      setRefLap(bestLap.lap);
+    } else {
+      pendingRefLap.current = bestLap.lap;
+      setRefPath(path);
     }
   };
   // Zoom déclenché par glisser sur un graphe → efface la sélection de virage.
@@ -1122,6 +1191,158 @@ export function TelemetryView() {
                 onHoverIdx={setHoverIdx}
                 theme={theme}
               />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Points faibles du tour : les 1–5 virages où l'on perd le plus vs la réf. */}
+        {lap !== null && analysis && analysis.corners.length > 0 && (
+          <Card>
+            <CardContent className="p-2">
+              <div className="mb-1 flex flex-wrap items-center gap-2 px-1">
+                <span
+                  className="text-micro font-medium uppercase tracking-wide text-muted-foreground"
+                  title={t("telemetry.weakHint")}
+                >
+                  {t("telemetry.weakTitle")}
+                </span>
+                {weak && (
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <span className="text-micro text-muted-foreground">{t("telemetry.weakZones")}</span>
+                    <div
+                      className="flex overflow-hidden rounded-md border border-border"
+                      role="group"
+                      aria-label={t("telemetry.weakZones")}
+                    >
+                      {WEAK_COUNTS.map((k) => (
+                        <button
+                          key={k}
+                          onClick={() => setWeakCount(k)}
+                          aria-pressed={weakCount === k}
+                          className={cn(
+                            "px-2 py-0.5 text-micro tabular-nums",
+                            weakCount === k ? "bg-primary text-primary-foreground" : "hover:bg-accent/60",
+                          )}
+                        >
+                          {k}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {weak ? (
+                <>
+                  {weak.zones.length === 0 ? (
+                    <p className="px-1 text-micro text-muted-foreground">
+                      {t("telemetry.weakNone", { s: FOCUS_MIN_LOSS.toFixed(2) })}
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-0.5">
+                      {weak.zones.map((c) => {
+                        const phaseKey = dominantPhaseKey(c.phaseLoss);
+                        return (
+                          <button
+                            key={c.n}
+                            onClick={() => {
+                              setPlaying(false);
+                              setIdx(c.brakeIdx);
+                              zoomToCorner(c);
+                            }}
+                            className={cn(
+                              "flex items-center gap-2 rounded bg-red-500/10 px-1.5 py-1 text-sm ring-1 ring-inset ring-red-500/30 hover:bg-red-500/20",
+                              focusCorner === c.n && "ring-primary/60",
+                            )}
+                            title={t("telemetry.cornerZoomSeek")}
+                          >
+                            <span className="w-6 shrink-0 text-micro font-semibold tabular-nums text-red-500">
+                              #{c.focusRank}
+                            </span>
+                            <span className="w-9 shrink-0 font-semibold">T{c.n}</span>
+                            {phaseKey && (
+                              <span className="shrink-0 rounded bg-red-500/15 px-1 text-nano uppercase tracking-wide text-red-400">
+                                {t(`telemetry.phase_${phaseKey}`)}
+                              </span>
+                            )}
+                            {c.speedDelta != null && (
+                              <span
+                                className={cn(
+                                  "shrink-0 text-micro tabular-nums",
+                                  c.speedDelta >= 0.5
+                                    ? "text-emerald-500"
+                                    : c.speedDelta <= -0.5
+                                      ? "text-red-500"
+                                      : "text-muted-foreground",
+                                )}
+                                title={t("telemetry.weakSpeedHint")}
+                              >
+                                {c.speedDelta > 0 ? "+" : ""}
+                                {c.speedDelta.toFixed(0)} km/h
+                              </span>
+                            )}
+                            <span className="ml-auto shrink-0 font-mono text-micro font-semibold tabular-nums text-red-500">
+                              +{(c.timeLost ?? 0).toFixed(3)} s
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {weak.zones.length > 0 && weak.zones.length < weakCount && (
+                    <p className="mt-1 px-1 text-micro text-muted-foreground">
+                      {t("telemetry.weakFewer", {
+                        count: weak.zones.length,
+                        s: FOCUS_MIN_LOSS.toFixed(2),
+                      })}
+                    </p>
+                  )}
+                  {weak.zones.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 px-1 text-micro text-muted-foreground">
+                      <span>
+                        {t("telemetry.weakTotal")} :{" "}
+                        <span className="font-semibold tabular-nums text-red-500">
+                          +{weak.total.toFixed(3)} s
+                        </span>
+                      </span>
+                      {weak.share != null && weak.gap != null ? (
+                        <span title={t("telemetry.weakShareHint")}>
+                          {t("telemetry.weakShare", {
+                            pct: weak.share.toFixed(0),
+                            gap: `+${weak.gap.toFixed(3)}`,
+                          })}
+                        </span>
+                      ) : (
+                        weak.gap != null && (
+                          <span>{t("telemetry.weakAhead", { gap: weak.gap.toFixed(3) })}</span>
+                        )
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 px-1 pb-0.5">
+                  <p className="text-micro text-muted-foreground">{t("telemetry.weakNoRef")}</p>
+                  {bestLap && bestLap.lap !== lap ? (
+                    <button
+                      type="button"
+                      onClick={compareToBest}
+                      disabled={bestIsRef}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-primary/50 bg-primary/10 px-2 py-0.5 text-micro text-foreground hover:bg-primary/20 disabled:opacity-60"
+                    >
+                      {bestIsRef && <Loader2 className="h-3 w-3 animate-spin" />}
+                      {t("telemetry.weakUseBest")}
+                      <span className="tabular-nums text-muted-foreground">
+                        ({t("telemetry.lapN", { n: bestLap.lap })} — {formatGap(bestLap.duration)})
+                      </span>
+                    </button>
+                  ) : (
+                    bestLap && (
+                      <p className="text-micro text-muted-foreground">{t("telemetry.weakIsBest")}</p>
+                    )
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

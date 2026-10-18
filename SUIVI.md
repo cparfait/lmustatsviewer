@@ -973,8 +973,10 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ **ApexPoints** : toujours 12 circuits (ni Barcelone, ni Silverstone, ni Lusail, ni les US).
   Fiche Paul Ricard toujours fausse (Sainte-Baume en T1, « Club » et « Pont de Fos » inexistants)
   → rien intégré, `braking-guide-data.ts` inchangé.
-- 📋 **Prochaine étape** : transcrire les 3 nouveaux guides Unleashed (`video-transcripts-data.ts`)
-  quand le pipeline de sous-titres est relancé ; re-vérifier ApexPoints au prochain pack de circuits.
+- ✅ **Transcriptions** (2026-10-18) : sous-titres des 3 nouveaux guides Unleashed (Long Beach
+  Hypercar, Road Atlanta GT3 / Hypercar, 9 à 11 k caractères, vrais commentaires) ajoutés à
+  `video-transcripts-data.ts` via `youtube_transcript_api` ; test d'injection dans `veille.suite.ts`.
+- 📋 **Prochaine étape** : re-vérifier playlist Unleashed + ApexPoints au prochain pack de circuits.
 
 ### 2026-10-17 — Logos et textes lisibles dans les bandeaux de couleur primaire
 

@@ -9,7 +9,7 @@ import { liveClassToDb, matchCombo, tierOfPct } from "@/lib/briefing";
 import { beepsFor } from "@/lib/useRecordBeeps";
 import { computeTier, findBenchmark, type PaceBenchmark } from "@/lib/ohne_speed";
 import { marksForSession, type ReviewMark } from "@/lib/reviewMarks";
-import { getVideoGuide } from "@/lib/ai/knowledge/video-guides";
+import { buildVideoGuideText, getVideoGuide } from "@/lib/ai/knowledge/video-guides";
 
 const lap = (t: number | null, s1 = 30, s2 = 30, opts: { pit?: boolean; valid?: boolean } = {}) => ({
   lap_time: t,
@@ -98,4 +98,5 @@ export function run(): void {
   eq(vid("Fuji Speedway", "Fuji Speedway Classic", "LMP3"), "iYj-EqaRiuA", "classe LMP3 + variante Classic");
   eq(vid("Sebring International Raceway", "Sebring School Circuit", "GT3"), "TjU9MLRbVU0", "Sebring School → guide du tracé court");
   eq(vid("Road Atlanta", undefined, "GT3"), "hi78biewbH4", "guide commenté prioritaire");
+  ok(/Auto-caption transcript/.test(buildVideoGuideText({ track: "Michelin Raceway Road Atlanta", carClass: "GT3" })), "transcription du guide Road Atlanta GT3 injectée");
 }

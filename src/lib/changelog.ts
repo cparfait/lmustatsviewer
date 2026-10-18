@@ -997,6 +997,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Audio / Voice: a voice downloaded from the list now also clears the “Download” banner at the top (it used to offer the same download again), and a download started in one place shows its progress in the other.",
+              fr: "Audio / Voix : une voix téléchargée depuis la liste fait aussi disparaître le bandeau « Télécharger » du haut (il proposait de la retélécharger), et un téléchargement lancé à un endroit affiche sa progression à l'autre.",
+              es: "Audio / Voz: una voz descargada desde la lista también quita el aviso «Descargar» de arriba (antes ofrecía volver a descargarla), y una descarga iniciada en un sitio muestra su progreso en el otro.",
+              de: "Audio / Stimme: Eine aus der Liste heruntergeladene Stimme blendet jetzt auch das Banner „Herunterladen“ oben aus (es bot denselben Download erneut an), und ein an einer Stelle gestarteter Download zeigt seinen Fortschritt auch an der anderen.",
+              it: "Audio / Voce: una voce scaricata dall'elenco fa sparire anche il banner «Scarica» in alto (prima proponeva di riscaricarla), e un download avviato in un punto mostra l'avanzamento anche nell'altro.",
+            },
+          },
+          {
+            text: {
               en: "Interlagos no longer picks up Spa's official corner names (“Jose Carlos Pace” contained “spa”).",
               fr: "Interlagos ne prend plus les noms de virages officiels de Spa (« Jose Carlos Pace » contenait « spa »).",
               es: "Interlagos ya no toma los nombres oficiales de las curvas de Spa («Jose Carlos Pace» contenía «spa»).",

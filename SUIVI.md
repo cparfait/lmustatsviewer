@@ -921,6 +921,11 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Voix : bandeau « Télécharger » et liste des voix synchronisés
+
+- ✅ Le bandeau du haut et la liste des voix (`VoiceDownloads`, deux rendus) avaient chacun leur état : une voix téléchargée depuis la liste laissait le bandeau proposer de la retélécharger (61 Mo de nouveau, ou « téléchargement déjà en cours » pendant le transfert). État commun (`useDownloads`, zustand) : modèle en cours, progression, rechargement du catalogue après installation ou suppression. Changelog 1.0.10 (5 langues). tsc, eslint, 4 781 tests verts.
+- 📋 Prochaine étape : vérifier dans l'app de dev que le bandeau disparaît dès la fin d'un téléchargement lancé depuis la liste.
+
 ### 2026-10-18 — Fusion de `feat/radio-parity` dans `main`
 
 - ✅ `feat/radio-parity` (qui contient aussi `feat/veille-pistes`) fusionnée dans `main` à la demande du mainteneur : 63 commits, 160 fichiers. Rien n'est poussé.

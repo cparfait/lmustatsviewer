@@ -12,14 +12,38 @@
  *
  * Progression via l'événement `asset-progress` du backend. Rend `null` hors
  * Tauri ou si le catalogue est vide.
+ *
+ * Téléchargement en cours, progression et rechargement du catalogue sont
+ * partagés entre tous les rendus (`useDownloads`) : une voix lancée depuis la
+ * liste se voit dans le bandeau, et le bandeau disparaît dès qu'elle est installée.
  */
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { create } from "zustand";
 import { AlertTriangle, Check, Download, Loader2, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { assets, isTauri, type AssetInfo } from "@/lib/api";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
+
+type AssetKind = "tts" | "stt";
+
+/** État commun à tous les rendus (bandeau, liste, fenêtre d'accueil de la voix). */
+const useDownloads = create<{
+  /** Modèle en cours de téléchargement, par type. */
+  busy: Partial<Record<AssetKind, string>>;
+  /** Progression (0-100) du téléchargement en cours, par type. */
+  pct: Partial<Record<AssetKind, number>>;
+  /** Incrémenté après une installation ou une suppression : recharge les catalogues. */
+  rev: number;
+}>(() => ({ busy: {}, pct: {}, rev: 0 }));
+
+const setBusy = (kind: AssetKind, id: string | null) =>
+  useDownloads.setState((s) => ({
+    busy: { ...s.busy, [kind]: id ?? undefined },
+    pct: { ...s.pct, [kind]: 0 },
+  }));
+const bumpCatalog = () => useDownloads.setState((s) => ({ rev: s.rev + 1 }));
 
 /** Choix de la voix Piper dans la liste (voix installées, une ligne par locuteur). */
 export interface PiperPick {
@@ -46,8 +70,9 @@ export function VoiceDownloads({
 }) {
   const { t, i18n } = useTranslation();
   const [catalog, setCatalog] = useState<AssetInfo[]>([]);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [pct, setPct] = useState(0);
+  const busyId = useDownloads((s) => s.busy[kind] ?? null);
+  const pct = useDownloads((s) => s.pct[kind] ?? 0);
+  const rev = useDownloads((s) => s.rev);
   const mounted = useRef(true);
 
   /** Supprime un modèle téléchargé, après confirmation (place disque récupérée). */
@@ -63,7 +88,7 @@ export function VoiceDownloads({
     try {
       await assets.remove(kind, a.id);
       toastSuccess(t("config.assetDeleted", { name }));
-      refresh();
+      bumpCatalog();
       onInstalled?.();
     } catch (e) {
       const code = String(e);
@@ -86,11 +111,12 @@ export function VoiceDownloads({
   };
   useEffect(() => {
     mounted.current = true;
-    refresh();
     return () => {
       mounted.current = false;
     };
   }, []);
+  // Au montage, puis après chaque installation ou suppression (quel que soit le rendu).
+  useEffect(refresh, [rev]);
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -98,7 +124,8 @@ export function VoiceDownloads({
     let gone = false;
     void assets.onProgress((p) => {
       if (p.kind !== kind || p.total <= 0) return;
-      setPct(Math.min(100, Math.round((p.downloaded / p.total) * 100)));
+      const v = Math.min(100, Math.round((p.downloaded / p.total) * 100));
+      useDownloads.setState((s) => ({ pct: { ...s.pct, [kind]: v } }));
     }).then((u) => {
       if (gone) u();
       else unlisten = u;
@@ -114,17 +141,16 @@ export function VoiceDownloads({
   if (!isTauri() || rows.length === 0) return null;
 
   const download = async (a: AssetInfo) => {
-    setBusyId(a.id);
-    setPct(0);
+    setBusy(kind, a.id);
     try {
       await assets.download(kind, a.id);
       toastSuccess(t("config.assetDlDone"));
-      refresh();
+      bumpCatalog();
       onInstalled?.();
     } catch (e) {
       toastError(t("config.assetDlError", { msg: String(e) }));
     } finally {
-      if (mounted.current) setBusyId(null);
+      setBusy(kind, null);
     }
   };
 

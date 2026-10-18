@@ -921,6 +921,12 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Télémétrie : fragments masqués ; banc d'écoute uniforme
+
+- ✅ **Télémétrie** : fragment = aucun tour complet **et** moins de 2 min (`duration_s` ajouté à `TelemetryFileInfo`, bornes GPS déjà lues). Masqués par défaut, case « Masquer les fragments sans tour complet (N) » (mémorisée le temps que l'app tourne). Mesuré sur les 25 fichiers du poste : 18 fragments de 0 à 11 s (+ un tour de sortie de 103 s), les 7 vraies sessions restent visibles, dont 17 min à Paul Ricard sans passage sur la ligne (le critère « sans meilleur tour » seul l'aurait masquée).
+- ✅ **Banc d'écoute** : sous « Alertes en voix locale », même présentation que les autres phrases (état de la voix IA) + note « en course : Piper ». Remplace le repère ajouté juste avant.
+- 📋 Prochaine étape : vérifier dans l'app de dev la case de la Télémétrie et le banc d'écoute.
+
 ### 2026-10-18 — Micro sans demande WebView2, attente Télémétrie, phrases oubliées de la préparation
 
 - ✅ **Micro** (`mic_permission.rs`) : `PermissionRequested` de WebView2 accordé pour le **micro seulement** et pour les **pages de l'app seulement** (`http(s)://tauri.localhost`, `http://localhost:5173`, origine exacte), fenêtre principale et overlay. Plus de « tauri.localhost souhaite utiliser vos microphones » (déclenché par la liste « Sortie audio de la radio », qui ouvre le micro pour lire les noms des sorties). Dépendances directes `webview2-com 0.38` / `windows-core 0.61` (mêmes versions que wry). Test Rust des origines.

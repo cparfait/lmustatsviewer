@@ -117,6 +117,7 @@ const tFile = (filename: string, o: Partial<TelemetryFileInfo> = {}): TelemetryF
   size_bytes: 1000,
   mtime: 0,
   best_lap: null,
+  duration_s: null,
   ...o,
 });
 

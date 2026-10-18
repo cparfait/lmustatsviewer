@@ -58,6 +58,9 @@ pub struct TelemetryFileInfo {
     /// Meilleur temps au tour (s) calculé depuis les tours segmentés. `None` si
     /// le fichier ne contient aucun tour complet (un seul segment / session brute).
     pub best_lap: Option<f64>,
+    /// Durée enregistrée (s), d'après les bornes GPS. `None` si illisible.
+    /// Sert à reconnaître les fragments de quelques secondes (liste Télémétrie).
+    pub duration_s: Option<f64>,
 }
 
 /// Description d'un canal continu.
@@ -352,8 +355,9 @@ fn build_file_info(path: &PathBuf, meta: &HashMap<String, String>) -> TelemetryF
         recording_time: meta_get(meta, "RecordingTime").to_string(),
         size_bytes,
         mtime,
-        // Renseigné par l'appelant qui dispose de la connexion (segmentation des tours).
+        // Renseignés par l'appelant qui dispose de la connexion (segmentation des tours).
         best_lap: None,
+        duration_s: None,
     }
 }
 
@@ -479,6 +483,7 @@ pub fn list_telemetry_files(db: State<'_, DbState>) -> Result<Vec<TelemetryFileI
         if let (Ok(tables), Ok((t0, dur))) = (table_names(&conn), gps_time_bounds(&conn)) {
             let laps = segment_laps(&conn, &tables, t0, t0 + dur);
             info.best_lap = best_lap_time(&laps);
+            info.duration_s = Some(dur);
         }
         out.push(info);
     }
@@ -558,6 +563,7 @@ pub fn get_telemetry_meta(
 
     let laps = segment_laps(&conn, &tables, t0, t_end);
     info.best_lap = best_lap_time(&laps);
+    info.duration_s = Some(duration);
 
     Ok(TelemetryMeta {
         info,

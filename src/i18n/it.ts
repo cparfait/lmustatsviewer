@@ -525,6 +525,8 @@ export default {
     objectives: "Obiettivi suggeriti",
   },
   telemetry: {
+    hideNoLap: "Nascondi i frammenti senza un giro completo ({{count}})",
+    hideNoLapTip: "Registrazioni di meno di 2 minuti senza alcun giro completato (uscita dal garage, rientro ai box…). Togli la spunta per mostrarle.",
     loadingList: "Lettura delle tue registrazioni di telemetria…",
     loadingListSlow: "Con molte registrazioni può volerci un po': ogni file viene aperto per leggere circuito, auto e giro migliore.",
     loadingView: "Apertura della registrazione…",
@@ -2147,8 +2149,7 @@ export default {
     cloudBenchWhy_assembled: "{{n}} pezzi, tutti preparati",
     cloudBenchWhy_cloudOff: "voce IA disattivata o senza chiave",
     cloudBenchWhy_alertsLocal: "«Avvisi con voce locale» attivo",
-    cloudBenchPrepReady: "pronta in voce IA (cache)",
-    cloudBenchPrepMissing: "non ancora preparata in voce IA",
+    cloudBenchLocalInRace: "in gara: Piper («Avvisi con voce locale» attivo)",
     cloudBenchWhy_notPrepared: "non ancora preparata",
     cloudBenchWhy_liveOnly: "detta in diretta in gara: serve la rete",
     cloudBenchWhy_numbersOff: "«Annunci con numeri» su Piper",

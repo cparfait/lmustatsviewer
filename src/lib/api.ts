@@ -1044,6 +1044,8 @@ export interface TelemetryFileInfo {
   mtime: number;
   /** Meilleur temps au tour (s) ; `null` si aucun tour complet exploitable. */
   best_lap: number | null;
+  /** Durée enregistrée (s) ; `null` si illisible. */
+  duration_s: number | null;
 }
 
 /** Description d'un canal (`telemetry::ChannelInfo`). */

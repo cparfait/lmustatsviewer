@@ -525,6 +525,8 @@ export default {
     objectives: "Suggested objectives",
   },
   telemetry: {
+    hideNoLap: "Hide fragments without a complete lap ({{count}})",
+    hideNoLapTip: "Recordings under 2 minutes without a single completed lap (leaving the garage, back to the pits…). Untick to show them.",
     loadingList: "Reading your telemetry recordings…",
     loadingListSlow: "With many recordings this can take a while: each file is opened to read the track, car and best lap.",
     loadingView: "Opening the recording…",
@@ -2147,8 +2149,7 @@ export default {
     cloudBenchWhy_assembled: "{{n}} pieces, all prepared",
     cloudBenchWhy_cloudOff: "AI voice off or no key",
     cloudBenchWhy_alertsLocal: "\"Alerts on the local voice\" is on",
-    cloudBenchPrepReady: "ready in AI voice (cache)",
-    cloudBenchPrepMissing: "not prepared in AI voice yet",
+    cloudBenchLocalInRace: "in the race: Piper (\"Alerts on the local voice\" is on)",
     cloudBenchWhy_notPrepared: "not prepared yet",
     cloudBenchWhy_liveOnly: "spoken live in a race: needs the network",
     cloudBenchWhy_numbersOff: "\"Announcements with numbers\" set to Piper",

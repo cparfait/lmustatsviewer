@@ -589,6 +589,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Telemetry: fragments without a complete lap and under 2 minutes (leaving the garage, back to the pits…) are hidden by default; a box shows them again. Long recordings without a lap line crossing stay visible.",
+              fr: "Télémétrie : les fragments sans tour complet de moins de 2 minutes (sortie du garage, retour au stand…) sont masqués par défaut ; une case les réaffiche. Les longs enregistrements sans passage sur la ligne restent visibles.",
+              es: "Telemetría: los fragmentos sin vuelta completa de menos de 2 minutos (salida del garaje, vuelta al box…) se ocultan por defecto; una casilla los vuelve a mostrar. Las grabaciones largas sin paso por la línea siguen visibles.",
+              de: "Telemetrie: Fragmente ohne vollständige Runde unter 2 Minuten (Ausfahrt aus der Garage, zurück an die Box…) werden standardmäßig ausgeblendet; ein Kästchen zeigt sie wieder an. Lange Aufzeichnungen ohne Überfahren der Linie bleiben sichtbar.",
+              it: "Telemetria: i frammenti senza un giro completo sotto i 2 minuti (uscita dal garage, rientro ai box…) sono nascosti di default; una casella li mostra di nuovo. Le registrazioni lunghe senza passaggio sulla linea restano visibili.",
+            },
+          },
+          {
+            text: {
               en: "Telemetry: a waiting message while recordings load, explaining why it can take a while when you have many of them (with the elapsed time).",
               fr: "Télémétrie : message d'attente pendant le chargement des enregistrements, qui explique pourquoi c'est long quand il y en a beaucoup (avec le temps écoulé).",
               es: "Telemetría: mensaje de espera mientras se cargan las grabaciones, que explica por qué tarda cuando hay muchas (con el tiempo transcurrido).",
@@ -607,11 +616,11 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
-              en: "AI voice listening bench: phrases spoken by Piper because of “Alerts on the local voice” now also show whether they are ready in the AI voice cache.",
-              fr: "Banc d'écoute de la voix IA : les phrases dites par Piper à cause de « Alertes en voix locale » indiquent aussi si elles sont prêtes dans le cache de la voix IA.",
-              es: "Banco de escucha de la voz IA: las frases dichas por Piper por «Alertas con voz local» indican también si están listas en la caché de la voz IA.",
-              de: "Hörtest der KI-Stimme: Sätze, die wegen „Warnungen mit lokaler Stimme“ Piper spricht, zeigen jetzt auch, ob sie im Cache der KI-Stimme bereitliegen.",
-              it: "Banco di ascolto della voce IA: le frasi dette da Piper per «Avvisi con voce locale» indicano anche se sono pronte nella cache della voce IA.",
+              en: "AI voice listening bench: phrases spoken by Piper because of “Alerts on the local voice” are shown like the others (AI voice cache state), with a note that Piper speaks them in the race.",
+              fr: "Banc d'écoute de la voix IA : les phrases dites par Piper à cause de « Alertes en voix locale » sont présentées comme les autres (état du cache de la voix IA), avec une note indiquant que Piper les dit en course.",
+              es: "Banco de escucha de la voz IA: las frases dichas por Piper por «Alertas con voz local» se muestran como las demás (estado de la caché de la voz IA), con una nota que indica que Piper las dice en carrera.",
+              de: "Hörtest der KI-Stimme: Sätze, die wegen „Warnungen mit lokaler Stimme“ Piper spricht, werden wie die anderen angezeigt (Cache-Stand der KI-Stimme), mit dem Hinweis, dass Piper sie im Rennen spricht.",
+              it: "Banco di ascolto della voce IA: le frasi dette da Piper per «Avvisi con voce locale» sono mostrate come le altre (stato della cache della voce IA), con una nota che indica che in gara le dice Piper.",
             },
           },
           {

@@ -29,11 +29,6 @@ import { getMessageText } from "@/lib/voiceMessages";
 import { playBench, probeCloudPlayback, type VoicePriority } from "@/lib/voice";
 import { toastError } from "@/stores/dialogs";
 
-/** Phrase présente dans le cache voix IA (entière, ou tous ses morceaux). */
-function preparedAnyway(f: BenchFacts): boolean {
-  return f.fixed ? f.wholeCached : !!f.segments && f.missing.length === 0;
-}
-
 const ENGINE_STYLE: Record<BenchEngine, string> = {
   cloud: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
   assembled: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
@@ -71,7 +66,10 @@ function BenchRow(props: {
     };
   }, [text, lang, priority, cloudOk, refresh]);
 
-  const route = facts ? benchRoute(facts) : null;
+  // « Alertes en voix locale » : Piper parle en course, mais la phrase est préparée
+  // quand même. Même présentation que les autres (état de la voix IA), plus une note.
+  const localInRace = !!facts?.cloudOn && facts.mode === "off";
+  const route = facts ? benchRoute(localInRace ? { ...facts, mode: "cached" } : facts) : null;
   const play = (how: BenchEngine) => {
     void playBench(text, lang, how).then((ok) => {
       if (!ok) toastError(t(how === "piper" ? "config.cloudBenchNothingPiper" : "config.cloudBenchNothingCloud"));
@@ -136,17 +134,7 @@ function BenchRow(props: {
             {t(`config.cloudBenchEngine_${route.engine}`)}
           </span>
           <span className="text-muted-foreground">{why}</span>
-          {/* Dite par Piper en course (réglage), mais préparée quand même : on montre si elle est prête. */}
-          {route.reason === "alertsLocal" && facts?.cloudOn && (
-            <span
-              className={cn(
-                "rounded px-1.5 py-0.5 font-medium",
-                preparedAnyway(facts) ? ENGINE_STYLE.cloud : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-              )}
-            >
-              {t(preparedAnyway(facts) ? "config.cloudBenchPrepReady" : "config.cloudBenchPrepMissing")}
-            </span>
-          )}
+          {localInRace && <span className="text-muted-foreground/70">· {t("config.cloudBenchLocalInRace")}</span>}
         </div>
       )}
     </div>

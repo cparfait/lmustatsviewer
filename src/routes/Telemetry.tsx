@@ -32,6 +32,14 @@ const PAGE_SIZE_KEY = "telemetry-page-size";
  * Navigateur des enregistrements de télémétrie (`.duckdb`). Filtrage côté client
  * (façon Dashboard) ; un clic ouvre la page lecteur `/telemetry/view`.
  */
+/** En dessous, un enregistrement sans tour complet est un fragment (s). */
+const FRAGMENT_MAX_S = 120;
+
+/** Aucun tour complet et court (durée inconnue = fragment seulement si aucun tour). */
+function isFragment(f: TelemetryFileInfo): boolean {
+  return f.best_lap == null && (f.duration_s == null || f.duration_s < FRAGMENT_MAX_S);
+}
+
 export function Telemetry() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -43,6 +51,10 @@ export function Telemetry() {
   const [fClass, setFClass] = usePageState("telemetry.class", "");
   const [fCar, setFCar] = usePageState("telemetry.car", "");
   const [fSession, setFSession] = usePageState("telemetry.session", "");
+  // Fragments (aucun tour complet ET moins de 2 min : sortie du garage, retour au
+  // stand…) : masqués par défaut, une case les réaffiche. Un long enregistrement
+  // sans passage sur la ligne reste visible (il contient de vraies données).
+  const [hideNoLap, setHideNoLap] = usePageState("telemetry.hideNoLap", true);
 
   type SortKey =
     | "track"
@@ -110,17 +122,19 @@ export function Telemetry() {
 
   const filteredFiles = useMemo(() => {
     return (files ?? []).filter((f) => {
+      if (hideNoLap && isFragment(f)) return false;
       if (fTrack && f.track !== fTrack) return false;
       if (fClass && f.car_class !== fClass) return false;
       if (fCar && carLabel(f) !== fCar) return false;
       if (fSession && f.session_type !== fSession) return false;
       return true;
     });
-  }, [files, fTrack, fClass, fCar, fSession]);
+  }, [files, fTrack, fClass, fCar, fSession, hideNoLap]);
+  const noLapCount = useMemo(() => (files ?? []).filter(isFragment).length, [files]);
 
   useChangeEffect(() => {
     setPage(1);
-  }, [fTrack, fClass, fCar, fSession]);
+  }, [fTrack, fClass, fCar, fSession, hideNoLap]);
 
   const sortedFiles = useMemo(() => {
     const dir = sortDir === "asc" ? 1 : -1;
@@ -260,6 +274,20 @@ export function Telemetry() {
                 <X className="h-3.5 w-3.5" />
                 {t("sessions.clearFilters")}
               </Button>
+            )}
+            {noLapCount > 0 && (
+              <label
+                className="ml-auto flex cursor-pointer select-none items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground"
+                title={t("telemetry.hideNoLapTip")}
+              >
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 accent-primary"
+                  checked={hideNoLap}
+                  onChange={(e) => setHideNoLap(e.target.checked)}
+                />
+                {t("telemetry.hideNoLap", { count: noLapCount })}
+              </label>
             )}
           </div>
         </CardContent>

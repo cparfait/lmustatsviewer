@@ -525,6 +525,8 @@ export default {
     objectives: "Vorgeschlagene Ziele",
   },
   telemetry: {
+    hideNoLap: "Fragmente ohne vollständige Runde ausblenden ({{count}})",
+    hideNoLapTip: "Aufzeichnungen unter 2 Minuten ohne eine einzige beendete Runde (Ausfahrt aus der Garage, zurück an die Box…). Haken entfernen, um sie anzuzeigen.",
     loadingList: "Deine Telemetrie-Aufzeichnungen werden gelesen…",
     loadingListSlow: "Bei vielen Aufzeichnungen kann das etwas dauern: Jede Datei wird geöffnet, um Strecke, Auto und beste Runde zu lesen.",
     loadingView: "Aufzeichnung wird geöffnet…",
@@ -2152,8 +2154,7 @@ export default {
     cloudBenchWhy_assembled: "{{n}} Stücke, alle vorbereitet",
     cloudBenchWhy_cloudOff: "KI-Stimme aus oder ohne Schlüssel",
     cloudBenchWhy_alertsLocal: "„Warnungen mit lokaler Stimme“ ist an",
-    cloudBenchPrepReady: "in KI-Stimme bereit (Cache)",
-    cloudBenchPrepMissing: "noch nicht in KI-Stimme vorbereitet",
+    cloudBenchLocalInRace: "im Rennen: Piper („Warnungen mit lokaler Stimme“ ist an)",
     cloudBenchWhy_notPrepared: "noch nicht vorbereitet",
     cloudBenchWhy_liveOnly: "im Rennen direkt gesprochen: braucht das Netz",
     cloudBenchWhy_numbersOff: "„Ansagen mit Zahlen“ auf Piper",

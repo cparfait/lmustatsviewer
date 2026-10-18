@@ -2129,7 +2129,7 @@ export default {
     cloudVoiceAlertsLocal: "Warnungen mit lokaler Stimme",
     cloudVoiceAlertsLocalDesc: "Flaggen, Reifenschaden, Box, Spotter und Coach immer mit Piper (bisheriges Verhalten)",
     cloudVoiceNumbers: "Sätze mit Zahlen",
-    cloudVoiceNumbersDesc: "Z. B. „Noch 5 Runden Sprit“. Die KI-Stimme kann sie aus vorab vorbereiteten Stücken (Zahlen und Satzteile) zusammensetzen: sofort, ohne Verbindung. Sonst erzeugt sie sie beim Sprechen online (kurze Verzögerung). Namen und nicht erkannte Sätze: Piper.",
+    cloudVoiceNumbersDesc: "Z. B. „Noch 5 Runden Sprit“. Die KI-Stimme kann sie aus vorab vorbereiteten Stücken (Zahlen und Satzteile) zusammensetzen: sofort, ohne Verbindung. Sonst erzeugt sie sie beim Sprechen online (kurze Verzögerung). Namen und nicht erkannte Sätze: online erzeugt, außer Warnungen (Piper).",
     cloudVoiceNumbersAlerts: "Warnungen und Coach zusammengesetzt, Rest online",
     cloudVoiceNumbersAll: "Alles zusammengesetzt (sofort)",
     cloudVoiceNumbersOff: "Nichts zusammengesetzt (Warnungen mit Piper)",

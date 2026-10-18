@@ -2124,7 +2124,7 @@ export default {
     cloudVoiceAlertsLocal: "Alerts on the local voice",
     cloudVoiceAlertsLocalDesc: "Flags, puncture, box, spotter and coach always spoken by Piper (previous behaviour)",
     cloudVoiceNumbers: "Phrases with numbers",
-    cloudVoiceNumbersDesc: "E.g. “5 laps of fuel left”. The AI voice can join them from pieces prepared in advance (numbers and phrase parts): instant, no connection. Otherwise it generates them online when they are spoken (slight delay). Names and unrecognised phrases: Piper.",
+    cloudVoiceNumbersDesc: "E.g. “5 laps of fuel left”. The AI voice can join them from pieces prepared in advance (numbers and phrase parts): instant, no connection. Otherwise it generates them online when they are spoken (slight delay). Names and unrecognised phrases: generated online, except alerts (Piper).",
     cloudVoiceNumbersAlerts: "Alerts and coach joined, the rest online",
     cloudVoiceNumbersAll: "Everything joined (instant)",
     cloudVoiceNumbersOff: "Nothing joined (alerts by Piper)",

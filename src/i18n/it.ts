@@ -2124,7 +2124,7 @@ export default {
     cloudVoiceAlertsLocal: "Avvisi con voce locale",
     cloudVoiceAlertsLocalDesc: "Bandiere, foratura, box, spotter e coach sempre con Piper (comportamento precedente)",
     cloudVoiceNumbers: "Frasi con numeri",
-    cloudVoiceNumbersDesc: "Es. «Ancora 5 giri di carburante». La voce IA può unirle a partire da pezzi preparati in anticipo (numeri e parti di frase): istantaneo, senza connessione. Altrimenti le genera online quando le dice (leggero ritardo). Nomi propri e frasi non riconosciute: Piper.",
+    cloudVoiceNumbersDesc: "Es. «Ancora 5 giri di carburante». La voce IA può unirle a partire da pezzi preparati in anticipo (numeri e parti di frase): istantaneo, senza connessione. Altrimenti le genera online quando le dice (leggero ritardo). Nomi propri e frasi non riconosciute: generati online, tranne gli avvisi (Piper).",
     cloudVoiceNumbersAlerts: "Avvisi e coach uniti, il resto online",
     cloudVoiceNumbersAll: "Tutto unito (istantaneo)",
     cloudVoiceNumbersOff: "Niente unito (avvisi con Piper)",

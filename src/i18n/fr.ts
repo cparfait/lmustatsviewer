@@ -2130,7 +2130,7 @@ export default {
     cloudVoiceAlertsLocal: "Alertes en voix locale",
     cloudVoiceAlertsLocalDesc: "Drapeaux, crevaison, box, spotter et coach toujours dits par Piper (ancien comportement)",
     cloudVoiceNumbers: "Phrases avec des chiffres",
-    cloudVoiceNumbersDesc: "Ex. « Encore 5 tours de carburant ». La voix IA peut les recoller à partir de morceaux préparés d'avance (nombres et bouts de phrase) : c'est instantané, sans connexion. Sinon, elle les génère en ligne au moment de les dire (léger délai). Noms propres et phrases non reconnues : Piper.",
+    cloudVoiceNumbersDesc: "Ex. « Encore 5 tours de carburant ». La voix IA peut les recoller à partir de morceaux préparés d'avance (nombres et bouts de phrase) : c'est instantané, sans connexion. Sinon, elle les génère en ligne au moment de les dire (léger délai). Noms propres et phrases non reconnues : générés en ligne, sauf les alertes (Piper).",
     cloudVoiceNumbersAlerts: "Alertes et coach recollés, le reste en ligne",
     cloudVoiceNumbersAll: "Tout recollé (instantané)",
     cloudVoiceNumbersOff: "Rien de recollé (alertes par Piper)",

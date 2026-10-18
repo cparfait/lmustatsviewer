@@ -923,7 +923,7 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 ### 2026-10-18 — Voix IA : « Phrases avec des chiffres » réécrit
 
-- ✅ Réglage `numbers` jugé incompréhensible par le mainteneur : titre « Phrases avec des chiffres », description avec exemple, choix « Alertes et coach recollés, le reste en ligne » (`alerts`, défaut), « Tout recollé (instantané) » (`all`), « Rien de recollé (alertes par Piper) » (`off` ; l'ancien libellé « Piper (ancien comportement) » laissait croire que tout passait par Piper, alors que l'information reste générée en ligne). Banc d'écoute et guide de la voix IA alignés. 5 langues, aucune logique changée.
+- ✅ Réglage `numbers` jugé incompréhensible par le mainteneur : titre « Phrases avec des chiffres », description avec exemple, choix « Alertes et coach recollés, le reste en ligne » (`alerts`, défaut), « Tout recollé (instantané) » (`all`), « Rien de recollé (alertes par Piper) » (`off` ; l'ancien libellé « Piper (ancien comportement) » laissait croire que tout passait par Piper, alors que l'information reste générée en ligne). Banc d'écoute et guide de la voix IA alignés. 5 langues, aucune logique changée. Description corrigée ensuite : noms propres et phrases non reconnues générés **en ligne**, seules les alertes passent par Piper (l'ancienne phrase « … : Piper » était fausse pour l'information et les réponses).
 
 ### 2026-10-18 — Télémétrie : fragments masqués ; banc d'écoute uniforme
 

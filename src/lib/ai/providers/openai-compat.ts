@@ -49,6 +49,13 @@ interface OpenAICompatConfig {
    * forcément le nouveau nom → `max_tokens` reste le défaut.
    */
   maxTokensField?: "max_tokens" | "max_completion_tokens";
+  /**
+   * Coupe le raisonnement des appels courts (non-streaming : test, question
+   * vocale, aiguillage, banque de phrases) via `reasoning: { effort: "none" }`
+   * — paramètre propre à OpenRouter. Un modèle à raisonnement obligatoire le
+   * refuse en 400 → `fallbackBody` renvoie la requête sans lui.
+   */
+  quickNoReasoning?: boolean;
 }
 
 export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
@@ -76,7 +83,16 @@ export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
       messages, // rôles system/user/assistant acceptés tels quels
       [cfg.maxTokensField ?? "max_tokens"]: maxTokens + THINKING_HEADROOM,
       stream,
+      ...(cfg.quickNoReasoning && !stream ? { reasoning: { effort: "none" } } : {}),
     }),
+
+    fallbackBody: (body) => {
+      if (!cfg.quickNoReasoning || !body || typeof body !== "object" || !("reasoning" in body)) {
+        return null;
+      }
+      const { reasoning: _dropped, ...rest } = body as Record<string, unknown>;
+      return rest;
+    },
 
     parseResponse: (raw) => {
       const r = raw as OAChatResponse;
@@ -168,7 +184,11 @@ export const mistralProvider = makeOpenAICompatProvider({
 // OpenRouter : passerelle vers des centaines de modèles (dont des gratuits,
 // suffixés « :free »). API compatible OpenAI. Les ids sont préfixés du vendeur
 // (`anthropic/claude-…`, `deepseek/…`) — à recopier depuis openrouter.ai/models.
+// Raisonnement coupé sur les appels courts : certains hébergeurs de Qwen 3.5
+// écrivent la réflexion DANS le texte, sans balise ouvrante ; le budget court
+// s'épuisait avant le `</think>` final et le pilote lisait le brouillon anglais.
 export const openrouterProvider = makeOpenAICompatProvider({
+  quickNoReasoning: true,
   id: "openrouter",
   name: "OpenRouter",
   chatEndpoint: "https://openrouter.ai/api/v1/chat/completions",

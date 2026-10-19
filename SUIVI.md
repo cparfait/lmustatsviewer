@@ -921,6 +921,24 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-20 — OpenRouter : raisonnement de Qwen 3.5 affiché à la place de la réponse
+
+**Symptôme** : « Tester l'IA » avec `qwen/qwen3.5-35b-a3b` via OpenRouter affichait un long
+brouillon anglais (« Final Polish (checking constraints)… ») au lieu du mot radio.
+**Cause** : certains hébergeurs écrivent la réflexion DANS `content`, sans `<think>` ouvrant ;
+seul un `</think>` final la délimite. Budget court (300 + 1024) épuisé avant ce `</think>` →
+`stripThinking` n'avait rien à couper.
+
+- ✅ `openai-compat.ts` : option `quickNoReasoning` (OpenRouter seulement) → appels
+  **non-streaming** (test, question vocale, aiguillage, banque de phrases) envoyés avec
+  `reasoning: { effort: "none" }`. Streaming (analyse, conversation) inchangé.
+- ✅ Repli : nouveau hook facultatif `AIProvider.fallbackBody` ; `chat()` relance une fois sans
+  `reasoning` sur HTTP 400 (modèles à raisonnement obligatoire, qui refusent `effort: "none"`).
+- ✅ Tests `ai.thinking` (feedback.suite) : corps OpenRouter court/streaming + repli. 6481 OK, tsc OK.
+- ⏳ Pas de vérif réelle contre OpenRouter (pas de clé côté assistant).
+- 📋 **Prochaine étape** : l'utilisateur relance « Tester l'IA » avec Qwen 3.5 ; si un modèle à
+  raisonnement obligatoire fuit encore, envisager un budget plus large pour ce test.
+
 ### 2026-10-19 — Veille TrackMind, 6ᵉ passe REA : comment sont faites les parties graphiques (aucun code modifié)
 
 **Demande** : « analyse avec REA comment sont faites les parties graphiques de TrackMind ».

@@ -49,11 +49,19 @@ export async function chat(
   messages: AIMessage[],
   maxTokens: number,
 ): Promise<string> {
-  const raw = await ai.chat(
-    provider.chatUrl(model, apiKey),
-    provider.buildHeaders(apiKey),
-    provider.buildBody(messages, model, maxTokens),
-  );
+  const url = provider.chatUrl(model, apiKey);
+  const headers = provider.buildHeaders(apiKey);
+  const body = provider.buildBody(messages, model, maxTokens);
+  let raw: unknown;
+  try {
+    raw = await ai.chat(url, headers, body);
+  } catch (e) {
+    // Option facultative refusée (ex. raisonnement coupé sur un modèle où il est
+    // obligatoire) : une seule relance, sans elle.
+    const fallback = /HTTP 400/.test(errorMessage(e)) ? provider.fallbackBody?.(body) : null;
+    if (!fallback) throw e;
+    raw = await ai.chat(url, headers, fallback);
+  }
   return stripThinking(provider.parseResponse(raw)).trim();
 }
 

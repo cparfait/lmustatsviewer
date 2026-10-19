@@ -9,6 +9,7 @@ import { scopedPosition } from "@/lib/livePosition";
 import { brakeAvgLimits } from "@/lib/engineer/useRaceEngineer";
 import { predictPitExit } from "@/lib/spotter";
 import { stripThinking, ThinkingStreamFilter } from "@/lib/ai/thinking";
+import { openaiProvider, openrouterProvider } from "@/lib/ai/providers/openai-compat";
 import { buildLiveContext } from "@/lib/ai/context/live-context";
 import type { LiveData, LiveStanding } from "@/lib/api";
 
@@ -80,6 +81,16 @@ export function run(): void {
     const f = new ThinkingStreamFilter();
     const out = ["<thi", "nk>abc</th", "ink>Bon", "jour"].map((c) => f.push(c)).join("");
     eq(out, "Bonjour", "flux : balises coupées entre fragments");
+  }
+  {
+    const msgs = [{ role: "user" as const, content: "x" }];
+    const quick = openrouterProvider.buildBody(msgs, "qwen/qwen3.5-35b-a3b", 300) as Record<string, unknown>;
+    eq(JSON.stringify(quick.reasoning), '{"effort":"none"}', "OpenRouter : raisonnement coupé sur appel court");
+    const stream = openrouterProvider.buildBody(msgs, "m", 4000, true) as Record<string, unknown>;
+    ok(!("reasoning" in stream), "OpenRouter : raisonnement conservé en streaming (analyse)");
+    const back = openrouterProvider.fallbackBody?.(quick) as Record<string, unknown> | null;
+    ok(!!back && !("reasoning" in back) && back.model === "qwen/qwen3.5-35b-a3b", "repli 400 : même requête sans reasoning");
+    ok(openaiProvider.fallbackBody?.(openaiProvider.buildBody(msgs, "m", 16)) === null, "OpenAI : pas de repli");
   }
 
   section("ai.live-context (garage)");

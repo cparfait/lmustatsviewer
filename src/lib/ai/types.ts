@@ -67,6 +67,12 @@ export interface AIProvider {
   buildHeaders(apiKey: string): [string, string][];
   /** Corps JSON de la requête chat. `stream` active le streaming côté fournisseur. */
   buildBody(messages: AIMessage[], model: string, maxTokens: number, stream?: boolean): unknown;
+  /**
+   * Corps de repli quand `buildBody` a été refusé en HTTP 400 : le même sans les
+   * options facultatives (ex. raisonnement coupé, refusé par un modèle dont le
+   * raisonnement est obligatoire). `null` = pas de repli. Optionnel.
+   */
+  fallbackBody?(body: unknown): unknown | null;
 
   /** Extrait le texte de la réponse chat (non-streaming). */
   parseResponse(raw: unknown): string;

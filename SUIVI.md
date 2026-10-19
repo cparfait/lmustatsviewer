@@ -921,6 +921,30 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-19 — Régie tablette : thème de l'app, mention du logiciel, plein écran sans menus
+
+**Retour mainteneur** : écran d'accueil (connexion) au même thème que l'app en cours, avec une
+mention du logiciel ; pas de barre de menu en plein écran ; réglages peu lisibles sur
+téléphone couché.
+
+- ✅ Thème : `regie_set_theme` (Rust, `AtomicBool`, clair par défaut) appelé par
+  `useTheme` (`stores/theme.ts`) à chaque changement ; injecté dans la page (`data-theme`,
+  écran de connexion compris) et renvoyé dans `/api/live` (`ui_theme`) → suivi en direct.
+  Palette de l'app (`index.css`) : fond `#f4f5f8` / `#0b101f`, orange `#D93B00` (texte
+  `#e06a3e` en sombre) ; pastille joueur de la carte restée `#FFB400` comme la page Live.
+- ✅ Connexion : logo de l'app + « LMU Stats Viewer » + « Régie » ; petit logo dans l'en-tête.
+- ✅ Plein écran (ou ouverture depuis l'écran d'accueil) : menus masqués (`html.bare`), un
+  toucher sur le contenu les affiche 4 s, message d'aide la première fois ; réglage
+  « Masquer les menus en plein écran » (activé) pour garder l'ancien affichage.
+- ✅ Réglages en paysage (hauteur ≤ 520 px) : deux colonnes, boutons côte à côte, 230 px de
+  haut sur 375 — plus de défilement.
+- ✅ Vérifié (faux serveur, bascule de thème) : connexion claire, passage en sombre en direct,
+  réglages 812 × 375, plein écran simulé (le volet refuse le vrai plein écran) : menus cachés,
+  toucher → visibles → masqués après 4 s. `cargo test regie` 8/8, `tsc`, `eslint`, `npm test`
+  6 268 ✅.
+- 📋 **Prochaine étape** : essai sur un vrai téléphone (plein écran Android, écran d'accueil
+  iOS) avec `VALIDATION-EN-JEU.md` § 2.
+
 ### 2026-10-19 — Régie tablette optimisée pour téléphone et tablette
 
 **Demande** : « optimiser la régie tablette pour smartphone / tablettes, regarde ce que fait

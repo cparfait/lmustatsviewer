@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="__THEME__">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -9,13 +9,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="LMU SV">
 <meta name="format-detection" content="telephone=no">
-<meta name="theme-color" content="#0a0e1a">
+<meta name="theme-color" content="#f4f5f8">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon.png">
 <link rel="apple-touch-icon" href="/icon.png">
 <title>LMU Stats Viewer — Régie</title>
 <style>
-  :root { --bg:#0a0e1a; --panel:#121828; --line:#1f2a40; --fg:#e5e7eb; --mute:#8b95a8; --acc:#ffb400; --ok:#34d399; --bad:#f87171; --z:1;
+  /* Thème de l'app (clair par défaut, sombre au choix), envoyé par le serveur : mêmes couleurs que LMU Stats Viewer. */
+  :root { --bg:#f4f5f8; --panel:#ffffff; --line:#d8dae2; --fg:#0b0f1e; --mute:#5a6070; --acc:#D93B00; --acct:#D93B00; --ok:#00c896; --bad:#FF1D43;
+    --soft:rgba(217,59,0,.10); --road:#c3c8d4; --scrim:rgba(11,15,30,.45); --lostbg:#ffe4e8; --lostfg:#9f1239; color-scheme:light; }
+  [data-theme="dark"] { --bg:#0b101f; --panel:#131a30; --line:#242e48; --fg:#d9dde6; --mute:#8e96aa; --acct:#e06a3e;
+    --soft:rgba(224,106,62,.14); --road:#2b3550; --scrim:rgba(0,0,0,.55); --lostbg:#3b1219; --lostfg:#fecaca; color-scheme:dark; }
+  :root { --z:1;
     --st:env(safe-area-inset-top, 0px); --sr:env(safe-area-inset-right, 0px); --sb:env(safe-area-inset-bottom, 0px); --sl:env(safe-area-inset-left, 0px); }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   /* Tout est en rem : le réglage « Taille du texte » agit sur --z. */
@@ -39,7 +44,7 @@
   #live.bad { background:var(--bad); }
   #tabs { grid-area:nav; display:flex; gap:.4rem; align-items:center; padding:calc(.4rem + var(--st)) .4rem .4rem; }
   #tabs button { display:flex; align-items:center; gap:.4rem; background:var(--panel); border:1px solid var(--line); border-radius:.55rem; padding:.35rem .8rem; min-height:40px; font-size:.93rem; white-space:nowrap; }
-  #tabs button.on { border-color:var(--acc); color:var(--acc); }
+  #tabs button.on { border-color:var(--acc); color:var(--acct); }
   .act { grid-area:act; display:flex; gap:.4rem; align-items:center; padding:calc(.4rem + var(--st)) .8rem .4rem 0; }
   .act button { display:flex; align-items:center; gap:.4rem; background:var(--panel); border:1px solid var(--line); border-radius:.55rem; padding:.35rem .7rem; min-height:40px; min-width:40px; justify-content:center; font-size:.93rem; }
   :fullscreen #fs, .standalone #fs { display:none; }
@@ -60,7 +65,7 @@
     header .title, .act .lbl-txt, #dots { display:none; }
     #tabs { justify-content:space-around; gap:0; padding:.15rem .25rem; border-top:1px solid var(--line); }
     #tabs button { flex:1 1 0; flex-direction:column; gap:2px; background:transparent; border:0; border-radius:0; min-height:52px; padding:.25rem .1rem; font-size:.75rem; color:var(--mute); }
-    #tabs button.on { color:var(--acc); box-shadow:inset 0 2px 0 var(--acc); }
+    #tabs button.on { color:var(--acct); box-shadow:inset 0 2px 0 var(--acc); }
     #tabs .ico { width:1.45em; height:1.45em; }
     main { padding:.5rem; }
   }
@@ -95,9 +100,9 @@
   th, td { padding:.3rem .4rem; text-align:left; white-space:nowrap; }
   th { color:var(--mute); font-weight:600; font-size:.8rem; text-transform:uppercase; }
   tr + tr td { border-top:1px solid var(--line); }
-  tr.me td { background:rgba(255,180,0,.12); }
+  tr.me td { background:var(--soft); }
   .cls { display:inline-block; min-width:3.4rem; text-align:center; border-radius:5px; padding:1px 5px; font-size:.8rem; font-weight:700; color:#fff; }
-  .pit { color:var(--acc); font-weight:700; font-size:.8rem; margin-right:.3rem; }
+  .pit { color:var(--acct); font-weight:700; font-size:.8rem; margin-right:.3rem; }
   .r { text-align:right; }
   .c-drv { max-width:16rem; overflow:hidden; text-overflow:ellipsis; }
   /* Colonnes « selon l'écran » : les moins utiles disparaissent d'abord (réglage « Toutes » = tableau complet). */
@@ -133,14 +138,18 @@
   #login { height:100%; overflow:auto; padding:calc(12vh + var(--st)) calc(12px + var(--sr)) 12px calc(12px + var(--sl)); }
   #login > div { max-width:340px; margin:0 auto; text-align:center; }
   #login input { font-size:2rem; letter-spacing:.3em; width:100%; text-align:center; padding:10px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--fg); }
-  #login button { margin-top:12px; width:100%; padding:12px; font-size:1.2rem; border-radius:10px; border:0; background:var(--acc); color:#000; font-weight:700; min-height:48px; }
+  #login button { margin-top:12px; width:100%; padding:12px; font-size:1.2rem; border-radius:10px; border:0; background:var(--acc); color:#fff; font-weight:700; min-height:48px; }
   .err { color:var(--bad); min-height:1.4em; margin-top:8px; }
+  .logo { width:72px; height:72px; border-radius:16px; display:block; margin:0 auto .6rem; }
+  .brand { font-weight:800; font-size:1.35rem; letter-spacing:.01em; }
+  #login h2 { margin:.15rem 0 .2rem; font-size:1.05rem; font-weight:600; color:var(--acct); text-transform:uppercase; letter-spacing:.08em; }
+  .hlogo { width:22px; height:22px; border-radius:5px; flex:none; }
 
   /* ── Connexion perdue, message, réglages ── */
   #app.stale main { opacity:.45; filter:grayscale(.6); }
-  #lost { position:fixed; left:50%; top:calc(3.6rem + var(--st)); transform:translateX(-50%); z-index:15; background:#3b1219; color:#fecaca; border:1px solid var(--bad); border-radius:999px; padding:.45rem 1rem; font-weight:600; white-space:nowrap; max-width:calc(100vw - 24px); overflow:hidden; text-overflow:ellipsis; }
+  #lost { position:fixed; left:50%; top:calc(3.6rem + var(--st)); transform:translateX(-50%); z-index:15; background:var(--lostbg); color:var(--lostfg); border:1px solid var(--bad); border-radius:999px; padding:.45rem 1rem; font-weight:600; white-space:nowrap; max-width:calc(100vw - 24px); overflow:hidden; text-overflow:ellipsis; }
   #toast { position:fixed; left:50%; bottom:calc(5rem + var(--sb)); transform:translateX(-50%); z-index:25; background:var(--panel); border:1px solid var(--acc); border-radius:.8rem; padding:.7rem 1rem; width:min(92vw, 440px); text-align:center; }
-  #sheet { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.55); display:flex; align-items:flex-end; justify-content:center; }
+  #sheet { position:fixed; inset:0; z-index:20; background:var(--scrim); display:flex; align-items:flex-end; justify-content:center; }
   #sheet .panel { background:var(--panel); border:1px solid var(--line); border-radius:1rem 1rem 0 0; width:min(520px, 100%); max-height:88dvh; overflow:auto;
     padding:1rem calc(1rem + var(--sr)) calc(1rem + var(--sb)) calc(1rem + var(--sl)); }
   @media (min-width: 761px) { #sheet { align-items:center; } #sheet .panel { border-radius:1rem; padding-bottom:1rem; } }
@@ -148,18 +157,36 @@
   .row { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.55rem 0; border-top:1px solid var(--line); }
   .seg { display:flex; gap:.35rem; align-items:center; flex:none; }
   .seg button, .wide { background:var(--bg); border:1px solid var(--line); border-radius:.55rem; min-height:44px; min-width:44px; padding:.3rem .7rem; }
-  .seg button.on { border-color:var(--acc); color:var(--acc); }
+  .seg button.on { border-color:var(--acc); color:var(--acct); }
   .sw { width:52px; height:30px; border-radius:15px; border:1px solid var(--line); background:var(--bg); position:relative; flex:none; padding:0; }
   .sw::after { content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--mute); transition:left .15s; }
-  .sw[aria-pressed="true"] { background:rgba(255,180,0,.25); border-color:var(--acc); }
+  .sw[aria-pressed="true"] { background:var(--soft); border-color:var(--acc); }
   .sw[aria-pressed="true"]::after { left:25px; background:var(--acc); }
   .wide { width:100%; margin-top:.6rem; }
+  /* Téléphone couché : réglages sur deux colonnes, boutons côte à côte, sans dépasser l'écran. */
+  @media (max-height: 520px) {
+    #sheet { align-items:center; padding:calc(6px + var(--st)) calc(6px + var(--sr)) calc(6px + var(--sb)) calc(6px + var(--sl)); }
+    #sheet .panel { width:min(780px, 100%); max-height:100%; border-radius:1rem; padding:.6rem 1rem .7rem;
+      display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); column-gap:1.6rem; align-content:start; }
+    #sheet h3 { grid-column:1 / -1; margin-bottom:.2rem; }
+    .row { padding:.3rem 0; gap:.6rem; }
+    .seg button { min-height:38px; min-width:40px; padding:.2rem .55rem; }
+    .btns { grid-column:1 / -1; display:flex; gap:.6rem; }
+    .btns .wide { margin-top:.5rem; min-height:40px; }
+  }
+  /* Plein écran : sans menus ; un toucher les affiche quelques secondes. */
+  html.bare #app { grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,1fr); grid-template-areas:"main"; }
+  html.bare header, html.bare #tabs, html.bare .act, html.bare #dots { display:none; }
+  html.bare main { border-top:0; padding-top:calc(.5rem + var(--st)); }
+  html.bare #lost { top:calc(.6rem + var(--st)); }
   /* Vidéo muette qui garde l'écran allumé (repli sans API Wake Lock) : invisible, sans clic. */
   video.wake { position:fixed; inset:0; width:100%; height:100%; opacity:0; pointer-events:none; z-index:-1; }
 </style>
 </head>
 <body class="cols-auto">
 <div id="login" class="hidden"><div>
+  <img class="logo" src="/icon.png" alt="">
+  <div class="brand">LMU Stats Viewer</div>
   <h2 data-t="title"></h2>
   <p data-t="enterCode" class="meta"></p>
   <input id="code" inputmode="numeric" autocomplete="one-time-code" enterkeyhint="go" maxlength="6" pattern="[0-9]*">
@@ -167,10 +194,10 @@
   <div id="err" class="err"></div>
 </div></div>
 <div id="app" class="hidden">
-  <header><span id="live"></span><span class="title" data-t="title"></span><span id="hdr" class="meta"></span></header>
+  <header><img class="hlogo" src="/icon.png" alt="LMU Stats Viewer" title="LMU Stats Viewer"><span id="live"></span><span class="title" data-t="title"></span><span id="hdr" class="meta"></span></header>
   <nav id="tabs"></nav>
   <div class="act">
-    <button id="set" type="button"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.2" fill="var(--panel)"/><circle cx="15" cy="17" r="2.2" fill="var(--panel)"/></svg></button>
+    <button id="set" type="button"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.2" style="fill:var(--panel)"/><circle cx="15" cy="17" r="2.2" style="fill:var(--panel)"/></svg></button>
     <button id="fs" type="button"><svg class="ico" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="lbl-txt" data-t="fullscreen"></span></button>
   </div>
   <main id="view"></main>
@@ -184,8 +211,8 @@
   <div class="row"><span data-t="keepAwake"></span><button id="awake" class="sw" type="button"></button></div>
   <div class="row"><span data-t="lockOrient"></span><button id="lock" class="sw" type="button"></button></div>
   <div class="row"><span data-t="columns"></span><span class="seg"><button data-cols="auto" type="button" data-t="colAuto"></button><button data-cols="all" type="button" data-t="colAll"></button></span></div>
-  <button id="out" class="wide" type="button" data-t="logout"></button>
-  <button id="closeSet" class="wide" type="button" data-t="close"></button>
+  <div class="row"><span data-t="hideBars"></span><button id="bars" class="sw" type="button"></button></div>
+  <div class="btns"><button id="out" class="wide" type="button" data-t="logout"></button><button id="closeSet" class="wide" type="button" data-t="close"></button></div>
 </div></div>
 <script>
 (() => {
@@ -197,30 +224,35 @@
       pos:"Pos", cls:"Classe", driver:"Pilote", gap:"Écart", int:"Interv.", last:"Dernier", best:"Meilleur", laps:"Tours", pits:"Arrêts",
       remaining:"Restant", lap:"Tour", fuel:"Carburant", lapsLeft:"tours", energy:"Énergie virt.", tyres:"Pneus", pads:"Plaquettes", weather:"Météo", air:"Air", track:"Piste", rain:"Pluie", ahead:"Devant", behind:"Derrière", none:"—", inPit:"STAND", leader:"Leaders", noPlayer:"Pas de voiture joueur.", fullscreen:"Plein écran", mine:"Ma voiture",
       settings:"Réglages", textSize:"Taille du texte", keepAwake:"Garder l'écran allumé", lockOrient:"Bloquer l'orientation en plein écran", columns:"Colonnes du classement", colAuto:"Selon l'écran", colAll:"Toutes", logout:"Se déconnecter", close:"Fermer", reconnecting:"Connexion perdue — nouvelle tentative…", sectors:"Secteurs",
+      hideBars:"Masquer les menus en plein écran", tapMenu:"Touchez l'écran pour afficher les menus.",
       iosHint:"Plein écran : touchez Partager puis « Sur l'écran d'accueil », et ouvrez la régie depuis l'icône." },
     en: { title:"Race control", enterCode:"Enter the 6-digit code shown in LMU Stats Viewer (Settings › Tablet race control).", connect:"Connect", badCode:"Wrong code.", locked:"Too many attempts: try again in a minute.", offline:"Game not connected.", lost:"Connection lost…",
       t_timing:"Timing", t_engineer:"Engineer", t_map:"Map", t_duel:"Duel", t_tv:"TV",
       pos:"Pos", cls:"Class", driver:"Driver", gap:"Gap", int:"Int.", last:"Last", best:"Best", laps:"Laps", pits:"Stops",
       remaining:"Remaining", lap:"Lap", fuel:"Fuel", lapsLeft:"laps", energy:"Virtual energy", tyres:"Tyres", pads:"Pads", weather:"Weather", air:"Air", track:"Track", rain:"Rain", ahead:"Ahead", behind:"Behind", none:"—", inPit:"PIT", leader:"Leaders", noPlayer:"No player car.", fullscreen:"Full screen", mine:"My car",
       settings:"Settings", textSize:"Text size", keepAwake:"Keep the screen on", lockOrient:"Lock orientation in full screen", columns:"Timing columns", colAuto:"Fit the screen", colAll:"All", logout:"Sign out", close:"Close", reconnecting:"Connection lost — retrying…", sectors:"Sectors",
+      hideBars:"Hide the menus in full screen", tapMenu:"Tap the screen to show the menus.",
       iosHint:"Full screen: tap Share, then “Add to Home Screen”, and open race control from the icon." },
     es: { title:"Dirección de carrera", enterCode:"Introduce el código de 6 cifras que muestra LMU Stats Viewer (Configuración › Dirección en tableta).", connect:"Conectar", badCode:"Código incorrecto.", locked:"Demasiados intentos: vuelve a probar en un minuto.", offline:"Juego no conectado.", lost:"Conexión perdida…",
       t_timing:"Clasificación", t_engineer:"Ingeniero", t_map:"Mapa", t_duel:"Duelo", t_tv:"TV",
       pos:"Pos", cls:"Clase", driver:"Piloto", gap:"Dif.", int:"Interv.", last:"Última", best:"Mejor", laps:"Vueltas", pits:"Paradas",
       remaining:"Restante", lap:"Vuelta", fuel:"Combustible", lapsLeft:"vueltas", energy:"Energía virtual", tyres:"Neumáticos", pads:"Pastillas", weather:"Meteo", air:"Aire", track:"Pista", rain:"Lluvia", ahead:"Delante", behind:"Detrás", none:"—", inPit:"BOX", leader:"Líderes", noPlayer:"Sin coche del jugador.", fullscreen:"Pantalla completa", mine:"Mi coche",
       settings:"Ajustes", textSize:"Tamaño del texto", keepAwake:"Mantener la pantalla encendida", lockOrient:"Bloquear la orientación en pantalla completa", columns:"Columnas de la clasificación", colAuto:"Según la pantalla", colAll:"Todas", logout:"Cerrar sesión", close:"Cerrar", reconnecting:"Conexión perdida — reintentando…", sectors:"Sectores",
+      hideBars:"Ocultar los menús en pantalla completa", tapMenu:"Toca la pantalla para mostrar los menús.",
       iosHint:"Pantalla completa: toca Compartir y luego «Añadir a pantalla de inicio», y abre la dirección desde el icono." },
     de: { title:"Rennleitung", enterCode:"Gib den 6-stelligen Code aus LMU Stats Viewer ein (Einstellungen › Rennleitung auf Tablet).", connect:"Verbinden", badCode:"Falscher Code.", locked:"Zu viele Versuche: in einer Minute erneut versuchen.", offline:"Spiel nicht verbunden.", lost:"Verbindung verloren…",
       t_timing:"Zeitenliste", t_engineer:"Ingenieur", t_map:"Karte", t_duel:"Duell", t_tv:"TV",
       pos:"Pos", cls:"Klasse", driver:"Fahrer", gap:"Abstand", int:"Int.", last:"Letzte", best:"Beste", laps:"Runden", pits:"Stopps",
       remaining:"Verbleibend", lap:"Runde", fuel:"Kraftstoff", lapsLeft:"Runden", energy:"Virtuelle Energie", tyres:"Reifen", pads:"Beläge", weather:"Wetter", air:"Luft", track:"Strecke", rain:"Regen", ahead:"Vorne", behind:"Hinten", none:"—", inPit:"BOX", leader:"Führende", noPlayer:"Kein Spielerauto.", fullscreen:"Vollbild", mine:"Mein Auto",
       settings:"Einstellungen", textSize:"Textgröße", keepAwake:"Bildschirm anlassen", lockOrient:"Ausrichtung im Vollbild sperren", columns:"Spalten der Zeitenliste", colAuto:"Nach Bildschirm", colAll:"Alle", logout:"Abmelden", close:"Schließen", reconnecting:"Verbindung verloren – neuer Versuch…", sectors:"Sektoren",
+      hideBars:"Menüs im Vollbild ausblenden", tapMenu:"Tippe auf den Bildschirm, um die Menüs anzuzeigen.",
       iosHint:"Vollbild: Teilen und dann „Zum Home-Bildschirm“ antippen und die Rennleitung über das Symbol öffnen." },
     it: { title:"Direzione gara", enterCode:"Inserisci il codice a 6 cifre mostrato in LMU Stats Viewer (Impostazioni › Direzione gara su tablet).", connect:"Connetti", badCode:"Codice errato.", locked:"Troppi tentativi: riprova tra un minuto.", offline:"Gioco non connesso.", lost:"Connessione persa…",
       t_timing:"Classifica", t_engineer:"Ingegnere", t_map:"Mappa", t_duel:"Duello", t_tv:"TV",
       pos:"Pos", cls:"Classe", driver:"Pilota", gap:"Distacco", int:"Interv.", last:"Ultimo", best:"Migliore", laps:"Giri", pits:"Soste",
       remaining:"Rimanente", lap:"Giro", fuel:"Carburante", lapsLeft:"giri", energy:"Energia virtuale", tyres:"Gomme", pads:"Pastiglie", weather:"Meteo", air:"Aria", track:"Pista", rain:"Pioggia", ahead:"Davanti", behind:"Dietro", none:"—", inPit:"BOX", leader:"Leader", noPlayer:"Nessuna auto del giocatore.", fullscreen:"Schermo intero", mine:"La mia auto",
       settings:"Impostazioni", textSize:"Dimensione del testo", keepAwake:"Tieni lo schermo acceso", lockOrient:"Blocca l'orientamento a schermo intero", columns:"Colonne della classifica", colAuto:"In base allo schermo", colAll:"Tutte", logout:"Esci", close:"Chiudi", reconnecting:"Connessione persa — nuovo tentativo…", sectors:"Settori",
+      hideBars:"Nascondi i menu a schermo intero", tapMenu:"Tocca lo schermo per mostrare i menu.",
       iosHint:"Schermo intero: tocca Condividi e poi «Aggiungi alla schermata Home», quindi apri la direzione gara dall'icona." },
   };
   const lang = (navigator.language || "en").slice(0, 2).toLowerCase();
@@ -247,7 +279,7 @@
   // Valeurs par défaut = comportement d'origine pour le texte et les colonnes
   // (« Toutes » redonne le tableau complet) ; écran allumé et orientation
   // bloquée désactivables ici.
-  const P = { z: 1, awake: true, lock: true, cols: "auto" };
+  const P = { z: 1, awake: true, lock: true, cols: "auto", bars: true };
   try { Object.assign(P, JSON.parse(localStorage.getItem("regie_prefs") || "{}")); } catch { /* réglages illisibles : défauts */ }
   function applyPrefs() {
     P.z = Math.min(1.6, Math.max(0.8, Math.round(P.z * 10) / 10));
@@ -256,6 +288,7 @@
     $("zv").textContent = Math.round(P.z * 100) + "%";
     $("awake").setAttribute("aria-pressed", String(!!P.awake));
     $("lock").setAttribute("aria-pressed", String(!!P.lock));
+    $("bars").setAttribute("aria-pressed", String(!!P.bars));
     document.querySelectorAll("[data-cols]").forEach((b) => b.classList.toggle("on", b.dataset.cols === P.cols));
   }
   function savePrefs() { localStorage.setItem("regie_prefs", JSON.stringify(P)); applyPrefs(); if (last) render(); }
@@ -264,6 +297,7 @@
   $("awake").onclick = () => { P.awake = !P.awake; savePrefs(); keepAwake(P.awake); };
   $("lock").onclick = () => { P.lock = !P.lock; savePrefs(); if (P.lock) lockOrientation(); else if (screen.orientation && screen.orientation.unlock) try { screen.orientation.unlock(); } catch { /* non pris en charge */ } };
   document.querySelectorAll("[data-cols]").forEach((b) => b.onclick = () => { P.cols = b.dataset.cols; savePrefs(); });
+  $("bars").onclick = () => { P.bars = !P.bars; savePrefs(); updBars(); };
   const sheetOpen = () => !$("sheet").classList.contains("hidden");
   $("set").onclick = () => $("sheet").classList.remove("hidden");
   $("closeSet").onclick = () => $("sheet").classList.add("hidden");
@@ -354,8 +388,26 @@
   }
   $("fs").onclick = (e) => { e.stopPropagation(); goFullscreen(true); };
   $("app").addEventListener("click", () => goFullscreen(false), { once: true });
-  document.addEventListener("fullscreenchange", lockOrientation);
-  document.addEventListener("webkitfullscreenchange", lockOrientation);
+  // Menus masqués en plein écran (ou ouverte depuis l'écran d'accueil) : un toucher
+  // sur le contenu les affiche 4 s ; le balayage change toujours de page.
+  let barsShown = false, barsTimer = 0, tapHinted = false;
+  function updBars() {
+    const bare = !!P.bars && !!(fsEl() || standalone) && !barsShown && !$("app").classList.contains("hidden");
+    if (bare === document.documentElement.classList.contains("bare")) return;
+    document.documentElement.classList.toggle("bare", bare);
+    if (bare && !tapHinted) { tapHinted = true; toast(T.tapMenu); }
+    reflow();
+  }
+  function showBars() {
+    barsShown = true; updBars(); clearTimeout(barsTimer);
+    barsTimer = setTimeout(() => { if (sheetOpen()) return showBars(); barsShown = false; updBars(); }, 4000);
+  }
+  $("view").addEventListener("click", () => { if (document.documentElement.classList.contains("bare")) showBars(); });
+  ["header", "#tabs", ".act"].forEach((q) => document.querySelector(q).addEventListener("pointerdown", () => { if (barsShown) showBars(); }));
+  addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" && document.documentElement.classList.contains("bare")) showBars(); });
+  const onFs = () => { barsShown = false; clearTimeout(barsTimer); updBars(); lockOrientation(); };
+  document.addEventListener("fullscreenchange", onFs);
+  document.addEventListener("webkitfullscreenchange", onFs);
 
   // Écran allumé : API Wake Lock si la page y a droit (HTTPS / localhost) ;
   // sinon une vidéo muette de 2 s en boucle, invisible (page servie en HTTP
@@ -420,6 +472,7 @@
     busy = true;
     try {
       last = await get("/api/live");
+      if (last.ui_theme) setTheme(last.ui_theme);
       fails = 0; setLost(false);
       const key = last.session && last.session.track;
       if (key && (!track || track.track !== key || Date.now() - trackAt > 30000)) { track = await get("/api/track"); trackAt = Date.now(); }
@@ -428,6 +481,13 @@
       if (String(e && e.message) !== "auth" && ++fails > 3) { $("hdr").textContent = T.lost; setLost(true); }
     } finally { busy = false; }
   }
+  // Thème de l'app : posé dans la page par le serveur, suivi à chaque trame.
+  function setTheme(t) {
+    const th = t === "dark" ? "dark" : "light";
+    if (document.documentElement.dataset.theme !== th) document.documentElement.dataset.theme = th;
+    document.querySelector('meta[name="theme-color"]').content = th === "dark" ? "#0b101f" : "#f4f5f8";
+  }
+  setTheme(document.documentElement.dataset.theme);
   let raf = 0;
   const reflow = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { if (last) render(); }); };
   addEventListener("resize", reflow);
@@ -435,6 +495,7 @@
   function start() {
     $("login").classList.add("hidden"); $("app").classList.remove("hidden");
     tabs(); tick(); if (!timer) timer = setInterval(tick, 1000);
+    updBars();
     if (P.awake) keepAwake(true);
   }
 
@@ -461,13 +522,13 @@
     const rCar = Math.max(11, 9 / ks), rMe = Math.max(16, 12 / ks), road = Math.max(22, 9 / ks);
     const P = (p) => { const [x, y] = rot(p); return [pad + (x - x0) * k, pad + (y - y0) * k]; };
     const path = (arr, close) => arr.map((p, i) => { const [x, y] = P(p); return (i ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1); }).join("") + (close ? "Z" : "");
-    const pitSvg = pit.length > 1 ? `<path d="${path(pit, false)}" fill="none" stroke="#1f2a40" stroke-width="${(road * 0.36).toFixed(1)}" stroke-dasharray="10 8"/>` : "";
+    const pitSvg = pit.length > 1 ? `<path d="${path(pit, false)}" fill="none" style="stroke:var(--line)" stroke-width="${(road * 0.36).toFixed(1)}" stroke-dasharray="10 8"/>` : "";
     const cars = (d.standings || []).filter((s) => s.pos_x || s.pos_z).sort((a, b) => (a.is_player ? 1 : 0) - (b.is_player ? 1 : 0)).map((s) => {
       const [x, y] = P([s.pos_x, s.pos_z]); const me = s.is_player; const r = me ? rMe : rCar;
-      return `<g><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${me ? "#ffb400" : classColor(s.vehicle_class)}" stroke="#0a0e1a" stroke-width="${(r * 0.25).toFixed(1)}"/>` +
+      return `<g><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${me ? "#ffb400" : classColor(s.vehicle_class)}" style="stroke:var(--panel)" stroke-width="${(r * 0.25).toFixed(1)}"/>` +
         `<text x="${x.toFixed(1)}" y="${(y + r * 0.36).toFixed(1)}" text-anchor="middle" font-size="${(r * 1.05).toFixed(1)}" font-weight="700" fill="#0a0e1a">${s.class_position || s.position}</text></g>`;
     }).join("");
-    return `<svg class="map" viewBox="0 0 ${W} ${H}" style="${style || ""}">${pitSvg}<path d="${path(pts, true)}" fill="none" stroke="#2b3550" stroke-width="${road.toFixed(1)}" stroke-linejoin="round"/>${cars}</svg>`;
+    return `<svg class="map" viewBox="0 0 ${W} ${H}" style="${style || ""}">${pitSvg}<path d="${path(pts, true)}" fill="none" style="stroke:var(--road)" stroke-width="${road.toFixed(1)}" stroke-linejoin="round"/>${cars}</svg>`;
   }
   const viewBox = () => { const v = $("view"); return { w: Math.max(200, v.clientWidth - 24), h: Math.max(200, v.clientHeight - 24) }; };
 

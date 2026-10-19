@@ -71,6 +71,16 @@ struct Running {
 }
 
 static SERVER: Mutex<Option<Running>> = Mutex::new(None);
+/// Thème de l'app (clair par défaut, comme l'app) : la tablette prend le même.
+static DARK: AtomicBool = AtomicBool::new(false);
+
+fn theme_name() -> &'static str {
+    if DARK.load(Ordering::Relaxed) {
+        "dark"
+    } else {
+        "light"
+    }
+}
 static GENERATION: AtomicU64 = AtomicU64::new(0);
 
 fn random_bytes<const N: usize>() -> [u8; N] {
@@ -255,7 +265,9 @@ fn handle(stream: TcpStream, peer: IpAddr, sh: &Shared) {
     let path = req.path.split('?').next().unwrap_or("/");
     match (req.method.as_str(), path) {
         ("GET", "/") | ("GET", "/index.html") => {
-            respond(&stream, "200 OK", "text/html; charset=utf-8", PAGE.as_bytes(), PAGE_CSP)
+            // Thème posé dès le premier affichage (écran de connexion compris).
+            let page = PAGE.replacen("__THEME__", theme_name(), 1);
+            respond(&stream, "200 OK", "text/html; charset=utf-8", page.as_bytes(), PAGE_CSP)
         }
         // Ressources publiques de l'écran d'accueil (aucune donnée live).
         ("GET", "/manifest.webmanifest") => {
@@ -286,11 +298,15 @@ fn handle(stream: TcpStream, peer: IpAddr, sh: &Shared) {
             }
             let frame = live::last_frame().and_then(|d| serde_json::to_value(d).ok());
             let Some(frame) = frame else {
-                json(&stream, "200 OK", &serde_json::json!({"connected": false}));
+                json(&stream, "200 OK", &serde_json::json!({"connected": false, "ui_theme": theme_name()}));
                 return;
             };
             let out = if path == "/api/live" {
-                light_frame(frame)
+                let mut v = light_frame(frame);
+                if let Some(o) = v.as_object_mut() {
+                    o.insert("ui_theme".into(), Value::from(theme_name()));
+                }
+                v
             } else {
                 let pick = |k: &str| frame.get(k).cloned().unwrap_or(Value::Null);
                 serde_json::json!({
@@ -374,6 +390,12 @@ pub fn regie_stop() -> Result<RegieStatus, AppError> {
         live::release_window(CONSUMER);
     }
     Ok(stopped())
+}
+
+/// Thème courant de l'app (`dark` / `light`), suivi en direct par la tablette.
+#[tauri::command]
+pub fn regie_set_theme(theme: String) {
+    DARK.store(theme == "dark", Ordering::Relaxed);
 }
 
 #[tauri::command]
@@ -464,6 +486,7 @@ mod tests {
         let page = req(format!("GET / HTTP/1.1\r\nHost: {host}\r\n\r\n"));
         assert!(page.starts_with("HTTP/1.1 200") && page.contains("<html"));
         assert!(page.contains("media-src data:") && page.contains("manifest-src 'self'"));
+        assert!(page.contains("data-theme=\"light\"") && !page.contains("__THEME__"));
         let manifest = req(format!("GET /manifest.webmanifest HTTP/1.1\r\nHost: {host}\r\n\r\n"));
         let mbody = manifest.split("\r\n\r\n").nth(1).unwrap();
         let m: Value = serde_json::from_str(mbody).unwrap();

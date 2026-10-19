@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { isTauri } from "@/lib/api";
+import { regie } from "@/lib/regie";
 
 type Theme = "dark" | "light";
 
@@ -21,6 +23,8 @@ export function useTheme() {
     if (theme === "dark") root.classList.add("dark");
     else root.classList.remove("dark");
     localStorage.setItem(STORAGE_KEY, theme);
+    // La régie tablette suit le thème de l'app.
+    if (isTauri()) void regie.setTheme(theme).catch(() => {});
   }, [theme]);
 
   const setTheme = (t: Theme) => setThemeState(t);

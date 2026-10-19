@@ -223,6 +223,7 @@ pub fn run() {
             commands::regie::regie_start,
             commands::regie::regie_stop,
             commands::regie::regie_status,
+            commands::regie::regie_set_theme,
             commands::tools::tools_detect_known,
             commands::tools::tools_set_launcher,
             commands::tools::tools_launcher_status,

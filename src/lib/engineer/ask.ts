@@ -19,7 +19,7 @@ import type { TFunction } from "i18next";
 import { useAppStore } from "@/stores/app";
 import { live, type LiveData } from "@/lib/api";
 import { effectivePitLoss } from "@/lib/lmuRest";
-import { announce, announceAnswer, cancelSpeech, repeatLast } from "@/lib/voice";
+import { announceAnswer, cancelSpeech, repeatLast } from "@/lib/voice";
 import { getProvider } from "@/lib/ai/providers";
 import { askCoachVoice, classifyIntent, errorMessage, friendlyError } from "@/lib/ai/coach";
 import { sampleLiveData } from "@/components/overlay/sampleData";
@@ -303,7 +303,7 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     if (id === "mute") {
       const next = !useAppStore.getState().voiceAnnouncements;
       void useAppStore.getState().setVoiceAnnouncements(next);
-      if (next) announce(t("live.spUnmuted"), lang);
+      if (next) announceAnswer(t("live.spUnmuted"), lang);
       else cancelSpeech();
       return { text: next ? t("live.spUnmuted") : "", via: "command" };
     }
@@ -368,7 +368,7 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   }
   try {
     // Accusé immédiat : l'appel IA prend 1 à 3 s, le pilote sait qu'on a entendu.
-    if (!gone()) announce(t(`coach.voiceAck${1 + Math.floor(Math.random() * 3)}`), lang);
+    if (!gone()) announceAnswer(t(`coach.voiceAck${1 + Math.floor(Math.random() * 3)}`), lang);
     if (mode !== "ai" && st0.localAnswers && r.ambiguous && r.candidates.length) {
       const help: Record<string, string> = {};
       for (const id of r.candidates) if (INTENT_HELP[id]) help[id] = INTENT_HELP[id]!;

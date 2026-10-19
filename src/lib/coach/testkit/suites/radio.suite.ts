@@ -25,6 +25,7 @@ import {
   cloudModeFor,
   cloudPrepKeys,
   CLOUD_PREP_WHEEL_KEYS,
+  spokenFixedKeys,
   wheelTemplates,
   estimateCostUsd,
   fixedPhrases,
@@ -541,6 +542,27 @@ function cloudPrepSuite() {
       eq(wheelPhrases.length, 4 * splitVariants(tpl).length, `${lang} ${k} : 4 roues × variantes préparées`);
       ok(wheelPhrases.some((p) => p.includes(names[0])), `${lang} ${k} : la roue est dans la phrase`);
     }
+  }
+
+  // TOUTES les phrases fixes de l'ingénieur sont préparées : réponses, débrief, notes…
+  for (const [lang, b] of Object.entries(bundles)) {
+    const live = b.live as Record<string, unknown>;
+    const keys = new Set(spokenFixedKeys(live));
+    const all = Object.keys(live).filter((k) => /^(v|sp|note)[A-Z]/.test(k) && typeof live[k] === "string" && !(live[k] as string).includes("{{"));
+    eq(all.filter((k) => !keys.has(k)), [], `${lang} : toute phrase fixe de l'ingénieur est préparée`);
+    ok([...keys].every((k) => !(live[k] as string).includes("{{")), `${lang} : aucun gabarit à variable dans la préparation`);
+    for (const k of ["spNoSession", "spUnmuted", "spAck", "noteNoSession", "spInPits"]) ok(keys.has(k), `${lang} ${k} préparé`);
+  }
+  // Phrases du coach dites à la radio (accusé, garde-fous, erreurs) : toutes préparées.
+  const coachSrc = readFileSync("src/lib/engineer/ask.ts", "utf8") + readFileSync("src/lib/engineer/radioErrors.ts", "utf8");
+  for (const m of coachSrc.matchAll(/"(coach\.(?:voice|guard)[A-Za-z0-9]+)"/g)) {
+    if (m[1].endsWith("Toast")) continue; // toast, pas la radio
+    ok(CLOUD_PREP_ANSWER_KEYS.includes(m[1]), `${m[1]} (dit à la radio) est préparé`);
+  }
+  // Réponses au pilote (questions, boutons, notes) : voix en ligne permise (announceAnswer),
+  // jamais traitées comme une alerte (sinon Piper avec « alertes en voix locale »).
+  for (const f of ["src/lib/engineer/ask.ts", "src/lib/useRadioAudio.ts", "src/lib/useSpotter.ts", "src/lib/useVoiceNotes.ts"]) {
+    ok(!/announce\(/.test(readFileSync(f, "utf8")), `${f} : réponses au pilote par announceAnswer`);
   }
 
   approx(estimateCostUsd("openai", "gpt-4o-mini-tts", 1_000_000), 15, 1e-9, "OpenAI ≈ 15 $/M caractères");

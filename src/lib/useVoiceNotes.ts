@@ -17,7 +17,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { TFunction } from "i18next";
 import { isTauri, voiceNotes, type LiveData } from "@/lib/api";
 import { useAppStore } from "@/stores/app";
-import { announce, isSpeaking, setDriverTalking } from "@/lib/voice";
+import { announceAnswer, isSpeaking, setDriverTalking } from "@/lib/voice";
 import { audioContext, audioOutput } from "@/lib/radioFx";
 import { detectTrackCorners } from "@/lib/trackCorners";
 import { aheadDist } from "@/lib/engineer/pitTraffic";
@@ -139,7 +139,7 @@ export function useVoiceNotes(data: LiveData | null, active: boolean, lang: stri
       }
       setDriverTalking(false);
       await invoke("ptt_end", { lang: langRef.current }).catch(() => null);
-      announce(await saveNoteHere(tRef.current), langRef.current);
+      announceAnswer(await saveNoteHere(tRef.current), langRef.current);
     }).then((fn) => {
       if (disposed) fn();
       else off = fn;

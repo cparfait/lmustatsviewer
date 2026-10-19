@@ -14,7 +14,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/stores/app";
 import { isTauri, live } from "@/lib/api";
-import { announce, announceAnswer, repeatLast, cancelSpeech } from "@/lib/voice";
+import { announceAnswer, repeatLast, cancelSpeech } from "@/lib/voice";
 import { buildStatus } from "@/lib/spotter";
 
 export function useSpotter() {
@@ -43,7 +43,7 @@ export function useSpotter() {
         // Point de course demandé par le pilote : une réponse → voix IA si active.
         announceAnswer(buildStatus(data, tt, useAppStore.getState().classPositions), lang);
       } catch {
-        announce(tt("live.spNoSession"), lang);
+        announceAnswer(tt("live.spNoSession"), lang);
       }
     };
     const onMute = () => {
@@ -54,7 +54,7 @@ export function useSpotter() {
       // À la coupure : silence immédiat (le silence EST la confirmation, et sur
       // la page Live `useVoiceCallouts` re-coupe de toute façon à la désactivation).
       // À la réactivation : confirmation parlée (qui survit, pas de cancel).
-      if (next) announce(tt("live.spUnmuted"), lang);
+      if (next) announceAnswer(tt("live.spUnmuted"), lang);
       else cancelSpeech();
     };
     const onRepeat = () => {

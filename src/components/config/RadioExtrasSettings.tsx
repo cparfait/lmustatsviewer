@@ -376,7 +376,11 @@ export function WheelActionsRows() {
     }
   };
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 rounded-md border border-border p-3">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <Gamepad2 className="h-4 w-4 text-primary" />
+        {t("config.wheelActionsTitle")}
+      </div>
       <p className="text-xs text-muted-foreground/70">{t("config.wheelActionsDesc")}</p>
       {WHEEL_ACTIONS.map((a) => (
         <div key={a} className="flex items-center justify-between gap-3 py-1.5">

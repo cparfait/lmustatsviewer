@@ -1208,6 +1208,24 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "AI voice: when you ask a question, “Hang on, I'll check and get back to you” and the replies to wheel buttons and commands (status, mute, spotter on/off, volume, voice note saved) now use the AI voice instead of Piper, even with “Alerts on the local voice” on. “Prepare the voice” now covers every fixed engineer phrase (answers to your questions, debrief, voice notes, AI Coach safety lines, puncture and lost wheel for each wheel) — run it again once.",
+              fr: "Voix IA : quand tu poses une question, « Attends, je vérifie et je te redis » et les réponses aux boutons et commandes (point de course, mute, spotter, volume, note vocale enregistrée) passent par la voix IA au lieu de Piper, même avec « Alertes en voix locale ». « Préparer la voix » couvre maintenant toutes les phrases fixes de l'ingénieur (réponses à tes questions, débrief, notes vocales, garde-fous du Coach IA, crevaison et roue arrachée pour chaque roue) : relance-la une fois.",
+              es: "Voz IA: cuando haces una pregunta, «Espera, lo compruebo y te digo» y las respuestas a botones y comandos (resumen de carrera, silencio, spotter, volumen, nota de voz guardada) usan la voz IA en lugar de Piper, incluso con «Alertas con voz local». «Preparar la voz» cubre ahora todas las frases fijas del ingeniero (respuestas a tus preguntas, balance, notas de voz, salvaguardas del Coach IA, pinchazo y rueda arrancada para cada rueda): vuelve a lanzarla una vez.",
+              de: "KI-Stimme: Wenn du eine Frage stellst, laufen „Warte, ich prüfe und melde mich“ und die Antworten auf Tasten und Befehle (Rennstand, Stumm, Spotter, Lautstärke, Sprachnotiz gespeichert) jetzt über die KI-Stimme statt Piper, auch mit „Warnungen mit lokaler Stimme“. „Stimme vorbereiten“ deckt jetzt alle festen Sätze des Ingenieurs ab (Antworten auf deine Fragen, Bilanz, Sprachnotizen, Schutzsätze des KI-Coachs, Reifenschaden und abgerissenes Rad für jedes Rad): einmal neu starten.",
+              it: "Voce IA: quando fai una domanda, «Aspetta, controllo e ti dico» e le risposte a pulsanti e comandi (punto gara, muto, spotter, volume, nota vocale salvata) usano la voce IA invece di Piper, anche con «Avvisi con voce locale». «Prepara la voce» ora copre tutte le frasi fisse dell'ingegnere (risposte alle tue domande, bilancio, note vocali, frasi di sicurezza del Coach IA, foratura e ruota persa per ogni ruota): rilanciala una volta.",
+            },
+          },
+          {
+            text: {
+              en: "Settings › Audio / Voice › Shortcuts without speaking: wheel and gamepad buttons now sit right under the keyboard shortcuts, under their own title (they were further down and easy to miss).",
+              fr: "Configuration › Audio / Voix › Raccourcis sans parler : les boutons du volant ou de la manette sont maintenant juste sous les raccourcis clavier, avec leur propre titre (ils étaient plus bas et passaient inaperçus).",
+              es: "Configuración › Audio / Voz › Atajos sin hablar: los botones del volante o del mando están ahora justo debajo de los atajos de teclado, con su propio título (estaban más abajo y pasaban desapercibidos).",
+              de: "Einstellungen › Audio / Stimme › Kurzbefehle ohne Sprechen: Lenkrad- und Controller-Tasten stehen jetzt direkt unter den Tastenkürzeln, mit eigener Überschrift (sie standen weiter unten und wurden leicht übersehen).",
+              it: "Impostazioni › Audio / Voce › Scorciatoie senza parlare: i pulsanti del volante o del controller ora sono subito sotto le scorciatoie da tastiera, con un proprio titolo (erano più in basso e passavano inosservati).",
+            },
+          },
+          {
+            text: {
               en: "“Big lock-up, possible flat spot” no longer goes off on every firm braking: by default it only speaks when a wheel stays locked for more than a second above 100 km/h, once per braking even if both front wheels lock. The previous behaviour remains under Settings › Audio / Voice › Lock-up alert › Sensitive.",
               fr: "« Blocage, on a peut-être un plat » ne se déclenche plus à chaque freinage appuyé : par défaut, seulement quand une roue reste bloquée plus d'une seconde au-dessus de 100 km/h, une seule fois par freinage même si les deux roues avant bloquent. L'ancien comportement reste disponible dans Configuration › Audio / Voix › Alerte de blocage › Sensible.",
               es: "«Bloqueo, quizá tengamos un plano» ya no salta en cada frenada fuerte: por defecto, solo cuando una rueda queda bloqueada más de un segundo por encima de 100 km/h, una sola vez por frenada aunque bloqueen las dos delanteras. El comportamiento anterior sigue disponible en Configuración › Audio / Voz › Alerta de bloqueo › Sensible.",

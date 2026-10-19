@@ -921,6 +921,67 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-19 — Veille TrackMind, 6ᵉ passe REA : comment sont faites les parties graphiques (aucun code modifié)
+
+**Demande** : « analyse avec REA comment sont faites les parties graphiques de TrackMind ».
+Lecture statique seulement (build du 2026-09-22, cible jamais lancée). Outillage hors dépôt
+dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idées seulement.
+
+- ✅ **Méthode** : REA `analyze_javascript_application` sur `_internal/studio/web` (8 JS, 3 HTML ;
+  le JS en ligne d'`index.html` n'est pas couvert par REA → lu directement) ; chaînes des
+  modules Python extraites du `PYZ` ; `TrackMindCapture.dll` sortie du bundle .NET puis REA
+  `inspect_managed_artifact` + `inspect_managed_members` (59 types, 314 chaînes).
+- ✅ **Six technos de rendu distinctes** :
+  1. **Studio = pywebview + WebView2** (`app_web`) : fenêtre `frameless` + `easy_drag`,
+     barre de titre et boutons ─ ▢ ✕ dessinés en HTML/SVG, DPI par moniteur, pages servies par
+     un petit serveur HTTP local (`ThreadingHTTPServer`, repli de port), pont `js_api` +
+     `evaluate_js`, garde au démarrage si le runtime WebView2 est absent ou abîmé.
+  2. **Graphes du Studio = SVG fait main** : ni canvas ni bibliothèque. Petits tracés en chaînes
+     HTML (`innerHTML`), graphes de carrière construits nœud par nœud (`createElementNS`).
+     Détails : zone de clic invisible de 11 px sur chaque point, `<title>` d'infobulle sur la
+     zone (pas sur le `<svg>`), chevron « hors échelle » pour les valeurs coupées, rendu
+     relancé au redimensionnement.
+  3. **Régie tablette** (`regie.html`) : SVG + `fetch('/api/…')`. Carte = tracé tiré de la
+     télémétrie (x/z, **axe X inversé** car le repère du jeu est gaucher), voitures placées en
+     mètres parcourus ; repli `getPointAtLength` sur une forme type quand le tracé manque.
+     `spark()` = mini-courbe avec aire à 12 %, ligne de seuil pointillée et projection.
+  4. **Overlay en jeu = tkinter `Canvas`** (`overlay`) : `overrideredirect` + `topmost` +
+     `transparentcolor` (couleur clé), opacité à la molette, sauvegardée. **Désactivé** depuis
+     les retours bêta du 15/07/2026.
+  5. **Visualiseur 3D de livrées = Three.js** (GLB, `OrbitControls`, `RoomEnvironment`/PMREM) :
+     `customskin.tga` = couleur ; `customskin_region.tga` classé en 5 zones → cartes de
+     metalness/roughness, 6 vues, export PNG ; ne prétend pas reproduire le shader du jeu.
+  6. **Images et vidéos** : PIL pour la fiche « carrière » partageable et les calques des clips
+     (`moments_rendu`) ; `TrackMindCapture.exe` (.NET 8) = **Windows.Graphics.Capture** sur la
+     fenêtre du jeu (D3D11, bordure jaune retirée), anneau de segments MP4 (défauts lus :
+     `--gardees 60`, `--secondes 20`, 1920×1080 à 20 000 kbit/s), son du jeu seul (loopback WASAPI par processus),
+     montage 16:9 + 9:16 recadré, calque PNG + logo, vignette JPG ; pause si la VRAM manque
+     (`garde_vram`, relevés `nvidia-smi`).
+- ✅ **Charte** : fond `#121212`, rouge `#D84A26`, vert `#34D399`, couleurs par classe ;
+  polices Space Grotesk (UI) + JetBrains Mono (données) ; fond = halos radiaux + grille 48 px.
+  Images des circuits = PNG livrés (déjà écartés : tracés réels, pas ceux du jeu).
+- 📋 **Prochaine étape** : aucune implémentation demandée. Idées à trier plus tard avec
+  l'utilisateur : zone de clic élargie + infobulle par point sur nos graphes SVG ; repli « forme
+  type + % du tour » de la carte quand le tracé manque ; garde VRAM avant toute capture vidéo.
+
+### 2026-10-19 — Voix IA : toutes les phrases fixes préparées, réponses au pilote en voix IA ; boutons volant/manette visibles
+
+- Retour utilisateur : « Attends, je vérifie et je te redis » sortait en Piper. Cause : l'accusé
+  (`ask.ts`) et les réponses aux boutons/commandes (`useRadioAudio`, `useSpotter`, `useVoiceNotes`)
+  passaient par `announce` (= alerte : voix IA seulement depuis le cache, jamais avec « alertes en
+  voix locale »). Désormais `announceAnswer` ; un test interdit `announce(` dans ces fichiers.
+- Audit de « Préparer la voix » : ~60 phrases fixes manquaient (réponses `sp*`, débrief, `note*`,
+  garde-fous `coach.guard*`, `voiceUnsure`, `voiceNoAi`, `voiceNotConfigured`). La préparation lit
+  maintenant **tout** le bundle `live` (`spokenFixedKeys` : `v*`/`sp*`/`note*` sans variable) en plus
+  des listes ; tests : toute phrase fixe préparée, toute clé `coach.voice*/guard*` dite à la radio
+  dans les réponses préparées. Crevaison / roue arrachée nommées : rendues pour les 4 roues.
+- Reste hors préparation : les gabarits à variable (noms, virages… ; les nombres passent par les
+  segments) et le texte libre du Coach IA.
+- Config › Raccourcis sans parler : bloc « Boutons du volant ou de la manette » (titré, encadré)
+  remonté sous les raccourcis clavier ; il existait déjà (`WheelActionsRows`, winmm + HID).
+- **Prochaine étape** : relancer « Préparer la voix » dans l'app et vérifier en roulant que
+  l'accusé et les réponses sortent en voix IA ; commit sur main si l'utilisateur le demande.
+
 ### 2026-10-19 — Dictée Parakeet intégrée, alerte de blocage plus stricte, roue nommée, nombres 70-99
 
 - **Parakeet** (suite du banc ci-dessous) : `stt_parakeet.rs` (sherpa-onnx 1.13.8, feature `shared`,

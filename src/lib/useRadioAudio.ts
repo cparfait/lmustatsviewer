@@ -17,7 +17,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { gameAudio, isTauri, live } from "@/lib/api";
 import { useAppStore } from "@/stores/app";
-import { announce, cancelSpeech, onDriverTalk, onSpeechEvent, repeatLast } from "@/lib/voice";
+import { announceAnswer, cancelSpeech, onDriverTalk, onSpeechEvent, repeatLast } from "@/lib/voice";
 import { setOutputDevice } from "@/lib/radioFx";
 import { buildStatus } from "@/lib/spotter";
 import { engineer } from "@/lib/engineer/state";
@@ -183,33 +183,33 @@ async function runWheelAction(action: string, t: ReturnType<typeof useTranslatio
     case "mute": {
       const next = !st.voiceAnnouncements;
       await st.setVoiceAnnouncements(next);
-      if (next) announce(t("live.spUnmuted"), lang);
+      if (next) announceAnswer(t("live.spUnmuted"), lang);
       else cancelSpeech();
       return;
     }
     case "repeat":
-      if (!repeatLast()) announce(buildStatus(await live.getData().catch(() => null), t, st.classPositions), lang);
+      if (!repeatLast()) announceAnswer(buildStatus(await live.getData().catch(() => null), t, st.classPositions), lang);
       return;
     case "status":
-      announce(buildStatus(await live.getData().catch(() => null), t, st.classPositions), lang);
+      announceAnswer(buildStatus(await live.getData().catch(() => null), t, st.classPositions), lang);
       return;
     case "volumeUp":
     case "volumeDown": {
       const v = Math.round((st.voiceVolume + (action === "volumeUp" ? VOLUME_STEP : -VOLUME_STEP)) * 100) / 100;
       await st.setVoiceVolume(v);
-      announce(t("live.spVolume", { pct: Math.round(useAppStore.getState().voiceVolume * 100) }), lang);
+      announceAnswer(t("live.spVolume", { pct: Math.round(useAppStore.getState().voiceVolume * 100) }), lang);
       return;
     }
     case "spotter": {
       const next = !st.proximitySpotter;
       await st.setProximitySpotter(next);
-      announce(t(next ? "live.spSpotterOn" : "live.spSpotterOff"), lang);
+      announceAnswer(t(next ? "live.spSpotterOn" : "live.spSpotterOff"), lang);
       return;
     }
     case "ackBox": {
       const d = await live.getData().catch(() => null);
       if (d?.player) engineer.pit.ack(d.player.total_laps);
-      announce(t("live.spAck"), lang);
+      announceAnswer(t("live.spAck"), lang);
       return;
     }
     case "voiceNote":

@@ -24,6 +24,7 @@ import {
   WHEEL_VOICE_KEYS,
   cloudPrepKeys,
   estimateCostUsd,
+  spokenFixedKeys,
   wheelTemplates,
 } from "@/lib/cloudVoicePrep";
 import { getMessageText } from "@/lib/voiceMessages";
@@ -65,7 +66,13 @@ export function PrepareVoice() {
     let alive = true;
     const { code, rate: r, texts } = cloudPrepTexts(
       [
-        ...cloudPrepKeys().map((k) => getMessageText(lang, k)),
+        // Toutes les phrases fixes de l'ingénieur (listes + tout le bundle `live`).
+        ...[
+          ...new Set([
+            ...cloudPrepKeys(),
+            ...spokenFixedKeys(i18nInst.getResourceBundle(lang.slice(0, 2), "translation")?.live),
+          ]),
+        ].map((k) => getMessageText(lang, k)),
         // Crevaison / roue arrachée nommées : une version par roue.
         ...CLOUD_PREP_WHEEL_KEYS.flatMap((k) =>
           wheelTemplates(
@@ -88,7 +95,7 @@ export function PrepareVoice() {
       alive = false;
       setPlan(null);
     };
-  }, [settings, hasKey, lang, rate, running, prep?.outcome, t]);
+  }, [settings, hasKey, lang, rate, running, prep?.outcome, t, i18nInst]);
 
   const start = async () => {
     if (!plan) return;

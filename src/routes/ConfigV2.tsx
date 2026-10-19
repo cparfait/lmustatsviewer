@@ -1967,8 +1967,8 @@ export function ConfigV2() {
                           />
                         </div>
                       )}
-                      <ReviewMarksSetting />
                       <WheelActionsRows />
+                      <ReviewMarksSetting />
                       </div>
                     </CollapsibleSection>
 

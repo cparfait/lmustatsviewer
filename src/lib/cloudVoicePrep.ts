@@ -150,7 +150,33 @@ export const CLOUD_PREP_ANSWER_KEYS: readonly string[] = [
   "coach.voiceNotUnderstood",
   "coach.voiceHintModel",
   "coach.voiceHintKey",
+  "coach.voiceUnsure",
+  "coach.voiceNoAi",
+  "coach.voiceNotConfigured",
+  // Garde-fous du coach IA (réponse vide, chiffre inventé, promesse d'action…).
+  "coach.guardAckEmpty",
+  "coach.guardAckWhere",
+  "coach.guardNoData",
+  "coach.guardNoAction",
+  "coach.guardUnsure",
 ];
+
+/** Gabarits parlés de `live.*` : annonces (`v…`), réponses (`sp…`), notes vocales (`note…`). */
+const SPOKEN_LIVE = /^(v|sp|note)[A-Z]/;
+
+/**
+ * **Toutes** les phrases fixes (sans variable) que l'ingénieur peut dire, lues dans
+ * le bundle `live` de la langue : réponses aux questions et aux boutons, débrief,
+ * notes vocales… en plus des listes ci-dessus. Rien ne peut être oublié : une
+ * phrase ajoutée au bundle est préparée d'office.
+ */
+export function spokenFixedKeys(live: Record<string, unknown> | undefined): string[] {
+  if (!live) return [];
+  return Object.keys(live).filter((k) => {
+    const v = live[k];
+    return SPOKEN_LIVE.test(k) && typeof v === "string" && v.length > 0 && !v.includes("{{");
+  });
+}
 
 /**
  * Alertes urgentes à roue nommée (`{{wheel}}`, crevaison et roue arrachée) : la voix

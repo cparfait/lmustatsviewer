@@ -921,6 +921,45 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-19 — Régie tablette optimisée pour téléphone et tablette
+
+**Demande** : « optimiser la régie tablette pour smartphone / tablettes, regarde ce que fait
+SimHub avec REA ». Veille (installation locale, `Web/` du client tablette, lu comme donnée) :
+écran gardé allumé (Wake Lock, sinon vidéo muette en boucle — seul moyen en HTTP simple),
+orientation bloquée en plein écran, écran « déconnecté » + reconnexion automatique, commandes
+masquées, méta et icônes d'écran d'accueil. Rien de leur code repris.
+
+- ✅ `regie.rs` : routes publiques `/manifest.webmanifest` (`display: fullscreen`) et
+  `/icon.png` (icône iOS 180 px) ; CSP de la page + `media-src data:` et `manifest-src 'self'`.
+  Test de bout en bout étendu (manifeste, icône, CSP) : 8/8 ✅.
+- ✅ `regie.html` réécrite (mêmes 5 gabarits, mêmes calculs) : grille en-tête / onglets /
+  actions, seul le contenu défile, `100dvh`, zones sûres (`env(safe-area-inset-*)`) ;
+  téléphone en hauteur (≤ 760 px) → onglets en bas avec icônes ; couché (hauteur ≤ 520 px) →
+  une barre fine ; tablette portrait → titre masqué au profit du circuit / temps restant.
+  Classement « selon l'écran » (colonnes retirées par largeur, classe courte `LMP2`) ou
+  « Toutes » (ancien tableau). Tailles en `rem` × `--z` (réglage 80-160 %).
+- ✅ Écran allumé : `navigator.wakeLock` en contexte sûr, sinon vidéo H.264 noire 16 × 16 de
+  848 octets en `data:` (générée par ffmpeg, plein écran, opacité 0, hors clic).
+  Orientation : `screen.orientation.lock(type courant)` après le plein écran. Réglages
+  (bouton en haut à droite, `localStorage`) : texte, écran allumé, orientation, colonnes,
+  déconnexion.
+- ✅ Robustesse : une requête à la fois, délai 4 s (AbortController), pause onglet caché,
+  bandeau « Connexion perdue — nouvelle tentative… » + contenu grisé, défilements conservés
+  au rafraîchissement, rendu différé pendant un geste, balayage ignoré dans un tableau qui
+  défile en largeur, flèches du clavier. Jeton en `localStorage` (valable jusqu'à l'arrêt de
+  la régie), connexion au 6ᵉ chiffre, astuce iPhone (pas de plein écran pour une page).
+- ✅ Vérifié dans le navigateur intégré sur un faux serveur hors dépôt (`C:\tmp\regie-mock`,
+  config `regie-mock` de `.claude/launch.json`, non commitée) : 375 × 812, 812 × 375, 768 ×
+  1024, 1024 × 768 ; 5 onglets, réglages, coupure / reprise, balayage, vidéo lue sous la CSP.
+  Deux défauts trouvés et corrigés en route (taille du texte écrasée par `font` sur `html`,
+  balayage bloqué pendant l'animation).
+- ⚠️ Non vérifié sur un vrai appareil : maintien de l'écran par la vidéo (Chrome Android
+  exige une vidéo « visible », d'où la vidéo plein écran à opacité 0), verrouillage
+  d'orientation, ajout à l'écran d'accueil iOS. Ajouté à `VALIDATION-EN-JEU.md` § 2.
+- 📋 **Prochaine étape** : dérouler `VALIDATION-EN-JEU.md` § 2 sur un téléphone Android et un
+  iPad ; si la vidéo ne suffit pas sous Android, passer la régie en HTTPS local (certificat
+  auto-signé) pour l'API Wake Lock.
+
 ### 2026-10-18 — Idées de veille ㉟–㊿ réalisées : coach vocal fiabilisé, débrief calculé, variantes radio
 
 **Demande** : « fais tout » (les idées ㉟–㊿ des deux entrées de veille TrackMind ci-dessous) et

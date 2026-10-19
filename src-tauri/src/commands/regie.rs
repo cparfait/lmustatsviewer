@@ -29,6 +29,13 @@ use super::live;
 use crate::error::AppError;
 
 const PAGE: &str = include_str!("../data/regie.html");
+/// Icône d'écran d'accueil (180 px, celle de l'app iOS).
+const ICON: &[u8] = include_bytes!("../../icons/ios/AppIcon-60x60@3x.png");
+/// Manifeste « ajout à l'écran d'accueil » : ouverture en plein écran, sans barre.
+const MANIFEST: &str = r##"{"name":"LMU Stats Viewer","short_name":"LMU SV","start_url":"/","scope":"/","display":"fullscreen","background_color":"#0a0e1a","theme_color":"#0a0e1a","icons":[{"src":"/icon.png","sizes":"180x180","type":"image/png","purpose":"any"}]}"##;
+/// CSP de la page : `media-src data:` pour la vidéo muette qui garde l'écran
+/// allumé quand l'API Wake Lock est absente (page servie en HTTP simple).
+const PAGE_CSP: &str = "Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; media-src data:; manifest-src 'self'\r\n";
 pub const DEFAULT_PORT: u16 = 8790;
 /// Libellé de consommateur du flux live (garde le thread de lecture actif).
 const CONSUMER: &str = "regie";
@@ -247,13 +254,14 @@ fn handle(stream: TcpStream, peer: IpAddr, sh: &Shared) {
     }
     let path = req.path.split('?').next().unwrap_or("/");
     match (req.method.as_str(), path) {
-        ("GET", "/") | ("GET", "/index.html") => respond(
-            &stream,
-            "200 OK",
-            "text/html; charset=utf-8",
-            PAGE.as_bytes(),
-            "Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:\r\n",
-        ),
+        ("GET", "/") | ("GET", "/index.html") => {
+            respond(&stream, "200 OK", "text/html; charset=utf-8", PAGE.as_bytes(), PAGE_CSP)
+        }
+        // Ressources publiques de l'écran d'accueil (aucune donnée live).
+        ("GET", "/manifest.webmanifest") => {
+            respond(&stream, "200 OK", "application/manifest+json", MANIFEST.as_bytes(), "")
+        }
+        ("GET", "/icon.png") => respond(&stream, "200 OK", "image/png", ICON, ""),
         ("POST", "/api/login") => {
             let code: String = serde_json::from_slice::<Value>(&req.body)
                 .ok()
@@ -438,7 +446,7 @@ mod tests {
         {
             let sh = sh.clone();
             std::thread::spawn(move || {
-                for s in listener.incoming().take(5).flatten() {
+                for s in listener.incoming().take(7).flatten() {
                     let peer = s.peer_addr().unwrap().ip();
                     handle(s, peer, &sh);
                 }
@@ -447,13 +455,21 @@ mod tests {
         let req = |raw: String| -> String {
             let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();
             s.write_all(raw.as_bytes()).unwrap();
-            let mut out = String::new();
-            let _ = s.read_to_string(&mut out);
-            out
+            // Octets bruts (l'icône n'est pas de l'UTF-8).
+            let mut out = Vec::new();
+            let _ = s.read_to_end(&mut out);
+            String::from_utf8_lossy(&out).into_owned()
         };
         let host = format!("127.0.0.1:{port}");
         let page = req(format!("GET / HTTP/1.1\r\nHost: {host}\r\n\r\n"));
         assert!(page.starts_with("HTTP/1.1 200") && page.contains("<html"));
+        assert!(page.contains("media-src data:") && page.contains("manifest-src 'self'"));
+        let manifest = req(format!("GET /manifest.webmanifest HTTP/1.1\r\nHost: {host}\r\n\r\n"));
+        let mbody = manifest.split("\r\n\r\n").nth(1).unwrap();
+        let m: Value = serde_json::from_str(mbody).unwrap();
+        assert_eq!(m["display"], "fullscreen");
+        let icon = req(format!("GET /icon.png HTTP/1.1\r\nHost: {host}\r\n\r\n"));
+        assert!(icon.starts_with("HTTP/1.1 200") && icon.contains("image/png"));
         let denied = req(format!("GET /api/live HTTP/1.1\r\nHost: {host}\r\n\r\n"));
         assert!(denied.starts_with("HTTP/1.1 401"));
         let body = "{\"code\":\"135790\"}";

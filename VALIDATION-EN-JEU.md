@@ -133,6 +133,16 @@ Rust) et par une capture synthétique rejouée, pas dans le jeu.
 - [ ] Code faux 5 fois → message « trop d'essais » ; le bon code marche après 1 min.
 - [ ] Désactiver la régie → la tablette affiche « connexion perdue ».
 - [ ] Redémarrer l'app avec la régie activée → elle se relance (nouveau code).
+- [ ] **Écran allumé** (téléphone Android et iPhone/iPad, page en HTTP) : laisser la
+      régie ouverte 5 min sans toucher → l'écran ne s'éteint pas (repli vidéo muette ;
+      réglage « Garder l'écran allumé » coupé → il s'éteint comme avant).
+- [ ] Plein écran sur Android → l'orientation reste bloquée en tournant l'appareil
+      (réglage « Bloquer l'orientation » coupé → elle suit l'appareil).
+- [ ] iPhone : bouton plein écran → message « Partager › Sur l'écran d'accueil » ;
+      ajout à l'écran d'accueil → icône LMU SV, ouverture sans barre, pas de nouveau
+      code tant que la régie tourne.
+- [ ] Téléphone en hauteur : onglets en bas, classement sans défilement en largeur,
+      balayage gauche/droite ; couché : une seule barre en haut.
 
 ## 3. En piste (premiers tours)
 

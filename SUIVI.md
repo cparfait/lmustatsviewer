@@ -947,6 +947,38 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - **Prochaine étape** : vérifier dans l'app (téléchargement de Parakeet depuis la Config, question
   à la voix, réglage de l'alerte de blocage en roulant), puis commit sur main si l'utilisateur le demande.
 
+### 2026-10-19 — Régie tablette : pages plein écran sans débordement + écran Rapport
+
+**Retour mainteneur** : « les pages ne sont pas toutes responsives et ne remplissent pas bien
+l'écran ou débordent » ; « il manque un écran avec les rapports » (rapports de boîte, en plein
+écran).
+
+- ✅ **Audit chiffré** (script dans le navigateur, 9 pages × 6 formats : 375 × 812, 360 × 640,
+  812 × 375, 768 × 1024, 1024 × 768, 1366 × 1024) : avant, 25-64 % de la hauteur utilisée sur
+  tablette (grands vides), 105-230 % sur téléphone (défilement), une carte Ingénieur qui
+  débordait (grille `auto-fit` à 8 colonnes de 158 px).
+- ✅ **Pages tableau de bord** (tout sauf Classement, qui reste une liste) : `main.fit` +
+  `.page` à **hauteur définie** (sinon les `fr` se dimensionnent sur le contenu et une case
+  trop remplie fait grossir toutes les autres) ; disposition selon la forme de la zone
+  (`data-shape` port / land / wide) ; **chaque case est un conteneur** (`container-type:size`),
+  tailles en `cqmin/cqh/cqw` × `--z` (taille du texte) × `--fk` ; repli en rem sans container
+  queries. `fitPage()` : case qui dépasse → texte réduit par paliers de 8 % jusqu'à 62 %, puis
+  défilement (`main.grow`) plutôt que de couper. Cartes (Carte, TV) dessinées à la taille
+  mesurée de leur case. Relatif : nombre de voitures selon la hauteur. Pneus : blocs de
+  température étirés sur la hauteur.
+- ✅ **Écran Rapport** (`gear`) : rapport engagé sur toute la case, 15 témoins (vert / orange /
+  rouge de 80 % à 97 % du régime max de la voiture, bleus clignotants au-delà ; bleus fixes +
+  « LIMITEUR » au limiteur), vitesse, régime. Flux rapide `/api/inputs` partagé avec Pédales
+  (`FAST`). Masquable comme les autres.
+- ✅ Après : **98-99 % de remplissage, aucun débordement ni contenu rogné** sur les 6 formats
+  pour les 9 pages tableau de bord ; seule réduction : Drapeaux en téléphone couché (84 %).
+  Corrigé en route : trace des pédales dimensionnée par son ratio, noms des leaders TV sur
+  3 lignes, classe `rpm` en collision avec la barre de régime.
+- ✅ `tsc`, `eslint` ✅ ; app lancée en dev (`npm run tauri:dev`) : compile et démarre.
+  `regie.rs` inchangé dans ce lot.
+- 📋 **Prochaine étape** : essai sur une vraie tablette / un vrai téléphone en roulant (écran
+  Rapport : réactivité des témoins sur le Wi-Fi).
+
 ### 2026-10-19 — Régie tablette : écrans activables + Pédales, Drapeaux & stands, Pneus, Relatif
 
 **Demande** : pouvoir activer / désactiver les écrans proposés ; ajouter des écrans

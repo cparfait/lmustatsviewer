@@ -211,22 +211,28 @@
   .t3 span { text-align:center; border-radius:4px; padding:.3rem 0; font-weight:800; }
   .rel td { font-size:1.1rem; padding:.45rem .4rem; }
   /* ── Pages tableau de bord : elles remplissent toute la zone, sans déborder ──
-     La zone d'affichage est un conteneur : les tailles suivent SA taille (cqmin),
-     avec un repli en vmin pour les navigateurs plus anciens ; --z = réglage
-     « Taille du texte ». Disposition selon la forme de la zone (data-shape :
-     port = plus haute que large, land = paysage, wide = très large, ex. téléphone
-     couché). Si le contenu ne tient vraiment pas, la zone défile. */
+     Chaque case est un conteneur : son texte suit SA taille (unités cq ; repli en
+     rem pour les navigateurs plus anciens). --z = réglage « Taille du texte » ;
+     --fk = réduction posée par le rendu si une case ne tient pas (jusqu'à 62 %),
+     puis, en dernier recours, la page défile (main.grow) au lieu de couper.
+     Disposition selon la forme de la zone (data-shape : port = plus haute que
+     large, land = paysage, wide = très large, ex. téléphone couché). */
   main.fit { display:flex; flex-direction:column; container-type:size; }
-  /* Hauteur définie (celle de la zone) : les « fr » se partagent la place réelle ;
-     une case dont le contenu est plus grand garde sa taille sans agrandir les autres. */
+  main.fit.tight { padding:.4rem; }
+  /* Hauteur définie (celle de la zone) : les « fr » se partagent la place réelle. */
   .page { flex:none; height:100%; display:grid; gap:.6rem; grid-template-columns:minmax(0, 1fr); }
-  .page > * { min-width:0; }
-  .page > .card { display:flex; flex-direction:column; justify-content:center; overflow:hidden; }
-  .page .lbl { font-size:clamp(.72rem, calc(2.1vmin * var(--z)), 1rem); font-size:clamp(.72rem, calc(2.6cqmin * var(--z)), 1.05rem); }
-  .page .meta { font-size:clamp(.8rem, calc(2.2vmin * var(--z)), 1.1rem); font-size:clamp(.8rem, calc(2.9cqmin * var(--z)), 1.2rem); }
-  .page .big { font-size:clamp(1.2rem, calc(5vmin * var(--z)), 3.4rem); font-size:clamp(1.2rem, calc(7.5cqmin * var(--z)), 4rem); }
-  .page .huge { font-size:clamp(1.9rem, calc(10vmin * var(--z)), 6.5rem); font-size:clamp(1.9rem, calc(15cqmin * var(--z)), 8rem); }
-  .page .txt { font-size:clamp(.85rem, calc(2.4vmin * var(--z)), 1.3rem); font-size:clamp(.85rem, calc(3.2cqmin * var(--z)), 1.45rem); }
+  main.tight .page { gap:.4rem; }
+  .page > * { min-width:0; min-height:0; }
+  .page > .card, .page > .flagbig { container-type:size; overflow:hidden; }
+  .page > .card { display:flex; flex-direction:column; justify-content:center; }
+  main.tight .page > .card { padding:.4rem .55rem; }
+  main.grow .page { height:auto; min-height:100%; }
+  main.grow .page > .card, main.grow .page > .flagbig { container-type:inline-size; overflow:visible; }
+  .page .lbl { font-size:.8rem; font-size:calc(clamp(.64rem, calc(8cqmin * var(--z)), 1.05rem) * var(--fk, 1)); }
+  .page .meta { font-size:.87rem; font-size:calc(clamp(.72rem, calc(10cqmin * var(--z)), 1.25rem) * var(--fk, 1)); }
+  .page .txt { font-size:.95rem; font-size:calc(clamp(.76rem, calc(min(10cqmin, 5.2cqw) * var(--z)), 1.45rem) * var(--fk, 1)); }
+  .page .big { font-size:1.6rem; font-size:calc(clamp(1rem, calc(min(30cqmin, 17cqw) * var(--z)), 5rem) * var(--fk, 1)); }
+  .page .huge { font-size:3rem; font-size:calc(clamp(1.5rem, calc(min(50cqmin, 30cqw) * var(--z)), 9rem) * var(--fk, 1)); }
   .mapslot { position:relative; overflow:hidden; padding:0; min-height:8rem; }
   .mapslot svg.map { position:absolute; inset:4px; width:calc(100% - 8px); height:calc(100% - 8px); }
 
@@ -234,62 +240,89 @@
   .eng { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:repeat(4, 1fr) 1.3fr; }
   main:not([data-shape="port"]) .eng { grid-template-columns:repeat(4, minmax(0, 1fr)); grid-template-rows:1fr 1fr .9fr; }
   .eng .tyc { grid-column:1 / -1; }
-  .eng .wheels { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.4rem .8rem; }
+  .eng .wheels { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.3rem .8rem; }
   main:not([data-shape="port"]) .eng .wheels { grid-template-columns:repeat(4, minmax(0, 1fr)); }
+  .eng .tyc .txt { font-size:calc(clamp(.76rem, calc(min(14cqh, 3.4cqw) * var(--z)), 1.5rem) * var(--fk, 1)); }
   /* Drapeaux & stands. */
   .flg { grid-template-rows:.75fr 1fr 1.5fr; }
   main[data-shape="land"] .flg { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:.8fr 1.6fr; }
   main[data-shape="wide"] .flg { grid-template-columns:repeat(3, minmax(0, 1fr)); grid-template-rows:1fr; }
   main[data-shape="wide"] .flg .flagbig { grid-column:auto; }
-  .flg .flagbig { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:.6rem;
-    font-size:clamp(1.4rem, calc(8vmin * var(--z)), 5rem); font-size:clamp(1.4rem, calc(10cqmin * var(--z)), 6rem); line-height:1.1; }
-  .flg .flagbig .sub { font-size:clamp(.9rem, calc(3.4cqmin * var(--z)), 1.6rem); }
-  .flg .menu td { padding:.12rem .3rem; }
+  .flg .flagbig { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:.6rem; line-height:1.1;
+    font-size:2rem; font-size:calc(clamp(1.1rem, calc(min(22cqh, 9cqw) * var(--z)), 6rem) * var(--fk, 1)); }
+  .flg .flagbig .sub { font-size:1rem; font-size:calc(clamp(.8rem, calc(min(8cqh, 4cqw) * var(--z)), 1.6rem) * var(--fk, 1)); }
+  .flg .card .kv, .flg .card .menu, .flg .card .pill, .flg .card .mono { font-size:calc(clamp(.72rem, calc(min(5.4cqh, 3.8cqw) * var(--z)), 1.25rem) * var(--fk, 1)); }
+  .flg .card .big { font-size:calc(clamp(1rem, calc(min(15cqh, 16cqw) * var(--z)), 3.6rem) * var(--fk, 1)); }
+  .flg .menu td { padding:.1em .3em; }
   /* Pédales. */
   .page.ped { grid-template-columns:minmax(0, 1fr); grid-template-rows:1.25fr 1fr .7fr; }
   main:not([data-shape="port"]) .page.ped { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:1.6fr 1fr; }
   .page > .pbars { flex-direction:row; align-items:stretch; justify-content:center; }
   .page .pbar { justify-content:flex-end; }
-  .page .tube { flex:1; height:auto; min-height:2.5rem; }
-  .page .gear { font-size:clamp(2.4rem, calc(16vmin * var(--z)), 9rem); font-size:clamp(2.4rem, calc(22cqmin * var(--z)), 11rem); }
-  .page .trace svg { flex:1 1 0; height:auto; min-height:2.5rem; }
+  .page .tube { flex:1; height:auto; min-height:2rem; }
+  .page .pbar .lbl, .page .pbar .mono { font-size:calc(clamp(.66rem, calc(min(6cqh, 4.2cqw) * var(--z)), 1.3rem) * var(--fk, 1)); }
+  .page .gear { font-size:4rem; font-size:calc(clamp(1.6rem, calc(min(34cqh, 40cqw) * var(--z)), 11rem) * var(--fk, 1)); }
+  .ped .big { font-size:calc(clamp(.95rem, calc(min(12cqh, 11cqw) * var(--z)), 3rem) * var(--fk, 1)); }
+  .ped .card .lbl, .ped #pi-aids { font-size:calc(clamp(.64rem, calc(min(6cqh, 3.4cqw) * var(--z)), 1.1rem) * var(--fk, 1)); }
+  .page .trace svg { flex:1 1 0; height:auto; min-height:2rem; }
   /* Pneus & freins : 2 × 2, toujours dans la disposition de la voiture. */
   .page.car4 { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:1fr 1fr; }
-  .page .t3 span { font-size:clamp(.95rem, calc(4.5vmin * var(--z)), 2.6rem); font-size:clamp(.95rem, calc(6.5cqmin * var(--z)), 3rem); padding:.25em 0; }
+  .page .t3 span { font-size:1.2rem; font-size:calc(clamp(.8rem, calc(min(12cqh, 9cqw) * var(--z)), 3.4rem) * var(--fk, 1)); padding:.2em 0; }
+  /* Pneus : les blocs de température prennent la hauteur libre de la case. */
+  .car4 > .card { justify-content:space-between; gap:.3rem; }
+  .car4 .t3 { flex:1 1 0; min-height:2.2em; max-height:55%; margin:0; }
+  .car4 .t3 span { display:flex; align-items:center; justify-content:center; border-radius:.4rem; }
+  .car4 .txt { font-size:calc(clamp(.72rem, calc(min(7cqh, 4.6cqw) * var(--z)), 1.6rem) * var(--fk, 1)); }
   /* Duel. */
   .duel { grid-template-rows:1fr 1fr; }
   main:not([data-shape="port"]) .duel { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:1fr; }
-  .duel .huge { font-size:clamp(1.8rem, calc(8vmin * var(--z)), 5rem); font-size:clamp(1.8rem, calc(11cqmin * var(--z)), 6rem); }
-  .duel .who { font-size:clamp(1rem, calc(4cqmin * var(--z)), 2rem); }
-  .duel table { font-size:clamp(.8rem, calc(2.8cqmin * var(--z)), 1.3rem); }
-  .duel th, .duel td { padding:.2em .3em; }
+  .duel .who { font-size:calc(clamp(.95rem, calc(min(8cqh, 6cqw) * var(--z)), 2rem) * var(--fk, 1)); }
+  .duel .huge { font-size:calc(clamp(1.4rem, calc(min(20cqh, 18cqw) * var(--z)), 6rem) * var(--fk, 1)); }
+  .duel table { font-size:calc(clamp(.74rem, calc(min(5.4cqh, 3.6cqw) * var(--z)), 1.3rem) * var(--fk, 1)); }
+  .duel th, .duel td { padding:.15em .3em; }
   /* TV. */
   .tv { grid-template-rows:.8fr auto 2fr; }
   main:not([data-shape="port"]) .tv { grid-template-columns:minmax(0, 1fr) minmax(0, 1.6fr); grid-template-rows:1fr 1fr; }
-  main:not([data-shape="port"]) .tv .mapslot { grid-column:2; grid-row:1 / span 2; }
   main[data-shape="wide"] .tv { grid-template-columns:minmax(0, 1fr) minmax(0, 1.2fr); }
-  .tv .leadrow { font-size:clamp(1rem, calc(3.4cqmin * var(--z)), 1.9rem); flex-wrap:nowrap; margin:.2rem 0; min-width:0; }
+  main:not([data-shape="port"]) .tv .mapslot { grid-column:2; grid-row:1 / span 2; }
+  .tv .huge { font-size:calc(clamp(1.4rem, calc(min(34cqh, 17cqw) * var(--z)), 8rem) * var(--fk, 1)); }
+  main[data-shape="port"] .tv > .card:nth-child(2) { container-type:inline-size; }
+  .tv .leadrow { display:flex; flex-wrap:nowrap; align-items:center; gap:.2rem .5rem; margin:.2rem 0; min-width:0;
+    font-size:1.1rem; font-size:calc(clamp(.9rem, calc(min(10cqh, 5cqw) * var(--z)), 1.9rem) * var(--fk, 1)); }
+  main[data-shape="port"] .tv .leadrow { font-size:calc(clamp(.9rem, calc(5cqw * var(--z)), 1.9rem) * var(--fk, 1)); }
   .tv .leadrow b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto; min-width:0; }
-  .tv .leadrow .meta { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 0; min-width:0; }
+  .tv .leadrow .meta { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 0; min-width:0; font-size:.8em; }
   .tv .leadrow .cls { flex:none; }
-  /* Petite zone (téléphone) : espacements resserrés. */
-  main.fit.tight { padding:.4rem; }
-  main.tight .page { gap:.4rem; }
-  main.tight .page > .card { padding:.4rem .55rem; }
-  main.tight .page .lbl { font-size:.68rem; }
-  main.tight .page .big { font-size:clamp(1.05rem, calc(6.5cqmin * var(--z)), 2.4rem); }
-  main.tight .page .huge { font-size:clamp(1.6rem, calc(12cqmin * var(--z)), 4rem); }
-  main.tight .page .gear { font-size:clamp(2rem, calc(17cqmin * var(--z)), 6rem); }
-  main.tight .flg .flagbig { font-size:clamp(1.2rem, calc(8cqmin * var(--z)), 3rem); }
-  main.tight .page .t3 span { font-size:clamp(.85rem, calc(5.5cqmin * var(--z)), 2rem); }
-  /* Filet de sécurité : si une case ne peut vraiment pas tout montrer, la page
-     défile au lieu de couper du contenu. */
-  main.grow .page { height:auto; min-height:100%; }
-  main.grow .page > .card { overflow:visible; }
   /* Relatif : les lignes s'étirent sur toute la hauteur. */
   .relp > .card { justify-content:stretch; padding:.3rem .5rem; }
-  table.rel { height:100%; font-size:clamp(1rem, calc(3vmin * var(--z)), 1.8rem); font-size:clamp(1rem, calc(3.4cqmin * var(--z)), 1.9rem); }
+  table.rel { height:100%; font-size:1.1rem; font-size:calc(clamp(1rem, calc(3.4cqmin * var(--z)), 1.9rem) * var(--fk, 1)); }
   .rel td { font-size:inherit; padding:.35em .4em; }
+  /* Rapport : tableau de bord de volant, le rapport engagé occupe l'écran. */
+  .gearp { grid-template-rows:1fr; }
+  .gearp > .dash { display:grid; justify-content:stretch; align-items:center; gap:.4rem; padding:.5rem .8rem;
+    grid-template-columns:minmax(0, 1fr); grid-template-rows:auto minmax(0, 1fr) auto; grid-template-areas:"leds" "gear" "foot"; }
+  main:not([data-shape="port"]) .gearp > .dash { grid-template-columns:minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr);
+    grid-template-rows:auto minmax(0, 1fr); grid-template-areas:"leds leds leds" "spd gear rpm"; }
+  .dash .leds { grid-area:leds; display:grid; grid-template-columns:repeat(15, minmax(0, 1fr)); gap:3%; height:clamp(14px, min(9cqh, 6cqw), 4rem); }
+  .dash .leds i { border-radius:999px; background:var(--line); }
+  .dash .leds i.g { background:#22c55e; }
+  .dash .leds i.y { background:#f59e0b; }
+  .dash .leds i.r { background:#FF1D43; }
+  .dash .leds.shift i { background:#3b82f6; animation:blink .25s steps(2) infinite; }
+  .dash .leds.lim i { background:#3b82f6; opacity:.55; }
+  @keyframes blink { 50% { opacity:.15; } }
+  @media (prefers-reduced-motion: reduce) { .dash .leds.shift i { animation:none; } }
+  .dash .gbig { grid-area:gear; text-align:center; font-weight:800; line-height:.85; font-size:8rem;
+    font-size:calc(clamp(3rem, calc(min(70cqh, 62cqw) * var(--z)), 60rem) * var(--fk, 1)); }
+  main:not([data-shape="port"]) .dash .gbig { font-size:calc(clamp(3rem, calc(min(78cqh, 34cqw) * var(--z)), 60rem) * var(--fk, 1)); }
+  .dash .gfoot { grid-area:foot; display:flex; justify-content:space-around; text-align:center; }
+  main:not([data-shape="port"]) .dash .gfoot { display:contents; }
+  .dash .gv { text-align:center; }
+  main:not([data-shape="port"]) .dash .gv.g-spd { grid-area:spd; }
+  main:not([data-shape="port"]) .dash .gv.g-rpm { grid-area:rpm; }
+  .dash .gnum { display:block; font-weight:800; line-height:1; font-size:2rem; font-size:calc(clamp(1.3rem, calc(min(12cqh, 9cqw) * var(--z)), 8rem) * var(--fk, 1)); }
+  .dash .gv .lbl { font-size:calc(clamp(.7rem, calc(min(4cqh, 3cqw) * var(--z)), 1.6rem) * var(--fk, 1)); }
+  .dash .limtag { grid-area:gear; align-self:end; justify-self:center; }
   /* Carte seule. */
   .page.map1 { grid-template-rows:1fr; }
   /* Vidéo muette qui garde l'écran allumé (repli sans API Wake Lock) : invisible, sans clic. */
@@ -372,35 +405,35 @@
   };
   // Écrans ajoutés : pédales, drapeaux & stands, pneus & freins, relatif.
   const L2 = {
-    fr: { t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
+    fr: { t_gear:"Rapport", rpmUnit:"tr/min", limTag:"LIMITEUR", t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
       throttle:"Accélérateur", brake:"Frein", clutch:"Embrayage", steering:"Volant", rpm:"Régime", bias:"Répartition", motorMap:"Carto moteur", trace:"10 dernières secondes",
       fGreen:"Drapeau vert", fYellow:"Drapeau jaune", fFcy:"Neutralisation (FCY)", fSc:"Voiture de sécurité", fBlue:"Drapeau bleu", fRed:"Séance arrêtée", fChk:"Drapeau à damier", fFormation:"Tour de formation", fCountdown:"Départ imminent", fWaiting:"Avant le départ",
       y1:"Neutralisation imminente", y2:"Stands fermés", y3:"Stands ouverts aux voitures dans le tour du leader", y4:"Stands ouverts", y5:"Dernier tour de la voiture de sécurité", y6:"Relance", y7:"Course arrêtée",
       penalties:"Pénalités", trackLimits:"Limites de piste", lastMsg:"Dernier message du jeu", pit:"Stands", limiter:"Limiteur", on:"activé", off:"coupé", pitLimit:"Vitesse des stands",
       ps0:"En piste", ps1:"Arrêt demandé", ps2:"Entrée des stands", ps3:"À l'arrêt", ps4:"Sortie des stands", stopLen:"Arrêt prévu", pitMenu:"Menu des stands", perLap:"par tour",
       pressure:"Pression", carcass:"Carcasse", wear:"Gomme restante", flat:"Crevaison", detached:"Roue perdue" },
-    en: { t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
+    en: { t_gear:"Gear", rpmUnit:"rpm", limTag:"LIMITER", t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
       throttle:"Throttle", brake:"Brake", clutch:"Clutch", steering:"Steering", rpm:"RPM", bias:"Brake bias", motorMap:"Engine map", trace:"Last 10 seconds",
       fGreen:"Green flag", fYellow:"Yellow flag", fFcy:"Full course yellow", fSc:"Safety car", fBlue:"Blue flag", fRed:"Session stopped", fChk:"Chequered flag", fFormation:"Formation lap", fCountdown:"Start imminent", fWaiting:"Before the start",
       y1:"Caution pending", y2:"Pits closed", y3:"Pits open to lead-lap cars", y4:"Pits open", y5:"Safety car's last lap", y6:"Restart", y7:"Race halted",
       penalties:"Penalties", trackLimits:"Track limits", lastMsg:"Last game message", pit:"Pit lane", limiter:"Pit limiter", on:"on", off:"off", pitLimit:"Pit speed limit",
       ps0:"On track", ps1:"Stop requested", ps2:"Entering the pits", ps3:"Stopped", ps4:"Leaving the pits", stopLen:"Planned stop", pitMenu:"Pit menu", perLap:"per lap",
       pressure:"Pressure", carcass:"Carcass", wear:"Tread left", flat:"Puncture", detached:"Wheel off" },
-    es: { t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
+    es: { t_gear:"Marcha", rpmUnit:"rpm", limTag:"LIMITADOR", t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
       throttle:"Acelerador", brake:"Freno", clutch:"Embrague", steering:"Volante", rpm:"RPM", bias:"Reparto de frenada", motorMap:"Mapa motor", trace:"Últimos 10 segundos",
       fGreen:"Bandera verde", fYellow:"Bandera amarilla", fFcy:"Neutralización (FCY)", fSc:"Coche de seguridad", fBlue:"Bandera azul", fRed:"Sesión detenida", fChk:"Bandera a cuadros", fFormation:"Vuelta de formación", fCountdown:"Salida inminente", fWaiting:"Antes de la salida",
       y1:"Neutralización inminente", y2:"Boxes cerrados", y3:"Boxes abiertos para los coches en la vuelta del líder", y4:"Boxes abiertos", y5:"Última vuelta del coche de seguridad", y6:"Relanzamiento", y7:"Carrera detenida",
       penalties:"Penalizaciones", trackLimits:"Límites de pista", lastMsg:"Último mensaje del juego", pit:"Boxes", limiter:"Limitador", on:"activado", off:"desactivado", pitLimit:"Velocidad en boxes",
       ps0:"En pista", ps1:"Parada solicitada", ps2:"Entrando en boxes", ps3:"Parado", ps4:"Saliendo de boxes", stopLen:"Parada prevista", pitMenu:"Menú de boxes", perLap:"por vuelta",
       pressure:"Presión", carcass:"Carcasa", wear:"Goma restante", flat:"Pinchazo", detached:"Rueda perdida" },
-    de: { t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
+    de: { t_gear:"Gang", rpmUnit:"U/min", limTag:"LIMITER", t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
       throttle:"Gas", brake:"Bremse", clutch:"Kupplung", steering:"Lenkung", rpm:"Drehzahl", bias:"Bremsbalance", motorMap:"Motorkennfeld", trace:"Letzte 10 Sekunden",
       fGreen:"Grüne Flagge", fYellow:"Gelbe Flagge", fFcy:"Full Course Yellow", fSc:"Safety-Car", fBlue:"Blaue Flagge", fRed:"Session unterbrochen", fChk:"Zielflagge", fFormation:"Einführungsrunde", fCountdown:"Start steht bevor", fWaiting:"Vor dem Start",
       y1:"Neutralisation steht bevor", y2:"Boxengasse geschlossen", y3:"Boxengasse offen für Autos in der Führungsrunde", y4:"Boxengasse offen", y5:"Letzte Runde des Safety-Cars", y6:"Restart", y7:"Rennen gestoppt",
       penalties:"Strafen", trackLimits:"Track Limits", lastMsg:"Letzte Spielmeldung", pit:"Boxengasse", limiter:"Limiter", on:"an", off:"aus", pitLimit:"Tempolimit Boxengasse",
       ps0:"Auf der Strecke", ps1:"Stopp angefordert", ps2:"Einfahrt in die Box", ps3:"Steht", ps4:"Ausfahrt aus der Box", stopLen:"Geplanter Stopp", pitMenu:"Boxenmenü", perLap:"pro Runde",
       pressure:"Druck", carcass:"Karkasse", wear:"Restprofil", flat:"Reifenschaden", detached:"Rad verloren" },
-    it: { t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
+    it: { t_gear:"Marcia", rpmUnit:"giri/min", limTag:"LIMITATORE", t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
       throttle:"Acceleratore", brake:"Freno", clutch:"Frizione", steering:"Sterzo", rpm:"Giri motore", bias:"Ripartizione frenata", motorMap:"Mappa motore", trace:"Ultimi 10 secondi",
       fGreen:"Bandiera verde", fYellow:"Bandiera gialla", fFcy:"Neutralizzazione (FCY)", fSc:"Safety car", fBlue:"Bandiera blu", fRed:"Sessione interrotta", fChk:"Bandiera a scacchi", fFormation:"Giro di formazione", fCountdown:"Partenza imminente", fWaiting:"Prima della partenza",
       y1:"Neutralizzazione imminente", y2:"Box chiusi", y3:"Box aperti alle auto a pieni giri", y4:"Box aperti", y5:"Ultimo giro della safety car", y6:"Ripartenza", y7:"Gara fermata",
@@ -434,13 +467,14 @@
   // (« Toutes » redonne le tableau complet) ; écran allumé et orientation
   // bloquée désactivables ici.
   // Écrans proposés, dans l'ordre des onglets ; chacun se masque dans les réglages.
-  const TPLS = ["timing", "relative", "engineer", "flags", "inputs", "tyres", "map", "duel", "tv"];
+  const TPLS = ["timing", "relative", "engineer", "flags", "inputs", "gear", "tyres", "map", "duel", "tv"];
   const ICONS = {
     timing: '<path d="M4 6h16M4 12h16M4 18h16"/>',
     relative: '<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="12" cy="12" r="2.4" style="fill:currentColor"/>',
     engineer: '<path d="M3.5 18a9 9 0 1 1 17 0M12 14l4-4"/>',
     flags: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
     inputs: '<path d="M7 20V9M12 20V5M17 20v-7"/>',
+    gear: '<path d="M6 5v14M12 5v14M18 5v7M6 12h12"/><circle cx="6" cy="5" r="1.4"/><circle cx="12" cy="5" r="1.4"/><circle cx="18" cy="5" r="1.4"/>',
     tyres: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
     map: '<path d="M7 4h7a5 5 0 0 1 0 10H9a3 3 0 0 0 0 6h9"/>',
     duel: '<path d="M5 8h13l-3-3M19 16H6l3 3"/>',
@@ -525,7 +559,7 @@
   function showLogin() { if (timer) { clearInterval(timer); timer = null; } inputsLoop(false); setLost(false); $("app").classList.add("hidden"); $("login").classList.remove("hidden"); $("code").value = ""; $("code").focus(); }
 
   function setTpl(k, dir) {
-    tpl = k; localStorage.setItem("regie_tpl", tpl); tabs(); render(); inputsLoop(tpl === "inputs");
+    tpl = k; localStorage.setItem("regie_tpl", tpl); tabs(); render(); inputsLoop(FAST.includes(tpl));
     const v = $("view");
     if (dir) { v.classList.remove("in-r", "in-l"); void v.offsetWidth; v.classList.add(dir > 0 ? "in-r" : "in-l"); }
   }
@@ -657,7 +691,8 @@
       if (String(e && e.message) !== "auth" && ++fails > 3) { $("hdr").textContent = T.lost; setLost(true); }
     } finally { busy = false; }
   }
-  // Écran Pédales : trame minimale ~15 fois par seconde, seulement quand il est affiché.
+  // Écrans Pédales et Rapport : trame minimale ~15 fois par seconde, seulement quand l'un d'eux est affiché.
+  const FAST = ["inputs", "gear"];
   const HMAX = 150; // 10 s de trace
   let inp = null, ibusy = false, itimer = 0;
   const hist = [];
@@ -666,13 +701,13 @@
     else if (!on && itimer) { clearInterval(itimer); itimer = 0; }
   }
   async function itick() {
-    if (ibusy || document.hidden || tpl !== "inputs") return;
+    if (ibusy || document.hidden || !FAST.includes(tpl)) return;
     ibusy = true;
     try {
       inp = await get("/api/inputs");
       const t = inp && inp.telemetry;
       if (t) { hist.push([t.throttle || 0, t.brake || 0]); if (hist.length > HMAX) hist.shift(); }
-      updInputs();
+      updInputs(); updGear();
     } catch { /* la coupure est signalée par l'interrogation principale */ } finally { ibusy = false; }
   }
   // Thème de l'app : posé dans la page par le serveur, suivi à chaque trame.
@@ -689,7 +724,7 @@
   function start() {
     $("login").classList.add("hidden"); $("app").classList.remove("hidden");
     tabs(); tick(); if (!timer) timer = setInterval(tick, 1000);
-    inputsLoop(tpl === "inputs");
+    inputsLoop(FAST.includes(tpl));
     updBars();
     if (P.awake) keepAwake(true);
   }
@@ -905,6 +940,35 @@
     }
   }
 
+  // 10. Rapport : le rapport engagé en très grand, témoins de passage, vitesse, régime.
+  // Témoins : part du régime maximal de la voiture (de 80 % à 97 %, puis clignotent).
+  function tplGear(d) {
+    if (!d.telemetry && !(inp && inp.telemetry)) return `<div class="empty">${T.noPlayer}</div>`;
+    const leds = Array.from({ length: 15 }, (_, i) => `<i data-c="${i < 5 ? "g" : i < 10 ? "y" : "r"}"></i>`).join("");
+    return `<div class="page gearp"><div class="card dash">
+      <div class="leds" id="gd-l">${leds}</div>
+      <div class="gbig mono" id="gd-g">N</div>
+      <div class="gfoot"><div class="gv g-spd"><span class="gnum mono" id="gd-v">0</span><span class="lbl">km/h</span></div>
+        <div class="gv g-rpm"><span class="gnum mono" id="gd-r">0</span><span class="lbl">${T.rpmUnit}</span></div></div>
+      <span class="pill limtag hidden" id="gd-lim" style="background:#3b82f6;color:#fff">${T.limTag}</span>
+    </div></div>`;
+  }
+  function updGear() {
+    if (tpl !== "gear" || !$("gd-g")) return;
+    const t = (inp && inp.telemetry) || (last && last.telemetry);
+    if (!t) return;
+    $("gd-g").textContent = t.gear < 0 ? "R" : t.gear === 0 ? "N" : String(t.gear);
+    $("gd-v").textContent = Math.round(t.speed_kmh || 0);
+    $("gd-r").textContent = Math.round(t.rpm || 0);
+    const rr = t.max_rpm > 0 ? (t.rpm || 0) / t.max_rpm : 0;
+    const lit = Math.round(Math.max(0, Math.min(1, (rr - 0.8) / 0.17)) * 15);
+    const box = $("gd-l");
+    box.classList.toggle("shift", rr >= 0.97 && !t.speed_limiter);
+    box.classList.toggle("lim", !!t.speed_limiter);
+    $("gd-lim").classList.toggle("hidden", !t.speed_limiter);
+    [...box.children].forEach((e, i) => { e.className = i < lit ? e.dataset.c : ""; });
+  }
+
   // 9. Pneus & freins : les quatre roues à leur place (avant en haut).
   const tempBg = (t) => t <= 0 ? "var(--line)" : t > 110 ? "#FF1D43" : t > 95 ? "#eab308" : t < 70 ? "#38bdf8" : "#00c896";
   function tplTyres(d) {
@@ -924,7 +988,19 @@
     }).join("") + `</div>`;
   }
 
-  const FIT = ["relative", "engineer", "flags", "inputs", "tyres", "map", "duel", "tv"];
+  // Une case dont le contenu dépasse : on réduit le texte de la page par paliers
+  // (jusqu'à 62 %) ; si cela ne suffit pas, la page défile au lieu de couper.
+  function fitPage(v) {
+    v.classList.remove("grow");
+    v.style.setProperty("--fk", "1");
+    const cells = [...v.querySelectorAll(".page > .card:not(.mapslot), .page > .flagbig")];
+    if (!cells.length) return;
+    const clipped = () => cells.some((c) => c.scrollHeight > c.clientHeight + 1 || c.scrollWidth > c.clientWidth + 1);
+    let fk = 1;
+    while (clipped() && fk > 0.62) { fk = Math.round((fk - 0.08) * 100) / 100; v.style.setProperty("--fk", String(fk)); }
+    if (clipped()) v.classList.add("grow");
+  }
+  const FIT = ["relative", "engineer", "flags", "inputs", "gear", "tyres", "map", "duel", "tv"];
   function render() {
     const d = last; const v = $("view");
     // Pendant un geste, on attend la fin : le contenu ne saute pas sous le doigt.
@@ -937,20 +1013,20 @@
     if (!d || !d.connected || !d.session) { $("hdr").textContent = T.offline; $("live").className = ""; v.innerHTML = `<div class="empty">${T.offline}</div>`; shownTpl = ""; return; }
     $("live").className = $("app").classList.contains("stale") ? "bad" : "ok";
     $("hdr").textContent = `${d.session.track} · ${remaining(d)}`;
-    const f = { timing: tplTiming, relative: tplRelative, engineer: tplEngineer, flags: tplFlags, inputs: tplInputs, tyres: tplTyres, map: tplMap, duel: tplDuel, tv: tplTv }[tpl] || tplTiming;
+    const f = { timing: tplTiming, relative: tplRelative, engineer: tplEngineer, flags: tplFlags, inputs: tplInputs, gear: tplGear, tyres: tplTyres, map: tplMap, duel: tplDuel, tv: tplTv }[tpl] || tplTiming;
     // Rafraîchi chaque seconde : défilements (vertical et tableaux) conservés.
     const same = shownTpl === tpl;
     // Pédales : la structure reste en place, seules les valeurs bougent (~15 fois par seconde).
     if (tpl === "inputs" && same && $("pi-g")) { updInputs(); return; }
+    if (tpl === "gear" && same && $("gd-g")) { updGear(); return; }
     const top = v.scrollTop, xs = [...v.querySelectorAll(".card")].map((c) => c.scrollLeft);
     v.innerHTML = f(d);
-    // Contenu plus grand que sa case : la page défile plutôt que de le couper.
-    v.classList.remove("grow");
-    if ([...v.querySelectorAll(".page > .card:not(.mapslot), .page > .flagbig")].some((c) => c.scrollHeight > c.clientHeight + 1)) v.classList.add("grow");
+    fitPage(v);
     for (const el of v.querySelectorAll(".mapslot")) el.innerHTML = mapSvg(d, { w: Math.max(80, el.clientWidth - 8), h: Math.max(80, el.clientHeight - 8) });
     if (same) { v.querySelectorAll(".card").forEach((c, i) => { if (xs[i]) c.scrollLeft = xs[i]; }); v.scrollTop = top; } else v.scrollTop = 0;
     shownTpl = tpl;
     if (tpl === "inputs") updInputs();
+    if (tpl === "gear") updGear();
   }
 
   if (token) start(); else showLogin();

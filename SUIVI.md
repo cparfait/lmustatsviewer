@@ -1008,6 +1008,22 @@ dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idée
 - **Prochaine étape** : vérifier dans l'app (téléchargement de Parakeet depuis la Config, question
   à la voix, réglage de l'alerte de blocage en roulant), puis commit sur main si l'utilisateur le demande.
 
+### 2026-10-19 — Régie tablette : police Barlow Condensed embarquée
+
+**Accord du mainteneur** pour télécharger Barlow Condensed (point ⏳ de l'entrée précédente).
+
+- ✅ Source officielle : API Google Fonts (sous-ensemble latin en woff2, graisses 500 / 600 /
+  700, ~22 Ko chacune) ; licence `OFL.txt` du dépôt `google/fonts` (Copyright The Barlow
+  Project Authors, SIL OFL 1.1). Fichiers vérifiés (signature `wOF2`) puis copiés dans
+  `src-tauri/src/data/fonts/` avec `OFL-BarlowCondensed.txt`.
+- ✅ `regie.rs` : routes publiques `/fonts/barlow-condensed-{500,600,700}.woff2`
+  (`include_bytes!`, `font/woff2`), CSP `font-src 'self'` ; test de bout en bout étendu
+  (9/9 ✅).
+- ✅ `regie.html` : `@font-face` « LMU Num » (`font-display:block`), appliquée aux chiffres
+  (`.mono`), libellés, onglets, pastilles, drapeaux ; noms hors tableaux en police système.
+  Chiffres tabulaires vérifiés (1111 = 0000 = 8888 en largeur) ; tailles des grands chiffres
+  relevées (chiffres ~20 % plus étroits). Audit 10 écrans × 6 formats : aucun débordement.
+
 ### 2026-10-19 — Régie tablette : refonte visuelle mobile (veille web + modèles SimHub)
 
 **Demande** : « optimise pour faire de sublimes pages mobiles ; cherche sur le net et SimHub ».

@@ -15,6 +15,15 @@
 <link rel="apple-touch-icon" href="/icon.png">
 <title>LMU Stats Viewer — Régie</title>
 <style>
+  /* Chiffres et libellés : Barlow Condensed (SIL OFL 1.1), servie par l'app
+     (aucune connexion internet). Chiffres tabulaires, étroits : plus grands
+     dans la même place. Repli : police système. */
+  @font-face { font-family:"LMU Num"; font-style:normal; font-weight:500; font-display:block;
+    src:url(/fonts/barlow-condensed-500.woff2) format("woff2"); }
+  @font-face { font-family:"LMU Num"; font-style:normal; font-weight:600; font-display:block;
+    src:url(/fonts/barlow-condensed-600.woff2) format("woff2"); }
+  @font-face { font-family:"LMU Num"; font-style:normal; font-weight:700; font-display:block;
+    src:url(/fonts/barlow-condensed-700.woff2) format("woff2"); }
   /* Thème de l'app (clair par défaut, sombre au choix), envoyé par le serveur : mêmes couleurs que LMU Stats Viewer. */
   :root { --bg:#f4f5f8; --panel:#ffffff; --line:#d8dae2; --fg:#0b0f1e; --mute:#5a6070; --acc:#D93B00; --acct:#D93B00; --ok:#00c896; --bad:#FF1D43;
     --soft:rgba(217,59,0,.10); --road:#c3c8d4; --scrim:rgba(11,15,30,.45); --lostbg:#ffe4e8; --lostfg:#9f1239; color-scheme:light; }
@@ -231,8 +240,8 @@
   .page .lbl { font-size:.8rem; font-size:calc(clamp(.64rem, calc(8cqmin * var(--z)), 1.05rem) * var(--fk, 1)); }
   .page .meta { font-size:.87rem; font-size:calc(clamp(.72rem, calc(10cqmin * var(--z)), 1.25rem) * var(--fk, 1)); }
   .page .txt { font-size:.95rem; font-size:calc(clamp(.76rem, calc(min(10cqmin, 5.2cqw) * var(--z)), 1.45rem) * var(--fk, 1)); }
-  .page .big { font-size:1.6rem; font-size:calc(clamp(1rem, calc(min(30cqmin, 17cqw) * var(--z)), 5rem) * var(--fk, 1)); }
-  .page .huge { font-size:3rem; font-size:calc(clamp(1.5rem, calc(min(50cqmin, 30cqw) * var(--z)), 9rem) * var(--fk, 1)); }
+  .page .big { font-size:1.6rem; font-size:calc(clamp(1rem, calc(min(34cqmin, 21cqw) * var(--z)), 5.5rem) * var(--fk, 1)); }
+  .page .huge { font-size:3rem; font-size:calc(clamp(1.5rem, calc(min(56cqmin, 36cqw) * var(--z)), 10rem) * var(--fk, 1)); }
   .mapslot { position:relative; overflow:hidden; padding:0; min-height:8rem; }
   .mapslot svg.map { position:absolute; inset:4px; width:calc(100% - 8px); height:calc(100% - 8px); }
 
@@ -331,9 +340,15 @@
      Couleurs des temps : violet = meilleur de la classe, vert = meilleur personnel. */
   :root { --radius:14px; --ease:cubic-bezier(.2, 0, 0, 1); --purple:#9333ea; --green:#16a34a; --amber:#f59e0b;
     --shadow:0 1px 2px rgba(15,23,42,.06), 0 6px 20px rgba(15,23,42,.06);
-    --num:system-ui, -apple-system, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    --sys:system-ui, -apple-system, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --num:"LMU Num", var(--sys); }
   [data-theme="dark"] { --purple:#c084fc; --green:#22c55e; --shadow:inset 0 1px 0 rgba(255,255,255,.04); }
-  body { font-family:var(--num); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  body { font-family:var(--sys); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  /* Police condensée : libellés, onglets, pastilles, chiffres. */
+  .lbl, th, .posn, .cls, #tabs button, .flagbig, .pill, .gv .lbl, .brand { font-family:var(--num); }
+  .lbl { letter-spacing:.06em; }
+  /* Condensée = plus étroite : un peu plus grande pour garder la même lisibilité. */
+  table.mono { font-size:1.07em; }
   .mono { font-family:var(--num); font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
   .big, .huge, .gear, .gbig, .gnum, .flagbig { letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
   .card { border-radius:var(--radius); box-shadow:var(--shadow); }

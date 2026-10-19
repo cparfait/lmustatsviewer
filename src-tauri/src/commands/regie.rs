@@ -36,7 +36,14 @@ const ICON: &[u8] = include_bytes!("../../icons/ios/AppIcon-60x60@3x.png");
 const MANIFEST: &str = r##"{"name":"LMU Stats Viewer","short_name":"LMU SV","start_url":"/","scope":"/","display":"fullscreen","background_color":"#0a0e1a","theme_color":"#0a0e1a","icons":[{"src":"/icon.png","sizes":"180x180","type":"image/png","purpose":"any"}]}"##;
 /// CSP de la page : `media-src data:` pour la vidéo muette qui garde l'écran
 /// allumé quand l'API Wake Lock est absente (page servie en HTTP simple).
-const PAGE_CSP: &str = "Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; media-src data:; manifest-src 'self'\r\n";
+const PAGE_CSP: &str = "Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; media-src data:; manifest-src 'self'; font-src 'self'\r\n";
+/// Police des chiffres de la tablette : Barlow Condensed (SIL OFL 1.1, licence
+/// dans `data/fonts/OFL-BarlowCondensed.txt`), sous-ensemble latin en woff2.
+const FONTS: [(&str, &[u8]); 3] = [
+    ("/fonts/barlow-condensed-500.woff2", include_bytes!("../data/fonts/BarlowCondensed-500.woff2")),
+    ("/fonts/barlow-condensed-600.woff2", include_bytes!("../data/fonts/BarlowCondensed-600.woff2")),
+    ("/fonts/barlow-condensed-700.woff2", include_bytes!("../data/fonts/BarlowCondensed-700.woff2")),
+];
 pub const DEFAULT_PORT: u16 = 8790;
 /// Libellé de consommateur du flux live (garde le thread de lecture actif).
 const CONSUMER: &str = "regie";
@@ -292,6 +299,10 @@ fn handle(stream: TcpStream, peer: IpAddr, sh: &Shared) {
             respond(&stream, "200 OK", "application/manifest+json", MANIFEST.as_bytes(), "")
         }
         ("GET", "/icon.png") => respond(&stream, "200 OK", "image/png", ICON, ""),
+        ("GET", f) if FONTS.iter().any(|(p, _)| *p == f) => {
+            let data = FONTS.iter().find(|(p, _)| *p == f).map(|(_, d)| *d).unwrap_or_default();
+            respond(&stream, "200 OK", "font/woff2", data, "")
+        }
         ("POST", "/api/login") => {
             let code: String = serde_json::from_slice::<Value>(&req.body)
                 .ok()
@@ -488,7 +499,7 @@ mod tests {
         {
             let sh = sh.clone();
             std::thread::spawn(move || {
-                for s in listener.incoming().take(7).flatten() {
+                for s in listener.incoming().take(8).flatten() {
                     let peer = s.peer_addr().unwrap().ip();
                     handle(s, peer, &sh);
                 }
@@ -511,6 +522,9 @@ mod tests {
         let mbody = manifest.split("\r\n\r\n").nth(1).unwrap();
         let m: Value = serde_json::from_str(mbody).unwrap();
         assert_eq!(m["display"], "fullscreen");
+        assert!(page.contains("font-src 'self'"));
+        let font = req(format!("GET /fonts/barlow-condensed-700.woff2 HTTP/1.1\r\nHost: {host}\r\n\r\n"));
+        assert!(font.starts_with("HTTP/1.1 200") && font.contains("font/woff2") && font.contains("wOF2"));
         let icon = req(format!("GET /icon.png HTTP/1.1\r\nHost: {host}\r\n\r\n"));
         assert!(icon.starts_with("HTTP/1.1 200") && icon.contains("image/png"));
         let denied = req(format!("GET /api/live HTTP/1.1\r\nHost: {host}\r\n\r\n"));

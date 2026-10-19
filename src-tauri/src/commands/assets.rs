@@ -73,6 +73,24 @@ const STT_MODELS: &[SttModel] = &[
     SttModel { lang: "it", name: "vosk-model-small-it-0.22", size: 49_665_141 },
 ];
 
+/// Modèle de dictée Parakeet (sherpa-onnx), fichiers un par un sur HuggingFace, figés
+/// sur un commit ; les `.onnx` sont vérifiés par SHA-256 (`tokens.txt` n'en publie pas).
+const PARAKEET_BASE: &str = "https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/resolve";
+const PARAKEET_COMMIT: &str = "2bda32ec70b097a55adaa07d9a7173915b43cc78";
+/// Identifiant du modèle dans le catalogue (`kind = "asr"`).
+const PARAKEET_ID: &str = "parakeet-v3";
+/// (fichier, taille, SHA-256) — `encoder` d'abord : c'est lui qui pèse.
+const PARAKEET_FILES: [(&str, u64, Option<&str>); 4] = [
+    ("encoder.int8.onnx", 652_184_281, Some("acfc2b4456377e15d04f0243af540b7fe7c992f8d898d751cf134c3a55fd2247")),
+    ("decoder.int8.onnx", 11_845_275, Some("179e50c43d1a9de79c8a24149a2f9bac6eb5981823f2a2ed88d655b24248db4e")),
+    ("joiner.int8.onnx", 6_355_277, Some("3164c13fc2821009440d20fcb5fdc78bff28b4db2f8d0f0b329101719c0948b3")),
+    ("tokens.txt", 93_939, None),
+];
+
+fn parakeet_size() -> u64 {
+    PARAKEET_FILES.iter().map(|f| f.1).sum()
+}
+
 /// Élément du catalogue exposé au frontend (Config → Audio / Voix).
 #[derive(serde::Serialize)]
 pub struct AssetInfo {
@@ -177,6 +195,18 @@ pub fn assets_catalog(app: tauri::AppHandle) -> Vec<AssetInfo> {
         is_default: true,
         deletable: stt_dir.as_ref().is_some_and(|d| d.join(m.lang).is_dir()),
     }));
+    // Dictée Parakeet : un seul modèle pour toutes les langues (`lang` vide).
+    let parakeet = super::stt_parakeet::installed(&app);
+    out.push(AssetInfo {
+        kind: "asr".into(),
+        id: PARAKEET_ID.into(),
+        lang: String::new(),
+        label: "Parakeet v3".into(),
+        size_mb: (parakeet_size() / 1_048_576) as u32 + 1,
+        installed: parakeet,
+        is_default: true,
+        deletable: super::stt_parakeet::model_path(&app).is_ok_and(|d| d.is_dir()),
+    });
     out
 }
 
@@ -401,6 +431,22 @@ pub async fn asset_download(
             }
             let _ = app.emit("asset-progress", AssetProgress { downloaded: model.size, ..progress });
         }
+        "asr" => {
+            if id != PARAKEET_ID {
+                return Err(AppError::NotFound(format!("modèle de dictée inconnu: {id}")));
+            }
+            let dir = super::stt_parakeet::model_path(&app)?;
+            std::fs::create_dir_all(&dir)?;
+            let total = parakeet_size();
+            let mut done: u64 = 0;
+            for (file, size, sha) in PARAKEET_FILES {
+                let progress = AssetProgress { kind: kind.clone(), id: id.clone(), downloaded: done, total };
+                let url = format!("{PARAKEET_BASE}/{PARAKEET_COMMIT}/{file}");
+                download_file(&app, &client, &url, &dir.join(file), sha, &progress).await?;
+                done += size;
+            }
+            let _ = app.emit("asset-progress", AssetProgress { kind, id, downloaded: total, total });
+        }
         other => {
             return Err(AppError::Internal(format!("type de modèle inconnu: {other}")));
         }
@@ -452,6 +498,14 @@ pub fn asset_delete(app: tauri::AppHandle, kind: String, id: String) -> AppResul
                 .find(|m| m.lang == id)
                 .ok_or_else(|| AppError::Internal("unknown".into()))?;
             if !remove_path(&stt_download_dir(&app)?.join(m.lang))? {
+                return Err(AppError::Internal("not_downloaded".into()));
+            }
+            Ok(())
+        }
+        "asr" if id == PARAKEET_ID => {
+            // Le modèle chargé garde ses fichiers ouverts : on le libère d'abord.
+            super::stt_parakeet::unload();
+            if !remove_path(&super::stt_parakeet::model_path(&app)?)? {
                 return Err(AppError::Internal("not_downloaded".into()));
             }
             Ok(())

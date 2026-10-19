@@ -40,6 +40,7 @@ import { appLog, gameAudio, isTauri, live, type DuckStatus, type ShmStatus, type
 import { listOutputDevices } from "@/lib/useRadioAudio";
 import { RADIO_EXTRAS, WHEEL_ACTIONS, type RadioPreset, type WheelAction } from "@/lib/radioSettings";
 import { convertPressure, type PressureUnit } from "@/lib/engineer/pressures";
+import type { LockAlertMode } from "@/lib/engineer/tyreEvents";
 import { DEFAULT_SPOTTER, sanitizeTuning } from "@/lib/engineer/proximity";
 import { toast, toastError, toastSuccess } from "@/stores/dialogs";
 
@@ -146,6 +147,7 @@ export function RadioPresetAndExtras() {
   const extras = useAppStore((s) => s.radioExtras);
   const coexist = useAppStore((s) => s.coexistMode);
   const unit = useAppStore((s) => s.pressureUnit);
+  const lockMode = useAppStore((s) => s.lockAlertMode);
   const st = useAppStore.getState;
   return (
     <>
@@ -172,6 +174,15 @@ export function RadioPresetAndExtras() {
             onChange={(v) => void st().setRadioExtra(k, v)}
           />
         ))}
+        {extras.tyreEvents && (
+          <Row icon={<Disc3 className="h-4 w-4" />} label={t("config.lockAlert")} desc={t("config.lockAlertDesc")}>
+            <Segmented<LockAlertMode>
+              value={lockMode}
+              onChange={(m) => void st().setLockAlertMode(m)}
+              options={(["strict", "sensitive"] as const).map((m) => ({ value: m, label: t(`config.lockAlert_${m}`) }))}
+            />
+          </Row>
+        )}
         <Row icon={<Gauge className="h-4 w-4" />} label={t("config.pressureUnit")} desc={t("config.pressureUnitDesc")}>
           <Segmented<PressureUnit>
             value={unit}

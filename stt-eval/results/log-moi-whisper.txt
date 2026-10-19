@@ -1,0 +1,40 @@
+whisper   01.wav                         2602 ms  wer 0.00  Quel est l'écart avec la voiture devant ?
+whisper   02.wav                         2566 ms  wer 0.00  Il me reste combien d'essence ?
+whisper   03.wav                         2572 ms  wer 0.00  C'était combien mon dernier tour ?
+whisper   04.wav                         2487 ms  wer 0.00  Il reste combien de tours ?
+whisper   05.wav                         2645 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper   06.wav                         2529 ms  wer 0.50  Commençons mes pneus.
+whisper   07.wav                         2653 ms  wer 0.00  Quand est-ce que je dois m'arrêter ?
+whisper   08.wav                         2591 ms  wer 0.00  qui est derrière moi.
+whisper   09.wav                         2466 ms  wer 0.00  Ou est la 14.
+whisper   10.wav                         2668 ms  wer 0.38  Préviens-moi quand la 50 est rentrée au stand.
+whisper   11.wav                         2561 ms  wer 0.14  La sette est à combien de mois ?
+whisper   12.wav                         2566 ms  wer 0.00  Quel est l'écart avec la 93?
+whisper   13.wav                         2535 ms  wer 0.00  La 38 vient de rentrer au stand.
+whisper   14.wav                         2671 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi ?
+whisper   15.wav                         2697 ms  wer 0.83  Je souviens à Terre Rouge, Terre Trorouge.
+whisper   16.wav                         2710 ms  wer 0.12  Je perd du temps dans les virages porches.
+whisper   17.wav                         2541 ms  wer 0.00  la voiture survire en sortie de la parabolica.
+whisper   18.wav                         2677 ms  wer 0.12  Je bloque les roues au freinage d'armage.
+whisper   19.wav                         2530 ms  wer 0.17  au rouge, ça passe à fond.
+whisper   20.wav                         2558 ms  wer 0.00  Je rate mon freinage au bus stop.
+whisper   21.wav                         2670 ms  wer 0.71  Sa glisse elle a sorti d'Indienapolis.
+whisper   22.wav                         2547 ms  wer 0.29  Je perd du temps à l'esmo.
+whisper   23.wav                         2485 ms  wer 0.17  mais 20 litres au prochain arrêt.
+whisper   24.wav                         2478 ms  wer 0.00  énergie à 85%.
+whisper   25.wav                         2565 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+whisper   26.wav                         2554 ms  wer 0.12  Je fais encore 3 tours et je rentre.
+whisper   27.wav                         2522 ms  wer 0.14  Change les quatre pneus et par tout.
+whisper   28.wav                         2560 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+whisper   29.wav                         2576 ms  wer 0.14  Je montre l'anti-patinage d'un cran.
+whisper   30.wav                         2648 ms  wer 0.29  Il faut assoupire la barre anti-rollie avant.
+whisper   31.wav                         2584 ms  wer 0.40  On médépne plus ou on reste en médium.
+whisper   32.wav                         2695 ms  wer 0.09  Est-ce qu'on fait l'undercut sur la voiture de devant ?
+whisper   33.wav                         2574 ms  wer 0.00  Je baisse le répartiteur de freinage.
+whisper   34.wav                         2621 ms  wer 0.12  Combien de relais en fait avec ces gommes ?
+whisper   35.wav                         2556 ms  wer 0.17  Je rentre au stand cette tour.
+whisper   36.wav                         2434 ms  wer 0.00  Je reste dehors.
+whisper   37.wav                         2465 ms  wer 0.00  Répète.
+whisper   38.wav                         2722 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus ?
+whisper   39.wav                         2665 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2 ?
+whisper   40.wav                         2776 ms  wer 0.23  La voiture est instable au freinage, qu'est-ce qu'on peut changer ?

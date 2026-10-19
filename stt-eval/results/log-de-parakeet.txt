@@ -1,0 +1,120 @@
+parakeet  bruit10/eva/01.wav              446 ms  wer 0.00  Wie groß ist der Abstand zum Auto vor mir?
+parakeet  bruit10/eva/02.wav              329 ms  wer 0.00  Wie viel Sprit habe ich noch?
+parakeet  bruit10/eva/03.wav              332 ms  wer 0.03  Wie schnell war meine letzte Wunde?
+parakeet  bruit10/eva/05.wav              382 ms  wer 0.00  Auf welcher Position bin ich in meiner Klasse?
+parakeet  bruit10/eva/09.wav              456 ms  wer 0.00  Wo ist die 14?
+parakeet  bruit10/eva/10.wav              592 ms  wer 0.00  Sag mir Bescheid, wenn die 51 an die Box kommt.
+parakeet  bruit10/eva/12.wav              404 ms  wer 0.00  Wie groß ist der Abstand zur 93?
+parakeet  bruit10/eva/13.wav              392 ms  wer 0.00  Ist die 38 gerade an die Box gekommen?
+parakeet  bruit10/eva/15.wav              349 ms  wer 0.09  Ich habe Untersteuern in Tetterhuge.
+parakeet  bruit10/eva/17.wav              442 ms  wer 0.00  Das Auto übersteuert am Ausgang der Parabolica.
+parakeet  bruit10/eva/19.wav              312 ms  wer 0.26  Die Auge geht das voll.
+parakeet  bruit10/eva/21.wav              396 ms  wer 0.03  Es rutscht am Ausgang von Indianapols.
+parakeet  bruit10/eva/23.wav              352 ms  wer 0.00  Tank beim nächsten Stopp 20 Liter.
+parakeet  bruit10/eva/24.wav              389 ms  wer 0.00  Energie auf 85%.
+parakeet  bruit10/eva/25.wav              556 ms  wer 0.04  Sag mir Bescheid, wenn der Spricht unter 10% fällt.
+parakeet  bruit10/eva/29.wav              454 ms  wer 0.04  Soll ich die Traktiskontrolle um eine Stufe erhöhen.
+parakeet  bruit10/eva/31.wav              490 ms  wer 0.04  Ziehen wir Regenreichen auf oder bleiben wir auf Medium?
+parakeet  bruit10/eva/35.wav              316 ms  wer 0.05  Ich komme diese Wunde rein.
+parakeet  bruit10/eva/38.wav              357 ms  wer 0.00  Komme ich mit diesen Reifen bis zum Ende.
+parakeet  bruit10/eva/39.wav              394 ms  wer 0.00  Warum verliere ich Zeit in Sektor 2?
+parakeet  bruit10/thorsten/01.wav         347 ms  wer 0.03  Wie groß ist der Abstand zum Auto von mir?
+parakeet  bruit10/thorsten/02.wav         275 ms  wer 0.09  Wie viel Spät habe ich noch?
+parakeet  bruit10/thorsten/03.wav         269 ms  wer 0.00  Wie schnell war meine letzte Runde?
+parakeet  bruit10/thorsten/05.wav         355 ms  wer 0.03  Auf welche Position bin ich in meiner Klasse?
+parakeet  bruit10/thorsten/09.wav         221 ms  wer 0.00  Wo ist die 14?
+parakeet  bruit10/thorsten/10.wav         444 ms  wer 0.04  Sagt mir Bescheid, wenn die 51 in die Box kommt.
+parakeet  bruit10/thorsten/12.wav         385 ms  wer 0.03  Wie groß ist der Abstand zu 93?
+parakeet  bruit10/thorsten/13.wav         359 ms  wer 0.00  Ist die 38 gerade an die Box gekommen?
+parakeet  bruit10/thorsten/15.wav         300 ms  wer 0.12  Ich habe Untersteuern in Tetroge.
+parakeet  bruit10/thorsten/17.wav         407 ms  wer 0.00  Das Auto übersteuert am Ausgang der Parabolica.
+parakeet  bruit10/thorsten/19.wav         463 ms  wer 0.26  Ihr Roger geht das voll?
+parakeet  bruit10/thorsten/21.wav         426 ms  wer 0.00  Es rutscht am Ausgang von Indianapolis.
+parakeet  bruit10/thorsten/23.wav         340 ms  wer 0.06  Krank beim nächsten Stopp 20 Liter.
+parakeet  bruit10/thorsten/24.wav         335 ms  wer 0.00  Energie auf 85%.
+parakeet  bruit10/thorsten/25.wav         453 ms  wer 0.00  Sag mir Bescheid, wenn der Sprit unter 10% fällt.
+parakeet  bruit10/thorsten/29.wav         389 ms  wer 0.04  Soll ich die Traktiskontrolle um eine Stufe erhöhen?
+parakeet  bruit10/thorsten/31.wav         472 ms  wer 0.35  Ziehen wir Redenreifen. Wir bleiben hier auf Nebenlop.
+parakeet  bruit10/thorsten/35.wav         262 ms  wer 0.05  Ich komme diese Hunde rein.
+parakeet  bruit10/thorsten/38.wav         344 ms  wer 0.06  komme ich mit diesen Reif bis zum Ende.
+parakeet  bruit10/thorsten/39.wav         356 ms  wer 0.00  Warum verliere ich Zeit in Sektor 2?
+parakeet  bruit5/eva/01.wav               428 ms  wer 0.00  Wie groß ist der Abstand zum Auto vor mir?
+parakeet  bruit5/eva/02.wav               326 ms  wer 0.00  Wie viel Sprit habe ich noch?
+parakeet  bruit5/eva/03.wav               339 ms  wer 0.03  Wie schnell war meine letzte Wunde.
+parakeet  bruit5/eva/05.wav               399 ms  wer 0.00  Auf welcher Position bin ich in meiner Klasse?
+parakeet  bruit5/eva/09.wav               314 ms  wer 0.50  Wo ist die Fancy?
+parakeet  bruit5/eva/10.wav               453 ms  wer 0.00  Sag mir Bescheid, wenn die 51 an die Box kommt.
+parakeet  bruit5/eva/12.wav               402 ms  wer 0.00  Wie groß ist der Abstand zur 93?
+parakeet  bruit5/eva/13.wav               407 ms  wer 0.00  Ist die 38 gerade an die Box gekommen.
+parakeet  bruit5/eva/15.wav               349 ms  wer 0.12  Ich habe Untersteuern in Tatterhuge.
+parakeet  bruit5/eva/17.wav               442 ms  wer 0.00  Das Auto übersteuert am Ausgang der Parabolica.
+parakeet  bruit5/eva/19.wav               301 ms  wer 0.26  Die Auge geht das voll.
+parakeet  bruit5/eva/21.wav               385 ms  wer 0.00  Es rutscht am Ausgang von Indianapolis.
+parakeet  bruit5/eva/23.wav               334 ms  wer 0.00  Tank beim nächsten Stopp 20 Liter.
+parakeet  bruit5/eva/24.wav               379 ms  wer 0.00  Energie auf 85 Prozent.
+parakeet  bruit5/eva/25.wav               495 ms  wer 0.06  Sag mir Bescheid, wenn der Spielt unter 10% fällt.
+parakeet  bruit5/eva/29.wav               432 ms  wer 0.04  Soll ich die Traktiskontrolle um eine Stufe erhöhen.
+parakeet  bruit5/eva/31.wav               713 ms  wer 0.04  Ziehen wir Regenreichen auf oder bleiben wir auf Medium?
+parakeet  bruit5/eva/35.wav               319 ms  wer 0.09  Ich komme diese Wunde ein.
+parakeet  bruit5/eva/38.wav               356 ms  wer 0.00  Komme ich mit diesen Reifen bis zum Ende.
+parakeet  bruit5/eva/39.wav               381 ms  wer 0.00  Warum verliere ich Zeit in Sektor 2?
+parakeet  bruit5/thorsten/01.wav          336 ms  wer 0.03  Wie groß ist der Abstand zum Auto von mir?
+parakeet  bruit5/thorsten/02.wav          295 ms  wer 0.26  Viel Spiel habe ich noch?
+parakeet  bruit5/thorsten/03.wav          286 ms  wer 0.69  Nicht mehr weg zu tun.
+parakeet  bruit5/thorsten/05.wav          372 ms  wer 0.11  Auf welche Position bin ich immer der Klasse?
+parakeet  bruit5/thorsten/09.wav          224 ms  wer 0.38  Wo ist die Pfeffel?
+parakeet  bruit5/thorsten/10.wav          441 ms  wer 0.02  Sag mir Bescheid, wenn die 51 in die Box kommt.
+parakeet  bruit5/thorsten/12.wav          392 ms  wer 0.03  Wie groß ist der Abstand zu 93?
+parakeet  bruit5/thorsten/13.wav          368 ms  wer 0.00  Ist die 38 gerade an die Box gekommen?
+parakeet  bruit5/thorsten/15.wav          305 ms  wer 0.28  Ich habe Untersteuern die Kettro.
+parakeet  bruit5/thorsten/17.wav          451 ms  wer 0.05  Das Auto übersteuert am Ausgang der Paraponica.
+parakeet  bruit5/thorsten/19.wav          298 ms  wer 0.53  Your oken fica voll.
+parakeet  bruit5/thorsten/21.wav          354 ms  wer 0.00  Es rutscht am Ausgang von Indianapolis.
+parakeet  bruit5/thorsten/23.wav          325 ms  wer 0.27  Beim nächsten Stoff 20 Mittel.
+parakeet  bruit5/thorsten/24.wav          326 ms  wer 0.48  In 80 Prozent.
+parakeet  bruit5/thorsten/25.wav          438 ms  wer 0.02  Sag mir Bescheid, wenn der Sprint unter 10% fällt.
+parakeet  bruit5/thorsten/29.wav          390 ms  wer 0.11  Soll ich die Traktionskontrolle um eine Stufe öffnen?
+parakeet  bruit5/thorsten/31.wav          396 ms  wer 0.54  Wir reden rein. Wir bleiben hier eben.
+parakeet  bruit5/thorsten/35.wav          250 ms  wer 0.05  Ich komme diese Hunde rein.
+parakeet  bruit5/thorsten/38.wav          334 ms  wer 0.00  Komme ich mit diesen Reifen bis zum Ende.
+parakeet  bruit5/thorsten/39.wav          363 ms  wer 0.00  Warum verliere ich Zeit in Sektor 2?
+parakeet  propre/eva/01.wav               420 ms  wer 0.00  Wie groß ist der Abstand zum Auto vor mir?
+parakeet  propre/eva/02.wav               315 ms  wer 0.00  Wie viel Sprit habe ich noch?
+parakeet  propre/eva/03.wav               326 ms  wer 0.00  Wie schnell war meine letzte Runde?
+parakeet  propre/eva/05.wav               543 ms  wer 0.00  Auf welcher Position bin ich in meiner Klasse?
+parakeet  propre/eva/09.wav               418 ms  wer 0.00  Wo ist die 14?
+parakeet  propre/eva/10.wav               459 ms  wer 0.00  Sag mir Bescheid, wenn die 51 an die Box kommt.
+parakeet  propre/eva/12.wav               405 ms  wer 0.00  Wie groß ist der Abstand zur 93?
+parakeet  propre/eva/13.wav               412 ms  wer 0.00  Ist die 38 gerade an die Box gekommen?
+parakeet  propre/eva/15.wav               350 ms  wer 0.12  Ich habe runtersteuern in Tetteruge.
+parakeet  propre/eva/17.wav               436 ms  wer 0.03  Das Auto übersteuert am Ausgang der Parabolika.
+parakeet  propre/eva/19.wav               308 ms  wer 0.26  Wie Auru geht das voll.
+parakeet  propre/eva/21.wav               396 ms  wer 0.03  Es rutscht am Ausgang von Indianapols.
+parakeet  propre/eva/23.wav               339 ms  wer 0.00  Tank beim nächsten Stopp 20 Liter
+parakeet  propre/eva/24.wav               397 ms  wer 0.00  Energie auf 85%.
+parakeet  propre/eva/25.wav               528 ms  wer 0.00  Sag mir Bescheid, wenn der Sprit unter 10% fällt.
+parakeet  propre/eva/29.wav               440 ms  wer 0.04  Soll ich die Traktiskontrolle um eine Stufe erhöhen.
+parakeet  propre/eva/31.wav               468 ms  wer 0.04  Ziehen die Regenreifen auf oder bleiben wir auf Medium?
+parakeet  propre/eva/35.wav               322 ms  wer 0.00  Ich komme diese Runde rein.
+parakeet  propre/eva/38.wav               378 ms  wer 0.00  Komme ich mit diesen Reifen bis zum Ende.
+parakeet  propre/eva/39.wav               378 ms  wer 0.00  Warum verliere ich Zeit in Sektor 2?
+parakeet  propre/thorsten/01.wav          328 ms  wer 0.03  Wie groß ist der Abstand zum Auto von mir?
+parakeet  propre/thorsten/02.wav          266 ms  wer 0.00  Wie viel Sprit habe ich noch?
+parakeet  propre/thorsten/03.wav          271 ms  wer 0.00  Wie schnell war meine letzte Runde?
+parakeet  propre/thorsten/05.wav          368 ms  wer 0.00  Auf welcher Position bin ich in meiner Klasse?
+parakeet  propre/thorsten/09.wav          226 ms  wer 0.00  Wo ist die 14?
+parakeet  propre/thorsten/10.wav          441 ms  wer 0.00  Sag mir Bescheid, wenn die 51 an die Box kommt.
+parakeet  propre/thorsten/12.wav          382 ms  wer 0.03  Wie groß ist der Abstand zu 93?
+parakeet  propre/thorsten/13.wav          372 ms  wer 0.00  Ist die 38 gerade an die Box gekommen?
+parakeet  propre/thorsten/15.wav          299 ms  wer 0.06  Ich habe Untersteuern in Tertro Ruge.
+parakeet  propre/thorsten/17.wav          479 ms  wer 0.03  Das Auto übersteuert am Ausgang der Parabolika.
+parakeet  propre/thorsten/19.wav          410 ms  wer 0.21  Die Ruge, geht das voll?
+parakeet  propre/thorsten/21.wav          375 ms  wer 0.00  Es rutscht am Ausgang von Indianapolis.
+parakeet  propre/thorsten/23.wav          349 ms  wer 0.00  Tank beim nächsten Stopp 20 Liter
+parakeet  propre/thorsten/24.wav          326 ms  wer 0.00  Energie auf 85%.
+parakeet  propre/thorsten/25.wav          436 ms  wer 0.00  Sag mir Bescheid, wenn der Sprit unter 10% fällt.
+parakeet  propre/thorsten/29.wav          412 ms  wer 0.04  Soll ich die Traktiskontrolle um eine Stufe erhöhen?
+parakeet  propre/thorsten/31.wav          408 ms  wer 0.00  Ziehen wir Regenreifen auf oder bleiben wir auf Medium.
+parakeet  propre/thorsten/35.wav          244 ms  wer 0.00  Ich komme diese Runde rein.
+parakeet  propre/thorsten/38.wav          328 ms  wer 0.06  Komme ich mit diesen Reif bis zum Ende.
+parakeet  propre/thorsten/39.wav          349 ms  wer 0.00  Warum verliere ich Zeit in Sektor 2?

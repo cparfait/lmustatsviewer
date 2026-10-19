@@ -1,0 +1,120 @@
+parakeet  bruit10/alan/01.wav             417 ms  wer 0.00  What's the gap to the car ahead?
+parakeet  bruit10/alan/02.wav             367 ms  wer 0.00  How much fuel have I got left?
+parakeet  bruit10/alan/03.wav             339 ms  wer 0.00  What was my last lap time?
+parakeet  bruit10/alan/05.wav             373 ms  wer 0.00  What position am I in my class?
+parakeet  bruit10/alan/09.wav             263 ms  wer 0.00  Where is the 14?
+parakeet  bruit10/alan/10.wav             375 ms  wer 0.00  Tell me when the 51 pits.
+parakeet  bruit10/alan/12.wav             354 ms  wer 0.00  What's the gap to the 93?
+parakeet  bruit10/alan/13.wav             316 ms  wer 0.00  Did the 38 just pit?
+parakeet  bruit10/alan/15.wav             398 ms  wer 0.04  I'm under steering at Terte Rouge.
+parakeet  bruit10/alan/17.wav             466 ms  wer 0.00  The car oversteers on the exit of the Parabolica.
+parakeet  bruit10/alan/19.wav             350 ms  wer 0.21  A rouche, is it flat out?
+parakeet  bruit10/alan/21.wav             443 ms  wer 0.00  It slides on the exit of Indianapolis.
+parakeet  bruit10/alan/23.wav             444 ms  wer 0.07  Put 20 liters in at the next stop.
+parakeet  bruit10/alan/24.wav             430 ms  wer 0.00  Energy to 85%.
+parakeet  bruit10/alan/25.wav             478 ms  wer 0.11  War me when the fuel drops below 1%.
+parakeet  bruit10/alan/29.wav             438 ms  wer 0.00  Should I raise traction control by one click?
+parakeet  bruit10/alan/31.wav             432 ms  wer 0.28  Do we put wet ties on those stale mediums?
+parakeet  bruit10/alan/35.wav             268 ms  wer 0.00  Boxing this lap.
+parakeet  bruit10/alan/38.wav             380 ms  wer 0.03  Can I make it to the end on these tires?
+parakeet  bruit10/alan/39.wav             389 ms  wer 0.00  Why am I losing time in sector 2?
+parakeet  bruit10/ryan/01.wav             280 ms  wer 0.08  What's the gap to the core ahead?
+parakeet  bruit10/ryan/02.wav             301 ms  wer 0.00  How much fuel have I got left?
+parakeet  bruit10/ryan/03.wav             279 ms  wer 0.00  What was my last lap time?
+parakeet  bruit10/ryan/05.wav             304 ms  wer 0.00  What position am I in my class?
+parakeet  bruit10/ryan/09.wav             406 ms  wer 0.06  Where's the 14?
+parakeet  bruit10/ryan/10.wav             422 ms  wer 0.08  Tell me when the fifth one hits.
+parakeet  bruit10/ryan/12.wav             361 ms  wer 0.00  What's the gap to the 93?
+parakeet  bruit10/ryan/13.wav             310 ms  wer 0.00  Did the 38 just pit?
+parakeet  bruit10/ryan/15.wav             335 ms  wer 0.21  I'm under steering at Turter Roof.
+parakeet  bruit10/ryan/17.wav             414 ms  wer 0.00  The car oversteers on the exit of the parabolica.
+parakeet  bruit10/ryan/19.wav             293 ms  wer 0.16  Oh Rouge, is it flat out?
+parakeet  bruit10/ryan/21.wav             407 ms  wer 0.00  It slides on the exit of Indianapolis.
+parakeet  bruit10/ryan/23.wav             321 ms  wer 0.07  Put 20 liters in at the next stop.
+parakeet  bruit10/ryan/24.wav             286 ms  wer 0.00  Energy to 85%.
+parakeet  bruit10/ryan/25.wav             392 ms  wer 0.03  War me when the fuel drops below 10%.
+parakeet  bruit10/ryan/29.wav             401 ms  wer 0.00  Should I raise traction control by one click?
+parakeet  bruit10/ryan/31.wav             392 ms  wer 0.03  Do we put wet tires on or stay on mediums?
+parakeet  bruit10/ryan/35.wav             239 ms  wer 0.00  Boxing this lap.
+parakeet  bruit10/ryan/38.wav             316 ms  wer 0.03  Can I make it to the end on these tires?
+parakeet  bruit10/ryan/39.wav             328 ms  wer 0.00  Why am I losing time in Sector 2?
+parakeet  bruit5/alan/01.wav              331 ms  wer 0.00  What's the gap to the car ahead?
+parakeet  bruit5/alan/02.wav              363 ms  wer 0.00  How much fuel have I got left?
+parakeet  bruit5/alan/03.wav              362 ms  wer 0.00  What was my last lap time?
+parakeet  bruit5/alan/05.wav              410 ms  wer 0.00  What position am I in my class?
+parakeet  bruit5/alan/09.wav              282 ms  wer 0.00  Where is the 14?
+parakeet  bruit5/alan/10.wav              413 ms  wer 0.04  Tell me when the 51 hits.
+parakeet  bruit5/alan/12.wav              361 ms  wer 0.00  What's the gap to the 93?
+parakeet  bruit5/alan/13.wav              330 ms  wer 0.00  Did the 38 just pit?
+parakeet  bruit5/alan/15.wav              441 ms  wer 0.07  I'm under steering at Turtle Rouge.
+parakeet  bruit5/alan/17.wav              510 ms  wer 0.00  The car oversteers on the exit of the parabolica.
+parakeet  bruit5/alan/19.wav              372 ms  wer 0.11  A rouge, is it flat out?
+parakeet  bruit5/alan/21.wav              609 ms  wer 0.00  It slides on the exit of Indianapolis.
+parakeet  bruit5/alan/23.wav              654 ms  wer 0.07  Put 20 liters in at the next stop.
+parakeet  bruit5/alan/24.wav              429 ms  wer 0.00  energy to 85%.
+parakeet  bruit5/alan/25.wav              481 ms  wer 0.03  Warm me when the fuel drops below 10%.
+parakeet  bruit5/alan/29.wav              454 ms  wer 0.00  Should I raise traction control by one click?
+parakeet  bruit5/alan/31.wav              441 ms  wer 0.28  Do we put wet ties on those stale mediums?
+parakeet  bruit5/alan/35.wav              318 ms  wer 0.00  boxing this lap.
+parakeet  bruit5/alan/38.wav              381 ms  wer 0.03  Can I make it to the end on these tires?
+parakeet  bruit5/alan/39.wav              466 ms  wer 0.00  Why am I losing time in sector two?
+parakeet  bruit5/ryan/01.wav              335 ms  wer 0.12  What's the gap in the cora head?
+parakeet  bruit5/ryan/02.wav              352 ms  wer 0.00  How much fuel have I got left?
+parakeet  bruit5/ryan/03.wav              302 ms  wer 0.00  What was my last lap time?
+parakeet  bruit5/ryan/05.wav              337 ms  wer 0.00  What position am I in my class?
+parakeet  bruit5/ryan/09.wav              261 ms  wer 0.06  Where's the 14?
+parakeet  bruit5/ryan/10.wav              329 ms  wer 0.08  Tell me when the fifth one hits.
+parakeet  bruit5/ryan/12.wav              332 ms  wer 0.00  What's the gap to the 93?
+parakeet  bruit5/ryan/13.wav              330 ms  wer 0.04  Did the 38 just hit?
+parakeet  bruit5/ryan/15.wav              354 ms  wer 0.21  I'm under steering at Turter Root.
+parakeet  bruit5/ryan/17.wav              478 ms  wer 0.00  The car oversteers on the exit of the parabolica.
+parakeet  bruit5/ryan/19.wav              332 ms  wer 0.16  Oh Rouge, is it flat out?
+parakeet  bruit5/ryan/21.wav              405 ms  wer 0.00  It slides on the exit of Indianapolis.
+parakeet  bruit5/ryan/23.wav              337 ms  wer 0.07  Put 20 liters in at the next stop.
+parakeet  bruit5/ryan/24.wav              315 ms  wer 0.00  Energy to 85%
+parakeet  bruit5/ryan/25.wav              407 ms  wer 0.03  War me when the fuel drops below 10%.
+parakeet  bruit5/ryan/29.wav              418 ms  wer 0.00  Should I raise traction control by one click?
+parakeet  bruit5/ryan/31.wav              533 ms  wer 0.03  Do we put wet tires on or stay on mediums?
+parakeet  bruit5/ryan/35.wav              385 ms  wer 0.00  Boxing this lap.
+parakeet  bruit5/ryan/38.wav              474 ms  wer 0.03  Can I make it to the end on these tires?
+parakeet  bruit5/ryan/39.wav              369 ms  wer 0.00  Why am I losing time in Sector 2?
+parakeet  propre/alan/01.wav              414 ms  wer 0.00  What's the gap to the car ahead?
+parakeet  propre/alan/02.wav              411 ms  wer 0.00  How much fuel have I got left?
+parakeet  propre/alan/03.wav              373 ms  wer 0.00  What was my last lap time?
+parakeet  propre/alan/05.wav              410 ms  wer 0.00  What position am I in my class?
+parakeet  propre/alan/09.wav              306 ms  wer 0.00  Where is the 14?
+parakeet  propre/alan/10.wav              421 ms  wer 0.00  Tell me when the 51 pits.
+parakeet  propre/alan/12.wav              372 ms  wer 0.04  What's the gap to the 9 to 3?
+parakeet  propre/alan/13.wav              346 ms  wer 0.00  Did the 38 just pit?
+parakeet  propre/alan/15.wav              371 ms  wer 0.04  I'm under steering at Terte Rouge.
+parakeet  propre/alan/17.wav              489 ms  wer 0.00  The car oversteers on the exit of the parabolica.
+parakeet  propre/alan/19.wav              389 ms  wer 0.16  O Rouge, is it flat out?
+parakeet  propre/alan/21.wav              447 ms  wer 0.00  It slides on the exit of Indianapolis.
+parakeet  propre/alan/23.wav              425 ms  wer 0.07  Put twenty liters in at the next stop.
+parakeet  propre/alan/24.wav              351 ms  wer 0.00  energy to 85%.
+parakeet  propre/alan/25.wav              469 ms  wer 0.11  War me when the fuel drops below 1%.
+parakeet  propre/alan/29.wav              416 ms  wer 0.00  Should I raise traction control by one click?
+parakeet  propre/alan/31.wav              449 ms  wer 0.06  Do we put wet ties on or stay on mediums?
+parakeet  propre/alan/35.wav              285 ms  wer 0.00  Boxing this lap.
+parakeet  propre/alan/38.wav              378 ms  wer 0.03  Can I make it to the end on these tires?
+parakeet  propre/alan/39.wav              374 ms  wer 0.00  Why am I losing time in sector 2?
+parakeet  propre/ryan/01.wav              270 ms  wer 0.08  What's the gap to the core ahead?
+parakeet  propre/ryan/02.wav              298 ms  wer 0.00  How much fuel have I got left?
+parakeet  propre/ryan/03.wav              424 ms  wer 0.00  What was my last lap time?
+parakeet  propre/ryan/05.wav              448 ms  wer 0.00  What position am I in my class?
+parakeet  propre/ryan/09.wav              257 ms  wer 0.06  Where's the 14?
+parakeet  propre/ryan/10.wav              296 ms  wer 0.20  Tell me when the 5th to 1 pits.
+parakeet  propre/ryan/12.wav              303 ms  wer 0.00  What's the gap to the 93?
+parakeet  propre/ryan/13.wav              329 ms  wer 0.00  Did the 38 just pit?
+parakeet  propre/ryan/15.wav              307 ms  wer 0.11  I'm under steering at Ter Rouge.
+parakeet  propre/ryan/17.wav              438 ms  wer 0.00  The car oversteers on the exit of the parabolica.
+parakeet  propre/ryan/19.wav              296 ms  wer 0.16  Oh Rouge, is it flat out?
+parakeet  propre/ryan/21.wav              402 ms  wer 0.00  It slides on the exit of Indianapolis.
+parakeet  propre/ryan/23.wav              338 ms  wer 0.07  Put 20 liters in at the next stop.
+parakeet  propre/ryan/24.wav              303 ms  wer 0.00  Energy to 85%.
+parakeet  propre/ryan/25.wav              468 ms  wer 0.03  War me when the fuel drops below 10%.
+parakeet  propre/ryan/29.wav              368 ms  wer 0.00  Should I raise traction control by one click?
+parakeet  propre/ryan/31.wav              386 ms  wer 0.03  Do we put wet tires on or stay on mediums?
+parakeet  propre/ryan/35.wav              238 ms  wer 0.00  Boxing this lap
+parakeet  propre/ryan/38.wav              319 ms  wer 0.03  Can I make it to the end on these tires?
+parakeet  propre/ryan/39.wav              326 ms  wer 0.00  Why am I losing time in Sector 2?

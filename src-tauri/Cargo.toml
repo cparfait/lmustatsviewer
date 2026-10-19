@@ -62,6 +62,11 @@ hidapi = "2"
 # La lib native (resources/stt/lib, fetchée par scripts/fetch-vosk.ps1) est requise
 # à la compilation ; les modèles par langue sont téléchargés à la demande (assets.rs).
 vosk = "0.3"
+# Dictée libre « Parakeet » (NVIDIA Parakeet TDT 0.6B v3, 25 langues) via sherpa-onnx.
+# Liaison dynamique : sherpa-onnx-c-api.dll + onnxruntime.dll (fetchées par
+# scripts/fetch-sherpa.ps1 dans resources/stt/sherpa, cf. .cargo/config.toml) ; le
+# modèle (~640 Mo) est téléchargé à la demande (assets.rs).
+sherpa-onnx = { version = "=1.13.8", default-features = false, features = ["shared"] }
 # Capture micro native (WASAPI) du moteur d'écoute de l'ingénieur : micro prêt en
 # permanence (début de phrase conservé, envoi au silence, mot déclencheur).
 cpal = "0.15"

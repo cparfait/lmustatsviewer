@@ -130,7 +130,7 @@ est créée avec l'installeur signé + `latest.json`.
 > invalide une partie du cache Cargo ; or `duckdb` est en feature **`bundled`** et
 > recompile alors tout son C++ sur le runner. Une release enchaîne donc quasi
 > systématiquement le cas « cache froid » — c'est normal, pas un blocage. Ne pas
-> s'inquiéter tant que les étapes en amont (checkout, `npm ci`, fetch Piper/Vosk) sont
+> s'inquiéter tant que les étapes en amont (checkout, `npm ci`, fetch Piper/Vosk/sherpa) sont
 > vertes et que « Build, sign & release » est toujours `in_progress`.
 
 **Publier :** GitHub → *Releases* → ouvrir le brouillon `v1.1.0` → rédiger les notes de
@@ -160,7 +160,8 @@ permet un déclenchement manuel sans tag.
   1. `npm ci`
   2. `./scripts/fetch-piper.ps1` — télécharge le moteur TTS **Piper** + voix FR/EN/ES/DE dans `src-tauri/resources/tts/`.
   3. `./scripts/fetch-vosk.ps1` — télécharge la lib **Vosk** + modèles STT FR/EN/ES/DE dans `src-tauri/resources/stt/`.
-  4. Action Tauri officielle avec :
+  4. `./scripts/fetch-sherpa.ps1` — télécharge les DLL **sherpa-onnx** + onnxruntime (dictée Parakeet) dans `src-tauri/resources/stt/sherpa/`.
+  5. Action Tauri officielle avec :
      ```
      tagName: <tag>          releaseName: "LMU Stats Viewer <tag>"
      releaseDraft: true      prerelease: false
@@ -170,7 +171,7 @@ permet un déclenchement manuel sans tag.
 - **Secrets utilisés** : `TAURI_SIGNING_PRIVATE_KEY`, `GITHUB_TOKEN`.
 
 > Le STT (commandes vocales) fait partie de **tout** build ; en revanche les voix
-> Piper et les modèles Vosk **ne sont plus bundlés** — l'app les télécharge à la
+> Piper, les modèles Vosk et le modèle Parakeet (~640 Mo) **ne sont pas bundlés** — l'app les télécharge à la
 > demande (Config → Audio / Voix). L'installeur reste donc léger.
 
 ---
@@ -182,7 +183,7 @@ Utile pour tester un installeur sans passer par la CI.
 ### Une seule variante
 
 `npm run tauri:build` — STT inclus d'office (identique à la release officielle).
-Nécessite les assets Piper **et** Vosk en local (libvosk est liée à la compilation ;
+Nécessite les assets Piper, Vosk **et** sherpa-onnx en local (libvosk et sherpa-onnx sont liées à la compilation ;
 le moteur Piper est bundlé). Les voix/modèles ne sont pas bundlés : l'app les
 télécharge à la demande.
 
@@ -191,6 +192,7 @@ télécharge à la demande.
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/fetch-piper.ps1
 powershell -ExecutionPolicy Bypass -File scripts/fetch-vosk.ps1
+powershell -ExecutionPolicy Bypass -File scripts/fetch-sherpa.ps1
 ```
 
 Ces scripts sont **idempotents** (ils sautent ce qui est déjà présent) et écrivent dans

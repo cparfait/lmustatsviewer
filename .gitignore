@@ -55,6 +55,8 @@ src-tauri/resources/tts/voices/
 # STT Vosk — lib native + modèles (lourds, fetchés via scripts/fetch-vosk.ps1)
 src-tauri/resources/stt/lib/
 src-tauri/resources/stt/models/
+# sherpa-onnx (dictée Parakeet) — DLL natives (fetchées via scripts/fetch-sherpa.ps1)
+src-tauri/resources/stt/sherpa/
 
 # Sauvegardes locales de voix/modèles (lourdes, ~800 Mo) — jamais versionnées.
 src-tauri/resources/**/*_bak/
@@ -91,3 +93,9 @@ videos/lmu-splash-motion/.waveform-cache/
 videos/lmu-splash-motion/renders/
 videos/lmu-splash-motion/assets/sfx-src/*
 !videos/lmu-splash-motion/assets/sfx-src/SOURCES.md
+
+# Banc de reconnaissance vocale : audio (synthèse lourde, enregistrements personnels)
+stt-eval/wav/
+
+# Python (banc stt-eval)
+__pycache__/

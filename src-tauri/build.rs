@@ -44,12 +44,17 @@ fn setup_vosk() {
     // libwinpthread) dans le dossier de profil (target/<profile>/) pour le dev. Elles
     // doivent être à côté de l'exe car libvosk.dll est chargée au démarrage du process
     // (lien implicite) et résout ses propres dépendances à ce moment-là.
+    // Même chose pour sherpa-onnx (dictée Parakeet, `scripts/fetch-sherpa.ps1`) :
+    // sherpa-onnx-c-api.dll + onnxruntime.dll, liées au démarrage elles aussi.
+    let sherpa_dir = lib_dir.parent().unwrap().join("sherpa");
+    println!("cargo:rerun-if-changed={}", sherpa_dir.display());
     #[cfg(target_os = "windows")]
     {
         if let Ok(out) = std::env::var("OUT_DIR") {
             // OUT_DIR = target/<profile>/build/<pkg>/out → remonter à target/<profile>.
             if let Some(profile_dir) = Path::new(&out).ancestors().nth(3) {
-                if let Ok(rd) = fs::read_dir(&lib_dir) {
+                for dir in [&lib_dir, &sherpa_dir] {
+                if let Ok(rd) = fs::read_dir(dir) {
                     for e in rd.flatten() {
                         let p = e.path();
                         if p.extension().and_then(|x| x.to_str()) == Some("dll") {
@@ -58,6 +63,7 @@ fn setup_vosk() {
                             }
                         }
                     }
+                }
                 }
             }
         }

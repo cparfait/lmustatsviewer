@@ -387,6 +387,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const spotterTuning = useAppStore((s) => s.spotterTuning);
   const coexistMode = useAppStore((s) => s.coexistMode);
   const extras = useAppStore((s) => s.radioExtras);
+  const lockAlertMode = useAppStore((s) => s.lockAlertMode);
   const pressureUnit = useAppStore((s) => s.pressureUnit);
   const pressureWindows = useAppStore((s) => s.pressureWindows);
   const spot = useRef(new ProximitySpotter());
@@ -419,7 +420,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     warmupVoice(lang);
     const keys = proximity ? [...PREWARM_KEYS, ...Object.values(SPOT_KEYS)] : PREWARM_KEYS;
     // Chaque variante « A | B » : l'alerte dira l'une ou l'autre.
-    void prewarmSpeech(keys.flatMap((k) => splitVariants(t(k))), lang);
+    // Crevaison nommée : ses 4 roues aussi.
+    const wheels = WHEEL_KEYS.flatMap((w) => splitVariants(t("live.vPunctureWheel", { wheel: t(`live.wheelVoice.${w}`) })));
+    void prewarmSpeech([...keys.flatMap((k) => splitVariants(t(k))), ...wheels], lang);
   }, [enabled, proximity, lang, t]);
 
   // Coûts de chauffe et préférences radio mémorisés : chargés une fois ; les
@@ -1424,6 +1427,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     // ── Pneus sales, gros blocage, nouvelles du pilote après un choc ─────────
     if (tel && warmedUp) {
       const inPitsNow = playerStanding?.in_pits ?? false;
+      tyreEv.current.setLockMode(lockAlertMode);
       for (const ev of tyreEv.current.update(nowS, tel.wheels, tel.speed_kmh, inPitsNow)) {
         if (ev.kind === "dirty" && extras.tyreEvents) say("dirt", t("live.vTyresDirty"), "normal", { score: 55, ttlMs: 5000 });
         else if (ev.kind === "lockFlatSpot" && extras.tyreEvents)
@@ -1443,15 +1447,26 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     // ── Alertes pneus / freins / moteur (télémétrie) ─────────────────────────
     // Suspendues pendant le warm-up (valeurs non stabilisées au départ).
     if (tel && warmedUp) {
-      // Crevaison.
-      const flat = tel.wheels.some((w) => w.flat);
-      if (dmgLatch.current.puncture.update(flat, now)) {
-        say("mech:puncture", t("live.vPuncture"), "critical");
+      // Crevaison / roue arrachée : la roue est nommée quand une seule est touchée
+      // (le jeu le donne roue par roue), sinon la phrase générale.
+      const oneWheel = (hit: boolean[]) => (hit.filter(Boolean).length === 1 ? hit.indexOf(true) : -1);
+      const flats = tel.wheels.map((w) => w.flat);
+      if (dmgLatch.current.puncture.update(flats.some(Boolean), now)) {
+        const i = oneWheel(flats);
+        say(
+          "mech:puncture",
+          i >= 0 ? t("live.vPunctureWheel", { wheel: t(`live.wheelVoice.${WHEEL_KEYS[i]}`) }) : t("live.vPuncture"),
+          "critical",
+        );
       }
-      // Roue arrachée.
-      const detached = tel.wheels.some((w) => w.detached);
-      if (dmgLatch.current.detached.update(detached, now)) {
-        say("mech:detached", t("live.vWheelDetached"), "critical");
+      const gone = tel.wheels.map((w) => w.detached);
+      if (dmgLatch.current.detached.update(gone.some(Boolean), now)) {
+        const i = oneWheel(gone);
+        say(
+          "mech:detached",
+          i >= 0 ? t("live.vWheelDetachedWheel", { wheel: t(`live.wheelVoice.${WHEEL_KEYS[i]}`) }) : t("live.vWheelDetached"),
+          "critical",
+        );
       }
       // Pneus en surchauffe : seuil tenu ≥ 10 s, puis silence 2 min (anti-spam).
       const tyreTemps = tel.wheels.map((w) => w.temp).filter((x) => x > 0 && x < 250);
@@ -1720,6 +1735,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     askPrefs,
     coexistMode,
     extras,
+    lockAlertMode,
     pressureUnit,
     pressureWindows,
     debriefRadio,

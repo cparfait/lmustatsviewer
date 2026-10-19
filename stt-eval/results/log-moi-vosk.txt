@@ -1,0 +1,40 @@
+vosk      01.wav                         1456 ms  wer 0.12  quel et l'écart avec la voiture devant
+vosk      02.wav                         1861 ms  wer 0.00  il me reste combien d'essence
+vosk      03.wav                         1625 ms  wer 0.00  c'était combien mon dernier tour
+vosk      04.wav                         1542 ms  wer 0.00  il reste combien de tour
+vosk      05.wav                         1441 ms  wer 0.00  je suis en quelle position dans ma classe
+vosk      06.wav                         1445 ms  wer 0.00  comment sont mes pneus
+vosk      07.wav                         1414 ms  wer 0.25  quant à ce que je dois m'arrêter
+vosk      08.wav                         1297 ms  wer 0.00  qui est derrière moi
+vosk      09.wav                         1331 ms  wer 0.00  où est la quatorze
+vosk      10.wav                         1886 ms  wer 0.75  préviens moi quant à cinquante et rentrer aux stands
+vosk      11.wav                         1402 ms  wer 0.43  la cet état combien de mois
+vosk      12.wav                         1471 ms  wer 0.14  quel et l'écart avec la quatre-vingt-treize
+vosk      13.wav                         1682 ms  wer 0.29  la trente-huit viens de rentrer aux stands
+vosk      14.wav                         1491 ms  wer 0.10  est-ce que la de est plus rapide que moi
+vosk      15.wav                         1676 ms  wer 0.67  je souviens à terre rouge tertre rouge
+vosk      16.wav                         1468 ms  wer 0.00  je perds du temps dans les virages porsche
+vosk      17.wav                         1681 ms  wer 0.50  la voiture sur vire en sortie de la part cas
+vosk      18.wav                         1410 ms  wer 0.50  je bloque les freinage d'art nage
+vosk      19.wav                         1481 ms  wer 0.17  or rouge ça passe à fond
+vosk      20.wav                         1561 ms  wer 0.00  je rate mon freinage au bus stop
+vosk      21.wav                         1693 ms  wer 0.00  ça glisse à la sortie d'indianapolis
+vosk      22.wav                         1207 ms  wer 0.29  je perds du temps à laisse-moi
+vosk      23.wav                         1714 ms  wer 0.50  mais vingt litres prochaine arrêt
+vosk      24.wav                         1391 ms  wer 0.00  énergie à quatre-vingt-cinq pour cent
+vosk      25.wav                         1649 ms  wer 0.00  préviens moi quand le carburant passe sous dix pour cent
+vosk      26.wav                         1460 ms  wer 0.00  je fais encore trois tours et je rentre
+vosk      27.wav                         1460 ms  wer 0.29  change les quatre pneus et partout
+vosk      28.wav                         1267 ms  wer 0.00  préviens moi quand il reste cinq minutes
+vosk      29.wav                         1295 ms  wer 0.29  je montre antipatinage d'un cran
+vosk      30.wav                         1395 ms  wer 0.57  il faut assouplir la barre en tire au lit avant
+vosk      31.wav                         1308 ms  wer 0.30  on met des pneus pluie ou en restant médium
+vosk      32.wav                         1761 ms  wer 0.27  est-ce qu'on fait le dark sur la voiture de devant
+vosk      33.wav                         1636 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      34.wav                         1384 ms  wer 0.12  combien de relais en fait avec ces gommes
+vosk      35.wav                         1265 ms  wer 0.17  je rentre aux stands ce tour
+vosk      36.wav                         1038 ms  wer 0.00  je reste dehors
+vosk      37.wav                          948 ms  wer 0.00  répète
+vosk      38.wav                         1447 ms  wer 0.08  est-ce que je peux tenir jusqu'à la fin avec ses pneus
+vosk      39.wav                         1231 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      40.wav                         1496 ms  wer 0.23  la voiture est instable au freinage qu'est ce qu'on peut changer

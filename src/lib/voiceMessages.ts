@@ -91,6 +91,7 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vColdTyres", vars: [] },
       { key: "vTyreWear", vars: [] },
       { key: "vPuncture", vars: [] },
+      { key: "vPunctureWheel", vars: ["wheel"], sample: { wheel: "avant gauche" } },
       { key: "vTyreOverheat", vars: [] },
       { key: "vTyresToWets", vars: [] },
       { key: "vTyresToSlicks", vars: [] },
@@ -105,6 +106,7 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
     id: "mech",
     items: [
       { key: "vWheelDetached", vars: [] },
+      { key: "vWheelDetachedWheel", vars: ["wheel"], sample: { wheel: "arrière droite" } },
       { key: "vBrakeOverheat", vars: [] },
       { key: "vBrakePads", vars: ["pct"], sample: { pct: 22 } },
       { key: "vSuspensionDamage", vars: ["wheels"], sample: { wheels: "FL" } },

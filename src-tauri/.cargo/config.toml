@@ -1,0 +1,5 @@
+# Bibliothèques natives de sherpa-onnx (dictée Parakeet) : la crate `sherpa-onnx-sys`
+# lie sherpa-onnx-c-api.lib depuis ce dossier au lieu de télécharger son archive à
+# chaque build. Rempli par `scripts/fetch-sherpa.ps1` (hors de git).
+[env]
+SHERPA_ONNX_LIB_DIR = { value = "resources/stt/sherpa", relative = true }

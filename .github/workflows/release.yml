@@ -75,7 +75,7 @@ jobs:
         run: npm test
 
       # Assets vocaux (lourds, hors git) : voix neuronale Piper + modèles de
-      # reconnaissance Vosk. Mis en cache par hash des scripts de fetch (les scripts
+      # reconnaissance Vosk + bibliothèques sherpa-onnx (dictée Parakeet). Mis en cache par hash des scripts de fetch (les scripts
       # sautent les fichiers déjà présents → cache hit = quasi instantané).
       - name: Cache voice assets
         uses: actions/cache@v4
@@ -85,7 +85,8 @@ jobs:
             src-tauri/resources/tts/voices
             src-tauri/resources/stt/lib
             src-tauri/resources/stt/models
-          key: voice-assets-${{ hashFiles('scripts/fetch-piper.ps1', 'scripts/fetch-vosk.ps1') }}
+            src-tauri/resources/stt/sherpa
+          key: voice-assets-${{ hashFiles('scripts/fetch-piper.ps1', 'scripts/fetch-vosk.ps1', 'scripts/fetch-sherpa.ps1') }}
 
       - name: Fetch Piper neural voices
         shell: pwsh
@@ -94,6 +95,10 @@ jobs:
       - name: Fetch Vosk speech models
         shell: pwsh
         run: ./scripts/fetch-vosk.ps1
+
+      - name: Fetch sherpa-onnx library (Parakeet dictation)
+        shell: pwsh
+        run: ./scripts/fetch-sherpa.ps1
 
       - name: Build, sign & release
         uses: tauri-apps/tauri-action@v0

@@ -1,0 +1,60 @@
+parakeet  bruit10/paola/01.wav            337 ms  wer 0.00  Qual è il distacco dalla macchina davanti?
+parakeet  bruit10/paola/02.wav            263 ms  wer 0.10  ¿Cuánta benzina mire esta?
+parakeet  bruit10/paola/03.wav            289 ms  wer 0.00  Quanto ho fatto nell'ultimo giro?
+parakeet  bruit10/paola/05.wav            321 ms  wer 0.00  In che posizione sono nella mia classe?
+parakeet  bruit10/paola/09.wav            243 ms  wer 0.00  Dov'è la 14?
+parakeet  bruit10/paola/10.wav            364 ms  wer 0.08  Avvisami quando la 51 rientra i bus.
+parakeet  bruit10/paola/12.wav            302 ms  wer 0.00  Qual è il distacco dalla 93?
+parakeet  bruit10/paola/13.wav            460 ms  wer 0.00  La 38 è appena rientrata ai box.
+parakeet  bruit10/paola/15.wav            421 ms  wer 0.19  Ho sotto sterzo a terza e Rugge.
+parakeet  bruit10/paola/17.wav            389 ms  wer 0.11  La macchina sovrà starsene uscita dalla parabolica.
+parakeet  bruit10/paola/19.wav            301 ms  wer 0.11  E a un ruge si fa in pieno.
+parakeet  bruit10/paola/21.wav            307 ms  wer 0.00  Sci vola in uscita da Indianapolis.
+parakeet  bruit10/paola/23.wav            335 ms  wer 0.03  Metti i 20 litri alla prossima sosta.
+parakeet  bruit10/paola/24.wav            313 ms  wer 0.00  Energia all'85%.
+parakeet  bruit10/paola/25.wav            427 ms  wer 0.00  Avvisami quando la benzina scende sotto il 10%.
+parakeet  bruit10/paola/29.wav            333 ms  wer 0.03  Alzi il controllo di trazione di uno scatto.
+parakeet  bruit10/paola/31.wav            392 ms  wer 0.05  Montiamo le bombe da pioggia o restiamo sulle medie.
+parakeet  bruit10/paola/35.wav            296 ms  wer 0.17  Pientro ai bossi in questo giro.
+parakeet  bruit10/paola/38.wav            336 ms  wer 0.05  Fisco ad arrivare alla fine con queste gomme?
+parakeet  bruit10/paola/39.wav            395 ms  wer 0.00  Perché perdo tempo nel settore 2?
+parakeet  bruit5/paola/01.wav             335 ms  wer 0.00  Qual è il distacco dalla macchina davanti?
+parakeet  bruit5/paola/02.wav             272 ms  wer 0.10  Cuánta benzina mire esta.
+parakeet  bruit5/paola/03.wav             281 ms  wer 0.00  Quanto ho fatto nell'ultimo giro?
+parakeet  bruit5/paola/05.wav             309 ms  wer 0.00  In che posizione sono nella mia classe?
+parakeet  bruit5/paola/09.wav             230 ms  wer 0.06  Dove è la 14?
+parakeet  bruit5/paola/10.wav             358 ms  wer 0.08  Avvisami quando la 51 rientra i bus.
+parakeet  bruit5/paola/12.wav             317 ms  wer 0.17  Qual è il distacco dalla 94?
+parakeet  bruit5/paola/13.wav             321 ms  wer 0.00  La 38 è appena rientrata ai box.
+parakeet  bruit5/paola/15.wav             297 ms  wer 0.35  Ho sottosserzo a terza e luggio.
+parakeet  bruit5/paola/17.wav             377 ms  wer 0.11  La macchina sovrà starsene uscita dalla parabolica.
+parakeet  bruit5/paola/19.wav             281 ms  wer 0.42  E au ruim pieno.
+parakeet  bruit5/paola/21.wav             306 ms  wer 0.10  Ci volei uscita da Indianapolis.
+parakeet  bruit5/paola/23.wav             313 ms  wer 0.09  Metti i 20 litri alla prossima suasta.
+parakeet  bruit5/paola/24.wav             315 ms  wer 0.00  Energia all'85%.
+parakeet  bruit5/paola/25.wav             422 ms  wer 0.00  Avvisami quando la benzina scende sotto il 10%.
+parakeet  bruit5/paola/29.wav             339 ms  wer 0.06  Alzi il controllo di frazione di uno scatto.
+parakeet  bruit5/paola/31.wav             438 ms  wer 0.09  Mattiamo le bombe da pioggia o restiamo sulle medie.
+parakeet  bruit5/paola/35.wav             450 ms  wer 0.29  Pientra ai bossi in questo gioco.
+parakeet  bruit5/paola/38.wav             336 ms  wer 0.03  Risco ad arrivare alla fine con queste gomme.
+parakeet  bruit5/paola/39.wav             323 ms  wer 0.00  Perché perdo tempo nel settore 2?
+parakeet  propre/paola/01.wav             347 ms  wer 0.00  Qual è il distacco dalla macchina davanti?
+parakeet  propre/paola/02.wav             270 ms  wer 0.00  Quanta benzina mi resta?
+parakeet  propre/paola/03.wav             294 ms  wer 0.00  Quanto ho fatto nell'ultimo giro?
+parakeet  propre/paola/05.wav             316 ms  wer 0.00  In che posizione sono nella mia classe?
+parakeet  propre/paola/09.wav             250 ms  wer 0.00  Dov'è la 14?
+parakeet  propre/paola/10.wav             365 ms  wer 0.10  Avvisami quando la cinquantuno rientra il boss.
+parakeet  propre/paola/12.wav             301 ms  wer 0.00  Qual è il distacco dalla 93?
+parakeet  propre/paola/13.wav             309 ms  wer 0.00  La 38 è appena rientrata ai box.
+parakeet  propre/paola/15.wav             309 ms  wer 0.12  Ho sottosterzo a tertre rugge.
+parakeet  propre/paola/17.wav             383 ms  wer 0.11  La macchina sovrà starsene uscita dalla parabolica.
+parakeet  propre/paola/19.wav             287 ms  wer 0.11  E a oruge si fa in pieno.
+parakeet  propre/paola/21.wav             295 ms  wer 0.03  Ci vola in uscita da Indianapolis.
+parakeet  propre/paola/23.wav             313 ms  wer 0.03  Metti i 20 litri alla prossima sosta.
+parakeet  propre/paola/24.wav             312 ms  wer 0.23  Energia all'ottanta cinento
+parakeet  propre/paola/25.wav             440 ms  wer 0.00  Avvisami quando la benzina scende sotto il dieci per cento.
+parakeet  propre/paola/29.wav             332 ms  wer 0.03  Alzi il controllo di trazione di uno scatto?
+parakeet  propre/paola/31.wav             428 ms  wer 0.05  Montiamo le bombe da pioggia, o restiamo sulle medie.
+parakeet  propre/paola/35.wav             289 ms  wer 0.12  Pentro i box in questo giro.
+parakeet  propre/paola/38.wav             336 ms  wer 0.00  Riesco ad arrivare alla fine con queste gomme?
+parakeet  propre/paola/39.wav             321 ms  wer 0.00  Perché perdo tempo nel settore 2?

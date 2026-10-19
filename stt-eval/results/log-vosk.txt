@@ -1,0 +1,360 @@
+vosk      bruit10/pierre/01.wav          1226 ms  wer 0.25  quel est le cas avec la voiture devant
+vosk      bruit10/pierre/02.wav          1527 ms  wer 0.00  il me reste combien d'essence
+vosk      bruit10/pierre/03.wav          1818 ms  wer 0.00  c'était combien mon dernier tour
+vosk      bruit10/pierre/04.wav          1462 ms  wer 0.00  il reste combien de tours
+vosk      bruit10/pierre/05.wav          1670 ms  wer 0.00  je suis en quelle position dans ma classe
+vosk      bruit10/pierre/06.wav          1508 ms  wer 0.25  comment sont les pneus
+vosk      bruit10/pierre/07.wav          1599 ms  wer 0.00  quand est-ce que je dois m'arrêter
+vosk      bruit10/pierre/08.wav          1822 ms  wer 0.50  derrière moi
+vosk      bruit10/pierre/09.wav          1135 ms  wer 0.50  ouais la quatorze
+vosk      bruit10/pierre/10.wav          2232 ms  wer 0.62  préviens moi qu'on a cinquante et un rentre aux stands
+vosk      bruit10/pierre/11.wav          1511 ms  wer 0.43  la fête c'est à combien de mois
+vosk      bruit10/pierre/12.wav          1814 ms  wer 0.29  quel est le cas avec la quatre-vingt-treize
+vosk      bruit10/pierre/13.wav          1671 ms  wer 0.43  la trente-huit viens de rentrer aux stands
+vosk      bruit10/pierre/14.wav          2288 ms  wer 0.30  qu'est-ce que la dose plus rapide que moi
+vosk      bruit10/pierre/15.wav          1351 ms  wer 0.67  je souris à terre trouve
+vosk      bruit10/pierre/16.wav          1687 ms  wer 0.00  je perds du temps dans les virages porsche
+vosk      bruit10/pierre/17.wav          1653 ms  wer 0.50  la voiture survivre en sorte de la parabole ikea
+vosk      bruit10/pierre/18.wav          1994 ms  wer 0.25  je bloque les roues au freinage d'un avc
+vosk      bruit10/pierre/19.wav          2100 ms  wer 0.17  rouge ça passe à fond
+vosk      bruit10/pierre/20.wav          1835 ms  wer 0.14  je rate mon freinage vos bus stop
+vosk      bruit10/pierre/21.wav          1712 ms  wer 0.00  ça glisse à la sortie d'indianapolis
+vosk      bruit10/pierre/22.wav          1864 ms  wer 0.29  je perds du temps à mauve
+vosk      bruit10/pierre/23.wav          1764 ms  wer 0.33  mais vingt les au prochain arrêt
+vosk      bruit10/pierre/24.wav          1812 ms  wer 0.00  énergie à quatre vingt cinq pour cent
+vosk      bruit10/pierre/25.wav          1701 ms  wer 0.00  préviens moi quand le carburant passe sous dix pour cent
+vosk      bruit10/pierre/26.wav          1614 ms  wer 0.00  je fais encore trois tours et je rentre
+vosk      bruit10/pierre/27.wav          2098 ms  wer 0.29  change les quatre pneus répare partout
+vosk      bruit10/pierre/28.wav          1650 ms  wer 0.00  préviens moi quand il reste cinq minutes
+vosk      bruit10/pierre/29.wav          2642 ms  wer 0.14  je monte antipatinage d'un cran
+vosk      bruit10/pierre/30.wav          1980 ms  wer 0.57  il faut pas soupière la barre anti roulis avant
+vosk      bruit10/pierre/31.wav          2278 ms  wer 0.10  on met des pneus pluie on reste en médium
+vosk      bruit10/pierre/32.wav          2074 ms  wer 0.36  est-ce qu'on fait les noms de code sur la voiture devant
+vosk      bruit10/pierre/33.wav          1711 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      bruit10/pierre/34.wav          1894 ms  wer 0.50  combien de relève en fait avec ses gants
+vosk      bruit10/pierre/35.wav          1875 ms  wer 0.33  je rentre aux stands ce tour
+vosk      bruit10/pierre/36.wav          1277 ms  wer 0.00  je reste dehors
+vosk      bruit10/pierre/37.wav          1670 ms  wer 1.00  bête
+vosk      bruit10/pierre/38.wav          2082 ms  wer 0.15  qu'est-ce que je peux tenir jusqu'à la fin avec ces pme
+vosk      bruit10/pierre/39.wav          1574 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      bruit10/pierre/40.wav          1776 ms  wer 0.00  la voiture est instable au freinage qu'est-ce que je peux changer
+vosk      bruit10/siwis/01.wav           1719 ms  wer 0.12  quel et l'écart avec la voiture devant
+vosk      bruit10/siwis/02.wav           1321 ms  wer 0.00  il me reste combien d'essence
+vosk      bruit10/siwis/03.wav           1353 ms  wer 0.00  c'était combien mon dernier tour
+vosk      bruit10/siwis/04.wav           1123 ms  wer 0.20  il reste combien de peau
+vosk      bruit10/siwis/05.wav           1343 ms  wer 0.00  je suis en quelle position dans ma classe
+vosk      bruit10/siwis/06.wav           2012 ms  wer 0.75  comment s'en étonner
+vosk      bruit10/siwis/07.wav           1471 ms  wer 0.00  quand est-ce que je dois m'arrêter
+vosk      bruit10/siwis/08.wav           1871 ms  wer 0.00  qui est derrière moi
+vosk      bruit10/siwis/09.wav           1400 ms  wer 0.50  où elle a quatorze
+vosk      bruit10/siwis/10.wav           1995 ms  wer 0.38  préviens moi pour la cinquante et un rentre aux stands
+vosk      bruit10/siwis/11.wav           1581 ms  wer 0.43  la cet état combien de moi
+vosk      bruit10/siwis/12.wav           1457 ms  wer 0.14  quel et l'écart avec la quatre-vingt-treize
+vosk      bruit10/siwis/13.wav           1395 ms  wer 0.43  la trente-huit viens de rentrer aux stands
+vosk      bruit10/siwis/14.wav           1765 ms  wer 0.10  est-ce que la de est plus rapide que moi
+vosk      bruit10/siwis/15.wav           1835 ms  wer 0.50  je s'ouvrir à terre tertre rouge
+vosk      bruit10/siwis/16.wav           1693 ms  wer 0.00  je perds du temps dans les virages porsche
+vosk      bruit10/siwis/17.wav           1971 ms  wer 0.38  la voiture servir en sortie de la parabole cas
+vosk      bruit10/siwis/18.wav           1984 ms  wer 0.25  je bloque les roues au freinage larnage
+vosk      bruit10/siwis/19.wav           2095 ms  wer 0.17  au rouge ça passe à fond
+vosk      bruit10/siwis/20.wav           1745 ms  wer 0.43  je rate mon freinage augusta
+vosk      bruit10/siwis/21.wav           2039 ms  wer 0.00  ça glisse à la sortie d'indianapolis
+vosk      bruit10/siwis/22.wav           1893 ms  wer 0.43  je perds du temps à laisse-moi ans
+vosk      bruit10/siwis/23.wav           2169 ms  wer 0.17  mais vingt litres au prochain arrêt
+vosk      bruit10/siwis/24.wav           1780 ms  wer 0.20  énergie à quatre vingt pour cent
+vosk      bruit10/siwis/25.wav           2177 ms  wer 0.50  préviens moi quand le carburant face au divorce
+vosk      bruit10/siwis/26.wav           1334 ms  wer 0.00  je fais encore trois tours et je rentre
+vosk      bruit10/siwis/27.wav           1969 ms  wer 0.29  change les quatre pneus et répartie
+vosk      bruit10/siwis/28.wav           1907 ms  wer 0.00  préviens moi quand il reste cinq minutes
+vosk      bruit10/siwis/29.wav           1630 ms  wer 0.29  je monte l'anti patinage d'un cran
+vosk      bruit10/siwis/30.wav           1905 ms  wer 0.29  il faut assouplir la barre anti tyrolienne avant
+vosk      bruit10/siwis/31.wav           2372 ms  wer 0.10  on met des pneus pluie on reste en médium
+vosk      bruit10/siwis/32.wav           2520 ms  wer 0.27  est-ce qu'on fait elle le que sur la voiture devant
+vosk      bruit10/siwis/33.wav           1591 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      bruit10/siwis/34.wav           1766 ms  wer 0.00  combien de relais on fait avec ces gommes
+vosk      bruit10/siwis/35.wav           1990 ms  wer 0.50  je rentre aux stands ce pouvoir
+vosk      bruit10/siwis/36.wav           1035 ms  wer 0.00  je reste dehors
+vosk      bruit10/siwis/37.wav           1597 ms  wer 0.00  répète
+vosk      bruit10/siwis/38.wav           1819 ms  wer 0.08  est-ce que je peux tenir jusqu'à la fin avec ses pneus
+vosk      bruit10/siwis/39.wav           1590 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      bruit10/siwis/40.wav           1695 ms  wer 0.00  la voiture est instable au freinage qu'est-ce que je peux changer
+vosk      bruit10/tom/01.wav             1438 ms  wer 0.12  quel et l'écart avec la voiture devant
+vosk      bruit10/tom/02.wav             1312 ms  wer 0.00  il me reste combien d'essence
+vosk      bruit10/tom/03.wav             1269 ms  wer 0.17  c'était contient mon dernier tour
+vosk      bruit10/tom/04.wav             1387 ms  wer 0.20  il reste combien de tout
+vosk      bruit10/tom/05.wav             1468 ms  wer 0.00  je suis en quelle position dans ma classe
+vosk      bruit10/tom/06.wav             1501 ms  wer 0.00  comment sont mes pneus
+vosk      bruit10/tom/07.wav             1509 ms  wer 0.00  quand est-ce que je dois m'arrêter
+vosk      bruit10/tom/08.wav             1224 ms  wer 0.00  qui est derrière moi
+vosk      bruit10/tom/09.wav             1645 ms  wer 0.75  villa quatorze
+vosk      bruit10/tom/10.wav             1626 ms  wer 0.25  préviens moi quand la cinquante et un rentre aux stands
+vosk      bruit10/tom/11.wav             1425 ms  wer 0.57  c'est est accomplir de moi
+vosk      bruit10/tom/12.wav             1542 ms  wer 0.14  quel et l'écart avec la quatre-vingt-treize
+vosk      bruit10/tom/13.wav             1869 ms  wer 0.43  la trente-huit viens de rentrer aux stands
+vosk      bruit10/tom/14.wav             1754 ms  wer 0.10  est-ce que la de est plus rapide que moi
+vosk      bruit10/tom/15.wav             1356 ms  wer 0.50  je soupire à tertre mouche
+vosk      bruit10/tom/16.wav             2145 ms  wer 0.12  je perds du temps dans les virages bouche
+vosk      bruit10/tom/17.wav             1760 ms  wer 0.38  la voiture sur sortir en sortie de la parabolique
+vosk      bruit10/tom/18.wav             2100 ms  wer 0.25  je bloque les roues au freinage tournage
+vosk      bruit10/tom/19.wav             1786 ms  wer 0.33  aux songe ça passe à fond
+vosk      bruit10/tom/20.wav             2443 ms  wer 0.57  je rate freinage auguste
+vosk      bruit10/tom/21.wav             2165 ms  wer 0.14  ça glisse à la sortie à indianapolis
+vosk      bruit10/tom/22.wav             1535 ms  wer 0.29  je perds du temps à l'esprit
+vosk      bruit10/tom/23.wav             1892 ms  wer 0.17  les vingt litres au prochain arrêt
+vosk      bruit10/tom/24.wav             1767 ms  wer 0.00  énergie à quatre-vingt-cinq pour cent
+vosk      bruit10/tom/25.wav             2318 ms  wer 0.30  préviens moi quand le carburant basse sous dix pourcent
+vosk      bruit10/tom/26.wav             1508 ms  wer 0.00  je fais encore trois tours et je rentre
+vosk      bruit10/tom/27.wav             2278 ms  wer 0.57  change les quatre preneuse irait partout
+vosk      bruit10/tom/28.wav             1385 ms  wer 0.00  préviens moi quand il reste cinq minutes
+vosk      bruit10/tom/29.wav             1268 ms  wer 0.29  je monte lentilles patinage d'un cran
+vosk      bruit10/tom/30.wav             1522 ms  wer 0.29  il faut assouplir la barre en tyrolienne avant
+vosk      bruit10/tom/31.wav             2741 ms  wer 0.50  on met des pneus pluie vrai semble-t-il
+vosk      bruit10/tom/32.wav             1906 ms  wer 0.36  est-ce qu'on fait et l'un de que sur la voiture devant
+vosk      bruit10/tom/33.wav             1637 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      bruit10/tom/34.wav             1902 ms  wer 0.25  combien de relais on fait avec ses com
+vosk      bruit10/tom/35.wav             1767 ms  wer 0.50  je rentre aux stands ce tout
+vosk      bruit10/tom/36.wav             1110 ms  wer 0.00  je reste dehors
+vosk      bruit10/tom/37.wav             1213 ms  wer 0.00  répète
+vosk      bruit10/tom/38.wav             2247 ms  wer 0.31  est-ce que je peux tenir jusqu'à la fin avec ses deux plus de
+vosk      bruit10/tom/39.wav             1395 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      bruit10/tom/40.wav             2047 ms  wer 0.15  la voiture état stable au freinage qu'est-ce que je peux changer
+vosk      bruit5/pierre/01.wav           2054 ms  wer 0.25  quel est le cas avec la voiture devant
+vosk      bruit5/pierre/02.wav           1934 ms  wer 0.00  il me reste combien d'essence
+vosk      bruit5/pierre/03.wav           2812 ms  wer 0.33  ça fait combien mon dernier tour
+vosk      bruit5/pierre/04.wav           2240 ms  wer 0.20  il reste combien de temps
+vosk      bruit5/pierre/05.wav           1928 ms  wer 0.00  je suis en quelle position dans ma classe
+vosk      bruit5/pierre/06.wav           1844 ms  wer 0.75  comment son métier
+vosk      bruit5/pierre/07.wav           2489 ms  wer 0.00  quand est-ce que je dois m'arrêter
+vosk      bruit5/pierre/08.wav           1770 ms  wer 0.50  derrière moi
+vosk      bruit5/pierre/09.wav           1756 ms  wer 0.50  ouais la quatorze
+vosk      bruit5/pierre/10.wav           3268 ms  wer 0.62  préviens moi qu'on a cinquante et un ventre stand
+vosk      bruit5/pierre/11.wav           1842 ms  wer 0.57  la fête sais pas combien de mois
+vosk      bruit5/pierre/12.wav           2195 ms  wer 0.29  quel est le cas avec la quatre-vingt-treize
+vosk      bruit5/pierre/13.wav           2229 ms  wer 0.43  la trente-huit viens de rentrer aux stands
+vosk      bruit5/pierre/14.wav           2467 ms  wer 0.40  n'est que la de plus rapide que moi
+vosk      bruit5/pierre/15.wav           1988 ms  wer 0.50  je suis à tertre
+vosk      bruit5/pierre/16.wav           2209 ms  wer 0.12  je perds du temps dans les virages port
+vosk      bruit5/pierre/17.wav           2405 ms  wer 0.25  la voiture survivre en sortie de la parabolique
+vosk      bruit5/pierre/18.wav           2664 ms  wer 0.88  le blog l'hérault freinage d'un ami
+vosk      bruit5/pierre/19.wav           2367 ms  wer 0.67  bon ça passe un
+vosk      bruit5/pierre/20.wav           2599 ms  wer 0.43  je rate mon freinage buste
+vosk      bruit5/pierre/21.wav           2075 ms  wer 0.00  ça glisse à la sortie d'indianapolis
+vosk      bruit5/pierre/22.wav           1897 ms  wer 0.29  je perds du temps à souvent
+vosk      bruit5/pierre/23.wav           2219 ms  wer 0.33  mais vingt les au prochain arrêt
+vosk      bruit5/pierre/24.wav           1864 ms  wer 0.20  l'énergie à quatre vingt-cinq pour cent
+vosk      bruit5/pierre/25.wav           2202 ms  wer 0.30  préviens moi quand le carburant pas sous dix pourcent
+vosk      bruit5/pierre/26.wav           2493 ms  wer 0.25  je fais encore trois tours et jérôme
+vosk      bruit5/pierre/27.wav           2850 ms  wer 0.29  change les quatre pneus et par
+vosk      bruit5/pierre/28.wav           1728 ms  wer 0.00  préviens moi quand il reste cinq minutes
+vosk      bruit5/pierre/29.wav           2829 ms  wer 0.57  je monte antipatinage
+vosk      bruit5/pierre/30.wav           2960 ms  wer 0.86  il faut pas se fier là-bas anti lit avant
+vosk      bruit5/pierre/31.wav           3070 ms  wer 0.20  on met des pneus pluie reste en médium
+vosk      bruit5/pierre/32.wav           2626 ms  wer 0.36  est-ce qu'on fait les noms de code sur la voiture devant
+vosk      bruit5/pierre/33.wav           2365 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      bruit5/pierre/34.wav           2632 ms  wer 0.50  combien de rouler fait avec ses gants
+vosk      bruit5/pierre/35.wav           2425 ms  wer 0.67  je rentre aux stands
+vosk      bruit5/pierre/36.wav           1734 ms  wer 1.00  le reste de loin
+vosk      bruit5/pierre/37.wav           2057 ms  wer 1.00  bête
+vosk      bruit5/pierre/38.wav           2969 ms  wer 0.15  qu'est-ce que je peux tenir jusqu'à la fin avec ses pneus
+vosk      bruit5/pierre/39.wav           1840 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      bruit5/pierre/40.wav           2713 ms  wer 0.00  la voiture est instable au freinage qu'est-ce que je peux changer
+vosk      bruit5/siwis/01.wav            1982 ms  wer 0.12  quel est l'écart avec la voiture de devant
+vosk      bruit5/siwis/02.wav            1833 ms  wer 0.50  il ne reste combien descend
+vosk      bruit5/siwis/03.wav            1916 ms  wer 0.00  c'était combien mon dernier tour
+vosk      bruit5/siwis/04.wav            1921 ms  wer 0.20  il reste combien de
+vosk      bruit5/siwis/05.wav            1636 ms  wer 0.00  je suis en quelle position dans ma classe
+vosk      bruit5/siwis/06.wav            2478 ms  wer 0.75  comment s'en étonner
+vosk      bruit5/siwis/07.wav            1683 ms  wer 0.00  quand est-ce que je dois m'arrêter
+vosk      bruit5/siwis/08.wav            1961 ms  wer 0.25  est derrière moi
+vosk      bruit5/siwis/09.wav            1820 ms  wer 0.75  mouais la cata
+vosk      bruit5/siwis/10.wav            2373 ms  wer 0.38  préviens moi pour la cinquante et un rentre aux stands
+vosk      bruit5/siwis/11.wav            2056 ms  wer 0.57  la cet état combien de mois
+vosk      bruit5/siwis/12.wav            1989 ms  wer 0.00  quel est l'écart avec la quatre-vingt-treize
+vosk      bruit5/siwis/13.wav            1716 ms  wer 0.43  la trente-huit viens de rentrer aux stands
+vosk      bruit5/siwis/14.wav            2114 ms  wer 0.10  est-ce que la de est plus rapide que moi
+vosk      bruit5/siwis/15.wav            2585 ms  wer 0.50  je soupire à terre rouge
+vosk      bruit5/siwis/16.wav            1958 ms  wer 0.12  je perds du temps dans les virages pas
+vosk      bruit5/siwis/17.wav            2482 ms  wer 0.25  la voiture servir en sortie de la parabole
+vosk      bruit5/siwis/18.wav            2218 ms  wer 0.25  je bloque les roues au freinage dommages
+vosk      bruit5/siwis/19.wav            2884 ms  wer 0.50  au rouge ça passe
+vosk      bruit5/siwis/20.wav            2340 ms  wer 0.43  je rate mon freinage augusta
+vosk      bruit5/siwis/21.wav            2346 ms  wer 0.00  ça glisse à la sortie d'indianapolis
+vosk      bruit5/siwis/22.wav            2447 ms  wer 0.43  je perds du temps à laisse-moi ans
+vosk      bruit5/siwis/23.wav            2603 ms  wer 0.67  médecin du prochain arrêt
+vosk      bruit5/siwis/24.wav            2237 ms  wer 0.40  l'énergie à quatre pour cent
+vosk      bruit5/siwis/25.wav            2601 ms  wer 0.40  préviens moi quand le carburant façonné pour
+vosk      bruit5/siwis/26.wav            2357 ms  wer 0.12  je vais encore trois tours et je rentre
+vosk      bruit5/siwis/27.wav            2675 ms  wer 0.14  change les quatre pneus et répare
+vosk      bruit5/siwis/28.wav            2890 ms  wer 0.29  préviens moi quand il reste s'amuse
+vosk      bruit5/siwis/29.wav            2417 ms  wer 0.43  jamie la antipatinage d'un cran
+vosk      bruit5/siwis/30.wav            2520 ms  wer 0.29  il faut assouplir la barre anti veolia avant
+vosk      bruit5/siwis/31.wav            2792 ms  wer 0.30  en mai des pneus pluie on reste en médium
+vosk      bruit5/siwis/32.wav            2563 ms  wer 0.27  est-ce qu'on fait elle le déteste sur la voiture devant
+vosk      bruit5/siwis/33.wav            1684 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      bruit5/siwis/34.wav            2311 ms  wer 0.00  combien de relais on fait avec ces gommes
+vosk      bruit5/siwis/35.wav            2118 ms  wer 0.50  je rentre aux stands ce moment
+vosk      bruit5/siwis/36.wav            1470 ms  wer 0.67  je reste d'or
+vosk      bruit5/siwis/37.wav            2105 ms  wer 1.00  bref
+vosk      bruit5/siwis/38.wav            2286 ms  wer 0.15  est-ce que je peux tenir jusqu'à la fin avec nuit
+vosk      bruit5/siwis/39.wav            2254 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      bruit5/siwis/40.wav            2327 ms  wer 0.00  la voiture est instable au freinage qu'est-ce que je peux changer
+vosk      bruit5/tom/01.wav              1652 ms  wer 0.25  quel et l'écart avec la voiture de devant
+vosk      bruit5/tom/02.wav              1617 ms  wer 0.17  il me reste confiant d'essence
+vosk      bruit5/tom/03.wav              1659 ms  wer 0.17  c'était contient mon dernier tour
+vosk      bruit5/tom/04.wav              1687 ms  wer 0.20  il reste combien de tout
+vosk      bruit5/tom/05.wav              1769 ms  wer 0.12  je suis en quête position dans ma classe
+vosk      bruit5/tom/06.wav              1981 ms  wer 0.00  comment sont mes pneus
+vosk      bruit5/tom/07.wav              1835 ms  wer 0.00  quand est-ce que je dois m'arrêter
+vosk      bruit5/tom/08.wav              1509 ms  wer 0.00  qui est derrière moi
+vosk      bruit5/tom/09.wav              1615 ms  wer 0.50  la quatorze
+vosk      bruit5/tom/10.wav              2322 ms  wer 0.25  préviens moi quand la cinquante et un rentre aux stands
+vosk      bruit5/tom/11.wav              2286 ms  wer 0.57  la ceni accomplir de moi
+vosk      bruit5/tom/12.wav              1656 ms  wer 0.14  quel et l'écart avec la quatre-vingt-treize
+vosk      bruit5/tom/13.wav              1972 ms  wer 0.43  la trente-huit cher de rentrer aux stands
+vosk      bruit5/tom/14.wav              2108 ms  wer 0.20  est-ce que la dose plus rapide que moi
+vosk      bruit5/tom/15.wav              1712 ms  wer 0.67  je soupire un tertre
+vosk      bruit5/tom/16.wav              2409 ms  wer 0.12  je perds du temps dans les virages revanche
+vosk      bruit5/tom/17.wav              1925 ms  wer 0.25  la voiture sortir en sortie de la parabolique
+vosk      bruit5/tom/18.wav              2664 ms  wer 0.25  je bloque les roues au freinage tarn
+vosk      bruit5/tom/19.wav              2208 ms  wer 0.33  oh ça passe à fond
+vosk      bruit5/tom/20.wav              2778 ms  wer 1.00  y aura-t-il freinage auguste
+vosk      bruit5/tom/21.wav              2570 ms  wer 0.43  sammy à la sortie indianapolis
+vosk      bruit5/tom/22.wav              2057 ms  wer 0.29  je perds du temps à l'aise
+vosk      bruit5/tom/23.wav              2443 ms  wer 0.50  fin litres prochain arrêt
+vosk      bruit5/tom/24.wav              2452 ms  wer 0.40  énergie à quatre-vingts cinq pouces
+vosk      bruit5/tom/25.wav              3181 ms  wer 0.50  très cher moi quand le carburant sous dix pourcent
+vosk      bruit5/tom/26.wav              1864 ms  wer 0.00  je fais encore trois tours et je rentre
+vosk      bruit5/tom/27.wav              2354 ms  wer 0.57  change les quatre que nous partout
+vosk      bruit5/tom/28.wav              1611 ms  wer 0.00  préviens moi quand il reste cinq minutes
+vosk      bruit5/tom/29.wav              1645 ms  wer 0.29  je monte lentilles patinage d'un cran
+vosk      bruit5/tom/30.wav              2008 ms  wer 0.43  il faut assouplir la part en tyrolienne avant
+vosk      bruit5/tom/31.wav              3043 ms  wer 0.50  on met des pneus pluie vrai semble-t-il
+vosk      bruit5/tom/32.wav              2115 ms  wer 0.45  est-ce qu'on fait et l'un d'eux que sur la voiture devant
+vosk      bruit5/tom/33.wav              1724 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      bruit5/tom/34.wav              2172 ms  wer 0.62  combien de voler c'est avec ses com
+vosk      bruit5/tom/35.wav              2517 ms  wer 0.50  je rentre aux stands ce tout
+vosk      bruit5/tom/36.wav              1093 ms  wer 0.33  je reste de
+vosk      bruit5/tom/37.wav              1720 ms  wer 0.00  répète
+vosk      bruit5/tom/38.wav              2249 ms  wer 0.15  est-ce que je peux tenir jusqu'à la fin avec ses
+vosk      bruit5/tom/39.wav              1472 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      bruit5/tom/40.wav              2548 ms  wer 0.08  la voiture est instable freinage qu'est-ce que je peux changer
+vosk      propre/pierre/01.wav           1625 ms  wer 0.25  quel est le cas avec la voiture devant
+vosk      propre/pierre/02.wav           1271 ms  wer 0.00  il me reste combien d'essence
+vosk      propre/pierre/03.wav           1517 ms  wer 0.00  c'était combien mon dernier tour
+vosk      propre/pierre/04.wav           1331 ms  wer 0.00  il reste combien de tours
+vosk      propre/pierre/05.wav           1364 ms  wer 0.00  je suis en quelle position dans ma classe
+vosk      propre/pierre/06.wav           1212 ms  wer 0.00  comment sont mes pneus
+vosk      propre/pierre/07.wav           1183 ms  wer 0.00  quand est-ce que je dois m'arrêter
+vosk      propre/pierre/08.wav           1213 ms  wer 0.50  puis derrière moi
+vosk      propre/pierre/09.wav            966 ms  wer 0.50  ouais la quatorze
+vosk      propre/pierre/10.wav           1502 ms  wer 0.88  préviens moi qu'on a cinquante et rentre aux stands
+vosk      propre/pierre/11.wav           1311 ms  wer 0.29  la cet est à combien de mois
+vosk      propre/pierre/12.wav           1697 ms  wer 0.29  quel est le cas avec la quatre-vingt-treize
+vosk      propre/pierre/13.wav           1383 ms  wer 0.57  la trop puis vient de rentrer aux stands
+vosk      propre/pierre/14.wav           1857 ms  wer 0.20  est-ce que la de vie plus rapide que moi
+vosk      propre/pierre/15.wav           1032 ms  wer 0.50  je suis à terre rouge
+vosk      propre/pierre/16.wav           1333 ms  wer 0.00  je perds du temps dans les virages porsche
+vosk      propre/pierre/17.wav           1473 ms  wer 0.38  la voiture survivre en sortie de la parabole ikea
+vosk      propre/pierre/18.wav           1624 ms  wer 0.25  je bloque les roues au freinage d'un âge
+vosk      propre/pierre/19.wav           1545 ms  wer 0.17  or rouge ça passe à fond
+vosk      propre/pierre/20.wav           1303 ms  wer 0.00  je rate mon freinage au bus stop
+vosk      propre/pierre/21.wav           1512 ms  wer 0.00  ça glisse à la sortie d'indianapolis
+vosk      propre/pierre/22.wav           1435 ms  wer 0.29  je perds du temps à laisse-moi
+vosk      propre/pierre/23.wav           1367 ms  wer 0.17  mais vingt litres au prochain arrêt
+vosk      propre/pierre/24.wav           1685 ms  wer 0.20  l'énergie à quatre vingt cinq pour cent
+vosk      propre/pierre/25.wav           1506 ms  wer 0.00  préviens moi quand le carburant passe sous dix pour cent
+vosk      propre/pierre/26.wav           1444 ms  wer 0.00  je fais encore trois tours et je rentre
+vosk      propre/pierre/27.wav           1739 ms  wer 0.00  change les quatre pneus et répare tout
+vosk      propre/pierre/28.wav           1421 ms  wer 0.00  préviens moi quand il reste cinq minutes
+vosk      propre/pierre/29.wav           1875 ms  wer 0.14  je monte ou antipatinage d'un cran
+vosk      propre/pierre/30.wav           1496 ms  wer 0.29  il faut assouplir la barre anti roulis avant
+vosk      propre/pierre/31.wav           1814 ms  wer 0.00  on met des pneus pluie ou on reste en médium
+vosk      propre/pierre/32.wav           1841 ms  wer 0.36  est-ce qu'on fait des noms de code sur la voiture devant
+vosk      propre/pierre/33.wav           1456 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      propre/pierre/34.wav           1624 ms  wer 0.12  combien de relève on fait avec ces gommes
+vosk      propre/pierre/35.wav           1170 ms  wer 0.50  je rentre aux stands ce tout
+vosk      propre/pierre/36.wav           1162 ms  wer 0.00  je reste dehors
+vosk      propre/pierre/37.wav           1279 ms  wer 2.00  un bête
+vosk      propre/pierre/38.wav           1930 ms  wer 0.08  est-ce que je peux tenir jusqu'à la fin avec ses pneus
+vosk      propre/pierre/39.wav           1484 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      propre/pierre/40.wav           1530 ms  wer 0.00  la voiture est instable au freinage qu'est-ce que je peux changer
+vosk      propre/siwis/01.wav            1507 ms  wer 0.12  quel et l'écart avec la voiture devant
+vosk      propre/siwis/02.wav            1321 ms  wer 0.00  il me reste combien d'essence
+vosk      propre/siwis/03.wav            1325 ms  wer 0.00  c'était combien mon dernier tour
+vosk      propre/siwis/04.wav            1341 ms  wer 0.00  il reste combien de tours
+vosk      propre/siwis/05.wav            1268 ms  wer 0.00  je suis en quelle position dans ma classe
+vosk      propre/siwis/06.wav            1177 ms  wer 0.00  comment sont mes pneus
+vosk      propre/siwis/07.wav            1281 ms  wer 0.00  quand est-ce que je dois m'arrêter
+vosk      propre/siwis/08.wav            1234 ms  wer 0.00  qui est derrière moi
+vosk      propre/siwis/09.wav            1409 ms  wer 0.50  où elle a quatorze
+vosk      propre/siwis/10.wav            1581 ms  wer 0.38  préviens moi pour la cinquante et un rentre aux stands
+vosk      propre/siwis/11.wav            1219 ms  wer 0.57  la cet état combien de mois
+vosk      propre/siwis/12.wav            1337 ms  wer 0.14  quel et l'écart avec la quatre-vingt-treize
+vosk      propre/siwis/13.wav            1303 ms  wer 0.43  la trente-huit viens de rentrer aux stands
+vosk      propre/siwis/14.wav            1382 ms  wer 0.10  est-ce que la de est plus rapide que moi
+vosk      propre/siwis/15.wav            1439 ms  wer 0.67  je s'ouvrir à terre trop rouge
+vosk      propre/siwis/16.wav            1361 ms  wer 0.00  je perds du temps dans les virages porsche
+vosk      propre/siwis/17.wav            1492 ms  wer 0.38  la voiture servir en sortie de la parabole cas
+vosk      propre/siwis/18.wav            1495 ms  wer 0.25  je bloque les roues au freinage d'art nage
+vosk      propre/siwis/19.wav            1455 ms  wer 0.17  au rouge ça passe à fond
+vosk      propre/siwis/20.wav            1553 ms  wer 0.00  je rate mon freinage au bus stop
+vosk      propre/siwis/21.wav            1529 ms  wer 0.00  ça glisse à la sortie d'indianapolis
+vosk      propre/siwis/22.wav            1469 ms  wer 0.29  je perds du temps à lesbos ans
+vosk      propre/siwis/23.wav            1346 ms  wer 0.17  mais vingt litres au prochain arrêt
+vosk      propre/siwis/24.wav            1424 ms  wer 0.20  énergie à quatre vingt pour cent
+vosk      propre/siwis/25.wav            1552 ms  wer 0.20  préviens moi quand le carburant passe sous dix pourcent
+vosk      propre/siwis/26.wav            1446 ms  wer 0.00  je fais encore trois tours et je rentre
+vosk      propre/siwis/27.wav            1396 ms  wer 0.00  change les quatre pneus et répare tout
+vosk      propre/siwis/28.wav            1111 ms  wer 0.00  préviens moi quand il reste cinq minutes
+vosk      propre/siwis/29.wav            1379 ms  wer 0.29  je monte l'anti patinage d'un cran
+vosk      propre/siwis/30.wav            1440 ms  wer 0.29  il faut assouplir la barre anti roulis avant
+vosk      propre/siwis/31.wav            1721 ms  wer 0.10  on met des pneus pluie ou reste en médium
+vosk      propre/siwis/32.wav            2088 ms  wer 0.27  est-ce qu'on fait l'un des que sur la voiture devant
+vosk      propre/siwis/33.wav            1421 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      propre/siwis/34.wav            1476 ms  wer 0.00  combien de relais on fait avec ces gommes
+vosk      propre/siwis/35.wav            1258 ms  wer 0.33  je rentre aux stands ce tour
+vosk      propre/siwis/36.wav            1169 ms  wer 0.67  je reste d'or
+vosk      propre/siwis/37.wav             902 ms  wer 0.00  répète
+vosk      propre/siwis/38.wav            1578 ms  wer 0.08  est-ce que je peux tenir jusqu'à la fin avec ses pneus
+vosk      propre/siwis/39.wav            1324 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      propre/siwis/40.wav            1480 ms  wer 0.00  la voiture est instable au freinage qu'est-ce que je peux changer
+vosk      propre/tom/01.wav              1349 ms  wer 0.12  quel et l'écart avec la voiture devant
+vosk      propre/tom/02.wav              1170 ms  wer 0.00  il me reste combien d'essence
+vosk      propre/tom/03.wav              1209 ms  wer 0.33  c'était kong diamond dernier tour
+vosk      propre/tom/04.wav              1338 ms  wer 0.00  il reste combien de tours
+vosk      propre/tom/05.wav              1299 ms  wer 0.00  je suis en quelle position dans ma classe
+vosk      propre/tom/06.wav              1022 ms  wer 0.00  comment sont mes pneus
+vosk      propre/tom/07.wav              1318 ms  wer 0.00  quand est-ce que je dois m'arrêter
+vosk      propre/tom/08.wav              1417 ms  wer 0.00  qui est derrière moi
+vosk      propre/tom/09.wav              1618 ms  wer 0.25  où la quatorze
+vosk      propre/tom/10.wav              1475 ms  wer 0.25  préviens moi quand la cinquante et un rentre aux stands
+vosk      propre/tom/11.wav              1480 ms  wer 0.43  la c'est est à combien de mois
+vosk      propre/tom/12.wav              1277 ms  wer 0.14  quel et l'écart avec la quatre-vingt-treize
+vosk      propre/tom/13.wav              1373 ms  wer 0.43  la trente-huit viens de rentrer aux stands
+vosk      propre/tom/14.wav              1492 ms  wer 0.10  est-ce que la de est plus rapide que moi
+vosk      propre/tom/15.wav              1351 ms  wer 0.33  je soupire à tertre rouge
+vosk      propre/tom/16.wav              1398 ms  wer 0.00  je perds du temps dans les virages porsche
+vosk      propre/tom/17.wav              1372 ms  wer 0.25  la voiture sur en sortie de la parabolique
+vosk      propre/tom/18.wav              1452 ms  wer 0.25  je bloque les roues au freinage carnage
+vosk      propre/tom/19.wav              1737 ms  wer 0.17  au rouge ça passe à fond
+vosk      propre/tom/20.wav              1479 ms  wer 0.14  je rate non freinage au bus stop
+vosk      propre/tom/21.wav              1570 ms  wer 0.00  ça glisse à la sortie d'indianapolis
+vosk      propre/tom/22.wav              1325 ms  wer 0.14  je perds du temps à lesbos un
+vosk      propre/tom/23.wav              1417 ms  wer 0.17  mais vingt litres au prochain arrêt
+vosk      propre/tom/24.wav              1508 ms  wer 0.00  énergie à quatre vingt-cinq pour cent
+vosk      propre/tom/25.wav              1812 ms  wer 0.00  préviens moi quand le carburant passe sous dix pour cent
+vosk      propre/tom/26.wav              1324 ms  wer 0.00  je fais encore trois tours et je rentre
+vosk      propre/tom/27.wav              1508 ms  wer 0.00  change les quatre pneus et répare tout
+vosk      propre/tom/28.wav              1309 ms  wer 0.00  préviens moi quand il reste cinq minutes
+vosk      propre/tom/29.wav              1310 ms  wer 0.29  je monte lentilles patinage d'un cran
+vosk      propre/tom/30.wav              1424 ms  wer 0.29  il faut assouplir la barre anti roulis avant
+vosk      propre/tom/31.wav              1926 ms  wer 0.20  on met des pneus pluie ou on ressent médium
+vosk      propre/tom/32.wav              1727 ms  wer 0.45  est-ce qu'on fait et l'un d'eux que sur la voiture devant
+vosk      propre/tom/33.wav              1362 ms  wer 0.00  je baisse le répartiteur de freinage
+vosk      propre/tom/34.wav              1515 ms  wer 0.25  combien de relais on fait avec ses com
+vosk      propre/tom/35.wav              1268 ms  wer 0.33  je rentre aux stands ce tour
+vosk      propre/tom/36.wav              1070 ms  wer 0.00  je reste dehors
+vosk      propre/tom/37.wav              1155 ms  wer 0.00  répète
+vosk      propre/tom/38.wav              1893 ms  wer 0.08  est-ce que je peux tenir jusqu'à la fin avec ses pneus
+vosk      propre/tom/39.wav              1421 ms  wer 0.11  pourquoi je perds du temps dans le secteur de
+vosk      propre/tom/40.wav              1611 ms  wer 0.00  la voiture est instable au freinage qu'est-ce que je peux changer

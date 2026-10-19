@@ -77,12 +77,18 @@ jobs:
           path: |
             src-tauri/resources/stt/lib
             src-tauri/resources/stt/models
-          key: voice-assets-stt-${{ hashFiles('scripts/fetch-vosk.ps1') }}
+            src-tauri/resources/stt/sherpa
+          key: voice-assets-stt-${{ hashFiles('scripts/fetch-vosk.ps1', 'scripts/fetch-sherpa.ps1') }}
 
       # libvosk est liée à la compilation (crate `vosk`).
       - name: Fetch Vosk library
         shell: pwsh
         run: ./scripts/fetch-vosk.ps1
+
+      # sherpa-onnx est liée à la compilation (crate `sherpa-onnx`, dictée Parakeet).
+      - name: Fetch sherpa-onnx library
+        shell: pwsh
+        run: ./scripts/fetch-sherpa.ps1
 
       # `generate_context!` embarque l'interface construite : `dist/` doit exister.
       - name: Build frontend

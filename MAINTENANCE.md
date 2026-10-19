@@ -162,8 +162,9 @@ Bump version.json → commit → tag vX.Y.Z → push tag
               1. npm ci
               2. fetch-piper.ps1  (voix neuronale)
               3. fetch-vosk.ps1   (modèles de reconnaissance)
-              4. tauri build   (STT inclus d'office ; voix/modèles NON bundlés)
-              5. signe + crée une GitHub Release (draft)
+              4. fetch-sherpa.ps1 (DLL de la dictée Parakeet)
+              5. tauri build   (STT inclus d'office ; voix/modèles NON bundlés)
+              6. signe + crée une GitHub Release (draft)
 ```
 
 ### 4.2 Procédure de release
@@ -192,8 +193,9 @@ La voix neuronale (Piper) et les commandes vocales (Vosk) reposent sur des binai
 |---|---|---|
 | `scripts/fetch-piper.ps1` | binaire Piper + voix `.onnx` | `src-tauri/resources/tts/` |
 | `scripts/fetch-vosk.ps1` | `libvosk` (dll/lib/dll MinGW) + modèles small | `src-tauri/resources/stt/` |
+| `scripts/fetch-sherpa.ps1` | `sherpa-onnx-c-api` + `onnxruntime` (dll/lib) | `src-tauri/resources/stt/sherpa/` |
 
-En CI ils sont **mis en cache** (clé = hash des deux scripts) ; les scripts sautent les
+En CI ils sont **mis en cache** (clé = hash des scripts) ; les scripts sautent les
 fichiers déjà présents, donc un cache hit est quasi instantané. Pour ajouter une voix ou
 une langue, éditer la liste en tête du script concerné (1 ligne) puis relancer.
 
@@ -214,12 +216,31 @@ plus bundlés** : l'app les télécharge à la demande (Config → Audio / Voix,
 - Les modèles téléchargés atterrissent dans `%APPDATA%/com.cparfait.lmustatsviewer/stt/models/<code>`
   (voix : `…/tts/voices`).
 
+### 4.4 bis Dictée Parakeet (phrases libres)
+
+Depuis la 1.0.10, les **questions libres** à l'ingénieur sont écrites par **Parakeet TDT
+0.6B v3** (int8, via `sherpa-onnx`, `src-tauri/src/commands/stt_parakeet.rs`) ; Vosk garde
+la liste fermée des commandes, et reprend la dictée si Parakeet est absent ou en échec.
+Banc et chiffres : `stt-eval/README.md`.
+
+- Crate `sherpa-onnx` (version **épinglée**, feature `shared`) : la version doit être celle
+  de `fetch-sherpa.ps1`. `SHERPA_ONNX_LIB_DIR` pointe sur `resources/stt/sherpa`
+  (`src-tauri/.cargo/config.toml`) ; `build.rs` copie les DLL à côté du binaire de dev,
+  le bundle les place à la racine de l'installation.
+- Modèle (~640 Mo, 4 fichiers vérifiés par SHA-256) téléchargé à la demande depuis
+  Config → Audio / Voix, dans `…/stt/parakeet-v3`. Réglage `stt_free_engine`
+  (`parakeet` par défaut, `vosk` = comportement d'avant).
+- ⚠ Windows fournit un `System32\onnxruntime.dll` (1.17) trouvé **avant** le PATH : nos DLL
+  doivent rester à côté de l'exe. Pour le test ignoré `parakeet_transcribes_a_bench_phrase`,
+  copier `resources/stt/sherpa/*.dll` et `resources/stt/lib/*.dll` dans `target/debug/deps`.
+
 ### 4.5 Build local manuel (sans CI)
 
 ```powershell
-# 1. (une fois) récupérer les assets vocaux (requis pour compiler : libvosk + moteur Piper)
+# 1. (une fois) récupérer les assets vocaux (requis pour compiler : libvosk + sherpa-onnx + moteur Piper)
 ./scripts/fetch-piper.ps1
 ./scripts/fetch-vosk.ps1
+./scripts/fetch-sherpa.ps1
 # 2. installeur
 npm run tauri:build
 # → src-tauri/target/release/bundle/nsis/*.exe

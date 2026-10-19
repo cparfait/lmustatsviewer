@@ -1,0 +1,120 @@
+vosk      bruit10/alan/01.wav            1020 ms  wer 0.00  what's the gap to the car ahead
+vosk      bruit10/alan/02.wav            1160 ms  wer 0.00  how much fuel have i got left
+vosk      bruit10/alan/03.wav            1083 ms  wer 0.00  what was my last lap time
+vosk      bruit10/alan/05.wav            1349 ms  wer 0.00  what position am i in my class
+vosk      bruit10/alan/09.wav             892 ms  wer 0.00  where is the fourteen
+vosk      bruit10/alan/10.wav            1248 ms  wer 0.00  tell me when the fifty one pits
+vosk      bruit10/alan/12.wav            1294 ms  wer 0.00  what's the gap to the ninety three
+vosk      bruit10/alan/13.wav            1027 ms  wer 0.00  did the thirty eight just pit
+vosk      bruit10/alan/15.wav            1157 ms  wer 0.29  i'm under staring at turtle rich
+vosk      bruit10/alan/17.wav            1357 ms  wer 0.10  the car over stays on the exit of the parabolic
+vosk      bruit10/alan/19.wav            1248 ms  wer 0.37  i reach is it flat out
+vosk      bruit10/alan/21.wav            2027 ms  wer 0.00  it slides on the exit of indianapolis
+vosk      bruit10/alan/23.wav            1835 ms  wer 0.27  good twenty liters in the next stop
+vosk      bruit10/alan/24.wav            1512 ms  wer 0.00  energy to eighty five percent
+vosk      bruit10/alan/25.wav            1657 ms  wer 0.14  more me when the few drops below ten percent
+vosk      bruit10/alan/29.wav            1479 ms  wer 0.00  should i raise traction control by one click
+vosk      bruit10/alan/31.wav            1432 ms  wer 0.19  do we put wet ties on those stay on mediums
+vosk      bruit10/alan/35.wav            1089 ms  wer 0.15  boxing this land
+vosk      bruit10/alan/38.wav            1781 ms  wer 0.10  can i make it to the and on these tiles
+vosk      bruit10/alan/39.wav            1466 ms  wer 0.26  why am i using time insects sector two
+vosk      bruit10/ryan/01.wav            1374 ms  wer 0.17  what's the gap the core ahead
+vosk      bruit10/ryan/02.wav            1208 ms  wer 0.00  how much fuel have i got left
+vosk      bruit10/ryan/03.wav            1122 ms  wer 0.00  what was my last lap time
+vosk      bruit10/ryan/05.wav            1126 ms  wer 0.12  what position of my in my class
+vosk      bruit10/ryan/09.wav            1036 ms  wer 0.06  where's the fourteen
+vosk      bruit10/ryan/10.wav            1231 ms  wer 0.04  tell me when the fifty one hits
+vosk      bruit10/ryan/12.wav            1071 ms  wer 0.00  what's the gap to the ninety three
+vosk      bruit10/ryan/13.wav            1045 ms  wer 0.38  the the thirty just hit
+vosk      bruit10/ryan/15.wav            1123 ms  wer 0.21  i'm under steering a turtle room
+vosk      bruit10/ryan/17.wav            1255 ms  wer 0.03  the car over steers on the exit of the parabolic
+vosk      bruit10/ryan/19.wav            1181 ms  wer 0.16  oh rouge is it flat out
+vosk      bruit10/ryan/21.wav            1260 ms  wer 0.03  it's slides on the exit of indianapolis
+vosk      bruit10/ryan/23.wav            1195 ms  wer 0.40  what twenty leaders and at the next stuff
+vosk      bruit10/ryan/24.wav            1084 ms  wer 0.12  the energy to eighty five percent
+vosk      bruit10/ryan/25.wav            1490 ms  wer 0.11  one me when the fuel drops below ten percent
+vosk      bruit10/ryan/29.wav            1252 ms  wer 0.03  should i raised traction control by one click
+vosk      bruit10/ryan/31.wav            1226 ms  wer 0.09  do we put wet tyres on were stay on mediums
+vosk      bruit10/ryan/35.wav            1010 ms  wer 0.23  boxing this laugh
+vosk      bruit10/ryan/38.wav            1324 ms  wer 0.17  yeah i make it to the and on these tires
+vosk      bruit10/ryan/39.wav            1275 ms  wer 0.11  why am i losing time and sector to
+vosk      bruit5/alan/01.wav             1580 ms  wer 0.21  once the gap to the car ahead
+vosk      bruit5/alan/02.wav             2572 ms  wer 0.00  how much fuel have i got left
+vosk      bruit5/alan/03.wav             1349 ms  wer 0.00  what was my last lap time
+vosk      bruit5/alan/05.wav             1688 ms  wer 0.00  what position am i in my class
+vosk      bruit5/alan/09.wav              973 ms  wer 0.22  where is the forty
+vosk      bruit5/alan/10.wav             1145 ms  wer 0.00  tell me when the fifty one pits
+vosk      bruit5/alan/12.wav             1303 ms  wer 0.00  what's the gap to the ninety three
+vosk      bruit5/alan/13.wav             1687 ms  wer 0.21  the to thirty eight just pit
+vosk      bruit5/alan/15.wav             1844 ms  wer 0.29  i'm under staring at turtle rich
+vosk      bruit5/alan/17.wav             1475 ms  wer 0.10  the car over stays on the exit of the parabolic
+vosk      bruit5/alan/19.wav             1279 ms  wer 0.26  average is it flat out
+vosk      bruit5/alan/21.wav             1336 ms  wer 0.00  it slides on the exit of indianapolis
+vosk      bruit5/alan/23.wav             1478 ms  wer 0.27  good twenty liters in that the next stop
+vosk      bruit5/alan/24.wav             1222 ms  wer 0.00  energy to eighty five percent
+vosk      bruit5/alan/25.wav             1818 ms  wer 0.24  me when a few drops below ten percent
+vosk      bruit5/alan/29.wav             1762 ms  wer 0.11  should i raise traction control five one click
+vosk      bruit5/alan/31.wav             1799 ms  wer 0.38  do we could wear ties are no stay on mediums
+vosk      bruit5/alan/35.wav              960 ms  wer 0.15  boxing this land
+vosk      bruit5/alan/38.wav             1286 ms  wer 0.17  and i make it to the and on these tired
+vosk      bruit5/alan/39.wav             1277 ms  wer 0.11  why am i using time insects or two
+vosk      bruit5/ryan/01.wav              847 ms  wer 0.12  what's the get the car ahead
+vosk      bruit5/ryan/02.wav             1023 ms  wer 0.00  how much fuel have i got left
+vosk      bruit5/ryan/03.wav             1353 ms  wer 0.00  what was my last lap time
+vosk      bruit5/ryan/05.wav             1158 ms  wer 0.12  what position of my in my class
+vosk      bruit5/ryan/09.wav              902 ms  wer 0.06  where's the fourteen
+vosk      bruit5/ryan/10.wav             1057 ms  wer 0.16  tell me when the fit one hit
+vosk      bruit5/ryan/12.wav             1027 ms  wer 0.00  what's the gap to the ninety three
+vosk      bruit5/ryan/13.wav             1052 ms  wer 0.38  the the thirty just hit
+vosk      bruit5/ryan/15.wav             1316 ms  wer 0.39  my mother steering it turtle room
+vosk      bruit5/ryan/17.wav             1456 ms  wer 0.03  the car over steers on the exit of the parabolic
+vosk      bruit5/ryan/19.wav             1222 ms  wer 0.26  no bridge is it flat out
+vosk      bruit5/ryan/21.wav             1577 ms  wer 0.06  he slides on the exit of indianapolis
+vosk      bruit5/ryan/23.wav             1194 ms  wer 0.47  that twenty leaders and and the next stuff
+vosk      bruit5/ryan/24.wav             1084 ms  wer 0.00  energy to eighty five percent
+vosk      bruit5/ryan/25.wav             1457 ms  wer 0.11  one me when the fuel drops below ten percent
+vosk      bruit5/ryan/29.wav             1526 ms  wer 0.11  you i raise traction control by one click
+vosk      bruit5/ryan/31.wav             2102 ms  wer 0.12  do we put wet tyres on were stay on medium
+vosk      bruit5/ryan/35.wav             1070 ms  wer 0.38  maxing this laugh
+vosk      bruit5/ryan/38.wav             1725 ms  wer 0.17  the i make it to the and on these tires
+vosk      bruit5/ryan/39.wav             1201 ms  wer 0.04  why am i losing time in sector to
+vosk      propre/alan/01.wav             1117 ms  wer 0.00  what's the gap to the car ahead
+vosk      propre/alan/02.wav             1136 ms  wer 0.00  how much fuel have i got left
+vosk      propre/alan/03.wav             1265 ms  wer 0.00  what was my last lap time
+vosk      propre/alan/05.wav             1319 ms  wer 0.00  what position am i in my class
+vosk      propre/alan/09.wav             1186 ms  wer 0.00  where is the fourteen
+vosk      propre/alan/10.wav             1922 ms  wer 0.00  tell me when the fifty one pits
+vosk      propre/alan/12.wav             1662 ms  wer 0.00  what's the gap to the ninety three
+vosk      propre/alan/13.wav             1304 ms  wer 0.00  did the thirty eight just pit
+vosk      propre/alan/15.wav             1206 ms  wer 0.14  i'm under staring at turtle rouge
+vosk      propre/alan/17.wav             1258 ms  wer 0.12  the car over stairs on the exit of the parabolic her
+vosk      propre/alan/19.wav             1147 ms  wer 0.37  irish is it flat out
+vosk      propre/alan/21.wav             1276 ms  wer 0.00  it slides on the exit of indianapolis
+vosk      propre/alan/23.wav             1402 ms  wer 0.07  put twenty liters in at the next stop
+vosk      propre/alan/24.wav             1805 ms  wer 0.00  energy to eighty five percent
+vosk      propre/alan/25.wav             1820 ms  wer 0.19  one me when the fuel dropped below ten percent
+vosk      propre/alan/29.wav             1925 ms  wer 0.00  should i raise traction control by one click
+vosk      propre/alan/31.wav             2288 ms  wer 0.28  do we put white ties are no stay on mediums
+vosk      propre/alan/35.wav             1138 ms  wer 0.00  boxing this lap
+vosk      propre/alan/38.wav             1387 ms  wer 0.07  can i make it to the and on these tires
+vosk      propre/alan/39.wav             1371 ms  wer 0.11  why am i losing time in set to to
+vosk      propre/ryan/01.wav              986 ms  wer 0.08  what's the gap to the core ahead
+vosk      propre/ryan/02.wav             1275 ms  wer 0.00  how much fuel have i got left
+vosk      propre/ryan/03.wav             1128 ms  wer 0.00  what was my last lap time
+vosk      propre/ryan/05.wav             1091 ms  wer 0.12  what position in my in my class
+vosk      propre/ryan/09.wav              970 ms  wer 0.06  where's the fourteen
+vosk      propre/ryan/10.wav             1125 ms  wer 0.04  tell me when the fifty one pets
+vosk      propre/ryan/12.wav             1089 ms  wer 0.00  what's the gap to the ninety three
+vosk      propre/ryan/13.wav             1184 ms  wer 0.08  did the thirty eight just to pit
+vosk      propre/ryan/15.wav             1149 ms  wer 0.18  i'm under steering at turtle roof
+vosk      propre/ryan/17.wav             1372 ms  wer 0.12  a car over steers on the exit of the parabolic up
+vosk      propre/ryan/19.wav             1045 ms  wer 0.16  oh rouge is it flat out
+vosk      propre/ryan/21.wav             1380 ms  wer 0.00  it slides on the exit of indianapolis
+vosk      propre/ryan/23.wav             1074 ms  wer 0.13  put twenty leaders in at the next stop
+vosk      propre/ryan/24.wav             1026 ms  wer 0.00  energy to eighty five percent
+vosk      propre/ryan/25.wav             1225 ms  wer 0.00  warn me when the fuel drops below ten percent
+vosk      propre/ryan/29.wav             1386 ms  wer 0.03  should i raised traction control by one click
+vosk      propre/ryan/31.wav             1536 ms  wer 0.00  do we put wet tyres on or stay on mediums
+vosk      propre/ryan/35.wav             1004 ms  wer 0.00  boxing this lap
+vosk      propre/ryan/38.wav             1250 ms  wer 0.07  can i make it to the and on these tires
+vosk      propre/ryan/39.wav             1173 ms  wer 0.11  why am i losing time and sector to

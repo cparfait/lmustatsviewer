@@ -1,0 +1,360 @@
+parakeet  bruit10/pierre/01.wav           283 ms  wer 0.12  Quel est l'état avec la voiture devant?
+parakeet  bruit10/pierre/02.wav           265 ms  wer 0.00  Il me reste combien d'essence?
+parakeet  bruit10/pierre/03.wav           228 ms  wer 0.17  C'était combien mon dernier tout?
+parakeet  bruit10/pierre/04.wav           271 ms  wer 0.00  Il reste combien de tours?
+parakeet  bruit10/pierre/05.wav           307 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  bruit10/pierre/06.wav           203 ms  wer 0.00  Comment sont mes pneus?
+parakeet  bruit10/pierre/07.wav           268 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  bruit10/pierre/08.wav           181 ms  wer 0.00  qui est derrière moi
+parakeet  bruit10/pierre/09.wav           201 ms  wer 0.50  Où est la 4 ans?
+parakeet  bruit10/pierre/10.wav           322 ms  wer 0.88  Préviens-moi qu'en a 50 et un rentrent au stand.
+parakeet  bruit10/pierre/11.wav           254 ms  wer 0.29  La 7, c'est à combien de mois?
+parakeet  bruit10/pierre/12.wav           304 ms  wer 0.00  Quel est l'écart avec la 93?
+parakeet  bruit10/pierre/13.wav           286 ms  wer 0.14  La 38 bien de rentrer au stand.
+parakeet  bruit10/pierre/14.wav           274 ms  wer 0.10  Est-ce que la dose est plus rapide que moi?
+parakeet  bruit10/pierre/15.wav           243 ms  wer 0.50  Je sous à terre trop rouge.
+parakeet  bruit10/pierre/16.wav           333 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+parakeet  bruit10/pierre/17.wav           364 ms  wer 0.25  La voiture survie en sortent de la parabolica.
+parakeet  bruit10/pierre/18.wav           320 ms  wer 0.25  Je bloque les roues au freinage d'un âge.
+parakeet  bruit10/pierre/19.wav           293 ms  wer 0.17  Au rouge, ça passe à fond.
+parakeet  bruit10/pierre/20.wav           311 ms  wer 0.29  Je rate mon freinage au buste.
+parakeet  bruit10/pierre/21.wav           300 ms  wer 0.14  Ça glisse à la sortie d'Indanapoli.
+parakeet  bruit10/pierre/22.wav           268 ms  wer 0.29  Je perds du temps à l'espo 1.
+parakeet  bruit10/pierre/23.wav           280 ms  wer 0.17  Mais 20 litres au prochain arrêt.
+parakeet  bruit10/pierre/24.wav           277 ms  wer 0.00  Énergie à 85%.
+parakeet  bruit10/pierre/25.wav           331 ms  wer 0.10  Préviens-moi quand le carburant passe sous 1%.
+parakeet  bruit10/pierre/26.wav           290 ms  wer 0.00  Je fais encore trois tours et je rentre.
+parakeet  bruit10/pierre/27.wav           291 ms  wer 0.29  Change les quatre pneus et répartout.
+parakeet  bruit10/pierre/28.wav           336 ms  wer 0.00  Préviens-moi quand il reste 5 minutes.
+parakeet  bruit10/pierre/29.wav           274 ms  wer 0.71  Je monte mon petit patinage, d'incran.
+parakeet  bruit10/pierre/30.wav           329 ms  wer 0.29  Il faut assouplir la barre anti-roulie avant.
+parakeet  bruit10/pierre/31.wav           354 ms  wer 0.10  On met des pneus pluie ou on reste en odium.
+parakeet  bruit10/pierre/32.wav           329 ms  wer 0.36  Est-ce qu'on fait les noms de côtes sur la voiture devant?
+parakeet  bruit10/pierre/33.wav           325 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  bruit10/pierre/34.wav           281 ms  wer 0.25  Combien de relais ont fait avec ces gormes?
+parakeet  bruit10/pierre/35.wav           251 ms  wer 0.33  Jean rentre au stand se tour.
+parakeet  bruit10/pierre/36.wav           231 ms  wer 0.00  Je reste dehors.
+parakeet  bruit10/pierre/37.wav           174 ms  wer 3.00  A little bit.
+parakeet  bruit10/pierre/38.wav           326 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus?
+parakeet  bruit10/pierre/39.wav           318 ms  wer 0.22  Pourquoi je perds du temps dans le scepteur de...
+parakeet  bruit10/pierre/40.wav           383 ms  wer 0.00  La voiture est instable au freinage. Qu'est-ce que je peux changer?
+parakeet  bruit10/siwis/01.wav            283 ms  wer 0.25  Quel est l'écart avec la voiture de vent?
+parakeet  bruit10/siwis/02.wav            277 ms  wer 0.33  Il me reste ton bien d'essence
+parakeet  bruit10/siwis/03.wav            249 ms  wer 0.00  C'était combien mon dernier tour?
+parakeet  bruit10/siwis/04.wav            261 ms  wer 0.00  Il reste combien de tours?
+parakeet  bruit10/siwis/05.wav            297 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  bruit10/siwis/06.wav            221 ms  wer 0.00  Comment sont mes pneus?
+parakeet  bruit10/siwis/07.wav            228 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  bruit10/siwis/08.wav            224 ms  wer 0.00  Qui est derrière moi?
+parakeet  bruit10/siwis/09.wav            215 ms  wer 0.00  Où est la 14?
+parakeet  bruit10/siwis/10.wav            356 ms  wer 1.12  Tréviens moi qu'on l'a 5 ans et un rentre au stand.
+parakeet  bruit10/siwis/11.wav            232 ms  wer 0.14  La 7 est à combien de mois?
+parakeet  bruit10/siwis/12.wav            308 ms  wer 0.00  Quel est l'écart avec la 93?
+parakeet  bruit10/siwis/13.wav            289 ms  wer 0.00  La 38 vient de rentrer au stand?
+parakeet  bruit10/siwis/14.wav            269 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi?
+parakeet  bruit10/siwis/15.wav            296 ms  wer 0.67  Je souvire à terre trop rouge.
+parakeet  bruit10/siwis/16.wav            331 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+parakeet  bruit10/siwis/17.wav            319 ms  wer 0.00  La voiture survire en sortie de la parabolica.
+parakeet  bruit10/siwis/18.wav            320 ms  wer 0.00  Je bloque les roues au freinage d'arnage.
+parakeet  bruit10/siwis/19.wav            287 ms  wer 0.17  Au rouge, ça passe à fond?
+parakeet  bruit10/siwis/20.wav            318 ms  wer 0.00  Je rate mon freinage au bus stop.
+parakeet  bruit10/siwis/21.wav            286 ms  wer 0.14  Ça glisse à la sortie d'Indienapoli.
+parakeet  bruit10/siwis/22.wav            305 ms  wer 0.29  Je perds du temps à l'Esmo.
+parakeet  bruit10/siwis/23.wav            285 ms  wer 0.17  Mais 20 litres au prochain arrêt.
+parakeet  bruit10/siwis/24.wav            272 ms  wer 0.00  Énergie à 85%.
+parakeet  bruit10/siwis/25.wav            340 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+parakeet  bruit10/siwis/26.wav            346 ms  wer 0.00  Je fais encore trois tours et je rentre.
+parakeet  bruit10/siwis/27.wav            319 ms  wer 0.29  Change les quatre pneus et réparte.
+parakeet  bruit10/siwis/28.wav            302 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+parakeet  bruit10/siwis/29.wav            320 ms  wer 0.00  Je monte l'antipatinage d'un cran.
+parakeet  bruit10/siwis/30.wav            334 ms  wer 0.29  Il faut assouplir la barre en tir avant.
+parakeet  bruit10/siwis/31.wav            327 ms  wer 0.10  On met des pneus pluies ou on reste en médium?
+parakeet  bruit10/siwis/32.wav            329 ms  wer 0.36  Est-ce qu'on fait El Lone de que sur la voiture devant?
+parakeet  bruit10/siwis/33.wav            311 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  bruit10/siwis/34.wav            281 ms  wer 0.12  Combien de relais ont fait avec ces gommes?
+parakeet  bruit10/siwis/35.wav            271 ms  wer 0.33  Je rentre ce tour.
+parakeet  bruit10/siwis/36.wav            215 ms  wer 0.33  Je reste dors.
+parakeet  bruit10/siwis/37.wav            173 ms  wer 0.00  Répète.
+parakeet  bruit10/siwis/38.wav            370 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus?
+parakeet  bruit10/siwis/39.wav            308 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2?
+parakeet  bruit10/siwis/40.wav            408 ms  wer 0.00  La voiture est instable au freinage. Qu'est-ce que je peux changer?
+parakeet  bruit10/tom/01.wav              328 ms  wer 0.00  Quel est l'écart avec la voiture devant?
+parakeet  bruit10/tom/02.wav              269 ms  wer 0.00  Il me reste combien d'essence?
+parakeet  bruit10/tom/03.wav              284 ms  wer 0.17  C'était convient mon dernier tour.
+parakeet  bruit10/tom/04.wav              311 ms  wer 0.00  Il reste combien de tours?
+parakeet  bruit10/tom/05.wav              347 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  bruit10/tom/06.wav              249 ms  wer 0.50  Comment sont les pileux?
+parakeet  bruit10/tom/07.wav              283 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  bruit10/tom/08.wav              266 ms  wer 0.00  Qui est derrière moi?
+parakeet  bruit10/tom/09.wav              266 ms  wer 0.00  Où est la 14?
+parakeet  bruit10/tom/10.wav              389 ms  wer 0.62  Préviens-moi qu'en la 50 et à rentre au stand.
+parakeet  bruit10/tom/11.wav              325 ms  wer 0.43  La C est accompli de moi.
+parakeet  bruit10/tom/12.wav              356 ms  wer 0.00  Quel est l'écart avec la 93?
+parakeet  bruit10/tom/13.wav              354 ms  wer 0.00  La 38 vient de rentrer au stand.
+parakeet  bruit10/tom/14.wav              364 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi?
+parakeet  bruit10/tom/15.wav              342 ms  wer 0.33  Je souvire à tertre rouge.
+parakeet  bruit10/tom/16.wav              321 ms  wer 0.12  Je perds du temps dans les virages poches.
+parakeet  bruit10/tom/17.wav              362 ms  wer 0.25  La voiture survir en sortie de la parabolique.
+parakeet  bruit10/tom/18.wav              339 ms  wer 0.12  Je bloque les roues au freinage d'armage.
+parakeet  bruit10/tom/19.wav              301 ms  wer 0.17  Au rouge, ça passe à fond.
+parakeet  bruit10/tom/20.wav              309 ms  wer 0.29  Je rate mon freinage au buste.
+parakeet  bruit10/tom/21.wav              315 ms  wer 0.14  Ça glisse à la sortie d'Indianapoli.
+parakeet  bruit10/tom/22.wav              309 ms  wer 0.29  Je perds du temps à l'espoir.
+parakeet  bruit10/tom/23.wav              330 ms  wer 0.17  Et 20 litres au prochain arrêt.
+parakeet  bruit10/tom/24.wav              343 ms  wer 0.00  Énergie à 85%.
+parakeet  bruit10/tom/25.wav              337 ms  wer 0.20  Trévire-moi quand le carburant passe sous 1%.
+parakeet  bruit10/tom/26.wav              338 ms  wer 0.00  Je fais encore trois tours et je rentre.
+parakeet  bruit10/tom/27.wav              366 ms  wer 0.43  Change les quatre peneuses et répartout.
+parakeet  bruit10/tom/28.wav              303 ms  wer 0.00  Préviens-moi quand il reste 5 minutes.
+parakeet  bruit10/tom/29.wav              350 ms  wer 0.29  Je monte l'anti-patinage d'un cran.
+parakeet  bruit10/tom/30.wav              334 ms  wer 0.57  Il faut assouplir la barre en tir au lit avant.
+parakeet  bruit10/tom/31.wav              355 ms  wer 0.20  On met des pneus pluies, on reste en medium.
+parakeet  bruit10/tom/32.wav              353 ms  wer 0.36  Est-ce qu'on fait l'un de queue de sur la voiture devant?
+parakeet  bruit10/tom/33.wav              338 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  bruit10/tom/34.wav              318 ms  wer 0.25  Combien de relais ont fait avec ces gobes?
+parakeet  bruit10/tom/35.wav              274 ms  wer 0.00  Je rentre au stand ce tour.
+parakeet  bruit10/tom/36.wav              251 ms  wer 0.00  Je reste dehors.
+parakeet  bruit10/tom/37.wav              185 ms  wer 2.00  A hypet.
+parakeet  bruit10/tom/38.wav              354 ms  wer 0.15  Est-ce que je peux tenir jusqu'à la fin avec cette bleue?
+parakeet  bruit10/tom/39.wav              359 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2?
+parakeet  bruit10/tom/40.wav              441 ms  wer 0.00  La voiture est instable au freinage, qu'est-ce que je peux changer?
+parakeet  bruit5/pierre/01.wav            285 ms  wer 0.00  Quel est l'écart avec la voiture devant?
+parakeet  bruit5/pierre/02.wav            298 ms  wer 0.00  Il me reste combien d'essence?
+parakeet  bruit5/pierre/03.wav            260 ms  wer 0.17  C'était combien mon dernier tout?
+parakeet  bruit5/pierre/04.wav            258 ms  wer 0.00  Il reste combien de tours?
+parakeet  bruit5/pierre/05.wav            303 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  bruit5/pierre/06.wav            192 ms  wer 0.50  Comment sont les prêts?
+parakeet  bruit5/pierre/07.wav            247 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  bruit5/pierre/08.wav            189 ms  wer 0.00  qui est derrière moi
+parakeet  bruit5/pierre/09.wav            204 ms  wer 0.50  Oui la 14
+parakeet  bruit5/pierre/10.wav            330 ms  wer 0.88  Préviens-moi qu'en a 50 et un entre au stand.
+parakeet  bruit5/pierre/11.wav            267 ms  wer 0.29  La 7, c'est à combien de mois?
+parakeet  bruit5/pierre/12.wav            329 ms  wer 0.14  Quel est l'état avec la 93?
+parakeet  bruit5/pierre/13.wav            266 ms  wer 0.14  La 38 bien de rentrer au stand
+parakeet  bruit5/pierre/14.wav            297 ms  wer 0.10  Est-ce que la dose est plus rapide que moi?
+parakeet  bruit5/pierre/15.wav            235 ms  wer 0.83  Je suis à terre trop bon.
+parakeet  bruit5/pierre/16.wav            309 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+parakeet  bruit5/pierre/17.wav            353 ms  wer 0.25  La voiture survit en sorte de la parabolica.
+parakeet  bruit5/pierre/18.wav            297 ms  wer 0.25  Je bloque les roues au freinage d'un age.
+parakeet  bruit5/pierre/19.wav            279 ms  wer 0.17  Au rouge, ça passe à fond.
+parakeet  bruit5/pierre/20.wav            299 ms  wer 0.57  Je rate mon phénage bouste
+parakeet  bruit5/pierre/21.wav            290 ms  wer 0.57  Ça glisse à la sortie d'un d'un apoli.
+parakeet  bruit5/pierre/22.wav            267 ms  wer 0.29  Je perds du temps à l'escoule.
+parakeet  bruit5/pierre/23.wav            275 ms  wer 0.33  Mais 20 au prochain arrêt.
+parakeet  bruit5/pierre/24.wav            274 ms  wer 0.00  Énergie à 85%
+parakeet  bruit5/pierre/25.wav            296 ms  wer 0.10  Préviens-moi quand le carburant passe sous 1%.
+parakeet  bruit5/pierre/26.wav            307 ms  wer 0.00  Je fais encore trois tours et je rentre.
+parakeet  bruit5/pierre/27.wav            294 ms  wer 0.29  Change les quatre pneus et répar.
+parakeet  bruit5/pierre/28.wav            345 ms  wer 0.00  Préviens-moi quand il reste 5 minutes.
+parakeet  bruit5/pierre/29.wav            283 ms  wer 0.71  Je monte mon petit patinage maintenant.
+parakeet  bruit5/pierre/30.wav            328 ms  wer 0.29  Il faut assouplir la barre anti-roulie avant.
+parakeet  bruit5/pierre/31.wav            348 ms  wer 0.20  On met des pneus puis on reste en médium.
+parakeet  bruit5/pierre/32.wav            318 ms  wer 0.36  Est-ce qu'on fait les noms de côtes sur la voiture devant?
+parakeet  bruit5/pierre/33.wav            321 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  bruit5/pierre/34.wav            278 ms  wer 0.25  Combien de relais ont fait avec ces gorgnes?
+parakeet  bruit5/pierre/35.wav            250 ms  wer 0.33  Je rentre au stand seul.
+parakeet  bruit5/pierre/36.wav            219 ms  wer 0.00  Je reste dehors.
+parakeet  bruit5/pierre/37.wav            173 ms  wer 2.00  A bit
+parakeet  bruit5/pierre/38.wav            344 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus?
+parakeet  bruit5/pierre/39.wav            291 ms  wer 0.11  Pourquoi je perds du temps dans le secteur de...
+parakeet  bruit5/pierre/40.wav            385 ms  wer 0.00  La voiture est instable au freinage, qu'est-ce que je peux changer?
+parakeet  bruit5/siwis/01.wav             285 ms  wer 0.25  Quel est l'écart avec la voiture de vent?
+parakeet  bruit5/siwis/02.wav             265 ms  wer 0.33  Il me reste ton bien d'essence
+parakeet  bruit5/siwis/03.wav             276 ms  wer 0.00  C'était combien mon dernier tour?
+parakeet  bruit5/siwis/04.wav             268 ms  wer 0.00  Il reste combien de tours?
+parakeet  bruit5/siwis/05.wav             293 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  bruit5/siwis/06.wav             243 ms  wer 1.00  Vamos a mim.
+parakeet  bruit5/siwis/07.wav             233 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  bruit5/siwis/08.wav             226 ms  wer 0.00  Qui est derrière moi?
+parakeet  bruit5/siwis/09.wav             211 ms  wer 0.00  Où est la 14?
+parakeet  bruit5/siwis/10.wav             365 ms  wer 1.12  Très bien moi pour la 5 ans et un rang constante.
+parakeet  bruit5/siwis/11.wav             259 ms  wer 0.14  La 7 est à combien de mois?
+parakeet  bruit5/siwis/12.wav             280 ms  wer 0.00  Quel est l'écart avec la 93?
+parakeet  bruit5/siwis/13.wav             281 ms  wer 0.00  La 38 vient de rentrer au stand.
+parakeet  bruit5/siwis/14.wav             288 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi?
+parakeet  bruit5/siwis/15.wav             269 ms  wer 0.67  Je souvire à terre au rouge.
+parakeet  bruit5/siwis/16.wav             319 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+parakeet  bruit5/siwis/17.wav             342 ms  wer 0.12  La voiture survient en sortie de la parabolica.
+parakeet  bruit5/siwis/18.wav             317 ms  wer 0.12  Je bloque les roues au freinage d'harnage.
+parakeet  bruit5/siwis/19.wav             294 ms  wer 0.33  Au rouge, ça passe à fou?
+parakeet  bruit5/siwis/20.wav             300 ms  wer 0.29  Je rate mon freinage au bustape.
+parakeet  bruit5/siwis/21.wav             264 ms  wer 0.43  Ça glisse à la sortie d'un des Napoli.
+parakeet  bruit5/siwis/22.wav             285 ms  wer 0.29  Je perds du temps à l'esmo.
+parakeet  bruit5/siwis/23.wav             275 ms  wer 0.67  Mais 20 trochans arrêt.
+parakeet  bruit5/siwis/24.wav             281 ms  wer 0.00  Énergie à 85%.
+parakeet  bruit5/siwis/25.wav             353 ms  wer 0.20  Très bien moi quand le carburant passe sous 10%.
+parakeet  bruit5/siwis/26.wav             345 ms  wer 0.00  Je fais encore trois tours et je rentre.
+parakeet  bruit5/siwis/27.wav             343 ms  wer 0.29  Change les quatre pneus et réparte.
+parakeet  bruit5/siwis/28.wav             329 ms  wer 0.00  Préviens-moi quand il reste 5 minutes.
+parakeet  bruit5/siwis/29.wav             296 ms  wer 0.29  Je monte l'anti-patinage d'un cran.
+parakeet  bruit5/siwis/30.wav             328 ms  wer 0.71  Il faut t'assouir la barre où tu voulis avant.
+parakeet  bruit5/siwis/31.wav             332 ms  wer 0.10  On met des pneus ou on reste en médium?
+parakeet  bruit5/siwis/32.wav             388 ms  wer 0.27  Est-ce qu'on fait Elon de que sur la voiture devant?
+parakeet  bruit5/siwis/33.wav             318 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  bruit5/siwis/34.wav             268 ms  wer 0.38  On vient de relais on fait avec ces gones.
+parakeet  bruit5/siwis/35.wav             253 ms  wer 0.50  Je rentre aussi dans ce pouvoir.
+parakeet  bruit5/siwis/36.wav             227 ms  wer 0.33  Je reste dors.
+parakeet  bruit5/siwis/37.wav             185 ms  wer 0.00  Répète.
+parakeet  bruit5/siwis/38.wav             377 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin, avec ces pneus?
+parakeet  bruit5/siwis/39.wav             297 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2?
+parakeet  bruit5/siwis/40.wav             432 ms  wer 0.00  La voiture est instable au freinage. Qu'est-ce que je peux changer?
+parakeet  bruit5/tom/01.wav               296 ms  wer 0.00  Quel est l'écart avec la voiture devant?
+parakeet  bruit5/tom/02.wav               318 ms  wer 0.00  Il me reste combien d'essence?
+parakeet  bruit5/tom/03.wav               299 ms  wer 0.33  C'était contient mon dernier tout.
+parakeet  bruit5/tom/04.wav               325 ms  wer 0.20  Il reste combien de tout?
+parakeet  bruit5/tom/05.wav               334 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  bruit5/tom/06.wav               239 ms  wer 0.75  Commençons les pneus.
+parakeet  bruit5/tom/07.wav               276 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  bruit5/tom/08.wav               240 ms  wer 0.00  Qui est derrière moi?
+parakeet  bruit5/tom/09.wav               261 ms  wer 0.50  Et la 14.
+parakeet  bruit5/tom/10.wav               357 ms  wer 0.88  Préviens-moi qu'en a 5 ans et à rentre au stand.
+parakeet  bruit5/tom/11.wav               308 ms  wer 0.57  L'C est accompli de moi.
+parakeet  bruit5/tom/12.wav               356 ms  wer 0.00  Quel est l'écart avec la 93?
+parakeet  bruit5/tom/13.wav               349 ms  wer 0.00  La 38 vient de rentrer au stand.
+parakeet  bruit5/tom/14.wav               342 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi?
+parakeet  bruit5/tom/15.wav               329 ms  wer 0.33  Je souffre à tertre rouge.
+parakeet  bruit5/tom/16.wav               293 ms  wer 0.12  Je perds du temps dans les virages poche.
+parakeet  bruit5/tom/17.wav               333 ms  wer 0.25  La voiture survient en sortie de la parabolique.
+parakeet  bruit5/tom/18.wav               365 ms  wer 0.12  Je bloque les roues au freinage d'armage.
+parakeet  bruit5/tom/19.wav               288 ms  wer 0.17  Au rouge, ça passe à fond.
+parakeet  bruit5/tom/20.wav               315 ms  wer 0.29  Je rate mon freinage au buste.
+parakeet  bruit5/tom/21.wav               323 ms  wer 0.14  Ça glisse à la sortie d'Indianapoli.
+parakeet  bruit5/tom/22.wav               294 ms  wer 0.29  Je perds du temps à l'espoir.
+parakeet  bruit5/tom/23.wav               299 ms  wer 0.17  Et 20 litres au prochain arrêt.
+parakeet  bruit5/tom/24.wav               354 ms  wer 0.00  Énergie à 85%.
+parakeet  bruit5/tom/25.wav               357 ms  wer 0.10  Trévi-moi quand le carburant passe sous 10%.
+parakeet  bruit5/tom/26.wav               308 ms  wer 0.00  Je fais encore trois tours et je rentre.
+parakeet  bruit5/tom/27.wav               434 ms  wer 0.43  Change les quatre pneuses et répartout.
+parakeet  bruit5/tom/28.wav               319 ms  wer 0.00  Préviens-moi quand il reste 5 minutes.
+parakeet  bruit5/tom/29.wav               326 ms  wer 0.00  Je monte l'antipatinage d'un cran.
+parakeet  bruit5/tom/30.wav               366 ms  wer 0.57  Il faut assouplir la barre en tir au lit avant.
+parakeet  bruit5/tom/31.wav               351 ms  wer 0.50  On met des pneus depuis le reste en deux diables.
+parakeet  bruit5/tom/32.wav               370 ms  wer 0.27  Est-ce qu'on fait Lun de que sur la voiture devant?
+parakeet  bruit5/tom/33.wav               356 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  bruit5/tom/34.wav               343 ms  wer 0.25  Combien de relais ont fait avec ces cobs?
+parakeet  bruit5/tom/35.wav               309 ms  wer 0.17  Je rentre au stand ce tout.
+parakeet  bruit5/tom/36.wav               271 ms  wer 0.00  Je reste dehors.
+parakeet  bruit5/tom/37.wav               168 ms  wer 2.00  A hype.
+parakeet  bruit5/tom/38.wav               336 ms  wer 0.08  Est-ce que je peux tenir jusqu'à la fin avec ces bleus?
+parakeet  bruit5/tom/39.wav               329 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2?
+parakeet  bruit5/tom/40.wav               460 ms  wer 0.15  La voiture est un stable au freinage, qu'est-ce que je peux changer?
+parakeet  propre/pierre/01.wav            275 ms  wer 0.00  Quel est l'écart avec la voiture devant?
+parakeet  propre/pierre/02.wav            313 ms  wer 0.00  Il me reste combien d'essence?
+parakeet  propre/pierre/03.wav            249 ms  wer 0.00  C'était combien mon dernier tour?
+parakeet  propre/pierre/04.wav            268 ms  wer 0.40  Et le reste, combien de tours?
+parakeet  propre/pierre/05.wav            315 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  propre/pierre/06.wav            192 ms  wer 0.00  Comment sont mes pneus?
+parakeet  propre/pierre/07.wav            261 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  propre/pierre/08.wav            184 ms  wer 0.50  Pied derrière moi
+parakeet  propre/pierre/09.wav            200 ms  wer 0.25  Où est la cattle?
+parakeet  propre/pierre/10.wav            356 ms  wer 0.75  Préviens-moi qu'on a 50 et un rentre au stand.
+parakeet  propre/pierre/11.wav            257 ms  wer 0.29  La 7, c'est à combien de mois?
+parakeet  propre/pierre/12.wav            306 ms  wer 0.00  Quel est l'écart avec la 93?
+parakeet  propre/pierre/13.wav            296 ms  wer 0.00  La 38 vient de rentrer au stand.
+parakeet  propre/pierre/14.wav            308 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi?
+parakeet  propre/pierre/15.wav            268 ms  wer 0.50  Je sous un terre trop rouge.
+parakeet  propre/pierre/16.wav            313 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+parakeet  propre/pierre/17.wav            375 ms  wer 0.25  La voiture survie rent sortie de la parabolica
+parakeet  propre/pierre/18.wav            320 ms  wer 0.25  Je bloque les roues au freinage d'un âge.
+parakeet  propre/pierre/19.wav            283 ms  wer 0.17  Au rouge, ça passe à fond.
+parakeet  propre/pierre/20.wav            319 ms  wer 0.00  Je rate mon freinage au bus stop.
+parakeet  propre/pierre/21.wav            300 ms  wer 0.14  Ça glisse à la sortie d'Indanapoli
+parakeet  propre/pierre/22.wav            254 ms  wer 0.29  Je perds du temps à l'ESMO 1.
+parakeet  propre/pierre/23.wav            292 ms  wer 0.00  Mets 20 litres au prochain arrêt.
+parakeet  propre/pierre/24.wav            290 ms  wer 0.00  Énergie à 85%
+parakeet  propre/pierre/25.wav            322 ms  wer 0.10  Préviens-moi quand le carburant passe sous 1%.
+parakeet  propre/pierre/26.wav            321 ms  wer 0.00  Je fais encore 3 tours et je rentre.
+parakeet  propre/pierre/27.wav            275 ms  wer 0.14  Change les quatre pneus et répar tout.
+parakeet  propre/pierre/28.wav            349 ms  wer 0.00  Préviens-moi quand il reste 5 minutes.
+parakeet  propre/pierre/29.wav            274 ms  wer 0.29  Je monte l'anti-patinage d'un cran.
+parakeet  propre/pierre/30.wav            365 ms  wer 0.29  Il faut assouplir la barre anti-roulis avant.
+parakeet  propre/pierre/31.wav            345 ms  wer 0.20  On met des pneus pluies ou on reste en odium.
+parakeet  propre/pierre/32.wav            306 ms  wer 0.36  Est-ce qu'on fait des langues de côtes sur la voiture devant?
+parakeet  propre/pierre/33.wav            315 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  propre/pierre/34.wav            275 ms  wer 0.12  Combien de relais ont fait avec ces gommes?
+parakeet  propre/pierre/35.wav            258 ms  wer 0.50  J'en rentre au stand se tour.
+parakeet  propre/pierre/36.wav            212 ms  wer 0.00  Je reste dehors.
+parakeet  propre/pierre/37.wav            175 ms  wer 1.00  
+parakeet  propre/pierre/38.wav            348 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus?
+parakeet  propre/pierre/39.wav            307 ms  wer 0.11  Pourquoi je perds du temps dans le secteur de?
+parakeet  propre/pierre/40.wav            386 ms  wer 0.00  La voiture est instable au freinage, qu'est-ce que je peux changer?
+parakeet  propre/siwis/01.wav             290 ms  wer 0.25  Quel est l'écart avec la voiture de vent?
+parakeet  propre/siwis/02.wav             275 ms  wer 0.00  Il me reste combien d'essence?
+parakeet  propre/siwis/03.wav             275 ms  wer 0.00  C'était combien mon dernier tour?
+parakeet  propre/siwis/04.wav             270 ms  wer 0.00  Il reste combien de tours?
+parakeet  propre/siwis/05.wav             307 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  propre/siwis/06.wav             237 ms  wer 0.00  Comment sont mes pneus?
+parakeet  propre/siwis/07.wav             256 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  propre/siwis/08.wav             213 ms  wer 0.00  Qui est derrière moi?
+parakeet  propre/siwis/09.wav             235 ms  wer 0.00  Où est la 14?
+parakeet  propre/siwis/10.wav             352 ms  wer 0.38  Préviens-moi quand la 50 et un rentre au stand.
+parakeet  propre/siwis/11.wav             229 ms  wer 0.14  La 7 est à combien de mois?
+parakeet  propre/siwis/12.wav             330 ms  wer 0.29  Quel est l'écart avec A93?
+parakeet  propre/siwis/13.wav             294 ms  wer 0.00  La 38 vient de rentrer au stand?
+parakeet  propre/siwis/14.wav             302 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi?
+parakeet  propre/siwis/15.wav             280 ms  wer 0.33  Je souvire à tertre rouge.
+parakeet  propre/siwis/16.wav             320 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+parakeet  propre/siwis/17.wav             374 ms  wer 0.25  La voiture survirent sortie de la parabolica.
+parakeet  propre/siwis/18.wav             331 ms  wer 0.00  Je bloque les roues au freinage d'arnage.
+parakeet  propre/siwis/19.wav             289 ms  wer 0.17  Au rouge, ça passe à fond?
+parakeet  propre/siwis/20.wav             316 ms  wer 0.00  Je rate mon freinage au bus stop.
+parakeet  propre/siwis/21.wav             268 ms  wer 0.00  Ça glisse à la sortie d'Indianapolis.
+parakeet  propre/siwis/22.wav             287 ms  wer 0.29  Je perds du temps à l'esmo, 1.
+parakeet  propre/siwis/23.wav             305 ms  wer 0.17  Mais 20 litres au prochain arrêt.
+parakeet  propre/siwis/24.wav             297 ms  wer 0.00  Énergie à 85%
+parakeet  propre/siwis/25.wav             339 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+parakeet  propre/siwis/26.wav             332 ms  wer 0.00  Je fais encore trois tours et je rentre.
+parakeet  propre/siwis/27.wav             294 ms  wer 0.00  Change les quatre pneus et répare tout.
+parakeet  propre/siwis/28.wav             308 ms  wer 0.00  Préviens-moi quand il reste 5 minutes.
+parakeet  propre/siwis/29.wav             304 ms  wer 0.00  Je monte l'antipatinage d'un cran.
+parakeet  propre/siwis/30.wav             297 ms  wer 0.29  Il faut assouplir la barre en tir avant?
+parakeet  propre/siwis/31.wav             339 ms  wer 0.10  On met des pneus pluies ou on reste en médium?
+parakeet  propre/siwis/32.wav             350 ms  wer 0.36  Est-ce qu'on fait elle l'une de que sur la voiture devant?
+parakeet  propre/siwis/33.wav             299 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  propre/siwis/34.wav             268 ms  wer 0.12  Combien de relais ont fait avec ces gommes?
+parakeet  propre/siwis/35.wav             247 ms  wer 0.33  Je rentre ce tour.
+parakeet  propre/siwis/36.wav             225 ms  wer 0.33  Je reste dors.
+parakeet  propre/siwis/37.wav             165 ms  wer 0.00  Répète.
+parakeet  propre/siwis/38.wav             365 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin, avec ces pneus?
+parakeet  propre/siwis/39.wav             327 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2?
+parakeet  propre/siwis/40.wav             418 ms  wer 0.00  La voiture est instable au freinage, qu'est-ce que je peux changer?
+parakeet  propre/tom/01.wav               302 ms  wer 0.00  Quel est l'écart avec la voiture devant?
+parakeet  propre/tom/02.wav               281 ms  wer 0.00  Il me reste combien d'essence?
+parakeet  propre/tom/03.wav               298 ms  wer 0.00  C'était combien mon dernier tour?
+parakeet  propre/tom/04.wav               309 ms  wer 0.00  Il reste combien de tours?
+parakeet  propre/tom/05.wav               334 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  propre/tom/06.wav               217 ms  wer 0.00  Comment sont mes pneus?
+parakeet  propre/tom/07.wav               260 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  propre/tom/08.wav               253 ms  wer 0.00  Qui est derrière moi?
+parakeet  propre/tom/09.wav               262 ms  wer 0.25  Où est la quatorce?
+parakeet  propre/tom/10.wav               352 ms  wer 0.38  Préviens-moi quand la cinquante et à rentre au stand.
+parakeet  propre/tom/11.wav               291 ms  wer 0.29  La C est à combien de mois?
+parakeet  propre/tom/12.wav               354 ms  wer 0.00  Quel est l'écart avec la 93?
+parakeet  propre/tom/13.wav               334 ms  wer 0.00  La 38 vient de rentrer au stand.
+parakeet  propre/tom/14.wav               364 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi?
+parakeet  propre/tom/15.wav               365 ms  wer 0.33  Je souvire à tertre rouge.
+parakeet  propre/tom/16.wav               305 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+parakeet  propre/tom/17.wav               407 ms  wer 0.12  La voiture survirent en sortie de la parabolica.
+parakeet  propre/tom/18.wav               330 ms  wer 0.12  Je bloque les roues au freinage d'arnaage.
+parakeet  propre/tom/19.wav               300 ms  wer 0.17  Au rouge, ça passe à fond.
+parakeet  propre/tom/20.wav               318 ms  wer 0.00  Je rate mon freinage au bus stop.
+parakeet  propre/tom/21.wav               332 ms  wer 0.00  Ça glisse à la sortie d'Indianapolis.
+parakeet  propre/tom/22.wav               283 ms  wer 0.29  Je perds du temps à l'Esmo 1.
+parakeet  propre/tom/23.wav               295 ms  wer 0.00  Mets vingt litres au prochain arrêt.
+parakeet  propre/tom/24.wav               330 ms  wer 0.00  Énergie à quatre-vingt-cinq%.
+parakeet  propre/tom/25.wav               340 ms  wer 0.10  Préviens-moi quand le carburant passe sous 1%.
+parakeet  propre/tom/26.wav               333 ms  wer 0.00  Je fais encore trois tours et je rentre.
+parakeet  propre/tom/27.wav               408 ms  wer 0.14  Change les quatre peneuses et répare tout.
+parakeet  propre/tom/28.wav               332 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+parakeet  propre/tom/29.wav               313 ms  wer 0.29  Je monte l'anti-patinage d'un cran.
+parakeet  propre/tom/30.wav               344 ms  wer 0.29  Il faut assouplir la barre anti-rouis avant.
+parakeet  propre/tom/31.wav               362 ms  wer 0.10  On met des pneus de pluie ou on reste en Medium.
+parakeet  propre/tom/32.wav               350 ms  wer 0.27  Est-ce qu'on fait l'un de que sur la voiture devant?
+parakeet  propre/tom/33.wav               340 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  propre/tom/34.wav               320 ms  wer 0.25  Combien de relais ont fait avec ces gobes?
+parakeet  propre/tom/35.wav               291 ms  wer 0.17  Je rentre au stand de ce tour.
+parakeet  propre/tom/36.wav               237 ms  wer 0.33  Je reste dors.
+parakeet  propre/tom/37.wav               174 ms  wer 0.00  Répète.
+parakeet  propre/tom/38.wav               362 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus?
+parakeet  propre/tom/39.wav               343 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2?
+parakeet  propre/tom/40.wav               434 ms  wer 0.00  La voiture est instable au freinage, qu'est-ce que je peux changer?

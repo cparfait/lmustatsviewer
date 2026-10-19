@@ -121,22 +121,25 @@ const NUM_WORDS: Record<string, Record<string, number>> = {
     zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
     eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
     eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
+    seventy: 70, eighty: 80, ninety: 90,
   },
   es: {
     cero: 0, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9,
     diez: 10, once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17,
     dieciocho: 18, diecinueve: 19, veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60,
+    setenta: 70, ochenta: 80, noventa: 90,
   },
   de: {
     null: 0, eins: 1, ein: 1, eine: 1, zwei: 2, drei: 3, vier: 4, funf: 5, sechs: 6, sieben: 7, acht: 8,
     neun: 9, zehn: 10, elf: 11, zwolf: 12, dreizehn: 13, vierzehn: 14, funfzehn: 15, sechzehn: 16,
     siebzehn: 17, achtzehn: 18, neunzehn: 19, zwanzig: 20, dreissig: 30, vierzig: 40, funfzig: 50,
-    sechzig: 60,
+    sechzig: 60, siebzig: 70, achtzig: 80, neunzig: 90,
   },
   it: {
     zero: 0, uno: 1, una: 1, un: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9,
     dieci: 10, undici: 11, dodici: 12, tredici: 13, quattordici: 14, quindici: 15, sedici: 16, diciassette: 17,
     diciotto: 18, diciannove: 19, venti: 20, trenta: 30, quaranta: 40, cinquanta: 50, sessanta: 60,
+    settanta: 70, ottanta: 80, novanta: 90,
     ...itCompounds(),
   },
 };
@@ -147,7 +150,8 @@ const NUM_WORDS: Record<string, Record<string, number>> = {
  * déjà retirés par la normalisation (« ventitré » → « ventitre »).
  */
 function itCompounds(): Record<string, number> {
-  const tens: [string, number][] = [["venti", 20], ["trenta", 30], ["quaranta", 40], ["cinquanta", 50], ["sessanta", 60]];
+  const tens: [string, number][] = [["venti", 20], ["trenta", 30], ["quaranta", 40], ["cinquanta", 50], ["sessanta", 60],
+    ["settanta", 70], ["ottanta", 80], ["novanta", 90]];
   const units: [string, number][] = [
     ["uno", 1], ["due", 2], ["tre", 3], ["quattro", 4], ["cinque", 5], ["sei", 6], ["sette", 7], ["otto", 8], ["nove", 9],
   ];
@@ -177,6 +181,15 @@ const lng = (lang: string) => {
   return l in NUM_WORDS ? l : "en";
 };
 
+/** « % » écrit par une dictée ponctuée, dit comme Vosk l'écrit (déjà sans accents). */
+const PERCENT: Record<string, string> = {
+  fr: "pour cent",
+  en: "percent",
+  es: "por ciento",
+  de: "prozent",
+  it: "per cento",
+};
+
 /** Minuscules, sans accents, ponctuation → espace, nombres en lettres → chiffres. */
 export function normalize(text: string, lang: string): string {
   const l = lng(lang);
@@ -186,6 +199,11 @@ export function normalize(text: string, lang: string): string {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .replace(/['’`\-_/]/g, " ")
+    // Dictée ponctuée (Parakeet) : point de fin de phrase et deux-points, mais pas le
+    // séparateur décimal (« 1.5 ») ; « 10% » → « 10 pour cent », comme le dit Vosk.
+    .replace(/(?<!\d)\.|\.(?!\d)/g, " ")
+    .replace(/:/g, " ")
+    .replace(/(\d)\s*%/g, `$1 ${PERCENT[l]}`)
     .replace(/[?!;,«»"()]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -198,8 +216,43 @@ export function normalize(text: string, lang: string): string {
       out.push(toks[i]);
       continue;
     }
-    // Dizaine + unité (« vingt deux », « twenty two », « treinta y dos », « vingt et un »).
+    // Français, 70 à 99 et 17 à 19 : « soixante dix » (+ 10 à 19), « quatre vingt(s) »
+    // (+ 1 à 19), « dix sept ». Sans cela, « quatre-vingt-treize » devenait « 4 33 ».
     let n = v;
+    if (l === "fr") {
+      // Nombre à la position k, « dix sept » compris : [valeur, dernier indice].
+      const at = (k: number): [number | undefined, number] => {
+        const u = words[toks[k]];
+        const w = words[toks[k + 1]];
+        if (u === 10 && w !== undefined && w >= 7 && w <= 9) return [17 + w - 7, k + 1];
+        return [u, k];
+      };
+      if (v === 4 && (toks[i + 1] === "vingt" || toks[i + 1] === "vingts")) {
+        let j = i + 2;
+        if (toks[j] === "et") j++;
+        const [u, end] = at(j);
+        if (u !== undefined && u >= 1 && u <= 19) {
+          out.push(String(80 + u));
+          i = end;
+        } else {
+          out.push("80");
+          i += 1;
+        }
+        continue;
+      }
+      if (v === 60 || v === 10) {
+        let j = v === 60 ? i + 1 : i;
+        if (v === 60 && toks[j] === "et") j++;
+        const [u, end] = at(j);
+        const ok = v === 60 ? u !== undefined && u >= 10 && u <= 19 : u !== undefined && u >= 17;
+        if (ok) {
+          out.push(String(v === 60 ? 60 + u! : u!));
+          i = end;
+          continue;
+        }
+      }
+    }
+    // Dizaine + unité (« vingt deux », « twenty two », « treinta y dos », « vingt et un »).
     if (v >= 20 && v % 10 === 0) {
       let j = i + 1;
       if (toks[j] === "et" || toks[j] === "y" || toks[j] === "and") j++;

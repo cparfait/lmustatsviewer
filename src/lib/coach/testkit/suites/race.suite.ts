@@ -14,7 +14,7 @@ import { PressureWatcher, convertPressure, formatPressure, outOfWindow } from "@
 import { FrozenOrderTracker, frozenState } from "@/lib/engineer/frozenOrder";
 import { PitTrafficWatcher, aheadDist } from "@/lib/engineer/pitTraffic";
 import { EndgameWatcher, expectedFinish, pushWindowLaps } from "@/lib/engineer/endgame";
-import { TyreEventWatcher } from "@/lib/engineer/tyreEvents";
+import { parseLockAlertMode, TyreEventWatcher } from "@/lib/engineer/tyreEvents";
 import { amountFrom, describeMenu, leadingNumber, planPitCommand } from "@/lib/engineer/pitVoice";
 import { parsePitCommand, route } from "@/lib/engineer/router";
 import { AlarmClock, parseAlarm } from "@/lib/engineer/alarm";
@@ -309,9 +309,26 @@ function tyreEvents() {
   eq(w.update(0, dirty, 120, false), [], "pas encore tenu");
   eq(w.update(0.5, dirty, 120, false), [{ kind: "dirty" }], "pneus sales");
   eq(w.update(0.6, dirty, 120, false), [], "anti-radotage");
-  const lock = [wheel({ slip_ratio: -0.95 }), wheel({}), wheel({}), wheel({})];
+  // Réglage « strict » (défaut) : roue quasi arrêtée ≥ 1 s au-dessus de 100 km/h.
+  const lock = [wheel({ slip_ratio: -0.97 }), wheel({}), wheel({}), wheel({})];
   w.update(1, lock, 150, false);
-  eq(w.update(1.7, lock, 150, false), [{ kind: "lockFlatSpot", wheel: 0 }], "gros blocage avant gauche");
+  eq(w.update(1.7, lock, 150, false), [], "strict : 0,7 s de blocage ne suffit pas");
+  eq(w.update(2.05, lock, 150, false), [{ kind: "lockFlatSpot", wheel: 0 }], "gros blocage avant gauche");
+  const firm = new TyreEventWatcher();
+  const braking = [wheel({ slip_ratio: -0.9 }), wheel({ slip_ratio: -0.9 }), wheel({}), wheel({})];
+  firm.update(0, braking, 150, false);
+  eq(firm.update(2, braking, 150, false), [], "strict : freinage appuyé (−0,9) sans blocage complet → rien");
+  const both = [wheel({ slip_ratio: -0.99 }), wheel({ slip_ratio: -0.99 }), wheel({}), wheel({})];
+  firm.update(10, both, 150, false);
+  eq(firm.update(11.1, both, 150, false).length, 1, "strict : les deux avant bloquent → une seule annonce");
+  firm.update(30, both, 150, false);
+  eq(firm.update(31.1, both, 150, false), [], "strict : silence toutes roues 90 s");
+  const sens = new TyreEventWatcher();
+  sens.setLockMode("sensitive");
+  sens.update(0, braking, 150, false);
+  eq(sens.update(0.7, braking, 150, false), [{ kind: "lockFlatSpot", wheel: 0 }, { kind: "lockFlatSpot", wheel: 1 }], "sensible (ancien) : comme avant");
+  eq(parseLockAlertMode(null), "strict", "réglage absent : strict");
+  eq(parseLockAlertMode("sensitive"), "sensitive", "réglage sensible relu");
   w.noteCrash(10);
   eq(w.update(10.5, undefined, 0, false), [], "sans roues : rien");
   w.update(11, [wheel({}), wheel({}), wheel({}), wheel({})], 2, false);

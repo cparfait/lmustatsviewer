@@ -23,6 +23,7 @@ import { PaceOutlook } from "@/lib/engineer/paceOutlook";
 import { chequeredPhrase } from "@/lib/engineer/debriefRadio";
 import { recallPhrase, sameCourse, type TrackHistory } from "@/lib/engineer/trackRecall";
 import type { LapRow, LiveStanding, ResultRow, SessionDetail } from "@/lib/api";
+import { normalize, route } from "@/lib/engineer/router";
 
 const echoT = (k: string, o?: Record<string, unknown>) => (o ? `${k}${JSON.stringify(o)}` : k);
 const noPick = (_k: string, x: string) => x;
@@ -277,4 +278,15 @@ export function run(): void {
   ok(recallPhrase({ ...h, lastRace: { ...h.lastRace!, finished: false } }, echoT, () => "T", noPick)!.includes("vRecallQuit"), "course quittée en route");
   eq(recallPhrase({ ...h, lastRace: null, record: null }, echoT, () => "T", noPick), null, "rien de connu : silence");
   approx(d.cleanLaps, d.cleanLaps, 0, "débrief stable");
+
+  section("Dictée ponctuée (Parakeet) : même lecture que Vosk");
+  const same = (punct: string, vosk: string) =>
+    eq(route(punct, "fr").intent, route(vosk, "fr").intent, `« ${punct} » comme « ${vosk} »`);
+  same("Je reste dehors.", "je reste dehors");
+  same("Il me reste combien d'essence ?", "il me reste combien d'essence");
+  same("Quel est l'écart avec la voiture devant?", "quel est l'écart avec la voiture devant");
+  same("Préviens-moi quand le carburant passe sous 10%.", "préviens moi quand le carburant passe sous dix pour cent");
+  eq(normalize("Énergie à 85%.", "fr"), normalize("énergie à quatre-vingt-cinq pour cent", "fr"), "« 85% » = « quatre-vingt-cinq pour cent »");
+  ok(normalize("Pression à 1.5 bar.", "fr").includes("1.5"), "le séparateur décimal reste");
+  eq(normalize("Warn me when fuel drops below 10%.", "en"), normalize("warn me when fuel drops below ten percent", "en"), "EN : « 10% » = « ten percent »");
 }

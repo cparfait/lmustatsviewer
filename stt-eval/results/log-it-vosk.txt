@@ -1,0 +1,60 @@
+vosk      bruit10/paola/01.wav            726 ms  wer 0.00  qual è il distacco dalla macchina davanti
+vosk      bruit10/paola/02.wav            617 ms  wer 0.00  quanta benzina mi resta
+vosk      bruit10/paola/03.wav            669 ms  wer 0.00  quanto ho fatto nell'ultimo giro
+vosk      bruit10/paola/05.wav            756 ms  wer 0.00  in che posizione sono nella mia classe
+vosk      bruit10/paola/09.wav            712 ms  wer 0.00  dove la quattordici
+vosk      bruit10/paola/10.wav            849 ms  wer 0.00  avvisami quando la cinquantuno rientra ai box
+vosk      bruit10/paola/12.wav            672 ms  wer 0.00  qual è il distacco dalla novantatré
+vosk      bruit10/paola/13.wav            732 ms  wer 0.06  la trentotto appena rientrato ai box
+vosk      bruit10/paola/15.wav            826 ms  wer 0.35  ma sottosterzo tartarughe
+vosk      bruit10/paola/17.wav            932 ms  wer 0.02  la macchina sovrasterzo in uscita dalla parabolica
+vosk      bruit10/paola/19.wav            738 ms  wer 0.16  ciao rouge si fa in pieno
+vosk      bruit10/paola/21.wav            798 ms  wer 0.17  scivola in uscita tende a napoli
+vosk      bruit10/paola/23.wav            719 ms  wer 0.25  metti venti inizio alla prossima sua sto
+vosk      bruit10/paola/24.wav            698 ms  wer 0.03  energia al ottantacinque per cento
+vosk      bruit10/paola/25.wav            808 ms  wer 0.00  avvisami quando la benzina scende sotto il dieci percento
+vosk      bruit10/paola/29.wav            734 ms  wer 0.03  alzi il controllo di trazione di uno scatto
+vosk      bruit10/paola/31.wav            874 ms  wer 0.05  mettiamo le gomme da pioggia o restiamo sulle medie
+vosk      bruit10/paola/35.wav           1002 ms  wer 0.04  rientra ai box in questo giro
+vosk      bruit10/paola/38.wav            751 ms  wer 0.00  riesco ad arrivare alla fine con queste gomme
+vosk      bruit10/paola/39.wav            681 ms  wer 0.03  perché perde tempo nel settore due
+vosk      bruit5/paola/01.wav             771 ms  wer 0.00  qual è il distacco dalla macchina davanti
+vosk      bruit5/paola/02.wav             865 ms  wer 0.00  quanta benzina mi resta
+vosk      bruit5/paola/03.wav             850 ms  wer 0.00  quanto ho fatto nell'ultimo giro
+vosk      bruit5/paola/05.wav             839 ms  wer 0.00  in che posizione sono nella mia classe
+vosk      bruit5/paola/09.wav             687 ms  wer 0.00  dove la quattordici
+vosk      bruit5/paola/10.wav             813 ms  wer 0.00  avvisami quando la cinquantuno rientra ai box
+vosk      bruit5/paola/12.wav             771 ms  wer 0.13  qual è il distacco dalla non mancate
+vosk      bruit5/paola/13.wav             865 ms  wer 0.25  la torta appena rientrato ai box
+vosk      bruit5/paola/15.wav             850 ms  wer 0.35  ma sottosterzo tartarughe
+vosk      bruit5/paola/17.wav            1096 ms  wer 0.07  la macchina sovrasterzo in uscita dalla parabola
+vosk      bruit5/paola/19.wav             859 ms  wer 0.63  wrong si pensi
+vosk      bruit5/paola/21.wav             771 ms  wer 0.17  scivola in uscita degli a napoli
+vosk      bruit5/paola/23.wav             741 ms  wer 0.25  metti venti inizio alla prossima sua
+vosk      bruit5/paola/24.wav             736 ms  wer 0.03  energia al ottantacinque per cento
+vosk      bruit5/paola/25.wav             903 ms  wer 0.00  avvisami quando la benzina scende sotto il dieci percento
+vosk      bruit5/paola/29.wav             873 ms  wer 0.14  alzi il controllo di trazione di uno staff
+vosk      bruit5/paola/31.wav            1016 ms  wer 0.09  mettiamo le come da pioggia o restiamo sulle medie
+vosk      bruit5/paola/35.wav             841 ms  wer 0.12  rientra ai box in questo tipo
+vosk      bruit5/paola/38.wav             838 ms  wer 0.05  disco ad arrivare alla fine con queste gomme
+vosk      bruit5/paola/39.wav             781 ms  wer 0.03  perché perde tempo nel settore due
+vosk      propre/paola/01.wav             710 ms  wer 0.00  qual è il distacco dalla macchina davanti
+vosk      propre/paola/02.wav             868 ms  wer 0.00  quanta benzina mi resta
+vosk      propre/paola/03.wav             662 ms  wer 0.00  quanto ho fatto nell'ultimo giro
+vosk      propre/paola/05.wav             717 ms  wer 0.00  in che posizione sono nella mia classe
+vosk      propre/paola/09.wav             605 ms  wer 0.00  dove la quattordici
+vosk      propre/paola/10.wav             805 ms  wer 0.00  avvisami quando la cinquantuno rientra ai box
+vosk      propre/paola/12.wav             767 ms  wer 0.00  qual è il distacco dalla novantatré
+vosk      propre/paola/13.wav             665 ms  wer 0.06  la trentotto appena rientrato ai box
+vosk      propre/paola/15.wav             729 ms  wer 0.35  a sottosterzo tartarughe
+vosk      propre/paola/17.wav             887 ms  wer 0.02  la macchina sovrasterzo in uscita dalla parabolica
+vosk      propre/paola/19.wav             764 ms  wer 0.11  e rouge si fa in pieno
+vosk      propre/paola/21.wav             701 ms  wer 0.00  scivola in uscita da indianapolis
+vosk      propre/paola/23.wav             715 ms  wer 0.09  metti venti litri alla prossima sua sosta
+vosk      propre/paola/24.wav             657 ms  wer 0.03  energia al ottantacinque per cento
+vosk      propre/paola/25.wav             916 ms  wer 0.00  avvisami quando la benzina scende sotto il dieci per cento
+vosk      propre/paola/29.wav             868 ms  wer 0.03  alzi il controllo di trazione di uno scatto
+vosk      propre/paola/31.wav             826 ms  wer 0.07  montiamo alle gomme da pioggia o restiamo sulle media
+vosk      propre/paola/35.wav             717 ms  wer 0.04  rientra ai box in questo giro
+vosk      propre/paola/38.wav             796 ms  wer 0.05  fisco ad arrivare alla fine con queste gomme
+vosk      propre/paola/39.wav             696 ms  wer 0.00  perché perdo tempo nel settore due

@@ -210,6 +210,14 @@ pub(crate) fn recognize_free_samples_conf(
     if samples.is_empty() {
         return Ok((String::new(), None));
     }
+    // Dictée Parakeet si elle est choisie et installée (pas de score de confiance) ;
+    // en cas d'échec, la question n'est pas perdue : Vosk prend le relais.
+    if super::stt_parakeet::active(app) {
+        match super::stt_parakeet::recognize(app, samples) {
+            Ok(text) => return Ok((text, None)),
+            Err(e) => crate::app_warn!("Parakeet indisponible, dictée Vosk à la place : {e}"),
+        }
+    }
     let model = get_model(app, lang)?;
     let mut rec = Recognizer::new(model, 16_000.0)
         .ok_or_else(|| AppError::Internal("Échec d'init du Recognizer Vosk".into()))?;
@@ -242,20 +250,8 @@ pub fn stt_recognize_free(
         .chunks_exact(2)
         .map(|c| i16::from_le_bytes([c[0], c[1]]))
         .collect();
-    if samples.is_empty() {
-        return Ok(String::new());
-    }
-    let model = get_model(&app, &lang)?;
-    let mut rec = Recognizer::new(model, 16_000.0)
-        .ok_or_else(|| AppError::Internal("Échec d'init du Recognizer Vosk".into()))?;
-    rec.set_words(false);
-    let _ = rec.accept_waveform(&samples);
-    let text = rec
-        .final_result()
-        .single()
-        .map(|r| r.text.to_string())
-        .unwrap_or_default();
-    Ok(text.trim().to_string())
+    // Même moteur que le push-to-talk natif (Parakeet si choisi, sinon Vosk).
+    recognize_free_samples(&app, &lang, &samples)
 }
 
 /// Décodage base64 standard (sans dépendance externe ; pendant de `tts::base64_encode`).

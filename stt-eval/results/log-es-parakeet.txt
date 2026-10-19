@@ -1,0 +1,120 @@
+parakeet  bruit10/claude/01.wav           396 ms  wer 0.00  ¿Cuál es la diferencia con el coche de delante?
+parakeet  bruit10/claude/02.wav           313 ms  wer 0.00  ¿Cuánto combustible me queda?
+parakeet  bruit10/claude/03.wav           317 ms  wer 0.00  ¿Cuánto fue mi última vuelta?
+parakeet  bruit10/claude/05.wav           322 ms  wer 0.00  ¿En qué posición voy en mi clase?
+parakeet  bruit10/claude/09.wav           273 ms  wer 0.00  ¿Dónde está el 14?
+parakeet  bruit10/claude/10.wav           384 ms  wer 0.03  Avsame cuando el 51 entre en boxes.
+parakeet  bruit10/claude/12.wav           373 ms  wer 0.00  ¿Cuál es la diferencia con el 93?
+parakeet  bruit10/claude/13.wav           419 ms  wer 0.00  El 38 acaba de entrar en boxes.
+parakeet  bruit10/claude/15.wav           319 ms  wer 0.07  Tengo su viraje Enter 3 Rouge.
+parakeet  bruit10/claude/17.wav           395 ms  wer 0.00  El coche sobrevirá a la salida de la parabolica.
+parakeet  bruit10/claude/19.wav           340 ms  wer 0.15  Aurogee, se pasa a fondo.
+parakeet  bruit10/claude/21.wav           360 ms  wer 0.00  Desliza a la salida de Indianápolis.
+parakeet  bruit10/claude/23.wav           413 ms  wer 0.00  Pon 20 litros en la próxima parada.
+parakeet  bruit10/claude/24.wav           391 ms  wer 0.00  Energía al 85%.
+parakeet  bruit10/claude/25.wav           448 ms  wer 0.02  Avsame cuando el combustible baje del 10%.
+parakeet  bruit10/claude/29.wav           566 ms  wer 0.00  Subo el control de tracción un punto.
+parakeet  bruit10/claude/31.wav           458 ms  wer 0.00  Ponemos neumáticos de lluvia o seguimos con medios.
+parakeet  bruit10/claude/35.wav           282 ms  wer 0.00  Entro en Boxes esta vuelta.
+parakeet  bruit10/claude/38.wav           468 ms  wer 0.00  Puedo aguantar hasta el final con estos neumáticos.
+parakeet  bruit10/claude/39.wav           348 ms  wer 0.00  ¿Por qué pierdo tiempo en el sector 2?
+parakeet  bruit10/davefx/01.wav           366 ms  wer 0.00  ¿Cuál es la diferencia con el coche de delante?
+parakeet  bruit10/davefx/02.wav           266 ms  wer 0.00  ¿Cuánto combustible me queda?
+parakeet  bruit10/davefx/03.wav           272 ms  wer 0.00  ¿Cuánto fue mi última vuelta?
+parakeet  bruit10/davefx/05.wav           314 ms  wer 0.00  ¿En qué posición voy en mi clase?
+parakeet  bruit10/davefx/09.wav           266 ms  wer 0.00  ¿Dónde está el 14?
+parakeet  bruit10/davefx/10.wav           399 ms  wer 0.03  Avísame cuando en 51 entré en boxes.
+parakeet  bruit10/davefx/12.wav           351 ms  wer 0.00  ¿Cuál es la diferencia con el 93?
+parakeet  bruit10/davefx/13.wav           391 ms  wer 0.00  El 38 acaba de entrar en boxes.
+parakeet  bruit10/davefx/15.wav           348 ms  wer 0.15  Tengo su viraje en TER3, Roje.
+parakeet  bruit10/davefx/17.wav           391 ms  wer 0.03  El coche sobrevida a la salida de la parabólica.
+parakeet  bruit10/davefx/19.wav           279 ms  wer 0.20  La U roje, se pasa al fondo.
+parakeet  bruit10/davefx/21.wav           336 ms  wer 0.03  Deshiza a la salida de Indianapolis.
+parakeet  bruit10/davefx/23.wav           322 ms  wer 0.00  Pon 20 litros en la próxima parada.
+parakeet  bruit10/davefx/24.wav           361 ms  wer 0.00  Energía al 85%.
+parakeet  bruit10/davefx/25.wav           405 ms  wer 0.00  avísame cuando el combustible baje del 10%.
+parakeet  bruit10/davefx/29.wav           318 ms  wer 0.03  Subo el control de fracción, un punto.
+parakeet  bruit10/davefx/31.wav           424 ms  wer 0.00  ¿Ponemos neumáticos de lluvia o seguimos con medios?
+parakeet  bruit10/davefx/35.wav           304 ms  wer 0.00  Entro en boxes esta vuelta.
+parakeet  bruit10/davefx/38.wav           374 ms  wer 0.00  Puedo aguantar hasta el final con estos neumáticos.
+parakeet  bruit10/davefx/39.wav           318 ms  wer 0.00  ¿Por qué pierdo tiempo en el sector 2?
+parakeet  bruit5/claude/01.wav            388 ms  wer 0.00  ¿Cuál es la diferencia con el coche de delante?
+parakeet  bruit5/claude/02.wav            308 ms  wer 0.00  ¿Cuánto combustible me queda?
+parakeet  bruit5/claude/03.wav            323 ms  wer 0.00  ¿Cuánto fue mi última vuelta?
+parakeet  bruit5/claude/05.wav            490 ms  wer 0.00  ¿En qué posición voy en mi clase?
+parakeet  bruit5/claude/09.wav            313 ms  wer 0.00  ¿Dónde está el 14?
+parakeet  bruit5/claude/10.wav            403 ms  wer 0.00  Avísame cuando el 51 entre en boxes.
+parakeet  bruit5/claude/12.wav            389 ms  wer 0.00  ¿Cuál es la diferencia con el 93?
+parakeet  bruit5/claude/13.wav            401 ms  wer 0.00  El 38 acaba de entrar en boxes.
+parakeet  bruit5/claude/15.wav            318 ms  wer 0.22  Tengo su viraje en T3 Roje.
+parakeet  bruit5/claude/17.wav            424 ms  wer 0.00  El coche sobrevirá a la salida de la parabolica.
+parakeet  bruit5/claude/19.wav            361 ms  wer 0.20  A Urope, se pasa fondo.
+parakeet  bruit5/claude/21.wav            347 ms  wer 0.00  Desliza a la salida de Indianapolis.
+parakeet  bruit5/claude/23.wav            347 ms  wer 0.00  Pon 20 litros en la próxima parada.
+parakeet  bruit5/claude/24.wav            383 ms  wer 0.00  Energía al 85%.
+parakeet  bruit5/claude/25.wav            451 ms  wer 0.02  Avsame cuando el combustible baje del 10%.
+parakeet  bruit5/claude/29.wav            329 ms  wer 0.00  Subo el control de tracción un punto.
+parakeet  bruit5/claude/31.wav            448 ms  wer 0.00  Ponemos neumáticos de lluvia o seguimos con medios.
+parakeet  bruit5/claude/35.wav            290 ms  wer 0.09  En Flo en Boxes esta vuelta.
+parakeet  bruit5/claude/38.wav            482 ms  wer 0.00  Puedo aguantar hasta el final con estos neumáticos.
+parakeet  bruit5/claude/39.wav            343 ms  wer 0.00  ¿Por qué pierdo tiempo en el sector 2?
+parakeet  bruit5/davefx/01.wav            341 ms  wer 0.00  ¿Cuál es la diferencia con el coche de delante?
+parakeet  bruit5/davefx/02.wav            253 ms  wer 0.00  Cuánto combustible me queda.
+parakeet  bruit5/davefx/03.wav            265 ms  wer 0.00  ¿Cuánto fue mi última vuelta?
+parakeet  bruit5/davefx/05.wav            305 ms  wer 0.00  ¿En qué posición voy en mi clase?
+parakeet  bruit5/davefx/09.wav            260 ms  wer 0.00  ¿Dónde está el 14?
+parakeet  bruit5/davefx/10.wav            410 ms  wer 0.03  Avísame cuando en 51 entre en boxes.
+parakeet  bruit5/davefx/12.wav            353 ms  wer 0.00  ¿Cuál es la diferencia con el 93?
+parakeet  bruit5/davefx/13.wav            382 ms  wer 0.00  El 38 acaba de entrar en boxes.
+parakeet  bruit5/davefx/15.wav            334 ms  wer 0.33  Tengo su vida en Terroje.
+parakeet  bruit5/davefx/17.wav            385 ms  wer 0.03  El coche sobrevida a la salida de la parabólica.
+parakeet  bruit5/davefx/19.wav            360 ms  wer 0.40  La huevo, se pasa al fondo.
+parakeet  bruit5/davefx/21.wav            565 ms  wer 0.07  Desdiza la salida de Indianapolis.
+parakeet  bruit5/davefx/23.wav            326 ms  wer 0.00  Pon 20 litros en la próxima parada.
+parakeet  bruit5/davefx/24.wav            333 ms  wer 0.00  Energía al 85%.
+parakeet  bruit5/davefx/25.wav            390 ms  wer 0.00  avísame cuando el combustible baje del 10%.
+parakeet  bruit5/davefx/29.wav            320 ms  wer 0.03  Subo el control de fracción, un punto.
+parakeet  bruit5/davefx/31.wav            410 ms  wer 0.00  ¿Ponemos neumáticos de lluvia o seguimos con medios?
+parakeet  bruit5/davefx/35.wav            298 ms  wer 0.05  Entron boxes esta vuelta.
+parakeet  bruit5/davefx/38.wav            362 ms  wer 0.00  Puedo aguantar hasta el final con estos neumáticos.
+parakeet  bruit5/davefx/39.wav            308 ms  wer 0.00  ¿Por qué pierdo tiempo en el sector 2?
+parakeet  propre/claude/01.wav            396 ms  wer 0.00  ¿Cuál es la diferencia con el coche de delante?
+parakeet  propre/claude/02.wav            323 ms  wer 0.00  ¿Cuánto combustible me queda?
+parakeet  propre/claude/03.wav            303 ms  wer 0.00  ¿Cuánto fue mi última vuelta?
+parakeet  propre/claude/05.wav            318 ms  wer 0.00  ¿En qué posición voy en mi clase?
+parakeet  propre/claude/09.wav            274 ms  wer 0.00  ¿Dónde está el 14?
+parakeet  propre/claude/10.wav            420 ms  wer 0.00  Avísame cuando el 51 entre en boxes.
+parakeet  propre/claude/12.wav            367 ms  wer 0.00  ¿Cuál es la diferencia con el 93?
+parakeet  propre/claude/13.wav            405 ms  wer 0.00  El 38 acaba de entrar en boxes.
+parakeet  propre/claude/15.wav            315 ms  wer 0.15  Tengo subirá Genter 3 Rouge.
+parakeet  propre/claude/17.wav            405 ms  wer 0.00  El coche sobrevirá a la salida de la parabólica.
+parakeet  propre/claude/19.wav            343 ms  wer 0.15  Aurrouge, se pasa fondo.
+parakeet  propre/claude/21.wav            347 ms  wer 0.00  Desliza a la salida de Indianápolis.
+parakeet  propre/claude/23.wav            337 ms  wer 0.19  Pon 2 litros en la próxima parada.
+parakeet  propre/claude/24.wav            384 ms  wer 0.00  Energía al 85%.
+parakeet  propre/claude/25.wav            466 ms  wer 0.02  Avsame cuando el combustible baje del 10%.
+parakeet  propre/claude/29.wav            341 ms  wer 0.00  Subo el control de tracción un punto.
+parakeet  propre/claude/31.wav            441 ms  wer 0.00  Ponemos neumáticos de lluvia o seguimos con medios.
+parakeet  propre/claude/35.wav            284 ms  wer 0.00  Entro en boxes esta vuelta.
+parakeet  propre/claude/38.wav            717 ms  wer 0.00  Puedo aguantar hasta el final con estos neumáticos.
+parakeet  propre/claude/39.wav            335 ms  wer 0.00  ¿Por qué pierdo tiempo en el sector 2?
+parakeet  propre/davefx/01.wav            337 ms  wer 0.00  ¿Cuál es la diferencia con el coche de delante?
+parakeet  propre/davefx/02.wav            253 ms  wer 0.00  ¿Cuánto combustible me queda?
+parakeet  propre/davefx/03.wav            282 ms  wer 0.00  ¿Cuánto fue mi última vuelta?
+parakeet  propre/davefx/05.wav            316 ms  wer 0.00  ¿En qué posición voy en mi clase?
+parakeet  propre/davefx/09.wav            252 ms  wer 0.00  ¿Dónde está el 14?
+parakeet  propre/davefx/10.wav            408 ms  wer 0.03  avísame cuando en cincuenta y uno entré en boxes.
+parakeet  propre/davefx/12.wav            346 ms  wer 0.00  ¿Cuál es la diferencia con el 93?
+parakeet  propre/davefx/13.wav            398 ms  wer 0.00  El treinta y ocho acaba de entrar en boxes.
+parakeet  propre/davefx/15.wav            332 ms  wer 0.15  Tengo su viraje en Ter 3 roje.
+parakeet  propre/davefx/17.wav            387 ms  wer 0.03  El coche sobre vida a la salida de la parabolíca.
+parakeet  propre/davefx/19.wav            274 ms  wer 0.25  Caburro G, se pasa a fondo.
+parakeet  propre/davefx/21.wav            338 ms  wer 0.00  Desliza a la salida de Indianapolis.
+parakeet  propre/davefx/23.wav            329 ms  wer 0.00  Pon 20 litros en la próxima parada.
+parakeet  propre/davefx/24.wav            350 ms  wer 0.00  Energía al 85%.
+parakeet  propre/davefx/25.wav            405 ms  wer 0.00  Avísame cuando el combustible baje del 10%.
+parakeet  propre/davefx/29.wav            312 ms  wer 0.00  Subo el control de tracción un punto.
+parakeet  propre/davefx/31.wav            399 ms  wer 0.00  ¿Ponemos neumáticos de lluvia o seguimos con medios?
+parakeet  propre/davefx/35.wav            284 ms  wer 0.00  Entro en boxes esta vuelta.
+parakeet  propre/davefx/38.wav            353 ms  wer 0.00  Puedo aguantar hasta el final con estos neumáticos.
+parakeet  propre/davefx/39.wav            311 ms  wer 0.00  ¿Por qué pierdo tiempo en el sector 2?

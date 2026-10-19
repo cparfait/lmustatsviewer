@@ -92,6 +92,25 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "added",
         items: [
           {
+            featured: true,
+            text: {
+              en: "New dictation engine for your questions to the engineer: Parakeet, offline in all 5 languages. In our tests it got 62 % of sentences exactly right instead of 42 % and answers 5 times faster (0.3 s). One-time 640 MB download in Settings › Audio / Voice, where the “Speech recognition” section now comes first. Vosk still handles voice commands, takes over dictation as long as Parakeet isn't downloaded, and can be chosen again for dictation (previous behaviour).",
+              fr: "Nouveau moteur de dictée pour tes questions à l'ingénieur : Parakeet, hors-ligne dans les 5 langues. Sur nos essais, 62 % de phrases exactes au lieu de 42 %, et une réponse 5 fois plus rapide (0,3 s). Téléchargement unique de 640 Mo dans Configuration › Audio / Voix, où la section « Reconnaissance vocale » passe en tête. Vosk garde les commandes vocales, écrit tes questions tant que Parakeet n'est pas téléchargé, et peut être rechoisi pour la dictée (comportement d'avant).",
+              es: "Nuevo motor de dictado para tus preguntas al ingeniero: Parakeet, sin conexión en los 5 idiomas. En nuestras pruebas, 62 % de frases exactas en lugar de 42 %, y una respuesta 5 veces más rápida (0,3 s). Descarga única de 640 MB en Configuración › Audio / Voz, donde la sección «Reconocimiento de voz» pasa a estar arriba. Vosk sigue con los comandos de voz, escribe tus preguntas mientras Parakeet no esté descargado y puede volver a elegirse para el dictado (comportamiento anterior).",
+              de: "Neue Diktat-Engine für deine Fragen an den Ingenieur: Parakeet, offline in allen 5 Sprachen. In unseren Tests 62 % exakt erkannte Sätze statt 42 % und eine 5-mal schnellere Antwort (0,3 s). Einmaliger Download von 640 MB unter Einstellungen › Audio / Stimme, wo der Bereich „Spracherkennung“ jetzt ganz oben steht. Vosk bleibt für die Sprachbefehle zuständig, schreibt deine Fragen, solange Parakeet nicht heruntergeladen ist, und kann für das Diktat wieder gewählt werden (bisheriges Verhalten).",
+              it: "Nuovo motore di dettatura per le tue domande all'ingegnere: Parakeet, offline in tutte e 5 le lingue. Nei nostri test, 62 % di frasi esatte invece del 42 % e una risposta 5 volte più rapida (0,3 s). Download unico di 640 MB in Impostazioni › Audio / Voce, dove la sezione «Riconoscimento vocale» ora è in cima. Vosk resta per i comandi vocali, scrive le tue domande finché Parakeet non è scaricato e può essere scelto di nuovo per la dettatura (comportamento precedente).",
+            },
+          },
+          {
+            text: {
+              en: "Puncture and lost wheel: the engineer now says which wheel (“Puncture, front left!”) when only one is hit.",
+              fr: "Crevaison et roue arrachée : l'ingénieur dit maintenant laquelle (« Crevaison avant gauche ! ») quand une seule roue est touchée.",
+              es: "Pinchazo y rueda arrancada: el ingeniero dice ahora cuál («¡Pinchazo, delantera izquierda!») cuando solo hay una rueda afectada.",
+              de: "Reifenschaden und abgerissenes Rad: Der Ingenieur sagt jetzt, welches Rad („Reifenschaden vorne links!“), wenn nur eines betroffen ist.",
+              it: "Foratura e ruota persa: l'ingegnere ora dice quale («Foratura anteriore sinistra!») quando è coinvolta una sola ruota.",
+            },
+          },
+          {
             text: {
               en: "What's new after an update: on the first launch of a new version, a window sums up what changes (the version's title, the main highlights, the rest in brief, and a link to the full log). Nothing shows on a first install. Setting in Settings › Preferences, and a “Preview” button in the release notes to see it again.",
               fr: "Nouveautés après une mise à jour : au premier lancement d'une nouvelle version, une fenêtre résume ce qui change (titre de la version, nouveautés principales, le reste en bref et un lien vers le journal complet). Rien ne s'affiche à la première installation. Réglage dans Configuration › Préférences, et bouton « Aperçu » dans les notes de version pour la revoir.",
@@ -1169,6 +1188,24 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "“Big lock-up, possible flat spot” no longer goes off on every firm braking: by default it only speaks when a wheel stays locked for more than a second above 100 km/h, once per braking even if both front wheels lock. The previous behaviour remains under Settings › Audio / Voice › Lock-up alert › Sensitive.",
+              fr: "« Blocage, on a peut-être un plat » ne se déclenche plus à chaque freinage appuyé : par défaut, seulement quand une roue reste bloquée plus d'une seconde au-dessus de 100 km/h, une seule fois par freinage même si les deux roues avant bloquent. L'ancien comportement reste disponible dans Configuration › Audio / Voix › Alerte de blocage › Sensible.",
+              es: "«Bloqueo, quizá tengamos un plano» ya no salta en cada frenada fuerte: por defecto, solo cuando una rueda queda bloqueada más de un segundo por encima de 100 km/h, una sola vez por frenada aunque bloqueen las dos delanteras. El comportamiento anterior sigue disponible en Configuración › Audio / Voz › Alerta de bloqueo › Sensible.",
+              de: "„Blockiert, vielleicht ein Bremsplatten“ kommt nicht mehr bei jedem kräftigen Bremsen: Standardmäßig nur, wenn ein Rad länger als eine Sekunde über 100 km/h blockiert, einmal pro Bremsung, auch wenn beide Vorderräder blockieren. Das bisherige Verhalten bleibt unter Einstellungen › Audio / Stimme › Blockier-Warnung › Empfindlich.",
+              it: "«Bloccaggio, forse abbiamo uno spiattellamento» non scatta più a ogni frenata decisa: di default, solo quando una ruota resta bloccata più di un secondo sopra i 100 km/h, una sola volta per frenata anche se si bloccano entrambe le anteriori. Il comportamento precedente resta in Impostazioni › Audio / Voce › Avviso di bloccaggio › Sensibile.",
+            },
+          },
+          {
+            text: {
+              en: "Voice questions: spoken numbers from 70 to 99 and 17 to 19 (French “quatre-vingt-treize”, “soixante-dix”, “dix-sept”) and seventy / eighty / ninety in every language are now understood.",
+              fr: "Questions à la voix : les nombres de 70 à 99 et de 17 à 19 (« quatre-vingt-treize », « soixante-dix », « dix-sept ») sont maintenant compris, dans toutes les langues.",
+              es: "Preguntas por voz: los números de 70 a 99 (setenta, ochenta, noventa) se entienden ahora, en todos los idiomas.",
+              de: "Sprachfragen: Zahlen von 70 bis 99 (siebzig, achtzig, neunzig) werden jetzt in allen Sprachen verstanden.",
+              it: "Domande a voce: i numeri da 70 a 99 (settanta, ottanta, novanta) ora vengono capiti, in tutte le lingue.",
+            },
+          },
           {
             text: {
               en: "AI voice: “Prepare the voice” now also covers “Follow the safety car” and the switch-to-wets / switch-to-slicks calls, which were left out.",

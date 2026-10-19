@@ -80,7 +80,7 @@ Toutes les classes de Le Mans Ultimate sont supportées :
 
 ### 🎙️ Spotter vocal & annonces de course
 - **Spotter à la demande** : raccourcis globaux (statut, répéter, muet) actifs même quand le jeu a le focus
-- **Commandes vocales** (`Alt+T`, push-to-talk) : écart, carburant, pneus, position, rythme, temps restant, météo… — reconnaissance **100 % hors-ligne** (Vosk, 5 langues)
+- **Commandes vocales** (`Alt+T`, push-to-talk) : écart, carburant, pneus, position, rythme, temps restant, météo… — reconnaissance **100 % hors-ligne** (Vosk pour les commandes, Parakeet pour les questions libres, 5 langues)
 - **Annonces automatiques** : drapeaux, carburant (3/2/1 tours, ravitaillement à prévoir), pneus (froids / usure / crevaison), surchauffes, dégâts, positions, podium, sous attaque, drapeau bleu, record perso, secteur violet, **débrief du pire secteur du tour**, delta, pluie, mi-course / dernier tour…
 - **Catalogue personnalisable** : modifiez le texte de chaque annonce et testez-la, par langue
 - **Voix neuronale offline** (Piper) avec **effet radio** (bips + filtre), repli sur la voix système, file d'annonces à priorités
@@ -263,6 +263,7 @@ sur des assets lourds, **hors git**, à télécharger une fois via scripts Power
 ```powershell
 ./scripts/fetch-piper.ps1   # moteur + voix neuronales Piper (TTS)
 ./scripts/fetch-vosk.ps1    # libvosk (requise au link) + modèles de reconnaissance
+./scripts/fetch-sherpa.ps1  # sherpa-onnx + onnxruntime (requis au link, dictée Parakeet)
 ```
 > `libvosk` (fetch-vosk) est **requise pour compiler** (le STT fait partie de tout
 > build) ; le moteur Piper est bundlé dans l'installeur. En revanche, les **voix**
@@ -274,7 +275,7 @@ sur des assets lourds, **hors git**, à télécharger une fois via scripts Power
 ```bash
 npm run tauri:build         # installeur NSIS (STT inclus, modèles téléchargeables in-app)
 ```
-> Exige d'avoir lancé `fetch-piper.ps1` **et** `fetch-vosk.ps1` au préalable.
+> Exige d'avoir lancé `fetch-piper.ps1`, `fetch-vosk.ps1` **et** `fetch-sherpa.ps1` au préalable.
 > L'installeur est généré dans `src-tauri/target/release/bundle/`.
 
 ### Vérifications

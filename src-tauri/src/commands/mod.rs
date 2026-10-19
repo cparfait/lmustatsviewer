@@ -21,6 +21,7 @@ pub mod tts;
 pub mod tts_cloud;
 pub mod assets;
 pub mod stt;
+pub mod stt_parakeet;
 pub mod voice_input;
 pub mod community;
 pub mod community_vault;

@@ -1,0 +1,40 @@
+parakeet  01.wav                          375 ms  wer 0.00  Quel est l'écart avec la voiture devant?
+parakeet  02.wav                          540 ms  wer 0.00  Il me reste combien d'essence?
+parakeet  03.wav                          188 ms  wer 0.00  C'était combien mon dernier tour?
+parakeet  04.wav                          213 ms  wer 0.00  Il reste combien de tours?
+parakeet  05.wav                          187 ms  wer 0.00  Je suis en quelle position dans ma classe?
+parakeet  06.wav                          178 ms  wer 0.50  Commençons mes pneus.
+parakeet  07.wav                          343 ms  wer 0.00  Quand est-ce que je dois m'arrêter?
+parakeet  08.wav                          207 ms  wer 0.00  Qui est derrière moi.
+parakeet  09.wav                          211 ms  wer 0.00  Où est la quatorze?
+parakeet  10.wav                          316 ms  wer 0.38  Préviens-moi quand la cinquante est rentrée au stand.
+parakeet  11.wav                          230 ms  wer 0.14  La set est à combien de mois?
+parakeet  12.wav                          271 ms  wer 0.00  Quel est l'écart avec la quatre-vingt-treize?
+parakeet  13.wav                          251 ms  wer 0.00  La trente-huit vient de rentrer au stand?
+parakeet  14.wav                          234 ms  wer 0.00  Est-ce que la deux est plus rapide que moi?
+parakeet  15.wav                          723 ms  wer 0.67  Je souviens à terre rouge, tertre rouge.
+parakeet  16.wav                          223 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+parakeet  17.wav                          384 ms  wer 0.12  La voiture survir en sortie de la parabolica.
+parakeet  18.wav                          259 ms  wer 0.00  Je bloque les roues au freinage d'Arnage.
+parakeet  19.wav                          224 ms  wer 0.17  Au rouge, ça passe à fond.
+parakeet  20.wav                          247 ms  wer 0.00  Je rate mon freinage au bus stop.
+parakeet  21.wav                          307 ms  wer 0.00  Ça glisse à la sortie d'Indianapolis.
+parakeet  22.wav                          273 ms  wer 0.29  Je perds du temps à l'esmo.
+parakeet  23.wav                          232 ms  wer 0.17  Mais vingt litres au prochain arrêt.
+parakeet  24.wav                          278 ms  wer 0.40  Énergie à quatre vingt-cinq pourcent.
+parakeet  25.wav                          410 ms  wer 0.20  Préviens-moi quand le carburant passe sous dix pourcent.
+parakeet  26.wav                          342 ms  wer 0.00  Je fais encore trois tours et je rentre.
+parakeet  27.wav                          348 ms  wer 0.29  Change les quatre pneus et répartout.
+parakeet  28.wav                          305 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+parakeet  29.wav                          258 ms  wer 0.14  Je montre l'antipatinage d'un cran.
+parakeet  30.wav                          265 ms  wer 0.57  Il faut assouplir la barre en tir au lit avant?
+parakeet  31.wav                          286 ms  wer 0.10  On met des pneus plus ou on reste en médium?
+parakeet  32.wav                          316 ms  wer 0.09  Est-ce qu'on fait l'undercut sur la voiture de devant?
+parakeet  33.wav                          249 ms  wer 0.00  Je baisse le répartiteur de freinage.
+parakeet  34.wav                          304 ms  wer 0.00  Combien de relais on fait avec ces gommes?
+parakeet  35.wav                          278 ms  wer 0.00  Je rentre au stand ce tour.
+parakeet  36.wav                          209 ms  wer 0.00  Je reste dehors.
+parakeet  37.wav                          142 ms  wer 1.00  Repet.
+parakeet  38.wav                          272 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus?
+parakeet  39.wav                          303 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2.
+parakeet  40.wav                          330 ms  wer 0.23  La voiture est instable au freinage, qu'est-ce qu'on peut changer?

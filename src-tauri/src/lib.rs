@@ -267,6 +267,8 @@ pub fn run() {
             commands::stt::stt_available,
             commands::stt::stt_recognize,
             commands::stt::stt_recognize_free,
+            commands::stt_parakeet::stt_set_free_engine,
+            commands::stt_parakeet::stt_parakeet_status,
             // Push-to-talk sur un bouton de volant (winmm + HID brut, hors focus)
             commands::wheel::wheel_capture,
             commands::wheel::wheel_watch,

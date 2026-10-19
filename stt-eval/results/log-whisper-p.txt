@@ -1,0 +1,360 @@
+whisper-p bruit10/pierre/01.wav          2632 ms  wer 0.12  Quel est l'icard avec la voiture devant ?
+whisper-p bruit10/pierre/02.wav          2638 ms  wer 0.00  Il me reste combien d'essence ?
+whisper-p bruit10/pierre/03.wav          2780 ms  wer 0.00  C'était combien mon dernier tour ?
+whisper-p bruit10/pierre/04.wav          2605 ms  wer 0.40  Et le reste, combien de tours ?
+whisper-p bruit10/pierre/05.wav          2631 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper-p bruit10/pierre/06.wav          2710 ms  wer 0.75  Commençons les pneus.
+whisper-p bruit10/pierre/07.wav          2772 ms  wer 0.38  Quant à ce que je dois n'arrêter.
+whisper-p bruit10/pierre/08.wav          2485 ms  wer 0.50  Puis derrière moi.
+whisper-p bruit10/pierre/09.wav          2541 ms  wer 0.00  Où est la quatorze ?
+whisper-p bruit10/pierre/10.wav          2876 ms  wer 0.12  Préviens-moi quand la cinquante et un rentrent au stand.
+whisper-p bruit10/pierre/11.wav          2713 ms  wer 0.29  La 7, c'est à combien de moins ?
+whisper-p bruit10/pierre/12.wav          2607 ms  wer 0.29  Quel est l'écart avec la 4-13 ?
+whisper-p bruit10/pierre/13.wav          2586 ms  wer 0.29  La trompueille bien de rentrer au stand.
+whisper-p bruit10/pierre/14.wav          2698 ms  wer 0.10  Est-ce que la dose est plus rapide que moi ?
+whisper-p bruit10/pierre/15.wav          2506 ms  wer 0.33  Je suis à Tertre Rouge.
+whisper-p bruit10/pierre/16.wav          2637 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+whisper-p bruit10/pierre/17.wav          2726 ms  wer 0.12  La voiture survire en sorte de la parabolica.
+whisper-p bruit10/pierre/18.wav          2786 ms  wer 0.00  Je bloque les roues au freinage d'Arnage.
+whisper-p bruit10/pierre/19.wav          2592 ms  wer 0.00  Eau Rouge, ça passe à fond.
+whisper-p bruit10/pierre/20.wav          2569 ms  wer 0.00  Je rate mon freinage au Bus Stop.
+whisper-p bruit10/pierre/21.wav          2645 ms  wer 0.29  Sa glisse à la sortie d'Indenacoli.
+whisper-p bruit10/pierre/22.wav          2715 ms  wer 0.14  Je perd du temps à Lesmo 1.
+whisper-p bruit10/pierre/23.wav          2565 ms  wer 0.17  Mais 20 litres au prochain arrêt.
+whisper-p bruit10/pierre/24.wav          2560 ms  wer 0.00  Energie à 85%.
+whisper-p bruit10/pierre/25.wav          2824 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+whisper-p bruit10/pierre/26.wav          2686 ms  wer 0.00  Je fais encore trois tours et je rentre.
+whisper-p bruit10/pierre/27.wav          2643 ms  wer 0.29  Change les quatre pneus et répartout.
+whisper-p bruit10/pierre/28.wav          2614 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+whisper-p bruit10/pierre/29.wav          2747 ms  wer 0.71  Je monte ontipatinage vaincrant.
+whisper-p bruit10/pierre/30.wav          2842 ms  wer 0.14  Il faut assouplir la barre antiroulie avant.
+whisper-p bruit10/pierre/31.wav          2650 ms  wer 0.30  On met des pneus pluies pour qu'on reste en medium.
+whisper-p bruit10/pierre/32.wav          2725 ms  wer 0.36  Est ce qu'on fait les longues de côte sur la voiture devant ?
+whisper-p bruit10/pierre/33.wav          2615 ms  wer 0.00  Je baisse le répartiteur de freinage.
+whisper-p bruit10/pierre/34.wav          2702 ms  wer 0.50  Combien de relais ont fait Alex et Gorm ?
+whisper-p bruit10/pierre/35.wav          2569 ms  wer 0.00  Je rentre au stand ce tour.
+whisper-p bruit10/pierre/36.wav          2481 ms  wer 0.00  Je reste dehors.
+whisper-p bruit10/pierre/37.wav          2650 ms  wer 3.00  Au re-bit.
+whisper-p bruit10/pierre/38.wav          2702 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus ?
+whisper-p bruit10/pierre/39.wav          2707 ms  wer 0.44  Pourquoi je perds du temps dans l'ocepteur d'eux ?
+whisper-p bruit10/pierre/40.wav          2797 ms  wer 0.00  La voiture est instable au freinage, qu'est ce que je peux changer ?
+whisper-p bruit10/siwis/01.wav           2744 ms  wer 0.00  Quel est l'écart avec la voiture devant ?
+whisper-p bruit10/siwis/02.wav           2564 ms  wer 0.00  Il me reste combien d'essence ?
+whisper-p bruit10/siwis/03.wav           2594 ms  wer 0.00  C'était combien mon dernier tour ?
+whisper-p bruit10/siwis/04.wav           2614 ms  wer 0.00  Il reste combien de tours ?
+whisper-p bruit10/siwis/05.wav           2688 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper-p bruit10/siwis/06.wav           2583 ms  wer 0.00  Comment sont mes pneus ?
+whisper-p bruit10/siwis/07.wav           2606 ms  wer 0.12  Quant est-ce que je dois m'arrêter ?
+whisper-p bruit10/siwis/08.wav           2649 ms  wer 0.00  Qui est derrière moi ?
+whisper-p bruit10/siwis/09.wav           2735 ms  wer 0.00  Où est la quatorze ?
+whisper-p bruit10/siwis/10.wav           2730 ms  wer 0.00  Préviens-moi quand la cinquante et un rentre au stand.
+whisper-p bruit10/siwis/11.wav           2549 ms  wer 0.29  La sept état, combien de moi ?
+whisper-p bruit10/siwis/12.wav           2712 ms  wer 0.00  Quel est l'écart avec la 93?
+whisper-p bruit10/siwis/13.wav           2751 ms  wer 0.29  La tronche, lui vient de rentrer au stand.
+whisper-p bruit10/siwis/14.wav           2625 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi ?
+whisper-p bruit10/siwis/15.wav           2515 ms  wer 0.50  Je souviens Tertre Rouge.
+whisper-p bruit10/siwis/16.wav           2677 ms  wer 0.12  Je perd du temps dans les virages Porsche.
+whisper-p bruit10/siwis/17.wav           2694 ms  wer 0.25  La voiture se revire en sortie de la Parabolica.
+whisper-p bruit10/siwis/18.wav           2698 ms  wer 0.12  Je bloque les roues au freinage d'armage.
+whisper-p bruit10/siwis/19.wav           2534 ms  wer 0.00  Eau Rouge, ça passe à fond ?
+whisper-p bruit10/siwis/20.wav           2788 ms  wer 0.00  Je rate mon freinage au Bus Stop.
+whisper-p bruit10/siwis/21.wav           2659 ms  wer 0.29  Sa glisse à la sortie d'Indienapolis.
+whisper-p bruit10/siwis/22.wav           2585 ms  wer 0.14  Je perds du temps à Lesmo, Ant.
+whisper-p bruit10/siwis/23.wav           2574 ms  wer 0.17  Mais 20 litres au prochain arrêt.
+whisper-p bruit10/siwis/24.wav           2591 ms  wer 0.20  Energy à 85%.
+whisper-p bruit10/siwis/25.wav           2717 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+whisper-p bruit10/siwis/26.wav           2579 ms  wer 0.00  Je fais encore trois tours et je rentre.
+whisper-p bruit10/siwis/27.wav           2739 ms  wer 0.14  Change les quatre pneus et réparte-tout.
+whisper-p bruit10/siwis/28.wav           2740 ms  wer 0.14  Réviens-moi quand il reste cinq minutes.
+whisper-p bruit10/siwis/29.wav           2705 ms  wer 0.00  Je monte l'antipatinage d'un cran.
+whisper-p bruit10/siwis/30.wav           2639 ms  wer 0.14  Il faut assouplir la barre antiroulie avant ?
+whisper-p bruit10/siwis/31.wav           2718 ms  wer 0.10  On met des pneus pluies, ou on reste en medium ?
+whisper-p bruit10/siwis/32.wav           2802 ms  wer 0.45  Est-ce qu'on fait l'une de que tu as la voiture devant ?
+whisper-p bruit10/siwis/33.wav           2634 ms  wer 0.00  Je baisse le répartiteur de freinage.
+whisper-p bruit10/siwis/34.wav           2646 ms  wer 0.25  Combien de relais ont fait avec ses gommes ?
+whisper-p bruit10/siwis/35.wav           2686 ms  wer 0.33  Je rentre au stand cet oeuvre.
+whisper-p bruit10/siwis/36.wav           2600 ms  wer 0.00  Je reste dehors.
+whisper-p bruit10/siwis/37.wav           2427 ms  wer 0.00  Répète.
+whisper-p bruit10/siwis/38.wav           2728 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus ?
+whisper-p bruit10/siwis/39.wav           2665 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2 ?
+whisper-p bruit10/siwis/40.wav           2792 ms  wer 0.00  La voiture est instable au freinage. Qu'est-ce que je peux changer ?
+whisper-p bruit10/tom/01.wav             2567 ms  wer 0.00  Quel est l'écart avec la voiture devant ?
+whisper-p bruit10/tom/02.wav             2594 ms  wer 0.00  Il me reste combien d'essence.
+whisper-p bruit10/tom/03.wav             2675 ms  wer 0.17  C'était comptiens mon dernier tour.
+whisper-p bruit10/tom/04.wav             2536 ms  wer 0.00  Il reste combien de tours ?
+whisper-p bruit10/tom/05.wav             2562 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper-p bruit10/tom/06.wav             2604 ms  wer 1.00  Commençons les pilots.
+whisper-p bruit10/tom/07.wav             2689 ms  wer 0.00  Quand est-ce que je dois m'arrêter ?
+whisper-p bruit10/tom/08.wav             2635 ms  wer 0.00  Qui est derrière moi.
+whisper-p bruit10/tom/09.wav             2586 ms  wer 0.00  Où est la quatorze ?
+whisper-p bruit10/tom/10.wav             2765 ms  wer 0.00  Préviens-moi quand la cinquante et un rentre au stand.
+whisper-p bruit10/tom/11.wav             2672 ms  wer 0.29  La C est à compter de moi.
+whisper-p bruit10/tom/12.wav             2609 ms  wer 0.00  Quel est l'écart avec la 93 ?
+whisper-p bruit10/tom/13.wav             2577 ms  wer 0.14  La tranchée vient de rentrer au stand.
+whisper-p bruit10/tom/14.wav             2737 ms  wer 0.10  Est-ce que la deuse est plus rapide que moi ?
+whisper-p bruit10/tom/15.wav             2592 ms  wer 0.33  Je souffire à Tertre Rouge.
+whisper-p bruit10/tom/16.wav             2594 ms  wer 0.12  Je perd du temps dans les virages Porsche.
+whisper-p bruit10/tom/17.wav             2643 ms  wer 0.00  La voiture survire en sortie de la parabolica.
+whisper-p bruit10/tom/18.wav             2737 ms  wer 0.12  Je bloque les roues au freinage d'armage.
+whisper-p bruit10/tom/19.wav             2680 ms  wer 0.00  Eau Rouge, ça passe à fond.
+whisper-p bruit10/tom/20.wav             2512 ms  wer 0.00  Je rate mon freinage au bus stop.
+whisper-p bruit10/tom/21.wav             2606 ms  wer 0.29  Sa glisse à la sortie d'Indienapolis.
+whisper-p bruit10/tom/22.wav             2700 ms  wer 0.29  Je perd du temps à Lesmo.
+whisper-p bruit10/tom/23.wav             2647 ms  wer 0.17  Les 20 litres au prochain arrêt.
+whisper-p bruit10/tom/24.wav             2548 ms  wer 0.20  Energy à 85%.
+whisper-p bruit10/tom/25.wav             2673 ms  wer 0.10  Présiens-moi quand le carburant passe sous 10%.
+whisper-p bruit10/tom/26.wav             2733 ms  wer 0.00  Je fais encore trois tours et je rentre.
+whisper-p bruit10/tom/27.wav             2625 ms  wer 0.29  Change les quatre pneus et répartout.
+whisper-p bruit10/tom/28.wav             2671 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+whisper-p bruit10/tom/29.wav             2651 ms  wer 0.00  Je monte l'antipatinage d'un cran.
+whisper-p bruit10/tom/30.wav             2779 ms  wer 0.14  Il faut assouplir la barre antiroulie avant.
+whisper-p bruit10/tom/31.wav             2699 ms  wer 0.10  On met des pneus de pluie, ou on reste en medium.
+whisper-p bruit10/tom/32.wav             2670 ms  wer 0.45  Et ce qu'on fait est l'un de culture la voiture devant.
+whisper-p bruit10/tom/33.wav             2680 ms  wer 0.17  Je pèse le répartiteur de freinage.
+whisper-p bruit10/tom/34.wav             2754 ms  wer 0.50  Combien de relais ont faits avec Cicob ?
+whisper-p bruit10/tom/35.wav             2577 ms  wer 0.00  Je rentre au stand ce tour.
+whisper-p bruit10/tom/36.wav             2476 ms  wer 0.00  Je reste dehors.
+whisper-p bruit10/tom/37.wav             4208 ms  wer 2.00  À répet.
+whisper-p bruit10/tom/38.wav             2758 ms  wer 0.15  Est-ce que je peux tenir jusqu'à la fin avec cette bleue ?
+whisper-p bruit10/tom/39.wav             2662 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2 ?
+whisper-p bruit10/tom/40.wav             2799 ms  wer 0.00  La voiture est instable au freinage, qu'est-ce que je peux changer ?
+whisper-p bruit5/pierre/01.wav           2674 ms  wer 0.00  Quel est l'écart avec la voiture devant ?
+whisper-p bruit5/pierre/02.wav           2567 ms  wer 0.00  Il me reste combien d'essence ?
+whisper-p bruit5/pierre/03.wav           2753 ms  wer 0.00  C'était combien mon dernier tour ?
+whisper-p bruit5/pierre/04.wav           2665 ms  wer 0.40  Et le reste, combien de tours ?
+whisper-p bruit5/pierre/05.wav           2666 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper-p bruit5/pierre/06.wav           2682 ms  wer 0.25  Comment sont les pneus ?
+whisper-p bruit5/pierre/07.wav           2725 ms  wer 0.25  Qu'en est-ce que je dois m'arrêter ?
+whisper-p bruit5/pierre/08.wav           2629 ms  wer 0.50  Puis derrière moi.
+whisper-p bruit5/pierre/09.wav           2689 ms  wer 0.00  Où est la quatorze ?
+whisper-p bruit5/pierre/10.wav           2729 ms  wer 0.12  Préviens-moi pour la cinquante et un rentre au stand.
+whisper-p bruit5/pierre/11.wav           2574 ms  wer 0.29  La 7, c'est à combien de mois ?
+whisper-p bruit5/pierre/12.wav           2823 ms  wer 0.43  Quel est l'écart avec la quatorze en treize ?
+whisper-p bruit5/pierre/13.wav           2667 ms  wer 0.29  La tropie bien de rentrer au stand.
+whisper-p bruit5/pierre/14.wav           2639 ms  wer 0.10  Est-ce que la dose est plus rapide que moi ?
+whisper-p bruit5/pierre/15.wav           2589 ms  wer 0.33  Je suis à Tertre Rouge.
+whisper-p bruit5/pierre/16.wav           2763 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+whisper-p bruit5/pierre/17.wav           2628 ms  wer 0.25  La voiture survie en sorte de la parabolica.
+whisper-p bruit5/pierre/18.wav           2643 ms  wer 0.00  Je bloque les roues au freinage d'Arnage.
+whisper-p bruit5/pierre/19.wav           2649 ms  wer 0.33  Eau Rouge, ça passe un truc.
+whisper-p bruit5/pierre/20.wav           2728 ms  wer 0.00  Je rate mon freinage au Bus Stop.
+whisper-p bruit5/pierre/21.wav           2666 ms  wer 0.29  Sa glisse à la sortie d'Indenacoli.
+whisper-p bruit5/pierre/22.wav           2595 ms  wer 0.00  Je perds du temps à Lesmo 1.
+whisper-p bruit5/pierre/23.wav           2635 ms  wer 0.17  Mais 20 litres au prochain arrêt.
+whisper-p bruit5/pierre/24.wav           2678 ms  wer 0.00  Energie à 85%.
+whisper-p bruit5/pierre/25.wav           2692 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+whisper-p bruit5/pierre/26.wav           2583 ms  wer 0.00  Je fais encore trois tours et je rentre.
+whisper-p bruit5/pierre/27.wav           2731 ms  wer 0.29  Change les quatre pneus et répartis.
+whisper-p bruit5/pierre/28.wav           2717 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+whisper-p bruit5/pierre/29.wav           2594 ms  wer 0.57  Je monte antipatinage, 20 ans.
+whisper-p bruit5/pierre/30.wav           2667 ms  wer 0.14  Il faut assouplir la barre antiroulie avant.
+whisper-p bruit5/pierre/31.wav           2734 ms  wer 0.30  On met des pneus pluies pour qu'on reste en medium.
+whisper-p bruit5/pierre/32.wav           2817 ms  wer 0.36  Est ce qu'on fait des longues de côte sur la voiture devant ?
+whisper-p bruit5/pierre/33.wav           2640 ms  wer 0.00  Je baisse le répartiteur de freinage.
+whisper-p bruit5/pierre/34.wav           2634 ms  wer 0.38  Combien de relais ont fait avec ses gombes ?
+whisper-p bruit5/pierre/35.wav           2594 ms  wer 0.00  Je rentre au stand ce tour.
+whisper-p bruit5/pierre/36.wav           2564 ms  wer 0.00  Je reste dehors.
+whisper-p bruit5/pierre/37.wav           8419 ms  wer 5.00  Au-delà de la bête.
+whisper-p bruit5/pierre/38.wav           2719 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus ?
+whisper-p bruit5/pierre/39.wav           2682 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2 ?
+whisper-p bruit5/pierre/40.wav           2703 ms  wer 0.00  La voiture est instable au freinage, qu'est-ce que je peux changer ?
+whisper-p bruit5/siwis/01.wav            2633 ms  wer 0.00  Quel est l'écart avec la voiture devant ?
+whisper-p bruit5/siwis/02.wav            2629 ms  wer 0.00  Il me reste combien d'essence ?
+whisper-p bruit5/siwis/03.wav            2565 ms  wer 0.00  C'était combien mon dernier tour ?
+whisper-p bruit5/siwis/04.wav            2568 ms  wer 0.00  Il reste combien de tours ?
+whisper-p bruit5/siwis/05.wav            2633 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper-p bruit5/siwis/06.wav            2611 ms  wer 1.00  Comment ça m'est fini ?
+whisper-p bruit5/siwis/07.wav            2612 ms  wer 0.25  Quantais-ce que je dois m'arrêter ?
+whisper-p bruit5/siwis/08.wav            2571 ms  wer 0.00  Qui est derrière moi ?
+whisper-p bruit5/siwis/09.wav            2575 ms  wer 0.00  Où est la quatorze ?
+whisper-p bruit5/siwis/10.wav            2752 ms  wer 0.12  Réviens-moi quand la cinquante et un rentre au stand.
+whisper-p bruit5/siwis/11.wav            2525 ms  wer 0.43  La sept-état convient de moi.
+whisper-p bruit5/siwis/12.wav            2636 ms  wer 0.00  Quel est l'écart avec la 93?
+whisper-p bruit5/siwis/13.wav            2734 ms  wer 0.14  La trantuit vient de rentrer au stand.
+whisper-p bruit5/siwis/14.wav            2607 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi ?
+whisper-p bruit5/siwis/15.wav            2541 ms  wer 0.00  Je sous-vire à Tertre Rouge.
+whisper-p bruit5/siwis/16.wav            2643 ms  wer 0.12  Je perd du temps dans les virages Porsche.
+whisper-p bruit5/siwis/17.wav            2705 ms  wer 0.00  La voiture survire en sortie de la Parabolica.
+whisper-p bruit5/siwis/18.wav            2657 ms  wer 0.12  Je bloque les roues au freinage d'armage.
+whisper-p bruit5/siwis/19.wav            2570 ms  wer 0.33  Eau Rouge, sa passe à fin.
+whisper-p bruit5/siwis/20.wav            2641 ms  wer 0.00  Je rate mon freinage au Bus Stop.
+whisper-p bruit5/siwis/21.wav            2725 ms  wer 0.43  Sa glisse à la sortie d'Indien-Apolli.
+whisper-p bruit5/siwis/22.wav            2663 ms  wer 0.43  Je perds du temps à laissent mon amour.
+whisper-p bruit5/siwis/23.wav            2573 ms  wer 1.00  Mais vanitroup, Porsche, Arnage.
+whisper-p bruit5/siwis/24.wav            2560 ms  wer 0.20  Energy à 85%.
+whisper-p bruit5/siwis/25.wav            2705 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+whisper-p bruit5/siwis/26.wav            2615 ms  wer 0.00  Je fais encore trois tours et je rentre.
+whisper-p bruit5/siwis/27.wav            2571 ms  wer 0.29  Change les quatre pneus et réparte.
+whisper-p bruit5/siwis/28.wav            2826 ms  wer 0.14  Prévient-moi quand il reste cinq minutes.
+whisper-p bruit5/siwis/29.wav            2670 ms  wer 0.00  Je monte l'antipatinage d'un cran.
+whisper-p bruit5/siwis/30.wav            2713 ms  wer 0.00  Il faut assouplir la barre antiroulis avant.
+whisper-p bruit5/siwis/31.wav            2610 ms  wer 0.10  On met des pneus pluies, ou on reste en medium ?
+whisper-p bruit5/siwis/32.wav            2775 ms  wer 0.27  Est-ce qu'on fait l'homme de coûture la voiture devant ?
+whisper-p bruit5/siwis/33.wav            2698 ms  wer 0.00  Je baisse le répartiteur de freinage.
+whisper-p bruit5/siwis/34.wav            2644 ms  wer 0.62  Convient de reler ou faire avec ses gommes ?
+whisper-p bruit5/siwis/35.wav            2636 ms  wer 0.33  Je rentre au stand secours.
+whisper-p bruit5/siwis/36.wav            2564 ms  wer 0.00  Je reste dehors.
+whisper-p bruit5/siwis/37.wav            2500 ms  wer 1.00  Réfait.
+whisper-p bruit5/siwis/38.wav            2720 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus ?
+whisper-p bruit5/siwis/39.wav            2744 ms  wer 0.22  Pourquoi je perds du temps dans les secteurs deux ?
+whisper-p bruit5/siwis/40.wav            2917 ms  wer 0.00  La voiture est instable au freinage. Qu'est-ce que je peux changer ?
+whisper-p bruit5/tom/01.wav              2626 ms  wer 0.00  Quel est l'écart avec la voiture devant ?
+whisper-p bruit5/tom/02.wav              2562 ms  wer 0.00  Il me reste combien d'essence.
+whisper-p bruit5/tom/03.wav              2683 ms  wer 0.17  C'était comptiens mon dernier tour.
+whisper-p bruit5/tom/04.wav              2553 ms  wer 0.00  Il reste combien de tours.
+whisper-p bruit5/tom/05.wav              2606 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper-p bruit5/tom/06.wav              2591 ms  wer 0.75  Commence sur les pneus.
+whisper-p bruit5/tom/07.wav              2748 ms  wer 0.00  Quand est-ce que je dois m'arrêter ?
+whisper-p bruit5/tom/08.wav              2596 ms  wer 0.00  Qui est derrière moi.
+whisper-p bruit5/tom/09.wav              2519 ms  wer 0.75  Vila, quatorze.
+whisper-p bruit5/tom/10.wav              2694 ms  wer 0.12  Préviens-moi quand la cinquante et un rentrent au stand.
+whisper-p bruit5/tom/11.wav              2678 ms  wer 0.29  La C est à compter de moi.
+whisper-p bruit5/tom/12.wav              2627 ms  wer 0.00  Quel est l'écart avec la 93 ?
+whisper-p bruit5/tom/13.wav              2622 ms  wer 0.14  La tranchue vient de rentrer au stand.
+whisper-p bruit5/tom/14.wav              2605 ms  wer 0.10  Est-ce que la dose est plus rapide que moi ?
+whisper-p bruit5/tom/15.wav              2595 ms  wer 0.33  Je souffire à Tertre Rouge.
+whisper-p bruit5/tom/16.wav              2599 ms  wer 0.12  Je perd du temps dans les virages Porsche.
+whisper-p bruit5/tom/17.wav              2628 ms  wer 0.00  La voiture survire en sortie de la parabolica.
+whisper-p bruit5/tom/18.wav              2669 ms  wer 0.00  Je bloque les roues au freinage d'Arnage.
+whisper-p bruit5/tom/19.wav              2713 ms  wer 0.00  Eau Rouge, ça passe à fond.
+whisper-p bruit5/tom/20.wav              2566 ms  wer 0.00  Je rate mon freinage au bus stop.
+whisper-p bruit5/tom/21.wav              2545 ms  wer 0.29  Ta glisse à la sortie d'Indienapolis.
+whisper-p bruit5/tom/22.wav              2656 ms  wer 0.29  Je perd du temps à Lesmo.
+whisper-p bruit5/tom/23.wav              2640 ms  wer 0.17  Les 20 litres au prochain arrêt.
+whisper-p bruit5/tom/24.wav              2512 ms  wer 0.20  Energy à 85%.
+whisper-p bruit5/tom/25.wav              2642 ms  wer 0.10  Tréviens moi quand le carburant passe sous 10%.
+whisper-p bruit5/tom/26.wav              2690 ms  wer 0.00  Je fais encore trois tours et je rentre.
+whisper-p bruit5/tom/27.wav              2788 ms  wer 0.29  Change les quatre pneus et répartout.
+whisper-p bruit5/tom/28.wav              2656 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+whisper-p bruit5/tom/29.wav              2603 ms  wer 0.00  Je monte l'antipatinage d'un cran.
+whisper-p bruit5/tom/30.wav              2727 ms  wer 0.00  Il faut assouplir la barre antiroulis avant.
+whisper-p bruit5/tom/31.wav              2746 ms  wer 0.30  On met des pneus de pluie, où on reste en mode diable.
+whisper-p bruit5/tom/32.wav              2711 ms  wer 0.45  Et ce qu'on fait est l'un de culte sur la voiture devant.
+whisper-p bruit5/tom/33.wav              2593 ms  wer 0.17  Je pèse le répartiteur de freinage.
+whisper-p bruit5/tom/34.wav              2702 ms  wer 0.50  Combien de relais ont faits avec Cicob ?
+whisper-p bruit5/tom/35.wav              2577 ms  wer 0.00  Je rentre au stand ce tour.
+whisper-p bruit5/tom/36.wav              2522 ms  wer 0.00  Je reste dehors.
+whisper-p bruit5/tom/37.wav              4183 ms  wer 1.00  Ah, répète.
+whisper-p bruit5/tom/38.wav              2754 ms  wer 0.15  Est-ce que je peux tenir jusqu'à la fin avec cette bleue ?
+whisper-p bruit5/tom/39.wav              2606 ms  wer 0.11  Pourquoi je perd du temps dans le secteur 2 ?
+whisper-p bruit5/tom/40.wav              2671 ms  wer 0.00  La voiture est instable au freinage, qu'est-ce que je peux changer ?
+whisper-p propre/pierre/01.wav           2673 ms  wer 0.00  Quel est l'écart avec la voiture devant ?
+whisper-p propre/pierre/02.wav           2659 ms  wer 0.00  Il me reste combien d'essence ?
+whisper-p propre/pierre/03.wav           2502 ms  wer 0.00  C'était combien mon dernier tour ?
+whisper-p propre/pierre/04.wav           2531 ms  wer 0.40  Et le reste, combien de tours ?
+whisper-p propre/pierre/05.wav           2582 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper-p propre/pierre/06.wav           2623 ms  wer 0.75  Commençons les pneus.
+whisper-p propre/pierre/07.wav           2627 ms  wer 0.25  Quant est-ce que je dois n'arrêter ?
+whisper-p propre/pierre/08.wav           2549 ms  wer 0.50  Pied derrière moi.
+whisper-p propre/pierre/09.wav           2679 ms  wer 0.00  Où est la quatorze ?
+whisper-p propre/pierre/10.wav           2774 ms  wer 0.12  Préviens-moi quand la cinquante et un rentrent au stand.
+whisper-p propre/pierre/11.wav           2649 ms  wer 0.29  La 7, c'est à combien de mois ?
+whisper-p propre/pierre/12.wav           2694 ms  wer 0.43  Quel est l'écart avec la quatre-dans-treize ?
+whisper-p propre/pierre/13.wav           2786 ms  wer 0.14  La trompue vient de rentrer au stand.
+whisper-p propre/pierre/14.wav           2614 ms  wer 0.10  Est-ce que la dose est plus rapide que moi ?
+whisper-p propre/pierre/15.wav           2585 ms  wer 0.33  Je suis à Tertre Rouge.
+whisper-p propre/pierre/16.wav           2641 ms  wer 0.00  Je perds du temps dans les virages Porsche.
+whisper-p propre/pierre/17.wav           2694 ms  wer 0.00  La voiture survire en sortie de la Parabolica.
+whisper-p propre/pierre/18.wav           2659 ms  wer 0.00  Je bloque les roues au freinage d'Arnage.
+whisper-p propre/pierre/19.wav           2564 ms  wer 0.00  Eau Rouge, ça passe à fond.
+whisper-p propre/pierre/20.wav           2642 ms  wer 0.00  Je rate mon freinage au Bus Stop.
+whisper-p propre/pierre/21.wav           2765 ms  wer 0.29  Sa glisse à la sortie d'Indénappoli.
+whisper-p propre/pierre/22.wav           2566 ms  wer 0.14  Je perd du temps à Lesmo 1.
+whisper-p propre/pierre/23.wav           2633 ms  wer 0.17  Mais 20 litres au prochain arrêt.
+whisper-p propre/pierre/24.wav           2606 ms  wer 0.00  Energie à 85%.
+whisper-p propre/pierre/25.wav           2675 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+whisper-p propre/pierre/26.wav           2547 ms  wer 0.00  Je fais encore trois tours et je rentre.
+whisper-p propre/pierre/27.wav           2604 ms  wer 0.14  Change les quatre pneus et réparte-tout.
+whisper-p propre/pierre/28.wav           2660 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+whisper-p propre/pierre/29.wav           2719 ms  wer 0.29  Je nonce au antipatinage d'un cran.
+whisper-p propre/pierre/30.wav           2629 ms  wer 0.14  Il faut assouplir la barre antiroulie avant.
+whisper-p propre/pierre/31.wav           2625 ms  wer 0.10  On met des pneus pluies où on reste en medium.
+whisper-p propre/pierre/32.wav           2883 ms  wer 0.36  Est-ce qu'on fait les longues de côte sur la voiture devant ?
+whisper-p propre/pierre/33.wav           2655 ms  wer 0.00  Je baisse le répartiteur de freinage.
+whisper-p propre/pierre/34.wav           2599 ms  wer 0.38  Combien de rollers en fait avec ses gommes ?
+whisper-p propre/pierre/35.wav           2631 ms  wer 0.00  Je rentre au stand ce tour.
+whisper-p propre/pierre/36.wav           2670 ms  wer 0.00  Je reste dehors.
+whisper-p propre/pierre/37.wav           2532 ms  wer 2.00  Un peu.
+whisper-p propre/pierre/38.wav           2653 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus ?
+whisper-p propre/pierre/39.wav           2658 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2 ?
+whisper-p propre/pierre/40.wav           2826 ms  wer 0.00  La voiture est instable au freinage. Qu'est-ce que je peux changer ?
+whisper-p propre/siwis/01.wav            2572 ms  wer 0.00  Quel est l'écart avec la voiture devant ?
+whisper-p propre/siwis/02.wav            2589 ms  wer 0.17  Il me reste combien d'essences ?
+whisper-p propre/siwis/03.wav            2583 ms  wer 0.00  C'était combien mon dernier tour ?
+whisper-p propre/siwis/04.wav            2566 ms  wer 0.00  Il reste combien de tours ?
+whisper-p propre/siwis/05.wav            2584 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper-p propre/siwis/06.wav            2541 ms  wer 0.00  Comment sont mes pneus ?
+whisper-p propre/siwis/07.wav            2708 ms  wer 0.00  Quand est-ce que je dois m'arrêter ?
+whisper-p propre/siwis/08.wav            2548 ms  wer 0.00  Qui est derrière moi ?
+whisper-p propre/siwis/09.wav            2585 ms  wer 0.00  Où est la quatorze?
+whisper-p propre/siwis/10.wav            2697 ms  wer 0.00  Préviens-moi quand la cinquante et un rentre au stand.
+whisper-p propre/siwis/11.wav            2717 ms  wer 0.29  La sette est à combien de mois ?
+whisper-p propre/siwis/12.wav            2613 ms  wer 0.00  Quel est l'écart avec la 93?
+whisper-p propre/siwis/13.wav            2606 ms  wer 0.00  La trente-huit vient de rentrer au stand.
+whisper-p propre/siwis/14.wav            2602 ms  wer 0.00  Est-ce que la 2 est plus rapide que moi ?
+whisper-p propre/siwis/15.wav            2630 ms  wer 0.50  Je souviens Tertre Rouge.
+whisper-p propre/siwis/16.wav            2707 ms  wer 0.12  Je perd du temps dans les virages Porsche.
+whisper-p propre/siwis/17.wav            2629 ms  wer 0.00  La voiture survire en sortie de la Parabolica.
+whisper-p propre/siwis/18.wav            2731 ms  wer 0.00  Je bloque les roues au freinage d'Arnage.
+whisper-p propre/siwis/19.wav            2662 ms  wer 0.00  Eau Rouge, ça passe à fond ?
+whisper-p propre/siwis/20.wav            2628 ms  wer 0.00  Je rate mon freinage au Bus Stop.
+whisper-p propre/siwis/21.wav            2642 ms  wer 0.43  Sa glisse à la sortie d'Indien-Apoli.
+whisper-p propre/siwis/22.wav            2564 ms  wer 0.00  Je perds du temps à Lesmo 1.
+whisper-p propre/siwis/23.wav            2641 ms  wer 0.17  Mais 20 litres au prochain arrêt.
+whisper-p propre/siwis/24.wav            2469 ms  wer 0.20  Energy à 85%.
+whisper-p propre/siwis/25.wav            2635 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+whisper-p propre/siwis/26.wav            2639 ms  wer 0.00  Je fais encore trois tours et je rentre.
+whisper-p propre/siwis/27.wav            2644 ms  wer 0.00  Change les quatre pneus et répare tout.
+whisper-p propre/siwis/28.wav            2623 ms  wer 0.00  Préviens-moi quand il reste cinq minutes.
+whisper-p propre/siwis/29.wav            2637 ms  wer 0.00  Je monte l'antipatinage d'un cran.
+whisper-p propre/siwis/30.wav            2653 ms  wer 0.14  Il faut assouplir la barre antiroulie avant ?
+whisper-p propre/siwis/31.wav            2727 ms  wer 0.10  On met des pneus pluies, ou on reste en medium ?
+whisper-p propre/siwis/32.wav            2769 ms  wer 0.45  Est-ce qu'on fait elle l'une de que tour la voiture devant ?
+whisper-p propre/siwis/33.wav            2606 ms  wer 0.00  Je baisse le répartiteur de freinage.
+whisper-p propre/siwis/34.wav            2637 ms  wer 0.12  Combien de relais ont fait avec ces gommes ?
+whisper-p propre/siwis/35.wav            2699 ms  wer 0.00  Je rentre au stand ce tour.
+whisper-p propre/siwis/36.wav            2605 ms  wer 0.00  Je reste dehors.
+whisper-p propre/siwis/37.wav            2481 ms  wer 0.00  Répète.
+whisper-p propre/siwis/38.wav            2728 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus ?
+whisper-p propre/siwis/39.wav            2675 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2 ?
+whisper-p propre/siwis/40.wav            2756 ms  wer 0.00  La voiture est instable au freinage. Qu'est-ce que je peux changer ?
+whisper-p propre/tom/01.wav              2647 ms  wer 0.00  Quel est l'écart avec la voiture devant ?
+whisper-p propre/tom/02.wav              2607 ms  wer 0.00  Il me reste combien d'essence ?
+whisper-p propre/tom/03.wav              2639 ms  wer 0.00  C'était combien mon dernier tour ?
+whisper-p propre/tom/04.wav              2542 ms  wer 0.00  Il reste combien de tours ?
+whisper-p propre/tom/05.wav              2546 ms  wer 0.00  Je suis en quelle position dans ma classe ?
+whisper-p propre/tom/06.wav              2618 ms  wer 0.50  Commençons mes pneus.
+whisper-p propre/tom/07.wav              2744 ms  wer 0.00  Quand est-ce que je dois m'arrêter ?
+whisper-p propre/tom/08.wav              2472 ms  wer 0.00  Qui est derrière moi ?
+whisper-p propre/tom/09.wav              2557 ms  wer 0.00  Où est la quatorze ?
+whisper-p propre/tom/10.wav              2786 ms  wer 0.38  Préviens-moi quand la cinquante est à rentre au stand.
+whisper-p propre/tom/11.wav              2606 ms  wer 0.29  La C est à combien de mois ?
+whisper-p propre/tom/12.wav              2541 ms  wer 0.00  Quel est l'écart avec la 93 ?
+whisper-p propre/tom/13.wav              2640 ms  wer 0.14  La tranchée vient de rentrer au stand.
+whisper-p propre/tom/14.wav              2797 ms  wer 0.10  Est-ce que la deuse est plus rapide que moi ?
+whisper-p propre/tom/15.wav              2577 ms  wer 0.33  Je s'ouvire à Tertre Rouge.
+whisper-p propre/tom/16.wav              2598 ms  wer 0.12  Je perd du temps dans les virages Porsche.
+whisper-p propre/tom/17.wav              2669 ms  wer 0.00  La voiture survire en sortie de la parabolica.
+whisper-p propre/tom/18.wav              2756 ms  wer 0.00  Je bloque les roues au freinage d'Arnage.
+whisper-p propre/tom/19.wav              2606 ms  wer 0.00  Eau Rouge, ça passe à fond.
+whisper-p propre/tom/20.wav              2568 ms  wer 0.00  Je rate mon freinage au Bus Stop.
+whisper-p propre/tom/21.wav              2662 ms  wer 0.43  Sa glisse à la sortie d'Indien-Apoli.
+whisper-p propre/tom/22.wav              2681 ms  wer 0.14  Je perd du temps à Lesmo 1.
+whisper-p propre/tom/23.wav              2619 ms  wer 0.17  Mes 20 litres au prochain arrêt.
+whisper-p propre/tom/24.wav              2526 ms  wer 0.00  Energie à 85%.
+whisper-p propre/tom/25.wav              2728 ms  wer 0.00  Préviens-moi quand le carburant passe sous 10%.
+whisper-p propre/tom/26.wav              2646 ms  wer 0.00  Je fais encore trois tours et je rentre.
+whisper-p propre/tom/27.wav              2930 ms  wer 0.29  Change les quatre pneus et répartout.
+whisper-p propre/tom/28.wav              2617 ms  wer 0.14  Tréviens-moi quand il reste cinq minutes.
+whisper-p propre/tom/29.wav              2646 ms  wer 0.00  Je monte l'antipatinage d'un cran.
+whisper-p propre/tom/30.wav              2815 ms  wer 0.14  Il faut assouplir la barre antiroulie avant.
+whisper-p propre/tom/31.wav              2688 ms  wer 0.10  On met des pneus pluies, ou on reste en medium.
+whisper-p propre/tom/32.wav              2750 ms  wer 0.45  Et ce qu'on fait est l'un de que sur la voiture devant.
+whisper-p propre/tom/33.wav              2789 ms  wer 0.00  Je baisse le répartiteur de freinage.
+whisper-p propre/tom/34.wav              2656 ms  wer 0.25  Combien de relais ont fait avec ces gombes ?
+whisper-p propre/tom/35.wav              2564 ms  wer 0.00  Je rentre au stand ce tour.
+whisper-p propre/tom/36.wav              2524 ms  wer 0.00  Je reste dehors.
+whisper-p propre/tom/37.wav              3488 ms  wer 1.00  À répète.
+whisper-p propre/tom/38.wav              2691 ms  wer 0.00  Est-ce que je peux tenir jusqu'à la fin avec ces pneus ?
+whisper-p propre/tom/39.wav              2660 ms  wer 0.00  Pourquoi je perds du temps dans le secteur 2 ?
+whisper-p propre/tom/40.wav              2872 ms  wer 0.00  La voiture est instable au freinage, qu'est-ce que je peux changer ?

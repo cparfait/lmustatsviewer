@@ -921,6 +921,32 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-19 — Dictée Parakeet intégrée, alerte de blocage plus stricte, roue nommée, nombres 70-99
+
+- **Parakeet** (suite du banc ci-dessous) : `stt_parakeet.rs` (sherpa-onnx 1.13.8, feature `shared`,
+  `SHERPA_ONNX_LIB_DIR` dans `src-tauri/.cargo/config.toml`, DLL via `scripts/fetch-sherpa.ps1`,
+  copiées par `build.rs`, bundlées à la racine). Modèle 640 Mo téléchargé à la demande (`assets.rs`,
+  kind `asr`, SHA-256). `recognize_free_samples_conf` passe par Parakeet s'il est choisi et installé,
+  sinon Vosk (repli aussi en cas d'erreur). Réglage `stt_free_engine` (défaut `parakeet`, `vosk` = avant).
+  Vosk garde la grammaire des commandes. Section « Reconnaissance vocale » remontée en tête du bloc
+  radio (Config › Audio / Voix), ouverte par défaut, avec le choix du moteur (`DictationEngine`).
+- CI (`ci.yml`, `release.yml`) : étape `fetch-sherpa.ps1` + cache. Docs : MAINTENANCE §4.4 bis,
+  RELEASE, README.
+- Routeur : ponctuation de Parakeet neutralisée (`85 %` → « 85 pour cent », points, deux-points) ;
+  nombres FR 70-99 et 17-19 (« quatre-vingt-treize » donnait « 4 33 », défaut déjà présent avec Vosk),
+  70/80/90 ajoutés en EN/ES/DE/IT.
+- **Blocage / plat** (retour utilisateur : l'alerte parlait à chaque freinage appuyé) : profils
+  `LockAlertMode` dans `tyreEvents.ts`. « strict » (défaut) : glissement < −0,95 tenu 1 s au-dessus
+  de 100 km/h, 5 min par roue, 90 s toutes roues (une annonce par freinage). « sensible » = valeurs
+  d'avant (−0,85 / 0,6 s / 80 km/h / 60 s par roue). Réglage `lock_alert_mode`, sous les familles
+  d'annonces (Config › Audio / Voix).
+- **Crevaison / roue arrachée** : roue nommée quand une seule est touchée (`vPunctureWheel`,
+  `vWheelDetachedWheel`, 5 langues) ; sinon phrase générale. Les 4 versions de la crevaison sont
+  préchauffées (Piper). Non préparées pour la voix en ligne (gabarits à variable).
+- Tests : 6352 OK. Test Rust ignoré `parakeet_transcribes_a_bench_phrase` OK en local.
+- **Prochaine étape** : vérifier dans l'app (téléchargement de Parakeet depuis la Config, question
+  à la voix, réglage de l'alerte de blocage en roulant), puis commit sur main si l'utilisateur le demande.
+
 ### 2026-10-19 — Régie tablette : écrans activables + Pédales, Drapeaux & stands, Pneus, Relatif
 
 **Demande** : pouvoir activer / désactiver les écrans proposés ; ajouter des écrans
@@ -1018,6 +1044,41 @@ masquées, méta et icônes d'écran d'accueil. Rien de leur code repris.
 - 📋 **Prochaine étape** : dérouler `VALIDATION-EN-JEU.md` § 2 sur un téléphone Android et un
   iPad ; si la vidéo ne suffit pas sous Android, passer la régie en HTTPS local (certificat
   auto-signé) pour l'API Wake Lock.
+
+### 2026-10-19 — Banc de reconnaissance vocale : Vosk, Parakeet, Whisper (aucun code de l'app modifié)
+
+**Demande** : « analyse tout ça et dis-moi si on change » (moteur de dictée libre), premier tri
+sur voix de synthèse, liste à enregistrer le soir. Compte rendu complet : `stt-eval/README.md`.
+
+- ✅ Banc : `scripts/stt-eval/` (corpus de 40 phrases avec mots-clés, synthèse Piper 3 voix ×
+  propre / bruit 10 dB / 5 dB, mesure par moteur dans son propre processus, outil
+  d'enregistrement `record.py`) ; audio ignoré par git (`stt-eval/wav/`) ; bibliothèques et
+  modèles hors dépôt (`%LOCALAPPDATA%\stt-eval`).
+- ✅ Résultats (synthèse, 360 prises) : Parakeet v3 int8 = 17,5 % d'erreurs par mot, 51 % de
+  phrases exactes, **303 ms** de délai médian, 0,24 s de CPU par seconde d'audio, 717 Mo de
+  mémoire ; Vosk small = 22,2 %, 32 %, **1 712 ms**, 0,61, 125 Mo ; Whisper small + amorce de
+  vocabulaire = 16,1 %, 57 %, 2 643 ms, 1,83, 298 Mo (meilleur sur les virages, 78 %, mais trop
+  lourd en course).
+- ✅ Constat à part : notre dictée Vosk est décodée en entier au relâchement (1,7 s ici) ; la
+  décoder pendant l'appui réduirait ce délai sans changer de moteur.
+- ❌ Mots favorisés pour Parakeet (sherpa-onnx) : inutilisables sans le vocabulaire BPE
+  d'origine (dérivé de `tokens.txt` : sans effet, ou phrases cassées à poids fort).
+- ✅ **Vraie voix** (40 phrases de l'utilisateur, micro Pimax) : Parakeet 12,1 % d'erreurs par
+  mot, 62 % de phrases exactes, 87 % des mots-clés, 272 ms ; Vosk 17,8 %, 42 %, 83 %, 1 460 ms ;
+  Whisper 12,5 %, 55 %, 84 %, 2 572 ms (avec amorce : 12,6 %, 3 147 ms). Seule commande ratée
+  par Parakeet : « Répète. » seul.
+- ⚠️ **Confiance Vosk inopérante** : 0,88 de moyenne sur les phrases réussies contre 0,85 sur
+  les ratées, aucune prise sous 0,55 : le réglage `sttConfirmUnsure` (18/10) ne se déclenche
+  presque jamais. À revoir avec le changement de moteur (Parakeet n'a pas de score).
+- ✅ **Autres langues** (synthèse, 20 phrases traduites, `corpus_xx.json`, erreurs par caractère) :
+  Parakeet ≥ Vosk partout — EN 3,5 % contre 10,4 %, ES 2,6 % contre 4,6 %, DE 6,5 % contre 13,0 %,
+  IT 6,3 % contre 7,3 % — en 320 à 380 ms contre 580 à 1 260 ms ; aucune confusion de langue sur
+  420 prises. Pas de vraie voix mesurée dans ces langues.
+- ✅ **Décision recommandée** : Parakeet pour la dictée libre (modèle téléchargeable, Vosk en
+  repli tant qu'il n'est pas installé), Vosk gardé pour la liste fermée des commandes.
+- 📋 **Prochaine étape** : sur demande, étude puis intégration Rust (sherpa-onnx ou sa crate,
+  onnxruntime à faire cohabiter avec celui de Piper 1.14, téléchargement du modèle de 641 Mo
+  comme les voix, réglage pour revenir à Vosk), et décision sur `sttConfirmUnsure`.
 
 ### 2026-10-18 — Idées de veille ㉟–㊿ réalisées : coach vocal fiabilisé, débrief calculé, variantes radio
 

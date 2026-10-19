@@ -7,7 +7,7 @@
  */
 
 import { create } from "zustand";
-import { config, indexer, queries, ai, system, type WheelBinding } from "@/lib/api";
+import { config, dictation, indexer, queries, ai, system, type WheelBinding } from "@/lib/api";
 import { setAppTimezone } from "@/lib/utils";
 import { preloadStaticData } from "@/lib/staticData";
 import { configureVoice, setCloudSegmentSource, setSpeechReplay, setTalkSilence } from "@/lib/voice";
@@ -31,6 +31,7 @@ import {
   type WheelAction,
 } from "@/lib/radioSettings";
 import type { PressureUnit, PressureWindow } from "@/lib/engineer/pressures";
+import { parseLockAlertMode, type LockAlertMode } from "@/lib/engineer/tyreEvents";
 import type { SpotterTuning } from "@/lib/engineer/proximity";
 import {
   setCustomProviders,
@@ -168,6 +169,12 @@ interface AppState {
   aiVoiceGuard: boolean;
   /** Dictée libre incertaine (confiance Vosk basse) : faire répéter au lieu d'interroger l'IA. */
   sttConfirmUnsure: boolean;
+  /**
+   * Moteur de la dictée libre (questions à l'ingénieur) : `parakeet` (plus juste et plus
+   * rapide, modèle à télécharger ; Vosk tant qu'il ne l'est pas) ou `vosk` (comme avant).
+   * La liste fermée des commandes reste lue par Vosk dans les deux cas.
+   */
+  sttEngine: "parakeet" | "vosk";
   /** Bilan calculé dit à la radio au drapeau à damier. */
   debriefRadio: boolean;
   /** À l'arrivée sur un circuit déjà roulé : rappel de la dernière fois et du repère à viser. */
@@ -227,6 +234,8 @@ interface AppState {
   gameDuckLevel: number;
   /** Unité des pressions dites à la radio. */
   pressureUnit: PressureUnit;
+  /** Sensibilité de l'alerte « gros blocage » (strict par défaut, sensible = ancien). */
+  lockAlertMode: LockAlertMode;
   /** Fenêtres de pression à chaud par classe (kPa), renseignées par le pilote. */
   pressureWindows: Record<string, PressureWindow>;
   /** Cohabitation : annonces en doublon coupées si un autre ingénieur radio tourne. */
@@ -376,6 +385,7 @@ interface AppState {
   setAiVoiceRadioPrompt: (v: boolean) => Promise<void>;
   setAiVoiceGuard: (v: boolean) => Promise<void>;
   setSttConfirmUnsure: (v: boolean) => Promise<void>;
+  setSttEngine: (v: "parakeet" | "vosk") => Promise<void>;
   setDebriefRadio: (v: boolean) => Promise<void>;
   setTrackRecallRadio: (v: boolean) => Promise<void>;
   setPaceOutlookRadio: (v: boolean) => Promise<void>;
@@ -398,6 +408,7 @@ interface AppState {
   setGameDucking: (v: boolean) => Promise<void>;
   setGameDuckLevel: (v: number) => Promise<void>;
   setPressureUnit: (v: PressureUnit) => Promise<void>;
+  setLockAlertMode: (v: LockAlertMode) => Promise<void>;
   setPressureWindows: (v: Record<string, PressureWindow>) => Promise<void>;
   setCoexistMode: (v: boolean) => Promise<void>;
   setRadioExtra: (k: RadioExtra, v: boolean) => Promise<void>;
@@ -480,6 +491,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   aiVoiceRadioPrompt: true,
   aiVoiceGuard: true,
   sttConfirmUnsure: true,
+  sttEngine: "parakeet",
   debriefRadio: true,
   trackRecallRadio: true,
   paceOutlookRadio: true,
@@ -502,6 +514,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   gameDucking: false,
   gameDuckLevel: 0.6,
   pressureUnit: "kPa",
+  lockAlertMode: "strict",
   pressureWindows: {},
   coexistMode: false,
   radioExtras: parseExtras(null),
@@ -736,6 +749,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       aiVoiceRadioPrompt: cfg.ai_voice_radio_prompt !== "false",
       aiVoiceGuard: cfg.ai_voice_guard !== "false",
       sttConfirmUnsure: cfg.stt_confirm_unsure !== "false",
+      sttEngine: cfg.stt_free_engine === "vosk" ? "vosk" : "parakeet",
       debriefRadio: cfg.engineer_debrief_radio !== "false",
       trackRecallRadio: cfg.engineer_track_recall !== "false",
       paceOutlookRadio: cfg.engineer_pace_outlook !== "false",
@@ -758,6 +772,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       gameDucking: cfg.game_ducking === "true",
       gameDuckLevel: ((v) => (Number.isFinite(v) ? Math.min(0.95, Math.max(0, v)) : 0.6))(Number(cfg.game_duck_level ?? "0.6")),
       pressureUnit: parsePressureUnit(cfg.pressure_unit),
+      lockAlertMode: parseLockAlertMode(cfg.lock_alert_mode),
       pressureWindows: parsePressureWindows(cfg.pressure_windows),
       coexistMode: cfg.coexist_mode === "true",
       radioExtras: parseExtras(cfg.radio_extras),
@@ -786,6 +801,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       aiSystemPromptByLang,
       selectedVersion: cfg.default_since_version ?? null,
     });
+    // Moteur de dictée côté Rust (précharge Parakeet s'il est choisi et installé).
+    void dictation.setEngine(cfg.stt_free_engine === "vosk" ? "vosk" : "parakeet").catch(() => {});
     if (isConfigured) {
       try {
         if (cfg.index_logic_version !== INDEX_LOGIC_VERSION) {
@@ -1173,6 +1190,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ sttConfirmUnsure: v });
   },
 
+  setSttEngine: async (v) => {
+    await config.set("stt_free_engine", v);
+    await dictation.setEngine(v).catch(() => {});
+    set({ sttEngine: v });
+  },
+
   setDebriefRadio: async (v) => {
     await config.set("engineer_debrief_radio", v ? "true" : "false");
     set({ debriefRadio: v });
@@ -1286,6 +1309,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPressureUnit: async (v) => {
     await config.set("pressure_unit", v);
     set({ pressureUnit: v });
+  },
+
+  setLockAlertMode: async (v) => {
+    await config.set("lock_alert_mode", v);
+    set({ lockAlertMode: v });
   },
 
   setPressureWindows: async (v) => {

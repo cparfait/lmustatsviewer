@@ -1660,8 +1660,11 @@ export const overlay = {
 // ─── Modèles vocaux téléchargeables (`assets`) ──────────────────────────────
 
 /** Voix Piper / modèle Vosk téléchargeable (`assets::AssetInfo`). */
+/** `tts` voix Piper, `stt` modèle Vosk d'une langue, `asr` dictée Parakeet (toutes langues). */
+export type AssetKind = "tts" | "stt" | "asr";
+
 export interface AssetInfo {
-  kind: "tts" | "stt";
+  kind: AssetKind;
   /** Voix : id de fichier (« fr », « fr_FR-siwis-medium ») ; STT : code langue. */
   id: string;
   lang: string;
@@ -1686,14 +1689,21 @@ export const assets = {
   /** Catalogue des modèles téléchargeables + état d'installation. */
   catalog: () => invoke<AssetInfo[]>("assets_catalog"),
   /** Télécharge un modèle ; résout à la fin (progression via `onProgress`). */
-  download: (kind: "tts" | "stt", id: string) =>
+  download: (kind: AssetKind, id: string) =>
     invoke<void>("asset_download", { kind, id }),
   /** Supprime un modèle téléchargé (erreurs : `not_downloaded`, `in_use`, `unknown`). */
-  remove: (kind: "tts" | "stt", id: string) =>
+  remove: (kind: AssetKind, id: string) =>
     invoke<void>("asset_delete", { kind, id }),
   /** S'abonne à la progression des téléchargements (`asset-progress`). */
   onProgress: (cb: (p: AssetProgress) => void): Promise<UnlistenFn> =>
     listen<AssetProgress>("asset-progress", (e) => cb(e.payload)),
+};
+
+/** Dictée libre des questions à l'ingénieur : moteur choisi (Parakeet ou Vosk). */
+export const dictation = {
+  /** `parakeet` (s'il est installé, sinon Vosk) ou `vosk`. Précharge Parakeet. */
+  setEngine: (engine: "parakeet" | "vosk") => invoke<void>("stt_set_free_engine", { engine }),
+  status: () => invoke<{ installed: boolean; loaded: boolean; selected: boolean }>("stt_parakeet_status"),
 };
 // ── Partage communautaire (COMMUNITY-SPEC.md, lot 2) ────────────────────────
 // Tous les échanges passent par le Rust (jeton chiffré, HTTPS, empreinte) : la

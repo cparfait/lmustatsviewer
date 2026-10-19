@@ -100,7 +100,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
-import { VoiceDownloads } from "@/components/VoiceDownloads";
+import { DictationEngine, VoiceDownloads } from "@/components/VoiceDownloads";
 import { RADIO_STYLES, toRadioStyle } from "@/lib/radioFx";
 import { useTheme } from "@/stores/theme";
 import { system, config as configApi, indexer, queries } from "@/lib/api";
@@ -1798,6 +1798,24 @@ export function ConfigV2() {
                     commandes commune, des raccourcis directs sans parler. */}
                 {voiceTab === "radio" && voiceAnnouncements && (
                   <div className="space-y-2 py-2">
+                    {/* 0. Reconnaissance vocale : en tête et ouverte (demande du 19/10) —
+                        modèle Vosk de la langue + moteur de la dictée libre (Parakeet). */}
+                    <CollapsibleSection title={t("config.radioSecStt")} defaultOpen>
+                      <div className="space-y-3">
+                      <div className="flex items-center justify-end">
+                        <span className={cn("text-mini", sttOk === false ? "text-amber-500" : "text-success")}>
+                          {sttOk === null
+                            ? "…"
+                            : sttOk
+                              ? t("config.spotterTalkActive")
+                              : t("config.spotterTalkFallback")}
+                        </span>
+                      </div>
+                      <DictationEngine />
+                      <VoiceDownloads kind="stt" onInstalled={() => setAssetsVersion((v) => v + 1)} />
+                      </div>
+                    </CollapsibleSection>
+
                     {/* 1. Parler */}
                     <CollapsibleSection title={t("config.radioSecTalk")} defaultOpen>
                       <div className="space-y-2">
@@ -2047,21 +2065,6 @@ export function ConfigV2() {
                       </div>
                     </CollapsibleSection>
 
-                    {/* 6. Modèle de reconnaissance vocale */}
-                    <CollapsibleSection title={t("config.radioSecStt")}>
-                      <div className="space-y-2">
-                      <div className="flex items-center justify-end">
-                        <span className={cn("text-mini", sttOk === false ? "text-amber-500" : "text-success")}>
-                          {sttOk === null
-                            ? "…"
-                            : sttOk
-                              ? t("config.spotterTalkActive")
-                              : t("config.spotterTalkFallback")}
-                        </span>
-                      </div>
-                      <VoiceDownloads kind="stt" onInstalled={() => setAssetsVersion((v) => v + 1)} />
-                      </div>
-                    </CollapsibleSection>
                   </div>
                 )}
                 {/* Coach par virage — modes avancés (mêmes réglages que Config V1,

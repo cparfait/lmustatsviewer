@@ -23,10 +23,9 @@ import { useTranslation } from "react-i18next";
 import { create } from "zustand";
 import { AlertTriangle, Check, Download, Loader2, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { assets, isTauri, type AssetInfo } from "@/lib/api";
+import { assets, isTauri, type AssetInfo, type AssetKind } from "@/lib/api";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
-
-type AssetKind = "tts" | "stt";
+import { useAppStore } from "@/stores/app";
 
 /** État commun à tous les rendus (bandeau, liste, fenêtre d'accueil de la voix). */
 const useDownloads = create<{
@@ -322,6 +321,155 @@ function PickRow({
         {hint && <span className="text-mini text-muted-foreground">{hint}</span>}
       </div>
       <TestButton onClick={onTest} />
+    </div>
+  );
+}
+
+/**
+ * Moteur de la **dictée libre** (questions posées à l'ingénieur) : Parakeet
+ * (recommandé : plus juste et ~5 fois plus rapide que Vosk, toutes langues, modèle de
+ * ~640 Mo à télécharger) ou Vosk (léger, comme avant). Tant que Parakeet n'est pas
+ * téléchargé, c'est Vosk qui répond. La liste fermée des commandes reste lue par Vosk.
+ * Banc de mesure : `stt-eval/README.md`.
+ */
+export function DictationEngine() {
+  const { t } = useTranslation();
+  const engine = useAppStore((s) => s.sttEngine);
+  const [row, setRow] = useState<AssetInfo | null>(null);
+  const busy = useDownloads((s) => s.busy.asr ?? null);
+  const pct = useDownloads((s) => s.pct.asr ?? 0);
+  const rev = useDownloads((s) => s.rev);
+
+  useEffect(() => {
+    if (!isTauri()) return;
+    let alive = true;
+    assets
+      .catalog()
+      .then((c) => alive && setRow(c.find((a) => a.kind === "asr") ?? null))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [rev]);
+
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | undefined;
+    let gone = false;
+    void assets
+      .onProgress((p) => {
+        if (p.kind !== "asr" || p.total <= 0) return;
+        const v = Math.min(100, Math.round((p.downloaded / p.total) * 100));
+        useDownloads.setState((s) => ({ pct: { ...s.pct, asr: v } }));
+      })
+      .then((u) => {
+        if (gone) u();
+        else unlisten = u;
+      });
+    return () => {
+      gone = true;
+      unlisten?.();
+    };
+  }, []);
+
+  if (!isTauri() || !row) return null;
+
+  const choose = (v: "parakeet" | "vosk") => void useAppStore.getState().setSttEngine(v);
+
+  const download = async () => {
+    setBusy("asr", row.id);
+    try {
+      await assets.download("asr", row.id);
+      toastSuccess(t("config.dictDlDone"));
+      bumpCatalog();
+      // Choisi par défaut : le préchargement part dès que le modèle est là.
+      if (useAppStore.getState().sttEngine === "parakeet") choose("parakeet");
+    } catch (e) {
+      toastError(t("config.assetDlError", { msg: String(e) }));
+    } finally {
+      setBusy("asr", null);
+    }
+  };
+
+  const remove = async () => {
+    const ok = await confirmDialog({
+      title: t("config.assetDeleteTitle", { name: row.label }),
+      message: t("config.assetDeleteMsg", { size: row.size_mb }),
+      confirmLabel: t("config.assetDelete"),
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await assets.remove("asr", row.id);
+      toastSuccess(t("config.assetDeleted", { name: row.label }));
+      bumpCatalog();
+    } catch (e) {
+      const code = String(e);
+      toastError(code.includes("in_use") ? t("config.assetDeleteInUse") : t("config.assetDeleteError", { error: code }));
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="text-sm font-medium leading-tight">{t("config.dictTitle")}</div>
+      <p className="text-xs text-muted-foreground/80">{t("config.dictHint")}</p>
+
+      <div className="flex items-center justify-between gap-3 py-0.5">
+        <div className="flex min-w-0 items-center gap-2 text-sm">
+          <Radio checked={engine === "parakeet"} onClick={() => choose("parakeet")} />
+          <span>{t("config.dictParakeet")}</span>
+          <span className="text-mini text-muted-foreground">{t("config.dictRecommended")}</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {row.installed ? (
+            <>
+              <span className="flex items-center gap-1 text-xs text-success">
+                <Check className="h-3.5 w-3.5" />
+                {t("config.assetInstalled")}
+              </span>
+              {row.deletable && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  aria-label={t("config.assetDelete")}
+                  title={t("config.assetDelete")}
+                  onClick={() => void remove()}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </>
+          ) : busy ? (
+            <span className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+              <span className="relative h-1.5 w-28 overflow-hidden rounded-full bg-muted">
+                <span className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width]" style={{ width: `${pct}%` }} />
+              </span>
+              <span className="tabular-nums w-9 text-right">{pct}%</span>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            </span>
+          ) : (
+            <Button variant="outline" size="sm" className="h-7 gap-1.5 shrink-0" onClick={() => void download()}>
+              <Download className="h-3.5 w-3.5" />
+              {t("config.assetDlBtn", { size: row.size_mb })}
+            </Button>
+          )}
+        </div>
+      </div>
+      <p className="ml-6 text-mini text-muted-foreground">{t("config.dictParakeetDesc")}</p>
+
+      <div className="flex items-center gap-2 py-0.5 text-sm">
+        <Radio checked={engine === "vosk"} onClick={() => choose("vosk")} />
+        <span>{t("config.dictVosk")}</span>
+      </div>
+      <p className="ml-6 text-mini text-muted-foreground">{t("config.dictVoskDesc")}</p>
+
+      {engine === "parakeet" && !row.installed && (
+        <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          {t("config.dictNotYet")}
+        </p>
+      )}
     </div>
   );
 }

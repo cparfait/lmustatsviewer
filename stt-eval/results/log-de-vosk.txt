@@ -1,0 +1,120 @@
+vosk      bruit10/eva/01.wav              720 ms  wer 0.03  wie groß ist der abstand zum auto von mir
+vosk      bruit10/eva/02.wav              640 ms  wer 0.09  wie viel springt habe ich noch
+vosk      bruit10/eva/03.wav              690 ms  wer 0.00  wie schnell war meine letzte runde
+vosk      bruit10/eva/05.wav              785 ms  wer 0.00  auf welcher position bin ich in meiner klasse
+vosk      bruit10/eva/09.wav              629 ms  wer 0.12  wo es die vierzehn
+vosk      bruit10/eva/10.wav              779 ms  wer 0.00  sag mir bescheid wenn die einundfünfzig an die box kommt
+vosk      bruit10/eva/12.wav              731 ms  wer 0.00  wie groß ist der abstand zur dreiundneunzig
+vosk      bruit10/eva/13.wav              669 ms  wer 0.00  ist die achtunddreißig gerade an die box gekommen
+vosk      bruit10/eva/15.wav              661 ms  wer 0.22  ich habe unter steuern in tatort hugo
+vosk      bruit10/eva/17.wav              761 ms  wer 0.15  das auto übersteuert am ausgang der parabolische kann
+vosk      bruit10/eva/19.wav              769 ms  wer 0.47  die augen wie geht das fall
+vosk      bruit10/eva/21.wav              792 ms  wer 0.27  das rutscht am ausgaben von indianer pools
+vosk      bruit10/eva/23.wav              978 ms  wer 0.00  tank beim nächsten stopp zwanzig liter
+vosk      bruit10/eva/24.wav              751 ms  wer 0.00  energie auf fünfundachtzig prozent
+vosk      bruit10/eva/25.wav              874 ms  wer 0.11  sag mir bescheid wenn der spielt unterziehen prozent fällt
+vosk      bruit10/eva/29.wav              803 ms  wer 0.02  soll ich die traktion kontrolle um eine stufe erhöhen
+vosk      bruit10/eva/31.wav              906 ms  wer 0.11  ziehen die regenreifen auf router bleiben wir auf medium
+vosk      bruit10/eva/35.wav              613 ms  wer 0.05  ich komme dieser runde rein
+vosk      bruit10/eva/38.wav              704 ms  wer 0.00  komme ich mit diesen reifen bis zum ende
+vosk      bruit10/eva/39.wav              670 ms  wer 0.00  warum verliere ich zeit in sektor zwei
+vosk      bruit10/thorsten/01.wav         692 ms  wer 0.09  wie groß ist der abstand zum auto mir
+vosk      bruit10/thorsten/02.wav         619 ms  wer 0.13  wie viel spielt habe ich noch
+vosk      bruit10/thorsten/03.wav         688 ms  wer 0.10  wie schnell meine letzte runde
+vosk      bruit10/thorsten/05.wav         719 ms  wer 0.03  auf welche position bin ich in meiner klasse
+vosk      bruit10/thorsten/09.wav         528 ms  wer 0.12  wo ich die vierzehn
+vosk      bruit10/thorsten/10.wav         917 ms  wer 0.04  sag mir bescheid wenn die einundfünfzig und die box kommt
+vosk      bruit10/thorsten/12.wav         901 ms  wer 0.11  wie groß der abstand zu dreiundneunzig
+vosk      bruit10/thorsten/13.wav         705 ms  wer 0.00  ist die achtunddreißig gerade an die box gekommen
+vosk      bruit10/thorsten/15.wav         750 ms  wer 0.28  ich habe unter steuern trugen
+vosk      bruit10/thorsten/17.wav         784 ms  wer 0.25  das auto übersteuert am ausgang der fahrer bulgaren
+vosk      bruit10/thorsten/19.wav         713 ms  wer 0.42  die ruge geht es von
+vosk      bruit10/thorsten/21.wav         845 ms  wer 0.18  es rutscht am ausgang von indianer vorliest
+vosk      bruit10/thorsten/23.wav         674 ms  wer 0.24  kann man nächsten stopp zwanzig meter
+vosk      bruit10/thorsten/24.wav         939 ms  wer 0.45  findet die mut achtzig prozent
+vosk      bruit10/thorsten/25.wav         763 ms  wer 0.06  sag mir bescheid wenn der speed unter zehn prozent fällt
+vosk      bruit10/thorsten/29.wav         728 ms  wer 0.24  soll ich die zug kontrolle um eine stufe erhöht
+vosk      bruit10/thorsten/31.wav        1142 ms  wer 0.24  ziehen wir regenreifen auf bleiben die medien
+vosk      bruit10/thorsten/35.wav         534 ms  wer 0.00  ich komme diese runde rein
+vosk      bruit10/thorsten/38.wav        1020 ms  wer 0.21  womit ich mit diesem reichten bis zum ende
+vosk      bruit10/thorsten/39.wav         695 ms  wer 0.00  warum verliere ich zeit in sektor zwei
+vosk      bruit5/eva/01.wav               776 ms  wer 0.03  wie groß ist der abstand zum auto von mir
+vosk      bruit5/eva/02.wav               833 ms  wer 0.09  wie viel springt habe ich noch
+vosk      bruit5/eva/03.wav               874 ms  wer 0.14  wie schlimm war meine letzte runde
+vosk      bruit5/eva/05.wav               826 ms  wer 0.00  auf welcher position bin ich in meiner klasse
+vosk      bruit5/eva/09.wav               714 ms  wer 0.00  wo ist die vierzehn
+vosk      bruit5/eva/10.wav               820 ms  wer 0.04  sag mir bescheid wenn die einundfünfzig an die box kommen
+vosk      bruit5/eva/12.wav               913 ms  wer 0.00  wie groß ist der abstand zur dreiundneunzig
+vosk      bruit5/eva/13.wav               709 ms  wer 0.00  ist die achtunddreißig gerade an die box gekommen
+vosk      bruit5/eva/15.wav               911 ms  wer 0.44  ich habe unterschrank tatort google
+vosk      bruit5/eva/17.wav               826 ms  wer 0.25  das auto übersteuert ausgang der fahrer boni kann
+vosk      bruit5/eva/19.wav              1043 ms  wer 0.53  die augen welt geht das fall
+vosk      bruit5/eva/21.wav               838 ms  wer 0.33  das rutschte ausgaben von indianer pools
+vosk      bruit5/eva/23.wav               722 ms  wer 0.06  tank beim nächsten stoff zwanzig liter
+vosk      bruit5/eva/24.wav               854 ms  wer 0.13  die magie auf fünfundachtzig prozent
+vosk      bruit5/eva/25.wav               914 ms  wer 0.04  sag mir bescheid wenn der springt unter zehn prozent fällt
+vosk      bruit5/eva/29.wav               895 ms  wer 0.02  soll ich die traktion kontrolle um eine stufe erhöhen
+vosk      bruit5/eva/31.wav              1023 ms  wer 0.35  sie die regenreichen auf router bleiben wir auf möglich
+vosk      bruit5/eva/35.wav               580 ms  wer 0.05  ich komme dieser runde rein
+vosk      bruit5/eva/38.wav               745 ms  wer 0.21  komme ich mit diesem iphone bis zum ende
+vosk      bruit5/eva/39.wav               726 ms  wer 0.00  warum verliere ich zeit in sektor zwei
+vosk      bruit5/thorsten/01.wav          765 ms  wer 0.22  die großen der abstand zum auto vom
+vosk      bruit5/thorsten/02.wav          648 ms  wer 0.35  gespielt habe ich noch
+vosk      bruit5/thorsten/03.wav         1329 ms  wer 0.41  ich mir im wandern letzte runde
+vosk      bruit5/thorsten/05.wav         1022 ms  wer 0.13  auf welche position bin ich immer klasse
+vosk      bruit5/thorsten/09.wav          702 ms  wer 0.69  gut die für fünf
+vosk      bruit5/thorsten/10.wav         1024 ms  wer 0.04  sag mir bescheid wenn die einundfünfzig um die box kommt
+vosk      bruit5/thorsten/12.wav          853 ms  wer 0.11  wie groß der abstand zu dreiundneunzig
+vosk      bruit5/thorsten/13.wav          778 ms  wer 0.05  ich die achtunddreißig gerade an die box gekommen
+vosk      bruit5/thorsten/15.wav          693 ms  wer 0.41  ich hab unter steuern buchen
+vosk      bruit5/thorsten/17.wav          748 ms  wer 0.38  auto übersteuert an ausgang der fahrer apotheker
+vosk      bruit5/thorsten/19.wav          845 ms  wer 0.58  hier geht es von
+vosk      bruit5/thorsten/21.wav          863 ms  wer 0.27  es rutscht am ausgaben von indianer
+vosk      bruit5/thorsten/23.wav          863 ms  wer 0.30  kann man nächsten stoff zwanzig meter
+vosk      bruit5/thorsten/24.wav          907 ms  wer 0.45  bin ich nur achtzig prozent
+vosk      bruit5/thorsten/25.wav         1247 ms  wer 0.15  sag mir bescheid finde spielt unter zehn prozent fällt
+vosk      bruit5/thorsten/29.wav          974 ms  wer 0.43  nun ich die kontrolle um eine stufe i
+vosk      bruit5/thorsten/31.wav         1209 ms  wer 0.59  wir reden weil wir bleiben ihr lieben
+vosk      bruit5/thorsten/35.wav          647 ms  wer 0.09  ich komme diese gründe sein
+vosk      bruit5/thorsten/38.wav         1000 ms  wer 0.45  um dich mit diesem bereich die bis zu den
+vosk      bruit5/thorsten/39.wav          711 ms  wer 0.06  warum verliere ich zeitung sektor zwei
+vosk      propre/eva/01.wav               686 ms  wer 0.00  wie groß ist der abstand zum auto vor mir
+vosk      propre/eva/02.wav               661 ms  wer 0.00  wieviel sprit habe ich noch
+vosk      propre/eva/03.wav               645 ms  wer 0.00  wie schnell war meine letzte runde
+vosk      propre/eva/05.wav               717 ms  wer 0.00  auf welcher position bin ich in meiner klasse
+vosk      propre/eva/09.wav               598 ms  wer 0.00  wo ist die vierzehn
+vosk      propre/eva/10.wav               870 ms  wer 0.00  sag mir bescheid wenn die einundfünfzig an die box kommt
+vosk      propre/eva/12.wav               961 ms  wer 0.00  wie groß ist der abstand zur dreiundneunzig
+vosk      propre/eva/13.wav               719 ms  wer 0.00  ist die achtunddreißig gerade an die box gekommen
+vosk      propre/eva/15.wav               709 ms  wer 0.16  ich habe unter steuern in tattoo ruge
+vosk      propre/eva/17.wav               810 ms  wer 0.10  das auto übersteuert am ausgang der parabolische k
+vosk      propre/eva/19.wav               654 ms  wer 0.32  ihr auge geht das fall
+vosk      propre/eva/21.wav               753 ms  wer 0.12  es rutscht am ausgang von indianer police
+vosk      propre/eva/23.wav               730 ms  wer 0.00  tank beim nächsten stopp zwanzig liter
+vosk      propre/eva/24.wav               647 ms  wer 0.00  energie auf fünfundachtzig prozent
+vosk      propre/eva/25.wav               835 ms  wer 0.00  sag mir bescheid wenn der sprit unter zehn prozent fällt
+vosk      propre/eva/29.wav               816 ms  wer 0.02  soll ich die traktion kontrolle um eine stufe erhöhen
+vosk      propre/eva/31.wav               810 ms  wer 0.04  ziehen die regenreifen auf oder bleiben wir auf medium
+vosk      propre/eva/35.wav               601 ms  wer 0.05  ich komme dieser runde rein
+vosk      propre/eva/38.wav               723 ms  wer 0.00  komme ich mit diesen reifen bis zum ende
+vosk      propre/eva/39.wav               934 ms  wer 0.00  warum verliere ich zeit in sektor zwei
+vosk      propre/thorsten/01.wav          629 ms  wer 0.03  wie groß ist der abstand zum auto von mir
+vosk      propre/thorsten/02.wav          613 ms  wer 0.09  wieviel sprüht habe ich noch
+vosk      propre/thorsten/03.wav          616 ms  wer 0.00  wie schnell war meine letzte runde
+vosk      propre/thorsten/05.wav          742 ms  wer 0.03  auf welche position bin ich in meiner klasse
+vosk      propre/thorsten/09.wav          570 ms  wer 0.00  wo ist die vierzehn
+vosk      propre/thorsten/10.wav          829 ms  wer 0.00  sag mir bescheid wenn die einundfünfzig an die box kommt
+vosk      propre/thorsten/12.wav          720 ms  wer 0.03  wie groß ist der abstand zu dreiundneunzig
+vosk      propre/thorsten/13.wav          681 ms  wer 0.00  ist die achtunddreißig gerade an die box gekommen
+vosk      propre/thorsten/15.wav          696 ms  wer 0.19  ich habe unter steuern und herr droge
+vosk      propre/thorsten/17.wav          723 ms  wer 0.12  das auto übersteuert am ausgang der parabolische dar
+vosk      propre/thorsten/19.wav          502 ms  wer 0.42  wir ruge geht es von
+vosk      propre/thorsten/21.wav          730 ms  wer 0.12  es rutscht am ausgang von indianer police
+vosk      propre/thorsten/23.wav          655 ms  wer 0.00  tank beim nächsten stopp zwanzig liter
+vosk      propre/thorsten/24.wav          766 ms  wer 0.00  energie auf fünfundachtzig prozent
+vosk      propre/thorsten/25.wav          862 ms  wer 0.00  sag mir bescheid wenn der sprit unter zehn prozent fällt
+vosk      propre/thorsten/29.wav          737 ms  wer 0.02  soll ich die traktion kontrolle um eine stufe erhöhen
+vosk      propre/thorsten/31.wav          841 ms  wer 0.00  ziehen wir regenreifen auf oder bleiben wir auf medium
+vosk      propre/thorsten/35.wav          558 ms  wer 0.00  ich komme diese runde rein
+vosk      propre/thorsten/38.wav          639 ms  wer 0.00  komme ich mit diesen reifen bis zum ende
+vosk      propre/thorsten/39.wav          716 ms  wer 0.00  warum verliere ich zeit in sektor zwei

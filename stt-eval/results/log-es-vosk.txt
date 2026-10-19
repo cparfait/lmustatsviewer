@@ -1,0 +1,120 @@
+vosk      bruit10/claude/01.wav           562 ms  wer 0.00  cuál es la diferencia con el coche de delante
+vosk      bruit10/claude/02.wav           720 ms  wer 0.00  cuánto combustible me queda
+vosk      bruit10/claude/03.wav           553 ms  wer 0.00  cuánto fue mi última vuelta
+vosk      bruit10/claude/05.wav           517 ms  wer 0.00  en qué posición voy en mi clase
+vosk      bruit10/claude/09.wav           437 ms  wer 0.00  dónde está el catorce
+vosk      bruit10/claude/10.wav           679 ms  wer 0.00  avísame cuando el cincuenta y uno entre en boxes
+vosk      bruit10/claude/12.wav           565 ms  wer 0.00  cuál es la diferencia con el noventa y tres
+vosk      bruit10/claude/13.wav           595 ms  wer 0.00  el treinta y ocho acaba de entrar en boxes
+vosk      bruit10/claude/15.wav           511 ms  wer 0.22  tengo subir gente tres rouge
+vosk      bruit10/claude/17.wav           619 ms  wer 0.05  el coche sobrevivirá a la salida de la parabólica
+vosk      bruit10/claude/19.wav           626 ms  wer 0.20  euro que se pasa fondo
+vosk      bruit10/claude/21.wav           557 ms  wer 0.00  desliza a la salida de indianápolis
+vosk      bruit10/claude/23.wav           562 ms  wer 0.03  con veinte litros en la próxima parada
+vosk      bruit10/claude/24.wav           602 ms  wer 0.00  energía al ochenta y cinco porciento
+vosk      bruit10/claude/25.wav           561 ms  wer 0.02  avísame cuando del combustible bajé del diez porciento
+vosk      bruit10/claude/29.wav           520 ms  wer 0.03  sube el control de tracción un punto
+vosk      bruit10/claude/31.wav           598 ms  wer 0.02  ponemos neumáticos de lluvia go seguimos con medios
+vosk      bruit10/claude/35.wav           459 ms  wer 0.00  entró en boxes esta vuelta
+vosk      bruit10/claude/38.wav           855 ms  wer 0.00  puedo aguantar hasta el final con estos neumáticos
+vosk      bruit10/claude/39.wav           506 ms  wer 0.00  porque pierdo tiempo en el sector dos
+vosk      bruit10/davefx/01.wav           695 ms  wer 0.00  cuál es la diferencia con el coche de delante
+vosk      bruit10/davefx/02.wav           446 ms  wer 0.17  cuánto combustible mecha
+vosk      bruit10/davefx/03.wav           498 ms  wer 0.00  cuánto fue mi última vuelta
+vosk      bruit10/davefx/05.wav           454 ms  wer 0.00  en qué posición voy en mi clase
+vosk      bruit10/davefx/09.wav           402 ms  wer 0.00  dónde está el catorce
+vosk      bruit10/davefx/10.wav           592 ms  wer 0.17  avísame cuando de cincuenta y uno en en voces
+vosk      bruit10/davefx/12.wav           667 ms  wer 0.00  cuál es la diferencia con el noventa y tres
+vosk      bruit10/davefx/13.wav           555 ms  wer 0.00  el treinta y ocho acaba de entrar en boxes
+vosk      bruit10/davefx/15.wav           587 ms  wer 0.30  tengo su vida gente tres roce
+vosk      bruit10/davefx/17.wav           590 ms  wer 0.03  el coche sobre vida a la salida de la parabólica
+vosk      bruit10/davefx/19.wav           748 ms  wer 0.30  ahorro que se pasa a fondo
+vosk      bruit10/davefx/21.wav           659 ms  wer 0.17  de a la salida de indianápolis
+vosk      bruit10/davefx/23.wav           497 ms  wer 0.03  con veinte litros en la próxima parada
+vosk      bruit10/davefx/24.wav           535 ms  wer 0.00  energía al ochenta y cinco porciento
+vosk      bruit10/davefx/25.wav           611 ms  wer 0.02  avísame cuando del combustible bajé del diez porciento
+vosk      bruit10/davefx/29.wav           904 ms  wer 0.07  tuvo el control de tracción un punto
+vosk      bruit10/davefx/31.wav           640 ms  wer 0.00  ponemos neumáticos de lluvia o seguimos con medios
+vosk      bruit10/davefx/35.wav           521 ms  wer 0.09  entró a boxes esta vuelta
+vosk      bruit10/davefx/38.wav           641 ms  wer 0.00  puedo aguantar hasta el final con estos neumáticos
+vosk      bruit10/davefx/39.wav           603 ms  wer 0.00  porque pierdo tiempo en el sector dos
+vosk      bruit5/claude/01.wav            670 ms  wer 0.05  cuál es la diferencia con el coche delante
+vosk      bruit5/claude/02.wav            468 ms  wer 0.00  cuánto combustible me queda
+vosk      bruit5/claude/03.wav            736 ms  wer 0.00  cuánto fue mi última vuelta
+vosk      bruit5/claude/05.wav            859 ms  wer 0.16  interposición voy en mi clase
+vosk      bruit5/claude/09.wav            425 ms  wer 0.00  dónde está el catorce
+vosk      bruit5/claude/10.wav            700 ms  wer 0.00  avísame cuando el cincuenta y uno entre en boxes
+vosk      bruit5/claude/12.wav            601 ms  wer 0.00  cuál es la diferencia con el noventa y tres
+vosk      bruit5/claude/13.wav            674 ms  wer 0.00  el treinta y ocho acaba de entrar en boxes
+vosk      bruit5/claude/15.wav            757 ms  wer 0.15  tengo subirá center tres rouge
+vosk      bruit5/claude/17.wav            725 ms  wer 0.05  el coche sobrevivirá a la salida de la parabólica
+vosk      bruit5/claude/19.wav            711 ms  wer 0.20  euro que se pasa fondo
+vosk      bruit5/claude/21.wav            708 ms  wer 0.10  es misa a la salida de indianápolis
+vosk      bruit5/claude/23.wav            550 ms  wer 0.03  con veinte litros en la próxima parada
+vosk      bruit5/claude/24.wav            606 ms  wer 0.00  energía al ochenta y cinco porciento
+vosk      bruit5/claude/25.wav            617 ms  wer 0.02  avísame cuando del combustible bajé del diez porciento
+vosk      bruit5/claude/29.wav            628 ms  wer 0.03  sube el control de tracción un punto
+vosk      bruit5/claude/31.wav            651 ms  wer 0.07  ponemos neumáticos de lluvia conseguimos con medias
+vosk      bruit5/claude/35.wav            577 ms  wer 0.00  entró en boxes esta vuelta
+vosk      bruit5/claude/38.wav            771 ms  wer 0.00  puedo aguantar hasta el final con estos neumáticos
+vosk      bruit5/claude/39.wav            580 ms  wer 0.00  porque pierdo tiempo en el sector dos
+vosk      bruit5/davefx/01.wav            735 ms  wer 0.00  cuál es la diferencia con el coche de delante
+vosk      bruit5/davefx/02.wav            450 ms  wer 0.17  cuánto combustible mecha
+vosk      bruit5/davefx/03.wav            621 ms  wer 0.00  cuánto fue mi última vuelta
+vosk      bruit5/davefx/05.wav            503 ms  wer 0.08  en qué posición voy en de clase
+vosk      bruit5/davefx/09.wav            405 ms  wer 0.00  dónde está el catorce
+vosk      bruit5/davefx/10.wav            651 ms  wer 0.12  avísame cuando de cincuenta y uno en tren voces
+vosk      bruit5/davefx/12.wav            883 ms  wer 0.00  cuál es la diferencia con el noventa y tres
+vosk      bruit5/davefx/13.wav            676 ms  wer 0.00  el treinta y ocho acaba de entrar en boxes
+vosk      bruit5/davefx/15.wav            875 ms  wer 0.33  tengo su vida gente tres romney
+vosk      bruit5/davefx/17.wav            644 ms  wer 0.03  el coche sobre vida a la salida de la parabólica
+vosk      bruit5/davefx/19.wav            896 ms  wer 0.40  ahorro pero se pasa a fondo
+vosk      bruit5/davefx/21.wav            765 ms  wer 0.17  desde la salida de indianápolis
+vosk      bruit5/davefx/23.wav            535 ms  wer 0.03  con veinte litros en la próxima parada
+vosk      bruit5/davefx/24.wav            578 ms  wer 0.00  energía al ochenta y cinco porciento
+vosk      bruit5/davefx/25.wav            651 ms  wer 0.02  avísame cuando del combustible bajé del diez porciento
+vosk      bruit5/davefx/29.wav            854 ms  wer 0.20  tuvo el control de francia en un punto
+vosk      bruit5/davefx/31.wav            706 ms  wer 0.00  ponemos neumáticos de lluvia o seguimos con medios
+vosk      bruit5/davefx/35.wav            554 ms  wer 0.18  entró a boxes esta cuenta
+vosk      bruit5/davefx/38.wav            696 ms  wer 0.05  bueno aguantar hasta el final con estos neumáticos
+vosk      bruit5/davefx/39.wav            590 ms  wer 0.00  porque pierdo tiempo en el sector dos
+vosk      propre/claude/01.wav            514 ms  wer 0.00  cuál es la diferencia con el coche de delante
+vosk      propre/claude/02.wav            588 ms  wer 0.00  cuánto combustible me queda
+vosk      propre/claude/03.wav            458 ms  wer 0.00  cuánto fue mi última vuelta
+vosk      propre/claude/05.wav            491 ms  wer 0.00  en qué posición voy en mi clase
+vosk      propre/claude/09.wav            414 ms  wer 0.00  dónde está el catorce
+vosk      propre/claude/10.wav            586 ms  wer 0.00  avísame cuando el cincuenta y uno entre en boxes
+vosk      propre/claude/12.wav            536 ms  wer 0.00  cuál es la diferencia con el noventa y tres
+vosk      propre/claude/13.wav            534 ms  wer 0.00  el treinta y ocho acaba de entrar en boxes
+vosk      propre/claude/15.wav            456 ms  wer 0.19  tengo subirá agentes tres rouge
+vosk      propre/claude/17.wav            557 ms  wer 0.05  el coche sobrevivirá a la salida de la parabólica
+vosk      propre/claude/19.wav            487 ms  wer 0.05  eau rouge se pasa fondo
+vosk      propre/claude/21.wav            485 ms  wer 0.00  desliza a la salida de indianápolis
+vosk      propre/claude/23.wav            490 ms  wer 0.03  con veinte litros en la próxima parada
+vosk      propre/claude/24.wav            510 ms  wer 0.00  energía al ochenta y cinco porciento
+vosk      propre/claude/25.wav            583 ms  wer 0.00  avísame cuando el combustible bajé del diez porciento
+vosk      propre/claude/29.wav            522 ms  wer 0.03  sube el control de tracción un punto
+vosk      propre/claude/31.wav            558 ms  wer 0.02  ponemos neumáticos de lluvia go seguimos con medios
+vosk      propre/claude/35.wav            450 ms  wer 0.00  entró en boxes esta vuelta
+vosk      propre/claude/38.wav            599 ms  wer 0.00  puedo aguantar hasta el final con estos neumáticos
+vosk      propre/claude/39.wav            480 ms  wer 0.00  porque pierdo tiempo en el sector dos
+vosk      propre/davefx/01.wav            721 ms  wer 0.00  cuál es la diferencia con el coche de delante
+vosk      propre/davefx/02.wav            418 ms  wer 0.00  cuánto combustible me queda
+vosk      propre/davefx/03.wav            406 ms  wer 0.00  cuánto fue mi última vuelta
+vosk      propre/davefx/05.wav            427 ms  wer 0.00  en qué posición voy en mi clase
+vosk      propre/davefx/09.wav            373 ms  wer 0.00  dónde está el catorce
+vosk      propre/davefx/10.wav            609 ms  wer 0.17  avísame cuando de cincuenta y uno en boxes
+vosk      propre/davefx/12.wav            570 ms  wer 0.00  cuál es la diferencia con el noventa y tres
+vosk      propre/davefx/13.wav            521 ms  wer 0.00  el treinta y ocho acaba de entrar en boxes
+vosk      propre/davefx/15.wav            469 ms  wer 0.07  tengo sus viraje enter tres rouge
+vosk      propre/davefx/17.wav            560 ms  wer 0.03  el coche sobre vida a la salida de la parabólica
+vosk      propre/davefx/19.wav            652 ms  wer 0.30  el ahorro que se pasa a fondo
+vosk      propre/davefx/21.wav            591 ms  wer 0.00  desliza a la salida de indianápolis
+vosk      propre/davefx/23.wav            512 ms  wer 0.00  pon veinte litros en la próxima parada
+vosk      propre/davefx/24.wav            496 ms  wer 0.00  energía al ochenta y cinco porciento
+vosk      propre/davefx/25.wav            599 ms  wer 0.02  avísame cuando del combustible bajé del diez porciento
+vosk      propre/davefx/29.wav            575 ms  wer 0.00  subo el control de tracción un punto
+vosk      propre/davefx/31.wav            618 ms  wer 0.00  ponemos neumáticos de lluvia o seguimos con medios
+vosk      propre/davefx/35.wav            460 ms  wer 0.00  entró en boxes esta vuelta
+vosk      propre/davefx/38.wav            559 ms  wer 0.00  puedo aguantar hasta el final con estos neumáticos
+vosk      propre/davefx/39.wav            777 ms  wer 0.00  porque pierdo tiempo en el sector dos

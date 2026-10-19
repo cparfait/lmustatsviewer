@@ -11,7 +11,9 @@ import { predictPitExit } from "@/lib/spotter";
 import { stripThinking, ThinkingStreamFilter } from "@/lib/ai/thinking";
 import { openaiProvider, openrouterProvider } from "@/lib/ai/providers/openai-compat";
 import { buildLiveContext } from "@/lib/ai/context/live-context";
-import type { LiveData, LiveStanding } from "@/lib/api";
+import { trackOtherCarsText } from "@/lib/ai/context/driver-history-context";
+import { isHistoricalQuestion } from "@/lib/ai/context/records-context";
+import type { LiveData, LiveStanding, RecordOverviewRow } from "@/lib/api";
 
 const car = (o: Partial<LiveStanding>): LiveStanding =>
   ({
@@ -91,6 +93,24 @@ export function run(): void {
     const back = openrouterProvider.fallbackBody?.(quick) as Record<string, unknown> | null;
     ok(!!back && !("reasoning" in back) && back.model === "qwen/qwen3.5-35b-a3b", "repli 400 : même requête sans reasoning");
     ok(openaiProvider.fallbackBody?.(openaiProvider.buildBody(msgs, "m", 16)) === null, "OpenAI : pas de repli");
+  }
+
+  section("ai.history (autres voitures du circuit)");
+  {
+    const row = (car: string, best: number, n: number, track = "Spa"): RecordOverviewRow => ({
+      track, track_course: track, car, car_type: car, car_class: "GT3", best_lap: best,
+      best_lap_s1: null, best_lap_s2: null, best_lap_s3: null, optimal_lap: null, vmax: null,
+      record_date: 0, game_version: "1.3", sessions_count: n,
+    }) as RecordOverviewRow;
+    const rows = [row("Mercedes-AMG LMGT3", 147.324, 28), row("BMW M4 LMGT3", 146.707, 10), row("Ferrari 296", 140, 3, "Monza")];
+    const txt = trackOtherCarsText(rows, "Spa", "BMW M4 LMGT3");
+    ok(txt.includes("Mercedes-AMG LMGT3") && txt.includes("28 sessions"), "Mercedes à Spa présente");
+    ok(txt.includes("BMW M4 LMGT3 · GT3: 2:26.707") && txt.includes("← car of this session"), "voiture courante marquée");
+    ok(!txt.includes("Ferrari"), "autre circuit exclu");
+    eq(trackOtherCarsText([rows[1]], "Spa", "BMW M4 LMGT3"), "", "seule la voiture courante → rien");
+    ok(isHistoricalQuestion("est ce que je fais mieux en bmw qu'en mercedes à SPA ?"), "« mieux » = question d'historique");
+    ok(isHistoricalQuestion("Sono più veloce con la Ferrari?"), "italien couvert");
+    ok(!isHistoricalQuestion("dois-je rentrer au stand ?"), "question courante : pas d'historique");
   }
 
   section("ai.live-context (garage)");

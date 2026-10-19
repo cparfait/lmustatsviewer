@@ -45,15 +45,21 @@ export function resetRecordsDigestCache() {
  * insensible aux accents/casse. (Les questions « dois-je pit ? », « mes pneus ? »
  * n'ont pas besoin de l'historique → contexte plus léger et plus rapide.)
  */
+// Comparaisons comprises (« je fais mieux en BMW qu'en Mercedes ? ») : sans
+// « mieux / plus vite / compar… », la question ne recevait pas l'historique.
 const HISTORY_KEYWORDS = [
   // fr
   "meilleur", "record", "deja", "plus rapide", "historique", "progression", "pb",
+  "mieux", "plus vite", "moins vite", "plus lent", "compar",
   // en
   "best", "fastest", "history", "ever", "all-time", "all time", "previous", "before", "personal best",
+  "better", "faster", "slower", "compare", "versus",
   // es
-  "mejor", "mas rapido", "historial", "antes", "record",
+  "mejor", "mas rapido", "historial", "antes", "record", "mas lento",
   // de
-  "bestzeit", "rekord", "schnellste", "bisher", "verlauf",
+  "bestzeit", "rekord", "schnellste", "bisher", "verlauf", "besser", "schneller", "langsamer", "vergleich",
+  // it
+  "migliore", "meglio", "piu veloce", "piu lento", "storico", "confront",
 ];
 export function isHistoricalQuestion(q: string): boolean {
   const norm = q

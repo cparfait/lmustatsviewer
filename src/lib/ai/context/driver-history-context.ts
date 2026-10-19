@@ -13,7 +13,7 @@
 
 import { records } from "../../api";
 import { formatTime, formatSectorSeconds } from "../../utils";
-import type { SessionDetail } from "../../api";
+import type { RecordOverviewRow, SessionDetail } from "../../api";
 
 /** Sessions récentes listées dans le contexte (au-delà : résumé via stats). */
 const MAX_SESSIONS = 10;
@@ -154,16 +154,52 @@ export async function buildComboHistoryText(args: {
   return lines.join("\n");
 }
 
+/**
+ * Records du pilote sur ce circuit, **toutes voitures** (une ligne par voiture).
+ * Sans elle, le coach ne voyait que la voiture de la session : à « je fais mieux
+ * en BMW qu'en Mercedes à Spa ? », il répondait n'avoir aucune donnée Mercedes
+ * malgré des dizaines de sessions en base. "" si seule la voiture courante y a roulé.
+ */
+export function trackOtherCarsText(
+  rows: RecordOverviewRow[],
+  track: string,
+  currentCar: string,
+): string {
+  const here = rows
+    .filter((r) => r.track === track && r.best_lap > 0)
+    .sort((a, b) => a.best_lap - b.best_lap);
+  if (!here.some((r) => r.car !== currentCar)) return "";
+  const lines = [
+    `## Your records on ${track} — every car you drove here (local database)`,
+    "(all-time best lap per car; use this to compare cars on this track)",
+  ];
+  for (const r of here) {
+    const layout = r.track_course && r.track_course !== r.track ? ` (${r.track_course})` : "";
+    lines.push(
+      `${r.car} · ${r.car_class}${layout}: ${formatTime(r.best_lap)} · ${r.sessions_count} sessions` +
+        (r.car === currentCar ? "  ← car of this session" : ""),
+    );
+  }
+  return lines.join("\n");
+}
+
 /** Variante post-course : extrait la clé combo d'un `SessionDetail`. */
 export async function buildDriverHistoryText(detail: SessionDetail): Promise<string> {
   const player = detail.results.find((r) => r.is_player);
   const car = player?.unique_car_name || player?.car_type || "";
   if (!player || !car) return "";
-  return buildComboHistoryText({
-    track: detail.session.track,
-    trackCourse: detail.session.track_course || undefined,
-    car,
-    currentSessionId: detail.session.id,
-    currentBest: player.best_lap,
-  });
+  const [combo, others] = await Promise.all([
+    buildComboHistoryText({
+      track: detail.session.track,
+      trackCourse: detail.session.track_course || undefined,
+      car,
+      currentSessionId: detail.session.id,
+      currentBest: player.best_lap,
+    }),
+    records
+      .getOverview()
+      .then((rows) => trackOtherCarsText(rows, detail.session.track, car))
+      .catch(() => ""),
+  ]);
+  return [combo, others].filter(Boolean).join("\n\n");
 }

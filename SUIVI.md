@@ -921,6 +921,22 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-20 — Coach IA post-course : « aucune donnée Mercedes » malgré 28 sessions à Spa
+
+**Symptôme** : session BMW M4 à Spa, question « je fais mieux en BMW qu'en Mercedes à Spa ? » →
+« aucune donnée Mercedes dans ton historique ».
+**Cause** : `buildDriverHistoryText` ne joignait que l'historique du combo **exact** (circuit +
+voiture de la session). Le digest de tous les records n'existe que côté live/vocal, et seulement
+si `isHistoricalQuestion` matche — or « mieux », « plus vite », « compar… » n'y étaient pas
+(et l'italien manquait entièrement).
+
+- ✅ `driver-history-context.ts` : nouvelle section `trackOtherCarsText` (records du circuit,
+  toutes voitures, via `records.getOverview()`, voiture de la session marquée) jointe à
+  l'historique post-course ; omise si seule la voiture courante a roulé là.
+- ✅ `records-context.ts` : mots-clés de comparaison FR/EN/ES/DE + IT ajoutés.
+- ✅ Tests `ai.history` (feedback.suite) : 6488 OK, tsc OK.
+- 📋 **Prochaine étape** : l'utilisateur relance la question sur la session BMW de Spa.
+
 ### 2026-10-20 — Sélecteur de modèle IA : un seul champ (flèche = liste, nom = recherche/édition)
 
 - ✅ `AiModelPicker` : fin du double mode `Select` / saisie manuelle. `Combobox` en mode `toggle`

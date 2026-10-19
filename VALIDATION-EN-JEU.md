@@ -143,6 +143,13 @@ Rust) et par une capture synthétique rejouée, pas dans le jeu.
       code tant que la régie tourne.
 - [ ] Téléphone en hauteur : onglets en bas, classement sans défilement en largeur,
       balayage gauche/droite ; couché : une seule barre en haut.
+- [ ] Écran **Pédales** en roulant : barres et trace fluides sur le Wi-Fi (pas de
+      saccade), rapport / régime / volant justes, TC / ABS / répartition comme en jeu.
+- [ ] Écran **Drapeaux** : vert, jaune / FCY, voiture de sécurité, drapeau bleu,
+      damier ; « Stands fermés / ouverts » pendant une neutralisation ; limiteur et
+      vitesse des stands ; menu des stands identique à celui du jeu.
+- [ ] Écran **Pneus** : températures, pressions et usure cohérentes avec la page Live.
+- [ ] Réglages › Écrans affichés : en masquer plusieurs → onglets et balayage suivent.
 
 ## 3. En piste (premiers tours)
 

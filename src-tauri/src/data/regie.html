@@ -34,7 +34,7 @@
   .ico { width:1.25em; height:1.25em; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
   /* ── Mise en page : en-tête, onglets, actions, contenu (seul le contenu défile) ── */
-  #app { height:100%; height:100dvh; display:grid; grid-template-columns:minmax(0,1fr) auto auto; grid-template-rows:auto minmax(0,1fr) auto;
+  #app { height:100%; height:100dvh; display:grid; grid-template-columns:minmax(9rem,1fr) minmax(0,max-content) auto; grid-template-rows:auto minmax(0,1fr) auto;
     grid-template-areas:"hd nav act" "main main main" "dots dots dots"; padding:0 var(--sr) var(--sb) var(--sl); touch-action:pan-y; }
   header { grid-area:hd; display:flex; align-items:center; gap:.6rem; padding:calc(.4rem + var(--st)) .8rem .4rem; min-width:0; }
   header .title { font-weight:700; letter-spacing:.02em; white-space:nowrap; }
@@ -42,7 +42,9 @@
   #live { width:.55rem; height:.55rem; border-radius:50%; background:var(--line); flex:none; }
   #live.ok { background:var(--ok); }
   #live.bad { background:var(--bad); }
-  #tabs { grid-area:nav; display:flex; gap:.4rem; align-items:center; padding:calc(.4rem + var(--st)) .4rem .4rem; }
+  /* Onglets : seulement les écrans activés ; défilent en largeur s'ils sont nombreux. */
+  #tabs { grid-area:nav; display:flex; gap:.4rem; align-items:center; padding:calc(.4rem + var(--st)) .4rem .4rem; overflow-x:auto; scrollbar-width:none; min-width:0; }
+  #tabs::-webkit-scrollbar { display:none; }
   #tabs button { display:flex; align-items:center; gap:.4rem; background:var(--panel); border:1px solid var(--line); border-radius:.55rem; padding:.35rem .8rem; min-height:40px; font-size:.93rem; white-space:nowrap; }
   #tabs button.on { border-color:var(--acc); color:var(--acct); }
   .act { grid-area:act; display:flex; gap:.4rem; align-items:center; padding:calc(.4rem + var(--st)) .8rem .4rem 0; }
@@ -63,19 +65,24 @@
   @media (max-width: 760px) {
     #app { grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"hd act" "main main" "nav nav"; }
     header .title, .act .lbl-txt, #dots { display:none; }
-    #tabs { justify-content:space-around; gap:0; padding:.15rem .25rem; border-top:1px solid var(--line); }
-    #tabs button { flex:1 1 0; flex-direction:column; gap:2px; background:transparent; border:0; border-radius:0; min-height:52px; padding:.25rem .1rem; font-size:.75rem; color:var(--mute); }
+    #tabs { justify-content:flex-start; gap:0; padding:.15rem .25rem; border-top:1px solid var(--line); }
+    #tabs button { flex:1 0 4.4rem; flex-direction:column; gap:2px; background:transparent; border:0; border-radius:0; min-height:52px; padding:.25rem .1rem; font-size:.75rem; color:var(--mute); }
     #tabs button.on { color:var(--acct); box-shadow:inset 0 2px 0 var(--acc); }
     #tabs .ico { width:1.45em; height:1.45em; }
     main { padding:.5rem; }
   }
-  /* Tablette en portrait : la place va au circuit et au temps restant. */
+  /* Tablette : la place va au circuit et au temps restant ; avec beaucoup
+     d'écrans, les onglets passent en icônes (libellé sur l'onglet actif). */
   @media (min-width: 761px) and (max-width: 1100px) {
     header .title, .act .lbl-txt { display:none; }
     #tabs { gap:.3rem; }
     #tabs button { padding:.35rem .6rem; }
   }
-  @media (min-width: 761px) and (max-width: 1000px) { #tabs .ico { display:none; } }
+  @media (min-width: 761px) and (max-width: 1400px) {
+    #tabs.many button:not(.on) span { display:none; }
+    #tabs.many .ico { display:inline-block !important; }
+    header .title { display:none; }
+  }
   /* Téléphone couché / petite hauteur : une seule barre fine en haut. */
   @media (min-width: 761px) and (max-height: 520px) {
     header .title, .act .lbl-txt, #dots { display:none; }
@@ -179,6 +186,39 @@
   html.bare header, html.bare #tabs, html.bare .act, html.bare #dots { display:none; }
   html.bare main { border-top:0; padding-top:calc(.5rem + var(--st)); }
   html.bare #lost { top:calc(.6rem + var(--st)); }
+  /* Choix des écrans (réglages). */
+  .chips { display:flex; flex-wrap:wrap; gap:.4rem; padding:.2rem 0 .6rem; }
+  .chips button { display:flex; align-items:center; gap:.35rem; background:var(--bg); border:1px solid var(--line); border-radius:999px; min-height:40px; padding:.25rem .8rem; color:var(--mute); }
+  .chips button.on { border-color:var(--acc); color:var(--acct); background:var(--soft); }
+  @media (max-height: 520px) { .scr, .scr-h { grid-column:1 / -1; } }
+  /* Pédales. */
+  .ped { display:grid; gap:.65rem; grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 640px) { .ped { grid-template-columns:1fr; } .tube { height:clamp(6rem, 20vh, 11rem); } .trace svg { height:clamp(5rem, 14vh, 8rem); } }
+  .ped .trace { grid-column:1 / -1; }
+  .pbars { display:flex; gap:.8rem; justify-content:center; align-items:flex-end; }
+  .pbar { display:flex; flex-direction:column; align-items:center; gap:.3rem; flex:1; min-width:0; }
+  .pbar .lbl { font-size:.7rem; letter-spacing:.04em; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tube { width:100%; max-width:3.4rem; height:clamp(7rem, 34vh, 18rem); background:var(--line); border-radius:.5rem; position:relative; overflow:hidden; }
+  .tube i { position:absolute; left:0; right:0; bottom:0; height:0; }
+  .gear { font-size:clamp(4rem, calc(18vmin * var(--z)), 9rem); font-weight:800; line-height:1; text-align:center; }
+  .rpm { height:12px; border-radius:6px; background:var(--line); overflow:hidden; }
+  .rpm i { display:block; height:100%; width:0; }
+  .steer { position:relative; height:12px; border-radius:6px; background:var(--line); margin-top:.3rem; }
+  .steer::after { content:""; position:absolute; left:50%; top:0; bottom:0; width:1px; background:var(--mute); }
+  .steer i { position:absolute; top:-3px; left:50%; width:8px; height:18px; margin-left:-4px; border-radius:3px; background:var(--acc); }
+  .trace svg { width:100%; height:clamp(6rem, 22vh, 12rem); display:block; }
+  .kv { display:flex; flex-wrap:wrap; gap:.25rem 1rem; }
+  /* Drapeaux & stands. */
+  .flagbig { grid-column:1 / -1; border-radius:.8rem; padding:clamp(1rem, 4vmin, 2rem); text-align:center; font-weight:800; font-size:clamp(1.8rem, calc(8vmin * var(--z)), 4rem); letter-spacing:.03em; color:#000; }
+  .flagbig .sub { font-size:1.05rem; font-weight:700; margin-top:.3rem; opacity:.85; }
+  .chk { background:repeating-conic-gradient(#111 0 25%, #fff 0 50%) 0 0 / 44px 44px; color:#fff; text-shadow:0 0 6px #000, 0 0 2px #000; }
+  .pill { display:inline-block; padding:.3rem .8rem; border-radius:999px; font-weight:800; }
+  .menu td { padding:.2rem .4rem; white-space:normal; }
+  /* Pneus & freins : disposition de la voiture (avant en haut). */
+  .car4 { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.65rem; }
+  .t3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:3px; margin:.35rem 0; }
+  .t3 span { text-align:center; border-radius:4px; padding:.3rem 0; font-weight:800; }
+  .rel td { font-size:1.1rem; padding:.45rem .4rem; }
   /* Vidéo muette qui garde l'écran allumé (repli sans API Wake Lock) : invisible, sans clic. */
   video.wake { position:fixed; inset:0; width:100%; height:100%; opacity:0; pointer-events:none; z-index:-1; }
 </style>
@@ -207,6 +247,8 @@
 <div id="toast" class="hidden"></div>
 <div id="sheet" class="hidden"><div class="panel">
   <h3 data-t="settings"></h3>
+  <div class="lbl scr-h" data-t="screens"></div>
+  <div id="scr" class="chips scr"></div>
   <div class="row"><span data-t="textSize"></span><span class="seg"><button id="zm" type="button">A−</button><span id="zv" class="mono"></span><button id="zp" type="button">A+</button></span></div>
   <div class="row"><span data-t="keepAwake"></span><button id="awake" class="sw" type="button"></button></div>
   <div class="row"><span data-t="lockOrient"></span><button id="lock" class="sw" type="button"></button></div>
@@ -255,6 +297,45 @@
       hideBars:"Nascondi i menu a schermo intero", tapMenu:"Tocca lo schermo per mostrare i menu.",
       iosHint:"Schermo intero: tocca Condividi e poi «Aggiungi alla schermata Home», quindi apri la direzione gara dall'icona." },
   };
+  // Écrans ajoutés : pédales, drapeaux & stands, pneus & freins, relatif.
+  const L2 = {
+    fr: { t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
+      throttle:"Accélérateur", brake:"Frein", clutch:"Embrayage", steering:"Volant", rpm:"Régime", bias:"Répartition", motorMap:"Carto moteur", trace:"10 dernières secondes",
+      fGreen:"Drapeau vert", fYellow:"Drapeau jaune", fFcy:"Neutralisation (FCY)", fSc:"Voiture de sécurité", fBlue:"Drapeau bleu", fRed:"Séance arrêtée", fChk:"Drapeau à damier", fFormation:"Tour de formation", fCountdown:"Départ imminent", fWaiting:"Avant le départ",
+      y1:"Neutralisation imminente", y2:"Stands fermés", y3:"Stands ouverts aux voitures dans le tour du leader", y4:"Stands ouverts", y5:"Dernier tour de la voiture de sécurité", y6:"Relance", y7:"Course arrêtée",
+      penalties:"Pénalités", trackLimits:"Limites de piste", lastMsg:"Dernier message du jeu", pit:"Stands", limiter:"Limiteur", on:"activé", off:"coupé", pitLimit:"Vitesse des stands",
+      ps0:"En piste", ps1:"Arrêt demandé", ps2:"Entrée des stands", ps3:"À l'arrêt", ps4:"Sortie des stands", stopLen:"Arrêt prévu", pitMenu:"Menu des stands", perLap:"par tour",
+      pressure:"Pression", carcass:"Carcasse", wear:"Gomme restante", flat:"Crevaison", detached:"Roue perdue" },
+    en: { t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
+      throttle:"Throttle", brake:"Brake", clutch:"Clutch", steering:"Steering", rpm:"RPM", bias:"Brake bias", motorMap:"Engine map", trace:"Last 10 seconds",
+      fGreen:"Green flag", fYellow:"Yellow flag", fFcy:"Full course yellow", fSc:"Safety car", fBlue:"Blue flag", fRed:"Session stopped", fChk:"Chequered flag", fFormation:"Formation lap", fCountdown:"Start imminent", fWaiting:"Before the start",
+      y1:"Caution pending", y2:"Pits closed", y3:"Pits open to lead-lap cars", y4:"Pits open", y5:"Safety car's last lap", y6:"Restart", y7:"Race halted",
+      penalties:"Penalties", trackLimits:"Track limits", lastMsg:"Last game message", pit:"Pit lane", limiter:"Pit limiter", on:"on", off:"off", pitLimit:"Pit speed limit",
+      ps0:"On track", ps1:"Stop requested", ps2:"Entering the pits", ps3:"Stopped", ps4:"Leaving the pits", stopLen:"Planned stop", pitMenu:"Pit menu", perLap:"per lap",
+      pressure:"Pressure", carcass:"Carcass", wear:"Tread left", flat:"Puncture", detached:"Wheel off" },
+    es: { t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
+      throttle:"Acelerador", brake:"Freno", clutch:"Embrague", steering:"Volante", rpm:"RPM", bias:"Reparto de frenada", motorMap:"Mapa motor", trace:"Últimos 10 segundos",
+      fGreen:"Bandera verde", fYellow:"Bandera amarilla", fFcy:"Neutralización (FCY)", fSc:"Coche de seguridad", fBlue:"Bandera azul", fRed:"Sesión detenida", fChk:"Bandera a cuadros", fFormation:"Vuelta de formación", fCountdown:"Salida inminente", fWaiting:"Antes de la salida",
+      y1:"Neutralización inminente", y2:"Boxes cerrados", y3:"Boxes abiertos para los coches en la vuelta del líder", y4:"Boxes abiertos", y5:"Última vuelta del coche de seguridad", y6:"Relanzamiento", y7:"Carrera detenida",
+      penalties:"Penalizaciones", trackLimits:"Límites de pista", lastMsg:"Último mensaje del juego", pit:"Boxes", limiter:"Limitador", on:"activado", off:"desactivado", pitLimit:"Velocidad en boxes",
+      ps0:"En pista", ps1:"Parada solicitada", ps2:"Entrando en boxes", ps3:"Parado", ps4:"Saliendo de boxes", stopLen:"Parada prevista", pitMenu:"Menú de boxes", perLap:"por vuelta",
+      pressure:"Presión", carcass:"Carcasa", wear:"Goma restante", flat:"Pinchazo", detached:"Rueda perdida" },
+    de: { t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
+      throttle:"Gas", brake:"Bremse", clutch:"Kupplung", steering:"Lenkung", rpm:"Drehzahl", bias:"Bremsbalance", motorMap:"Motorkennfeld", trace:"Letzte 10 Sekunden",
+      fGreen:"Grüne Flagge", fYellow:"Gelbe Flagge", fFcy:"Full Course Yellow", fSc:"Safety-Car", fBlue:"Blaue Flagge", fRed:"Session unterbrochen", fChk:"Zielflagge", fFormation:"Einführungsrunde", fCountdown:"Start steht bevor", fWaiting:"Vor dem Start",
+      y1:"Neutralisation steht bevor", y2:"Boxengasse geschlossen", y3:"Boxengasse offen für Autos in der Führungsrunde", y4:"Boxengasse offen", y5:"Letzte Runde des Safety-Cars", y6:"Restart", y7:"Rennen gestoppt",
+      penalties:"Strafen", trackLimits:"Track Limits", lastMsg:"Letzte Spielmeldung", pit:"Boxengasse", limiter:"Limiter", on:"an", off:"aus", pitLimit:"Tempolimit Boxengasse",
+      ps0:"Auf der Strecke", ps1:"Stopp angefordert", ps2:"Einfahrt in die Box", ps3:"Steht", ps4:"Ausfahrt aus der Box", stopLen:"Geplanter Stopp", pitMenu:"Boxenmenü", perLap:"pro Runde",
+      pressure:"Druck", carcass:"Karkasse", wear:"Restprofil", flat:"Reifenschaden", detached:"Rad verloren" },
+    it: { t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
+      throttle:"Acceleratore", brake:"Freno", clutch:"Frizione", steering:"Sterzo", rpm:"Giri motore", bias:"Ripartizione frenata", motorMap:"Mappa motore", trace:"Ultimi 10 secondi",
+      fGreen:"Bandiera verde", fYellow:"Bandiera gialla", fFcy:"Neutralizzazione (FCY)", fSc:"Safety car", fBlue:"Bandiera blu", fRed:"Sessione interrotta", fChk:"Bandiera a scacchi", fFormation:"Giro di formazione", fCountdown:"Partenza imminente", fWaiting:"Prima della partenza",
+      y1:"Neutralizzazione imminente", y2:"Box chiusi", y3:"Box aperti alle auto a pieni giri", y4:"Box aperti", y5:"Ultimo giro della safety car", y6:"Ripartenza", y7:"Gara fermata",
+      penalties:"Penalità", trackLimits:"Limiti della pista", lastMsg:"Ultimo messaggio del gioco", pit:"Box", limiter:"Limitatore", on:"attivo", off:"spento", pitLimit:"Limite di velocità ai box",
+      ps0:"In pista", ps1:"Sosta richiesta", ps2:"Ingresso ai box", ps3:"Fermo", ps4:"Uscita dai box", stopLen:"Sosta prevista", pitMenu:"Menu box", perLap:"al giro",
+      pressure:"Pressione", carcass:"Carcassa", wear:"Battistrada residuo", flat:"Foratura", detached:"Ruota persa" },
+  };
+  for (const k in L2) Object.assign(L[k], L2[k]);
   const lang = (navigator.language || "en").slice(0, 2).toLowerCase();
   const T = L[lang] || L.en;
   document.documentElement.lang = L[lang] ? lang : "en";
@@ -279,7 +360,20 @@
   // Valeurs par défaut = comportement d'origine pour le texte et les colonnes
   // (« Toutes » redonne le tableau complet) ; écran allumé et orientation
   // bloquée désactivables ici.
-  const P = { z: 1, awake: true, lock: true, cols: "auto", bars: true };
+  // Écrans proposés, dans l'ordre des onglets ; chacun se masque dans les réglages.
+  const TPLS = ["timing", "relative", "engineer", "flags", "inputs", "tyres", "map", "duel", "tv"];
+  const ICONS = {
+    timing: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+    relative: '<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="12" cy="12" r="2.4" style="fill:currentColor"/>',
+    engineer: '<path d="M3.5 18a9 9 0 1 1 17 0M12 14l4-4"/>',
+    flags: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+    inputs: '<path d="M7 20V9M12 20V5M17 20v-7"/>',
+    tyres: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+    map: '<path d="M7 4h7a5 5 0 0 1 0 10H9a3 3 0 0 0 0 6h9"/>',
+    duel: '<path d="M5 8h13l-3-3M19 16H6l3 3"/>',
+    tv: '<path d="M3 5h18v12H3zM8 21h8"/>',
+  };
+  const P = { z: 1, awake: true, lock: true, cols: "auto", bars: true, off: [] };
   try { Object.assign(P, JSON.parse(localStorage.getItem("regie_prefs") || "{}")); } catch { /* réglages illisibles : défauts */ }
   function applyPrefs() {
     P.z = Math.min(1.6, Math.max(0.8, Math.round(P.z * 10) / 10));
@@ -290,7 +384,20 @@
     $("lock").setAttribute("aria-pressed", String(!!P.lock));
     $("bars").setAttribute("aria-pressed", String(!!P.bars));
     document.querySelectorAll("[data-cols]").forEach((b) => b.classList.toggle("on", b.dataset.cols === P.cols));
+    if (!Array.isArray(P.off)) P.off = [];
+    $("scr").innerHTML = TPLS.map((k) => `<button type="button" data-scr="${k}" class="${P.off.includes(k) ? "" : "on"}"><svg class="ico" viewBox="0 0 24 24">${ICONS[k]}</svg>${esc(T["t_" + k])}</button>`).join("");
   }
+  // Écrans activés (au moins un : le dernier ne se désactive pas).
+  const enabled = () => { const e = TPLS.filter((k) => !P.off.includes(k)); return e.length ? e : ["timing"]; };
+  $("scr").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-scr]"); if (!b) return;
+    const k = b.dataset.scr;
+    if (P.off.includes(k)) P.off = P.off.filter((x) => x !== k);
+    else if (enabled().length <= 1) { toast(T.atLeastOne); return; }
+    else P.off = [...P.off, k];
+    savePrefs();
+    if (!enabled().includes(tpl)) setTpl(enabled()[0]); else tabs();
+  });
   function savePrefs() { localStorage.setItem("regie_prefs", JSON.stringify(P)); applyPrefs(); if (last) render(); }
   $("zm").onclick = () => { P.z -= 0.1; savePrefs(); };
   $("zp").onclick = () => { P.z += 0.1; savePrefs(); };
@@ -311,14 +418,6 @@
   // serveur en change à chaque démarrage).
   let token = localStorage.getItem("regie_token") || sessionStorage.getItem("regie_token") || "";
   function dropToken() { token = ""; localStorage.removeItem("regie_token"); sessionStorage.removeItem("regie_token"); }
-  const TPLS = ["timing", "engineer", "map", "duel", "tv"];
-  const ICONS = {
-    timing: '<path d="M4 6h16M4 12h16M4 18h16"/>',
-    engineer: '<path d="M3.5 18a9 9 0 1 1 17 0M12 14l4-4"/>',
-    map: '<path d="M7 4h7a5 5 0 0 1 0 10H9a3 3 0 0 0 0 6h9"/>',
-    duel: '<path d="M5 8h13l-3-3M19 16H6l3 3"/>',
-    tv: '<path d="M3 5h18v12H3zM8 21h8"/>',
-  };
   let tpl = (location.hash.match(/tpl=(\w+)/) || [])[1] || localStorage.getItem("regie_tpl") || "timing";
   if (!TPLS.includes(tpl)) tpl = "timing";
   let track = null, trackAt = 0, last = null, fails = 0, timer = null, busy = false, shownTpl = "";
@@ -350,20 +449,24 @@
       return await r.json();
     } finally { clearTimeout(to); }
   }
-  function showLogin() { if (timer) { clearInterval(timer); timer = null; } setLost(false); $("app").classList.add("hidden"); $("login").classList.remove("hidden"); $("code").value = ""; $("code").focus(); }
+  function showLogin() { if (timer) { clearInterval(timer); timer = null; } inputsLoop(false); setLost(false); $("app").classList.add("hidden"); $("login").classList.remove("hidden"); $("code").value = ""; $("code").focus(); }
 
   function setTpl(k, dir) {
-    tpl = k; localStorage.setItem("regie_tpl", tpl); tabs(); render();
+    tpl = k; localStorage.setItem("regie_tpl", tpl); tabs(); render(); inputsLoop(tpl === "inputs");
     const v = $("view");
     if (dir) { v.classList.remove("in-r", "in-l"); void v.offsetWidth; v.classList.add(dir > 0 ? "in-r" : "in-l"); }
   }
   $("view").addEventListener("animationend", () => $("view").classList.remove("in-r", "in-l"));
   function tabs() {
-    $("tabs").innerHTML = TPLS.map((k) => `<button type="button" data-k="${k}" class="${k === tpl ? "on" : ""}"><svg class="ico" viewBox="0 0 24 24">${ICONS[k]}</svg><span>${esc(T["t_" + k])}</span></button>`).join("");
-    $("tabs").querySelectorAll("button").forEach((b) => b.onclick = () => setTpl(b.dataset.k));
-    $("dots").innerHTML = TPLS.map((k) => `<i class="${k === tpl ? "on" : ""}"></i>`).join("");
+    if (!enabled().includes(tpl)) tpl = enabled()[0];
+    $("tabs").innerHTML = enabled().map((k) => `<button type="button" data-k="${k}" class="${k === tpl ? "on" : ""}"><svg class="ico" viewBox="0 0 24 24">${ICONS[k]}</svg><span>${esc(T["t_" + k])}</span></button>`).join("");
+    $("tabs").querySelectorAll("button").forEach((b) => { b.onclick = () => setTpl(b.dataset.k); b.title = T["t_" + b.dataset.k]; });
+    $("tabs").classList.toggle("many", enabled().length > 5);
+    $("dots").innerHTML = enabled().map((k) => `<i class="${k === tpl ? "on" : ""}"></i>`).join("");
+    const on = $("tabs").querySelector("button.on");
+    if (on && on.scrollIntoView) on.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
-  const step = (n) => { const i = TPLS.indexOf(tpl); setTpl(TPLS[(i + n + TPLS.length) % TPLS.length], n); };
+  const step = (n) => { const e = enabled(); const i = Math.max(0, e.indexOf(tpl)); setTpl(e[(i + n + e.length) % e.length], n); };
   addEventListener("keydown", (e) => { if ($("app").classList.contains("hidden") || sheetOpen()) return; if (e.key === "ArrowRight") step(1); else if (e.key === "ArrowLeft") step(-1); });
 
   // ── Plein écran, orientation, écran allumé ───────────────────────────────
@@ -481,6 +584,24 @@
       if (String(e && e.message) !== "auth" && ++fails > 3) { $("hdr").textContent = T.lost; setLost(true); }
     } finally { busy = false; }
   }
+  // Écran Pédales : trame minimale ~15 fois par seconde, seulement quand il est affiché.
+  const HMAX = 150; // 10 s de trace
+  let inp = null, ibusy = false, itimer = 0;
+  const hist = [];
+  function inputsLoop(on) {
+    if (on && !itimer) itimer = setInterval(itick, 66);
+    else if (!on && itimer) { clearInterval(itimer); itimer = 0; }
+  }
+  async function itick() {
+    if (ibusy || document.hidden || tpl !== "inputs") return;
+    ibusy = true;
+    try {
+      inp = await get("/api/inputs");
+      const t = inp && inp.telemetry;
+      if (t) { hist.push([t.throttle || 0, t.brake || 0]); if (hist.length > HMAX) hist.shift(); }
+      updInputs();
+    } catch { /* la coupure est signalée par l'interrogation principale */ } finally { ibusy = false; }
+  }
   // Thème de l'app : posé dans la page par le serveur, suivi à chaque trame.
   function setTheme(t) {
     const th = t === "dark" ? "dark" : "light";
@@ -495,6 +616,7 @@
   function start() {
     $("login").classList.add("hidden"); $("app").classList.remove("hidden");
     tabs(); tick(); if (!timer) timer = setInterval(tick, 1000);
+    inputsLoop(tpl === "inputs");
     updBars();
     if (P.awake) keepAwake(true);
   }
@@ -605,6 +727,127 @@
       <div class="card" style="grid-column:1/-1">${mapSvg(d, { w: bx.w, h: Math.min(bx.h, mh) }, `max-height:${mh}px`)}</div></div>`;
   }
 
+  const pct = (x) => Math.round(Math.max(0, Math.min(1, x || 0)) * 100);
+
+  // 6. Relatif : les voitures juste devant et derrière (même calcul que le widget Relative).
+  function tplRelative(d) {
+    const p = me(d);
+    if (!p) return `<div class="empty">${T.noPlayer}</div>`;
+    const multi = classOrder(d).length > 1;
+    let rows = (d.standings || []).map((s) => ({ s, rel: s.time_behind_leader - p.time_behind_leader })).sort((a, b) => a.rel - b.rel);
+    const pi = rows.findIndex((r) => r.s.is_player);
+    rows = rows.slice(Math.max(0, pi - 5), pi + 6);
+    return `<div class="card"><table class="mono rel">` + rows.map(({ s, rel }) =>
+      `<tr class="${s.is_player ? "me" : ""}"><td>${multi ? s.class_position : s.position}</td><td>${clsTag(s.vehicle_class)}</td>` +
+      `<td class="c-drv">${s.in_pits ? `<span class="pit">${T.inPit}</span>` : ""}${esc(s.driver)}</td>` +
+      `<td class="r" style="color:${s.is_player ? "var(--acct)" : rel < 0 ? "var(--ok)" : "var(--bad)"}">${s.is_player ? T.none : (rel > 0 ? "+" : "") + rel.toFixed(1)}</td>` +
+      `<td class="r c-best">${lapT(s.last_lap_time)}</td></tr>`).join("") + `</table></div>`;
+  }
+
+  // 7. Drapeaux & stands : drapeau en grand, pénalités, messages du jeu, et tout l'arrêt au stand.
+  // Les drapeaux par secteur ne sont pas affichés : la donnée de LMU n'est pas fiable (comme dans l'app).
+  function flagInfo(d) {
+    const f = d.flags || {}, r = d.rules || {}, p = d.player || {};
+    const ph = f.game_phase, y = f.yellow_flag_state || 0;
+    if (ph === 8 || p.finish_status === 1) return { cls: "chk", txt: T.fChk };
+    if (ph === 7) return { bg: "#FF1D43", fg: "#fff", txt: T.fRed };
+    if (r.safety_car_exists && r.safety_car_active) return { bg: "#facc15", txt: T.fSc };
+    if (ph === 6) return { bg: "#facc15", txt: T.fFcy };
+    if (y > 0 && y !== 6) return { bg: "#facc15", txt: T.fYellow };
+    if (p.flag === 6) return { bg: "#3b82f6", fg: "#fff", txt: T.fBlue };
+    if (ph === 5) return { bg: "#22c55e", txt: T.fGreen };
+    if (ph === 3) return { bg: "var(--line)", fg: "var(--fg)", txt: T.fFormation };
+    if (ph === 4) return { bg: "var(--line)", fg: "var(--fg)", txt: T.fCountdown };
+    return { bg: "var(--line)", fg: "var(--fg)", txt: T.fWaiting };
+  }
+  function tplFlags(d) {
+    const f = d.flags || {}, p = d.player || {}, x = d.extended || {}, tel = d.telemetry || {};
+    const y = f.yellow_flag_state || 0, fi = flagInfo(d);
+    const ys = y > 0 ? T["y" + y] : "";
+    const pen = p.num_penalties || 0;
+    const tl = x.track_limits_per_penalty > 0 ? `${x.track_limits || 0} / ${x.track_limits_per_penalty}` : x.track_limits > 0 ? String(x.track_limits) : T.none;
+    const msg = x.history_message || x.status_message || "";
+    const lim = !!tel.speed_limiter;
+    const pitKmh = x.pit_speed_limit > 0 ? Math.round(x.pit_speed_limit * 3.6) : 0;
+    const mine = me(d) || {};
+    const fast = mine.in_pits && pitKmh > 0 && tel.speed_kmh > pitKmh + 0.5;
+    const pit = d.rest && d.rest.pit && d.rest.pit.state === "fresh" ? d.rest.pit.data : null;
+    const menu = pit && Array.isArray(pit.pit_menu) ? pit.pit_menu.slice(0, 10) : [];
+    const perLap = pit && pit.energy_per_lap > 0 ? `${Math.round(pit.energy_per_lap * 1000) / 10}% ${T.perLap}` : pit && pit.fuel_per_lap > 0 ? `${pit.fuel_per_lap.toFixed(2)} L ${T.perLap}` : "";
+    return `<div class="grid g2">
+      <div class="flagbig ${fi.cls || ""}" style="${fi.bg ? `background:${fi.bg};` : ""}${fi.fg ? `color:${fi.fg};` : ""}">${esc(fi.txt)}${ys ? `<div class="sub">${esc(ys)}</div>` : ""}</div>
+      <div class="card"><div class="lbl">${T.penalties}</div><div class="big mono" style="${pen > 0 ? "color:var(--bad)" : ""}">${pen}</div>
+        <div class="lbl" style="margin-top:.6rem">${T.trackLimits}</div><div class="big mono">${tl}</div>
+        ${msg ? `<div class="lbl" style="margin-top:.6rem">${T.lastMsg}</div><div class="mono">${esc(msg)}</div>` : ""}</div>
+      <div class="card"><div class="lbl">${T.pit}</div>
+        <div class="kv" style="align-items:center;margin:.35rem 0"><span class="pill" style="background:${lim ? "var(--ok)" : "var(--line)"};color:${lim ? "#000" : "var(--fg)"}">${T.limiter} ${lim ? T.on : T.off}</span>
+          ${pitKmh ? `<span class="mono">${T.pitLimit} ${pitKmh} km/h</span>` : ""}</div>
+        ${mine.in_pits ? `<div class="big mono" style="${fast ? "color:var(--bad)" : ""}">${Math.round(tel.speed_kmh || 0)} km/h</div>` : ""}
+        <div class="kv mono" style="margin:.3rem 0"><span>${esc(T["ps" + (p.pit_state || 0)] || T.ps0)}</span>${y >= 2 && y <= 4 ? `<span>${esc(T["y" + y])}</span>` : ""}<span>${T.pits} ${p.num_pitstops || 0}</span></div>
+        ${pit && pit.pit_stop_length_s != null ? `<div class="kv mono"><span>${T.stopLen} ${Math.round(pit.pit_stop_length_s)} s</span>${perLap ? `<span>${perLap}</span>` : ""}</div>` : ""}
+        ${menu.length ? `<div class="lbl" style="margin-top:.6rem">${T.pitMenu}</div><table class="mono menu">${menu.map((m) => `<tr><td>${esc(m.name)}</td><td class="r">${esc(m.text)}</td></tr>`).join("")}</table>` : ""}</div>
+    </div>`;
+  }
+
+  // 8. Pédales : barres, rapport, vitesse, régime, volant, aides, trace des 10 dernières secondes.
+  function tplInputs(d) {
+    if (!d.telemetry && !(inp && inp.telemetry)) return `<div class="empty">${T.noPlayer}</div>`;
+    const bar = (id, label, color) => `<div class="pbar"><div class="tube"><i id="pb-${id}" style="background:${color}"></i></div><div class="lbl">${label}</div><div class="mono" id="pv-${id}">0%</div></div>`;
+    return `<div class="ped">
+      <div class="card pbars">${bar("c", T.clutch, "#3b82f6")}${bar("b", T.brake, "var(--bad)")}${bar("t", T.throttle, "var(--ok)")}</div>
+      <div class="card"><div class="gear mono" id="pi-g">N</div>
+        <div class="big mono" style="text-align:center"><span id="pi-v">0</span> <span class="meta">km/h</span></div>
+        <div class="lbl" style="margin-top:.6rem">${T.rpm} <span class="mono" id="pi-r"></span></div><div class="rpm"><i id="pi-rb"></i></div>
+        <div class="lbl" style="margin-top:.6rem">${T.steering} <span class="mono" id="pi-s"></span></div><div class="steer"><i id="pi-sb"></i></div>
+        <div class="kv mono meta" style="margin-top:.7rem" id="pi-aids"></div></div>
+      <div class="card trace"><div class="lbl">${T.trace}</div><svg viewBox="0 0 300 100" preserveAspectRatio="none">
+        <polyline id="pt-t" fill="none" style="stroke:var(--ok)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+        <polyline id="pt-b" fill="none" style="stroke:var(--bad)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg></div>
+    </div>`;
+  }
+  function updInputs() {
+    if (tpl !== "inputs" || !$("pi-g")) return;
+    const t = (inp && inp.telemetry) || (last && last.telemetry);
+    if (!t) return;
+    const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+    for (const [k, v] of [["c", t.clutch], ["b", t.brake], ["t", t.throttle]]) { $("pb-" + k).style.height = pct(v) + "%"; set("pv-" + k, pct(v) + "%"); }
+    set("pi-g", t.gear < 0 ? "R" : t.gear === 0 ? "N" : String(t.gear));
+    set("pi-v", Math.round(t.speed_kmh || 0));
+    const rr = t.max_rpm > 0 ? Math.min(1, (t.rpm || 0) / t.max_rpm) : 0;
+    set("pi-r", Math.round(t.rpm || 0) + (t.max_rpm > 0 ? " / " + Math.round(t.max_rpm) : ""));
+    const rb = $("pi-rb"); rb.style.width = (rr * 100).toFixed(1) + "%"; rb.style.background = rr > 0.97 ? "var(--bad)" : rr > 0.9 ? "var(--acc)" : "var(--ok)";
+    const sv = Math.max(-1, Math.min(1, t.steering || 0)); $("pi-sb").style.left = (50 + sv * 50) + "%"; set("pi-s", Math.round(sv * 100) + "%");
+    const src = inp || {}, x = (last && last.extended) || {};
+    const lvl = (v, m) => v == null ? T.none : m > 0 ? `${v}/${m}` : String(v);
+    // Répartition : fraction arrière (0-1) ou déjà en % (même lecture que le widget Aides).
+    const bbR = (t.rear_brake_bias || 0) > 1.5 ? t.rear_brake_bias : (t.rear_brake_bias || 0) * 100;
+    $("pi-aids").innerHTML = `<span>TC ${lvl(src.tc ?? x.tc, src.tc_max ?? x.tc_max)}</span><span>ABS ${lvl(src.abs ?? x.abs, src.abs_max ?? x.abs_max)}</span>` +
+      `<span>${T.bias} ${bbR > 0 ? (100 - bbR).toFixed(1) + ":" + bbR.toFixed(1) : T.none}</span><span>${T.motorMap} ${(src.motor_map ?? x.motor_map) || T.none}</span>`;
+    if (hist.length > 1) {
+      const pts = (k) => hist.map((h, i) => `${(i / (HMAX - 1) * 300).toFixed(1)},${(98 - Math.max(0, Math.min(1, h[k])) * 96).toFixed(1)}`).join(" ");
+      $("pt-t").setAttribute("points", pts(0)); $("pt-b").setAttribute("points", pts(1));
+    }
+  }
+
+  // 9. Pneus & freins : les quatre roues à leur place (avant en haut).
+  const tempBg = (t) => t <= 0 ? "var(--line)" : t > 110 ? "#FF1D43" : t > 95 ? "#eab308" : t < 70 ? "#38bdf8" : "#00c896";
+  function tplTyres(d) {
+    const tel = d.telemetry;
+    if (!tel || !Array.isArray(tel.wheels) || tel.wheels.length < 4) return `<div class="empty">${T.noPlayer}</div>`;
+    const v = d.rest && d.rest.vehicle && d.rest.vehicle.state === "fresh" ? d.rest.vehicle.data : null;
+    const pads = v && Array.isArray(v.brake_condition) && v.brake_condition.length === 4 ? v.brake_condition : null;
+    const cell = (t) => `<span style="background:${tempBg(t)};color:${t > 110 ? "#fff" : t > 0 ? "#000" : "var(--mute)"}">${t > 0 ? Math.round(t) : T.none}</span>`;
+    return `<div class="car4">` + tel.wheels.slice(0, 4).map((wh, k) => {
+      const wear = Math.max(0, Math.min(100, wh.wear || 0));
+      return `<div class="card"><div class="lbl">${["FL", "FR", "RL", "RR"][k]} · ${esc(k < 2 ? tel.front_compound : tel.rear_compound)}</div>
+        <div class="t3 mono">${(wh.temp3 || [0, 0, 0]).map(cell).join("")}</div>
+        <div class="kv mono"><span>${T.carcass} ${Math.round(wh.temp || 0)}°</span><span>${T.pressure} ${Math.round(wh.pressure || 0)} kPa</span></div>
+        <div class="kv mono"><span>${T.wear} ${Math.round(wear)}%</span><span>${T.brake} ${wh.brake_temp > 0 ? Math.round(wh.brake_temp) + "°" : T.none}</span>${pads ? `<span>${T.pads} ${Math.round(Math.min(1, pads[k]) * 100)}%</span>` : ""}</div>
+        <div class="bar" style="margin-top:.35rem"><i style="width:${wear}%;background:${wear < 30 ? "var(--bad)" : wear < 60 ? "#eab308" : "var(--ok)"}"></i></div>
+        ${wh.flat ? `<div class="pill" style="margin-top:.4rem;background:var(--bad);color:#fff">${T.flat}</div>` : ""}${wh.detached ? `<div class="pill" style="margin-top:.4rem;background:var(--bad);color:#fff">${T.detached}</div>` : ""}</div>`;
+    }).join("") + `</div>`;
+  }
+
   function render() {
     const d = last; const v = $("view");
     // Pendant un geste, on attend la fin : le contenu ne saute pas sous le doigt.
@@ -613,13 +856,16 @@
     if (!d || !d.connected || !d.session) { $("hdr").textContent = T.offline; $("live").className = ""; v.innerHTML = `<div class="empty">${T.offline}</div>`; shownTpl = ""; return; }
     $("live").className = $("app").classList.contains("stale") ? "bad" : "ok";
     $("hdr").textContent = `${d.session.track} · ${remaining(d)}`;
-    const f = { timing: tplTiming, engineer: tplEngineer, map: tplMap, duel: tplDuel, tv: tplTv }[tpl] || tplTiming;
+    const f = { timing: tplTiming, relative: tplRelative, engineer: tplEngineer, flags: tplFlags, inputs: tplInputs, tyres: tplTyres, map: tplMap, duel: tplDuel, tv: tplTv }[tpl] || tplTiming;
     // Rafraîchi chaque seconde : défilements (vertical et tableaux) conservés.
     const same = shownTpl === tpl;
+    // Pédales : la structure reste en place, seules les valeurs bougent (~15 fois par seconde).
+    if (tpl === "inputs" && same && $("pi-g")) { updInputs(); return; }
     const top = v.scrollTop, xs = [...v.querySelectorAll(".card")].map((c) => c.scrollLeft);
     v.innerHTML = f(d);
     if (same) { v.querySelectorAll(".card").forEach((c, i) => { if (xs[i]) c.scrollLeft = xs[i]; }); v.scrollTop = top; } else v.scrollTop = 0;
     shownTpl = tpl;
+    if (tpl === "inputs") updInputs();
   }
 
   if (token) start(); else showLogin();

@@ -6,7 +6,8 @@
 //!   gabarits au choix sur la tablette) ;
 //! - `POST /api/login` : code à 6 chiffres → jeton de session (mémoire seule) ;
 //! - `GET /api/live` : dernière trame live allégée (sans tracé) ;
-//! - `GET /api/track` : tracé, voie des stands, bornes de secteurs.
+//! - `GET /api/track` : tracé, voie des stands, bornes de secteurs ;
+//! - `GET /api/inputs` : pédales, volant, rapport, régime (écran Pédales, ~15 Hz).
 //!
 //! Garde-fous : écoute sur l'adresse du réseau local (pas `0.0.0.0`), code
 //! comparé en temps constant, 5 essais ratés par adresse → 60 s de blocage,
@@ -204,6 +205,23 @@ pub fn light_frame(v: Value) -> Value {
     v
 }
 
+/// Trame minimale de l'écran Pédales : interrogée ~15 fois par seconde, elle ne
+/// porte que la télémétrie de la voiture (sans les roues) et les aides.
+pub fn inputs_frame(v: &Value) -> Value {
+    let mut tel = v.get("telemetry").cloned().unwrap_or(Value::Null);
+    if let Some(o) = tel.as_object_mut() {
+        o.remove("wheels");
+        o.remove("damage_zones");
+    }
+    let x = |k: &str| v.pointer(&format!("/extended/{k}")).cloned().unwrap_or(Value::Null);
+    serde_json::json!({
+        "connected": v.get("connected").cloned().unwrap_or(Value::Bool(false)),
+        "telemetry": tel,
+        "tc": x("tc"), "tc_max": x("tc_max"), "abs": x("abs"), "abs_max": x("abs_max"),
+        "motor_map": x("motor_map"),
+    })
+}
+
 fn bearer(req: &Request) -> Option<&str> {
     req.headers.get("authorization").and_then(|v| v.strip_prefix("Bearer ")).map(str::trim)
 }
@@ -291,7 +309,7 @@ fn handle(stream: TcpStream, peer: IpAddr, sh: &Shared) {
                 }
             }
         }
-        ("GET", "/api/live") | ("GET", "/api/track") => {
+        ("GET", "/api/live") | ("GET", "/api/track") | ("GET", "/api/inputs") => {
             if !authorized(sh, &req) {
                 json(&stream, "401 Unauthorized", &serde_json::json!({"error": "auth"}));
                 return;
@@ -307,6 +325,8 @@ fn handle(stream: TcpStream, peer: IpAddr, sh: &Shared) {
                     o.insert("ui_theme".into(), Value::from(theme_name()));
                 }
                 v
+            } else if path == "/api/inputs" {
+                inputs_frame(&frame)
             } else {
                 let pick = |k: &str| frame.get(k).cloned().unwrap_or(Value::Null);
                 serde_json::json!({
@@ -503,6 +523,17 @@ mod tests {
         assert!(ok.starts_with("HTTP/1.1 200"), "{ok}");
         let rebound = req(format!("GET / HTTP/1.1\r\nHost: evil.example:{port}\r\n\r\n"));
         assert!(rebound.starts_with("HTTP/1.1 421"));
+    }
+
+    #[test]
+    fn inputs_frame_is_minimal() {
+        let v = serde_json::json!({"connected": true, "standings": [1, 2],
+            "telemetry": {"throttle": 0.8, "brake": 0.1, "wheels": [1, 2, 3, 4], "damage_zones": [0]},
+            "extended": {"tc": 3, "abs": 2, "status_message": "x"}});
+        let i = inputs_frame(&v);
+        assert_eq!(i["telemetry"]["throttle"], 0.8);
+        assert!(i["telemetry"].get("wheels").is_none() && i.get("standings").is_none());
+        assert_eq!((i["tc"].as_i64(), i["abs"].as_i64()), (Some(3), Some(2)));
     }
 
     #[test]

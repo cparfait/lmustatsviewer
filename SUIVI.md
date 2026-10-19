@@ -921,6 +921,41 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-19 — Régie tablette : écrans activables + Pédales, Drapeaux & stands, Pneus, Relatif
+
+**Demande** : pouvoir activer / désactiver les écrans proposés ; ajouter des écrans
+(télémétrie pédales, drapeaux avec les stands intégrés, etc.).
+
+- ✅ **Écrans activables** (réglages de la tablette, `localStorage`, clé `off` = écrans masqués
+  → un écran ajouté plus tard est visible par défaut) ; au moins un reste ; onglets, points et
+  balayage ne parcourent que les écrans activés ; onglets défilants, en icônes sur tablette
+  quand > 5 écrans (libellé sur l'onglet actif) pour garder circuit + temps restant.
+- ✅ **Pédales** : barres embrayage / frein / accélérateur, rapport, vitesse, régime (couleur à
+  90 / 97 %), volant, TC / ABS / répartition / carto, trace 10 s. Route **`/api/inputs`**
+  (`inputs_frame` : télémétrie sans roues ni zones de dégâts + aides), interrogée toutes les
+  66 ms seulement sur cet écran (mesuré : ~15 Hz), structure HTML posée une fois puis valeurs
+  mises à jour en place. Répartition lue comme le widget Aides (fraction ou %).
+- ✅ **Drapeaux & stands** : même logique que l'ingénieur (`flagFromPhase` : phase 6 FCY,
+  7 arrêt, 8 fin ; `yellow_flag_state` > 0 et ≠ 6 jaune ; bleu = `player.flag` 6) + voiture de
+  sécurité (`rules`) + damier ; état de neutralisation 1-7 (`frozenOrder.ts`) ; pénalités,
+  limites de piste (`track_limits` / `_per_penalty`), dernier message du jeu (texte brut) ;
+  stands : limiteur, vitesse des stands (m/s × 3,6), vitesse en voie (rouge au-delà), état de
+  l'arrêt (`pit_state` 0-4), stands ouverts / fermés, arrêts, arrêt prévu, conso officielle,
+  menu des stands (REST, lecture seule). **Drapeaux par secteur non affichés** : donnée LMU non
+  fiable (`sectorFlags.ts`, désactivée dans toute l'app).
+- ✅ **Pneus & freins** : 4 roues en disposition voiture, températures gauche / centre / droite
+  (seuils de la page Live), carcasse, pression, gomme restante, frein, plaquettes, crevaison.
+- ✅ **Relatif** : même calcul que le widget Relative (retard au leader − le mien), 5 voitures
+  de chaque côté.
+- ✅ Vérifié sur le faux serveur (375 × 812, 812 × 375, 1024 × 768) : 4 écrans, choix des
+  écrans et garde « au moins un », ~15 Hz sur Pédales. Corrigé en route : barres trop hautes
+  sur téléphone, en-tête masqué par 9 onglets sur tablette, libellés des pédales serrés.
+- ⚠️ `cargo test` impossible dans le dossier principal : `stt_parakeet.rs` (chantier de
+  reconnaissance vocale en cours dans une autre session) ne compile pas. Tests de la régie
+  passés sur une copie propre de `HEAD` + fichiers de la régie (`C:\tmp\regie-check`).
+- 📋 **Prochaine étape** : essai en piste de Pédales (fluidité sur Wi-Fi) et Drapeaux (FCY,
+  voiture de sécurité, drapeau bleu, menu des stands) — ajouté à `VALIDATION-EN-JEU.md` § 2.
+
 ### 2026-10-19 — Régie tablette : thème de l'app, mention du logiciel, plein écran sans menus
 
 **Retour mainteneur** : écran d'accueil (connexion) au même thème que l'app en cours, avec une

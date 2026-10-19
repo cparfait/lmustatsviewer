@@ -325,6 +325,87 @@
   .dash .limtag { grid-area:gear; align-self:end; justify-self:center; }
   /* Carte seule. */
   .page.map1 { grid-template-rows:1fr; }
+  /* ── Finitions ──────────────────────────────────────────────────────────────
+     Chiffres : police système (SF sur iPhone/iPad, Roboto sur Android) en chiffres
+     tabulaires — lisibles d'un coup d'œil, largeur fixe (rien ne saute à 1-15 Hz).
+     Couleurs des temps : violet = meilleur de la classe, vert = meilleur personnel. */
+  :root { --radius:14px; --ease:cubic-bezier(.2, 0, 0, 1); --purple:#9333ea; --green:#16a34a; --amber:#f59e0b;
+    --shadow:0 1px 2px rgba(15,23,42,.06), 0 6px 20px rgba(15,23,42,.06);
+    --num:system-ui, -apple-system, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  [data-theme="dark"] { --purple:#c084fc; --green:#22c55e; --shadow:inset 0 1px 0 rgba(255,255,255,.04); }
+  body { font-family:var(--num); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  .mono { font-family:var(--num); font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1; }
+  .big, .huge, .gear, .gbig, .gnum, .flagbig { letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .card { border-radius:var(--radius); box-shadow:var(--shadow); }
+  .lbl { font-weight:600; letter-spacing:.09em; }
+  /* Barres du haut et du bas : surface pleine, séparées par un filet. */
+  header, .act { background:var(--panel); }
+  @media (min-width: 761px) { #tabs { background:var(--panel); } }
+  #tabs button { border-radius:999px; background:transparent; border:1px solid transparent; color:var(--mute); font-weight:500;
+    transition:background-color .2s var(--ease), color .2s var(--ease); }
+  #tabs button.on { background:var(--soft); color:var(--acct); border-color:transparent; font-weight:600; }
+  .act button { border-radius:999px; background:var(--bg); border-color:transparent; }
+  /* Téléphone : barre d'onglets du bas avec pastille derrière l'icône (Material 3). */
+  @media (max-width: 760px) {
+    #tabs { background:var(--panel); padding:.3rem .2rem .25rem; }
+    #tabs button { gap:3px; min-height:58px; font-size:.7rem; border-radius:0; background:transparent; }
+    #tabs button .ico { box-sizing:content-box; width:1.3em; height:1.3em; padding:.28rem .95rem; border-radius:999px; transition:background-color .2s var(--ease); }
+    #tabs button.on { background:transparent; box-shadow:none; }
+    #tabs button.on .ico { background:var(--soft); }
+  }
+  /* Point « en direct » qui respire. */
+  #live.ok { animation:pulse 2s var(--ease) infinite; }
+  @keyframes pulse { 0% { box-shadow:0 0 0 0 rgba(0,200,150,.5); } 70% { box-shadow:0 0 0 7px rgba(0,200,150,0); } 100% { box-shadow:0 0 0 0 rgba(0,200,150,0); } }
+  main.in-r { animation:inR .24s var(--ease); }
+  main.in-l { animation:inL .24s var(--ease); }
+  @media (prefers-reduced-motion: reduce) { #live.ok, main.in-r, main.in-l { animation:none; } #tabs button, #tabs button .ico { transition:none; } }
+  /* Classement / relatif : lignes aérées, en-tête collé en haut, numéros en pastilles. */
+  table.tt, table.rel { border-collapse:separate; border-spacing:0; }
+  .tt td { padding:.45rem .4rem; }
+  .cols-auto .tcard { overflow:visible; }
+  .cols-auto .tcard .tt th { position:sticky; top:0; z-index:1; background:var(--panel); }
+  .posn { display:inline-grid; place-items:center; min-width:1.9em; height:1.55em; padding:0 .25em; border-radius:.45em; background:var(--bg); font-weight:700; }
+  tr.me .posn { background:var(--acc); color:#fff; }
+  tr.me td:first-child { box-shadow:inset 3px 0 0 var(--acc); }
+  td.sb, span.sb { color:var(--purple); font-weight:700; }
+  td.pb, span.pb { color:var(--green); font-weight:700; }
+  /* Jauges fines (carburant, énergie). */
+  .gauge { height:6px; border-radius:3px; background:var(--line); overflow:hidden; margin-top:.35rem; }
+  .gauge > i { display:block; height:100%; width:100%; transform-origin:left; border-radius:3px; }
+  /* Drapeaux : grands aplats ; hachures pour le jaune et la voiture de sécurité. */
+  .flagbig { border-radius:var(--radius); }
+  .flagbig.fy { background:repeating-linear-gradient(-45deg, #fde047 0 26px, #facc15 26px 52px); color:#161616; }
+  .flagbig.fg { background:linear-gradient(135deg, #22c55e, #15803d); color:#03150a; }
+  .flagbig.fb { background:linear-gradient(135deg, #3b82f6, #1d4ed8); color:#fff; }
+  .flagbig.fr { background:linear-gradient(135deg, #ef4444, #b91c1c); color:#fff; }
+  .flagbig.fn { background:var(--line); color:var(--fg); }
+  /* Pédales : barres animées par transform (fluides à 15 Hz). */
+  .tube { border-radius:.7rem; }
+  .tube i { top:0; height:100%; transform:scaleY(0); transform-origin:bottom; will-change:transform; border-radius:inherit; }
+  .rpm i { width:100%; transform:scaleX(0); transform-origin:left; will-change:transform; }
+  /* Rapport : fond quasi noir en thème sombre (écran OLED), témoins lumineux. */
+  [data-theme="dark"] .gearp > .dash { background:#05070d; }
+  .dash .leds i { opacity:.35; }
+  .dash .leds i.g, .dash .leds i.y, .dash .leds i.r, .dash .leds.shift i, .dash .leds.lim i { opacity:1; }
+  .dash .leds i.g { box-shadow:0 0 12px rgba(34,197,94,.75); }
+  .dash .leds i.y { box-shadow:0 0 12px rgba(245,158,11,.75); }
+  .dash .leds i.r { box-shadow:0 0 12px rgba(255,29,67,.8); }
+  .dash .leds.shift i { box-shadow:0 0 16px rgba(59,130,246,.9); }
+  .dash .gbig.go { color:#3b82f6; }
+  /* Connexion : carte centrée sur un léger halo de la couleur de l'app. */
+  #login { background:radial-gradient(900px 520px at 50% -8%, var(--soft), transparent 62%), var(--bg); }
+  #login > div { background:var(--panel); border:1px solid var(--line); border-radius:22px; padding:1.6rem 1.2rem 1.3rem; box-shadow:var(--shadow); }
+  #login input { border-radius:14px; transition:border-color .2s var(--ease), box-shadow .2s var(--ease); }
+  #login input:focus { outline:none; border-color:var(--acc); box-shadow:0 0 0 4px var(--soft); }
+  #login button { border-radius:14px; }
+  /* Réglages : poignée de feuille sur téléphone, cibles tactiles de 44 px. */
+  @media (max-width: 760px) and (min-height: 521px) {
+    #sheet .panel { border-radius:22px 22px 0 0; }
+    #sheet .panel::before { content:""; display:block; width:40px; height:4px; border-radius:2px; background:var(--line); margin:-.35rem auto .7rem; }
+  }
+  .chips button { min-height:44px; }
+  .hint { font-size:.8rem; padding:0 0 .45rem; line-height:1.3; }
+  @media (max-height: 520px) { .hint { grid-column:1 / -1; } }
   /* Vidéo muette qui garde l'écran allumé (repli sans API Wake Lock) : invisible, sans clic. */
   video.wake { position:fixed; inset:0; width:100%; height:100%; opacity:0; pointer-events:none; z-index:-1; }
 </style>
@@ -357,6 +438,7 @@
   <div id="scr" class="chips scr"></div>
   <div class="row"><span data-t="textSize"></span><span class="seg"><button id="zm" type="button">A−</button><span id="zv" class="mono"></span><button id="zp" type="button">A+</button></span></div>
   <div class="row"><span data-t="keepAwake"></span><button id="awake" class="sw" type="button"></button></div>
+  <div id="wakeHint" class="meta hint hidden" data-t="wakeHint"></div>
   <div class="row"><span data-t="lockOrient"></span><button id="lock" class="sw" type="button"></button></div>
   <div class="row"><span data-t="columns"></span><span class="seg"><button data-cols="auto" type="button" data-t="colAuto"></button><button data-cols="all" type="button" data-t="colAll"></button></span></div>
   <div class="row"><span data-t="hideBars"></span><button id="bars" class="sw" type="button"></button></div>
@@ -405,35 +487,35 @@
   };
   // Écrans ajoutés : pédales, drapeaux & stands, pneus & freins, relatif.
   const L2 = {
-    fr: { t_gear:"Rapport", rpmUnit:"tr/min", limTag:"LIMITEUR", t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
+    fr: { wakeHint:"Réseau local (HTTP) : si l'écran s'éteint malgré tout, désactivez la mise en veille automatique de l'appareil.", t_gear:"Rapport", rpmUnit:"tr/min", limTag:"LIMITEUR", t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
       throttle:"Accélérateur", brake:"Frein", clutch:"Embrayage", steering:"Volant", rpm:"Régime", bias:"Répartition", motorMap:"Carto moteur", trace:"10 dernières secondes",
       fGreen:"Drapeau vert", fYellow:"Drapeau jaune", fFcy:"Neutralisation (FCY)", fSc:"Voiture de sécurité", fBlue:"Drapeau bleu", fRed:"Séance arrêtée", fChk:"Drapeau à damier", fFormation:"Tour de formation", fCountdown:"Départ imminent", fWaiting:"Avant le départ",
       y1:"Neutralisation imminente", y2:"Stands fermés", y3:"Stands ouverts aux voitures dans le tour du leader", y4:"Stands ouverts", y5:"Dernier tour de la voiture de sécurité", y6:"Relance", y7:"Course arrêtée",
       penalties:"Pénalités", trackLimits:"Limites de piste", lastMsg:"Dernier message du jeu", pit:"Stands", limiter:"Limiteur", on:"activé", off:"coupé", pitLimit:"Vitesse des stands",
       ps0:"En piste", ps1:"Arrêt demandé", ps2:"Entrée des stands", ps3:"À l'arrêt", ps4:"Sortie des stands", stopLen:"Arrêt prévu", pitMenu:"Menu des stands", perLap:"par tour",
       pressure:"Pression", carcass:"Carcasse", wear:"Gomme restante", flat:"Crevaison", detached:"Roue perdue" },
-    en: { t_gear:"Gear", rpmUnit:"rpm", limTag:"LIMITER", t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
+    en: { wakeHint:"Local network (HTTP): if the screen still turns off, disable the device's auto-lock.", t_gear:"Gear", rpmUnit:"rpm", limTag:"LIMITER", t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
       throttle:"Throttle", brake:"Brake", clutch:"Clutch", steering:"Steering", rpm:"RPM", bias:"Brake bias", motorMap:"Engine map", trace:"Last 10 seconds",
       fGreen:"Green flag", fYellow:"Yellow flag", fFcy:"Full course yellow", fSc:"Safety car", fBlue:"Blue flag", fRed:"Session stopped", fChk:"Chequered flag", fFormation:"Formation lap", fCountdown:"Start imminent", fWaiting:"Before the start",
       y1:"Caution pending", y2:"Pits closed", y3:"Pits open to lead-lap cars", y4:"Pits open", y5:"Safety car's last lap", y6:"Restart", y7:"Race halted",
       penalties:"Penalties", trackLimits:"Track limits", lastMsg:"Last game message", pit:"Pit lane", limiter:"Pit limiter", on:"on", off:"off", pitLimit:"Pit speed limit",
       ps0:"On track", ps1:"Stop requested", ps2:"Entering the pits", ps3:"Stopped", ps4:"Leaving the pits", stopLen:"Planned stop", pitMenu:"Pit menu", perLap:"per lap",
       pressure:"Pressure", carcass:"Carcass", wear:"Tread left", flat:"Puncture", detached:"Wheel off" },
-    es: { t_gear:"Marcha", rpmUnit:"rpm", limTag:"LIMITADOR", t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
+    es: { wakeHint:"Red local (HTTP): si la pantalla se apaga de todos modos, desactiva el bloqueo automático del dispositivo.", t_gear:"Marcha", rpmUnit:"rpm", limTag:"LIMITADOR", t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
       throttle:"Acelerador", brake:"Freno", clutch:"Embrague", steering:"Volante", rpm:"RPM", bias:"Reparto de frenada", motorMap:"Mapa motor", trace:"Últimos 10 segundos",
       fGreen:"Bandera verde", fYellow:"Bandera amarilla", fFcy:"Neutralización (FCY)", fSc:"Coche de seguridad", fBlue:"Bandera azul", fRed:"Sesión detenida", fChk:"Bandera a cuadros", fFormation:"Vuelta de formación", fCountdown:"Salida inminente", fWaiting:"Antes de la salida",
       y1:"Neutralización inminente", y2:"Boxes cerrados", y3:"Boxes abiertos para los coches en la vuelta del líder", y4:"Boxes abiertos", y5:"Última vuelta del coche de seguridad", y6:"Relanzamiento", y7:"Carrera detenida",
       penalties:"Penalizaciones", trackLimits:"Límites de pista", lastMsg:"Último mensaje del juego", pit:"Boxes", limiter:"Limitador", on:"activado", off:"desactivado", pitLimit:"Velocidad en boxes",
       ps0:"En pista", ps1:"Parada solicitada", ps2:"Entrando en boxes", ps3:"Parado", ps4:"Saliendo de boxes", stopLen:"Parada prevista", pitMenu:"Menú de boxes", perLap:"por vuelta",
       pressure:"Presión", carcass:"Carcasa", wear:"Goma restante", flat:"Pinchazo", detached:"Rueda perdida" },
-    de: { t_gear:"Gang", rpmUnit:"U/min", limTag:"LIMITER", t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
+    de: { wakeHint:"Lokales Netzwerk (HTTP): Wenn sich der Bildschirm trotzdem ausschaltet, deaktiviere die automatische Sperre des Geräts.", t_gear:"Gang", rpmUnit:"U/min", limTag:"LIMITER", t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
       throttle:"Gas", brake:"Bremse", clutch:"Kupplung", steering:"Lenkung", rpm:"Drehzahl", bias:"Bremsbalance", motorMap:"Motorkennfeld", trace:"Letzte 10 Sekunden",
       fGreen:"Grüne Flagge", fYellow:"Gelbe Flagge", fFcy:"Full Course Yellow", fSc:"Safety-Car", fBlue:"Blaue Flagge", fRed:"Session unterbrochen", fChk:"Zielflagge", fFormation:"Einführungsrunde", fCountdown:"Start steht bevor", fWaiting:"Vor dem Start",
       y1:"Neutralisation steht bevor", y2:"Boxengasse geschlossen", y3:"Boxengasse offen für Autos in der Führungsrunde", y4:"Boxengasse offen", y5:"Letzte Runde des Safety-Cars", y6:"Restart", y7:"Rennen gestoppt",
       penalties:"Strafen", trackLimits:"Track Limits", lastMsg:"Letzte Spielmeldung", pit:"Boxengasse", limiter:"Limiter", on:"an", off:"aus", pitLimit:"Tempolimit Boxengasse",
       ps0:"Auf der Strecke", ps1:"Stopp angefordert", ps2:"Einfahrt in die Box", ps3:"Steht", ps4:"Ausfahrt aus der Box", stopLen:"Geplanter Stopp", pitMenu:"Boxenmenü", perLap:"pro Runde",
       pressure:"Druck", carcass:"Karkasse", wear:"Restprofil", flat:"Reifenschaden", detached:"Rad verloren" },
-    it: { t_gear:"Marcia", rpmUnit:"giri/min", limTag:"LIMITATORE", t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
+    it: { wakeHint:"Rete locale (HTTP): se lo schermo si spegne comunque, disattiva il blocco automatico del dispositivo.", t_gear:"Marcia", rpmUnit:"giri/min", limTag:"LIMITATORE", t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
       throttle:"Acceleratore", brake:"Freno", clutch:"Frizione", steering:"Sterzo", rpm:"Giri motore", bias:"Ripartizione frenata", motorMap:"Mappa motore", trace:"Ultimi 10 secondi",
       fGreen:"Bandiera verde", fYellow:"Bandiera gialla", fFcy:"Neutralizzazione (FCY)", fSc:"Safety car", fBlue:"Bandiera blu", fRed:"Sessione interrotta", fChk:"Bandiera a scacchi", fFormation:"Giro di formazione", fCountdown:"Partenza imminente", fWaiting:"Prima della partenza",
       y1:"Neutralizzazione imminente", y2:"Box chiusi", y3:"Box aperti alle auto a pieni giri", y4:"Box aperti", y5:"Ultimo giro della safety car", y6:"Ripartenza", y7:"Gara fermata",
@@ -518,6 +600,8 @@
   $("sheet").onclick = (e) => { if (e.target === $("sheet")) $("sheet").classList.add("hidden"); };
   $("out").onclick = () => { $("sheet").classList.add("hidden"); dropToken(); showLogin(); };
   applyPrefs();
+  // Sans contexte sûr (HTTP sur le réseau local), l'API Wake Lock n'existe pas : on le dit.
+  $("wakeHint").classList.toggle("hidden", !!window.isSecureContext);
 
   // ── Session, jeton, interrogation ────────────────────────────────────────
   // Jeton gardé sur l'appareil : une régie ouverte depuis l'écran d'accueil ne
@@ -758,7 +842,8 @@
       return `<g><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${me ? "#ffb400" : classColor(s.vehicle_class)}" style="stroke:var(--panel)" stroke-width="${(r * 0.25).toFixed(1)}"/>` +
         `<text x="${x.toFixed(1)}" y="${(y + r * 0.36).toFixed(1)}" text-anchor="middle" font-size="${(r * 1.05).toFixed(1)}" font-weight="700" fill="#0a0e1a">${s.class_position || s.position}</text></g>`;
     }).join("");
-    return `<svg class="map" viewBox="0 0 ${W} ${H}" style="${style || ""}">${pitSvg}<path d="${path(pts, true)}" fill="none" style="stroke:var(--road)" stroke-width="${road.toFixed(1)}" stroke-linejoin="round"/>${cars}</svg>`;
+    const lap = path(pts, true);
+    return `<svg class="map" viewBox="0 0 ${W} ${H}" style="${style || ""}">${pitSvg}<path d="${lap}" fill="none" style="stroke:var(--line)" stroke-width="${(road * 1.45).toFixed(1)}" stroke-linejoin="round"/><path d="${lap}" fill="none" style="stroke:var(--road)" stroke-width="${road.toFixed(1)}" stroke-linejoin="round"/>${cars}</svg>`;
   }
 
   // ── Gabarits ─────────────────────────────────────────────────────────────
@@ -767,21 +852,25 @@
   const remaining = (d) => { const sc = d.session || {}; return sc.end_et > 0 ? clock(Math.max(0, sc.end_et - sc.session_time)) : sc.max_laps > 0 && sc.max_laps < 1000 ? `${sc.max_laps} ${T.laps.toLowerCase()}` : clock(sc.session_time); };
   const classMates = (d, p) => (d.standings || []).filter((s) => s.vehicle_class === p.vehicle_class).sort((a, b) => a.class_position - b.class_position);
 
+  // Couleur d'un tour : violet = meilleur tour de la classe, vert = meilleur tour personnel.
+  const lapCls = (s, t) => !(t > 0) || Math.abs(t - s.best_lap_time) > 0.0005 ? "" : s.is_class_best_lap ? "sb" : "pb";
   function timingTable(d, rows) {
     const leaders = {}; for (const s of d.standings || []) if (s.class_position === 1) leaders[s.vehicle_class] = s;
     return `<table class="mono tt"><tr><th class="c-pos">${T.pos}</th><th>${T.cls}</th><th class="c-drv">${T.driver}</th><th class="r">${T.gap}</th><th class="r c-int">${T.int}</th><th class="r">${T.last}</th><th class="r c-best">${T.best}</th><th class="r c-laps">${T.laps}</th><th class="r c-pits">${T.pits}</th></tr>` +
-      rows.map((s) => `<tr class="${s.is_player ? "me" : ""}"><td class="c-pos">${s.position}</td><td>${clsTag(s.vehicle_class)} ${s.class_position}</td><td class="c-drv">${s.in_pits ? `<span class="pit">${T.inPit}</span>` : ""}${esc(s.driver)}</td>` +
+      rows.map((s) => `<tr class="${s.is_player ? "me" : ""}"><td class="c-pos"><span class="posn">${s.position}</span></td><td>${clsTag(s.vehicle_class)} <span class="posn">${s.class_position}</span></td><td class="c-drv">${s.in_pits ? `<span class="pit">${T.inPit}</span>` : ""}${esc(s.driver)}</td>` +
         `<td class="r">${gapOf(s, leaders[s.vehicle_class])}</td><td class="r c-int">${s.position > 1 ? "+" + (s.time_behind_next || 0).toFixed(1) : T.none}</td>` +
-        `<td class="r">${lapT(s.last_lap_time)}</td><td class="r c-best">${lapT(s.best_lap_time)}</td><td class="r c-laps">${s.total_laps}</td><td class="r c-pits">${s.num_pitstops}</td></tr>`).join("") + `</table>`;
+        `<td class="r ${lapCls(s, s.last_lap_time)}">${lapT(s.last_lap_time)}</td><td class="r c-best ${s.is_class_best_lap ? "sb" : ""}">${lapT(s.best_lap_time)}</td><td class="r c-laps">${s.total_laps}</td><td class="r c-pits">${s.num_pitstops}</td></tr>`).join("") + `</table>`;
   }
 
   // 1. Classement complet (multiclasse, couleurs de classe), ma voiture épinglée en tête.
   function tplTiming(d) {
     const p = me(d);
     const mine = p ? `<div class="card mine"><div class="lbl">${T.mine}</div>${timingTable(d, [p])}</div>` : "";
-    return `${mine}<div class="card">${timingTable(d, d.standings || [])}</div>`;
+    return `${mine}<div class="card tcard">${timingTable(d, d.standings || [])}</div>`;
   }
 
+  // Jauge fine 0-1 (rouge sous 15 %, orange sous 30 %).
+  const gauge = (f) => f == null ? "" : `<div class="gauge"><i style="transform:scaleX(${Math.max(0, Math.min(1, f)).toFixed(3)});background:${f < 0.15 ? "var(--bad)" : f < 0.3 ? "var(--amber)" : "var(--ok)"}"></i></div>`;
   // 2. Ingénieur : tout ce qui concerne la voiture du joueur.
   function tplEngineer(d) {
     const p = me(d); const tel = d.telemetry; const w = d.weather || {}; const x = d.extended || {};
@@ -795,9 +884,9 @@
       <div class="card"><div class="lbl">${T.remaining}</div><div class="big mono">${remaining(d)}</div><div class="meta">${T.lap} ${p.total_laps}</div></div>
       <div class="card"><div class="lbl">${T.ahead}</div><div class="big mono">${a ? "−" + Math.max(0, p.time_behind_leader - a.time_behind_leader).toFixed(1) : T.none}</div><div class="meta ell">${a ? esc(a.driver) : ""}</div></div>
       <div class="card"><div class="lbl">${T.behind}</div><div class="big mono">${b ? "+" + Math.max(0, b.time_behind_leader - p.time_behind_leader).toFixed(1) : T.none}</div><div class="meta ell">${b ? esc(b.driver) : ""}</div></div>
-      <div class="card"><div class="lbl">${T.fuel}</div><div class="big mono">${(tel.fuel || 0).toFixed(1)} L</div><div class="meta">${tel.fuel_laps_remaining > 0 ? tel.fuel_laps_remaining.toFixed(1) + " " + T.lapsLeft : T.none}</div></div>
-      <div class="card"><div class="lbl">${T.energy}</div><div class="big mono">${x.virtual_energy > 0 ? Math.round(x.virtual_energy * 100) + "%" : T.none}</div><div class="meta">${T.pads} ${pads}</div></div>
-      <div class="card"><div class="lbl">${T.last} / ${T.best}</div><div class="big mono">${lapT(p.last_lap_time)}</div><div class="meta mono">${lapT(p.best_lap_time)}</div></div>
+      <div class="card"><div class="lbl">${T.fuel}</div><div class="big mono">${(tel.fuel || 0).toFixed(1)} L</div><div class="meta">${tel.fuel_laps_remaining > 0 ? tel.fuel_laps_remaining.toFixed(1) + " " + T.lapsLeft : T.none}</div>${gauge(tel.fuel_capacity > 0 ? tel.fuel / tel.fuel_capacity : null)}</div>
+      <div class="card"><div class="lbl">${T.energy}</div><div class="big mono">${x.virtual_energy > 0 ? Math.round(x.virtual_energy * 100) + "%" : T.none}</div><div class="meta">${T.pads} ${pads}</div>${gauge(x.virtual_energy > 0 ? x.virtual_energy : null)}</div>
+      <div class="card"><div class="lbl">${T.last} / ${T.best}</div><div class="big mono"><span class="${lapCls(p, p.last_lap_time)}">${lapT(p.last_lap_time)}</span></div><div class="meta mono"><span class="${p.is_class_best_lap ? "sb" : ""}">${lapT(p.best_lap_time)}</span></div></div>
       <div class="card"><div class="lbl">${T.weather}</div><div class="mono txt">${T.air} ${Math.round(w.air_temp || 0)}° · ${T.track} ${Math.round(w.track_temp || 0)}°</div><div class="mono txt">${T.rain} ${Math.round((w.rain || 0) * 100)}%</div></div>
       <div class="card tyc"><div class="lbl">${T.tyres}</div><div class="wheels">${wheels}</div></div>
     </div>`;
@@ -811,13 +900,13 @@
     const p = me(d);
     if (!p) return `<div class="empty">${T.noPlayer}</div>`;
     const cls = classMates(d, p); const i = cls.indexOf(p);
-    const sec = (s) => `<td class="r">${(s.last_s1 || 0).toFixed(2)}</td><td class="r">${(s.last_s2 || 0).toFixed(2)}</td><td class="r">${(s.last_s3 || 0).toFixed(2)}</td>`;
+    const sec = (s) => [1, 2, 3].map((n) => `<td class="r ${s["is_class_best_s" + n] ? "sb" : ""}">${(s["last_s" + n] || 0).toFixed(2)}</td>`).join("");
     const col = (s, title, sign) => !s ? `<div class="card"><div class="lbl">${title}</div><div class="big">${T.none}</div></div>` :
       `<div class="card"><div class="lbl">${title}</div><div class="who ell">${esc(s.driver)}</div><div class="meta">${clsTag(s.vehicle_class)} P${s.class_position}</div>
        <div class="huge mono">${sign}${Math.abs(s.time_behind_leader - p.time_behind_leader).toFixed(1)}</div>
        <table class="mono sect"><tr><th></th><th class="r">${T.last}</th><th class="r">${T.best}</th></tr>
-       <tr><td>${esc(s.driver)}</td><td class="r">${lapT(s.last_lap_time)}</td><td class="r">${lapT(s.best_lap_time)}</td></tr>
-       <tr class="me"><td>${esc(p.driver)}</td><td class="r">${lapT(p.last_lap_time)}</td><td class="r">${lapT(p.best_lap_time)}</td></tr></table>
+       <tr><td>${esc(s.driver)}</td><td class="r ${lapCls(s, s.last_lap_time)}">${lapT(s.last_lap_time)}</td><td class="r ${s.is_class_best_lap ? "sb" : ""}">${lapT(s.best_lap_time)}</td></tr>
+       <tr class="me"><td>${esc(p.driver)}</td><td class="r ${lapCls(p, p.last_lap_time)}">${lapT(p.last_lap_time)}</td><td class="r ${p.is_class_best_lap ? "sb" : ""}">${lapT(p.best_lap_time)}</td></tr></table>
        <table class="mono sect" style="margin-top:.3rem"><tr><th>${T.sectors}</th><th class="r">S1</th><th class="r">S2</th><th class="r">S3</th></tr>
        <tr><td>${esc(s.driver)}</td>${sec(s)}</tr><tr class="me"><td>${esc(p.driver)}</td>${sec(p)}</tr></table></div>`;
     return `<div class="page duel">${col(cls[i - 1], T.ahead, "−")}${col(cls[i + 1], T.behind, "+")}</div>`;
@@ -846,13 +935,13 @@
     // Autant de voitures que la hauteur en permet (même formule de taille que le CSS).
     const v = $("view"), rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 15;
     const fpx = Math.min(1.9 * rem, Math.max(rem, 0.034 * Math.min(v.clientWidth, v.clientHeight) * P.z));
-    const side = Math.max(1, Math.min(7, Math.floor((Math.floor((v.clientHeight - 24) / (fpx * 2.1 + 1)) - 1) / 2)));
+    const side = Math.max(1, Math.min(7, Math.floor((Math.floor((v.clientHeight - 24) / (fpx * 2.35 + 1)) - 1) / 2)));
     rows = rows.slice(Math.max(0, pi - side), pi + side + 1);
     return `<div class="page relp"><div class="card"><table class="mono rel">` + rows.map(({ s, rel }) =>
-      `<tr class="${s.is_player ? "me" : ""}"><td>${multi ? s.class_position : s.position}</td><td>${clsTag(s.vehicle_class)}</td>` +
+      `<tr class="${s.is_player ? "me" : ""}"><td><span class="posn">${multi ? s.class_position : s.position}</span></td><td>${clsTag(s.vehicle_class)}</td>` +
       `<td class="c-drv">${s.in_pits ? `<span class="pit">${T.inPit}</span>` : ""}${esc(s.driver)}</td>` +
       `<td class="r" style="color:${s.is_player ? "var(--acct)" : rel < 0 ? "var(--ok)" : "var(--bad)"}">${s.is_player ? T.none : (rel > 0 ? "+" : "") + rel.toFixed(1)}</td>` +
-      `<td class="r c-best">${lapT(s.last_lap_time)}</td></tr>`).join("") + `</table></div></div>`;
+      `<td class="r c-best ${lapCls(s, s.last_lap_time)}">${lapT(s.last_lap_time)}</td></tr>`).join("") + `</table></div></div>`;
   }
 
   // 7. Drapeaux & stands : drapeau en grand, pénalités, messages du jeu, et tout l'arrêt au stand.
@@ -861,15 +950,15 @@
     const f = d.flags || {}, r = d.rules || {}, p = d.player || {};
     const ph = f.game_phase, y = f.yellow_flag_state || 0;
     if (ph === 8 || p.finish_status === 1) return { cls: "chk", txt: T.fChk };
-    if (ph === 7) return { bg: "#FF1D43", fg: "#fff", txt: T.fRed };
-    if (r.safety_car_exists && r.safety_car_active) return { bg: "#facc15", txt: T.fSc };
-    if (ph === 6) return { bg: "#facc15", txt: T.fFcy };
-    if (y > 0 && y !== 6) return { bg: "#facc15", txt: T.fYellow };
-    if (p.flag === 6) return { bg: "#3b82f6", fg: "#fff", txt: T.fBlue };
-    if (ph === 5) return { bg: "#22c55e", txt: T.fGreen };
-    if (ph === 3) return { bg: "var(--line)", fg: "var(--fg)", txt: T.fFormation };
-    if (ph === 4) return { bg: "var(--line)", fg: "var(--fg)", txt: T.fCountdown };
-    return { bg: "var(--line)", fg: "var(--fg)", txt: T.fWaiting };
+    if (ph === 7) return { cls: "fr", txt: T.fRed };
+    if (r.safety_car_exists && r.safety_car_active) return { cls: "fy", txt: T.fSc };
+    if (ph === 6) return { cls: "fy", txt: T.fFcy };
+    if (y > 0 && y !== 6) return { cls: "fy", txt: T.fYellow };
+    if (p.flag === 6) return { cls: "fb", txt: T.fBlue };
+    if (ph === 5) return { cls: "fg", txt: T.fGreen };
+    if (ph === 3) return { cls: "fn", txt: T.fFormation };
+    if (ph === 4) return { cls: "fn", txt: T.fCountdown };
+    return { cls: "fn", txt: T.fWaiting };
   }
   function tplFlags(d) {
     const f = d.flags || {}, p = d.player || {}, x = d.extended || {}, tel = d.telemetry || {};
@@ -886,7 +975,7 @@
     const menu = pit && Array.isArray(pit.pit_menu) ? pit.pit_menu.slice(0, 10) : [];
     const perLap = pit && pit.energy_per_lap > 0 ? `${Math.round(pit.energy_per_lap * 1000) / 10}% ${T.perLap}` : pit && pit.fuel_per_lap > 0 ? `${pit.fuel_per_lap.toFixed(2)} L ${T.perLap}` : "";
     return `<div class="page flg">
-      <div class="flagbig ${fi.cls || ""}" style="${fi.bg ? `background:${fi.bg};` : ""}${fi.fg ? `color:${fi.fg};` : ""}">${esc(fi.txt)}${ys ? `<div class="sub">${esc(ys)}</div>` : ""}</div>
+      <div class="flagbig ${fi.cls}">${esc(fi.txt)}${ys ? `<div class="sub">${esc(ys)}</div>` : ""}</div>
       <div class="card"><div class="lbl">${T.penalties}</div><div class="big mono" style="${pen > 0 ? "color:var(--bad)" : ""}">${pen}</div>
         <div class="lbl" style="margin-top:.6rem">${T.trackLimits}</div><div class="big mono">${tl}</div>
         ${msg ? `<div class="lbl" style="margin-top:.6rem">${T.lastMsg}</div><div class="mono">${esc(msg)}</div>` : ""}</div>
@@ -921,12 +1010,12 @@
     const t = (inp && inp.telemetry) || (last && last.telemetry);
     if (!t) return;
     const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
-    for (const [k, v] of [["c", t.clutch], ["b", t.brake], ["t", t.throttle]]) { $("pb-" + k).style.height = pct(v) + "%"; set("pv-" + k, pct(v) + "%"); }
+    for (const [k, v] of [["c", t.clutch], ["b", t.brake], ["t", t.throttle]]) { $("pb-" + k).style.transform = `scaleY(${Math.max(0, Math.min(1, v || 0)).toFixed(3)})`; set("pv-" + k, pct(v) + "%"); }
     set("pi-g", t.gear < 0 ? "R" : t.gear === 0 ? "N" : String(t.gear));
     set("pi-v", Math.round(t.speed_kmh || 0));
     const rr = t.max_rpm > 0 ? Math.min(1, (t.rpm || 0) / t.max_rpm) : 0;
     set("pi-r", Math.round(t.rpm || 0) + (t.max_rpm > 0 ? " / " + Math.round(t.max_rpm) : ""));
-    const rb = $("pi-rb"); rb.style.width = (rr * 100).toFixed(1) + "%"; rb.style.background = rr > 0.97 ? "var(--bad)" : rr > 0.9 ? "var(--acc)" : "var(--ok)";
+    const rb = $("pi-rb"); rb.style.transform = `scaleX(${rr.toFixed(3)})`; rb.style.background = rr > 0.97 ? "var(--bad)" : rr > 0.9 ? "var(--acc)" : "var(--ok)";
     const sv = Math.max(-1, Math.min(1, t.steering || 0)); $("pi-sb").style.left = (50 + sv * 50) + "%"; set("pi-s", Math.round(sv * 100) + "%");
     const src = inp || {}, x = (last && last.extended) || {};
     const lvl = (v, m) => v == null ? T.none : m > 0 ? `${v}/${m}` : String(v);
@@ -964,6 +1053,7 @@
     const lit = Math.round(Math.max(0, Math.min(1, (rr - 0.8) / 0.17)) * 15);
     const box = $("gd-l");
     box.classList.toggle("shift", rr >= 0.97 && !t.speed_limiter);
+    $("gd-g").classList.toggle("go", rr >= 0.97 && !t.speed_limiter);
     box.classList.toggle("lim", !!t.speed_limiter);
     $("gd-lim").classList.toggle("hidden", !t.speed_limiter);
     [...box.children].forEach((e, i) => { e.className = i < lit ? e.dataset.c : ""; });

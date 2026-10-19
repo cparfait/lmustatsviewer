@@ -947,6 +947,41 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - **Prochaine étape** : vérifier dans l'app (téléchargement de Parakeet depuis la Config, question
   à la voix, réglage de l'alerte de blocage en roulant), puis commit sur main si l'utilisateur le demande.
 
+### 2026-10-19 — Régie tablette : refonte visuelle mobile (veille web + modèles SimHub)
+
+**Demande** : « optimise pour faire de sublimes pages mobiles ; cherche sur le net et SimHub ».
+
+- ✅ **Veille SimHub** (modèles installés, `DashTemplates/*.djson` lus comme données, synthèse
+  par script : résolution, écrans, polices, couleurs, types d'éléments ; rien de repris) :
+  tableau « direction de course » bleu nuit (`#0A0C0F` / panneaux `#181D26` / texte secondaire
+  `#5C6678`), **police mono pour les chiffres + sans-serif pour les libellés**, jauges
+  linéaires ; tableaux de voiture LMU en 1280 × 720 fond noir, rapport ~20 % de la hauteur,
+  couleurs sémantiques ; tableau Drapeaux = aplat plein écran, texte à 40-46 % de la hauteur.
+- ✅ **Veille web** (agent, sources citées dans son rapport) : ISO 15008 / Android Automotive
+  (tailles de caractères au coup d'œil), police humaniste plus lisible qu'une police « techno »
+  (étude MIT/Monotype), violet = meilleur de la session / vert = meilleur personnel, témoins
+  vert → orange → rouge puis clignotants, Material 3 Expressive (barre d'onglets, pastille
+  56 × 32), barres en `transform`, flou de barre déconseillé sur mobile, Wake Lock
+  impossible en HTTP (indication à l'utilisateur).
+- ✅ **Appliqué** (`regie.html`, bloc « Finitions ») : police système + chiffres tabulaires
+  partout (`.mono` = police système `tnum`), rayon 14 px, ombre légère en clair / liseré en
+  sombre, barres pleines, onglets en pilule et pastille Material 3 sur téléphone, point
+  « en direct » qui respire, transitions 240 ms `cubic-bezier(.2,0,0,1)` (réduites si demandé),
+  pastilles de position, ligne du joueur en orange, **violet / vert** sur les tours (classement,
+  relatif, duel, ingénieur) et secteurs violets (duel) depuis `is_class_best_*`, en-tête du
+  classement collant (mode « selon l'écran »), jauges carburant (`fuel / fuel_capacity`) et
+  énergie, drapeaux en aplats (`fy` hachuré, `fg`, `fb`, `fr`, `fn`, damier), témoins lumineux
+  + rapport bleu au passage, fond `#05070d` de l'écran Rapport en sombre, barres des pédales
+  et du régime en `scaleY/scaleX`, tracé avec bord, connexion en carte sur halo, feuille de
+  réglages avec poignée, cibles 44 px, indication HTTP sous « Garder l'écran allumé ».
+- ✅ Audit de non-régression (10 écrans × 6 formats) : remplissage 98-99 %, aucun débordement
+  ni contenu coupé, aucune erreur JS ; `tsc`, `eslint` ✅.
+- ⏳ **Police embarquée non faite** : Barlow Condensed (OFL, ~26 Ko en sous-ensemble latin)
+  recommandée par la veille, mais elle demande un téléchargement → en attente de l'accord du
+  mainteneur (CSP à compléter par `font-src data:`).
+- 📋 **Prochaine étape** : avis du mainteneur sur une vraie tablette ; décider la police
+  embarquée et une option couleurs daltoniens (bleu / orange).
+
 ### 2026-10-19 — Régie tablette : pages plein écran sans débordement + écran Rapport
 
 **Retour mainteneur** : « les pages ne sont pas toutes responsives et ne remplissent pas bien

@@ -407,6 +407,17 @@
   .dash .leds i.r { box-shadow:0 0 12px rgba(255,29,67,.8); }
   .dash .leds.shift i { box-shadow:0 0 16px rgba(59,130,246,.9); }
   .dash .gbig.go { color:#3b82f6; }
+  /* Rapport : drapeau en cours par-dessus (fond du tableau de bord + nom du drapeau). */
+  .gearp > .dash.fy { background:repeating-linear-gradient(-45deg, #fde047 0 26px, #facc15 26px 52px); color:#161616; }
+  .gearp > .dash.fb { background:linear-gradient(135deg, #3b82f6, #1d4ed8); color:#fff; }
+  .gearp > .dash.fr { background:linear-gradient(135deg, #ef4444, #b91c1c); color:#fff; }
+  .gearp > .dash.chk { background:repeating-conic-gradient(#111 0 25%, #fff 0 50%) 0 0 / 56px 56px; color:#fff; }
+  .dash.chk .gbig, .dash.chk .gnum, .dash.chk .gv .lbl, .dash.chk .gtag { text-shadow:0 0 12px #000, 0 0 3px #000; }
+  .dash.fy .gv .lbl, .dash.fb .gv .lbl, .dash.fr .gv .lbl { color:inherit; opacity:.8; }
+  .dash.fb .gbig.go, .dash.fr .gbig.go { color:#fde047; }
+  .dash .gtag { grid-area:gear; align-self:start; justify-self:center; z-index:1; font-family:var(--num); font-weight:700;
+    text-transform:uppercase; letter-spacing:.06em; padding:.2em .9em; border-radius:999px; background:rgba(0,0,0,.2);
+    font-size:1.2rem; font-size:calc(clamp(.9rem, calc(min(7cqh, 5cqw) * var(--z)), 2.6rem) * var(--fk, 1)); }
   /* Connexion : carte centrée sur un léger halo de la couleur de l'app. */
   #login { background:radial-gradient(900px 520px at 50% -8%, var(--soft), transparent 62%), var(--bg); }
   #login > div { background:var(--panel); border:1px solid var(--line); border-radius:22px; padding:1.6rem 1.2rem 1.3rem; box-shadow:var(--shadow); }
@@ -457,6 +468,7 @@
   <div class="row"><span data-t="lockOrient"></span><button id="lock" class="sw" type="button"></button></div>
   <div class="row"><span data-t="columns"></span><span class="seg"><button data-cols="auto" type="button" data-t="colAuto"></button><button data-cols="all" type="button" data-t="colAll"></button></span></div>
   <div class="row"><span data-t="hideBars"></span><button id="bars" class="sw" type="button"></button></div>
+  <div class="row"><span data-t="gearFlags"></span><button id="gflags" class="sw" type="button"></button></div>
   <div class="btns"><button id="out" class="wide" type="button" data-t="logout"></button><button id="closeSet" class="wide" type="button" data-t="close"></button></div>
 </div></div>
 <script>
@@ -502,35 +514,35 @@
   };
   // Écrans ajoutés : pédales, drapeaux & stands, pneus & freins, relatif.
   const L2 = {
-    fr: { wakeHint:"Réseau local (HTTP) : si l'écran s'éteint malgré tout, désactivez la mise en veille automatique de l'appareil.", t_gear:"Rapport", rpmUnit:"tr/min", limTag:"LIMITEUR", t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
+    fr: { gearFlags:"Drapeaux sur l'écran Rapport", wakeHint:"Réseau local (HTTP) : si l'écran s'éteint malgré tout, désactivez la mise en veille automatique de l'appareil.", t_gear:"Rapport", rpmUnit:"tr/min", limTag:"LIMITEUR", t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
       throttle:"Accélérateur", brake:"Frein", clutch:"Embrayage", steering:"Volant", rpm:"Régime", bias:"Répartition", motorMap:"Carto moteur", trace:"10 dernières secondes",
       fGreen:"Drapeau vert", fYellow:"Drapeau jaune", fFcy:"Neutralisation (FCY)", fSc:"Voiture de sécurité", fBlue:"Drapeau bleu", fRed:"Séance arrêtée", fChk:"Drapeau à damier", fFormation:"Tour de formation", fCountdown:"Départ imminent", fWaiting:"Avant le départ",
       y1:"Neutralisation imminente", y2:"Stands fermés", y3:"Stands ouverts aux voitures dans le tour du leader", y4:"Stands ouverts", y5:"Dernier tour de la voiture de sécurité", y6:"Relance", y7:"Course arrêtée",
       penalties:"Pénalités", trackLimits:"Limites de piste", lastMsg:"Dernier message du jeu", pit:"Stands", limiter:"Limiteur", on:"activé", off:"coupé", pitLimit:"Vitesse des stands",
       ps0:"En piste", ps1:"Arrêt demandé", ps2:"Entrée des stands", ps3:"À l'arrêt", ps4:"Sortie des stands", stopLen:"Arrêt prévu", pitMenu:"Menu des stands", perLap:"par tour",
       pressure:"Pression", carcass:"Carcasse", wear:"Gomme restante", flat:"Crevaison", detached:"Roue perdue" },
-    en: { wakeHint:"Local network (HTTP): if the screen still turns off, disable the device's auto-lock.", t_gear:"Gear", rpmUnit:"rpm", limTag:"LIMITER", t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
+    en: { gearFlags:"Flags on the Gear screen", wakeHint:"Local network (HTTP): if the screen still turns off, disable the device's auto-lock.", t_gear:"Gear", rpmUnit:"rpm", limTag:"LIMITER", t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
       throttle:"Throttle", brake:"Brake", clutch:"Clutch", steering:"Steering", rpm:"RPM", bias:"Brake bias", motorMap:"Engine map", trace:"Last 10 seconds",
       fGreen:"Green flag", fYellow:"Yellow flag", fFcy:"Full course yellow", fSc:"Safety car", fBlue:"Blue flag", fRed:"Session stopped", fChk:"Chequered flag", fFormation:"Formation lap", fCountdown:"Start imminent", fWaiting:"Before the start",
       y1:"Caution pending", y2:"Pits closed", y3:"Pits open to lead-lap cars", y4:"Pits open", y5:"Safety car's last lap", y6:"Restart", y7:"Race halted",
       penalties:"Penalties", trackLimits:"Track limits", lastMsg:"Last game message", pit:"Pit lane", limiter:"Pit limiter", on:"on", off:"off", pitLimit:"Pit speed limit",
       ps0:"On track", ps1:"Stop requested", ps2:"Entering the pits", ps3:"Stopped", ps4:"Leaving the pits", stopLen:"Planned stop", pitMenu:"Pit menu", perLap:"per lap",
       pressure:"Pressure", carcass:"Carcass", wear:"Tread left", flat:"Puncture", detached:"Wheel off" },
-    es: { wakeHint:"Red local (HTTP): si la pantalla se apaga de todos modos, desactiva el bloqueo automático del dispositivo.", t_gear:"Marcha", rpmUnit:"rpm", limTag:"LIMITADOR", t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
+    es: { gearFlags:"Banderas en la pantalla Marcha", wakeHint:"Red local (HTTP): si la pantalla se apaga de todos modos, desactiva el bloqueo automático del dispositivo.", t_gear:"Marcha", rpmUnit:"rpm", limTag:"LIMITADOR", t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
       throttle:"Acelerador", brake:"Freno", clutch:"Embrague", steering:"Volante", rpm:"RPM", bias:"Reparto de frenada", motorMap:"Mapa motor", trace:"Últimos 10 segundos",
       fGreen:"Bandera verde", fYellow:"Bandera amarilla", fFcy:"Neutralización (FCY)", fSc:"Coche de seguridad", fBlue:"Bandera azul", fRed:"Sesión detenida", fChk:"Bandera a cuadros", fFormation:"Vuelta de formación", fCountdown:"Salida inminente", fWaiting:"Antes de la salida",
       y1:"Neutralización inminente", y2:"Boxes cerrados", y3:"Boxes abiertos para los coches en la vuelta del líder", y4:"Boxes abiertos", y5:"Última vuelta del coche de seguridad", y6:"Relanzamiento", y7:"Carrera detenida",
       penalties:"Penalizaciones", trackLimits:"Límites de pista", lastMsg:"Último mensaje del juego", pit:"Boxes", limiter:"Limitador", on:"activado", off:"desactivado", pitLimit:"Velocidad en boxes",
       ps0:"En pista", ps1:"Parada solicitada", ps2:"Entrando en boxes", ps3:"Parado", ps4:"Saliendo de boxes", stopLen:"Parada prevista", pitMenu:"Menú de boxes", perLap:"por vuelta",
       pressure:"Presión", carcass:"Carcasa", wear:"Goma restante", flat:"Pinchazo", detached:"Rueda perdida" },
-    de: { wakeHint:"Lokales Netzwerk (HTTP): Wenn sich der Bildschirm trotzdem ausschaltet, deaktiviere die automatische Sperre des Geräts.", t_gear:"Gang", rpmUnit:"U/min", limTag:"LIMITER", t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
+    de: { gearFlags:"Flaggen in der Gang-Ansicht", wakeHint:"Lokales Netzwerk (HTTP): Wenn sich der Bildschirm trotzdem ausschaltet, deaktiviere die automatische Sperre des Geräts.", t_gear:"Gang", rpmUnit:"U/min", limTag:"LIMITER", t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
       throttle:"Gas", brake:"Bremse", clutch:"Kupplung", steering:"Lenkung", rpm:"Drehzahl", bias:"Bremsbalance", motorMap:"Motorkennfeld", trace:"Letzte 10 Sekunden",
       fGreen:"Grüne Flagge", fYellow:"Gelbe Flagge", fFcy:"Full Course Yellow", fSc:"Safety-Car", fBlue:"Blaue Flagge", fRed:"Session unterbrochen", fChk:"Zielflagge", fFormation:"Einführungsrunde", fCountdown:"Start steht bevor", fWaiting:"Vor dem Start",
       y1:"Neutralisation steht bevor", y2:"Boxengasse geschlossen", y3:"Boxengasse offen für Autos in der Führungsrunde", y4:"Boxengasse offen", y5:"Letzte Runde des Safety-Cars", y6:"Restart", y7:"Rennen gestoppt",
       penalties:"Strafen", trackLimits:"Track Limits", lastMsg:"Letzte Spielmeldung", pit:"Boxengasse", limiter:"Limiter", on:"an", off:"aus", pitLimit:"Tempolimit Boxengasse",
       ps0:"Auf der Strecke", ps1:"Stopp angefordert", ps2:"Einfahrt in die Box", ps3:"Steht", ps4:"Ausfahrt aus der Box", stopLen:"Geplanter Stopp", pitMenu:"Boxenmenü", perLap:"pro Runde",
       pressure:"Druck", carcass:"Karkasse", wear:"Restprofil", flat:"Reifenschaden", detached:"Rad verloren" },
-    it: { wakeHint:"Rete locale (HTTP): se lo schermo si spegne comunque, disattiva il blocco automatico del dispositivo.", t_gear:"Marcia", rpmUnit:"giri/min", limTag:"LIMITATORE", t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
+    it: { gearFlags:"Bandiere nella schermata Marcia", wakeHint:"Rete locale (HTTP): se lo schermo si spegne comunque, disattiva il blocco automatico del dispositivo.", t_gear:"Marcia", rpmUnit:"giri/min", limTag:"LIMITATORE", t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
       throttle:"Acceleratore", brake:"Freno", clutch:"Frizione", steering:"Sterzo", rpm:"Giri motore", bias:"Ripartizione frenata", motorMap:"Mappa motore", trace:"Ultimi 10 secondi",
       fGreen:"Bandiera verde", fYellow:"Bandiera gialla", fFcy:"Neutralizzazione (FCY)", fSc:"Safety car", fBlue:"Bandiera blu", fRed:"Sessione interrotta", fChk:"Bandiera a scacchi", fFormation:"Giro di formazione", fCountdown:"Partenza imminente", fWaiting:"Prima della partenza",
       y1:"Neutralizzazione imminente", y2:"Box chiusi", y3:"Box aperti alle auto a pieni giri", y4:"Box aperti", y5:"Ultimo giro della safety car", y6:"Ripartenza", y7:"Gara fermata",
@@ -577,7 +589,7 @@
     duel: '<path d="M5 8h13l-3-3M19 16H6l3 3"/>',
     tv: '<path d="M3 5h18v12H3zM8 21h8"/>',
   };
-  const P = { z: 1, awake: true, lock: true, cols: "auto", bars: true, off: [] };
+  const P = { z: 1, awake: true, lock: true, cols: "auto", bars: true, off: [], gflags: true };
   try { Object.assign(P, JSON.parse(localStorage.getItem("regie_prefs") || "{}")); } catch { /* réglages illisibles : défauts */ }
   function applyPrefs() {
     P.z = Math.min(1.6, Math.max(0.8, Math.round(P.z * 10) / 10));
@@ -587,6 +599,7 @@
     $("awake").setAttribute("aria-pressed", String(!!P.awake));
     $("lock").setAttribute("aria-pressed", String(!!P.lock));
     $("bars").setAttribute("aria-pressed", String(!!P.bars));
+    $("gflags").setAttribute("aria-pressed", String(!!P.gflags));
     document.querySelectorAll("[data-cols]").forEach((b) => b.classList.toggle("on", b.dataset.cols === P.cols));
     if (!Array.isArray(P.off)) P.off = [];
     $("scr").innerHTML = TPLS.map((k) => `<button type="button" data-scr="${k}" class="${P.off.includes(k) ? "" : "on"}"><svg class="ico" viewBox="0 0 24 24">${ICONS[k]}</svg>${esc(T["t_" + k])}</button>`).join("");
@@ -609,6 +622,7 @@
   $("lock").onclick = () => { P.lock = !P.lock; savePrefs(); if (P.lock) lockOrientation(); else if (screen.orientation && screen.orientation.unlock) try { screen.orientation.unlock(); } catch { /* non pris en charge */ } };
   document.querySelectorAll("[data-cols]").forEach((b) => b.onclick = () => { P.cols = b.dataset.cols; savePrefs(); });
   $("bars").onclick = () => { P.bars = !P.bars; savePrefs(); updBars(); };
+  $("gflags").onclick = () => { P.gflags = !P.gflags; savePrefs(); };
   const sheetOpen = () => !$("sheet").classList.contains("hidden");
   $("set").onclick = () => $("sheet").classList.remove("hidden");
   $("closeSet").onclick = () => $("sheet").classList.add("hidden");
@@ -1051,6 +1065,7 @@
     const leds = Array.from({ length: 15 }, (_, i) => `<i data-c="${i < 5 ? "g" : i < 10 ? "y" : "r"}"></i>`).join("");
     return `<div class="page gearp"><div class="card dash">
       <div class="leds" id="gd-l">${leds}</div>
+      <span class="gtag hidden" id="gd-f"></span>
       <div class="gbig mono" id="gd-g">N</div>
       <div class="gfoot"><div class="gv g-spd"><span class="gnum mono" id="gd-v">0</span><span class="lbl">km/h</span></div>
         <div class="gv g-rpm"><span class="gnum mono" id="gd-r">0</span><span class="lbl">${T.rpmUnit}</span></div></div>
@@ -1069,6 +1084,13 @@
     const box = $("gd-l");
     box.classList.toggle("shift", rr >= 0.97 && !t.speed_limiter);
     $("gd-g").classList.toggle("go", rr >= 0.97 && !t.speed_limiter);
+    // Drapeau en cours (trame principale) par-dessus : jaune, FCY, voiture de sécurité, bleu, rouge, damier.
+    const fi = P.gflags && last && last.connected && last.session ? flagInfo(last) : null;
+    const fl = fi && ["fy", "fb", "fr", "chk"].includes(fi.cls) ? fi : null;
+    const dash = $("gd-g").parentElement;
+    for (const c of ["fy", "fb", "fr", "chk"]) dash.classList.toggle(c, !!fl && fl.cls === c);
+    $("gd-f").textContent = fl ? fl.txt : "";
+    $("gd-f").classList.toggle("hidden", !fl);
     box.classList.toggle("lim", !!t.speed_limiter);
     $("gd-lim").classList.toggle("hidden", !t.speed_limiter);
     [...box.children].forEach((e, i) => { e.className = i < lit ? e.dataset.c : ""; });

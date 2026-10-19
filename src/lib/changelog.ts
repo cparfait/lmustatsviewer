@@ -692,6 +692,15 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
+              en: "Tablet race control, Gear screen: the current flag shows on top of the dashboard — the whole background takes its colour (striped for yellow, full course yellow and the safety car; blue; red; chequered) with its name above the gear, while gear, revs and shift lights stay readable. Setting “Flags on the Gear screen” to turn it off.",
+              fr: "Régie tablette, écran Rapport : le drapeau en cours s'affiche par-dessus le tableau de bord — tout le fond prend sa couleur (hachuré pour le jaune, la neutralisation et la voiture de sécurité ; bleu ; rouge ; damier) avec son nom au-dessus du rapport, qui reste lisible comme le régime et les témoins. Réglage « Drapeaux sur l'écran Rapport » pour le couper.",
+              es: "Dirección en tableta, pantalla Marcha: la bandera actual aparece sobre el tablero — todo el fondo toma su color (a rayas para la amarilla, la neutralización y el coche de seguridad; azul; roja; a cuadros) con su nombre encima de la marcha, que sigue legible como el régimen y las luces. Ajuste «Banderas en la pantalla Marcha» para desactivarlo.",
+              de: "Rennleitung auf dem Tablet, Gang-Ansicht: Die aktuelle Flagge erscheint über dem Armaturenbrett — der ganze Hintergrund nimmt ihre Farbe an (gestreift bei Gelb, Full Course Yellow und Safety-Car; Blau; Rot; Zielflagge) mit ihrem Namen über dem Gang, der wie Drehzahl und Schaltblitze lesbar bleibt. Einstellung „Flaggen in der Gang-Ansicht“ zum Abschalten.",
+              it: "Direzione gara su tablet, schermata Marcia: la bandiera in corso appare sopra il cruscotto — tutto lo sfondo prende il suo colore (a strisce per la gialla, la neutralizzazione e la safety car; blu; rossa; a scacchi) con il suo nome sopra la marcia, che resta leggibile come i giri e le luci. Impostazione «Bandiere nella schermata Marcia» per disattivarla.",
+            },
+          },
+          {
+            text: {
               en: "Tablet race control: numbers and labels now use Barlow Condensed, a narrow typeface with fixed-width figures (free SIL Open Font License, served by the app — no internet needed on the tablet): bigger figures in the same space, and longer driver names fit on a phone.",
               fr: "Régie tablette : chiffres et libellés en Barlow Condensed, une police étroite à chiffres de largeur fixe (licence libre SIL Open Font License, servie par l'app — aucune connexion internet nécessaire sur la tablette) : des chiffres plus grands dans la même place, et les noms de pilotes plus longs tiennent sur un téléphone.",
               es: "Dirección en tableta: cifras y etiquetas en Barlow Condensed, una fuente estrecha con cifras de ancho fijo (licencia libre SIL Open Font License, servida por la app — no hace falta internet en la tableta): cifras más grandes en el mismo espacio, y los nombres de pilotos más largos caben en un móvil.",

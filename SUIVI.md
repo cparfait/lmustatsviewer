@@ -1008,6 +1008,18 @@ dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idée
 - **Prochaine étape** : vérifier dans l'app (téléchargement de Parakeet depuis la Config, question
   à la voix, réglage de l'alerte de blocage en roulant), puis commit sur main si l'utilisateur le demande.
 
+### 2026-10-20 — Régie tablette : drapeaux par-dessus l'écran Rapport
+
+**Demande** : « il faut afficher les drapeaux par-dessus les rapports ».
+
+- ✅ Écran Rapport : le drapeau en cours (même logique que l'écran Drapeaux, `flagInfo` sur
+  la trame principale) colore tout le fond du tableau de bord (`fy` hachuré : jaune, FCY,
+  voiture de sécurité ; `fb` bleu ; `fr` rouge ; `chk` damier) avec son nom en pastille
+  au-dessus du rapport ; vert / aucun drapeau = affichage normal. Rapport, régime, vitesse et
+  témoins restent lisibles (couleurs inversées, ombre sur le damier). Réglage « Drapeaux sur
+  l'écran Rapport » (activé) pour revenir à l'ancien affichage. Vérifié sur le faux serveur
+  (aucun → voiture de sécurité → bleu).
+
 ### 2026-10-19 — Régie tablette : police Barlow Condensed embarquée
 
 **Accord du mainteneur** pour télécharger Barlow Condensed (point ⏳ de l'entrée précédente).

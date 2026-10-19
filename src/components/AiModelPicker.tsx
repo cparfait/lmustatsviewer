@@ -1,24 +1,21 @@
 /**
  * Sélecteur de modèle IA partagé (page Config + Config V2).
  *
- * **Liste d'abord, saisie en secours** (même logique que le sélecteur de modèle
- * de deepseek-harness) : les fournisseurs étant configurés avec leur clé, le
- * sondage `/models` renvoie la liste RÉELLE — on la présente en menu déroulant.
- * La saisie libre reste accessible (« Saisir manuellement… ») pour un modèle
- * tout juste sorti ou absent du sondage, et devient le mode unique quand aucun
- * modèle n'a pu être sondé (hors ligne, fournisseur muet).
+ * **Un seul champ** : la flèche ouvre la liste RÉELLE sondée chez le fournisseur
+ * (`/models`, modèle actuel coché) ; cliquer sur le nom permet de le modifier ou
+ * de chercher dans la liste à la frappe. Un id absent de la liste (modèle tout
+ * juste sorti) reste saisissable : il est retenu à Entrée ou en quittant le
+ * champ, Échap annule. Sans liste (hors ligne, fournisseur muet), le champ
+ * reste en saisie libre avec un exemple d'id.
  */
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, Loader2, ExternalLink, List, AlertTriangle } from "lucide-react";
+import { RefreshCw, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
-import { Select } from "@/components/ui/select";
 import { Tip } from "@/components/ui/tooltip";
 import type { AIProvider, ModelInfo } from "@/lib/ai/types";
-
-const MANUAL = "__manual__";
 
 export function AiModelPicker({
   provider,
@@ -36,17 +33,21 @@ export function AiModelPicker({
   onRefresh: () => void;
 }) {
   const { t } = useTranslation();
-  // Liste par défaut ; le passage en saisie est explicite et ne survit pas à un
-  // changement de fournisseur (les ids d'un fournisseur n'ont aucun sens chez
-  // un autre). `provider` a une référence stable (registre).
-  const [manual, setManual] = useState(false);
+  // Texte en cours de frappe : ne devient le modèle qu'une fois validé. Écrire
+  // directement dans la config enregistrait « deep » comme modèle pendant une
+  // simple recherche.
+  const [draft, setDraft] = useState(value);
   useEffect(() => {
-    setManual(false);
-  }, [provider]);
+    setDraft(value);
+  }, [value]);
+
+  const commit = (v: string) => {
+    const id = v.trim();
+    if (!id) setDraft(value); // champ vidé : on garde le modèle actuel
+    else if (id !== value) onChange(id);
+  };
 
   const inList = models.some((m) => m.id === value);
-  const showInput = manual || models.length === 0;
-
   // Exemple d'id courant pour ce fournisseur (mode saisie) : 1er repli statique.
   const example = provider?.fallbackModels[0]?.id;
   // Le modèle enregistré peut dater de plusieurs versions : sans cet
@@ -61,45 +62,37 @@ export function AiModelPicker({
       .catch(() => window.open(url, "_blank"));
   };
 
-  const fieldCls =
-    "h-8 w-[210px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring";
-
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex items-center gap-2">
-        {showInput ? (
-          <Combobox
-            value={value}
-            onChange={onChange}
-            options={models.map((m) => ({ value: m.id, label: m.label }))}
-            placeholder={
-              example
-                ? t("config.aiModelPlaceholder", { id: example })
-                : t("config.aiModelPlaceholderPlain")
+        <Combobox
+          toggle
+          value={draft}
+          selected={value}
+          onChange={setDraft}
+          onPick={(v) => {
+            setDraft(v);
+            commit(v);
+          }}
+          options={models.map((m) => ({ value: m.id, label: m.label }))}
+          placeholder={
+            example
+              ? t("config.aiModelPlaceholder", { id: example })
+              : t("config.aiModelPlaceholderPlain")
+          }
+          ariaLabel={t("config.aiModelChoose")}
+          toggleLabel={t("config.aiModelFromList")}
+          onBlur={() => commit(draft)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit(draft);
+            } else if (e.key === "Escape") {
+              setDraft(value);
             }
-            ariaLabel={t("config.aiModelChoose")}
-            className={fieldCls}
-          />
-        ) : (
-          <Select
-            value={value}
-            onValueChange={(v) => {
-              if (v === MANUAL) setManual(true);
-              else onChange(v);
-            }}
-            ariaLabel={t("config.aiModelChoose")}
-            className={fieldCls}
-            // Rien de choisi (après changement de fournisseur) : le placeholder
-            // tient lieu d'invite, sans option vide sélectionnable.
-            placeholder={t("config.aiModelChoose")}
-            options={[
-              // Id saisi à la main absent du sondage : affiché, jamais écrasé.
-              ...(value && !inList ? [{ value, label: value }] : []),
-              ...models.map((m) => ({ value: m.id, label: m.label })),
-              { value: MANUAL, label: t("config.aiModelManual") },
-            ]}
-          />
-        )}
+          }}
+          className="h-8 w-[210px] rounded-md border border-input bg-background pl-2.5 pr-7 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+        />
         <Tip content={t("config.aiRefreshModels")} side="top">
           <Button
             variant="outline"
@@ -118,8 +111,8 @@ export function AiModelPicker({
         </Tip>
       </div>
 
-      {/* Mode saisie : note explicative + retour à la liste si elle existe. */}
-      {showInput && (
+      {/* Aucune liste sondée : note explicative sur la saisie libre. */}
+      {models.length === 0 && (
         <p className="max-w-[300px] text-right text-[11px] leading-snug text-muted-foreground/80">
           {example ? t("config.aiModelHint", { id: example }) : t("config.aiModelHintPlain")}
         </p>
@@ -143,31 +136,18 @@ export function AiModelPicker({
         </p>
       )}
 
-      <div className="flex items-center gap-3">
-        {manual && models.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setManual(false)}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <List className="h-3 w-3" />
-            {t("config.aiModelFromList")}
-          </button>
-        )}
-        {/* En mode liste, le menu montre déjà les modèles : le lien vers la doc
-            n'a d'intérêt qu'en saisie manuelle (trouver l'id exact d'un modèle
-            trop récent pour être sondé). */}
-        {showInput && provider?.docsUrl && (
-          <button
-            type="button"
-            onClick={openDocs}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <ExternalLink className="h-3 w-3" />
-            {t("config.aiModelsDocs")}
-          </button>
-        )}
-      </div>
+      {/* Lien vers la doc : utile seulement quand l'id vient d'ailleurs que de la
+          liste (rien de sondé, ou modèle saisi à la main). */}
+      {provider?.docsUrl && (models.length === 0 || (value && !inList)) && (
+        <button
+          type="button"
+          onClick={openDocs}
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ExternalLink className="h-3 w-3" />
+          {t("config.aiModelsDocs")}
+        </button>
+      )}
     </div>
   );
 }

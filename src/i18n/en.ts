@@ -1937,7 +1937,6 @@ export default {
     aiModelPlaceholderPlain: "Model ID",
     aiModelsDocs: "View the model list",
     aiModelChoose: "Pick a model…",
-    aiModelManual: "Enter manually…",
     aiModelFromList: "Pick from the list",
     aiModelHint: "Free text — example: {{id}}",
     aiModelHintPlain: "Free text: type the model ID.",

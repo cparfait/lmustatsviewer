@@ -1940,7 +1940,6 @@ export default {
     aiModelPlaceholderPlain: "Identifiant du modèle",
     aiModelsDocs: "Voir la liste des modèles",
     aiModelChoose: "Choisir un modèle…",
-    aiModelManual: "Saisir manuellement…",
     aiModelFromList: "Choisir dans la liste",
     aiModelHint: "Champ libre — exemple : {{id}}",
     aiModelHintPlain: "Champ libre : saisis l'identifiant du modèle.",

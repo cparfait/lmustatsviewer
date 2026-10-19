@@ -18,8 +18,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 export function useAnchoredPanel<T extends HTMLElement = HTMLElement>({
   width,
 }: {
-  /** `trigger` = largeur du déclencheur ; `auto` = largeur du contenu. */
-  width?: "trigger" | "auto";
+  /**
+   * `trigger` = largeur du déclencheur ; `auto` = largeur du contenu ;
+   * `min-trigger` = largeur du contenu, au moins celle du déclencheur, recalée
+   * vers la gauche si elle déborde de la fenêtre (longs identifiants).
+   */
+  width?: "trigger" | "auto" | "min-trigger";
 } = {}) {
   const triggerRef = useRef<T | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -34,12 +38,18 @@ export function useAnchoredPanel<T extends HTMLElement = HTMLElement>({
     const below = window.innerHeight - r.bottom;
     // Bascule au-dessus quand le bas manque de place (et que le haut en a plus).
     const flip = panelH > 0 && below < panelH + 8 && r.top > below;
+    const panelW = panelRef.current?.offsetWidth ?? 0;
+    const left =
+      width === "min-trigger" ? Math.max(8, Math.min(r.left, window.innerWidth - 8 - panelW)) : r.left;
     setStyle({
       position: "fixed",
-      left: Math.round(r.left),
+      left: Math.round(left),
       top: flip ? undefined : Math.round(r.bottom + 4),
       bottom: flip ? Math.round(window.innerHeight - r.top + 4) : undefined,
       ...(width === "trigger" ? { width: Math.round(r.width) } : {}),
+      ...(width === "min-trigger"
+        ? { minWidth: Math.round(r.width), maxWidth: window.innerWidth - 16 }
+        : {}),
       maxHeight: Math.round(Math.max(below, r.top) - 12),
     });
   }, [width]);

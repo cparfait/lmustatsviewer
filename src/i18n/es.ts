@@ -1938,7 +1938,6 @@ export default {
     aiModelPlaceholderPlain: "Identificador del modelo",
     aiModelsDocs: "Ver la lista de modelos",
     aiModelChoose: "Elegir un modelo…",
-    aiModelManual: "Escribir manualmente…",
     aiModelFromList: "Elegir de la lista",
     aiModelHint: "Campo libre — ejemplo: {{id}}",
     aiModelHintPlain: "Campo libre: escribe el identificador del modelo.",

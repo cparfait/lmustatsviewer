@@ -921,6 +921,21 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-20 — Sélecteur de modèle IA : un seul champ (flèche = liste, nom = recherche/édition)
+
+- ✅ `AiModelPicker` : fin du double mode `Select` / saisie manuelle. `Combobox` en mode `toggle`
+  (flèche → liste complète, modèle actuel coché) ; clic sur le nom → texte sélectionné, la
+  frappe filtre. Brouillon local : l'id n'est enregistré qu'au choix, à Entrée ou au blur (avant,
+  chaque frappe écrivait la config) ; Échap annule ; champ vidé → modèle conservé.
+- ✅ `use-anchored-panel` : largeur `min-trigger` (largeur du contenu ≥ champ, recalée à gauche
+  si débordement) → ids OpenRouter lisibles en entier.
+- ✅ Combobox : Entrée retient la suggestion **identique** au texte tapé (pas `…:free` à la place
+  de `…`). Clé i18n `aiModelManual` retirée (5 langues).
+- ✅ Vérifié sur une page de test isolée (liste, choix, recherche, Échap, id libre + Entrée),
+  supprimée ensuite. tsc + 6481 tests OK.
+- 📋 **Prochaine étape** : l'utilisateur essaie le champ dans l'app (Config › Coach IA et IA des
+  questions en course).
+
 ### 2026-10-20 — OpenRouter : raisonnement de Qwen 3.5 affiché à la place de la réponse
 
 **Symptôme** : « Tester l'IA » avec `qwen/qwen3.5-35b-a3b` via OpenRouter affichait un long

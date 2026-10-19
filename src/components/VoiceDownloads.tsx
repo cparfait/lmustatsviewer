@@ -18,7 +18,7 @@
  * liste se voit dans le bandeau, et le bandeau disparaît dès qu'elle est installée.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { create } from "zustand";
 import { AlertTriangle, Check, Download, Loader2, Play, Trash2 } from "lucide-react";
@@ -210,14 +210,16 @@ export function VoiceDownloads({
       <p className="text-xs text-muted-foreground/80">
         {t(kind === "tts" ? "config.assetVoicesHint" : "config.assetSttHint")}
       </p>
+      {/* Grille à trois colonnes (nom | Tester | état) : tous les boutons « Tester »
+          sont alignés, y compris ceux des locuteurs d'une voix à plusieurs voix. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3">
       {rows.map((a) => {
         // Voix installée : un choix par locuteur (UPMC = Jessica et Pierre).
         const speakers = pick && a.installed ? pick.options.filter((o) => o.voiceId === a.id) : [];
         const single = speakers.length === 1 ? speakers[0] : null;
         return (
-        <div key={a.id}>
-        <div className="flex items-center justify-between gap-3 py-0.5">
-          <div className="flex min-w-0 items-center gap-2 text-sm">
+        <Fragment key={a.id}>
+          <div className="flex min-w-0 items-center gap-2 py-1 text-sm">
             {single && pick && <Radio checked={pick.value === single.value} onClick={() => pick.onSelect(single.value)} />}
             {kind === "tts" ? a.label : t("config.assetSttModel")}
             {a.is_default && kind === "tts" && (
@@ -226,8 +228,10 @@ export function VoiceDownloads({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex justify-end">
             {single && pick && <TestButton onClick={() => pick.onTest(single.value)} />}
+          </div>
+          <div className="flex items-center justify-end gap-2">
             {a.installed ? (
               <>
                 <span className="flex items-center gap-1 text-xs text-success">
@@ -253,10 +257,8 @@ export function VoiceDownloads({
               downloadButton(a)
             )}
           </div>
-        </div>
-        {speakers.length > 1 && pick && (
-          <div className="ml-4 border-l border-border pl-3">
-            {speakers.map((o) => (
+          {speakers.length > 1 && pick &&
+            speakers.map((o) => (
               <PickRow
                 key={o.value}
                 label={o.label}
@@ -265,11 +267,10 @@ export function VoiceDownloads({
                 onTest={() => pick.onTest(o.value)}
               />
             ))}
-          </div>
-        )}
-        </div>
+        </Fragment>
         );
       })}
+      </div>
     </div>
   );
 }
@@ -299,7 +300,8 @@ function TestButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-/** Ligne de choix seule (Automatique, locuteurs d'une voix à plusieurs voix). */
+/** Locuteur d'une voix à plusieurs voix : trois cellules de la grille (nom en retrait
+ *  avec le filet, bouton « Tester » dans la colonne commune, état vide). */
 function PickRow({
   label,
   hint,
@@ -314,14 +316,17 @@ function PickRow({
   onTest: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-0.5">
-      <div className="flex min-w-0 items-center gap-2 text-sm">
+    <>
+      <div className="ml-4 flex min-w-0 items-center gap-2 border-l border-border py-1 pl-3 text-sm">
         <Radio checked={selected} onClick={onSelect} />
         <span>{label}</span>
         {hint && <span className="text-mini text-muted-foreground">{hint}</span>}
       </div>
-      <TestButton onClick={onTest} />
-    </div>
+      <div className="flex justify-end">
+        <TestButton onClick={onTest} />
+      </div>
+      <div />
+    </>
   );
 }
 

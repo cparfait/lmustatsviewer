@@ -692,6 +692,15 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
+              en: "Settings › Audio / Voice › Neural voices: all the “Test” buttons are now lined up in the same column, including those of the voices of a multi-speaker pack (UPMC: Jessica and Pierre).",
+              fr: "Configuration › Audio / Voix › Voix neuronales : tous les boutons « Tester » sont maintenant alignés dans la même colonne, y compris ceux des voix d'un pack à plusieurs voix (UPMC : Jessica et Pierre).",
+              es: "Configuración › Audio / Voz › Voces neuronales: todos los botones «Probar» quedan ahora alineados en la misma columna, incluidos los de las voces de un paquete con varias voces (UPMC: Jessica y Pierre).",
+              de: "Einstellungen › Audio / Stimme › Neuronale Stimmen: Alle „Testen“-Schaltflächen stehen jetzt in derselben Spalte, auch die der Stimmen eines Pakets mit mehreren Stimmen (UPMC: Jessica und Pierre).",
+              it: "Impostazioni › Audio / Voce › Voci neurali: tutti i pulsanti «Prova» sono ora allineati nella stessa colonna, compresi quelli delle voci di un pacchetto con più voci (UPMC: Jessica e Pierre).",
+            },
+          },
+          {
+            text: {
               en: "Settings › Audio / Voice › Voice: the Local voice, Online AI voice and Sound blocks can now be collapsed like the other tabs' sections (open by default, the “How does it work?” button stays in the header). Every collapsible section in Settings now remembers whether you left it open or collapsed.",
               fr: "Configuration › Audio / Voix › Voix : les blocs Voix locale, Voix IA en ligne et Son se replient désormais comme les sections des autres onglets (ouverts par défaut, le bouton « Comment ça marche ? » reste dans l'en-tête). Toutes les sections repliables de la Configuration retiennent si tu les as laissées ouvertes ou repliées.",
               es: "Configuración › Audio / Voz › Voz: los bloques Voz local, Voz IA en línea y Sonido ahora se pueden plegar como las secciones de las demás pestañas (abiertos por defecto, el botón «¿Cómo funciona?» sigue en la cabecera). Todas las secciones plegables de la Configuración recuerdan si las dejaste abiertas o plegadas.",

@@ -1008,6 +1008,18 @@ dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idée
 - **Prochaine étape** : vérifier dans l'app (téléchargement de Parakeet depuis la Config, question
   à la voix, réglage de l'alerte de blocage en roulant), puis commit sur main si l'utilisateur le demande.
 
+### 2026-10-20 — Voix neuronales : boutons « Tester » alignés
+
+**Demande** : « il faut que Tester soient tous alignés » (liste des voix neuronales : les
+boutons des locuteurs UPMC étaient décalés à droite, faute de colonne « Installé »).
+
+- ✅ `VoiceDownloads.tsx` : la liste devient une grille à trois colonnes
+  (`minmax(0,1fr) | auto | auto` = nom | Tester | état). Ligne d'un pack à plusieurs voix :
+  cellule Tester vide ; locuteurs (`PickRow`) : nom en retrait avec le filet, Tester dans la
+  colonne commune, état vide. `tsc`, `eslint` ✅.
+- ⚠️ Vue dans l'app seulement en partie : l'utilisateur naviguait dans l'app en même temps,
+  vérification à l'écran arrêtée pour ne pas le gêner.
+
 ### 2026-10-20 — Configuration : sections repliables (onglet Voix) et état retenu
 
 **Demande** : « il faut pouvoir réduire les sections » (capture de Configuration › Audio /

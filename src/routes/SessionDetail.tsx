@@ -1,4 +1,5 @@
 import { SessionMoments } from "@/components/SessionMoments";
+import { SessionDebrief } from "@/components/SessionDebrief";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -807,6 +808,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
           <TabsTrigger value="result">
             {t("sessionDetail.tabResult")}
           </TabsTrigger>
+          {playerResult && <TabsTrigger value="debrief">{t("sessionDetail.tabDebrief")}</TabsTrigger>}
           <TabsTrigger value="laps">{t("sessionDetail.tabLaps")}</TabsTrigger>
           <TabsTrigger value="best">{t("sessionDetail.tabBest")}</TabsTrigger>
           <TabsTrigger value="compare">
@@ -856,6 +858,12 @@ function SessionView({ data }: { data: SessionDetailData }) {
             participants={session.participants}
           />
         </TabsContent>
+
+        {playerResult && (
+          <TabsContent value="debrief">
+            <SessionDebrief detail={data} />
+          </TabsContent>
+        )}
 
         <TabsContent value="laps">
           <LapsTab results={results} lapsByDriver={lapsByDriver} />

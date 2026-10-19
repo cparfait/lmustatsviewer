@@ -307,6 +307,12 @@ export function ConfigV2() {
   const spotterKeyCoach = useAppStore((s) => s.spotterKeyCoach);
   const radioMode = useAppStore((s) => s.radioMode);
   const localAnswers = useAppStore((s) => s.localAnswers);
+  const aiVoiceRadioPrompt = useAppStore((s) => s.aiVoiceRadioPrompt);
+  const aiVoiceGuard = useAppStore((s) => s.aiVoiceGuard);
+  const sttConfirmUnsure = useAppStore((s) => s.sttConfirmUnsure);
+  const debriefRadio = useAppStore((s) => s.debriefRadio);
+  const trackRecallRadio = useAppStore((s) => s.trackRecallRadio);
+  const paceOutlookRadio = useAppStore((s) => s.paceOutlookRadio);
   const pttRecognition = useAppStore((s) => s.pttRecognition);
   const announceEverywhere = useAppStore((s) => s.announceEverywhere);
   const classPositions = useAppStore((s) => s.classPositions);
@@ -1687,6 +1693,30 @@ export function ConfigV2() {
                       onChange={(v) => void useAppStore.getState().setRadioReplay(v)}
                     />
 <ToggleRow
+                      icon={<Flag className="h-4 w-4" />}
+                      label={t("config.debriefRadio")}
+                      desc={t("config.debriefRadioDesc")}
+                      tip={t("config.debriefRadioTip")}
+                      checked={debriefRadio}
+                      onChange={(v) => void useAppStore.getState().setDebriefRadio(v)}
+                    />
+<ToggleRow
+                      icon={<MapPin className="h-4 w-4" />}
+                      label={t("config.trackRecallRadio")}
+                      desc={t("config.trackRecallRadioDesc")}
+                      tip={t("config.trackRecallRadioTip")}
+                      checked={trackRecallRadio}
+                      onChange={(v) => void useAppStore.getState().setTrackRecallRadio(v)}
+                    />
+<ToggleRow
+                      icon={<Gauge className="h-4 w-4" />}
+                      label={t("config.paceOutlookRadio")}
+                      desc={t("config.paceOutlookRadioDesc")}
+                      tip={t("config.paceOutlookRadioTip")}
+                      checked={paceOutlookRadio}
+                      onChange={(v) => void useAppStore.getState().setPaceOutlookRadio(v)}
+                    />
+<ToggleRow
                       icon={<MessageCircleQuestion className="h-4 w-4" />}
                       label={t("config.radioAskPrefs")}
                       desc={t("config.radioAskPrefsDesc")}
@@ -1935,6 +1965,30 @@ export function ConfigV2() {
                         tip={t("config.localAnswersTip")}
                         checked={localAnswers}
                         onChange={(v) => void useAppStore.getState().setLocalAnswers(v)}
+                      />
+                      <ToggleRow
+                        icon={<Radio className="h-4 w-4" />}
+                        label={t("config.aiVoiceRadioPrompt")}
+                        desc={t("config.aiVoiceRadioPromptDesc")}
+                        tip={t("config.aiVoiceRadioPromptTip")}
+                        checked={aiVoiceRadioPrompt}
+                        onChange={(v) => void useAppStore.getState().setAiVoiceRadioPrompt(v)}
+                      />
+                      <ToggleRow
+                        icon={<ShieldAlert className="h-4 w-4" />}
+                        label={t("config.aiVoiceGuard")}
+                        desc={t("config.aiVoiceGuardDesc")}
+                        tip={t("config.aiVoiceGuardTip")}
+                        checked={aiVoiceGuard}
+                        onChange={(v) => void useAppStore.getState().setAiVoiceGuard(v)}
+                      />
+                      <ToggleRow
+                        icon={<Mic className="h-4 w-4" />}
+                        label={t("config.sttConfirmUnsure")}
+                        desc={t("config.sttConfirmUnsureDesc")}
+                        tip={t("config.sttConfirmUnsureTip")}
+                        checked={sttConfirmUnsure}
+                        onChange={(v) => void useAppStore.getState().setSttConfirmUnsure(v)}
                       />
                       <p className="text-xs text-muted-foreground/80">{t("config.radioSecCommandsDesc")}</p>
                       <div className="flex flex-wrap gap-x-1 gap-y-1 cursor-default">

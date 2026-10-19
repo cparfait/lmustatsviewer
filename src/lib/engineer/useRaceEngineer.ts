@@ -64,6 +64,9 @@ import {
 import { GameMessageTracker, type GameMsg, type GameWarning } from "./gameMessages";
 import { FrozenOrderTracker, type Column, type FoTarget } from "./frozenOrder";
 import { EndgameWatcher } from "./endgame";
+import { PaceOutlook } from "./paceOutlook";
+import { chequeredPhrase } from "./debriefRadio";
+import { loadTrackHistory, recallPhrase } from "./trackRecall";
 import { TyreEventWatcher } from "./tyreEvents";
 import { formatPressure } from "./pressures";
 import { cornerNamer } from "./cornerVoice";
@@ -392,6 +395,22 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const endgame = useRef(new EndgameWatcher());
   const tyreEv = useRef(new TyreEventWatcher());
   const lastTrack = useRef("");
+  // Bilan au damier, rappel du circuit, tendance de rythme (réglages, défaut oui).
+  const debriefRadio = useAppStore((s) => s.debriefRadio);
+  const trackRecallRadio = useAppStore((s) => s.trackRecallRadio);
+  const paceOutlookRadio = useAppStore((s) => s.paceOutlookRadio);
+  const pace = useRef(new PaceOutlook());
+  /** Place en classe vue sur la grille (tour 0), null si le départ n'a pas été vu. */
+  const startClassPos = useRef<number | null>(null);
+  const debriefSaid = useRef(false);
+  /** La course a été vue rouler (tour ≥ 1 sans arrivée) : condition du bilan au damier. */
+  const raceSeen = useRef(false);
+  /** Dernier tour où la tendance de rythme a été évaluée. */
+  const paceLap = useRef(-1);
+  /** Tracé + classe déjà rappelés (une réplique par combo et par lancement). */
+  const recallKey = useRef("");
+  /** Réplique d'arrivée prête (chargée en arrière-plan), dite à la trame suivante. */
+  const recallText = useRef<string | null>(null);
 
   // Voix prête avant la première annonce : moteur Piper démarré, alertes fixes
   // (et phrases du spotter) synthétisées d'avance.
@@ -556,6 +575,11 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       frozen.current.reset();
       endgame.current.reset();
       tyreEv.current.reset();
+      pace.current.reset();
+      paceLap.current = -1;
+      startClassPos.current = null;
+      raceSeen.current = false;
+      debriefSaid.current = false;
     }
     if (sc.track !== lastTrack.current) {
       lastTrack.current = sc.track;
@@ -1562,6 +1586,62 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       }
     }
 
+    // ── Grille, tendance de rythme, bilan au damier, mémoire du circuit ─────
+    const lapVoice = (s: number) => fmtLapVoice(s, t, true);
+    const pickPart = (k: string, x: string) => variants.current.pick(k, x);
+    const finishStatus = playerStanding?.finish_status ?? player?.finish_status ?? 0;
+    // Place de départ en classe : seulement si la grille a été vue (tour 0).
+    if (isRace && playerStanding && lapNow === 0 && finishStatus === 0 && playerStanding.class_position > 0)
+      startClassPos.current = playerStanding.class_position;
+    if (isRace && lapNow >= 1 && finishStatus === 0) raceSeen.current = true;
+    pace.current.push(data.standings);
+    if (paceOutlookRadio && isRace && warmedUp && !inPits && lapNow !== paceLap.current) {
+      paceLap.current = lapNow;
+      const c = pace.current.call(data.standings, lapNow, strat?.sessionLapsLeft ?? null, weather?.rain ?? 0);
+      if (c?.kind === "climbing")
+        say("pos:pace", t("live.vPaceClimbing", { d: c.perLap.toFixed(1), name: radioName(c.driver) }), "chatty", { score: 25 });
+      else if (c?.kind === "holding") say("pos:pace", t("live.vPaceHolding"), "chatty", { score: 20 });
+    }
+    // Bilan au damier : une fois, et seulement si la course a été vue rouler (pas en
+    // ouvrant l'app sur une course déjà finie).
+    if (debriefRadio && isRace && finishStatus > 0 && raceSeen.current && !debriefSaid.current && player) {
+      debriefSaid.current = true;
+      const me = playerStanding;
+      const text = chequeredPhrase(
+        {
+          status: finishStatus,
+          classPos: me && me.class_position > 0 ? me.class_position : null,
+          classCount: me ? data.standings.filter((s) => s.vehicle_class === me.vehicle_class).length : null,
+          startClassPos: startClassPos.current,
+          bestLap: player.best_lap_time > 0 ? player.best_lap_time : null,
+          stops: player.num_pitstops,
+        },
+        t,
+        lapVoice,
+        pickPart,
+      );
+      say("race:debrief", text, "normal", { score: 90, moment: "race:final" });
+    }
+    // Mémoire du circuit : chargée au changement de tracé ou de classe (aussi en course,
+    // pour le coach vocal) ; la réplique n'est dite qu'hors course, au garage ou au tour 0.
+    const myClass = playerStanding?.vehicle_class ?? "";
+    if (sc.track && myClass) {
+      const key = `${sc.track}|${radioClass(myClass)}`;
+      if (recallKey.current !== key) {
+        recallKey.current = key;
+        recallText.current = null;
+        const speak = trackRecallRadio && !isRace;
+        void loadTrackHistory(sc.track, myClass)
+          .then((h) => {
+            if (h && speak && recallKey.current === key) recallText.current = recallPhrase(h, t, lapVoice, pickPart);
+          })
+          .catch(() => {});
+      } else if (recallText.current && !isRace && (inPits || lapNow === 0)) {
+        say("recall:track", recallText.current, "chatty", { score: 30 });
+        recallText.current = null;
+      }
+    }
+
     // ── Politique de parole : régime choisi à la voix, phases, budgets ───────
     // Le régime (« on se bat », « tais-toi jusqu'au tour 12 »…) vaut dans les deux
     // débits ; phases et budgets seulement en débit Ingénieur (Complet = historique).
@@ -1642,5 +1722,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     extras,
     pressureUnit,
     pressureWindows,
+    debriefRadio,
+    trackRecallRadio,
+    paceOutlookRadio,
   ]);
 }

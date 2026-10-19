@@ -206,7 +206,8 @@ export class RadioPolicy {
 
     // 2. Phases de course.
     if (ctx.phases) {
-      if (ctx.finished) return false;
+      // Après le damier : le bilan seul.
+      if (ctx.finished) return c.key === "race:debrief";
       if (ctx.nowS - this.crashAt < CRASH_CALM_S) return false;
       if (ctx.nowS - this.boxAt < BOX_CALM_S && cls !== "decision") return false;
       if (ctx.inPits && !starts(c.key, PIT_LANE_OK)) return false;

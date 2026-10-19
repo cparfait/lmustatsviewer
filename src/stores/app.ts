@@ -162,6 +162,18 @@ interface AppState {
   radioMode: "full" | "engineer";
   /** Push-to-talk du coach : questions factuelles répondues en local (sans IA). */
   localAnswers: boolean;
+  /** Coach vocal : prompt radio court et dédié (`false` = prompt d'analyse, comme avant). */
+  aiVoiceRadioPrompt: boolean;
+  /** Coach vocal : réponse contrôlée avant la radio (chiffres, promesses, langue, accusé à vide). */
+  aiVoiceGuard: boolean;
+  /** Dictée libre incertaine (confiance Vosk basse) : faire répéter au lieu d'interroger l'IA. */
+  sttConfirmUnsure: boolean;
+  /** Bilan calculé dit à la radio au drapeau à damier. */
+  debriefRadio: boolean;
+  /** À l'arrivée sur un circuit déjà roulé : rappel de la dernière fois et du repère à viser. */
+  trackRecallRadio: boolean;
+  /** En course : « ton rythme te fait remonter / te garde à ta place » (sans place promise). */
+  paceOutlookRadio: boolean;
   /**
    * Reconnaissance de la touche « Parler à l'ingénieur » : `dual` = dictée libre
    * + liste des commandes en secours (défaut) ; `strict` = liste des commandes
@@ -361,6 +373,12 @@ interface AppState {
   setFuelReserveLaps: (v: number) => Promise<void>;
   setRadioMode: (m: "full" | "engineer") => Promise<void>;
   setLocalAnswers: (v: boolean) => Promise<void>;
+  setAiVoiceRadioPrompt: (v: boolean) => Promise<void>;
+  setAiVoiceGuard: (v: boolean) => Promise<void>;
+  setSttConfirmUnsure: (v: boolean) => Promise<void>;
+  setDebriefRadio: (v: boolean) => Promise<void>;
+  setTrackRecallRadio: (v: boolean) => Promise<void>;
+  setPaceOutlookRadio: (v: boolean) => Promise<void>;
   setPttRecognition: (v: "dual" | "strict") => Promise<void>;
   setAnnounceEverywhere: (v: boolean) => Promise<void>;
   setClassPositions: (v: boolean) => Promise<void>;
@@ -459,6 +477,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   fuelReserveLaps: 1,
   radioMode: "engineer",
   localAnswers: true,
+  aiVoiceRadioPrompt: true,
+  aiVoiceGuard: true,
+  sttConfirmUnsure: true,
+  debriefRadio: true,
+  trackRecallRadio: true,
+  paceOutlookRadio: true,
   pttRecognition: "dual",
   announceEverywhere: true,
   classPositions: true,
@@ -709,6 +733,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         : 1,
       radioMode: cfg.radio_mode === "full" ? "full" : "engineer",
       localAnswers: cfg.engineer_local_answers !== "false",
+      aiVoiceRadioPrompt: cfg.ai_voice_radio_prompt !== "false",
+      aiVoiceGuard: cfg.ai_voice_guard !== "false",
+      sttConfirmUnsure: cfg.stt_confirm_unsure !== "false",
+      debriefRadio: cfg.engineer_debrief_radio !== "false",
+      trackRecallRadio: cfg.engineer_track_recall !== "false",
+      paceOutlookRadio: cfg.engineer_pace_outlook !== "false",
       pttRecognition: cfg.ptt_recognition === "strict" ? "strict" : "dual",
       announceEverywhere: cfg.voice_everywhere !== "false",
       classPositions: cfg.voice_class_positions !== "false",
@@ -1126,6 +1156,36 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLocalAnswers: async (v) => {
     await config.set("engineer_local_answers", v ? "true" : "false");
     set({ localAnswers: v });
+  },
+
+  setAiVoiceRadioPrompt: async (v) => {
+    await config.set("ai_voice_radio_prompt", v ? "true" : "false");
+    set({ aiVoiceRadioPrompt: v });
+  },
+
+  setAiVoiceGuard: async (v) => {
+    await config.set("ai_voice_guard", v ? "true" : "false");
+    set({ aiVoiceGuard: v });
+  },
+
+  setSttConfirmUnsure: async (v) => {
+    await config.set("stt_confirm_unsure", v ? "true" : "false");
+    set({ sttConfirmUnsure: v });
+  },
+
+  setDebriefRadio: async (v) => {
+    await config.set("engineer_debrief_radio", v ? "true" : "false");
+    set({ debriefRadio: v });
+  },
+
+  setTrackRecallRadio: async (v) => {
+    await config.set("engineer_track_recall", v ? "true" : "false");
+    set({ trackRecallRadio: v });
+  },
+
+  setPaceOutlookRadio: async (v) => {
+    await config.set("engineer_pace_outlook", v ? "true" : "false");
+    set({ paceOutlookRadio: v });
   },
 
   setPttRecognition: async (v) => {

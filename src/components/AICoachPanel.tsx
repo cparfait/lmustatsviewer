@@ -34,6 +34,9 @@ import { formatTime } from "@/lib/utils";
 import { getProvider } from "@/lib/ai/providers";
 import { converseStream, friendlyError } from "@/lib/ai/coach";
 import { buildPostRaceContext } from "@/lib/ai/context/postrace-context";
+import { computeDebrief, debriefContextText } from "@/lib/debrief/compute";
+import { loadRecurring } from "@/lib/debrief/load";
+import { recurringContextText } from "@/lib/debrief/recurring";
 import {
   buildDriverHistoryText,
   buildComboHistoryText,
@@ -1055,6 +1058,23 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
       ),
     [detail, setupText, alienText, historyText, knowledgeText, telemetryText, communityText, locate],
   );
+  // Débrief calculé (sans IA) + défaut qui revient : seule source de ces chiffres pour le coach.
+  const debriefText = useMemo(() => {
+    const d = computeDebrief(detail);
+    return d ? debriefContextText(d) : "";
+  }, [detail]);
+  const [recurringText, setRecurringText] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    setRecurringText("");
+    loadRecurring()
+      .then((r) => !cancelled && setRecurringText(recurringContextText(r.defect)))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [detail]);
+
   const player = detail.results.find((r) => r.is_player);
   const combo = player
     ? {
@@ -1066,7 +1086,7 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
     : undefined;
   return (
     <CoachPanel
-      getContext={() => ctx.text}
+      getContext={() => [ctx.text, debriefText, recurringText].filter(Boolean).join("\n\n")}
       resetKey={`session-${detail.session.id}`}
       combo={combo}
     />

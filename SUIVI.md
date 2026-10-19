@@ -921,6 +921,59 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-18 — Idées de veille ㉟–㊿ réalisées : coach vocal fiabilisé, débrief calculé, variantes radio
+
+**Demande** : « fais tout » (les idées ㉟–㊿ des deux entrées de veille TrackMind ci-dessous) et
+« peut-on aussi ajouter des phrases ? ». Fait dans le dossier principal, sur `main`, sans commit :
+la session de la fenêtre des nouveautés modifie en même temps les mêmes fichiers partagés
+(`i18n/*.ts`, `changelog.ts`, `stores/app.ts`, `ConfigV2.tsx`, `testkit/run.ts`).
+
+- ✅ **Coach vocal** (`lib/ai/prompts/radio.ts`, `lib/ai/voiceGuard.ts`, `lib/engineer/ask.ts`,
+  `askRules.ts`, `lib/ai/coach.ts`) :
+  - ㉟ prompt radio court et dédié, 5 langues (12 règles, exemples sans chiffre) ; un prompt
+    personnalisé garde la main ; réglage `aiVoiceRadioPrompt` (off = prompt d'analyse) ;
+  - ㊱ rappel de langue en toute fin du message (vocal, analyse et conversation, sur une copie :
+    l'historique sauvegardé n'est pas touché) ;
+  - ㊲ ㊻ contrôle de la réponse avant la radio : chiffre absent du contexte (égal ou arrondi
+    toléré, entiers 0-3 tolérés), promesse ou action (5 langues), réglage dit fait, autre langue,
+    accusé à vide (symptôme sans endroit → « entrée, milieu ou sortie ? ») ; réparation par
+    phrases saines sinon repli à variantes ; texte écarté montré à l'écran ; réglage `aiVoiceGuard` ;
+  - ㊳ relances bornées : après une relance, proposer deux lectures ; après deux, meilleure lecture ;
+  - ㊵ fil radio joint (annonces de l'arbitre des 3 dernières minutes + derniers échanges) ;
+  - ㊼ confiance Vosk (`set_words(true)`, moyenne des mots, `recognize_free_samples_conf`,
+    champ `confidence` de `ptt_end_dual`) : sous 0,55 et ≥ 3 mots, on fait répéter au lieu
+    d'interroger l'IA ; réglage `sttConfirmUnsure`. Notre dictée est Vosk, pas Whisper.
+- ✅ **Virages** (`lib/ai/knowledge/corner-names.ts`) : ㊴ liste fermée par circuit (table officielle
+  + noms du guide de freinage des tracés vérifiés), jointe au vocal ; sans liste, le prompt
+  interdit tout nom ; ㊽ façons de dire (Monza, Le Mans, Spa, Imola), « Lesmo » seul = ambigu,
+  nom déformé par clé phonétique ≥ 0,85 (« théâtre rouge » → Tertre Rouge). Lexique pneus et
+  énergie virtuelle / litres dans le prompt radio (piloté par la présence de la section).
+- ✅ **Débrief calculé** (`lib/debrief/compute.ts`, `recurring.ts`, `load.ts`,
+  `components/SessionDebrief.tsx`, onglet « Débrief » de la page Session) : ㊷ résultat en classe,
+  places depuis la grille (null sans grille), arrêts vs médiane des 3 premiers de la classe, perte
+  par arrêt mesurée (bande 8-120 s), meilleur tour / classe / optimal, régularité, pertes par
+  secteur, bascules de position **en classe** tour par tour (depuis `et` + chrono) avec leur cause,
+  usure du dernier relais (≥ 8 tours), incidents, 7 familles de défaut fermées ; ㊸ défaut récurrent
+  (≥ 5 courses, ≥ 3 fois, ≥ 30 %, tendance sur deux fenêtres de 5) ; débrief et défaut joints à
+  l'analyse IA d'après-course.
+- ✅ **Annonces** (`lib/engineer/debriefRadio.ts`, `trackRecall.ts`, `paceOutlook.ts`,
+  `useRaceEngineer.ts`, `policy.ts`) : ㊶ ㊾ bilan au damier, résultat en première phrase, une fois,
+  seulement si la course a été vue rouler, seul message permis après le damier ; ㊹ ㊾ mémoire du
+  tracé (par `track_course` et classe, courses quittées ≥ 2 tours comprises) dite hors course au
+  garage ; ㊿ tendance de rythme (dès le tour 8, ≥ 5 tours restants, ≥ 3 rivaux mesurés, médiane
+  des 3 derniers tours, jamais de place promise, redite seulement si mieux et 8 tours plus tard) ;
+  historique du tracé (record, dernière course, perte au stand et usure mesurées) joint au vocal.
+  Réglages `debriefRadio`, `trackRecallRadio`, `paceOutlookRadio`. La stratégie garde sa propre
+  perte au stand apprise (`pitLaneLossByCombo`) : l'historique n'y est pas branché.
+- ✅ **Phrases** : 35 annonces passent à 3 formulations (5 langues, mêmes variables), 22 nouvelles
+  phrases à variantes (bilan, mémoire, rythme) ajoutées au catalogue personnalisable.
+- ✅ Vérifs : `tsc` OK, `cargo check` OK, eslint OK sur les fichiers touchés, `npm test`
+  6 268 OK (nouvelle suite `coachvoice.suite.ts`). Changelog 1.0.10 (dev) : 5 entrées, 5 langues.
+- ⏳ Non vérifié à l'écran : l'app Tauri n'était pas lancée (le navigateur seul n'affiche pas l'app).
+- 📋 **Prochaine étape** : lancer `npm run tauri dev`, ouvrir une course dans Sessions › Débrief,
+  tester une question vocale floue et une demande « préviens-moi » au coach IA, puis commiter
+  (après le commit de la fenêtre des nouveautés, qui partage les mêmes fichiers).
+
 ### 2026-10-18 — Fenêtre « Mise à jour installée » (nouveautés après une mise à jour)
 
 **Demande** : un affichage des nouveautés quand les gens mettent l'app à jour, sur le modèle

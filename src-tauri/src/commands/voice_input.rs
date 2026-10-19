@@ -22,7 +22,7 @@
 //! cours de route (erreur du flux ou plus aucun son reçu) → réouverture à chaud
 //! avec la même préférence, événement `voice-input-device`.
 
-use crate::commands::stt::{get_model, recognize_free_samples, recognize_grammar_samples};
+use crate::commands::stt::{get_model, recognize_free_samples, recognize_free_samples_conf, recognize_grammar_samples};
 use crate::error::{AppError, AppResult};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use serde::Serialize;
@@ -829,6 +829,8 @@ pub struct PttTexts {
     /// Reconnaissance stricte sur la liste des commandes (plus sûre dans le bruit) ;
     /// vide si aucune grammaire n'est fournie.
     strict: String,
+    /// Confiance moyenne des mots de la dictée libre (0..1), `None` sans mot reconnu.
+    confidence: Option<f32>,
 }
 
 /// Fin de push-to-talk, **double lecture** : la même capture passe à la dictée
@@ -846,10 +848,10 @@ pub fn ptt_end_dual(app: AppHandle, lang: String, grammar: Vec<String>) -> AppRe
         }
     };
     remember_utterance(&buf);
-    let free = recognize_free_samples(&app, &lang, &buf)?;
+    let (free, confidence) = recognize_free_samples_conf(&app, &lang, &buf)?;
     // Une grammaire en échec ne doit pas faire perdre la dictée libre.
     let strict = recognize_grammar_samples(&app, &lang, &buf, &grammar).unwrap_or_default();
-    Ok(Some(PttTexts { free, strict }))
+    Ok(Some(PttTexts { free, strict, confidence }))
 }
 
 /// Abandonne la capture push-to-talk en cours (rien n'est dicté).

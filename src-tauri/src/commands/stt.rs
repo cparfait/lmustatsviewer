@@ -196,20 +196,36 @@ pub(crate) fn recognize_free_samples(
     lang: &str,
     samples: &[i16],
 ) -> AppResult<String> {
+    recognize_free_samples_conf(app, lang, samples).map(|(text, _)| text)
+}
+
+/// Dictée libre + **confiance moyenne** des mots (0..1, Vosk), `None` sans mot reconnu.
+/// Une confiance basse signale une phrase probablement mal entendue : l'ingénieur la
+/// fait répéter au lieu de l'envoyer telle quelle au Coach IA.
+pub(crate) fn recognize_free_samples_conf(
+    app: &tauri::AppHandle,
+    lang: &str,
+    samples: &[i16],
+) -> AppResult<(String, Option<f32>)> {
     if samples.is_empty() {
-        return Ok(String::new());
+        return Ok((String::new(), None));
     }
     let model = get_model(app, lang)?;
     let mut rec = Recognizer::new(model, 16_000.0)
         .ok_or_else(|| AppError::Internal("Échec d'init du Recognizer Vosk".into()))?;
-    rec.set_words(false);
+    rec.set_words(true);
     let _ = rec.accept_waveform(samples);
-    let text = rec
-        .final_result()
-        .single()
-        .map(|r| r.text.to_string())
-        .unwrap_or_default();
-    Ok(text.trim().to_string())
+    let result = rec.final_result();
+    let Some(r) = result.single() else {
+        return Ok((String::new(), None));
+    };
+    Ok((r.text.trim().to_string(), mean_conf(r.result.iter().map(|w| w.conf))))
+}
+
+/// Moyenne des confiances de mots, `None` si aucun mot.
+fn mean_conf(confs: impl Iterator<Item = f32>) -> Option<f32> {
+    let (sum, n) = confs.fold((0.0f32, 0u32), |(s, n), c| (s + c, n + 1));
+    (n > 0).then(|| sum / n as f32)
 }
 
 /// Reconnaissance **libre** (dictée, sans grammaire) pour les questions au Coach IA.

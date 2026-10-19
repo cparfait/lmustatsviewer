@@ -448,7 +448,23 @@ function cloudPrepSuite() {
   }
   // Phrases fixes = sans variable dans le catalogue des annonces. Exceptions :
   // jamais dites seules (suivies d'un temps au tour, préfixe de « Répète ») ou plus dites.
-  const NOT_ALONE = new Set(["vBestLap", "vLastLap", "vRepeatPrefix", "vCornerWatching"]);
+  // Morceaux jamais dits seuls : le bilan au damier et la mémoire du circuit sont
+  // assemblés morceau par morceau (`debriefRadio.ts`, `trackRecall.ts`), la phrase
+  // entière part en direct ; rien à préparer d'avance pour un morceau.
+  const NOT_ALONE = new Set([
+    "vBestLap",
+    "vLastLap",
+    "vRepeatPrefix",
+    "vCornerWatching",
+    "vDebriefWin",
+    "vDebriefNoPlace",
+    "vDebriefGain1",
+    "vDebriefLost1",
+    "vDebriefEnd",
+    "vDebriefDnf",
+    "vDebriefDq",
+    "vRecallIntro",
+  ]);
   const catalog = new Map(VOICE_MESSAGE_GROUPS.flatMap((g) => g.items.map((m) => [m.key, m] as const)));
   for (const k of [...prios.keys()]) if (catalog.get(k)?.vars.length || NOT_ALONE.has(k)) prios.delete(k);
   const cloudOnly = (k: string) => [...(prios.get(k) ?? [])].every((p) => p === "normal" || p === "chatty");

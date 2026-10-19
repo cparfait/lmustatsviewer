@@ -118,13 +118,14 @@ export function useCoachVoice() {
      * commune `askEngineer` (local d'abord, liste des commandes, puis IA).
      * `strict` = lecture stricte de la même capture (liste des commandes).
      */
-    const answerQuestion = async (question: string, strict?: string) => {
+    const answerQuestion = async (question: string, strict?: string, confidence?: number | null) => {
       busy.current = true;
       try {
         await askEngineer(question, {
           lang: langRef.current,
           t: tRef.current,
           strict,
+          confidence,
           disposed: () => disposed,
         });
       } finally {
@@ -159,13 +160,18 @@ export function useCoachVoice() {
       const grammar = buildGrammar(lang);
       let free = "";
       let strict = "";
+      let confidence: number | null = null;
       try {
         if (viaEngine.current) {
           setDriverTalking(false);
-          const res = await invoke<{ free: string; strict: string } | null>("ptt_end_dual", { lang, grammar });
+          const res = await invoke<{ free: string; strict: string; confidence?: number | null } | null>(
+            "ptt_end_dual",
+            { lang, grammar },
+          );
           if (res == null) return;
           free = res.free;
           strict = res.strict;
+          confidence = res.confidence ?? null;
         } else {
           const pcm = stopCapture();
           if (pcm.length === 0) return;
@@ -180,7 +186,7 @@ export function useCoachVoice() {
         announceAnswer(radioLine(tRef.current, "coach.voiceUnclear"), lang);
         return;
       }
-      await answerQuestion(free, strict);
+      await answerQuestion(free, strict, confidence);
     };
 
     /** Appui / relâchement (touche ou bouton de volant), selon le mode. */

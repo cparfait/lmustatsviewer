@@ -47,6 +47,10 @@ import { PIT_CMDS, runPitCommand, type PitCmd } from "@/lib/engineer/pitVoice";
 import { parseAlarm } from "@/lib/engineer/alarm";
 import { engineer } from "@/lib/engineer/state";
 import { saveNoteHere } from "@/lib/useVoiceNotes";
+import { cornerNamesBlock } from "@/lib/ai/knowledge/corner-names";
+import { checkVoiceAnswer, repairVoiceAnswer, type GuardReason } from "@/lib/ai/voiceGuard";
+import { lastTrackHistory, trackHistoryBlock } from "@/lib/engineer/trackRecall";
+import { CLARIFY_MAX, THREAD_MS, clarifyStreak, isClarification, sttUnsure, type Exchange } from "@/lib/engineer/askRules";
 
 // Phrases radio d'échec (« pas compris », coach indisponible) : variantes
 // « A | B | C » en rotation ; rappels de cause déjà dits (cf. `radioErrorKey`).
@@ -128,6 +132,48 @@ function recentDiagnosticsBlock(): string {
 
 export { isAction };
 
+// ── Fil radio joint au coach vocal ──────────────────────────────────────────
+
+const exchanges: Exchange[] = [];
+
+function rememberExchange(q: string, a: string): void {
+  exchanges.push({ q, a, at: Date.now(), clarify: isClarification(a) });
+  if (exchanges.length > 6) exchanges.splice(0, exchanges.length - 6);
+}
+
+/**
+ * Ce que l'ingénieur a déjà dit (annonces retenues par l'arbitre) et les derniers
+ * échanges avec le pilote : l'IA ne contredit pas une annonce qu'elle ignorait, et
+ * comprend « et derrière ? » ou une réponse d'un mot à sa propre question.
+ */
+function radioThreadBlock(now = Date.now()): string {
+  const said = radioLog.entries.filter((e) => now - e.at <= THREAD_MS).slice(-6);
+  const ex = exchanges.filter((e) => now - e.at <= THREAD_MS).slice(-3);
+  if (!said.length && !ex.length) return "";
+  const ago = (at: number) => `${Math.max(1, Math.round((now - at) / 1000))} s ago`;
+  const lines = ["## Radio thread (what you already said; stay consistent with it, most recent last)"];
+  for (const e of said) lines.push(`- ${ago(e.at)}, announcement: ${e.text}`);
+  for (const e of ex) lines.push(`- ${ago(e.at)}, driver asked: "${e.q}" → you answered: "${e.a}"`);
+  const streak = clarifyStreak(exchanges, now);
+  if (streak >= CLARIFY_MAX)
+    lines.push(
+      "You have already asked the driver to repeat or clarify twice in a row: do NOT ask again. Give your best reading of what they want, say which reading you took, and answer it; if nothing is plausible, say in one sentence that you leave it for now.",
+    );
+  else if (streak === 1)
+    lines.push(
+      "You have just asked the driver to repeat. Do not simply ask again: offer the two most likely readings in the simplest words and let them pick with one word.",
+    );
+  return lines.join("\n");
+}
+
+/** Repli honnête quand la réponse de l'IA est écartée (clé i18n à variantes). */
+function guardFallbackKey(reason: GuardReason, askWhere: boolean): string {
+  if (reason === "emptyAck") return askWhere ? "coach.guardAckWhere" : "coach.guardAckEmpty";
+  if (reason === "number") return "coach.guardNoData";
+  if (reason === "promise" || reason === "done") return "coach.guardNoAction";
+  return "coach.guardUnsure";
+}
+
 export interface AskOptions {
   lang: string;
   t: TFunction;
@@ -139,6 +185,8 @@ export interface AskOptions {
   dryRun?: boolean;
   /** Arrêt demandé (démontage) : rien n'est dit après coup. */
   disposed?: () => boolean;
+  /** Confiance moyenne de la dictée libre (0..1, Vosk), si connue. */
+  confidence?: number | null;
 }
 
 export interface AskResult {
@@ -308,6 +356,16 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   }
 
   // ── 4. Coach IA ─────────────────────────────────────────────────────────────
+  // Dictée incertaine : on fait répéter plutôt que d'envoyer à l'IA une phrase
+  // peut-être fausse (elle répondrait à côté avec aplomb). Réglage désactivable.
+  if (mode !== "ai" && st0.sttConfirmUnsure && sttUnsure(free, o.confidence)) {
+    const text = radioLine(t, "coach.voiceUnsure");
+    if (!gone()) {
+      announceAnswer(text, lang);
+      toast(t("coach.voiceUnsureToast", { pct: Math.round((o.confidence ?? 0) * 100) }));
+    }
+    return { text, via: "fallback" };
+  }
   try {
     // Accusé immédiat : l'appel IA prend 1 à 3 s, le pilote sait qu'on a entendu.
     if (!gone()) announce(t(`coach.voiceAck${1 + Math.floor(Math.random() * 3)}`), lang);
@@ -320,24 +378,47 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
       if (picked) return runIntent(picked as AnswerIntent, "local");
     }
     // Sans données live, l'appel échoue comme avant (message d'erreur lisible).
-    const baseCtx = await buildLiveCoachContext(data ?? (await live.getData()), free);
+    const liveData = data ?? (await live.getData());
+    const baseCtx = await buildLiveCoachContext(liveData, free);
     const recent = recentDiagnosticsBlock();
     // Faits calculés par l'app : seule source des chiffres de la réponse (les
     // fiches de savoir sont déjà jointes par `buildLiveCoachContext`).
     const facts = factsBlock(r.candidates, data, t, opts);
-    const ctx = [baseCtx, facts, recent].filter(Boolean).join("\n\n");
-    const answer = await askCoachVoice({
-      provider: p,
-      model,
-      apiKey,
-      lang,
-      question: free,
-      contextText: ctx,
-      systemOverride: useAppStore.getState().aiSystemPromptByLang[lang.slice(0, 2).toLowerCase()] ?? "",
-    });
+    // Liste fermée des noms de virage du circuit (+ ce que désignent les mots du pilote).
+    const track = liveData?.session?.track ?? "";
+    const corners = track ? cornerNamesBlock(track, track, free) : "";
+    const thread = radioThreadBlock();
+    // Ce que l'app sait de ce tracé (record, dernière course, perte au stand mesurée).
+    const history = trackHistoryBlock(lastTrackHistory(), track);
+    const ctx = [baseCtx, facts, corners, history, recent, thread].filter(Boolean).join("\n\n");
+    const answer = stripMd(
+      await askCoachVoice({
+        provider: p,
+        model,
+        apiKey,
+        lang,
+        question: free,
+        contextText: ctx,
+        systemOverride: useAppStore.getState().aiSystemPromptByLang[lang.slice(0, 2).toLowerCase()] ?? "",
+        radioPrompt: st0.aiVoiceRadioPrompt,
+      }),
+    );
     // Le coach répond de nouveau : un futur échec de modèle / clé sera rappelé.
     hintedErrors.clear();
-    return say(stripMd(answer), "ai");
+    // Contrôle avant la radio : on ne dit pas un chiffre que l'IA n'a pas reçu, une
+    // promesse qu'elle ne tiendra pas, ni un « Reçu. » à une vraie question.
+    let spoken = answer;
+    if (st0.aiVoiceGuard && answer) {
+      const input = { answer, sources: ctx, question: free, lang };
+      const verdict = checkVoiceAnswer(input);
+      if (verdict) {
+        const repaired = repairVoiceAnswer(input);
+        spoken = repaired ?? radioLine(t, guardFallbackKey(verdict.reason, !!verdict.askWhere));
+        if (!gone()) toast(t("coach.guardToast", { why: t(`coach.guardWhy_${verdict.reason}`), text: answer }));
+      }
+    }
+    rememberExchange(free, spoken);
+    return say(spoken, "ai");
   } catch (e) {
     // Écran : le message détaillé (quoi corriger). Radio : une phrase courte,
     // jamais le texte technique.

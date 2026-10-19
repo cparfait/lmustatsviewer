@@ -53,6 +53,7 @@ export const CLOUD_PREP_KEYS: readonly string[] = [
   "vPitDone",
   "vFinalLap",
   "vHalfway",
+  "vPaceHolding",
   "vLastMinute",
   "vBatterySaturated",
   "vPostureAttack",

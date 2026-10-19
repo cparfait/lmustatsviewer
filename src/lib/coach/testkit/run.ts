@@ -22,6 +22,7 @@ import { run as runVeille } from "./suites/veille.suite";
 import { run as runRace } from "./suites/race.suite";
 import { run as runPostRace } from "./suites/postrace.suite";
 import { run as runWhatsNew } from "./suites/whatsnew.suite";
+import { run as runCoachVoice } from "./suites/coachvoice.suite";
 
 runPure();
 runCoach();
@@ -37,6 +38,7 @@ runPlan();
 runRace();
 runPostRace();
 runWhatsNew();
+runCoachVoice();
 void (async () => {
   await runVoice();
   runVeille();

@@ -10,6 +10,7 @@ import { ai } from "../api";
 import type { Tr } from "../../i18n";
 import type { AIMessage, AIProvider } from "./types";
 import { systemPrompt } from "./prompts/system";
+import { languageLock, radioSystemPrompt } from "./prompts/radio";
 import { stripThinking, ThinkingStreamFilter } from "./thinking";
 import { aiErrorKind } from "./errorKind";
 
@@ -102,6 +103,10 @@ const VOICE_STYLE: Record<string, string> = {
 /**
  * Question vocale (push-to-talk en course) : réponse **courte** façon radio
  * (2 phrases max), non-streaming, lue par TTS. Le contexte live est joint.
+ *
+ * `radioPrompt` (défaut) : prompt système radio dédié (`prompts/radio.ts`) au lieu du
+ * prompt d'analyse ; un prompt personnalisé par l'utilisateur garde toujours la main.
+ * Le rappel de langue part en toute fin du message (le contexte est en anglais).
  */
 export async function askCoachVoice(args: {
   provider: AIProvider;
@@ -111,14 +116,17 @@ export async function askCoachVoice(args: {
   question: string;
   contextText: string;
   systemOverride?: string;
+  radioPrompt?: boolean;
 }): Promise<string> {
   const { provider, model, apiKey, lang, question, contextText, systemOverride } = args;
   const style = VOICE_STYLE[lang.slice(0, 2).toLowerCase()] ?? VOICE_STYLE.en;
+  const custom = !!systemOverride && !!systemOverride.trim();
+  const system = custom || args.radioPrompt === false ? resolveSystem(lang, systemOverride) : radioSystemPrompt(lang);
   const messages: AIMessage[] = [
-    { role: "system", content: resolveSystem(lang, systemOverride) },
+    { role: "system", content: system },
     {
       role: "user",
-      content: `${question.trim()}\n\n${style}\n\n--- Live data ---\n${contextText}`,
+      content: `${question.trim()}\n\n${style}\n\n--- Live data ---\n${contextText}\n\n${languageLock(lang)}`,
     },
   ];
   return chat(provider, model, apiKey, messages, 160);
@@ -179,10 +187,15 @@ export async function converseStream(args: {
 }): Promise<string> {
   const { provider, model, apiKey, lang, history, maxTokens, systemOverride, onToken, onTruncated } =
     args;
-  const messages: AIMessage[] = [
-    { role: "system", content: resolveSystem(lang, systemOverride) },
-    ...history,
-  ];
+  // Rappel de langue en toute fin du dernier message du pilote (copie : l'historique
+  // affiché et sauvegardé n'est pas touché). Le contexte joint est en anglais : sans ce
+  // rappel lu en dernier, un petit modèle glisse vers l'anglais.
+  const tail = [...history];
+  const last = tail.length - 1;
+  if (last >= 0 && tail[last].role === "user") {
+    tail[last] = { ...tail[last], content: `${tail[last].content}\n\n${languageLock(lang)}` };
+  }
+  const messages: AIMessage[] = [{ role: "system", content: resolveSystem(lang, systemOverride) }, ...tail];
   const url = provider.streamChatUrl(model, apiKey);
   const headers = provider.buildHeaders(apiKey);
   const body = provider.buildBody(messages, model, maxTokens, true);

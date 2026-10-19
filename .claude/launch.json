@@ -49,6 +49,12 @@
       "port": 5191
     },
     {
+      "name": "regie-mock",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/tmp/regie-mock/serve.mjs"],
+      "port": 8796
+    },
+    {
       "name": "vitrine",
       "runtimeExecutable": "python",
       "runtimeArgs": [

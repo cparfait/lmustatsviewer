@@ -24,6 +24,8 @@ import {
   CLOUD_PREP_EXTRA_KEYS,
   cloudModeFor,
   cloudPrepKeys,
+  CLOUD_PREP_WHEEL_KEYS,
+  wheelTemplates,
   estimateCostUsd,
   fixedPhrases,
   isFixedPhrase,
@@ -529,6 +531,16 @@ function cloudPrepSuite() {
     ok(alerts.every((x) => typeof x === "string" && x.length > 0 && !x.includes("{{")), `${lang} : chaque gabarit urgent existe, sans variable`);
     const alertPhrases = fixedPhrases(alerts, (s) => s);
     ok(alertPhrases.length >= CLOUD_PREP_ALERT_KEYS.length, `${lang} : au moins une phrase urgente par gabarit (${alertPhrases.length})`);
+    // Crevaison / roue arrachée nommées : chaque roue préparée, variante par variante.
+    const wb = b as unknown as { live: { wheelVoice: Record<string, string> } };
+    const names = ["fl", "fr", "rl", "rr"].map((w) => wb.live.wheelVoice[w]);
+    for (const k of CLOUD_PREP_WHEEL_KEYS) {
+      const tpl = b.live[k];
+      ok(typeof tpl === "string" && tpl.includes("{{wheel}}"), `${lang} ${k} : gabarit à roue nommée`);
+      const wheelPhrases = fixedPhrases(wheelTemplates(tpl, names), (s) => s);
+      eq(wheelPhrases.length, 4 * splitVariants(tpl).length, `${lang} ${k} : 4 roues × variantes préparées`);
+      ok(wheelPhrases.some((p) => p.includes(names[0])), `${lang} ${k} : la roue est dans la phrase`);
+    }
   }
 
   approx(estimateCostUsd("openai", "gpt-4o-mini-tts", 1_000_000), 15, 1e-9, "OpenAI ≈ 15 $/M caractères");

@@ -51,7 +51,6 @@
   .act button { display:flex; align-items:center; gap:.4rem; background:var(--panel); border:1px solid var(--line); border-radius:.55rem; padding:.35rem .7rem; min-height:40px; min-width:40px; justify-content:center; font-size:.93rem; }
   :fullscreen #fs, .standalone #fs { display:none; }
   main { grid-area:main; overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:.65rem; border-top:1px solid var(--line); }
-  main.full { display:flex; flex-direction:column; }
   #dots { grid-area:dots; display:flex; justify-content:center; gap:8px; padding:6px 0 10px; }
   #dots i { width:8px; height:8px; border-radius:50%; background:var(--line); }
   #dots i.on { background:var(--acc); }
@@ -94,10 +93,6 @@
 
   /* ── Cartes, grilles, chiffres ── */
   .card { background:var(--panel); border:1px solid var(--line); border-radius:.8rem; padding:.65rem .8rem; overflow-x:auto; min-width:0; }
-  .grid { display:grid; gap:.65rem; }
-  .g2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); }
-  .g3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); }
-  @media (max-width: 420px) { .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .lbl { color:var(--mute); font-size:.8rem; text-transform:uppercase; letter-spacing:.08em; }
   .big { font-size:clamp(1.35rem, calc(4.6vmin * var(--z)), 2.6rem); font-weight:800; line-height:1.15; }
   .huge { font-size:clamp(2.2rem, calc(10vmin * var(--z)), 5rem); font-weight:800; line-height:1; }
@@ -137,9 +132,6 @@
   .mine { border-color:var(--acc); margin-bottom:.65rem; }
   .mine table td { font-size:1.13rem; font-weight:700; }
   .mine tr.me td { background:transparent; }
-  /* Page Carte : la carte seule, sur toute la hauteur disponible. */
-  .mapOnly { flex:1; min-height:0; padding:4px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .mapOnly svg.map { height:100%; }
 
   /* ── Connexion ── */
   #login { height:100%; overflow:auto; padding:calc(12vh + var(--st)) calc(12px + var(--sr)) 12px calc(12px + var(--sl)); }
@@ -193,7 +185,6 @@
   @media (max-height: 520px) { .scr, .scr-h { grid-column:1 / -1; } }
   /* Pédales. */
   .ped { display:grid; gap:.65rem; grid-template-columns:repeat(2, minmax(0, 1fr)); }
-  @media (max-width: 640px) { .ped { grid-template-columns:1fr; } .tube { height:clamp(6rem, 20vh, 11rem); } .trace svg { height:clamp(5rem, 14vh, 8rem); } }
   .ped .trace { grid-column:1 / -1; }
   .pbars { display:flex; gap:.8rem; justify-content:center; align-items:flex-end; }
   .pbar { display:flex; flex-direction:column; align-items:center; gap:.3rem; flex:1; min-width:0; }
@@ -219,6 +210,88 @@
   .t3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:3px; margin:.35rem 0; }
   .t3 span { text-align:center; border-radius:4px; padding:.3rem 0; font-weight:800; }
   .rel td { font-size:1.1rem; padding:.45rem .4rem; }
+  /* ── Pages tableau de bord : elles remplissent toute la zone, sans déborder ──
+     La zone d'affichage est un conteneur : les tailles suivent SA taille (cqmin),
+     avec un repli en vmin pour les navigateurs plus anciens ; --z = réglage
+     « Taille du texte ». Disposition selon la forme de la zone (data-shape :
+     port = plus haute que large, land = paysage, wide = très large, ex. téléphone
+     couché). Si le contenu ne tient vraiment pas, la zone défile. */
+  main.fit { display:flex; flex-direction:column; container-type:size; }
+  /* Hauteur définie (celle de la zone) : les « fr » se partagent la place réelle ;
+     une case dont le contenu est plus grand garde sa taille sans agrandir les autres. */
+  .page { flex:none; height:100%; display:grid; gap:.6rem; grid-template-columns:minmax(0, 1fr); }
+  .page > * { min-width:0; }
+  .page > .card { display:flex; flex-direction:column; justify-content:center; overflow:hidden; }
+  .page .lbl { font-size:clamp(.72rem, calc(2.1vmin * var(--z)), 1rem); font-size:clamp(.72rem, calc(2.6cqmin * var(--z)), 1.05rem); }
+  .page .meta { font-size:clamp(.8rem, calc(2.2vmin * var(--z)), 1.1rem); font-size:clamp(.8rem, calc(2.9cqmin * var(--z)), 1.2rem); }
+  .page .big { font-size:clamp(1.2rem, calc(5vmin * var(--z)), 3.4rem); font-size:clamp(1.2rem, calc(7.5cqmin * var(--z)), 4rem); }
+  .page .huge { font-size:clamp(1.9rem, calc(10vmin * var(--z)), 6.5rem); font-size:clamp(1.9rem, calc(15cqmin * var(--z)), 8rem); }
+  .page .txt { font-size:clamp(.85rem, calc(2.4vmin * var(--z)), 1.3rem); font-size:clamp(.85rem, calc(3.2cqmin * var(--z)), 1.45rem); }
+  .mapslot { position:relative; overflow:hidden; padding:0; min-height:8rem; }
+  .mapslot svg.map { position:absolute; inset:4px; width:calc(100% - 8px); height:calc(100% - 8px); }
+
+  /* Ingénieur : 8 cases + pneus. */
+  .eng { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:repeat(4, 1fr) 1.3fr; }
+  main:not([data-shape="port"]) .eng { grid-template-columns:repeat(4, minmax(0, 1fr)); grid-template-rows:1fr 1fr .9fr; }
+  .eng .tyc { grid-column:1 / -1; }
+  .eng .wheels { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.4rem .8rem; }
+  main:not([data-shape="port"]) .eng .wheels { grid-template-columns:repeat(4, minmax(0, 1fr)); }
+  /* Drapeaux & stands. */
+  .flg { grid-template-rows:.75fr 1fr 1.5fr; }
+  main[data-shape="land"] .flg { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:.8fr 1.6fr; }
+  main[data-shape="wide"] .flg { grid-template-columns:repeat(3, minmax(0, 1fr)); grid-template-rows:1fr; }
+  main[data-shape="wide"] .flg .flagbig { grid-column:auto; }
+  .flg .flagbig { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:.6rem;
+    font-size:clamp(1.4rem, calc(8vmin * var(--z)), 5rem); font-size:clamp(1.4rem, calc(10cqmin * var(--z)), 6rem); line-height:1.1; }
+  .flg .flagbig .sub { font-size:clamp(.9rem, calc(3.4cqmin * var(--z)), 1.6rem); }
+  .flg .menu td { padding:.12rem .3rem; }
+  /* Pédales. */
+  .page.ped { grid-template-columns:minmax(0, 1fr); grid-template-rows:1.25fr 1fr .7fr; }
+  main:not([data-shape="port"]) .page.ped { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:1.6fr 1fr; }
+  .page > .pbars { flex-direction:row; align-items:stretch; justify-content:center; }
+  .page .pbar { justify-content:flex-end; }
+  .page .tube { flex:1; height:auto; min-height:2.5rem; }
+  .page .gear { font-size:clamp(2.4rem, calc(16vmin * var(--z)), 9rem); font-size:clamp(2.4rem, calc(22cqmin * var(--z)), 11rem); }
+  .page .trace svg { flex:1 1 0; height:auto; min-height:2.5rem; }
+  /* Pneus & freins : 2 × 2, toujours dans la disposition de la voiture. */
+  .page.car4 { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:1fr 1fr; }
+  .page .t3 span { font-size:clamp(.95rem, calc(4.5vmin * var(--z)), 2.6rem); font-size:clamp(.95rem, calc(6.5cqmin * var(--z)), 3rem); padding:.25em 0; }
+  /* Duel. */
+  .duel { grid-template-rows:1fr 1fr; }
+  main:not([data-shape="port"]) .duel { grid-template-columns:repeat(2, minmax(0, 1fr)); grid-template-rows:1fr; }
+  .duel .huge { font-size:clamp(1.8rem, calc(8vmin * var(--z)), 5rem); font-size:clamp(1.8rem, calc(11cqmin * var(--z)), 6rem); }
+  .duel .who { font-size:clamp(1rem, calc(4cqmin * var(--z)), 2rem); }
+  .duel table { font-size:clamp(.8rem, calc(2.8cqmin * var(--z)), 1.3rem); }
+  .duel th, .duel td { padding:.2em .3em; }
+  /* TV. */
+  .tv { grid-template-rows:.8fr auto 2fr; }
+  main:not([data-shape="port"]) .tv { grid-template-columns:minmax(0, 1fr) minmax(0, 1.6fr); grid-template-rows:1fr 1fr; }
+  main:not([data-shape="port"]) .tv .mapslot { grid-column:2; grid-row:1 / span 2; }
+  main[data-shape="wide"] .tv { grid-template-columns:minmax(0, 1fr) minmax(0, 1.2fr); }
+  .tv .leadrow { font-size:clamp(1rem, calc(3.4cqmin * var(--z)), 1.9rem); flex-wrap:nowrap; margin:.2rem 0; min-width:0; }
+  .tv .leadrow b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto; min-width:0; }
+  .tv .leadrow .meta { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 0; min-width:0; }
+  .tv .leadrow .cls { flex:none; }
+  /* Petite zone (téléphone) : espacements resserrés. */
+  main.fit.tight { padding:.4rem; }
+  main.tight .page { gap:.4rem; }
+  main.tight .page > .card { padding:.4rem .55rem; }
+  main.tight .page .lbl { font-size:.68rem; }
+  main.tight .page .big { font-size:clamp(1.05rem, calc(6.5cqmin * var(--z)), 2.4rem); }
+  main.tight .page .huge { font-size:clamp(1.6rem, calc(12cqmin * var(--z)), 4rem); }
+  main.tight .page .gear { font-size:clamp(2rem, calc(17cqmin * var(--z)), 6rem); }
+  main.tight .flg .flagbig { font-size:clamp(1.2rem, calc(8cqmin * var(--z)), 3rem); }
+  main.tight .page .t3 span { font-size:clamp(.85rem, calc(5.5cqmin * var(--z)), 2rem); }
+  /* Filet de sécurité : si une case ne peut vraiment pas tout montrer, la page
+     défile au lieu de couper du contenu. */
+  main.grow .page { height:auto; min-height:100%; }
+  main.grow .page > .card { overflow:visible; }
+  /* Relatif : les lignes s'étirent sur toute la hauteur. */
+  .relp > .card { justify-content:stretch; padding:.3rem .5rem; }
+  table.rel { height:100%; font-size:clamp(1rem, calc(3vmin * var(--z)), 1.8rem); font-size:clamp(1rem, calc(3.4cqmin * var(--z)), 1.9rem); }
+  .rel td { font-size:inherit; padding:.35em .4em; }
+  /* Carte seule. */
+  .page.map1 { grid-template-rows:1fr; }
   /* Vidéo muette qui garde l'écran allumé (repli sans API Wake Lock) : invisible, sans clic. */
   video.wake { position:fixed; inset:0; width:100%; height:100%; opacity:0; pointer-events:none; z-index:-1; }
 </style>
@@ -652,7 +725,6 @@
     }).join("");
     return `<svg class="map" viewBox="0 0 ${W} ${H}" style="${style || ""}">${pitSvg}<path d="${path(pts, true)}" fill="none" style="stroke:var(--road)" stroke-width="${road.toFixed(1)}" stroke-linejoin="round"/>${cars}</svg>`;
   }
-  const viewBox = () => { const v = $("view"); return { w: Math.max(200, v.clientWidth - 24), h: Math.max(200, v.clientHeight - 24) }; };
 
   // ── Gabarits ─────────────────────────────────────────────────────────────
   const me = (d) => (d.standings || []).find((s) => s.is_player);
@@ -680,10 +752,10 @@
     const p = me(d); const tel = d.telemetry; const w = d.weather || {}; const x = d.extended || {};
     if (!p || !tel) return `<div class="empty">${T.noPlayer}</div>`;
     const cls = classMates(d, p); const i = cls.indexOf(p); const a = cls[i - 1], b = cls[i + 1];
-    const wheels = (tel.wheels || []).map((wh, k) => `<div><div class="lbl">${["FL","FR","RL","RR"][k]}</div><div class="mono">${Math.round(wh.temp)}°C · ${Math.round(wh.wear)}%</div><div class="bar"><i style="width:${Math.max(0, Math.min(100, wh.wear))}%"></i></div></div>`).join("");
+    const wheels = (tel.wheels || []).map((wh, k) => `<div><div class="lbl">${["FL","FR","RL","RR"][k]}</div><div class="mono txt">${Math.round(wh.temp)}°C · ${Math.round(wh.wear)}%</div><div class="bar"><i style="width:${Math.max(0, Math.min(100, wh.wear))}%"></i></div></div>`).join("");
     const v = d.rest && d.rest.vehicle && d.rest.vehicle.state === "fresh" ? d.rest.vehicle.data : null;
     const pads = v && v.brake_condition && v.brake_condition.length === 4 ? v.brake_condition.map((q) => Math.round(Math.min(1, q) * 100) + "%").join(" · ") : T.none;
-    return `<div class="grid g3">
+    return `<div class="page eng">
       <div class="card"><div class="lbl">${T.pos}</div><div class="huge mono">P${p.class_position}</div><div class="meta">${clsTag(p.vehicle_class)} · P${p.position}</div></div>
       <div class="card"><div class="lbl">${T.remaining}</div><div class="big mono">${remaining(d)}</div><div class="meta">${T.lap} ${p.total_laps}</div></div>
       <div class="card"><div class="lbl">${T.ahead}</div><div class="big mono">${a ? "−" + Math.max(0, p.time_behind_leader - a.time_behind_leader).toFixed(1) : T.none}</div><div class="meta ell">${a ? esc(a.driver) : ""}</div></div>
@@ -691,12 +763,13 @@
       <div class="card"><div class="lbl">${T.fuel}</div><div class="big mono">${(tel.fuel || 0).toFixed(1)} L</div><div class="meta">${tel.fuel_laps_remaining > 0 ? tel.fuel_laps_remaining.toFixed(1) + " " + T.lapsLeft : T.none}</div></div>
       <div class="card"><div class="lbl">${T.energy}</div><div class="big mono">${x.virtual_energy > 0 ? Math.round(x.virtual_energy * 100) + "%" : T.none}</div><div class="meta">${T.pads} ${pads}</div></div>
       <div class="card"><div class="lbl">${T.last} / ${T.best}</div><div class="big mono">${lapT(p.last_lap_time)}</div><div class="meta mono">${lapT(p.best_lap_time)}</div></div>
-      <div class="card"><div class="lbl">${T.weather}</div><div class="mono">${T.air} ${Math.round(w.air_temp || 0)}° · ${T.track} ${Math.round(w.track_temp || 0)}°</div><div class="mono">${T.rain} ${Math.round((w.rain || 0) * 100)}%</div></div>
-    </div><div class="card" style="margin-top:.65rem"><div class="lbl">${T.tyres}</div><div class="wheels">${wheels}</div></div>`;
+      <div class="card"><div class="lbl">${T.weather}</div><div class="mono txt">${T.air} ${Math.round(w.air_temp || 0)}° · ${T.track} ${Math.round(w.track_temp || 0)}°</div><div class="mono txt">${T.rain} ${Math.round((w.rain || 0) * 100)}%</div></div>
+      <div class="card tyc"><div class="lbl">${T.tyres}</div><div class="wheels">${wheels}</div></div>
+    </div>`;
   }
 
-  // 3. Carte : le tracé et les voitures colorées par classe, rien d'autre.
-  const tplMap = (d) => `<div class="card mapOnly">${mapSvg(d, viewBox())}</div>`;
+  // 3. Carte : le tracé et les voitures colorées par classe, rien d'autre (dessinée à la taille de sa case).
+  const tplMap = () => `<div class="page map1"><div class="card mapslot"></div></div>`;
 
   // 4. Duel : le joueur face aux voitures devant et derrière dans sa classe.
   function tplDuel(d) {
@@ -710,21 +783,20 @@
        <table class="mono sect"><tr><th></th><th class="r">${T.last}</th><th class="r">${T.best}</th></tr>
        <tr><td>${esc(s.driver)}</td><td class="r">${lapT(s.last_lap_time)}</td><td class="r">${lapT(s.best_lap_time)}</td></tr>
        <tr class="me"><td>${esc(p.driver)}</td><td class="r">${lapT(p.last_lap_time)}</td><td class="r">${lapT(p.best_lap_time)}</td></tr></table>
-       <table class="mono sect" style="margin-top:.4rem"><tr><th>${T.sectors}</th><th class="r">S1</th><th class="r">S2</th><th class="r">S3</th></tr>
+       <table class="mono sect" style="margin-top:.3rem"><tr><th>${T.sectors}</th><th class="r">S1</th><th class="r">S2</th><th class="r">S3</th></tr>
        <tr><td>${esc(s.driver)}</td>${sec(s)}</tr><tr class="me"><td>${esc(p.driver)}</td>${sec(p)}</tr></table></div>`;
-    return `<div class="grid g2">${col(cls[i - 1], T.ahead, "−")}${col(cls[i + 1], T.behind, "+")}</div>`;
+    return `<div class="page duel">${col(cls[i - 1], T.ahead, "−")}${col(cls[i + 1], T.behind, "+")}</div>`;
   }
 
-  // 5. TV : temps restant en grand, leaders de chaque classe, carte.
+  // 5. TV : temps restant en grand, leaders de chaque classe, carte (à la taille de sa case).
   function tplTv(d) {
     const w = d.weather || {}; const f = d.flags || {};
     const phase = f.yellow_flag_state > 0 ? `<span class="flag" style="background:#facc15">FCY</span>` : `<span class="flag" style="background:#22c55e">GREEN</span>`;
     const leaders = classOrder(d).map((c) => (d.standings || []).find((s) => s.vehicle_class === c && s.class_position === 1)).filter(Boolean);
-    const bx = viewBox(); const mh = Math.round(innerHeight * 0.55);
-    return `<div class="grid g2"><div class="card"><div class="lbl">${T.remaining}</div><div class="huge mono">${remaining(d)}</div><div style="margin-top:8px">${phase}</div>
-      <div class="meta" style="margin-top:8px">${T.air} ${Math.round(w.air_temp || 0)}° · ${T.track} ${Math.round(w.track_temp || 0)}° · ${T.rain} ${Math.round((w.rain || 0) * 100)}%</div></div>
+    return `<div class="page tv"><div class="card"><div class="lbl">${T.remaining}</div><div class="huge mono">${remaining(d)}</div><div style="margin-top:.4rem">${phase}</div>
+      <div class="meta" style="margin-top:.4rem">${T.air} ${Math.round(w.air_temp || 0)}° · ${T.track} ${Math.round(w.track_temp || 0)}° · ${T.rain} ${Math.round((w.rain || 0) * 100)}%</div></div>
       <div class="card"><div class="lbl">${T.leader}</div>${leaders.map((s) => `<div class="leadrow">${clsTag(s.vehicle_class)} <b>${esc(s.driver)}</b> <span class="meta">${esc(s.vehicle_name)}</span></div>`).join("")}</div>
-      <div class="card" style="grid-column:1/-1">${mapSvg(d, { w: bx.w, h: Math.min(bx.h, mh) }, `max-height:${mh}px`)}</div></div>`;
+      <div class="card mapslot"></div></div>`;
   }
 
   const pct = (x) => Math.round(Math.max(0, Math.min(1, x || 0)) * 100);
@@ -736,12 +808,16 @@
     const multi = classOrder(d).length > 1;
     let rows = (d.standings || []).map((s) => ({ s, rel: s.time_behind_leader - p.time_behind_leader })).sort((a, b) => a.rel - b.rel);
     const pi = rows.findIndex((r) => r.s.is_player);
-    rows = rows.slice(Math.max(0, pi - 5), pi + 6);
-    return `<div class="card"><table class="mono rel">` + rows.map(({ s, rel }) =>
+    // Autant de voitures que la hauteur en permet (même formule de taille que le CSS).
+    const v = $("view"), rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 15;
+    const fpx = Math.min(1.9 * rem, Math.max(rem, 0.034 * Math.min(v.clientWidth, v.clientHeight) * P.z));
+    const side = Math.max(1, Math.min(7, Math.floor((Math.floor((v.clientHeight - 24) / (fpx * 2.1 + 1)) - 1) / 2)));
+    rows = rows.slice(Math.max(0, pi - side), pi + side + 1);
+    return `<div class="page relp"><div class="card"><table class="mono rel">` + rows.map(({ s, rel }) =>
       `<tr class="${s.is_player ? "me" : ""}"><td>${multi ? s.class_position : s.position}</td><td>${clsTag(s.vehicle_class)}</td>` +
       `<td class="c-drv">${s.in_pits ? `<span class="pit">${T.inPit}</span>` : ""}${esc(s.driver)}</td>` +
       `<td class="r" style="color:${s.is_player ? "var(--acct)" : rel < 0 ? "var(--ok)" : "var(--bad)"}">${s.is_player ? T.none : (rel > 0 ? "+" : "") + rel.toFixed(1)}</td>` +
-      `<td class="r c-best">${lapT(s.last_lap_time)}</td></tr>`).join("") + `</table></div>`;
+      `<td class="r c-best">${lapT(s.last_lap_time)}</td></tr>`).join("") + `</table></div></div>`;
   }
 
   // 7. Drapeaux & stands : drapeau en grand, pénalités, messages du jeu, et tout l'arrêt au stand.
@@ -774,7 +850,7 @@
     const pit = d.rest && d.rest.pit && d.rest.pit.state === "fresh" ? d.rest.pit.data : null;
     const menu = pit && Array.isArray(pit.pit_menu) ? pit.pit_menu.slice(0, 10) : [];
     const perLap = pit && pit.energy_per_lap > 0 ? `${Math.round(pit.energy_per_lap * 1000) / 10}% ${T.perLap}` : pit && pit.fuel_per_lap > 0 ? `${pit.fuel_per_lap.toFixed(2)} L ${T.perLap}` : "";
-    return `<div class="grid g2">
+    return `<div class="page flg">
       <div class="flagbig ${fi.cls || ""}" style="${fi.bg ? `background:${fi.bg};` : ""}${fi.fg ? `color:${fi.fg};` : ""}">${esc(fi.txt)}${ys ? `<div class="sub">${esc(ys)}</div>` : ""}</div>
       <div class="card"><div class="lbl">${T.penalties}</div><div class="big mono" style="${pen > 0 ? "color:var(--bad)" : ""}">${pen}</div>
         <div class="lbl" style="margin-top:.6rem">${T.trackLimits}</div><div class="big mono">${tl}</div>
@@ -793,7 +869,7 @@
   function tplInputs(d) {
     if (!d.telemetry && !(inp && inp.telemetry)) return `<div class="empty">${T.noPlayer}</div>`;
     const bar = (id, label, color) => `<div class="pbar"><div class="tube"><i id="pb-${id}" style="background:${color}"></i></div><div class="lbl">${label}</div><div class="mono" id="pv-${id}">0%</div></div>`;
-    return `<div class="ped">
+    return `<div class="page ped">
       <div class="card pbars">${bar("c", T.clutch, "#3b82f6")}${bar("b", T.brake, "var(--bad)")}${bar("t", T.throttle, "var(--ok)")}</div>
       <div class="card"><div class="gear mono" id="pi-g">N</div>
         <div class="big mono" style="text-align:center"><span id="pi-v">0</span> <span class="meta">km/h</span></div>
@@ -837,22 +913,27 @@
     const v = d.rest && d.rest.vehicle && d.rest.vehicle.state === "fresh" ? d.rest.vehicle.data : null;
     const pads = v && Array.isArray(v.brake_condition) && v.brake_condition.length === 4 ? v.brake_condition : null;
     const cell = (t) => `<span style="background:${tempBg(t)};color:${t > 110 ? "#fff" : t > 0 ? "#000" : "var(--mute)"}">${t > 0 ? Math.round(t) : T.none}</span>`;
-    return `<div class="car4">` + tel.wheels.slice(0, 4).map((wh, k) => {
+    return `<div class="page car4">` + tel.wheels.slice(0, 4).map((wh, k) => {
       const wear = Math.max(0, Math.min(100, wh.wear || 0));
       return `<div class="card"><div class="lbl">${["FL", "FR", "RL", "RR"][k]} · ${esc(k < 2 ? tel.front_compound : tel.rear_compound)}</div>
         <div class="t3 mono">${(wh.temp3 || [0, 0, 0]).map(cell).join("")}</div>
-        <div class="kv mono"><span>${T.carcass} ${Math.round(wh.temp || 0)}°</span><span>${T.pressure} ${Math.round(wh.pressure || 0)} kPa</span></div>
-        <div class="kv mono"><span>${T.wear} ${Math.round(wear)}%</span><span>${T.brake} ${wh.brake_temp > 0 ? Math.round(wh.brake_temp) + "°" : T.none}</span>${pads ? `<span>${T.pads} ${Math.round(Math.min(1, pads[k]) * 100)}%</span>` : ""}</div>
+        <div class="kv mono txt"><span>${T.carcass} ${Math.round(wh.temp || 0)}°</span><span>${T.pressure} ${Math.round(wh.pressure || 0)} kPa</span></div>
+        <div class="kv mono txt"><span>${T.wear} ${Math.round(wear)}%</span><span>${T.brake} ${wh.brake_temp > 0 ? Math.round(wh.brake_temp) + "°" : T.none}</span>${pads ? `<span>${T.pads} ${Math.round(Math.min(1, pads[k]) * 100)}%</span>` : ""}</div>
         <div class="bar" style="margin-top:.35rem"><i style="width:${wear}%;background:${wear < 30 ? "var(--bad)" : wear < 60 ? "#eab308" : "var(--ok)"}"></i></div>
         ${wh.flat ? `<div class="pill" style="margin-top:.4rem;background:var(--bad);color:#fff">${T.flat}</div>` : ""}${wh.detached ? `<div class="pill" style="margin-top:.4rem;background:var(--bad);color:#fff">${T.detached}</div>` : ""}</div>`;
     }).join("") + `</div>`;
   }
 
+  const FIT = ["relative", "engineer", "flags", "inputs", "tyres", "map", "duel", "tv"];
   function render() {
     const d = last; const v = $("view");
     // Pendant un geste, on attend la fin : le contenu ne saute pas sous le doigt.
     if (touching) { pending = true; return; }
-    v.classList.toggle("full", tpl === "map");
+    // Pages tableau de bord : pleine zone ; disposition selon la forme de la zone.
+    v.classList.toggle("fit", FIT.includes(tpl));
+    const ratio = v.clientWidth / Math.max(1, v.clientHeight);
+    v.dataset.shape = ratio >= 1.6 ? "wide" : ratio >= 1.05 ? "land" : "port";
+    v.classList.toggle("tight", Math.min(innerWidth, innerHeight) < 560);
     if (!d || !d.connected || !d.session) { $("hdr").textContent = T.offline; $("live").className = ""; v.innerHTML = `<div class="empty">${T.offline}</div>`; shownTpl = ""; return; }
     $("live").className = $("app").classList.contains("stale") ? "bad" : "ok";
     $("hdr").textContent = `${d.session.track} · ${remaining(d)}`;
@@ -863,6 +944,10 @@
     if (tpl === "inputs" && same && $("pi-g")) { updInputs(); return; }
     const top = v.scrollTop, xs = [...v.querySelectorAll(".card")].map((c) => c.scrollLeft);
     v.innerHTML = f(d);
+    // Contenu plus grand que sa case : la page défile plutôt que de le couper.
+    v.classList.remove("grow");
+    if ([...v.querySelectorAll(".page > .card:not(.mapslot), .page > .flagbig")].some((c) => c.scrollHeight > c.clientHeight + 1)) v.classList.add("grow");
+    for (const el of v.querySelectorAll(".mapslot")) el.innerHTML = mapSvg(d, { w: Math.max(80, el.clientWidth - 8), h: Math.max(80, el.clientHeight - 8) });
     if (same) { v.querySelectorAll(".card").forEach((c, i) => { if (xs[i]) c.scrollLeft = xs[i]; }); v.scrollTop = top; } else v.scrollTop = 0;
     shownTpl = tpl;
     if (tpl === "inputs") updInputs();

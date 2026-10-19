@@ -18,7 +18,14 @@ import {
   subscribeCloudVoice,
   type CloudPrepPlan,
 } from "@/lib/cloudVoice";
-import { CLOUD_PREP_ANSWER_KEYS, cloudPrepKeys, estimateCostUsd } from "@/lib/cloudVoicePrep";
+import {
+  CLOUD_PREP_ANSWER_KEYS,
+  CLOUD_PREP_WHEEL_KEYS,
+  WHEEL_VOICE_KEYS,
+  cloudPrepKeys,
+  estimateCostUsd,
+  wheelTemplates,
+} from "@/lib/cloudVoicePrep";
 import { getMessageText } from "@/lib/voiceMessages";
 import { isTauri } from "@/lib/api";
 import { cloudPrepTexts, cloudSegmentPrepTexts } from "@/lib/voice";
@@ -59,6 +66,13 @@ export function PrepareVoice() {
     const { code, rate: r, texts } = cloudPrepTexts(
       [
         ...cloudPrepKeys().map((k) => getMessageText(lang, k)),
+        // Crevaison / roue arrachée nommées : une version par roue.
+        ...CLOUD_PREP_WHEEL_KEYS.flatMap((k) =>
+          wheelTemplates(
+            getMessageText(lang, k),
+            WHEEL_VOICE_KEYS.map((w) => t(`live.wheelVoice.${w}`, { lng: lang })),
+          ),
+        ),
         // Réponses de l'ingénieur quand on lui parle (accusé, « pas compris »…).
         ...CLOUD_PREP_ANSWER_KEYS.map((k) => t(k, { lng: lang })),
       ],

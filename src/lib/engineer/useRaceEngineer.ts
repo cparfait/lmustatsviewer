@@ -420,8 +420,10 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     warmupVoice(lang);
     const keys = proximity ? [...PREWARM_KEYS, ...Object.values(SPOT_KEYS)] : PREWARM_KEYS;
     // Chaque variante « A | B » : l'alerte dira l'une ou l'autre.
-    // Crevaison nommée : ses 4 roues aussi.
-    const wheels = WHEEL_KEYS.flatMap((w) => splitVariants(t("live.vPunctureWheel", { wheel: t(`live.wheelVoice.${w}`) })));
+    // Crevaison / roue arrachée nommées : leurs 4 roues aussi.
+    const wheels = ["live.vPunctureWheel", "live.vWheelDetachedWheel"].flatMap((k) =>
+      WHEEL_KEYS.flatMap((w) => splitVariants(t(k, { wheel: t(`live.wheelVoice.${w}`) }))),
+    );
     void prewarmSpeech([...keys.flatMap((k) => splitVariants(t(k))), ...wheels], lang);
   }, [enabled, proximity, lang, t]);
 

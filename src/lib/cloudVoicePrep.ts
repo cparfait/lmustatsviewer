@@ -153,6 +153,19 @@ export const CLOUD_PREP_ANSWER_KEYS: readonly string[] = [
 ];
 
 /**
+ * Alertes urgentes à roue nommée (`{{wheel}}`, crevaison et roue arrachée) : la voix
+ * en ligne ne les dit que préparées, donc préparées pour chacune des 4 roues.
+ */
+export const CLOUD_PREP_WHEEL_KEYS: readonly string[] = ["vPunctureWheel", "vWheelDetachedWheel"];
+/** Clés `live.wheelVoice.*`, dans l'ordre des roues de la télémétrie. */
+export const WHEEL_VOICE_KEYS = ["fl", "fr", "rl", "rr"] as const;
+
+/** Un gabarit à roue nommée, rendu pour chaque roue (noms dits, dans la langue). */
+export function wheelTemplates(tpl: string, wheelNames: string[]): string[] {
+  return wheelNames.map((w) => tpl.replace(/\{\{\s*wheel\s*\}\}/g, w));
+}
+
+/**
  * Gabarits à préparer : tout (information, alertes, spotter, coach), quels que
  * soient « Alertes en voix locale » et « Annonces chiffrées » (décision du
  * mainteneur, 2026-10-18). Ces réglages ne changent que ce qui est dit en course.

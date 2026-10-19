@@ -1008,6 +1008,23 @@ dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idée
 - **Prochaine étape** : vérifier dans l'app (téléchargement de Parakeet depuis la Config, question
   à la voix, réglage de l'alerte de blocage en roulant), puis commit sur main si l'utilisateur le demande.
 
+### 2026-10-20 — Configuration : sections repliables (onglet Voix) et état retenu
+
+**Demande** : « il faut pouvoir réduire les sections » (capture de Configuration › Audio /
+Voix › Voix).
+
+- ✅ `CollapsibleSection` (`ConfigV2.tsx`) : `id` → état ouvert / replié **retenu sur le PC**
+  (`localStorage`, clé `lmu-config-sections`) ; `defaultOpen` tant que l'utilisateur n'a rien
+  choisi ; `action` = bouton à droite du titre (hors du bouton de repli). Les 15 sections
+  existantes ont un `id`. Décision : l'état replié d'un bloc de réglages est une préférence
+  d'affichage, retenue d'une session de l'app à l'autre (≠ « Mémoire des filtres », remis à
+  zéro au redémarrage).
+- ✅ Onglet Voix : trois sections repliables, **ouvertes par défaut** (rien de caché par
+  rapport à avant) : Voix locale (sur ton PC), Voix IA en ligne (bouton « Comment ça
+  marche ? » dans l'en-tête), Son et effet radio.
+- ✅ `tsc`, `eslint` ✅ ; vérifié dans l'app de dev (repli de « Voix locale », aller-retour
+  vers Préférences : reste replié).
+
 ### 2026-10-20 — Régie tablette : drapeaux par-dessus l'écran Rapport
 
 **Demande** : « il faut afficher les drapeaux par-dessus les rapports ».

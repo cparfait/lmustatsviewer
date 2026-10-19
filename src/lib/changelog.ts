@@ -692,6 +692,15 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
+              en: "Settings › Audio / Voice › Voice: the Local voice, Online AI voice and Sound blocks can now be collapsed like the other tabs' sections (open by default, the “How does it work?” button stays in the header). Every collapsible section in Settings now remembers whether you left it open or collapsed.",
+              fr: "Configuration › Audio / Voix › Voix : les blocs Voix locale, Voix IA en ligne et Son se replient désormais comme les sections des autres onglets (ouverts par défaut, le bouton « Comment ça marche ? » reste dans l'en-tête). Toutes les sections repliables de la Configuration retiennent si tu les as laissées ouvertes ou repliées.",
+              es: "Configuración › Audio / Voz › Voz: los bloques Voz local, Voz IA en línea y Sonido ahora se pueden plegar como las secciones de las demás pestañas (abiertos por defecto, el botón «¿Cómo funciona?» sigue en la cabecera). Todas las secciones plegables de la Configuración recuerdan si las dejaste abiertas o plegadas.",
+              de: "Einstellungen › Audio / Stimme › Stimme: Die Blöcke Lokale Stimme, KI-Stimme online und Klang lassen sich jetzt wie die Abschnitte der anderen Tabs einklappen (standardmäßig offen, die Schaltfläche „Wie funktioniert das?“ bleibt in der Kopfzeile). Alle einklappbaren Abschnitte der Einstellungen merken sich, ob du sie offen oder eingeklappt gelassen hast.",
+              it: "Impostazioni › Audio / Voce › Voce: i blocchi Voce locale, Voce IA online e Suono ora si possono comprimere come le sezioni delle altre schede (aperti per impostazione predefinita, il pulsante «Come funziona?» resta nell'intestazione). Tutte le sezioni comprimibili delle Impostazioni ricordano se le hai lasciate aperte o compresse.",
+            },
+          },
+          {
+            text: {
               en: "Tablet race control, Gear screen: the current flag shows on top of the dashboard — the whole background takes its colour (striped for yellow, full course yellow and the safety car; blue; red; chequered) with its name above the gear, while gear, revs and shift lights stay readable. Setting “Flags on the Gear screen” to turn it off.",
               fr: "Régie tablette, écran Rapport : le drapeau en cours s'affiche par-dessus le tableau de bord — tout le fond prend sa couleur (hachuré pour le jaune, la neutralisation et la voiture de sécurité ; bleu ; rouge ; damier) avec son nom au-dessus du rapport, qui reste lisible comme le régime et les témoins. Réglage « Drapeaux sur l'écran Rapport » pour le couper.",
               es: "Dirección en tableta, pantalla Marcha: la bandera actual aparece sobre el tablero — todo el fondo toma su color (a rayas para la amarilla, la neutralización y el coche de seguridad; azul; roja; a cuadros) con su nombre encima de la marcha, que sigue legible como el régimen y las luces. Ajuste «Banderas en la pantalla Marcha» para desactivarlo.",

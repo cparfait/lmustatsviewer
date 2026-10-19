@@ -1137,6 +1137,7 @@ export function ConfigV2() {
                 </div>
 
                 <CollapsibleSection
+                  id="menuModules"
                   title={t("config.menuModules")}
                   desc={t("config.menuModulesDesc")}
                 >
@@ -1388,8 +1389,9 @@ export function ConfigV2() {
                       </div>
                     )}
                     {(
-                      <div className="pr-1 pb-1 pt-1 space-y-3">
-                        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("cloudGuide.localTitle")}</p>
+                      <div className="pr-1 pb-1 pt-1 space-y-2">
+                        <CollapsibleSection id="voiceLocal" title={t("cloudGuide.localTitle")} defaultOpen>
+                        <div className="space-y-3">
                         <div className="flex items-start justify-between gap-3 rounded-md border border-border p-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium leading-tight">
@@ -1487,22 +1489,26 @@ export function ConfigV2() {
                             {t("config.voiceNoneFound")}
                           </div>
                         )}
+                        </div>
+                        </CollapsibleSection>
                         {/* Voix en ligne avec la clé de l'utilisateur (bêta, désactivée par défaut). */}
                         {voiceEngine === "piper" && isTauri() && (
-                          <>
-                            <div className="flex items-center justify-between gap-3 pt-2">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                {t("cloudGuide.cloudTitle")}
-                              </p>
+                          <CollapsibleSection
+                            id="voiceCloud"
+                            title={t("cloudGuide.cloudTitle")}
+                            defaultOpen
+                            action={
                               <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => setCloudGuideOpen(true)}>
                                 <HelpCircle className="h-3.5 w-3.5" />
                                 {t("cloudGuide.button")}
                               </Button>
-                            </div>
+                            }
+                          >
                             <CloudVoiceSettings />
-                          </>
+                          </CollapsibleSection>
                         )}
-                        <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("config.voiceGroupSound")}</p>
+                        <CollapsibleSection id="voiceSound" title={t("config.voiceGroupSound")} defaultOpen>
+                        <div className="space-y-3">
                         <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                           <div className="text-sm font-medium leading-tight">
                             {t("config.voiceRate")}
@@ -1604,6 +1610,8 @@ export function ConfigV2() {
                           </div>
                         )}
                         <RadioSoundRows />
+                        </div>
+                        </CollapsibleSection>
                       </div>
                     )}
                   </div>
@@ -1612,7 +1620,7 @@ export function ConfigV2() {
                     garde l'ancien comportement accessible : décoché = comme avant). */}
                 {voiceTab === "announces" && voiceAnnouncements && (
                   <div className="space-y-2 pt-1">
-                    <CollapsibleSection title={t("config.announceGroupWhen")} desc={t("config.announceGroupWhenDesc")}>
+                    <CollapsibleSection id="announceGroupWhen" title={t("config.announceGroupWhen")} desc={t("config.announceGroupWhenDesc")}>
                       <div className="space-y-2">
 <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                     <div className="flex items-start gap-2 min-w-0">
@@ -1727,7 +1735,7 @@ export function ConfigV2() {
                     />
                       </div>
                     </CollapsibleSection>
-                    <CollapsibleSection title={t("config.announceGroupWhat")} desc={t("config.announceGroupWhatDesc")}>
+                    <CollapsibleSection id="announceGroupWhat" title={t("config.announceGroupWhat")} desc={t("config.announceGroupWhatDesc")}>
                       <div className="space-y-2">
 <ToggleRow
                     icon={<Trophy className="h-4 w-4" />}
@@ -1774,7 +1782,7 @@ export function ConfigV2() {
                     <DriverNameRow />
                       </div>
                     </CollapsibleSection>
-                    <CollapsibleSection title={t("config.announceGroupSpotter")} desc={t("config.announceGroupSpotterDesc")}>
+                    <CollapsibleSection id="announceGroupSpotter" title={t("config.announceGroupSpotter")} desc={t("config.announceGroupSpotterDesc")}>
                       <div className="space-y-2">
 <ToggleRow
                       icon={<ArrowLeftRight className="h-4 w-4" />}
@@ -1800,7 +1808,7 @@ export function ConfigV2() {
                   <div className="space-y-2 py-2">
                     {/* 0. Reconnaissance vocale : en tête et ouverte (demande du 19/10) —
                         modèle Vosk de la langue + moteur de la dictée libre (Parakeet). */}
-                    <CollapsibleSection title={t("config.radioSecStt")} defaultOpen>
+                    <CollapsibleSection id="radioSecStt" title={t("config.radioSecStt")} defaultOpen>
                       <div className="space-y-3">
                       <div className="flex items-center justify-end">
                         <span className={cn("text-mini", sttOk === false ? "text-amber-500" : "text-success")}>
@@ -1817,7 +1825,7 @@ export function ConfigV2() {
                     </CollapsibleSection>
 
                     {/* 1. Parler */}
-                    <CollapsibleSection title={t("config.radioSecTalk")} defaultOpen>
+                    <CollapsibleSection id="radioSecTalk" title={t("config.radioSecTalk")} defaultOpen>
                       <div className="space-y-2">
                       <p className="text-xs text-muted-foreground/70">{t("config.engineerKeyDesc")}</p>
                       <ShortcutCapture
@@ -1926,14 +1934,14 @@ export function ConfigV2() {
                     </CollapsibleSection>
 
                     {/* 2. Tester (avec / sans IA) */}
-                    <CollapsibleSection title={t("config.radioSecTest")}>
+                    <CollapsibleSection id="radioSecTest" title={t("config.radioSecTest")}>
                       <div className="space-y-2">
                       <EngineerTester />
                       </div>
                     </CollapsibleSection>
 
                     {/* 3. Raccourcis sans parler (Statut / Mute / Répète) */}
-                    <CollapsibleSection title={t("config.radioSecDirect")}>
+                    <CollapsibleSection id="radioSecDirect" title={t("config.radioSecDirect")}>
                       <div className="space-y-2">
                       <ToggleRow
                         icon={<Radio className="h-4 w-4" />}
@@ -1974,7 +1982,7 @@ export function ConfigV2() {
 
 
                     {/* 4. Commandes reconnues (liste commune, modifiable) */}
-                    <CollapsibleSection title={t("config.radioSecCommands")}>
+                    <CollapsibleSection id="radioSecCommands" title={t("config.radioSecCommands")}>
                       <div className="space-y-2">
                       <ToggleRow
                         icon={<Zap className="h-4 w-4" />}
@@ -2030,7 +2038,7 @@ export function ConfigV2() {
                     </CollapsibleSection>
 
                     {/* 5. Calculs utilisés par les réponses */}
-                    <CollapsibleSection title={t("config.radioSecCalc")}>
+                    <CollapsibleSection id="radioSecCalc" title={t("config.radioSecCalc")}>
                       <div className="space-y-2">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -2080,7 +2088,7 @@ export function ConfigV2() {
                         {t("config.coachSectionDesc")}
                       </p>
                     </div>
-                    <CollapsibleSection title={t("config.coachGroupDrive")} desc={t("config.coachGroupDriveDesc")} defaultOpen>
+                    <CollapsibleSection id="coachGroupDrive" title={t("config.coachGroupDrive")} desc={t("config.coachGroupDriveDesc")} defaultOpen>
                       <div className="space-y-2">
                     <ToggleRow
                       icon={<Scale className="h-4 w-4" />}
@@ -2116,7 +2124,7 @@ export function ConfigV2() {
                     />
                       </div>
                     </CollapsibleSection>
-                    <CollapsibleSection title={t("config.coachGroupPhrases")} desc={t("config.coachGroupPhrasesDesc")}>
+                    <CollapsibleSection id="coachGroupPhrases" title={t("config.coachGroupPhrases")} desc={t("config.coachGroupPhrasesDesc")}>
                       <div className="space-y-2">
                     <ToggleRow
                       icon={<MessagesSquare className="h-4 w-4" />}
@@ -2176,7 +2184,7 @@ export function ConfigV2() {
                     )}
                       </div>
                     </CollapsibleSection>
-                    <CollapsibleSection title={t("config.coachGroupTools")} desc={t("config.coachGroupToolsDesc")}>
+                    <CollapsibleSection id="coachGroupTools" title={t("config.coachGroupTools")} desc={t("config.coachGroupToolsDesc")}>
                       <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
                       <div className="flex min-w-0 items-start gap-2">
@@ -2728,11 +2736,11 @@ export function ConfigV2() {
                   </p>
                 )}
                 <Separator />
-                <CollapsibleSection title={t("config.diagTitle")} desc={t("config.diagDesc")}>
+                <CollapsibleSection id="diagTitle" title={t("config.diagTitle")} desc={t("config.diagDesc")}>
                   <DiagnosticsRows />
                 </CollapsibleSection>
                 {/* Outils réservés au développement (banc de rejeu de l'ingénieur) : repliés. */}
-                <CollapsibleSection title={t("config.devTools")} desc={t("config.devToolsDesc")}>
+                <CollapsibleSection id="devTools" title={t("config.devTools")} desc={t("config.devToolsDesc")}>
                   <ReplayBenchPanel />
                 </CollapsibleSection>
               </div>
@@ -2961,34 +2969,66 @@ function ShortcutCapture({
   );
 }
 
-/** Sous-menu repliable (déroulant) pour les options d'un module. Fermé par défaut. */
-/** Bloc à titre, replié par défaut (ex. « Modules du menu »). */
+/** Sections repliées / ouvertes par l'utilisateur, retenues sur ce PC (clé = `id`). */
+const SECTION_OPEN_KEY = "lmu-config-sections";
+function readSectionsOpen(): Record<string, boolean> {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(SECTION_OPEN_KEY) ?? "{}");
+    return v && typeof v === "object" ? (v as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Bloc à titre repliable (ex. « Modules du menu »). Avec un `id`, l'état choisi
+ *  (ouvert / replié) est retenu d'une visite à l'autre ; `defaultOpen` sert tant que
+ *  l'utilisateur n'a rien choisi. `action` : bouton placé à droite du titre. */
 function CollapsibleSection({
+  id,
   title,
   desc,
+  action,
   defaultOpen = false,
   children,
 }: {
+  id?: string;
   title: string;
   desc?: string;
+  action?: React.ReactNode;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(() => {
+    const saved = id ? readSectionsOpen()[id] : undefined;
+    return typeof saved === "boolean" ? saved : defaultOpen;
+  });
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (!id) return;
+    try {
+      localStorage.setItem(SECTION_OPEN_KEY, JSON.stringify({ ...readSectionsOpen(), [id]: next }));
+    } catch {
+      /* stockage indisponible : l'état vaut pour cette visite */
+    }
+  };
   return (
     <div className="rounded-md border border-border">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full items-start gap-2 p-3 text-left"
-      >
-        <ChevronDown className={cn("mt-0.5 h-4 w-4 shrink-0 text-primary transition-transform", !open && "-rotate-90")} />
-        <div className="min-w-0">
-          <div className="font-semibold">{title}</div>
-          {desc && <div className="text-xs text-muted-foreground">{desc}</div>}
-        </div>
-      </button>
+      <div className="flex items-start gap-2 p-3">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          className="flex min-w-0 flex-1 items-start gap-2 text-left"
+        >
+          <ChevronDown className={cn("mt-0.5 h-4 w-4 shrink-0 text-primary transition-transform", !open && "-rotate-90")} />
+          <div className="min-w-0">
+            <div className="font-semibold">{title}</div>
+            {desc && <div className="text-xs text-muted-foreground">{desc}</div>}
+          </div>
+        </button>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
       {open && <div className="px-3 pb-3">{children}</div>}
     </div>
   );

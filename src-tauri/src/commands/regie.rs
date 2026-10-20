@@ -79,6 +79,35 @@ struct Running {
 }
 
 static SERVER: Mutex<Option<Running>> = Mutex::new(None);
+/// Écrans de la tablette que l'app peut imposer (mêmes clés que `regie.html`).
+pub const SCREENS: [&str; 10] = ["timing", "relative", "engineer", "flags", "inputs", "gear", "tyres", "map", "duel", "tv"];
+/// Dernier écran imposé depuis l'app : (horodatage ms de l'envoi, écran). Chaque tablette
+/// l'applique une fois par envoi (l'horodatage distingue les envois, même après redémarrage).
+static PUSH: Mutex<Option<(u64, String)>> = Mutex::new(None);
+
+fn push_json() -> Value {
+    match PUSH.lock().ok().and_then(|g| g.clone()) {
+        Some((rev, tpl)) => serde_json::json!({ "rev": rev, "tpl": tpl }),
+        None => Value::Null,
+    }
+}
+
+/// Affiche cet écran sur toutes les tablettes connectées (elles peuvent ensuite en changer).
+#[tauri::command]
+pub fn regie_push_screen(screen: String) -> Result<(), AppError> {
+    if !SCREENS.contains(&screen.as_str()) {
+        return Err(AppError::Internal(format!("unknown screen {screen}")));
+    }
+    let rev = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(1);
+    if let Ok(mut g) = PUSH.lock() {
+        *g = Some((rev, screen));
+    }
+    Ok(())
+}
+
 /// Thème de l'app (clair par défaut, comme l'app) : la tablette prend le même.
 static DARK: AtomicBool = AtomicBool::new(false);
 
@@ -132,6 +161,12 @@ pub fn host_ok(host: &str) -> bool {
         h.rsplit_once(':').map(|(a, _)| a).unwrap_or(h)
     };
     name.eq_ignore_ascii_case("localhost") || name.parse::<IpAddr>().is_ok()
+}
+
+/// Adresse du QR code : le code d'accès est dans le fragment (`#code=…`), jamais envoyé au
+/// serveur dans une requête ; la page l'utilise pour se connecter puis l'efface de l'adresse.
+pub fn login_url(url: &str, code: &str) -> String {
+    format!("{url}/#code={code}")
 }
 
 fn qr_svg(text: &str) -> String {
@@ -226,6 +261,7 @@ pub fn inputs_frame(v: &Value) -> Value {
         "telemetry": tel,
         "tc": x("tc"), "tc_max": x("tc_max"), "abs": x("abs"), "abs_max": x("abs_max"),
         "motor_map": x("motor_map"),
+        "lap_delta": v.pointer("/player/lap_delta").cloned().unwrap_or(Value::Null),
     })
 }
 
@@ -327,13 +363,14 @@ fn handle(stream: TcpStream, peer: IpAddr, sh: &Shared) {
             }
             let frame = live::last_frame().and_then(|d| serde_json::to_value(d).ok());
             let Some(frame) = frame else {
-                json(&stream, "200 OK", &serde_json::json!({"connected": false, "ui_theme": theme_name()}));
+                json(&stream, "200 OK", &serde_json::json!({"connected": false, "ui_theme": theme_name(), "ui_push": push_json()}));
                 return;
             };
             let out = if path == "/api/live" {
                 let mut v = light_frame(frame);
                 if let Some(o) = v.as_object_mut() {
                     o.insert("ui_theme".into(), Value::from(theme_name()));
+                    o.insert("ui_push".into(), push_json());
                 }
                 v
             } else if path == "/api/inputs" {
@@ -407,7 +444,7 @@ pub fn regie_start(app: AppHandle, port: Option<u16>) -> Result<RegieStatus, App
             }
         });
     }
-    let running = Running { stop, shared, qr_svg: qr_svg(&url), url };
+    let running = Running { stop, qr_svg: qr_svg(&login_url(&url, &shared.code)), shared, url };
     let st = status_of(&running);
     *g = Some(running);
     Ok(st)
@@ -555,6 +592,22 @@ mod tests {
         assert!(ct_eq(b"123456", b"123456"));
         assert!(!ct_eq(b"123456", b"123457"));
         assert!(!ct_eq(b"12345", b"123456"));
+    }
+
+    #[test]
+    fn login_url_carries_code_in_fragment() {
+        assert_eq!(login_url("http://192.168.1.20:8790", "042137"), "http://192.168.1.20:8790/#code=042137");
+    }
+
+    #[test]
+    fn push_screen_validates_and_is_served() {
+        assert!(regie_push_screen("nope".into()).is_err());
+        regie_push_screen("gear".into()).unwrap();
+        let p = push_json();
+        assert_eq!(p["tpl"], "gear");
+        assert!(p["rev"].as_u64().unwrap() > 0);
+        let v = serde_json::json!({"player": {"lap_delta": -0.42}, "telemetry": {}});
+        assert_eq!(inputs_frame(&v)["lap_delta"], -0.42);
     }
 
     #[test]

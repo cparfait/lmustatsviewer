@@ -1089,6 +1089,40 @@ dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idée
 - **Prochaine étape** : vérifier dans l'app (téléchargement de Parakeet depuis la Config, question
   à la voix, réglage de l'alerte de blocage en roulant), puis commit sur main si l'utilisateur le demande.
 
+### 2026-10-20 — Régie tablette : delta, secteurs, témoins réglables, daltoniens, OLED, rail, QR, écran imposé
+
+**Demande** : « fais tout sauf le point 8 » (liste des idées restantes ; le point 8 = mode
+HTTPS de la régie, écarté).
+
+- ✅ **Barre de delta** (écran Rapport) : `player.lap_delta` (négatif = plus rapide, même
+  lecture que le widget Delta), ±2 s, vert à gauche / rouge à droite + valeur ; dans la trame
+  rapide `/api/inputs` (`lap_delta`) ; place réservée (`visibility`) pour ne pas décaler la
+  mise en page quand il n'y a pas encore de meilleur tour.
+- ✅ **Secteurs** : `secCls` — violet `is_class_best_sN`, et pour le joueur seulement (ses
+  meilleurs secteurs `player.best_sectors` sont connus) vert = égal à son meilleur, jaune =
+  plus lent. Duel (ligne du joueur) et Ingénieur (case Dernier / Meilleur, ligne S1 S2 S3).
+- ✅ **Témoins réglables** : allumage dès 75 / 80 / 85 / 90 % du régime max (plein à 97 %),
+  remplissage gauche → droite ou bords → centre (couleurs selon la distance au bord).
+- ✅ **Daltoniens** (`html.cb`, palette Okabe-Ito) : `--ok` bleu, `--bad` vermillon, orange,
+  embrayage rose ; témoins bleu / orange / vermillon, passage en rose ; pneus bleu ciel /
+  vert-bleu / orange / vermillon. Drapeaux inchangés (couleurs officielles).
+- ✅ **Noir intégral (OLED)** (`html.oled`) : thème sombre imposé sur la tablette, fond
+  `#000` ; le drapeau garde sa couleur sur l'écran Rapport (bogue trouvé et corrigé).
+- ✅ **Rail** sur téléphone couché (largeur ≥ 761 px, hauteur ≤ 520 px) : onglets en colonne
+  à gauche, icônes seules avec pastille.
+- ✅ **QR code** : `login_url` = adresse + `#code=…` (fragment, jamais envoyé au serveur) ;
+  la page se connecte avec ce code puis l'efface de l'adresse (`history.replaceState`).
+  L'adresse affichée dans l'app reste sans code.
+- ✅ **Écran imposé depuis l'app** : `regie_push_screen` (écran validé contre `SCREENS`,
+  horodatage ms = numéro d'envoi), `ui_push` dans `/api/live` ; la tablette l'applique une
+  fois par envoi (`localStorage` `regie_push`), réactive l'écran s'il était masqué, puis
+  reste libre. Configuration › Régie tablette : liste des 10 écrans + « Afficher »
+  (5 langues) ; note des gabarits mise à jour (10 écrans, QR direct).
+- ✅ Tests : `cargo test --lib regie` 11/11 (QR, écran imposé, delta dans la trame rapide) ;
+  `tsc`, `eslint` ✅ ; navigateur (faux serveur) : connexion par QR, delta, secteurs,
+  témoins bords → centre, daltoniens + OLED, rail, écran imposé (puis libre) ; audit
+  10 écrans × 4 formats sans débordement.
+
 ### 2026-10-20 — Voix neuronales : boutons « Tester » alignés
 
 **Demande** : « il faut que Tester soient tous alignés » (liste des voix neuronales : les

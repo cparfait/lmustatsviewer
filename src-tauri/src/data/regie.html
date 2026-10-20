@@ -40,6 +40,7 @@
   .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; }
   .meta { color:var(--mute); font-size:.87rem; }
   .hidden { display:none !important; }
+  .vh { visibility:hidden; }
   .ico { width:1.25em; height:1.25em; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
   /* ── Mise en page : en-tête, onglets, actions, contenu (seul le contenu défile) ── */
@@ -309,9 +310,18 @@
   /* Rapport : tableau de bord de volant, le rapport engagé occupe l'écran. */
   .gearp { grid-template-rows:1fr; }
   .gearp > .dash { display:grid; justify-content:stretch; align-items:center; gap:.4rem; padding:.5rem .8rem;
-    grid-template-columns:minmax(0, 1fr); grid-template-rows:auto minmax(0, 1fr) auto; grid-template-areas:"leds" "gear" "foot"; }
+    grid-template-columns:minmax(0, 1fr); grid-template-rows:auto auto minmax(0, 1fr) auto; grid-template-areas:"leds" "delta" "gear" "foot"; }
   main:not([data-shape="port"]) .gearp > .dash { grid-template-columns:minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 1fr);
-    grid-template-rows:auto minmax(0, 1fr); grid-template-areas:"leds leds leds" "spd gear rpm"; }
+    grid-template-rows:auto auto minmax(0, 1fr); grid-template-areas:"leds leds leds" "delta delta delta" "spd gear rpm"; }
+  /* Delta au meilleur tour : vert vers la gauche = plus rapide, rouge vers la droite = plus lent (±2 s). */
+  .dash .dbar { grid-area:delta; position:relative; height:clamp(18px, min(8cqh, 6cqw), 3.4rem); border-radius:999px; background:var(--line); overflow:hidden; }
+  .dash .dbar::after { content:""; position:absolute; left:50%; top:0; bottom:0; width:2px; margin-left:-1px; background:var(--mute); }
+  .dash .dbar i { position:absolute; top:0; bottom:0; width:50%; transform:scaleX(0); will-change:transform; }
+  .dash .dbar .dn { right:50%; transform-origin:right; background:var(--ok); }
+  .dash .dbar .dp { left:50%; transform-origin:left; background:var(--bad); }
+  .dash .dbar span { position:absolute; inset:0; z-index:1; display:grid; place-items:center; font-family:var(--num); font-weight:700;
+    font-variant-numeric:tabular-nums; color:var(--fg); text-shadow:0 0 4px var(--panel), 0 0 2px var(--panel);
+    font-size:calc(clamp(.8rem, calc(min(6cqh, 4cqw) * var(--z)), 2.4rem) * var(--fk, 1)); }
   .dash .leds { grid-area:leds; display:grid; grid-template-columns:repeat(15, minmax(0, 1fr)); gap:3%; height:clamp(14px, min(9cqh, 6cqw), 4rem); }
   .dash .leds i { border-radius:999px; background:var(--line); }
   .dash .leds i.g { background:#22c55e; }
@@ -338,11 +348,11 @@
      Chiffres : police système (SF sur iPhone/iPad, Roboto sur Android) en chiffres
      tabulaires — lisibles d'un coup d'œil, largeur fixe (rien ne saute à 1-15 Hz).
      Couleurs des temps : violet = meilleur de la classe, vert = meilleur personnel. */
-  :root { --radius:14px; --ease:cubic-bezier(.2, 0, 0, 1); --purple:#9333ea; --green:#16a34a; --amber:#f59e0b;
+  :root { --radius:14px; --ease:cubic-bezier(.2, 0, 0, 1); --purple:#9333ea; --green:#16a34a; --amber:#f59e0b; --yel:#ca8a04; --clutch:#3b82f6;
     --shadow:0 1px 2px rgba(15,23,42,.06), 0 6px 20px rgba(15,23,42,.06);
     --sys:system-ui, -apple-system, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --num:"LMU Num", var(--sys); }
-  [data-theme="dark"] { --purple:#c084fc; --green:#22c55e; --shadow:inset 0 1px 0 rgba(255,255,255,.04); }
+  [data-theme="dark"] { --purple:#c084fc; --green:#22c55e; --yel:#facc15; --shadow:inset 0 1px 0 rgba(255,255,255,.04); }
   body { font-family:var(--sys); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
   /* Police condensée : libellés, onglets, pastilles, chiffres. */
   .lbl, th, .posn, .cls, #tabs button, .flagbig, .pill, .gv .lbl, .brand { font-family:var(--num); }
@@ -384,6 +394,8 @@
   tr.me td:first-child { box-shadow:inset 3px 0 0 var(--acc); }
   td.sb, span.sb { color:var(--purple); font-weight:700; }
   td.pb, span.pb { color:var(--green); font-weight:700; }
+  td.sy, span.sy { color:var(--yel); font-weight:700; }
+  .sects { display:flex; flex-wrap:wrap; gap:.15em .7em; margin-top:.2rem; font-family:var(--num); font-variant-numeric:tabular-nums; }
   /* Jauges fines (carburant, énergie). */
   .gauge { height:6px; border-radius:3px; background:var(--line); overflow:hidden; margin-top:.35rem; }
   .gauge > i { display:block; height:100%; width:100%; transform-origin:left; border-radius:3px; }
@@ -418,6 +430,31 @@
   .dash .gtag { grid-area:gear; align-self:start; justify-self:center; z-index:1; font-family:var(--num); font-weight:700;
     text-transform:uppercase; letter-spacing:.06em; padding:.2em .9em; border-radius:999px; background:rgba(0,0,0,.2);
     font-size:1.2rem; font-size:calc(clamp(.9rem, calc(min(7cqh, 5cqw) * var(--z)), 2.6rem) * var(--fk, 1)); }
+  /* Téléphone couché : onglets en colonne à gauche (rail), icônes seules ; la barre du haut
+     ne garde que le circuit, le temps et les deux boutons. */
+  @media (min-width: 761px) and (max-height: 520px) {
+    #app { grid-template-columns:auto minmax(0, 1fr) auto; grid-template-rows:auto minmax(0, 1fr);
+      grid-template-areas:"nav hd act" "nav main main"; }
+    #tabs { flex-direction:column; justify-content:flex-start; align-items:center; gap:.2rem; overflow-x:hidden; overflow-y:auto;
+      padding:calc(.3rem + var(--st)) .3rem .3rem; border-right:1px solid var(--line); background:var(--panel); }
+    #tabs button { flex:none; width:auto; min-height:40px; padding:0; background:transparent; }
+    #tabs button span { display:none; }
+    #tabs .ico, #tabs.many .ico { display:block !important; box-sizing:content-box; width:1.3em; height:1.3em; padding:.32rem .75rem; border-radius:999px; }
+    #tabs button.on { background:transparent; }
+    #tabs button.on .ico { background:var(--soft); }
+  }
+  /* Couleurs pour daltoniens (palette Okabe-Ito) : bleu = bon / gain, vermillon = mauvais /
+     perte, orange = attention. Les drapeaux gardent leurs couleurs officielles. */
+  html.cb { --ok:#0072B2; --bad:#D55E00; --green:#0072B2; --amber:#E69F00; --yel:#B07A00; --clutch:#CC79A7; }
+  html.cb[data-theme="dark"] { --ok:#56B4E9; --bad:#E8743B; --green:#56B4E9; --yel:#F0C24A; }
+  html.cb .dash .leds i.g { background:#56B4E9; box-shadow:0 0 12px rgba(86,180,233,.75); }
+  html.cb .dash .leds i.y { background:#E69F00; box-shadow:0 0 12px rgba(230,159,0,.75); }
+  html.cb .dash .leds i.r { background:#D55E00; box-shadow:0 0 12px rgba(213,94,0,.8); }
+  html.cb .dash .leds.shift i { background:#CC79A7; box-shadow:0 0 16px rgba(204,121,167,.9); }
+  html.cb .dash .gbig.go { color:#CC79A7; }
+  /* Noir intégral (écran OLED) : fond 100 % noir sur toute la régie (thème sombre imposé). */
+  html.oled { --bg:#000; --panel:#0b0b0d; --line:#1f1f24; --road:#2a2a30; --shadow:none; }
+  html.oled .gearp > .dash:not(.fy):not(.fb):not(.fr):not(.chk) { background:#000; }
   /* Connexion : carte centrée sur un léger halo de la couleur de l'app. */
   #login { background:radial-gradient(900px 520px at 50% -8%, var(--soft), transparent 62%), var(--bg); }
   #login > div { background:var(--panel); border:1px solid var(--line); border-radius:22px; padding:1.6rem 1.2rem 1.3rem; box-shadow:var(--shadow); }
@@ -469,6 +506,10 @@
   <div class="row"><span data-t="columns"></span><span class="seg"><button data-cols="auto" type="button" data-t="colAuto"></button><button data-cols="all" type="button" data-t="colAll"></button></span></div>
   <div class="row"><span data-t="hideBars"></span><button id="bars" class="sw" type="button"></button></div>
   <div class="row"><span data-t="gearFlags"></span><button id="gflags" class="sw" type="button"></button></div>
+  <div class="row"><span data-t="ledStart"></span><span class="seg"><button data-ls="0.75" type="button">75 %</button><button data-ls="0.8" type="button">80 %</button><button data-ls="0.85" type="button">85 %</button><button data-ls="0.9" type="button">90 %</button></span></div>
+  <div class="row"><span data-t="ledFill"></span><span class="seg"><button data-lf="lr" type="button" data-t="ledLR"></button><button data-lf="out" type="button" data-t="ledOut"></button></span></div>
+  <div class="row"><span data-t="cbMode"></span><button id="cb" class="sw" type="button"></button></div>
+  <div class="row"><span data-t="oledMode"></span><button id="oled" class="sw" type="button"></button></div>
   <div class="btns"><button id="out" class="wide" type="button" data-t="logout"></button><button id="closeSet" class="wide" type="button" data-t="close"></button></div>
 </div></div>
 <script>
@@ -514,35 +555,35 @@
   };
   // Écrans ajoutés : pédales, drapeaux & stands, pneus & freins, relatif.
   const L2 = {
-    fr: { gearFlags:"Drapeaux sur l'écran Rapport", wakeHint:"Réseau local (HTTP) : si l'écran s'éteint malgré tout, désactivez la mise en veille automatique de l'appareil.", t_gear:"Rapport", rpmUnit:"tr/min", limTag:"LIMITEUR", t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
+    fr: { ledStart:"Témoins de régime : allumage dès", ledFill:"Témoins : remplissage", ledLR:"Gauche → droite", ledOut:"Bords → centre", cbMode:"Couleurs pour daltoniens (bleu / orange)", oledMode:"Noir intégral (écran OLED)", gearFlags:"Drapeaux sur l'écran Rapport", wakeHint:"Réseau local (HTTP) : si l'écran s'éteint malgré tout, désactivez la mise en veille automatique de l'appareil.", t_gear:"Rapport", rpmUnit:"tr/min", limTag:"LIMITEUR", t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
       throttle:"Accélérateur", brake:"Frein", clutch:"Embrayage", steering:"Volant", rpm:"Régime", bias:"Répartition", motorMap:"Carto moteur", trace:"10 dernières secondes",
       fGreen:"Drapeau vert", fYellow:"Drapeau jaune", fFcy:"Neutralisation (FCY)", fSc:"Voiture de sécurité", fBlue:"Drapeau bleu", fRed:"Séance arrêtée", fChk:"Drapeau à damier", fFormation:"Tour de formation", fCountdown:"Départ imminent", fWaiting:"Avant le départ",
       y1:"Neutralisation imminente", y2:"Stands fermés", y3:"Stands ouverts aux voitures dans le tour du leader", y4:"Stands ouverts", y5:"Dernier tour de la voiture de sécurité", y6:"Relance", y7:"Course arrêtée",
       penalties:"Pénalités", trackLimits:"Limites de piste", lastMsg:"Dernier message du jeu", pit:"Stands", limiter:"Limiteur", on:"activé", off:"coupé", pitLimit:"Vitesse des stands",
       ps0:"En piste", ps1:"Arrêt demandé", ps2:"Entrée des stands", ps3:"À l'arrêt", ps4:"Sortie des stands", stopLen:"Arrêt prévu", pitMenu:"Menu des stands", perLap:"par tour",
       pressure:"Pression", carcass:"Carcasse", wear:"Gomme restante", flat:"Crevaison", detached:"Roue perdue" },
-    en: { gearFlags:"Flags on the Gear screen", wakeHint:"Local network (HTTP): if the screen still turns off, disable the device's auto-lock.", t_gear:"Gear", rpmUnit:"rpm", limTag:"LIMITER", t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
+    en: { ledStart:"Shift lights start at", ledFill:"Shift lights fill", ledLR:"Left → right", ledOut:"Edges → centre", cbMode:"Colour-blind friendly colours (blue / orange)", oledMode:"True black (OLED screen)", gearFlags:"Flags on the Gear screen", wakeHint:"Local network (HTTP): if the screen still turns off, disable the device's auto-lock.", t_gear:"Gear", rpmUnit:"rpm", limTag:"LIMITER", t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
       throttle:"Throttle", brake:"Brake", clutch:"Clutch", steering:"Steering", rpm:"RPM", bias:"Brake bias", motorMap:"Engine map", trace:"Last 10 seconds",
       fGreen:"Green flag", fYellow:"Yellow flag", fFcy:"Full course yellow", fSc:"Safety car", fBlue:"Blue flag", fRed:"Session stopped", fChk:"Chequered flag", fFormation:"Formation lap", fCountdown:"Start imminent", fWaiting:"Before the start",
       y1:"Caution pending", y2:"Pits closed", y3:"Pits open to lead-lap cars", y4:"Pits open", y5:"Safety car's last lap", y6:"Restart", y7:"Race halted",
       penalties:"Penalties", trackLimits:"Track limits", lastMsg:"Last game message", pit:"Pit lane", limiter:"Pit limiter", on:"on", off:"off", pitLimit:"Pit speed limit",
       ps0:"On track", ps1:"Stop requested", ps2:"Entering the pits", ps3:"Stopped", ps4:"Leaving the pits", stopLen:"Planned stop", pitMenu:"Pit menu", perLap:"per lap",
       pressure:"Pressure", carcass:"Carcass", wear:"Tread left", flat:"Puncture", detached:"Wheel off" },
-    es: { gearFlags:"Banderas en la pantalla Marcha", wakeHint:"Red local (HTTP): si la pantalla se apaga de todos modos, desactiva el bloqueo automático del dispositivo.", t_gear:"Marcha", rpmUnit:"rpm", limTag:"LIMITADOR", t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
+    es: { ledStart:"Luces de cambio: encendido desde", ledFill:"Luces: llenado", ledLR:"Izquierda → derecha", ledOut:"Bordes → centro", cbMode:"Colores para daltónicos (azul / naranja)", oledMode:"Negro total (pantalla OLED)", gearFlags:"Banderas en la pantalla Marcha", wakeHint:"Red local (HTTP): si la pantalla se apaga de todos modos, desactiva el bloqueo automático del dispositivo.", t_gear:"Marcha", rpmUnit:"rpm", limTag:"LIMITADOR", t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
       throttle:"Acelerador", brake:"Freno", clutch:"Embrague", steering:"Volante", rpm:"RPM", bias:"Reparto de frenada", motorMap:"Mapa motor", trace:"Últimos 10 segundos",
       fGreen:"Bandera verde", fYellow:"Bandera amarilla", fFcy:"Neutralización (FCY)", fSc:"Coche de seguridad", fBlue:"Bandera azul", fRed:"Sesión detenida", fChk:"Bandera a cuadros", fFormation:"Vuelta de formación", fCountdown:"Salida inminente", fWaiting:"Antes de la salida",
       y1:"Neutralización inminente", y2:"Boxes cerrados", y3:"Boxes abiertos para los coches en la vuelta del líder", y4:"Boxes abiertos", y5:"Última vuelta del coche de seguridad", y6:"Relanzamiento", y7:"Carrera detenida",
       penalties:"Penalizaciones", trackLimits:"Límites de pista", lastMsg:"Último mensaje del juego", pit:"Boxes", limiter:"Limitador", on:"activado", off:"desactivado", pitLimit:"Velocidad en boxes",
       ps0:"En pista", ps1:"Parada solicitada", ps2:"Entrando en boxes", ps3:"Parado", ps4:"Saliendo de boxes", stopLen:"Parada prevista", pitMenu:"Menú de boxes", perLap:"por vuelta",
       pressure:"Presión", carcass:"Carcasa", wear:"Goma restante", flat:"Pinchazo", detached:"Rueda perdida" },
-    de: { gearFlags:"Flaggen in der Gang-Ansicht", wakeHint:"Lokales Netzwerk (HTTP): Wenn sich der Bildschirm trotzdem ausschaltet, deaktiviere die automatische Sperre des Geräts.", t_gear:"Gang", rpmUnit:"U/min", limTag:"LIMITER", t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
+    de: { ledStart:"Schaltblitze ab", ledFill:"Schaltblitze: Füllrichtung", ledLR:"Links → rechts", ledOut:"Rand → Mitte", cbMode:"Farben für Farbenblinde (Blau / Orange)", oledMode:"Echtes Schwarz (OLED-Bildschirm)", gearFlags:"Flaggen in der Gang-Ansicht", wakeHint:"Lokales Netzwerk (HTTP): Wenn sich der Bildschirm trotzdem ausschaltet, deaktiviere die automatische Sperre des Geräts.", t_gear:"Gang", rpmUnit:"U/min", limTag:"LIMITER", t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
       throttle:"Gas", brake:"Bremse", clutch:"Kupplung", steering:"Lenkung", rpm:"Drehzahl", bias:"Bremsbalance", motorMap:"Motorkennfeld", trace:"Letzte 10 Sekunden",
       fGreen:"Grüne Flagge", fYellow:"Gelbe Flagge", fFcy:"Full Course Yellow", fSc:"Safety-Car", fBlue:"Blaue Flagge", fRed:"Session unterbrochen", fChk:"Zielflagge", fFormation:"Einführungsrunde", fCountdown:"Start steht bevor", fWaiting:"Vor dem Start",
       y1:"Neutralisation steht bevor", y2:"Boxengasse geschlossen", y3:"Boxengasse offen für Autos in der Führungsrunde", y4:"Boxengasse offen", y5:"Letzte Runde des Safety-Cars", y6:"Restart", y7:"Rennen gestoppt",
       penalties:"Strafen", trackLimits:"Track Limits", lastMsg:"Letzte Spielmeldung", pit:"Boxengasse", limiter:"Limiter", on:"an", off:"aus", pitLimit:"Tempolimit Boxengasse",
       ps0:"Auf der Strecke", ps1:"Stopp angefordert", ps2:"Einfahrt in die Box", ps3:"Steht", ps4:"Ausfahrt aus der Box", stopLen:"Geplanter Stopp", pitMenu:"Boxenmenü", perLap:"pro Runde",
       pressure:"Druck", carcass:"Karkasse", wear:"Restprofil", flat:"Reifenschaden", detached:"Rad verloren" },
-    it: { gearFlags:"Bandiere nella schermata Marcia", wakeHint:"Rete locale (HTTP): se lo schermo si spegne comunque, disattiva il blocco automatico del dispositivo.", t_gear:"Marcia", rpmUnit:"giri/min", limTag:"LIMITATORE", t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
+    it: { ledStart:"Luci di cambiata: accensione da", ledFill:"Luci: riempimento", ledLR:"Sinistra → destra", ledOut:"Bordi → centro", cbMode:"Colori per daltonici (blu / arancione)", oledMode:"Nero assoluto (schermo OLED)", gearFlags:"Bandiere nella schermata Marcia", wakeHint:"Rete locale (HTTP): se lo schermo si spegne comunque, disattiva il blocco automatico del dispositivo.", t_gear:"Marcia", rpmUnit:"giri/min", limTag:"LIMITATORE", t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
       throttle:"Acceleratore", brake:"Freno", clutch:"Frizione", steering:"Sterzo", rpm:"Giri motore", bias:"Ripartizione frenata", motorMap:"Mappa motore", trace:"Ultimi 10 secondi",
       fGreen:"Bandiera verde", fYellow:"Bandiera gialla", fFcy:"Neutralizzazione (FCY)", fSc:"Safety car", fBlue:"Bandiera blu", fRed:"Sessione interrotta", fChk:"Bandiera a scacchi", fFormation:"Giro di formazione", fCountdown:"Partenza imminente", fWaiting:"Prima della partenza",
       y1:"Neutralizzazione imminente", y2:"Box chiusi", y3:"Box aperti alle auto a pieni giri", y4:"Box aperti", y5:"Ultimo giro della safety car", y6:"Ripartenza", y7:"Gara fermata",
@@ -589,7 +630,7 @@
     duel: '<path d="M5 8h13l-3-3M19 16H6l3 3"/>',
     tv: '<path d="M3 5h18v12H3zM8 21h8"/>',
   };
-  const P = { z: 1, awake: true, lock: true, cols: "auto", bars: true, off: [], gflags: true };
+  const P = { z: 1, awake: true, lock: true, cols: "auto", bars: true, off: [], gflags: true, ledStart: 0.8, ledFill: "lr", cb: false, oled: false };
   try { Object.assign(P, JSON.parse(localStorage.getItem("regie_prefs") || "{}")); } catch { /* réglages illisibles : défauts */ }
   function applyPrefs() {
     P.z = Math.min(1.6, Math.max(0.8, Math.round(P.z * 10) / 10));
@@ -600,6 +641,11 @@
     $("lock").setAttribute("aria-pressed", String(!!P.lock));
     $("bars").setAttribute("aria-pressed", String(!!P.bars));
     $("gflags").setAttribute("aria-pressed", String(!!P.gflags));
+    $("cb").setAttribute("aria-pressed", String(!!P.cb));
+    $("oled").setAttribute("aria-pressed", String(!!P.oled));
+    document.documentElement.classList.toggle("cb", !!P.cb);
+    document.querySelectorAll("[data-ls]").forEach((b) => b.classList.toggle("on", +b.dataset.ls === +P.ledStart));
+    document.querySelectorAll("[data-lf]").forEach((b) => b.classList.toggle("on", b.dataset.lf === P.ledFill));
     document.querySelectorAll("[data-cols]").forEach((b) => b.classList.toggle("on", b.dataset.cols === P.cols));
     if (!Array.isArray(P.off)) P.off = [];
     $("scr").innerHTML = TPLS.map((k) => `<button type="button" data-scr="${k}" class="${P.off.includes(k) ? "" : "on"}"><svg class="ico" viewBox="0 0 24 24">${ICONS[k]}</svg>${esc(T["t_" + k])}</button>`).join("");
@@ -623,6 +669,10 @@
   document.querySelectorAll("[data-cols]").forEach((b) => b.onclick = () => { P.cols = b.dataset.cols; savePrefs(); });
   $("bars").onclick = () => { P.bars = !P.bars; savePrefs(); updBars(); };
   $("gflags").onclick = () => { P.gflags = !P.gflags; savePrefs(); };
+  document.querySelectorAll("[data-ls]").forEach((b) => b.onclick = () => { P.ledStart = +b.dataset.ls; savePrefs(); });
+  document.querySelectorAll("[data-lf]").forEach((b) => b.onclick = () => { P.ledFill = b.dataset.lf; savePrefs(); });
+  $("cb").onclick = () => { P.cb = !P.cb; savePrefs(); };
+  $("oled").onclick = () => { P.oled = !P.oled; savePrefs(); setTheme(appTheme); };
   const sheetOpen = () => !$("sheet").classList.contains("hidden");
   $("set").onclick = () => $("sheet").classList.remove("hidden");
   $("closeSet").onclick = () => $("sheet").classList.add("hidden");
@@ -796,6 +846,7 @@
     try {
       last = await get("/api/live");
       if (last.ui_theme) setTheme(last.ui_theme);
+      if (last.ui_push) applyPush(last.ui_push);
       fails = 0; setLost(false);
       const key = last.session && last.session.track;
       if (key && (!track || track.track !== key || Date.now() - trackAt > 30000)) { track = await get("/api/track"); trackAt = Date.now(); }
@@ -824,11 +875,25 @@
     } catch { /* la coupure est signalée par l'interrogation principale */ } finally { ibusy = false; }
   }
   // Thème de l'app : posé dans la page par le serveur, suivi à chaque trame.
-  function setTheme(t) {
-    const th = t === "dark" ? "dark" : "light";
-    if (document.documentElement.dataset.theme !== th) document.documentElement.dataset.theme = th;
-    document.querySelector('meta[name="theme-color"]').content = th === "dark" ? "#0b101f" : "#f4f5f8";
+  // Écran choisi depuis l'app (Configuration › Régie tablette) : appliqué une fois par envoi.
+  function applyPush(push) {
+    const seen = localStorage.getItem("regie_push") || "";
+    const rev = String(push.rev || "");
+    if (!rev || rev === seen) return;
+    localStorage.setItem("regie_push", rev);
+    if (!TPLS.includes(push.tpl)) return;
+    if (P.off.includes(push.tpl)) { P.off = P.off.filter((k) => k !== push.tpl); savePrefs(); }
+    if (tpl !== push.tpl) setTpl(push.tpl);
   }
+  // Réglage « Noir intégral » : thème sombre imposé sur cette tablette, fond 100 % noir.
+  function setTheme(t) {
+    appTheme = t;
+    const th = P.oled || t === "dark" ? "dark" : "light";
+    if (document.documentElement.dataset.theme !== th) document.documentElement.dataset.theme = th;
+    document.documentElement.classList.toggle("oled", !!P.oled);
+    document.querySelector('meta[name="theme-color"]').content = P.oled ? "#000000" : th === "dark" ? "#0b101f" : "#f4f5f8";
+  }
+  let appTheme = document.documentElement.dataset.theme;
   setTheme(document.documentElement.dataset.theme);
   let raf = 0;
   const reflow = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { if (last) render(); }); };
@@ -881,6 +946,13 @@
   const remaining = (d) => { const sc = d.session || {}; return sc.end_et > 0 ? clock(Math.max(0, sc.end_et - sc.session_time)) : sc.max_laps > 0 && sc.max_laps < 1000 ? `${sc.max_laps} ${T.laps.toLowerCase()}` : clock(sc.session_time); };
   const classMates = (d, p) => (d.standings || []).filter((s) => s.vehicle_class === p.vehicle_class).sort((a, b) => a.class_position - b.class_position);
 
+  // Couleur d'un secteur : violet = meilleur de la classe ; pour moi seulement (mes
+  // meilleurs secteurs sont connus) : vert = mon meilleur, jaune = plus lent que mon meilleur.
+  const secCls = (s, n, d) => {
+    if (s["is_class_best_s" + n]) return "sb";
+    const v = s["last_s" + n] || 0, b = s.is_player && d.player && d.player.best_sectors ? d.player.best_sectors[n - 1] || 0 : 0;
+    return !(v > 0) || !(b > 0) ? "" : Math.abs(v - b) < 0.0005 ? "pb" : "sy";
+  };
   // Couleur d'un tour : violet = meilleur tour de la classe, vert = meilleur tour personnel.
   const lapCls = (s, t) => !(t > 0) || Math.abs(t - s.best_lap_time) > 0.0005 ? "" : s.is_class_best_lap ? "sb" : "pb";
   function timingTable(d, rows) {
@@ -915,7 +987,8 @@
       <div class="card"><div class="lbl">${T.behind}</div><div class="big mono">${b ? "+" + Math.max(0, b.time_behind_leader - p.time_behind_leader).toFixed(1) : T.none}</div><div class="meta ell">${b ? esc(b.driver) : ""}</div></div>
       <div class="card"><div class="lbl">${T.fuel}</div><div class="big mono">${(tel.fuel || 0).toFixed(1)} L</div><div class="meta">${tel.fuel_laps_remaining > 0 ? tel.fuel_laps_remaining.toFixed(1) + " " + T.lapsLeft : T.none}</div>${gauge(tel.fuel_capacity > 0 ? tel.fuel / tel.fuel_capacity : null)}</div>
       <div class="card"><div class="lbl">${T.energy}</div><div class="big mono">${x.virtual_energy > 0 ? Math.round(x.virtual_energy * 100) + "%" : T.none}</div><div class="meta">${T.pads} ${pads}</div>${gauge(x.virtual_energy > 0 ? x.virtual_energy : null)}</div>
-      <div class="card"><div class="lbl">${T.last} / ${T.best}</div><div class="big mono"><span class="${lapCls(p, p.last_lap_time)}">${lapT(p.last_lap_time)}</span></div><div class="meta mono"><span class="${p.is_class_best_lap ? "sb" : ""}">${lapT(p.best_lap_time)}</span></div></div>
+      <div class="card"><div class="lbl">${T.last} / ${T.best}</div><div class="big mono"><span class="${lapCls(p, p.last_lap_time)}">${lapT(p.last_lap_time)}</span></div><div class="meta mono"><span class="${p.is_class_best_lap ? "sb" : ""}">${lapT(p.best_lap_time)}</span></div>
+        <div class="meta sects">${[1, 2, 3].map((n) => `<span class="${secCls(p, n, d)}">S${n} ${(p["last_s" + n] || 0) > 0 ? p["last_s" + n].toFixed(2) : T.none}</span>`).join("")}</div></div>
       <div class="card"><div class="lbl">${T.weather}</div><div class="mono txt">${T.air} ${Math.round(w.air_temp || 0)}° · ${T.track} ${Math.round(w.track_temp || 0)}°</div><div class="mono txt">${T.rain} ${Math.round((w.rain || 0) * 100)}%</div></div>
       <div class="card tyc"><div class="lbl">${T.tyres}</div><div class="wheels">${wheels}</div></div>
     </div>`;
@@ -929,7 +1002,7 @@
     const p = me(d);
     if (!p) return `<div class="empty">${T.noPlayer}</div>`;
     const cls = classMates(d, p); const i = cls.indexOf(p);
-    const sec = (s) => [1, 2, 3].map((n) => `<td class="r ${s["is_class_best_s" + n] ? "sb" : ""}">${(s["last_s" + n] || 0).toFixed(2)}</td>`).join("");
+    const sec = (s) => [1, 2, 3].map((n) => `<td class="r ${secCls(s, n, d)}">${(s["last_s" + n] || 0).toFixed(2)}</td>`).join("");
     const col = (s, title, sign) => !s ? `<div class="card"><div class="lbl">${title}</div><div class="big">${T.none}</div></div>` :
       `<div class="card"><div class="lbl">${title}</div><div class="who ell">${esc(s.driver)}</div><div class="meta">${clsTag(s.vehicle_class)} P${s.class_position}</div>
        <div class="huge mono">${sign}${Math.abs(s.time_behind_leader - p.time_behind_leader).toFixed(1)}</div>
@@ -1023,7 +1096,7 @@
     if (!d.telemetry && !(inp && inp.telemetry)) return `<div class="empty">${T.noPlayer}</div>`;
     const bar = (id, label, color) => `<div class="pbar"><div class="tube"><i id="pb-${id}" style="background:${color}"></i></div><div class="lbl">${label}</div><div class="mono" id="pv-${id}">0%</div></div>`;
     return `<div class="page ped">
-      <div class="card pbars">${bar("c", T.clutch, "#3b82f6")}${bar("b", T.brake, "var(--bad)")}${bar("t", T.throttle, "var(--ok)")}</div>
+      <div class="card pbars">${bar("c", T.clutch, "var(--clutch)")}${bar("b", T.brake, "var(--bad)")}${bar("t", T.throttle, "var(--ok)")}</div>
       <div class="card"><div class="gear mono" id="pi-g">N</div>
         <div class="big mono" style="text-align:center"><span id="pi-v">0</span> <span class="meta">km/h</span></div>
         <div class="lbl" style="margin-top:.6rem">${T.rpm} <span class="mono" id="pi-r"></span></div><div class="rpm"><i id="pi-rb"></i></div>
@@ -1059,12 +1132,14 @@
   }
 
   // 10. Rapport : le rapport engagé en très grand, témoins de passage, vitesse, régime.
-  // Témoins : part du régime maximal de la voiture (de 80 % à 97 %, puis clignotent).
+  // Témoins : part du régime maximal de la voiture (dès 75-90 % selon le réglage, pleins à
+  // 97 %, puis clignotent), de gauche à droite ou des bords vers le centre.
   function tplGear(d) {
     if (!d.telemetry && !(inp && inp.telemetry)) return `<div class="empty">${T.noPlayer}</div>`;
-    const leds = Array.from({ length: 15 }, (_, i) => `<i data-c="${i < 5 ? "g" : i < 10 ? "y" : "r"}"></i>`).join("");
+    const leds = "<i></i>".repeat(15);
     return `<div class="page gearp"><div class="card dash">
       <div class="leds" id="gd-l">${leds}</div>
+      <div class="dbar vh" id="gd-d"><i class="dn"></i><i class="dp"></i><span id="gd-dv"></span></div>
       <span class="gtag hidden" id="gd-f"></span>
       <div class="gbig mono" id="gd-g">N</div>
       <div class="gfoot"><div class="gv g-spd"><span class="gnum mono" id="gd-v">0</span><span class="lbl">km/h</span></div>
@@ -1080,7 +1155,9 @@
     $("gd-v").textContent = Math.round(t.speed_kmh || 0);
     $("gd-r").textContent = Math.round(t.rpm || 0);
     const rr = t.max_rpm > 0 ? (t.rpm || 0) / t.max_rpm : 0;
-    const lit = Math.round(Math.max(0, Math.min(1, (rr - 0.8) / 0.17)) * 15);
+    const start = [0.75, 0.8, 0.85, 0.9].includes(+P.ledStart) ? +P.ledStart : 0.8;
+    const frac = Math.max(0, Math.min(1, (rr - start) / (0.97 - start)));
+    const out = P.ledFill === "out";
     const box = $("gd-l");
     box.classList.toggle("shift", rr >= 0.97 && !t.speed_limiter);
     $("gd-g").classList.toggle("go", rr >= 0.97 && !t.speed_limiter);
@@ -1093,11 +1170,29 @@
     $("gd-f").classList.toggle("hidden", !fl);
     box.classList.toggle("lim", !!t.speed_limiter);
     $("gd-lim").classList.toggle("hidden", !t.speed_limiter);
-    [...box.children].forEach((e, i) => { e.className = i < lit ? e.dataset.c : ""; });
+    [...box.children].forEach((e, i) => {
+      const dist = Math.min(i, 14 - i); // bords → centre : 0 … 7
+      const col = out ? (dist < 3 ? "g" : dist < 6 ? "y" : "r") : (i < 5 ? "g" : i < 10 ? "y" : "r");
+      const on = out ? dist < frac * 8 - 1e-9 : i < Math.round(frac * 15);
+      e.className = on ? col : "";
+    });
+    // Delta au meilleur tour (même lecture que le widget Delta : négatif = plus rapide).
+    const pl = (last && last.player) || {};
+    const dv = inp && typeof inp.lap_delta === "number" ? inp.lap_delta : pl.lap_delta;
+    const hasBest = (pl.best_lap_time || 0) > 0 && typeof dv === "number";
+    $("gd-d").classList.toggle("vh", !hasBest); // place gardée : la mise en page ne bouge pas
+    if (hasBest) {
+      const k = Math.min(1, Math.abs(dv) / 2).toFixed(3);
+      $("gd-d").querySelector(".dn").style.transform = `scaleX(${dv < 0 ? k : 0})`;
+      $("gd-d").querySelector(".dp").style.transform = `scaleX(${dv > 0 ? k : 0})`;
+      $("gd-dv").textContent = (dv > 0.0005 ? "+" : dv < -0.0005 ? "−" : "") + Math.abs(dv).toFixed(2);
+    }
   }
 
   // 9. Pneus & freins : les quatre roues à leur place (avant en haut).
-  const tempBg = (t) => t <= 0 ? "var(--line)" : t > 110 ? "#FF1D43" : t > 95 ? "#eab308" : t < 70 ? "#38bdf8" : "#00c896";
+  // Couleurs de température (seuils de la page Live) ; palette Okabe-Ito en mode daltoniens.
+  const tempBg = (t) => t <= 0 ? "var(--line)" : t > 110 ? (P.cb ? "#D55E00" : "#FF1D43") : t > 95 ? (P.cb ? "#E69F00" : "#eab308")
+    : t < 70 ? (P.cb ? "#56B4E9" : "#38bdf8") : (P.cb ? "#009E73" : "#00c896");
   function tplTyres(d) {
     const tel = d.telemetry;
     if (!tel || !Array.isArray(tel.wheels) || tel.wheels.length < 4) return `<div class="empty">${T.noPlayer}</div>`;
@@ -1110,7 +1205,7 @@
         <div class="t3 mono">${(wh.temp3 || [0, 0, 0]).map(cell).join("")}</div>
         <div class="kv mono txt"><span>${T.carcass} ${Math.round(wh.temp || 0)}°</span><span>${T.pressure} ${Math.round(wh.pressure || 0)} kPa</span></div>
         <div class="kv mono txt"><span>${T.wear} ${Math.round(wear)}%</span><span>${T.brake} ${wh.brake_temp > 0 ? Math.round(wh.brake_temp) + "°" : T.none}</span>${pads ? `<span>${T.pads} ${Math.round(Math.min(1, pads[k]) * 100)}%</span>` : ""}</div>
-        <div class="bar" style="margin-top:.35rem"><i style="width:${wear}%;background:${wear < 30 ? "var(--bad)" : wear < 60 ? "#eab308" : "var(--ok)"}"></i></div>
+        <div class="bar" style="margin-top:.35rem"><i style="width:${wear}%;background:${wear < 30 ? "var(--bad)" : wear < 60 ? "var(--amber)" : "var(--ok)"}"></i></div>
         ${wh.flat ? `<div class="pill" style="margin-top:.4rem;background:var(--bad);color:#fff">${T.flat}</div>` : ""}${wh.detached ? `<div class="pill" style="margin-top:.4rem;background:var(--bad);color:#fff">${T.detached}</div>` : ""}</div>`;
     }).join("") + `</div>`;
   }
@@ -1156,7 +1251,12 @@
     if (tpl === "gear") updGear();
   }
 
-  if (token) start(); else showLogin();
+  // QR code de l'app : l'adresse porte le code (#code=123456) → connexion directe, puis le
+  // code est retiré de l'adresse (il ne reste pas dans l'historique de la page).
+  const hashCode = (location.hash.match(/code=(\d{6})/) || [])[1];
+  if (hashCode) history.replaceState(null, "", location.pathname + location.search);
+  if (hashCode) { dropToken(); showLogin(); $("code").value = hashCode; login(); }
+  else if (token) start(); else showLogin();
 })();
 </script>
 </body>

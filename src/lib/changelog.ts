@@ -701,6 +701,42 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
+              en: "Tablet race control, Gear screen: a delta bar against your best lap (green to the left when faster, red to the right when slower, ±2 s, with the value). Shift lights can now start at 75, 80, 85 or 90 % of the car's maximum revs, and fill left to right or from the edges to the centre.",
+              fr: "Régie tablette, écran Rapport : une barre de delta face à ton meilleur tour (verte vers la gauche quand tu es plus rapide, rouge vers la droite quand tu es plus lent, ±2 s, avec la valeur). Les témoins de régime peuvent s'allumer dès 75, 80, 85 ou 90 % du régime maximal de la voiture, et se remplir de gauche à droite ou des bords vers le centre.",
+              es: "Dirección en tableta, pantalla Marcha: una barra de delta frente a tu mejor vuelta (verde hacia la izquierda cuando vas más rápido, roja hacia la derecha cuando vas más lento, ±2 s, con el valor). Las luces de cambio pueden encenderse desde el 75, 80, 85 o 90 % del régimen máximo del coche, y llenarse de izquierda a derecha o de los bordes al centro.",
+              de: "Rennleitung auf dem Tablet, Gang-Ansicht: ein Delta-Balken zu deiner besten Runde (grün nach links, wenn du schneller bist, rot nach rechts, wenn du langsamer bist, ±2 s, mit Wert). Die Schaltblitze können ab 75, 80, 85 oder 90 % der Höchstdrehzahl des Autos starten und sich von links nach rechts oder vom Rand zur Mitte füllen.",
+              it: "Direzione gara su tablet, schermata Marcia: una barra di delta rispetto al tuo giro migliore (verde verso sinistra quando sei più veloce, rossa verso destra quando sei più lento, ±2 s, con il valore). Le luci di cambiata possono accendersi dal 75, 80, 85 o 90 % del regime massimo dell'auto, e riempirsi da sinistra a destra o dai bordi al centro.",
+            },
+          },
+          {
+            text: {
+              en: "Tablet race control: your sectors in colour — purple for the class best, green for your personal best, yellow when slower than your best (Engineer and Duel screens).",
+              fr: "Régie tablette : tes secteurs en couleur — violet pour le meilleur de la classe, vert pour ton meilleur personnel, jaune quand tu es plus lent que ton meilleur (écrans Ingénieur et Duel).",
+              es: "Dirección en tableta: tus sectores en color — morado para el mejor de la clase, verde para tu mejor personal, amarillo cuando vas más lento que tu mejor (pantallas Ingeniero y Duelo).",
+              de: "Rennleitung auf dem Tablet: deine Sektoren in Farbe — Lila für die Klassenbestzeit, Grün für deine persönliche Bestzeit, Gelb, wenn du langsamer als deine Bestzeit bist (Ansichten Ingenieur und Duell).",
+              it: "Direzione gara su tablet: i tuoi settori a colori — viola per il migliore della classe, verde per il tuo record personale, giallo quando sei più lento del tuo migliore (schermate Ingegnere e Duello).",
+            },
+          },
+          {
+            text: {
+              en: "Tablet race control, new settings: colour-blind friendly colours (blue / orange instead of green / red, flags keep their official colours) and true black for OLED screens. On a phone held sideways, the tabs move to a column on the left. The QR code shown in the app now signs the tablet in directly, without typing the code.",
+              fr: "Régie tablette, nouveaux réglages : couleurs pour daltoniens (bleu / orange au lieu de vert / rouge, les drapeaux gardent leurs couleurs officielles) et noir intégral pour les écrans OLED. Sur un téléphone couché, les onglets passent en colonne à gauche. Le QR code affiché dans l'app connecte maintenant la tablette directement, sans taper le code.",
+              es: "Dirección en tableta, nuevos ajustes: colores para daltónicos (azul / naranja en lugar de verde / rojo, las banderas mantienen sus colores oficiales) y negro total para pantallas OLED. En un móvil en horizontal, las pestañas pasan a una columna a la izquierda. El código QR que muestra la app ahora conecta la tableta directamente, sin escribir el código.",
+              de: "Rennleitung auf dem Tablet, neue Einstellungen: Farben für Farbenblinde (Blau / Orange statt Grün / Rot, Flaggen behalten ihre offiziellen Farben) und echtes Schwarz für OLED-Bildschirme. Auf einem quer gehaltenen Smartphone wandern die Tabs in eine Spalte links. Der in der App angezeigte QR-Code meldet das Tablet jetzt direkt an, ohne den Code einzutippen.",
+              it: "Direzione gara su tablet, nuove impostazioni: colori per daltonici (blu / arancione invece di verde / rosso, le bandiere mantengono i colori ufficiali) e nero assoluto per gli schermi OLED. Su uno smartphone in orizzontale, le schede passano in una colonna a sinistra. Il codice QR mostrato nell'app ora connette il tablet direttamente, senza digitare il codice.",
+            },
+          },
+          {
+            text: {
+              en: "Settings › Tablet race control: “Screen shown on the tablets” — pick a screen and send it; every connected tablet switches to it (and can switch again afterwards).",
+              fr: "Configuration › Régie tablette : « Écran affiché sur les tablettes » — choisis un écran et envoie-le ; chaque tablette connectée bascule dessus (et peut ensuite en changer).",
+              es: "Configuración › Dirección en tableta: «Pantalla mostrada en las tabletas» — elige una pantalla y envíala; cada tableta conectada cambia a ella (y después puede cambiarla).",
+              de: "Einstellungen › Rennleitung auf Tablet: „Ansicht auf den Tablets“ — wähle eine Ansicht und sende sie; jedes verbundene Tablet wechselt dorthin (und kann danach wieder wechseln).",
+              it: "Impostazioni › Direzione gara su tablet: «Schermata mostrata sui tablet» — scegli una schermata e inviala; ogni tablet connesso passa a quella (e poi può cambiarla).",
+            },
+          },
+          {
+            text: {
               en: "Settings › Audio / Voice › Neural voices: all the “Test” buttons are now lined up in the same column, including those of the voices of a multi-speaker pack (UPMC: Jessica and Pierre).",
               fr: "Configuration › Audio / Voix › Voix neuronales : tous les boutons « Tester » sont maintenant alignés dans la même colonne, y compris ceux des voix d'un pack à plusieurs voix (UPMC : Jessica et Pierre).",
               es: "Configuración › Audio / Voz › Voces neuronales: todos los botones «Probar» quedan ahora alineados en la misma columna, incluidos los de las voces de un paquete con varias voces (UPMC: Jessica y Pierre).",

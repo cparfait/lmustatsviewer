@@ -4,16 +4,27 @@
  * Désactivée par défaut. Une fois activée, l'app écoute sur l'adresse du réseau
  * local ; la tablette ouvre l'adresse (QR code) et saisit le code à 6 chiffres.
  * Lecture seule. `useRegieAutostart` (`lib/regie.ts`, monté dans App) la relance
- * au démarrage si elle était activée.
+ * au démarrage si elle était activée. L'app peut imposer un écran à toutes les
+ * tablettes (« Écran affiché sur les tablettes ») ; elles peuvent ensuite en changer.
  */
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
+import { Loader2, MonitorSmartphone } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { config, isTauri } from "@/lib/api";
-import { regie, regiePort as portOf, REGIE_DEFAULT_PORT, type RegieStatus } from "@/lib/regie";
+import { toastError, toastSuccess } from "@/stores/dialogs";
+import {
+  regie,
+  regiePort as portOf,
+  REGIE_DEFAULT_PORT,
+  REGIE_SCREENS,
+  type RegieScreen,
+  type RegieStatus,
+} from "@/lib/regie";
 
 export function RegieSettings() {
   const { t } = useTranslation();
@@ -21,6 +32,16 @@ export function RegieSettings() {
   const [port, setPort] = useState(String(REGIE_DEFAULT_PORT));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [screen, setScreen] = useState<RegieScreen>("timing");
+
+  const pushScreen = async () => {
+    try {
+      await regie.pushScreen(screen);
+      toastSuccess(t("config.regieScreenSent"));
+    } catch (e) {
+      toastError(String(e));
+    }
+  };
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -99,6 +120,28 @@ export function RegieSettings() {
               <p className="font-mono text-3xl font-bold tracking-[0.3em]">{status.code}</p>
             </div>
             <p className="text-xs text-muted-foreground">{t("config.regieClients", { count: status.clients })}</p>
+          </div>
+        </div>
+      )}
+
+      {running && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-sm font-medium">{t("config.regieScreen")}</p>
+            <p className="text-xs text-muted-foreground">{t("config.regieScreenHint")}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={screen}
+              onValueChange={(v) => setScreen(v as RegieScreen)}
+              ariaLabel={t("config.regieScreen")}
+              className="h-8 w-44 px-2.5"
+              options={REGIE_SCREENS.map((k) => ({ value: k, label: t(`config.regieScreens.${k}`) }))}
+            />
+            <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => void pushScreen()}>
+              <MonitorSmartphone className="h-3.5 w-3.5" />
+              {t("config.regieScreenSend")}
+            </Button>
           </div>
         </div>
       )}

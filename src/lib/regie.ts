@@ -17,12 +17,18 @@ export interface RegieStatus {
 
 export const REGIE_DEFAULT_PORT = 8790;
 
+/** Écrans de la tablette (mêmes clés que `regie.html` et `regie.rs`). */
+export const REGIE_SCREENS = ["timing", "relative", "engineer", "flags", "inputs", "gear", "tyres", "map", "duel", "tv"] as const;
+export type RegieScreen = (typeof REGIE_SCREENS)[number];
+
 export const regie = {
   start: (port: number) => invoke<RegieStatus>("regie_start", { port }),
   stop: () => invoke<RegieStatus>("regie_stop"),
   status: () => invoke<RegieStatus>("regie_status"),
   /** Thème de l'app, repris par la tablette (même hors service : gardé pour le démarrage). */
   setTheme: (theme: "dark" | "light") => invoke<void>("regie_set_theme", { theme }),
+  /** Affiche cet écran sur toutes les tablettes connectées (une fois par envoi). */
+  pushScreen: (screen: RegieScreen) => invoke<void>("regie_push_screen", { screen }),
 };
 
 /** Port valide (1024-65535), sinon le port par défaut. */

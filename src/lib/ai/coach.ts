@@ -10,7 +10,7 @@ import { ai } from "../api";
 import type { Tr } from "../../i18n";
 import type { AIMessage, AIProvider } from "./types";
 import { systemPrompt } from "./prompts/system";
-import { languageLock, radioSystemPrompt } from "./prompts/radio";
+import { languageLock, radioSystemPrompt, usesRadioPrompt, voiceUserMessage } from "./prompts/radio";
 import { stripThinking, ThinkingStreamFilter } from "./thinking";
 import { aiErrorKind } from "./errorKind";
 
@@ -99,22 +99,14 @@ function resolveSystem(lang: string, override?: string): string {
   return override && override.trim() ? override : systemPrompt(lang);
 }
 
-/** Consigne de brièveté radio jointe à la question vocale, dans la langue du pilote. */
-const VOICE_STYLE: Record<string, string> = {
-  fr: "(Réponds en 2 phrases maximum, style ingénieur radio, à voix haute.)",
-  en: "(Answer in 2 sentences max, race-engineer radio style, spoken aloud.)",
-  es: "(Responde en 2 frases como máximo, estilo ingeniero de radio, en voz alta.)",
-  de: "(Antworte in maximal 2 Sätzen, im Funkstil eines Renningenieurs, laut gesprochen.)",
-  it: "(Rispondi in 2 frasi al massimo, stile ingegnere di pista via radio, ad alta voce.)",
-};
-
 /**
  * Question vocale (push-to-talk en course) : réponse **courte** façon radio
  * (2 phrases max), non-streaming, lue par TTS. Le contexte live est joint.
  *
  * `radioPrompt` (défaut) : prompt système radio dédié (`prompts/radio.ts`) au lieu du
  * prompt d'analyse ; un prompt personnalisé par l'utilisateur garde toujours la main.
- * Le rappel de langue part en toute fin du message (le contexte est en anglais).
+ * Message : données d'abord, question ensuite, rappels en toute fin (`voiceUserMessage`) ;
+ * sans le prompt radio, l'ancien message (question en tête) est gardé tel quel.
  */
 export async function askCoachVoice(args: {
   provider: AIProvider;
@@ -127,15 +119,11 @@ export async function askCoachVoice(args: {
   radioPrompt?: boolean;
 }): Promise<string> {
   const { provider, model, apiKey, lang, question, contextText, systemOverride } = args;
-  const style = VOICE_STYLE[lang.slice(0, 2).toLowerCase()] ?? VOICE_STYLE.en;
-  const custom = !!systemOverride && !!systemOverride.trim();
-  const system = custom || args.radioPrompt === false ? resolveSystem(lang, systemOverride) : radioSystemPrompt(lang);
+  const radio = usesRadioPrompt(systemOverride, args.radioPrompt);
+  const system = radio ? radioSystemPrompt(lang) : resolveSystem(lang, systemOverride);
   const messages: AIMessage[] = [
     { role: "system", content: system },
-    {
-      role: "user",
-      content: `${question.trim()}\n\n${style}\n\n--- Live data ---\n${contextText}\n\n${languageLock(lang)}`,
-    },
+    { role: "user", content: voiceUserMessage({ question, contextText, lang, radio }) },
   ];
   return chat(provider, model, apiKey, messages, 160);
 }

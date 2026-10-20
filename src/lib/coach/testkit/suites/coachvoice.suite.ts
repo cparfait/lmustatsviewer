@@ -15,7 +15,7 @@ import {
   wrongLanguage,
 } from "@/lib/ai/voiceGuard";
 import { matchCorners, phonetic, similarity, trackCornerNames, cornerNamesBlock } from "@/lib/ai/knowledge/corner-names";
-import { radioSystemPrompt, languageLock } from "@/lib/ai/prompts/radio";
+import { radioSystemPrompt, languageLock, radioReminder, usesRadioPrompt, voiceUserMessage } from "@/lib/ai/prompts/radio";
 import { clarifyStreak, isClarification, sttUnsure } from "@/lib/engineer/askRules";
 import { computeDebrief, debriefContextText, classPositionsByLap, type Debrief } from "@/lib/debrief/compute";
 import { recurringDefect, type RaceFamilies } from "@/lib/debrief/recurring";
@@ -137,6 +137,24 @@ export function run(): void {
     ok(languageLock(lg).length > 20, `${lg} : rappel de langue`);
   }
   eq(radioSystemPrompt("pt"), radioSystemPrompt("en"), "langue inconnue : anglais");
+
+  section("Coach vocal : message envoyé à l'IA");
+  for (const lg of ["fr", "en", "es", "de", "it"]) {
+    const p = radioSystemPrompt(lg);
+    ok(/^2\. /m.test(p) && /^14\. /m.test(p), `${lg} : 14 règles numérotées`);
+    ok(radioReminder(lg).length > 40, `${lg} : rappel de format`);
+  }
+  ok(usesRadioPrompt("", true) && usesRadioPrompt(undefined, undefined), "prompt radio par défaut");
+  ok(!usesRadioPrompt("  mon prompt  ", true), "prompt personnalisé : garde la main");
+  ok(!usesRadioPrompt("", false), "réglage coupé : prompt d'analyse");
+  const msg = voiceUserMessage({ question: "  et l'essence ? ", contextText: "## Live session\nFuel: 40.5L", lang: "fr", radio: true });
+  ok(msg.indexOf("Fuel: 40.5L") < msg.indexOf("\"et l'essence ?\""), "radio : données avant la question");
+  ok(msg.endsWith(languageLock("fr")) && msg.includes(radioReminder("fr")), "radio : rappels en toute fin");
+  eq(
+    voiceUserMessage({ question: " essence ? ", contextText: "CTX", lang: "en", radio: false }),
+    `essence ?\n\n(Answer in 2 sentences max, race-engineer radio style, spoken aloud.)\n\n--- Live data ---\nCTX\n\n${languageLock("en")}`,
+    "sans prompt radio : ancien message à l'identique",
+  );
 
   section("Coach vocal : contrôle des chiffres");
   eq(numbersIn("1:52.310 et 0,4 s").map((n) => n.value.toFixed(3)), ["112.310", "0.400"], "temps m:ss et virgule décimale");

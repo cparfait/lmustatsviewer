@@ -32,7 +32,7 @@ export function factsBlock(candidates: AnswerIntent[], data: LiveData | null, t:
   }
   return [
     "## Facts computed by the app (authoritative)",
-    "These answers were computed by the app from live data. They are the ONLY source for any figure you state. If the question needs a fact marked UNKNOWN or not listed, say you don't have it. Rephrase them naturally; do not contradict them.",
+    "These answers were computed by the app from live data. They take precedence over any other figure: rephrase them naturally, never recompute or contradict them. Any other figure must come from the live data as written. If the question needs a fact marked UNKNOWN, or a figure found neither here nor in the live data, say you don't have it.",
     ...lines,
   ].join("\n");
 }

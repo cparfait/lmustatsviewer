@@ -921,6 +921,38 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-20 — Coach vocal : prompt radio et message optimisés
+
+**Demande** : optimiser le prompt du Coach IA des questions posées en course (coach vocal, page Live).
+
+- ✅ **Constat** : question placée *avant* 3 à 6 k caractères de données (un petit modèle suit mieux
+  ce qu'il lit en dernier) ; l'IA pouvait redire « reçu » alors que l'app dit déjà « Reçu, je
+  regarde » avant l'appel ; rien n'interdisait d'ajouter un point de course non demandé ; arrondis
+  non précisés ; le bloc « Facts » se disait « seule source des chiffres », en contradiction avec
+  le prompt radio (« chiffres des données jointes ») → réponses « je ne l'ai pas » pour une valeur
+  présente dans le live (températures, pressions…).
+- ✅ `lib/ai/prompts/radio.ts` (5 langues, 2,4-2,7 k → 3,0-3,3 k caractères) : 14 règles groupées
+  (Format radio / Chiffres, dite prioritaire / Comportement / Vocabulaire LMU) ; ajouts : question
+  fermée → oui ou non d'abord, répondre seulement à la question, pas d'accusé ni de formule de fin,
+  arrondis radio (écart au dixième ; litres, tours, % entiers — compatibles avec `voiceGuard`),
+  stand / garage / pause → ne pas parler comme en roulant ; exemple « Non, reste dehors… ».
+- ✅ Message : `voiceUserMessage` — prompt radio : `# Live data` puis `# Driver's question (voice
+  dictation…)` puis `radioReminder` (rappel court du format) puis `languageLock`. `ask.ts` met les
+  faits calculés en dernier dans le contexte (juste avant la question). Prompt radio coupé ou prompt
+  personnalisé (`usesRadioPrompt` faux) : ancien message et ancien ordre **à l'identique** (aucune
+  perte, cf. réglage `aiVoiceRadioPrompt`).
+- ✅ `lib/ai/facts.ts` : les faits « priment sur tout autre chiffre », les autres chiffres viennent
+  des données live telles qu'écrites (s'applique aussi au mode sans prompt radio : correction).
+- ✅ Tests : `coachvoice.suite.ts` (14 règles, rappel, `usesRadioPrompt`, ordre données → question,
+  ancien message identique) ; `npm test` 6 511 OK, `tsc -b` OK, eslint OK sur les fichiers touchés.
+  ⚠️ `npx eslint .` signale une erreur **antérieure** : `radio.suite.ts:565`, regex `/␈announce\(/`
+  avec un caractère de contrôle (0x08) au lieu de `\b` → le contrôle « réponses au pilote par
+  announceAnswer » passe toujours sans rien vérifier. Non corrigé ici (hors périmètre).
+- ⏳ Non vérifié en roulant (aucun appel IA réel dans les tests).
+- 📋 **Prochaine étape** : en course, poser 3 questions types (« je rentre ? », « l'essence ? »,
+  « pourquoi je perds en S2 ? ») avec le modèle vocal habituel, vérifier la réponse en une phrase
+  sans « reçu » ; corriger la regex de `radio.suite.ts:565`.
+
 ### 2026-10-20 — Coach IA post-course : « aucune donnée Mercedes » malgré 28 sessions à Spa
 
 **Symptôme** : session BMW M4 à Spa, question « je fais mieux en BMW qu'en Mercedes à Spa ? » →

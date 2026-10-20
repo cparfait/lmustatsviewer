@@ -48,6 +48,7 @@ import { parseAlarm } from "@/lib/engineer/alarm";
 import { engineer } from "@/lib/engineer/state";
 import { saveNoteHere } from "@/lib/useVoiceNotes";
 import { cornerNamesBlock } from "@/lib/ai/knowledge/corner-names";
+import { usesRadioPrompt } from "@/lib/ai/prompts/radio";
 import { checkVoiceAnswer, repairVoiceAnswer, type GuardReason } from "@/lib/ai/voiceGuard";
 import { lastTrackHistory, trackHistoryBlock } from "@/lib/engineer/trackRecall";
 import { CLARIFY_MAX, THREAD_MS, clarifyStreak, isClarification, sttUnsure, type Exchange } from "@/lib/engineer/askRules";
@@ -381,8 +382,8 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     const liveData = data ?? (await live.getData());
     const baseCtx = await buildLiveCoachContext(liveData, free);
     const recent = recentDiagnosticsBlock();
-    // Faits calculés par l'app : seule source des chiffres de la réponse (les
-    // fiches de savoir sont déjà jointes par `buildLiveCoachContext`).
+    // Faits calculés par l'app : ils priment sur tout autre chiffre (les fiches de
+    // savoir sont déjà jointes par `buildLiveCoachContext`).
     const facts = factsBlock(r.candidates, data, t, opts);
     // Liste fermée des noms de virage du circuit (+ ce que désignent les mots du pilote).
     const track = liveData?.session?.track ?? "";
@@ -390,7 +391,13 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
     const thread = radioThreadBlock();
     // Ce que l'app sait de ce tracé (record, dernière course, perte au stand mesurée).
     const history = trackHistoryBlock(lastTrackHistory(), track);
-    const ctx = [baseCtx, facts, corners, history, recent, thread].filter(Boolean).join("\n\n");
+    const systemOverride = useAppStore.getState().aiSystemPromptByLang[lang.slice(0, 2).toLowerCase()] ?? "";
+    // Prompt radio : les faits calculés en dernier, juste avant la question (ce qu'un
+    // petit modèle lit en dernier pèse le plus). Sinon, l'ancien ordre à l'identique.
+    const blocks = usesRadioPrompt(systemOverride, st0.aiVoiceRadioPrompt)
+      ? [baseCtx, history, recent, corners, thread, facts]
+      : [baseCtx, facts, corners, history, recent, thread];
+    const ctx = blocks.filter(Boolean).join("\n\n");
     const answer = stripMd(
       await askCoachVoice({
         provider: p,
@@ -399,7 +406,7 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
         lang,
         question: free,
         contextText: ctx,
-        systemOverride: useAppStore.getState().aiSystemPromptByLang[lang.slice(0, 2).toLowerCase()] ?? "",
+        systemOverride,
         radioPrompt: st0.aiVoiceRadioPrompt,
       }),
     );

@@ -225,6 +225,7 @@ pub fn run() {
             commands::regie::regie_status,
             commands::regie::regie_set_theme,
             commands::regie::regie_push_screen,
+            commands::regie::regie_rename_device,
             commands::tools::tools_detect_known,
             commands::tools::tools_set_launcher,
             commands::tools::tools_launcher_status,

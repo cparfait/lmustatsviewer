@@ -189,9 +189,12 @@
   html.bare main { border-top:0; padding-top:calc(.5rem + var(--st)); }
   html.bare #lost { top:calc(.6rem + var(--st)); }
   /* Choix des écrans (réglages). */
-  .chips { display:flex; flex-wrap:wrap; gap:.4rem; padding:.2rem 0 .6rem; }
-  .chips button { display:flex; align-items:center; gap:.35rem; background:var(--bg); border:1px solid var(--line); border-radius:999px; min-height:40px; padding:.25rem .8rem; color:var(--mute); }
+  .chips { display:grid; grid-template-columns:repeat(auto-fill, minmax(7.2rem, 1fr)); gap:.3rem; padding:.2rem 0 .6rem; }
+  .chips button { display:flex; align-items:center; gap:.4rem; background:var(--bg); border:1px solid var(--line); border-radius:.55rem;
+    min-height:38px; padding:.15rem .5rem; color:var(--mute); font-size:.85rem; text-align:left; white-space:nowrap; overflow:hidden; }
+  .chips button .ico { width:1.05em; height:1.05em; }
   .chips button.on { border-color:var(--acc); color:var(--acct); background:var(--soft); }
+  .chips button.on::after { content:"✓"; margin-left:auto; padding-left:.3rem; font-weight:700; }
   @media (max-height: 520px) { .scr, .scr-h { grid-column:1 / -1; } }
   /* Pédales. */
   .ped { display:grid; gap:.65rem; grid-template-columns:repeat(2, minmax(0, 1fr)); }
@@ -466,7 +469,11 @@
     #sheet .panel { border-radius:22px 22px 0 0; }
     #sheet .panel::before { content:""; display:block; width:40px; height:4px; border-radius:2px; background:var(--line); margin:-.35rem auto .7rem; }
   }
-  .chips button { min-height:44px; }
+  .chips button { min-height:38px; }
+  /* Nom de l'appareil (réglages). */
+  .txtin { background:var(--bg); border:1px solid var(--line); border-radius:.55rem; min-height:38px; padding:.2rem .6rem;
+    color:var(--fg); font:inherit; width:min(14rem, 58%); }
+  .txtin:focus { outline:none; border-color:var(--acc); box-shadow:0 0 0 3px var(--soft); }
   .hint { font-size:.8rem; padding:0 0 .45rem; line-height:1.3; }
   @media (max-height: 520px) { .hint { grid-column:1 / -1; } }
   /* Vidéo muette qui garde l'écran allumé (repli sans API Wake Lock) : invisible, sans clic. */
@@ -497,6 +504,7 @@
 <div id="toast" class="hidden"></div>
 <div id="sheet" class="hidden"><div class="panel">
   <h3 data-t="settings"></h3>
+  <div class="row scr-h"><span data-t="devName"></span><input id="devname" class="txtin" maxlength="40" autocomplete="off" spellcheck="false"></div>
   <div class="lbl scr-h" data-t="screens"></div>
   <div id="scr" class="chips scr"></div>
   <div class="row"><span data-t="textSize"></span><span class="seg"><button id="zm" type="button">A−</button><span id="zv" class="mono"></span><button id="zp" type="button">A+</button></span></div>
@@ -555,35 +563,35 @@
   };
   // Écrans ajoutés : pédales, drapeaux & stands, pneus & freins, relatif.
   const L2 = {
-    fr: { ledStart:"Témoins de régime : allumage dès", ledFill:"Témoins : remplissage", ledLR:"Gauche → droite", ledOut:"Bords → centre", cbMode:"Couleurs pour daltoniens (bleu / orange)", oledMode:"Noir intégral (écran OLED)", gearFlags:"Drapeaux sur l'écran Rapport", wakeHint:"Réseau local (HTTP) : si l'écran s'éteint malgré tout, désactivez la mise en veille automatique de l'appareil.", t_gear:"Rapport", rpmUnit:"tr/min", limTag:"LIMITEUR", t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
+    fr: { devName:"Nom de cet appareil", devNamePh:"ex. Tablette volant", ledStart:"Témoins de régime : allumage dès", ledFill:"Témoins : remplissage", ledLR:"Gauche → droite", ledOut:"Bords → centre", cbMode:"Couleurs pour daltoniens (bleu / orange)", oledMode:"Noir intégral (écran OLED)", gearFlags:"Drapeaux sur l'écran Rapport", wakeHint:"Réseau local (HTTP) : si l'écran s'éteint malgré tout, désactivez la mise en veille automatique de l'appareil.", t_gear:"Rapport", rpmUnit:"tr/min", limTag:"LIMITEUR", t_relative:"Relatif", t_flags:"Drapeaux", t_inputs:"Pédales", t_tyres:"Pneus", screens:"Écrans affichés", atLeastOne:"Au moins un écran reste affiché.",
       throttle:"Accélérateur", brake:"Frein", clutch:"Embrayage", steering:"Volant", rpm:"Régime", bias:"Répartition", motorMap:"Carto moteur", trace:"10 dernières secondes",
       fGreen:"Drapeau vert", fYellow:"Drapeau jaune", fFcy:"Neutralisation (FCY)", fSc:"Voiture de sécurité", fBlue:"Drapeau bleu", fRed:"Séance arrêtée", fChk:"Drapeau à damier", fFormation:"Tour de formation", fCountdown:"Départ imminent", fWaiting:"Avant le départ",
       y1:"Neutralisation imminente", y2:"Stands fermés", y3:"Stands ouverts aux voitures dans le tour du leader", y4:"Stands ouverts", y5:"Dernier tour de la voiture de sécurité", y6:"Relance", y7:"Course arrêtée",
       penalties:"Pénalités", trackLimits:"Limites de piste", lastMsg:"Dernier message du jeu", pit:"Stands", limiter:"Limiteur", on:"activé", off:"coupé", pitLimit:"Vitesse des stands",
       ps0:"En piste", ps1:"Arrêt demandé", ps2:"Entrée des stands", ps3:"À l'arrêt", ps4:"Sortie des stands", stopLen:"Arrêt prévu", pitMenu:"Menu des stands", perLap:"par tour",
       pressure:"Pression", carcass:"Carcasse", wear:"Gomme restante", flat:"Crevaison", detached:"Roue perdue" },
-    en: { ledStart:"Shift lights start at", ledFill:"Shift lights fill", ledLR:"Left → right", ledOut:"Edges → centre", cbMode:"Colour-blind friendly colours (blue / orange)", oledMode:"True black (OLED screen)", gearFlags:"Flags on the Gear screen", wakeHint:"Local network (HTTP): if the screen still turns off, disable the device's auto-lock.", t_gear:"Gear", rpmUnit:"rpm", limTag:"LIMITER", t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
+    en: { devName:"This device's name", devNamePh:"e.g. Wheel tablet", ledStart:"Shift lights start at", ledFill:"Shift lights fill", ledLR:"Left → right", ledOut:"Edges → centre", cbMode:"Colour-blind friendly colours (blue / orange)", oledMode:"True black (OLED screen)", gearFlags:"Flags on the Gear screen", wakeHint:"Local network (HTTP): if the screen still turns off, disable the device's auto-lock.", t_gear:"Gear", rpmUnit:"rpm", limTag:"LIMITER", t_relative:"Relative", t_flags:"Flags", t_inputs:"Pedals", t_tyres:"Tyres", screens:"Screens shown", atLeastOne:"At least one screen stays shown.",
       throttle:"Throttle", brake:"Brake", clutch:"Clutch", steering:"Steering", rpm:"RPM", bias:"Brake bias", motorMap:"Engine map", trace:"Last 10 seconds",
       fGreen:"Green flag", fYellow:"Yellow flag", fFcy:"Full course yellow", fSc:"Safety car", fBlue:"Blue flag", fRed:"Session stopped", fChk:"Chequered flag", fFormation:"Formation lap", fCountdown:"Start imminent", fWaiting:"Before the start",
       y1:"Caution pending", y2:"Pits closed", y3:"Pits open to lead-lap cars", y4:"Pits open", y5:"Safety car's last lap", y6:"Restart", y7:"Race halted",
       penalties:"Penalties", trackLimits:"Track limits", lastMsg:"Last game message", pit:"Pit lane", limiter:"Pit limiter", on:"on", off:"off", pitLimit:"Pit speed limit",
       ps0:"On track", ps1:"Stop requested", ps2:"Entering the pits", ps3:"Stopped", ps4:"Leaving the pits", stopLen:"Planned stop", pitMenu:"Pit menu", perLap:"per lap",
       pressure:"Pressure", carcass:"Carcass", wear:"Tread left", flat:"Puncture", detached:"Wheel off" },
-    es: { ledStart:"Luces de cambio: encendido desde", ledFill:"Luces: llenado", ledLR:"Izquierda → derecha", ledOut:"Bordes → centro", cbMode:"Colores para daltónicos (azul / naranja)", oledMode:"Negro total (pantalla OLED)", gearFlags:"Banderas en la pantalla Marcha", wakeHint:"Red local (HTTP): si la pantalla se apaga de todos modos, desactiva el bloqueo automático del dispositivo.", t_gear:"Marcha", rpmUnit:"rpm", limTag:"LIMITADOR", t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
+    es: { devName:"Nombre de este dispositivo", devNamePh:"p. ej. Tableta volante", ledStart:"Luces de cambio: encendido desde", ledFill:"Luces: llenado", ledLR:"Izquierda → derecha", ledOut:"Bordes → centro", cbMode:"Colores para daltónicos (azul / naranja)", oledMode:"Negro total (pantalla OLED)", gearFlags:"Banderas en la pantalla Marcha", wakeHint:"Red local (HTTP): si la pantalla se apaga de todos modos, desactiva el bloqueo automático del dispositivo.", t_gear:"Marcha", rpmUnit:"rpm", limTag:"LIMITADOR", t_relative:"Relativo", t_flags:"Banderas", t_inputs:"Pedales", t_tyres:"Neumáticos", screens:"Pantallas mostradas", atLeastOne:"Al menos una pantalla sigue visible.",
       throttle:"Acelerador", brake:"Freno", clutch:"Embrague", steering:"Volante", rpm:"RPM", bias:"Reparto de frenada", motorMap:"Mapa motor", trace:"Últimos 10 segundos",
       fGreen:"Bandera verde", fYellow:"Bandera amarilla", fFcy:"Neutralización (FCY)", fSc:"Coche de seguridad", fBlue:"Bandera azul", fRed:"Sesión detenida", fChk:"Bandera a cuadros", fFormation:"Vuelta de formación", fCountdown:"Salida inminente", fWaiting:"Antes de la salida",
       y1:"Neutralización inminente", y2:"Boxes cerrados", y3:"Boxes abiertos para los coches en la vuelta del líder", y4:"Boxes abiertos", y5:"Última vuelta del coche de seguridad", y6:"Relanzamiento", y7:"Carrera detenida",
       penalties:"Penalizaciones", trackLimits:"Límites de pista", lastMsg:"Último mensaje del juego", pit:"Boxes", limiter:"Limitador", on:"activado", off:"desactivado", pitLimit:"Velocidad en boxes",
       ps0:"En pista", ps1:"Parada solicitada", ps2:"Entrando en boxes", ps3:"Parado", ps4:"Saliendo de boxes", stopLen:"Parada prevista", pitMenu:"Menú de boxes", perLap:"por vuelta",
       pressure:"Presión", carcass:"Carcasa", wear:"Goma restante", flat:"Pinchazo", detached:"Rueda perdida" },
-    de: { ledStart:"Schaltblitze ab", ledFill:"Schaltblitze: Füllrichtung", ledLR:"Links → rechts", ledOut:"Rand → Mitte", cbMode:"Farben für Farbenblinde (Blau / Orange)", oledMode:"Echtes Schwarz (OLED-Bildschirm)", gearFlags:"Flaggen in der Gang-Ansicht", wakeHint:"Lokales Netzwerk (HTTP): Wenn sich der Bildschirm trotzdem ausschaltet, deaktiviere die automatische Sperre des Geräts.", t_gear:"Gang", rpmUnit:"U/min", limTag:"LIMITER", t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
+    de: { devName:"Name dieses Geräts", devNamePh:"z. B. Lenkrad-Tablet", ledStart:"Schaltblitze ab", ledFill:"Schaltblitze: Füllrichtung", ledLR:"Links → rechts", ledOut:"Rand → Mitte", cbMode:"Farben für Farbenblinde (Blau / Orange)", oledMode:"Echtes Schwarz (OLED-Bildschirm)", gearFlags:"Flaggen in der Gang-Ansicht", wakeHint:"Lokales Netzwerk (HTTP): Wenn sich der Bildschirm trotzdem ausschaltet, deaktiviere die automatische Sperre des Geräts.", t_gear:"Gang", rpmUnit:"U/min", limTag:"LIMITER", t_relative:"Relativ", t_flags:"Flaggen", t_inputs:"Pedale", t_tyres:"Reifen", screens:"Angezeigte Ansichten", atLeastOne:"Mindestens eine Ansicht bleibt sichtbar.",
       throttle:"Gas", brake:"Bremse", clutch:"Kupplung", steering:"Lenkung", rpm:"Drehzahl", bias:"Bremsbalance", motorMap:"Motorkennfeld", trace:"Letzte 10 Sekunden",
       fGreen:"Grüne Flagge", fYellow:"Gelbe Flagge", fFcy:"Full Course Yellow", fSc:"Safety-Car", fBlue:"Blaue Flagge", fRed:"Session unterbrochen", fChk:"Zielflagge", fFormation:"Einführungsrunde", fCountdown:"Start steht bevor", fWaiting:"Vor dem Start",
       y1:"Neutralisation steht bevor", y2:"Boxengasse geschlossen", y3:"Boxengasse offen für Autos in der Führungsrunde", y4:"Boxengasse offen", y5:"Letzte Runde des Safety-Cars", y6:"Restart", y7:"Rennen gestoppt",
       penalties:"Strafen", trackLimits:"Track Limits", lastMsg:"Letzte Spielmeldung", pit:"Boxengasse", limiter:"Limiter", on:"an", off:"aus", pitLimit:"Tempolimit Boxengasse",
       ps0:"Auf der Strecke", ps1:"Stopp angefordert", ps2:"Einfahrt in die Box", ps3:"Steht", ps4:"Ausfahrt aus der Box", stopLen:"Geplanter Stopp", pitMenu:"Boxenmenü", perLap:"pro Runde",
       pressure:"Druck", carcass:"Karkasse", wear:"Restprofil", flat:"Reifenschaden", detached:"Rad verloren" },
-    it: { ledStart:"Luci di cambiata: accensione da", ledFill:"Luci: riempimento", ledLR:"Sinistra → destra", ledOut:"Bordi → centro", cbMode:"Colori per daltonici (blu / arancione)", oledMode:"Nero assoluto (schermo OLED)", gearFlags:"Bandiere nella schermata Marcia", wakeHint:"Rete locale (HTTP): se lo schermo si spegne comunque, disattiva il blocco automatico del dispositivo.", t_gear:"Marcia", rpmUnit:"giri/min", limTag:"LIMITATORE", t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
+    it: { devName:"Nome di questo dispositivo", devNamePh:"es. Tablet volante", ledStart:"Luci di cambiata: accensione da", ledFill:"Luci: riempimento", ledLR:"Sinistra → destra", ledOut:"Bordi → centro", cbMode:"Colori per daltonici (blu / arancione)", oledMode:"Nero assoluto (schermo OLED)", gearFlags:"Bandiere nella schermata Marcia", wakeHint:"Rete locale (HTTP): se lo schermo si spegne comunque, disattiva il blocco automatico del dispositivo.", t_gear:"Marcia", rpmUnit:"giri/min", limTag:"LIMITATORE", t_relative:"Relativo", t_flags:"Bandiere", t_inputs:"Pedali", t_tyres:"Gomme", screens:"Schermate mostrate", atLeastOne:"Almeno una schermata resta visibile.",
       throttle:"Acceleratore", brake:"Freno", clutch:"Frizione", steering:"Sterzo", rpm:"Giri motore", bias:"Ripartizione frenata", motorMap:"Mappa motore", trace:"Ultimi 10 secondi",
       fGreen:"Bandiera verde", fYellow:"Bandiera gialla", fFcy:"Neutralizzazione (FCY)", fSc:"Safety car", fBlue:"Bandiera blu", fRed:"Sessione interrotta", fChk:"Bandiera a scacchi", fFormation:"Giro di formazione", fCountdown:"Partenza imminente", fWaiting:"Prima della partenza",
       y1:"Neutralizzazione imminente", y2:"Box chiusi", y3:"Box aperti alle auto a pieni giri", y4:"Box aperti", y5:"Ultimo giro della safety car", y6:"Ripartenza", y7:"Gara fermata",
@@ -681,6 +689,34 @@
   applyPrefs();
   // Sans contexte sûr (HTTP sur le réseau local), l'API Wake Lock n'existe pas : on le dit.
   $("wakeHint").classList.toggle("hidden", !!window.isSecureContext);
+
+  // ── Appareil : identifiant stable (gardé sur la tablette) et nom ─────────────
+  // L'app (Configuration › Régie tablette) s'en sert pour lister les tablettes, les
+  // renommer et envoyer un écran différent à chacune.
+  let DEV = localStorage.getItem("regie_dev") || "";
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(DEV)) {
+    const a = new Uint8Array(8);
+    crypto.getRandomValues(a);
+    DEV = "t" + [...a].map((b) => b.toString(16).padStart(2, "0")).join("");
+    localStorage.setItem("regie_dev", DEV);
+  }
+  let devName = (localStorage.getItem("regie_name") || "").slice(0, 40);
+  function setDevName(v) {
+    devName = String(v || "").slice(0, 40);
+    localStorage.setItem("regie_name", devName);
+    const i = $("devname");
+    if (i && document.activeElement !== i) i.value = devName;
+  }
+  $("devname").value = devName;
+  $("devname").placeholder = T.devNamePh;
+  $("devname").addEventListener("input", (e) => setDevName(e.target.value));
+  // Renommage décidé dans l'app : appliqué une fois.
+  function applyName(n) {
+    const rev = String(n.rev || "");
+    if (!rev || rev === localStorage.getItem("regie_name_rev")) return;
+    localStorage.setItem("regie_name_rev", rev);
+    setDevName(n.name);
+  }
 
   // ── Session, jeton, interrogation ────────────────────────────────────────
   // Jeton gardé sur l'appareil : une régie ouverte depuis l'écran d'accueil ne
@@ -844,7 +880,8 @@
     if (busy || document.hidden) return;
     busy = true;
     try {
-      last = await get("/api/live");
+      last = await get("/api/live?" + new URLSearchParams({ dev: DEV, name: devName, scr: tpl, nrev: localStorage.getItem("regie_name_rev") || "0" }));
+      if (last.ui_name) applyName(last.ui_name);
       if (last.ui_theme) setTheme(last.ui_theme);
       if (last.ui_push) applyPush(last.ui_push);
       fails = 0; setLost(false);
@@ -1234,7 +1271,7 @@
     v.classList.toggle("tight", Math.min(innerWidth, innerHeight) < 560);
     if (!d || !d.connected || !d.session) { $("hdr").textContent = T.offline; $("live").className = ""; v.innerHTML = `<div class="empty">${T.offline}</div>`; shownTpl = ""; return; }
     $("live").className = $("app").classList.contains("stale") ? "bad" : "ok";
-    $("hdr").textContent = `${d.session.track} · ${remaining(d)}`;
+    $("hdr").textContent = `${devName ? devName + " · " : ""}${d.session.track} · ${remaining(d)}`;
     const f = { timing: tplTiming, relative: tplRelative, engineer: tplEngineer, flags: tplFlags, inputs: tplInputs, gear: tplGear, tyres: tplTyres, map: tplMap, duel: tplDuel, tv: tplTv }[tpl] || tplTiming;
     // Rafraîchi chaque seconde : défilements (vertical et tableaux) conservés.
     const same = shownTpl === tpl;

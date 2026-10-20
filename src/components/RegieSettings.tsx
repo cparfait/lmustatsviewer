@@ -22,9 +22,75 @@ import {
   regiePort as portOf,
   REGIE_DEFAULT_PORT,
   REGIE_SCREENS,
+  type RegieDevice,
   type RegieScreen,
   type RegieStatus,
 } from "@/lib/regie";
+
+/** Une tablette muette depuis plus longtemps est affichée « hors ligne ». */
+const DEVICE_OFFLINE_S = 10;
+
+/** Une tablette : nom (modifiable ici, enregistré sur la tablette), écran affiché, envoi d'un écran. */
+function DeviceRow({
+  device,
+  options,
+  onSend,
+}: {
+  device: RegieDevice;
+  options: { value: string; label: string }[];
+  onSend: (screen: RegieScreen) => void;
+}) {
+  const { t } = useTranslation();
+  const [target, setTarget] = useState<RegieScreen>(
+    (REGIE_SCREENS as readonly string[]).includes(device.screen) ? (device.screen as RegieScreen) : "timing",
+  );
+  const offline = device.seen_s > DEVICE_OFFLINE_S;
+  const rename = (v: string) => {
+    const name = v.trim().slice(0, 40);
+    if (name === device.name) return;
+    void regie.renameDevice(device.id, name).catch((e) => toastError(String(e)));
+  };
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-2.5 py-1.5">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className={offline ? "h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40" : "h-2 w-2 shrink-0 rounded-full bg-success"} />
+        <Input
+          // Remonté quand le nom change ailleurs (sur la tablette) : le champ suit.
+          key={device.name}
+          defaultValue={device.name}
+          placeholder={t("config.regieDeviceUnnamed")}
+          aria-label={t("config.regieDeviceName")}
+          maxLength={40}
+          className="h-8 w-44"
+          onBlur={(e) => rename(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+        />
+        <span className="truncate text-xs text-muted-foreground">
+          {offline
+            ? t("config.regieDeviceOffline")
+            : device.screen
+              ? t("config.regieDeviceShows", { screen: t(`config.regieScreens.${device.screen}`) })
+              : device.ip}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <Select
+          value={target}
+          onValueChange={(v) => setTarget(v as RegieScreen)}
+          ariaLabel={t("config.regieScreen")}
+          className="h-8 w-40 px-2.5"
+          options={options}
+        />
+        <Button size="sm" variant="outline" className="h-8 gap-1.5" disabled={offline} onClick={() => onSend(target)}>
+          <MonitorSmartphone className="h-3.5 w-3.5" />
+          {t("config.regieScreenSend")}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function RegieSettings() {
   const { t } = useTranslation();
@@ -34,14 +100,15 @@ export function RegieSettings() {
   const [error, setError] = useState("");
   const [screen, setScreen] = useState<RegieScreen>("timing");
 
-  const pushScreen = async () => {
+  const pushScreen = async (target: RegieScreen, device?: string) => {
     try {
-      await regie.pushScreen(screen);
+      await regie.pushScreen(target, device);
       toastSuccess(t("config.regieScreenSent"));
     } catch (e) {
       toastError(String(e));
     }
   };
+  const screenOptions = REGIE_SCREENS.map((k) => ({ value: k, label: t(`config.regieScreens.${k}`) }));
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -130,18 +197,30 @@ export function RegieSettings() {
             <p className="text-sm font-medium">{t("config.regieScreen")}</p>
             <p className="text-xs text-muted-foreground">{t("config.regieScreenHint")}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Select
-              value={screen}
-              onValueChange={(v) => setScreen(v as RegieScreen)}
-              ariaLabel={t("config.regieScreen")}
-              className="h-8 w-44 px-2.5"
-              options={REGIE_SCREENS.map((k) => ({ value: k, label: t(`config.regieScreens.${k}`) }))}
-            />
-            <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => void pushScreen()}>
-              <MonitorSmartphone className="h-3.5 w-3.5" />
-              {t("config.regieScreenSend")}
-            </Button>
+          <div className="w-full space-y-1.5">
+            {/* Toutes les tablettes, puis chaque appareil (nom modifiable, écran à lui). */}
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 px-2.5 py-1.5">
+              <span className="text-sm font-medium">{t("config.regieAllDevices")}</span>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={screen}
+                  onValueChange={(v) => setScreen(v as RegieScreen)}
+                  ariaLabel={t("config.regieScreen")}
+                  className="h-8 w-40 px-2.5"
+                  options={screenOptions}
+                />
+                <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => void pushScreen(screen)}>
+                  <MonitorSmartphone className="h-3.5 w-3.5" />
+                  {t("config.regieScreenSend")}
+                </Button>
+              </div>
+            </div>
+            {(status?.devices ?? []).length === 0 && (
+              <p className="px-1 text-xs text-muted-foreground">{t("config.regieDevicesNone")}</p>
+            )}
+            {(status?.devices ?? []).map((d) => (
+              <DeviceRow key={d.id} device={d} options={screenOptions} onSend={(s) => void pushScreen(s, d.id)} />
+            ))}
           </div>
         </div>
       )}

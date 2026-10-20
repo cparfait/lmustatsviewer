@@ -1089,6 +1089,31 @@ dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idée
 - **Prochaine étape** : vérifier dans l'app (téléchargement de Parakeet depuis la Config, question
   à la voix, réglage de l'alerte de blocage en roulant), puis commit sur main si l'utilisateur le demande.
 
+### 2026-10-20 — Régie : plusieurs tablettes nommées, un écran par tablette ; pastilles compactes
+
+**Demande** : « afficher des écrans différents quand plusieurs écrans sont connectés, pouvoir
+les nommer, sur la tablette ou dans l'outil » ; « les pastilles [Écrans affichés] sont grosses ».
+
+- ✅ **Tablette** : identifiant stable `regie_dev` (`t` + 16 hex, `crypto.getRandomValues`,
+  gardé sur l'appareil), nom `regie_name` (réglage « Nom de cet appareil », 40 car. max,
+  affiché en tête de la barre du haut) ; envoyés avec la trame principale
+  (`/api/live?dev=…&name=…&scr=<écran affiché>&nrev=<dernier renommage appliqué>`).
+- ✅ **Serveur** (`regie.rs`) : `DEVICES` (nom, écran, IP, dernière trame ; oubli après
+  10 min) et `CMDS` par appareil (écran, nom, horodatés) ; `query_param` (décodage `%XX`,
+  `+`), `valid_device_id` (8-64 `[A-Za-z0-9-]`), `clean_device_name` (sans contrôle,
+  40 car.) ; `regie_push_screen(screen, device?)` (une tablette ou toutes ; la plus récente
+  des deux consignes s'applique), `regie_rename_device` ; un renommage depuis l'app prime
+  sur le nom envoyé par la tablette tant qu'elle ne l'a pas appliqué (`nrev`) ;
+  `RegieStatus.devices`. `ui_name` dans `/api/live`. Tests 13/13 (dont décodage, écran par
+  appareil, renommage).
+- ✅ **App** (Configuration › Régie tablette) : « Toutes les tablettes » + une ligne par
+  tablette (point en ligne / hors ligne > 10 s, nom modifiable — validé à la sortie du
+  champ ou Entrée —, écran affiché, choix d'écran + « Afficher »). 5 langues.
+- ✅ **Pastilles** « Écrans affichés » : grille de petits boutons (38 px, coin 9 px, coche
+  ✓ si actif) au lieu de grosses pilules.
+- ✅ Vérifié : faux serveur (paramètres envoyés, renommage depuis « l'app » appliqué une fois,
+  accents) ; `tsc`, `eslint` ✅.
+
 ### 2026-10-20 — Régie tablette : delta, secteurs, témoins réglables, daltoniens, OLED, rail, QR, écran imposé
 
 **Demande** : « fais tout sauf le point 8 » (liste des idées restantes ; le point 8 = mode

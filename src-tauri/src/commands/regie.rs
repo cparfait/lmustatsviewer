@@ -63,6 +63,19 @@ pub struct RegieStatus {
     pub qr_svg: String,
     /// Tablettes connectées (jetons délivrés).
     pub clients: usize,
+    /// Appareils vus (identifiant, nom, écran affiché), du plus récent au plus ancien.
+    pub devices: Vec<RegieDevice>,
+}
+
+/// Une tablette connue : identifiant stable choisi par la tablette (gardé sur l'appareil),
+/// nom donné sur la tablette ou depuis l'app, écran affiché, secondes depuis sa dernière trame.
+#[derive(Debug, Clone, Serialize)]
+pub struct RegieDevice {
+    pub id: String,
+    pub name: String,
+    pub screen: String,
+    pub ip: String,
+    pub seen_s: u64,
 }
 
 struct Shared {
@@ -85,27 +98,177 @@ pub const SCREENS: [&str; 10] = ["timing", "relative", "engineer", "flags", "inp
 /// l'applique une fois par envoi (l'horodatage distingue les envois, même après redémarrage).
 static PUSH: Mutex<Option<(u64, String)>> = Mutex::new(None);
 
-fn push_json() -> Value {
-    match PUSH.lock().ok().and_then(|g| g.clone()) {
+struct Dev {
+    name: String,
+    screen: String,
+    ip: IpAddr,
+    seen: Instant,
+}
+
+/// Ordres de l'app pour un appareil : écran à afficher, nouveau nom (horodatés).
+#[derive(Default)]
+struct DevCmd {
+    screen: Option<(u64, String)>,
+    name: Option<(u64, String)>,
+}
+
+/// Appareils vus et ordres en attente (peu d'appareils : listes simples).
+static DEVICES: Mutex<Vec<(String, Dev)>> = Mutex::new(Vec::new());
+static CMDS: Mutex<Vec<(String, DevCmd)>> = Mutex::new(Vec::new());
+/// Un appareil muet depuis plus longtemps est oublié.
+const DEVICE_TTL: Duration = Duration::from_secs(600);
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(1)
+}
+
+/// Identifiant d'appareil accepté : 8 à 64 caractères `[A-Za-z0-9-]`.
+pub fn valid_device_id(id: &str) -> bool {
+    (8..=64).contains(&id.len()) && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+}
+
+/// Nom d'appareil : sans caractères de contrôle, espaces de bord retirés, 40 caractères max.
+pub fn clean_device_name(name: &str) -> String {
+    name.chars().filter(|c| !c.is_control()).collect::<String>().trim().chars().take(40).collect()
+}
+
+/// Valeur d'un paramètre de requête (`?a=1&b=x%20y`), décodée (UTF-8, `+` = espace).
+pub fn query_param(path: &str, key: &str) -> Option<String> {
+    let q = path.split_once('?')?.1;
+    q.split('&').find_map(|kv| {
+        let (k, v) = kv.split_once('=').unwrap_or((kv, ""));
+        (k == key).then(|| {
+            let b = v.as_bytes();
+            let mut out = Vec::with_capacity(b.len());
+            let mut i = 0;
+            while i < b.len() {
+                match b[i] {
+                    b'+' => out.push(b' '),
+                    b'%' if i + 2 < b.len() => {
+                        match u8::from_str_radix(std::str::from_utf8(&b[i + 1..i + 3]).unwrap_or("zz"), 16) {
+                            Ok(x) => {
+                                out.push(x);
+                                i += 2;
+                            }
+                            Err(_) => out.push(b'%'),
+                        }
+                    }
+                    c => out.push(c),
+                }
+                i += 1;
+            }
+            String::from_utf8_lossy(&out).into_owned()
+        })
+    })
+}
+
+/// Note la trame d'un appareil. `name_ack` : dernier renommage appliqué par la tablette ;
+/// tant qu'un renommage plus récent attend, c'est le nom donné dans l'app qui compte.
+fn note_device(id: &str, name: &str, screen: &str, name_ack: u64, ip: IpAddr) {
+    let pending = CMDS.lock().ok().and_then(|c| {
+        c.iter().find(|(k, _)| k == id).and_then(|(_, d)| d.name.clone()).filter(|(rev, _)| *rev > name_ack)
+    });
+    let name = pending.map(|(_, n)| n).unwrap_or_else(|| clean_device_name(name));
+    let screen = if SCREENS.contains(&screen) { screen.to_string() } else { String::new() };
+    if let Ok(mut d) = DEVICES.lock() {
+        d.retain(|(_, v)| v.seen.elapsed() < DEVICE_TTL);
+        match d.iter_mut().find(|(k, _)| k == id) {
+            Some((_, v)) => *v = Dev { name, screen, ip, seen: Instant::now() },
+            None => d.push((id.to_string(), Dev { name, screen, ip, seen: Instant::now() })),
+        }
+    }
+}
+
+/// Écran à appliquer : le plus récent entre l'envoi « toutes les tablettes » et celui de l'appareil.
+fn push_json(id: Option<&str>) -> Value {
+    let global = PUSH.lock().ok().and_then(|g| g.clone());
+    let own = id.and_then(|id| CMDS.lock().ok().and_then(|c| c.iter().find(|(k, _)| k == id).and_then(|(_, d)| d.screen.clone())));
+    match [global, own].into_iter().flatten().max_by_key(|(rev, _)| *rev) {
         Some((rev, tpl)) => serde_json::json!({ "rev": rev, "tpl": tpl }),
         None => Value::Null,
     }
 }
 
-/// Affiche cet écran sur toutes les tablettes connectées (elles peuvent ensuite en changer).
+/// Renommage en attente pour cet appareil (plus récent que celui qu'il a déjà appliqué).
+fn name_json(id: &str, name_ack: u64) -> Value {
+    CMDS.lock()
+        .ok()
+        .and_then(|c| c.iter().find(|(k, _)| k == id).and_then(|(_, d)| d.name.clone()))
+        .filter(|(rev, _)| *rev > name_ack)
+        .map(|(rev, name)| serde_json::json!({ "rev": rev, "name": name }))
+        .unwrap_or(Value::Null)
+}
+
+fn with_cmd(id: &str, f: impl FnOnce(&mut DevCmd)) {
+    if let Ok(mut c) = CMDS.lock() {
+        match c.iter_mut().find(|(k, _)| k == id) {
+            Some((_, d)) => f(d),
+            None => {
+                let mut d = DevCmd::default();
+                f(&mut d);
+                c.push((id.to_string(), d));
+            }
+        }
+    }
+}
+
+/// Affiche cet écran sur une tablette (`device`) ou sur toutes (aucun `device`) ; elles
+/// peuvent ensuite en changer.
 #[tauri::command]
-pub fn regie_push_screen(screen: String) -> Result<(), AppError> {
+pub fn regie_push_screen(screen: String, device: Option<String>) -> Result<(), AppError> {
     if !SCREENS.contains(&screen.as_str()) {
         return Err(AppError::Internal(format!("unknown screen {screen}")));
     }
-    let rev = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(1);
-    if let Ok(mut g) = PUSH.lock() {
-        *g = Some((rev, screen));
+    let rev = now_ms();
+    match device {
+        Some(id) if valid_device_id(&id) => with_cmd(&id, |d| d.screen = Some((rev, screen))),
+        Some(id) => return Err(AppError::Internal(format!("unknown device {id}"))),
+        None => {
+            if let Ok(mut g) = PUSH.lock() {
+                *g = Some((rev, screen));
+            }
+        }
     }
     Ok(())
+}
+
+/// Renomme une tablette depuis l'app (elle garde ce nom sur l'appareil).
+#[tauri::command]
+pub fn regie_rename_device(device: String, name: String) -> Result<(), AppError> {
+    if !valid_device_id(&device) {
+        return Err(AppError::Internal(format!("unknown device {device}")));
+    }
+    let name = clean_device_name(&name);
+    with_cmd(&device, |d| d.name = Some((now_ms(), name.clone())));
+    if let Ok(mut d) = DEVICES.lock() {
+        if let Some((_, v)) = d.iter_mut().find(|(k, _)| *k == device) {
+            v.name = name;
+        }
+    }
+    Ok(())
+}
+
+fn devices_list() -> Vec<RegieDevice> {
+    let mut out: Vec<RegieDevice> = DEVICES
+        .lock()
+        .map(|d| {
+            d.iter()
+                .filter(|(_, v)| v.seen.elapsed() < DEVICE_TTL)
+                .map(|(id, v)| RegieDevice {
+                    id: id.clone(),
+                    name: v.name.clone(),
+                    screen: v.screen.clone(),
+                    ip: v.ip.to_string(),
+                    seen_s: v.seen.elapsed().as_secs(),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    out.sort_by_key(|d| d.seen_s);
+    out
 }
 
 /// Thème de l'app (clair par défaut, comme l'app) : la tablette prend le même.
@@ -361,16 +524,25 @@ fn handle(stream: TcpStream, peer: IpAddr, sh: &Shared) {
                 json(&stream, "401 Unauthorized", &serde_json::json!({"error": "auth"}));
                 return;
             }
+            // Trame principale : la tablette se signale (identifiant, nom, écran affiché).
+            let dev = (path == "/api/live").then(|| query_param(&req.path, "dev")).flatten().filter(|d| valid_device_id(d));
+            let name_ack: u64 = query_param(&req.path, "nrev").and_then(|v| v.parse().ok()).unwrap_or(0);
+            if let Some(d) = dev.as_deref() {
+                let name = query_param(&req.path, "name").unwrap_or_default();
+                let scr = query_param(&req.path, "scr").unwrap_or_default();
+                note_device(d, &name, &scr, name_ack, peer);
+            }
             let frame = live::last_frame().and_then(|d| serde_json::to_value(d).ok());
             let Some(frame) = frame else {
-                json(&stream, "200 OK", &serde_json::json!({"connected": false, "ui_theme": theme_name(), "ui_push": push_json()}));
+                json(&stream, "200 OK", &serde_json::json!({"connected": false, "ui_theme": theme_name(), "ui_push": push_json(dev.as_deref()), "ui_name": dev.as_deref().map(|d| name_json(d, name_ack)).unwrap_or(Value::Null)}));
                 return;
             };
             let out = if path == "/api/live" {
                 let mut v = light_frame(frame);
                 if let Some(o) = v.as_object_mut() {
                     o.insert("ui_theme".into(), Value::from(theme_name()));
-                    o.insert("ui_push".into(), push_json());
+                    o.insert("ui_push".into(), push_json(dev.as_deref()));
+                    o.insert("ui_name".into(), dev.as_deref().map(|d| name_json(d, name_ack)).unwrap_or(Value::Null));
                 }
                 v
             } else if path == "/api/inputs" {
@@ -398,11 +570,12 @@ fn status_of(r: &Running) -> RegieStatus {
         code: r.shared.code.clone(),
         qr_svg: r.qr_svg.clone(),
         clients: r.shared.tokens.lock().map(|t| t.len()).unwrap_or(0),
+        devices: devices_list(),
     }
 }
 
 fn stopped() -> RegieStatus {
-    RegieStatus { running: false, url: String::new(), code: String::new(), qr_svg: String::new(), clients: 0 }
+    RegieStatus { running: false, url: String::new(), code: String::new(), qr_svg: String::new(), clients: 0, devices: Vec::new() }
 }
 
 /// Démarre la régie (idempotent : renvoie l'état courant si elle tourne).
@@ -601,13 +774,57 @@ mod tests {
 
     #[test]
     fn push_screen_validates_and_is_served() {
-        assert!(regie_push_screen("nope".into()).is_err());
-        regie_push_screen("gear".into()).unwrap();
-        let p = push_json();
+        let _g = PUSH_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        assert!(regie_push_screen("nope".into(), None).is_err());
+        regie_push_screen("gear".into(), None).unwrap();
+        let p = push_json(None);
         assert_eq!(p["tpl"], "gear");
         assert!(p["rev"].as_u64().unwrap() > 0);
         let v = serde_json::json!({"player": {"lap_delta": -0.42}, "telemetry": {}});
         assert_eq!(inputs_frame(&v)["lap_delta"], -0.42);
+    }
+
+    /// Les tests qui touchent à l'envoi « toutes les tablettes » passent l'un après l'autre.
+    static PUSH_TESTS: Mutex<()> = Mutex::new(());
+
+    #[test]
+    fn query_params_are_decoded() {
+        let p = "/api/live?dev=abc123def&name=Tablette%20volant%C3%A9&scr=gear&nrev=12";
+        assert_eq!(query_param(p, "dev").as_deref(), Some("abc123def"));
+        assert_eq!(query_param(p, "name").as_deref(), Some("Tablette volanté"));
+        assert_eq!(query_param(p, "nrev").as_deref(), Some("12"));
+        assert_eq!(query_param(p, "absent"), None);
+        assert_eq!(query_param("/api/live?name=a+b%2", "name").as_deref(), Some("a b%2"));
+        assert!(valid_device_id("a1b2c3d4") && !valid_device_id("short") && !valid_device_id("bad id 123"));
+        assert_eq!(clean_device_name("  Volant\u{0007}  "), "Volant");
+        assert_eq!(clean_device_name(&"x".repeat(80)).chars().count(), 40);
+    }
+
+    /// Un écran envoyé à une tablette précise passe devant l'envoi général pour elle seule ;
+    /// un renommage depuis l'app l'emporte sur le nom envoyé par la tablette tant qu'elle ne
+    /// l'a pas appliqué.
+    #[test]
+    fn per_device_screen_and_rename() {
+        let _g = PUSH_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        let ip: IpAddr = "10.0.0.5".parse().unwrap();
+        regie_push_screen("timing".into(), None).unwrap();
+        std::thread::sleep(Duration::from_millis(3));
+        regie_push_screen("tyres".into(), Some("devtabletA1".into())).unwrap();
+        assert_eq!(push_json(Some("devtabletA1"))["tpl"], "tyres");
+        assert_eq!(push_json(Some("devtabletB2"))["tpl"], "timing");
+        assert!(regie_push_screen("tyres".into(), Some("bad id".into())).is_err());
+        note_device("devtabletA1", "Ancien", "gear", 0, ip);
+        regie_rename_device("devtabletA1".into(), "Volant".into()).unwrap();
+        let n = name_json("devtabletA1", 0);
+        assert_eq!(n["name"], "Volant");
+        note_device("devtabletA1", "Ancien", "gear", 0, ip);
+        let d = devices_list().into_iter().find(|d| d.id == "devtabletA1").unwrap();
+        assert_eq!((d.name.as_str(), d.screen.as_str()), ("Volant", "gear"));
+        let rev = n["rev"].as_u64().unwrap();
+        assert_eq!(name_json("devtabletA1", rev), Value::Null);
+        note_device("devtabletA1", "Volant 2", "map", rev, ip);
+        let d = devices_list().into_iter().find(|d| d.id == "devtabletA1").unwrap();
+        assert_eq!((d.name.as_str(), d.screen.as_str()), ("Volant 2", "map"));
     }
 
     #[test]

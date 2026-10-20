@@ -13,6 +13,19 @@ export interface RegieStatus {
   code: string;
   qr_svg: string;
   clients: number;
+  /** Tablettes vues (plus récente d'abord). */
+  devices: RegieDevice[];
+}
+
+export interface RegieDevice {
+  /** Identifiant stable choisi par la tablette. */
+  id: string;
+  name: string;
+  /** Écran affiché ("" si inconnu). */
+  screen: string;
+  ip: string;
+  /** Secondes depuis sa dernière trame. */
+  seen_s: number;
 }
 
 export const REGIE_DEFAULT_PORT = 8790;
@@ -27,8 +40,10 @@ export const regie = {
   status: () => invoke<RegieStatus>("regie_status"),
   /** Thème de l'app, repris par la tablette (même hors service : gardé pour le démarrage). */
   setTheme: (theme: "dark" | "light") => invoke<void>("regie_set_theme", { theme }),
-  /** Affiche cet écran sur toutes les tablettes connectées (une fois par envoi). */
-  pushScreen: (screen: RegieScreen) => invoke<void>("regie_push_screen", { screen }),
+  /** Affiche cet écran sur une tablette (`device`) ou sur toutes (une fois par envoi). */
+  pushScreen: (screen: RegieScreen, device?: string) => invoke<void>("regie_push_screen", { screen, device: device ?? null }),
+  /** Renomme une tablette (elle garde ce nom sur l'appareil). */
+  renameDevice: (device: string, name: string) => invoke<void>("regie_rename_device", { device, name }),
 };
 
 /** Port valide (1024-65535), sinon le port par défaut. */

@@ -921,6 +921,24 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-21 — Classements : tours de la version récente absents au filtre version (ordre d'envoi)
+
+- ✅ **Retour joueur** : filtre Version ≥ 1.4 → ses tours 1.4 n'apparaissent pas ; contourné en
+  supprimant ses vieux fichiers puis en réindexant.
+- ✅ **Diagnostic** : le filtre est juste partout (app `my_combos_inner`, serveur `bestPerDriver` /
+  `comboList`, site) — il filtre la version *avant* de prendre le meilleur tour, et le serveur
+  garde déjà une ligne par session (donc le meilleur de chaque version). La cause est l'**envoi** :
+  `pending_payloads` partait des sessions les plus anciennes, et le serveur plafonne à
+  **200 sessions/jour** (`DEFAULT_INGEST.dailyQuota`). Avec l'historique complet, les sessions de
+  la version actuelle attendaient des jours ; vider les vieux fichiers vidait la file.
+- ✅ **Correctif** (`commands/community.rs`) : `send_order` — d'abord, par circuit × tracé × classe ×
+  version mineure × sec/pluie × aides propres, la session du meilleur tour ; puis le reste ; du plus
+  récent au plus ancien dans chaque groupe. `game_minor` (copie de `gameMinor` du serveur).
+  Tests `best_lap_of_each_version_is_sent_first`, `game_minor_matches_server` ; 11 tests community OK.
+  Changelog 1.0.10 (fixed, 5 langues).
+- 📋 **Prochaine étape** : publier la 1.0.10 et répondre au joueur ; envisager de relever le quota
+  serveur pour le premier envoi d'un historique (déploiement serveur, décision à prendre).
+
 ### 2026-10-20 — Coach vocal : prompt radio et message optimisés
 
 **Demande** : optimiser le prompt du Coach IA des questions posées en course (coach vocal, page Live).

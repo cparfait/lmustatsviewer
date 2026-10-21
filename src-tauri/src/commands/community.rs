@@ -354,14 +354,59 @@ fn since(db: &DbState) -> Result<i64, AppError> {
     Ok(cfg(db, K_ENABLED_AT)?.and_then(|v| v.parse().ok()).unwrap_or(i64::MAX))
 }
 
-/// Résumés à envoyer maintenant : ni déjà confirmés, ni refusés définitivement, et dont
-/// le délai de nouvelle tentative est écoulé.
+/// Version « majeure.mineure » au format du serveur (`gameMinor` de `community/shared`).
+fn game_minor(version: &str) -> String {
+    let (major, frac) = version.split_once('.').unwrap_or((version, ""));
+    let frac: String = frac.chars().chain(std::iter::repeat('0')).take(2).collect();
+    format!("{}.{frac}", major.parse::<u32>().unwrap_or(0))
+}
+
+/// Ordre d'envoi des résumés (`(horodatage, résumé)`). Le serveur n'accepte qu'un quota
+/// de sessions par jour : on envoie d'abord, pour chaque combo × version du jeu ×
+/// conditions × aides, la session qui porte le meilleur tour (celle qui compte au
+/// classement), puis tout le reste ; les plus récentes d'abord dans chaque groupe. Un
+/// gros historique ne retient ainsi plus les tours de la version actuelle derrière des
+/// centaines de sessions anciennes.
+fn send_order(items: &[(i64, Value)]) -> Vec<usize> {
+    let group = |s: &Value| {
+        let aids = &s["aids"];
+        let clean = !aids["brake_help"].as_bool().unwrap_or(false) && !aids["steer_help"].as_bool().unwrap_or(false);
+        (
+            s["track"].as_str().unwrap_or_default().to_string(),
+            s["track_course"].as_str().unwrap_or_default().to_string(),
+            s["car_class"].as_str().unwrap_or_default().to_string(),
+            game_minor(s["game_version"].as_str().unwrap_or_default()),
+            s["wet"].as_bool().unwrap_or(false),
+            clean,
+        )
+    };
+    let time = |s: &Value| s["best_lap"]["time"].as_f64().unwrap_or(f64::MAX);
+    // Meilleure session de chaque groupe (à temps égal, la plus récente).
+    let mut best: std::collections::HashMap<_, usize> = std::collections::HashMap::new();
+    for (i, (ts, s)) in items.iter().enumerate() {
+        best.entry(group(s))
+            .and_modify(|b| {
+                let (bts, bs) = &items[*b];
+                if time(s) < time(bs) || (time(s) == time(bs) && ts > bts) {
+                    *b = i;
+                }
+            })
+            .or_insert(i);
+    }
+    let firsts: std::collections::HashSet<usize> = best.into_values().collect();
+    let mut order: Vec<usize> = (0..items.len()).collect();
+    order.sort_by_key(|&i| (!firsts.contains(&i), std::cmp::Reverse(items[i].0)));
+    order
+}
+
+/// Résumés à envoyer maintenant (dans l'ordre de `send_order`) : ni déjà confirmés, ni
+/// refusés définitivement, et dont le délai de nouvelle tentative est écoulé.
 fn pending_payloads(db: &DbState, install_id: &str, limit: usize) -> Result<(Vec<Value>, usize), AppError> {
     let from = since(db)?;
     let conn = db::get_conn(db)?;
     let t = now();
-    let mut out = Vec::new();
-    let mut total = 0usize;
+    let mut items: Vec<(i64, Value)> = Vec::new();
+    let mut due: Vec<bool> = Vec::new();
     for c in candidates(&conn, from).map_err(|e| AppError::Database(e.to_string()))? {
         let key = session_key(install_id, &c.filename);
         let row: Option<(String, i64)> = conn
@@ -379,12 +424,13 @@ fn pending_payloads(db: &DbState, install_id: &str, limit: usize) -> Result<(Vec
         let Some(summary) = build_summary(&conn, &c, &key).map_err(|e| AppError::Database(e.to_string()))? else {
             continue;
         };
-        total += 1;
-        let due = row.map_or(true, |(_, next)| next <= t);
-        if due && out.len() < limit {
-            out.push(summary);
-        }
+        due.push(row.map_or(true, |(_, next)| next <= t));
+        items.push((c.timestamp, summary));
     }
+    let total = items.len();
+    let order: Vec<usize> = send_order(&items).into_iter().filter(|&i| due[i]).take(limit).collect();
+    let mut slots: Vec<Option<Value>> = items.into_iter().map(|(_, s)| Some(s)).collect();
+    let out = order.into_iter().filter_map(|i| slots[i].take()).collect();
     Ok((out, total))
 }
 
@@ -1362,6 +1408,41 @@ mod tests {
         conn.execute("UPDATE laps SET is_valid = 0 WHERE result_id = 1", []).unwrap();
         let c = &candidates(&conn, 0).unwrap()[0];
         assert!(build_summary(&conn, c, "k").unwrap().is_none());
+    }
+
+    #[test]
+    fn game_minor_matches_server() {
+        assert_eq!(game_minor("1.4200"), "1.42");
+        assert_eq!(game_minor("1.4"), "1.40");
+        assert_eq!(game_minor("01.0950"), "1.09");
+    }
+
+    #[test]
+    fn best_lap_of_each_version_is_sent_first() {
+        let s = |version: &str, time: f64| {
+            json!({
+                "track": "Spa", "track_course": "Spa", "car_class": "GT3", "game_version": version,
+                "wet": false, "aids": { "brake_help": false, "steer_help": false },
+                "best_lap": { "time": time },
+            })
+        };
+        // Historique ancien (1.3, dont le meilleur tour absolu) puis sessions récentes en 1.4.
+        let items = vec![
+            (100, s("1.3000", 135.0)),
+            (200, s("1.3000", 134.0)),
+            (300, s("1.3000", 136.0)),
+            (400, s("1.4000", 137.0)),
+            (500, s("1.4000", 136.5)),
+            (600, s("1.4000", 138.0)),
+        ];
+        // Meilleur tour de chaque version d'abord (la plus récente en tête), puis le reste du
+        // plus récent au plus ancien.
+        assert_eq!(send_order(&items), vec![4, 1, 5, 3, 2, 0]);
+        // Un tour avec aide au freinage n'éclipse pas le meilleur tour « propre ».
+        let mut helped = s("1.4000", 130.0);
+        helped["aids"]["brake_help"] = json!(true);
+        let items = vec![(100, s("1.4000", 136.0)), (200, s("1.4000", 137.0)), (300, helped)];
+        assert_eq!(send_order(&items), vec![2, 0, 1]);
     }
 
     #[test]

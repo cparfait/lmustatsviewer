@@ -44,13 +44,53 @@ export interface ModelInfo {
   contextTokens?: number;
 }
 
+/**
+ * Offre gratuite permanente d'un fournisseur (sans carte bancaire). Sert à
+ * l'étiquette « Gratuit » du catalogue et aux précisions affichées à l'ajout :
+ * limites, clé facultative, usage des requêtes. Les chiffres viennent des pages
+ * publiques des fournisseurs et changent souvent : on les affiche comme des
+ * ordres de grandeur, jamais comme une garantie.
+ */
+export interface FreeTierInfo {
+  /** Limites indicatives, non traduites (« 30 req/min · 1 000 req/jour »). */
+  limits: string;
+  /** Utilisable sans compte ni clé ; une clé gratuite relève seulement les limites. */
+  noKey?: boolean;
+  /** Les requêtes gratuites peuvent servir à entraîner les modèles du fournisseur. */
+  mayTrain?: boolean;
+  /** Les requêtes gratuites peuvent être journalisées par le fournisseur ou l'hébergeur. */
+  mayLog?: boolean;
+  /** Hébergé dans l'Union européenne. */
+  eu?: boolean;
+  /** Offre gratuite réservée à un usage non commercial. */
+  nonCommercial?: boolean;
+  /**
+   * Offre MIXTE : seuls certains modèles (ou un quota) sont gratuits, le reste
+   * est facturé (OpenRouter, Google, Mistral…). Étiquette « Modèles gratuits »
+   * au lieu de « Gratuit ».
+   */
+  partial?: boolean;
+  /** Avec une clé, l'usage est facturé (OVHcloud) : la bascule n'envoie pas la clé. */
+  keyBills?: boolean;
+  /**
+   * Modèle sûrement gratuit utilisé par la bascule automatique. Obligatoire pour
+   * une offre mixte (sinon le fournisseur n'est jamais pris en bascule : on ne
+   * risque pas de facturer le pilote) ; à défaut, 1er modèle de repli.
+   */
+  fallbackModel?: string;
+}
+
 export interface AIProvider {
   /** Identifiant interne stable (clé de config `ai_provider`). */
   id: string;
   /** Nom affichable. */
   name: string;
-  /** Faux pour Ollama (local, aucune clé requise). */
+  /** Faux pour Ollama (local, aucune clé requise) et les offres gratuites sans clé. */
   needsKey: boolean;
+  /** Offre gratuite permanente (étiquette « Gratuit » + précisions). Optionnel. */
+  freeTier?: FreeTierInfo;
+  /** Page de création de la clé API (lien « Obtenir une clé ») ; à défaut `docsUrl`. */
+  keyUrl?: string;
   /**
    * Fournisseur personnalisé (défini par l'utilisateur). Sa clé API est propre
    * au fournisseur (`aiCustomKeys[id]`) au lieu du créneau global `aiApiKey`.

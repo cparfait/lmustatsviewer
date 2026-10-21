@@ -5,6 +5,7 @@ import { googleProvider } from "./google";
 import { ollamaProvider } from "./ollama";
 import { anthropicProvider } from "./anthropic";
 import { getCustomProviders } from "./custom";
+import { FREE_PROVIDERS } from "./free";
 import {
   openaiProvider,
   deepseekProvider,
@@ -12,7 +13,11 @@ import {
   openrouterProvider,
 } from "./openai-compat";
 
-/** Fournisseurs intégrés. Les customs (définis par l'utilisateur) s'y ajoutent. */
+/**
+ * Fournisseurs intégrés. Les customs (définis par l'utilisateur) s'y ajoutent.
+ * Les fournisseurs à offre gratuite (`free.ts`) suivent les historiques : leur
+ * ordre et leurs ids sont stables (clés de config `ai_provider_list`).
+ */
 export const PROVIDERS: AIProvider[] = [
   openaiProvider,
   anthropicProvider,
@@ -21,6 +26,7 @@ export const PROVIDERS: AIProvider[] = [
   deepseekProvider,
   mistralProvider,
   ollamaProvider,
+  ...FREE_PROVIDERS,
 ];
 
 /** Intégrés + customs, pour les menus de sélection. */

@@ -147,6 +147,7 @@ import { systemPrompt } from "@/lib/ai/prompts/system";
 import type { ModelInfo } from "@/lib/ai/types";
 import { AiModelPicker } from "@/components/AiModelPicker";
 import { AiProvidersPanel } from "@/components/AiProvidersPanel";
+import { FREE_LIST_URL } from "@/lib/ai/providers/free";
 import { CloudVoiceSettings } from "@/components/CloudVoiceSettings";
 import { CloudVoiceGuide } from "@/components/CloudVoiceGuide";
 import { EngineerTester } from "@/components/EngineerTester";
@@ -193,6 +194,11 @@ const CREDIT_SOURCES: { name: string; roleKey: string; url?: string }[] = [
     name: "OhneSpeed",
     roleKey: "creditPace",
     url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml?gid=1766901750&single=true",
+  },
+  {
+    name: "awesome-free-llm-apis (mnfst)",
+    roleKey: "creditFreeAi",
+    url: FREE_LIST_URL,
   },
 ];
 
@@ -525,6 +531,7 @@ export function ConfigV2() {
           },
         ],
         300,
+        true,
       );
       const clean = text.trim().replace(/[*_`#>]/g, "");
       if (clean) {
@@ -537,7 +544,7 @@ export function ConfigV2() {
         setAiFunResult({ error: t("coach.errNetwork") });
       }
     } catch (e) {
-      setAiFunResult({ error: friendlyError(e, t) });
+      setAiFunResult({ error: friendlyError(e, t, aiProviderDef) });
     } finally {
       setAiFunTesting(false);
     }

@@ -429,7 +429,7 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   } catch (e) {
     // Écran : le message détaillé (quoi corriger). Radio : une phrase courte,
     // jamais le texte technique.
-    const text = friendlyError(e, t);
+    const text = friendlyError(e, t, p);
     if (!gone()) {
       toastError(text);
       announceAnswer(radioLine(t, radioErrorKey(aiErrorKind(errorMessage(e)).kind, hintedErrors)), lang);

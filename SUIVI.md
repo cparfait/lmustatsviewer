@@ -58,6 +58,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Mémoire des filtres** | **Décidé (2026-09-30)** — filtres, tris, page et vue de chaque page conservés **le temps que l'app tourne** (`usePageState`, en mémoire) ; remis à zéro au redémarrage. Un lien profond (`?track=…`) impose ses filtres. |
 | **Overlays in-game** | 🔒 **Figé (2026-07-03)** — la fonctionnalité **existe et est livrée en l'état** (fonctionne en borderless), mais **plus développée** (cf. journal : limite plein écran exclusif + redondance SimHub/TinyPedal). *(Archi : fenêtre Tauri transparente unique `label = overlay`, always-on-top, click-through, config SQLite `overlays_config`, event `overlays-config`, pipeline `live-data`.)* |
 | **Moteurs de voix** | **Décidé (2026-10-15)** — **Piper reste le moteur par défaut et le repli**. La **voix en ligne** (clé de l'utilisateur : OpenAI, ElevenLabs, Cartesia) est un réglage **désactivé par défaut**. **Révisé le 2026-10-16 (demande du mainteneur : « si on active voix IA il faut qu'elle dise tout »)** : information et réponses en direct ; sécurité (`critical`), spotter, coach et « Répète » **seulement depuis le cache** (phrase préparée), jamais en attente du réseau, Piper sinon (`cloudModeFor` : live / cached / off). Réglage « Alertes en voix locale » = ancien comportement (jamais pour l'urgent). Piper reprend la phrase en cas d'erreur ou au-delà de 3 s. Le relais Rust n'accepte que les hôtes de la liste blanche. « Préparer la voix » génère, sur clic et après affichage du coût estimé, les phrases fixes de l'information **et** les phrases urgentes (`CLOUD_PREP_ALERT_KEYS`) **et** les morceaux des annonces chiffrées, **quels que soient les réglages** (décision du mainteneur 2026-10-18 : « peu importe le réglage il faut tout générer ») ; « Alertes en voix locale » et « Annonces chiffrées » ne règlent plus que la lecture en course. **Annonces chiffrées (2026-10-16)** : assemblées à partir de morceaux préparés (parties fixes des gabarits `live.v*`/`sp*`/`in*` + nombres en toutes lettres par langue, `cloudVoiceSegments.ts`), lus dans le cache disque et recollés, jamais de réseau ; réglage « Annonces chiffrées » `alerts` (défaut) / `all` / `off` (ancien comportement). Noms propres et textes libres → Piper. **Kokoro-82M écarté** pour l'instant (pas d'allemand, 4 à 8 fois plus lent que Piper, 325 Mo) ; détail dans `voice-eval/README.md`. |
+| **Fournisseurs IA gratuits** | **Décidé (2026-10-21, demande du mainteneur)** — les fournisseurs à **offre gratuite permanente** de la liste publique « awesome-free-llm-apis » sont **ajoutés à la liste existante** des fournisseurs (`providers/free.ts`, même fabrique compatible OpenAI, aucun changement Rust). Retenus : OVHcloud AI Endpoints, Kilo Gateway, LLM7 (**sans clé**, clé facultative), Groq, NVIDIA NIM, Ollama Cloud, Z.ai, Hugging Face, Cohere (clé gratuite). Écartés : Cloudflare Workers AI (id de compte dans l'URL → fournisseur personnalisé), ModelScope / SiliconFlow (vérification d'identité chinoise), Aion Labs (20 k tokens/jour). Rien n'est ajouté ni activé sans clic : aucun fournisseur gratuit pré-configuré (pas d'envoi de données à un tiers sans geste du joueur). Étiquette « Gratuit » + limites + mentions entraînement / journalisation / UE / non commercial à l'ajout (`AIProvider.freeTier`). Limites affichées = ordres de grandeur, à revoir quand la liste source change. **Offres mixtes** (OpenRouter, Google, Mistral, Z.ai, Hugging Face : seuls certains modèles / un quota gratuits) → étiquette « Modèles gratuits » (bleue), pas « Gratuit » (remarque du mainteneur : « OpenRouter n'est pas gratuit forcément »). **Bascule automatique** (`lib/ai/freeFallback.ts`, réglage `ai_free_fallback`, activé par défaut, coupé = ancien comportement) : 429/402 chez un fournisseur gratuit → rejoué chez un autre fournisseur gratuit **configuré par le pilote**, **jamais sur un modèle payant** (offre mixte prise seulement avec son `fallbackModel` sûrement gratuit — OpenRouter `openrouter/free`, Z.ai `glm-4.7-flash` ; Google, Mistral, Hugging Face jamais) et sans clé quand la clé déclenche la facturation (`keyBills`, OVHcloud). Les tests de connexion n'utilisent jamais la bascule. |
 
 ---
 
@@ -269,6 +270,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 ## 7. Notes / points ouverts
 
+- ⏳ **Fournisseurs IA gratuits (2026-10-21)** : vérifié dans `npm run tauri dev` (OVHcloud et Kilo sans clé, bascule OVHcloud → Kilo en vrai). Clés gratuites Groq / NVIDIA / Z.ai / Cohere / Hugging Face / Ollama Cloud non testées (seuls OVHcloud, Kilo et LLM7 ont répondu à un vrai appel sans clé). Les catalogues gratuits bougent vite (Kilo, LLM7) : revérifier les listes de repli à chaque version. OVHcloud sous charge : jusqu'à 28 s par réponse, plus de 2 min pour une question d'analyse avec Qwen3.8-27B (raisonnement long) → le pilote peut choisir `Mistral-Small-3.2-24B-Instruct-2506` ou `gpt-oss-120b` à la main (défaut gardé : le plus récent, décision du 2026-10-21).
 - ⏳ **Branche `feat/veille-pistes` (2026-10-17)** : 6 commits non fusionnés dans `main`,
   rien poussé. Avant fusion : validation en jeu (`VALIDATION-EN-JEU.md` § Veille) et
   **déploiement du serveur communautaire** (migration 6 `rival_week` + routes `/tiers`,
@@ -920,6 +922,148 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-21 — Coach IA : bouton « Ajouter un fournisseur gratuit », personnalisé dans le menu, crédit GitHub
+
+**Demandes** : remplacer « Ajouter un fournisseur personnalisé » par « Ajouter un fournisseur
+gratuit », n'afficher le bloc vert qu'au clic ; le personnalisé doit être dans la liste des
+fournisseurs ; ajouter le projet GitHub aux crédits.
+
+**Fait**
+- ✅ Section « Fournisseurs » : boutons « Ajouter un fournisseur » (toujours visible) et
+  « Ajouter un fournisseur gratuit » (vert, tant qu'il en reste à ajouter). Le menu d'ajout se
+  termine par « Fournisseur personnalisé (compatible OpenAI)… » (`CUSTOM_CHOICE`) : le choisir
+  affiche nom + URL dans le même formulaire. Exemples du formulaire : xAI / LM Studio (Groq est
+  désormais intégré).
+- ✅ Bloc vert « Fournisseurs gratuits » : affiché dès qu'un fournisseur gratuit est configuré, ou au
+  clic sur le bouton gratuit (formulaire déjà ouvert, bloc amené à l'écran) ; « Annuler » sans
+  rien ajouter le referme. Plus de bouton d'ajout ni d'état vide dans le bloc.
+- ✅ Crédits & sources : « awesome-free-llm-apis (mnfst) » — « Liste des fournisseurs IA gratuits »
+  (`FREE_LIST_URL`, 5 langues).
+- ✅ i18n : `aiCustomOption` remplace `aiCustomAdd` ; `aiFreeEmpty` retiré ; `creditFreeAi`.
+  Changelog 1.0.10 complété (crédit GitHub, personnalisé dans le menu).
+- ✅ Vérifié dans l'app dev (port WebView2 9333, page d'origine restaurée ensuite) : 2 boutons,
+  bloc vert absent puis ouvert au clic avec le formulaire, refermé à l'annulation ; menu classique
+  = 7 intégrés + « Fournisseur personnalisé… » qui affiche nom/URL ; ligne de crédit présente.
+  `npm test` : 6 709 réussis, 0 échec ; eslint propre ; `tsc -b` sans erreur nouvelle.
+
+📋 **Prochaine étape** : commiter le chantier IA gratuite.
+
+### 2026-10-21 — Coach IA : section dédiée « Fournisseurs gratuits » (lien GitHub, mode d'emploi)
+
+**Demande** : différencier les fournisseurs gratuits des autres, mettre en avant le projet GitHub
+dans une section dédiée et expliquer le fonctionnement.
+
+**Fait**
+- ✅ `AiProvidersPanel.tsx` en deux blocs : « Fournisseurs » (OpenAI, Anthropic, Google, OpenRouter,
+  DeepSeek, Mistral, Ollama + personnalisés) et **« Fournisseurs gratuits »** (cadre vert : les 9 de
+  `providers/free.ts`). Chaque bloc a son propre bouton d'ajout et ne propose que son catalogue
+  (`ProviderForm` reçoit `catalog`). Google / Mistral / OpenRouter restent dans le premier bloc avec
+  l'étiquette « Modèles gratuits ».
+- ✅ Section gratuite : présentation, bouton **« Voir la liste sur GitHub »** (`FREE_LIST_URL`,
+  github.com/mnfst/awesome-free-llm-apis), **« Comment ça marche »** repliable (étiquettes, clés,
+  limites et lenteur, bascule et relais, confidentialité), état vide qui suggère OVHcloud.
+- ✅ Réglage de bascule déplacé dans la section gratuite, affiché seulement si
+  `freeRelayPossible` (un fournisseur gratuit configuré et utilisable — clé présente si exigée — a
+  au moins un relais) ; sinon une ligne dit d'ajouter un 2ᵉ fournisseur entièrement gratuit.
+  Corrige l'affichage précédent (« ≥ 2 fournisseurs gratuits », qui comptait les inutilisables).
+- ✅ `aiProvidersFreeHint` remplacé par 12 clés `config.aiFree*` (5 langues), changelog 1.0.10
+  mis à jour (section dédiée + lien GitHub). Suite `freeai` : appartenance aux sections, lien
+  GitHub, cas de relais (fournisseur seul, offres mixtes seules, clé manquante). `npm test` :
+  6 708 réussis, 0 échec ; eslint propre ; `tsc -b` sans erreur nouvelle.
+- ✅ **Vérifié dans l'app dev** (via le port de débogage WebView2 9333, l'écran étant réservé par
+  une autre session) : encadré vert « Fournisseurs gratuits », bouton GitHub, mode d'emploi
+  déplié (5 points), cartes Hugging Face (« Modèles gratuits ») / OVHcloud / Kilo (« Gratuit »),
+  bouton d'ajout dédié, réglage de bascule affiché (relais OVHcloud ↔ Kilo). Menu d'ajout classique :
+  les 7 historiques seulement ; menu gratuit : les 6 gratuits pas encore ajoutés.
+- ✅ Remarque du mainteneur : dans le menu de la section gratuite, plus de « · Gratuit » (redondant) ;
+  seul « · Modèles gratuits » reste (Z.ai, Hugging Face). Menu classique inchangé
+  (`ProviderForm` prop `inFreeSection`).
+
+📋 **Prochaine étape** : commiter le chantier IA gratuite.
+
+### 2026-10-21 — Fournisseurs IA gratuits : « Modèles gratuits », bascule automatique, essai dans l'app
+
+**Demandes** : vérifier OVHcloud sans clé dans l'app ; « OpenRouter n'est pas gratuit forcément » ;
+faire la bascule automatique ; question sur les modèles de voix des catalogues gratuits.
+
+**Fait**
+- ✅ `FreeTierInfo` : `partial` (offre mixte → étiquette bleue « Modèles gratuits »), `keyBills`
+  (une clé déclenche la facturation : OVHcloud), `fallbackModel` (modèle sûrement gratuit pour la
+  bascule). Offres mixtes : OpenRouter, Google, Mistral, Z.ai, Hugging Face.
+- ✅ `lib/ai/freeFallback.ts` : `withFreeFallback` branché dans `chat()` (vocal, aiguillage, audit
+  setup, banque de phrases) et dans le flux de l'analyse (`converseStream`, seulement si l'erreur
+  arrive avant le moindre texte). Source injectée par le store (pas d'import du store → pas de
+  cycle). Notification « Limite gratuite de X atteinte : réponse fournie par Y (modèle) ».
+  `testConnection` et « Tester l'IA » : `noFallback`.
+- ✅ Réglage « Bascule si la limite gratuite est atteinte » (`ai_free_fallback`, activé par défaut)
+  sous les cartes, affiché dès deux fournisseurs gratuits configurés.
+- ✅ i18n 5 langues, changelog 1.0.10 réécrit (deux étiquettes + bascule). Suite `freeai` étendue
+  (offres mixtes, cibles de bascule, clé facturée retirée, réglage coupé, 429 → suivant, 401 relancé).
+  `npm test` : 6 697 réussis, 0 échec ; eslint propre sur les fichiers touchés ; `tsc -b` sans erreur
+  nouvelle.
+- ✅ **Essai dans l'app (`npm run tauri dev`)** : menu « · Gratuit » / « · Modèles gratuits » ; ajout
+  d'OVHcloud sans clé → voyant vert, modèle choisi seul (Qwen3.8-27B), liste de 10 modèles de chat
+  (voix, embeddings, filtres masqués), « Connexion OK », « Tester l'IA » répond en français ; 3ᵉ test
+  dans la minute → message « Limite de l'offre gratuite de OVHcloud… » ; ajout de Kilo sans clé →
+  modèle `:free` choisi seul ; dans une session, question au coach avec OVHcloud saturé → réponse en
+  4 s via Kilo + notification de bascule.
+- ℹ️ « Un seul modèle listé » : la flèche ouvre bien les 10 modèles ; cliquer sur le NOM sert à la
+  recherche/saisie (décision du 2026-10-20), d'où la confusion possible.
+- ⚠️ Pendant l'essai, les cartes Ollama / OpenRouter / OVHcloud ont été supprimées dans l'app (pas
+  par l'assistant) : la clé OpenRouter enregistrée est effacée, à ressaisir. État laissé : Hugging
+  Face, OVHcloud (actif, Qwen3.8-27B), Kilo.
+- ℹ️ Modèles de voix des catalogues gratuits : OVHcloud sert 4 voix NVIDIA Riva (EN, DE, ES, IT —
+  **pas de français**) et Whisper (dictée), sans clé mais à 2 req/min ; LLM7 n'a Voxtral/Whisper
+  qu'en palier payant. Rien d'utile face à Piper (local, 5 langues) et Parakeet (dictée hors-ligne).
+
+- ✅ **Décision du mainteneur** : chez OVHcloud, on garde le choix automatique du modèle le plus
+  récent (Qwen3.8-27B), malgré sa lenteur en analyse ; pas de modèle imposé par défaut.
+
+📋 **Prochaine étape** : ressaisir la clé OpenRouter si besoin ; commiter le chantier IA gratuite.
+
+### 2026-10-21 — Coach IA : fournisseurs gratuits ajoutés à la liste (awesome-free-llm-apis)
+
+**Demande** : intégrer la liste github.com/mnfst/awesome-free-llm-apis à la partie IA, étude
+complète, « ajouter ça à la liste des providers déjà en place », d'une traite.
+
+**Étude**
+- La liste recense 16 services à offre gratuite permanente, presque tous compatibles OpenAI.
+  L'app a déjà la fabrique `makeOpenAICompatProvider` et un relais Rust générique (URL +
+  en-têtes + corps, CSP `connect-src https:`) → un fournisseur = une déclaration TS.
+- Appels réels sans clé (2026-10-21) : OVHcloud (`Mistral-Small-3.2-24B-Instruct-2506`),
+  Kilo (`kilo-auto/free`) et LLM7 (`gpt-oss:20b`) répondent « OK » en HTTP 200.
+  `/models` vérifié pour Kilo (400 modèles, 15 gratuits), LLM7 (palier `turbo`), OVHcloud
+  (mélange voix / embeddings / Stable Diffusion), NVIDIA, Hugging Face, Ollama Cloud ;
+  Groq, Z.ai, Cohere répondent 401 sans clé (point d'accès valide).
+- Écartés : Cloudflare (id de compte dans l'URL), ModelScope / SiliconFlow (identité
+  chinoise), Aion Labs (20 k tokens/jour, jeu de rôle).
+
+**Fait**
+- ✅ `types.ts` : `FreeTierInfo` (limites, sans clé, entraînement, journalisation, UE, non
+  commercial) + `AIProvider.freeTier` / `keyUrl`.
+- ✅ `openai-compat.ts` : option `keyOptional` (pas d'`Authorization` sans clé),
+  `rawModelFilter` (champs propres au fournisseur), `NON_CHAT` élargi (bge, guard,
+  content-safety, stable-diffusion) ; Mistral et OpenRouter marqués gratuits ; repli
+  OpenRouter mis à jour (`openrouter/free`, Nemotron 3 Super, Gemma 4 31B). Google marqué.
+- ✅ `providers/free.ts` : 9 fournisseurs (OVHcloud, Kilo, LLM7, Groq, NVIDIA NIM, Ollama
+  Cloud, Z.ai, Hugging Face, Cohere), ajoutés à la fin de `PROVIDERS` (ids stables).
+- ✅ `AiProvidersPanel.tsx` : « · Gratuit » dans le catalogue, `FreeTierNote` à l'ajout,
+  étiquette + limites sur la carte, clé facultative pour les sans-clé, lien « Obtenir une
+  clé » vers la page de clé (`keyUrl`).
+- ✅ `friendlyError(e, t, provider?)` : sur 429/402 d'un fournisseur gratuit, message
+  `coach.errRateFree` (nom + limites + changer de fournisseur) ; branché dans le panneau
+  Coach, l'Audit setup, l'ingénieur vocal, le test de connexion et le test « fun ».
+- ✅ i18n 5 langues (`config.aiFree*`, `config.aiProvidersFreeHint`, `coach.errRateFree`),
+  changelog 1.0.10 (entrée mise en avant, 5 langues).
+- ✅ Suite `freeai.suite.ts` (catalogue, en-têtes, filtres de modèles, erreurs). `npm test` :
+  6 640 réussis, 0 échec. eslint propre. `tsc -b` : aucune erreur dans les fichiers touchés
+  (4 erreurs préexistantes dans `achievements.ts` et deux suites, chantier en cours).
+- ⏳ Interface non vue dans l'app compilée (aperçu web = index des widgets seulement).
+
+📋 **Prochaine étape** : ouvrir Configuration › Coach IA dans `npm run tauri dev`, ajouter
+OVHcloud sans clé, faire « Tester » puis une analyse post-course ; décider ensuite s'il faut
+la bascule automatique vers un autre fournisseur gratuit sur limite atteinte.
 
 ### 2026-10-21 — Classements : tours de la version récente absents au filtre version (ordre d'envoi)
 

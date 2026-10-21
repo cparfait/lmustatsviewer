@@ -48,6 +48,12 @@ export const googleProvider: AIProvider = {
   id: "google",
   name: "Google (Gemini)",
   needsKey: true,
+  // Offre gratuite d'AI Studio (modèles Flash / Flash-Lite). Dans l'UE, les
+  // requêtes de l'offre gratuite ne servent pas à améliorer les produits Google.
+  // Offre mixte : gratuite sur une clé sans facturation, payante sinon → jamais
+  // prise par la bascule automatique (pas de modèle sûrement gratuit).
+  freeTier: { limits: "15 req/min · 1 500 req/jour (Flash)", partial: true },
+  keyUrl: "https://aistudio.google.com/app/apikey",
 
   // La clé passe par l'en-tête `x-goog-api-key` et NON par l'URL. En paramètre
   // d'URL, elle se retrouvait recopiée dans les messages d'erreur réseau

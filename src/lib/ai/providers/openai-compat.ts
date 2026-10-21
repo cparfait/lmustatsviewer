@@ -6,7 +6,7 @@
  * base, le nom et la liste de repli.
  */
 
-import type { AIProvider, ModelInfo } from "../types";
+import type { AIProvider, FreeTierInfo, ModelInfo } from "../types";
 
 interface OAChatResponse {
   choices?: { message?: { content?: string } }[];
@@ -19,13 +19,20 @@ interface OAStreamChunk {
 interface OAModel {
   id?: string;
   created?: number;
+  [field: string]: unknown;
 }
 interface OAModelsResponse {
   data?: OAModel[];
 }
 
-/** Exclut les modèles non conversationnels (embeddings, audio, image…). */
-const NON_CHAT = /embedding|whisper|tts|dall|moderation|audio|realtime|image|vision-?embed|rerank/i;
+/**
+ * Exclut les modèles non conversationnels (embeddings, audio, image, filtres de
+ * sécurité…). Les catalogues des hébergeurs gratuits mélangent tout : OVHcloud
+ * liste ses voix (`nvr-tts-*`), ses embeddings (`bge-*`) et Stable Diffusion à
+ * côté des modèles de chat.
+ */
+const NON_CHAT =
+  /embedding|whisper|tts|dall|moderation|audio|realtime|image|vision-?embed|rerank|(?:^|\/)bge-|guard|content-safety|stable-diffusion|sdxl/i;
 
 /** Marge pour les tokens de raisonnement (cf. commentaire de `buildBody`). */
 const THINKING_HEADROOM = 1024;
@@ -56,21 +63,40 @@ interface OpenAICompatConfig {
    * refuse en 400 → `fallbackBody` renvoie la requête sans lui.
    */
   quickNoReasoning?: boolean;
+  /**
+   * Clé facultative : le fournisseur répond sans clé (offre gratuite anonyme) ;
+   * `Authorization` n'est envoyé que si l'utilisateur en a saisi une.
+   */
+  keyOptional?: boolean;
+  /** Offre gratuite permanente (étiquette « Gratuit » + précisions). */
+  freeTier?: FreeTierInfo;
+  /** Page de création de la clé API. */
+  keyUrl?: string;
+  /**
+   * Filtre sur la fiche BRUTE de `/models` (champs propres au fournisseur :
+   * palier gratuit, type de modèle…), appliqué avant l'exclusion non-chat.
+   */
+  rawModelFilter?: (m: Record<string, unknown>) => boolean;
 }
 
 export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
   return {
     id: cfg.id,
     name: cfg.name,
-    needsKey: true,
+    needsKey: !cfg.keyOptional,
+    ...(cfg.freeTier ? { freeTier: cfg.freeTier } : {}),
+    ...(cfg.keyUrl ? { keyUrl: cfg.keyUrl } : {}),
 
     chatUrl: () => cfg.chatEndpoint,
     streamChatUrl: () => cfg.chatEndpoint,
     modelsUrl: () => cfg.modelsEndpoint,
-    buildHeaders: (apiKey) => [
-      ["Content-Type", "application/json"],
-      ["Authorization", `Bearer ${apiKey}`],
-    ],
+    buildHeaders: (apiKey) =>
+      cfg.keyOptional && !apiKey
+        ? [["Content-Type", "application/json"]]
+        : [
+            ["Content-Type", "application/json"],
+            ["Authorization", `Bearer ${apiKey}`],
+          ],
 
     // Même marge que chez Google : les modèles de raisonnement (o-séries,
     // GPT-5.x, deepseek-reasoner, gemma "thinking" local…) décomptent leurs
@@ -126,6 +152,7 @@ export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
     parseModels: (raw) => {
       const r = raw as OAModelsResponse;
       return (r.data ?? [])
+        .filter((m) => (cfg.rawModelFilter ? cfg.rawModelFilter(m) : true))
         .map((m) => m.id ?? "")
         .filter((id) => id.length > 0 && !NON_CHAT.test(id))
         .filter((id) => (cfg.modelFilter ? cfg.modelFilter(id) : true))
@@ -169,9 +196,14 @@ export const deepseekProvider = makeOpenAICompatProvider({
   docsUrl: "https://api-docs.deepseek.com/quick_start/pricing",
 });
 
+// Mode gratuit par défaut sur les nouveaux comptes (crédits mensuels), sans
+// carte ; les requêtes gratuites peuvent entraîner les modèles (désactivable
+// dans la console Mistral).
 export const mistralProvider = makeOpenAICompatProvider({
   id: "mistral",
   name: "Mistral",
+  freeTier: { limits: "≈ 1 req/s · crédits mensuels", mayTrain: true, eu: true, partial: true },
+  keyUrl: "https://console.mistral.ai/api-keys",
   chatEndpoint: "https://api.mistral.ai/v1/chat/completions",
   modelsEndpoint: "https://api.mistral.ai/v1/models",
   fallbackModels: [
@@ -193,15 +225,19 @@ export const openrouterProvider = makeOpenAICompatProvider({
   name: "OpenRouter",
   chatEndpoint: "https://openrouter.ai/api/v1/chat/completions",
   modelsEndpoint: "https://openrouter.ai/api/v1/models",
+  // `openrouter/free` : routeur qui choisit lui-même un modèle gratuit disponible.
+  // Offre mixte : seuls les modèles « :free » sont gratuits.
+  freeTier: {
+    limits: "20 req/min · 50 req/jour (modèles :free)",
+    mayLog: true,
+    partial: true,
+    fallbackModel: "openrouter/free",
+  },
+  keyUrl: "https://openrouter.ai/keys",
   fallbackModels: [
-    {
-      id: "meta-llama/llama-3.3-70b-instruct:free",
-      label: "Llama 3.3 70B (gratuit)",
-    },
-    {
-      id: "deepseek/deepseek-chat-v3-0324:free",
-      label: "DeepSeek V3 (gratuit)",
-    },
+    { id: "openrouter/free", label: "openrouter/free (routeur gratuit)" },
+    { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "Nemotron 3 Super 120B (gratuit)" },
+    { id: "google/gemma-4-31b-it:free", label: "Gemma 4 31B (gratuit)" },
   ],
   docsUrl: "https://openrouter.ai/models",
 });

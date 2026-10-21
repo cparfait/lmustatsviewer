@@ -23,6 +23,7 @@ import { run as runRace } from "./suites/race.suite";
 import { run as runPostRace } from "./suites/postrace.suite";
 import { run as runWhatsNew } from "./suites/whatsnew.suite";
 import { run as runCoachVoice } from "./suites/coachvoice.suite";
+import { run as runFreeAi } from "./suites/freeai.suite";
 
 runPure();
 runCoach();
@@ -41,6 +42,7 @@ runWhatsNew();
 runCoachVoice();
 void (async () => {
   await runVoice();
+  await runFreeAi();
   runVeille();
   report();
   // Minuteries de fond des modules (compteur de la voix en ligne) : inutile d'attendre.

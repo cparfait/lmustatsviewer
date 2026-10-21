@@ -13,11 +13,20 @@ import { systemPrompt } from "./prompts/system";
 import { languageLock, radioSystemPrompt, usesRadioPrompt, voiceUserMessage } from "./prompts/radio";
 import { stripThinking, ThinkingStreamFilter } from "./thinking";
 import { aiErrorKind } from "./errorKind";
+import { withFreeFallback, type AiTarget } from "./freeFallback";
 
-/** Rend lisible (et traduite) une erreur de proxy (`HTTP 401: …`). */
-export function friendlyError(e: unknown, t: Tr): string {
+/**
+ * Rend lisible (et traduite) une erreur de proxy (`HTTP 401: …`). `provider`
+ * (facultatif) : chez un fournisseur à offre gratuite, un 429/402 vient presque
+ * toujours de la limite gratuite → on la rappelle et on oriente vers un autre
+ * fournisseur gratuit, au lieu d'un « réessaie » qui échouerait encore.
+ */
+export function friendlyError(e: unknown, t: Tr, provider?: AIProvider): string {
   const msg = errorMessage(e);
   const { kind, code } = aiErrorKind(msg);
+  if ((kind === "rate" || kind === "quota") && provider?.freeTier) {
+    return t("coach.errRateFree", { name: provider.name, limits: provider.freeTier.limits });
+  }
   switch (kind) {
     case "model":
       return t("coach.errModel");
@@ -41,8 +50,27 @@ export function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-/** Appel chat complet (non-streaming) → texte de la réponse. */
+/**
+ * Appel chat complet (non-streaming) → texte de la réponse. Limite d'une offre
+ * gratuite atteinte : rejoué chez un autre fournisseur gratuit configuré
+ * (`freeFallback.ts`), sauf `noFallback` (tests de connexion : on teste CE
+ * fournisseur).
+ */
 export async function chat(
+  provider: AIProvider,
+  model: string,
+  apiKey: string,
+  messages: AIMessage[],
+  maxTokens: number,
+  noFallback = false,
+): Promise<string> {
+  if (noFallback) return chatOnce(provider, model, apiKey, messages, maxTokens);
+  return withFreeFallback({ provider, model, apiKey }, (tg) =>
+    chatOnce(tg.provider, tg.model, tg.apiKey, messages, maxTokens),
+  );
+}
+
+async function chatOnce(
   provider: AIProvider,
   model: string,
   apiKey: string,
@@ -87,10 +115,11 @@ export async function testConnection(
       apiKey,
       [{ role: "user", content: "Reply with the single word: OK" }],
       16,
+      true,
     );
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: friendlyError(e, t) };
+    return { ok: false, error: friendlyError(e, t, provider) };
   }
 }
 
@@ -192,6 +221,20 @@ export async function converseStream(args: {
     tail[last] = { ...tail[last], content: `${tail[last].content}\n\n${languageLock(lang)}` };
   }
   const messages: AIMessage[] = [{ role: "system", content: resolveSystem(lang, systemOverride) }, ...tail];
+  // Limite gratuite atteinte avant le moindre texte : rejoué chez un autre
+  // fournisseur gratuit configuré. Une coupure en cours de flux garde le texte reçu.
+  return withFreeFallback({ provider, model, apiKey }, (tg) =>
+    streamOnce(tg, messages, maxTokens, onToken, onTruncated),
+  );
+}
+
+async function streamOnce(
+  { provider, model, apiKey }: AiTarget,
+  messages: AIMessage[],
+  maxTokens: number,
+  onToken: (chunk: string) => void,
+  onTruncated?: (reason: string | null) => void,
+): Promise<string> {
   const url = provider.streamChatUrl(model, apiKey);
   const headers = provider.buildHeaders(apiKey);
   const body = provider.buildBody(messages, model, maxTokens, true);

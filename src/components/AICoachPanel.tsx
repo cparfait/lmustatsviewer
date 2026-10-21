@@ -513,7 +513,7 @@ export function CoachPanel({
         }
       }
     } catch (e) {
-      setError(friendlyError(e, t));
+      setError(friendlyError(e, t, provider));
       setThread(nextThread); // retire la réponse vide en cas d'échec
     } finally {
       setBusy(false);

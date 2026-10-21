@@ -16,6 +16,7 @@ import { initVoiceOverrides, segmentTemplates } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
 import { setRadioEnabled, setRadioStyle, toRadioStyle, MAX_VOICE_VOLUME, type RadioStyle } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
+import { setFreeFallbackSource } from "@/lib/ai/freeFallback";
 import { logError } from "@/lib/log";
 import { APP_VERSION } from "@/lib/changelog";
 import {
@@ -292,6 +293,12 @@ interface AppState {
   aiVoiceProvider: string;
   /** Prompt système personnalisé par langue (code 2 lettres → texte ; absent = défaut). */
   aiSystemPromptByLang: Record<string, string>;
+  /**
+   * Limite d'une offre gratuite atteinte : rejouer l'appel chez un autre
+   * fournisseur gratuit configuré (`lib/ai/freeFallback.ts`). `false` = l'erreur
+   * s'affiche, comme avant.
+   */
+  aiFreeFallback: boolean;
 
   // Données Dashboard
   dashboardStats: DashboardStats | null;
@@ -384,6 +391,7 @@ interface AppState {
   setLocalAnswers: (v: boolean) => Promise<void>;
   setAiVoiceRadioPrompt: (v: boolean) => Promise<void>;
   setAiVoiceGuard: (v: boolean) => Promise<void>;
+  setAiFreeFallback: (v: boolean) => Promise<void>;
   setSttConfirmUnsure: (v: boolean) => Promise<void>;
   setSttEngine: (v: "parakeet" | "vosk") => Promise<void>;
   setDebriefRadio: (v: boolean) => Promise<void>;
@@ -535,6 +543,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   aiVoiceModel: "",
   aiVoiceProvider: "",
   aiSystemPromptByLang: {},
+  aiFreeFallback: true,
   dashboardStats: null,
   bestLaps: [],
   filterOptions: null,
@@ -799,6 +808,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       aiVoiceModel: cfg.ai_voice_model ?? "",
       aiVoiceProvider: cfg.ai_voice_provider ?? "",
       aiSystemPromptByLang,
+      aiFreeFallback: cfg.ai_free_fallback !== "false",
       selectedVersion: cfg.default_since_version ?? null,
     });
     // Moteur de dictée côté Rust (précharge Parakeet s'il est choisi et installé).
@@ -1185,6 +1195,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ aiVoiceGuard: v });
   },
 
+  setAiFreeFallback: async (v) => {
+    await config.set("ai_free_fallback", v ? "true" : "false");
+    set({ aiFreeFallback: v });
+  },
+
   setSttConfirmUnsure: async (v) => {
     await config.set("stt_confirm_unsure", v ? "true" : "false");
     set({ sttConfirmUnsure: v });
@@ -1505,3 +1520,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ aiSystemPromptByLang: map });
   },
 }));
+
+// Bascule entre fournisseurs gratuits : le module IA lit ici les fournisseurs
+// configurés et leurs clés (il n'importe pas le store, cf. cycle d'imports).
+setFreeFallbackSource(() => {
+  const st = useAppStore.getState();
+  return { enabled: st.aiFreeFallback, configured: st.aiProviderList, keys: st.aiProviderKeys };
+});

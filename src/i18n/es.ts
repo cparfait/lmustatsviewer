@@ -3494,6 +3494,7 @@ export default {
     aroundTitle: "Clasificación",
     aroundSub: "Todos los pilotos de este combo, tu fila resaltada",
     meTitle: "Tu posición",
+    notDone: "Aún no has hecho este combo.",
     lbDriver: "Piloto",
     lbTime: "Tiempo",
     lbGap: "Diferencia",

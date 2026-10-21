@@ -3495,6 +3495,7 @@ export default {
     aroundTitle: "Rangliste",
     aroundSub: "Alle Fahrer dieser Kombination, deine Zeile hervorgehoben",
     meTitle: "Deine Position",
+    notDone: "Du bist diese Kombination noch nicht gefahren.",
     lbDriver: "Fahrer",
     lbTime: "Zeit",
     lbGap: "Abstand",

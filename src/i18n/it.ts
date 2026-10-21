@@ -3490,6 +3490,7 @@ export default {
     aroundTitle: "Classifica",
     aroundSub: "Tutti i piloti su questa combo, con la tua riga evidenziata",
     meTitle: "La tua posizione",
+    notDone: "Non hai ancora fatto questa combo.",
     lbDriver: "Pilota",
     lbTime: "Tempo",
     lbGap: "Distacco",

@@ -1032,6 +1032,14 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   remontée du classement ouvert par `onMe`, repli nom + pays), voiture / temps / écart / place y
   étaient déjà ; site : `showSelfInRow` (pilote, voiture, temps + écart, écarts par secteur, place),
   ligne d'origine rendue à la fermeture. Vu dans l'app et sur le site en local.
+- ✅ Déployé `2d9cf10`. Puis 2ᵉ correction (« un coup c'est nous en doublon, un coup le vainqueur ;
+  ouvre avec le bandeau rouge, drapeau et tracé à sa droite ; si le site ne connaît pas le nom, le
+  bandeau propose de le choisir, sinon « tu n'as pas fait ce combo » ») : la **ligne du combo ouvert
+  est masquée** ; un seul **bandeau** (position / temps / écart, ou « pas encore fait ») avec drapeau,
+  tracé, classe, site et fermeture à droite — app (`ComboDetail` + `onClose`, `leaderboard.notDone`),
+  site (`inlineBannerHtml`, choix du nom dans le bandeau puis ré-ouverture) ; mécanique « votre ligne
+  à la place du record » retirée. Vu dans l'app (avec / sans temps) et sur le site (avec, sans,
+  inconnu → choix du nom, croix, fiche pilote, mobile) ; `?v=55`.
 - 📋 **Prochaine étape** : commiter et redéployer ce lot ;
   vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
   jeu un setup mixte enregistré sur un autre circuit.

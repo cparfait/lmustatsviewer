@@ -960,10 +960,14 @@ body.cmp-open { overflow: hidden; }
 .cmp-link { color: var(--muted); }
 .eye-link:focus-visible, .cmp-link:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
-/* Ligne d'un combo ouvert remplacée par la vôtre (page Classements). */
-.cg-table tr.row-self td { font-weight: 700; }
-.cg-table .self-gap { display: block; font-size: .7rem; font-weight: 600; }
-.pin-tag { display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 4px; background: var(--amber); color: #fff; font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; vertical-align: 1px; }
+/* Combo ouvert sur place : sa ligne cède la place au bandeau (votre position) et au classement. */
+.lb tr.row-hidden { display: none !important; }
+.cg-detail-in .cgd-banner { margin: 0; }
+.cg-detail-in .cgd-side { gap: 10px; font-size: .9rem; color: var(--text); }
+.cg-detail-in .cgd-side .flag-img { height: 14px; width: auto; border-radius: 2px; }
+.cg-detail-in .cgd-close { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; font-size: 1.2rem; line-height: 1; color: var(--muted); }
+.cg-detail-in .cgd-close:hover { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+.cg-detail-in .cgd-pick { display: grid; gap: 8px; flex: 1 1 320px; }
 /* Classement ouvert sur place sous une ligne de combo (page Classements, fiche pilote). */
 .cg-table tr.row-open td { background: color-mix(in srgb, var(--amber) 10%, transparent) !important; }
 .lb tr.cg-detail > td { padding: 0 !important; background: var(--bg-2, var(--surface)) !important; }

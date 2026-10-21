@@ -970,22 +970,19 @@ function RemoteCompare({
  * des temps en dessous. Sans classe (`q.class` absent) : tous les pilotes de toutes les
  * classes du circuit, colonne Classe en plus.
  */
-/** Vous, tel qu'affiché dans un classement (nom, repère, pays, avatar). */
-type SelfDriver = { name?: string | null; tag?: string; country?: string | null; avatar?: string | null };
-
 function ComboDetail({
   q,
   myBest,
   myRank,
   myTag,
-  onMe,
+  onClose,
 }: {
   q: Record<string, string>;
   myBest: number | null;
   myRank: number | null;
   myTag?: string | null;
-  /** Votre ligne trouvée dans le classement : la ligne du combo l'affiche à la place du record. */
-  onMe?: (d: SelfDriver) => void;
+  /** Combo ouvert depuis sa ligne (masquée tant qu'il est ouvert) : bouton pour refermer. */
+  onClose?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const playerName = useAppStore((s) => s.playerName);
@@ -1035,13 +1032,6 @@ function ComboDetail({
     : all;
   const list: (LbRow | null)[] | null = lb === null ? null : cls ? rows : lb;
   const me = rows.find(isMe) ?? null;
-  // Votre identité (avatar, pays) remontée à la ligne du combo, qui l'affiche à la place du record.
-  const meTagFound = me?.driver.tag;
-  useEffect(() => {
-    if (me && onMe) onMe(me.driver);
-    // Une fois par pilote trouvé (l'objet `me` est recréé à chaque rendu).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meTagFound]);
   const best = rows[0]?.time ?? null;
   // Meilleur secteur du classement (violet), comme sur le site.
   const bestSec = (k: "s1" | "s2" | "s3") => {
@@ -1061,49 +1051,80 @@ function ComboDetail({
   const allClasses = !q.class;
   const cols = allClasses ? 12 : 11;
 
+  // Votre position (place, temps, écart au 1er) — commune au bandeau d'un combo et à l'ancienne carte.
+  const meCells = me && (
+    <>
+      <span className="font-extrabold tracking-tight text-primary">
+        <span className="text-3xl">{me.rank}</span>
+        {(cls || detail) && <span className="text-sm text-muted-foreground"> / {cls ? rows.length : detail!.drivers}</span>}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.meTitle")}</span>
+        <span className="flex items-center font-bold">
+          <DriverMarks d={me.driver} cls={me.car_class ?? q.class} />
+          <span className="truncate">{name(me.driver)}</span>
+        </span>
+      </span>
+      <span>
+        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.lbTime")}</span>
+        <span className="font-mono text-lg font-bold">{formatTime(me.time)}</span>
+      </span>
+      {best != null && me.rank > 1 && (
+        <span>
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.lbGap")}</span>
+          <span className="font-mono text-lg font-bold text-muted-foreground">+{(me.time - best).toFixed(3)}</span>
+        </span>
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-4 border-t border-border/60 bg-muted/20 p-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          {/* Le titre nomme le combo ouvert (tracé + classe) : on sait tout de suite lequel on lit. */}
-          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-            {t("leaderboard.aroundTitle")}
-            <span className="text-muted-foreground">·</span>
-            <span>{q.course || q.track}</span>
-            {q.class && <ClassBadge carClass={q.class} size="sm" />}
-          </p>
-          <p className="text-xs text-muted-foreground">{t("leaderboard.aroundSub")}</p>
-        </div>
-        <a href={siteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-          <ExternalLink className="h-3.5 w-3.5" />
-          {t("leaderboard.openSite")}
-        </a>
-      </div>
-
-      {me && (
+      {onClose ? (
+        // Combo ouvert depuis sa ligne (masquée) : un seul bandeau — votre position, ou « pas encore
+        // fait », et à droite le drapeau, le tracé, la classe, le site et la fermeture.
         <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-lg border-2 border-primary bg-primary/10 px-4 py-2.5">
-          <span className="font-extrabold tracking-tight text-primary">
-            <span className="text-3xl">{me.rank}</span>
-            {(cls || detail) && <span className="text-sm text-muted-foreground"> / {cls ? rows.length : detail!.drivers}</span>}
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.meTitle")}</span>
-            <span className="flex items-center font-bold">
-              <DriverMarks d={me.driver} cls={me.car_class ?? q.class} />
-              <span className="truncate">{name(me.driver)}</span>
+          {meCells ??
+            (lb === null ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : (
+              <span className="text-sm font-semibold text-muted-foreground">{t("leaderboard.notDone")}</span>
+            ))}
+          <div className="ml-auto flex items-center gap-3">
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <TrackFlag track={q.track} className="h-4 w-auto shrink-0 rounded-[2px] ring-1 ring-black/10" />
+              <span>{q.course || q.track}</span>
+              {q.class && <ClassBadge carClass={q.class} size="sm" />}
             </span>
-          </span>
-          <span>
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.lbTime")}</span>
-            <span className="font-mono text-lg font-bold">{formatTime(me.time)}</span>
-          </span>
-          {best != null && me.rank > 1 && (
-            <span>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.lbGap")}</span>
-              <span className="font-mono text-lg font-bold text-muted-foreground">+{(me.time - best).toFixed(3)}</span>
-            </span>
-          )}
+            <a href={siteUrl} target="_blank" rel="noreferrer" title={t("leaderboard.openSite")} aria-label={t("leaderboard.openSite")} className="text-primary hover:opacity-80">
+              <ExternalLink className="h-4 w-4" />
+            </a>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} title={t("leaderboard.hide")} aria-label={t("leaderboard.hide")}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+      ) : (
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            {/* Le titre nomme le combo ouvert (tracé + classe) : on sait tout de suite lequel on lit. */}
+            <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+              {t("leaderboard.aroundTitle")}
+              <span className="text-muted-foreground">·</span>
+              <span>{q.course || q.track}</span>
+              {q.class && <ClassBadge carClass={q.class} size="sm" />}
+            </p>
+            <p className="text-xs text-muted-foreground">{t("leaderboard.aroundSub")}</p>
+          </div>
+          <a href={siteUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
+            <ExternalLink className="h-3.5 w-3.5" />
+            {t("leaderboard.openSite")}
+          </a>
+        </div>
+      )}
+
+      {me && !onClose && (
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-lg border-2 border-primary bg-primary/10 px-4 py-2.5">{meCells}</div>
       )}
 
       {cls && (
@@ -1511,9 +1532,6 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [offline, setOffline] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
-  /** Vous, tel que vu dans un classement ouvert (avatar compris) ; remplace le pilote du record. */
-  const [myDriver, setMyDriver] = useState<SelfDriver | null>(null);
-  const playerName = useAppStore((s) => s.playerName);
   /** Circuit dont le classement toutes classes est ouvert (clic sur son nom). */
   const [openTrack, setOpenTrack] = useState<string | null>(null);
   // Combo (ou circuit toutes classes) ouvert : sa ligne remonte en haut de l'écran, sous
@@ -1628,8 +1646,6 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   const placed = (rows ?? []).filter((r) => r.pos);
   const ranked = placed.filter((r) => r.pos!.drivers >= RANKED_MIN);
   const myTag = status?.registered ? status.tag : null;
-  // Avant que le classement ouvert ne vous ait trouvé : votre nom et votre pays.
-  const selfFallback: SelfDriver = { name: playerName, tag: myTag ?? undefined, country: status?.nationality ?? null };
   // Place réelle, de 0 (1er) à 1 (dernier) : le « top % » ne compare pas (1er sur 1 = top 100 %).
   const place = (r: Row) => gaugePct(r.pos!.rank, r.pos!.drivers) / 100;
   // Meilleur classement : meilleure place, puis le plus disputé (un record à 10 pilotes > à 1).
@@ -1977,10 +1993,13 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                             </TableRow>
                           )}
                           <TableRow
-                            data-combo={key}
+                            data-combo={isOpen ? undefined : key}
                             className={cn(
                               "group scroll-mt-16",
                               i % 2 === 1 && "bg-muted/30",
+                              // Combo ouvert : sa ligne cède la place au bandeau du détail (pas de doublon
+                              // avec le 1er du classement ni avec votre position).
+                              isOpen && "hidden",
                               // « Mes combos » : les combos roulés teintés en orange, les autres estompés.
                               showMine && (r.other ? "opacity-45" : "bg-orange-500/15 font-semibold"),
                               // Combo ouvert : teinte nette (l'emporte sur les précédentes), barre
@@ -2029,7 +2048,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                               <ClassBadge carClass={r.combo.car_class} size="sm" />
                             </TableCell>
                             {/* Pilote du record en début de ligne, comme sur le site. */}
-                            <LeaderCell row={r} myTag={myTag} self={isOpen && r.pos ? (myDriver ?? selfFallback) : null} />
+                            <LeaderCell row={r} myTag={myTag} />
                             <TableCell className="px-2 py-1.5">
                               <div className="flex items-center gap-2">
                                 <CarLogo carName={r.combo.car_model} className="h-3.5 w-auto shrink-0 object-contain opacity-80" />
@@ -2102,12 +2121,18 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                             </TableCell>
                           </TableRow>
                           {isOpen && (
-                            <TableRow className="hover:bg-transparent">
+                            <TableRow data-combo={key} className="scroll-mt-16 hover:bg-transparent">
                               <TableCell
                                 colSpan={showOhne ? 11 : 10}
                                 className="border-b-2 border-primary/50 p-0 shadow-[inset_5px_0_0_var(--color-primary)]"
                               >
-                                <ComboDetail q={r.q} myBest={r.other ? null : r.combo.best} myRank={r.pos?.rank ?? null} myTag={myTag} onMe={setMyDriver} />
+                                <ComboDetail
+                                  q={r.q}
+                                  myBest={r.other ? null : r.combo.best}
+                                  myRank={r.pos?.rank ?? null}
+                                  myTag={myTag}
+                                  onClose={() => setOpen(null)}
+                                />
                               </TableCell>
                             </TableRow>
                           )}
@@ -2125,23 +2150,14 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   );
 }
 
-/**
- * Pilote du record du combo : « Vous » si c'est le joueur, sinon son nom (ou son repère s'il est
- * anonyme). Combo ouvert (`self`) : votre ligne à la place — le 1er est déjà en tête du classement.
- */
-function LeaderCell({ row, myTag, self }: { row: Row; myTag: string | null; self?: SelfDriver | null }) {
+/** Pilote du record du combo : « Vous » si c'est le joueur, sinon son nom (ou son repère s'il est anonyme). */
+function LeaderCell({ row, myTag }: { row: Row; myTag: string | null }) {
   const { t } = useTranslation();
   const l = row.leader;
   const mine = !!l && !!myTag && l.tag === myTag;
   return (
     <TableCell className="px-2 py-1.5">
-      {self ? (
-        <span className="flex min-w-0 items-center font-bold">
-          <DriverMarks d={self} cls={row.combo.car_class} />
-          <span className="truncate">{self.name}</span>
-          <span className="ml-1.5 shrink-0 rounded bg-primary px-1 py-px text-[9px] uppercase tracking-wide text-primary-foreground">{t("leaderboard.you")}</span>
-        </span>
-      ) : !l ? (
+      {!l ? (
         <span className="text-muted-foreground">—</span>
       ) : mine ? (
         <span className="flex items-center font-semibold text-emerald-500">

@@ -3496,6 +3496,7 @@ export default {
     aroundTitle: "Classement",
     aroundSub: "Tous les pilotes de ce combo, votre ligne surlignée",
     meTitle: "Votre position",
+    notDone: "Vous n'avez pas encore fait ce combo.",
     lbDriver: "Pilote",
     lbTime: "Temps",
     lbGap: "Écart",

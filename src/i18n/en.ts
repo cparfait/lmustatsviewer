@@ -3490,6 +3490,7 @@ export default {
     aroundTitle: "Leaderboard",
     aroundSub: "Every driver on this combo, your row highlighted",
     meTitle: "Your position",
+    notDone: "You haven't driven this combo yet.",
     lbDriver: "Driver",
     lbTime: "Time",
     lbGap: "Gap",

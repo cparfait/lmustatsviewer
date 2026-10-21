@@ -1039,3 +1039,29 @@ body.cmp-open { overflow: hidden; }
 .cls-dot { flex: none; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
 .cls-dot.dot-hyper { background: var(--c-hyper); } .cls-dot.dot-lmp2 { background: var(--c-lmp2); } .cls-dot.dot-lmp3 { background: var(--c-lmp3); }
 .cls-dot.dot-gt3 { background: var(--c-gt3); } .cls-dot.dot-gte { background: var(--c-gte); }
+
+/* Bouton « i » de la barre du tableau et son menu d'explications (page Classements). */
+.info-btn { all: unset; box-sizing: border-box; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.85); color: #fff; font: 800 .78rem/1 Georgia, serif; font-style: italic; cursor: pointer; }
+.info-btn:hover, .info-btn[aria-expanded="true"] { background: #fff; color: var(--amber); }
+.info-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.info-pop { position: fixed; z-index: 90; display: grid; gap: 9px; width: min(380px, calc(100vw - 16px)); padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); color: var(--text); font-size: .84rem; animation: fdrop-in .14s var(--ease, ease); }
+.info-pop[hidden] { display: none; }
+.info-pop-h { font-size: .9rem; }
+.info-pop > div { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; align-items: center; color: var(--muted); }
+.info-pop b:not(.info-pop-h) { font: 800 .8rem var(--mono); }
+.info-pop .lg-rec { color: #059669; }
+[data-theme="dark"] .info-pop .lg-rec { color: #10b981; }
+.info-pop .lg-prov { color: var(--muted); }
+.info-pop .lg-best { color: var(--purple-best); }
+.info-pop .lg-bars { display: inline-flex; gap: 2px; }
+.info-pop .lg-bars i { display: block; width: 12px; height: 6px; border-radius: 99px; background: var(--cc); }
+.info-pop .lg-pend { display: block; width: 30px; height: 6px; border-radius: 99px; background: #fbbf24; }
+
+/* Barre de filtres, style « intitulés saumon » : l'intitulé reprend les en-têtes de tableau
+   (fond saumon, texte orange foncé), la valeur en gras ; filtre actif en orange. */
+.fsel { background: var(--surface); border-color: color-mix(in srgb, var(--amber) 22%, var(--border)); }
+.fsel .fsel-k { background: color-mix(in srgb, var(--amber) 20%, var(--surface)); color: var(--amber-ink); border-right-color: color-mix(in srgb, var(--amber) 25%, var(--border)); font-weight: 800; }
+[data-theme="dark"] .fsel .fsel-k { background: color-mix(in srgb, var(--amber) 22%, var(--surface)); color: #ffd2bf; }
+.fsel .fdrop-btn, .fsel .fmulti-btn { color: var(--text); font-weight: 700; padding-top: 5px; padding-bottom: 5px; }
+.fsel.is-set { border-color: var(--amber); box-shadow: 0 0 0 3px var(--glow); }
+.fsel.is-set .fdrop-btn { background: color-mix(in srgb, var(--amber) 8%, transparent); color: var(--amber-ink); }

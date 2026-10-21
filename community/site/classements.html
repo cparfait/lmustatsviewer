@@ -6,14 +6,14 @@
 <title>Classements communautaires — LMU Stats Viewer</title>
 <meta name="description" content="Les meilleurs tours des pilotes LMU Stats Viewer sur Le Mans Ultimate, circuit par circuit, par classe, voiture et version du jeu.">
 <meta name="theme-color" content="#D93B00">
-<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=60">
-<link rel="icon" href="/favicon.ico?v=60">
-<link rel="apple-touch-icon" href="/assets/icon-128.png?v=60">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=63">
+<link rel="icon" href="/favicon.ico?v=63">
+<link rel="apple-touch-icon" href="/assets/icon-128.png?v=63">
 <meta property="og:title" content="Classements communautaires — LMU Stats Viewer">
 <meta property="og:description" content="Où vous situez-vous, circuit par circuit ? Des temps enregistrés par le jeu, pas saisis à la main.">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="/assets/site.css?v=60">
-<script src="/assets/boot.js?v=60"></script>
+<link rel="stylesheet" href="/assets/site.css?v=63">
+<script src="/assets/boot.js?v=63"></script>
 </head>
 <body>
 <header class="site-header"></header>
@@ -52,11 +52,20 @@
       <div class="tbar board-bar">
         <h3 data-i18n="home.board"></h3>
         <span class="tbar-right">
+          <button type="button" class="info-btn" id="legendBtn" aria-expanded="false" aria-controls="legendPop" data-i18n-title="lg.title" data-i18n-aria="lg.title">i</button>
           <b class="tbar-n" id="resultsCount"></b>
           <span class="seg" role="group" id="sortSeg"><button type="button" data-sort="popular" data-i18n="sort.popular"></button><button type="button" data-sort="az" data-i18n="sort.az"></button></span>
           <span class="seg" role="group" id="viewSeg"><button type="button" data-view="grid" data-i18n="view.grid"></button><button type="button" data-view="list" data-i18n="view.list"></button></span>
           <a class="btn btn-sm" href="/classements.html" id="resetBtn" hidden data-i18n="f.reset"></a>
         </span>
+      </div>
+      <div class="info-pop" id="legendPop" role="dialog" hidden>
+        <b class="info-pop-h" data-i18n="lg.title"></b>
+        <div><b class="lg-rec">3:23.687</b><span data-i18n="lg.record"></span></div>
+        <div><b class="lg-prov">3:28.295</b><span data-i18n="lg.prov"></span></div>
+        <div><b class="lg-best">32.153</b><span data-i18n="lg.best"></span></div>
+        <div><i class="lg-bars"><i class="cc-hyper"></i><i class="cc-lmp2"></i><i class="cc-lmp3"></i><i class="cc-gt3"></i><i class="cc-gte"></i></i><span data-i18n="lg.pop"></span></div>
+        <div><i class="lg-pend"></i><span data-i18n="lg.pend"></span></div>
       </div>
       <div id="board" class="board-body">
         <div class="panel sk-panel"><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
@@ -88,7 +97,7 @@
 
 <footer class="site-footer"></footer>
 
-<script src="/assets/site.js?v=60"></script>
-<script src="/assets/home.js?v=60"></script>
+<script src="/assets/site.js?v=63"></script>
+<script src="/assets/home.js?v=63"></script>
 </body>
 </html>

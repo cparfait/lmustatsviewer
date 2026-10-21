@@ -749,6 +749,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Filters, app and website: labels on a salmon background like the table headers, the value in bold, and an active filter (anything but “All”) stands out in orange. Leaderboards page (website): an “i” button in the table bar explains the colours — green record, grey provisional record, purple fastest sector, popularity bar in the class colour, yellow until 20 drivers.",
+              fr: "Filtres, app et site : intitulés sur fond saumon comme les en-têtes de tableau, valeur en gras, et un filtre actif (autre chose que « Tous ») ressort en orange. Page Classements (site) : un bouton « i » dans la barre du tableau explique les couleurs — record en vert, record provisoire en gris, secteur le plus rapide en violet, barre de fréquentation à la couleur de la classe, jaune en attendant 20 pilotes.",
+              es: "Filtros, app y web: etiquetas sobre fondo salmón como las cabeceras de tabla, valor en negrita, y un filtro activo (distinto de «Todos») destaca en naranja. Página Clasificaciones (web): un botón «i» en la barra de la tabla explica los colores — récord en verde, récord provisional en gris, sector más rápido en violeta, barra de participación con el color de la clase, amarillo hasta 20 pilotos.",
+              de: "Filter, App und Website: Beschriftungen auf lachsfarbenem Grund wie die Tabellenköpfe, Wert fett, und ein aktiver Filter (alles außer „Alle“) hebt sich orange ab. Seite Ranglisten (Website): Ein „i“-Knopf in der Tabellenleiste erklärt die Farben — Rekord grün, vorläufiger Rekord grau, schnellster Sektor violett, Beteiligungsbalken in der Klassenfarbe, gelb bis 20 Fahrer.",
+              it: "Filtri, app e sito: etichette su fondo salmone come le intestazioni di tabella, valore in grassetto, e un filtro attivo (diverso da «Tutti») risalta in arancione. Pagina Classifiche (sito): un pulsante «i» nella barra della tabella spiega i colori — record in verde, record provvisorio in grigio, settore più veloce in viola, barra di partecipazione nel colore della classe, giallo fino a 20 piloti.",
+            },
+          },
+          {
+            text: {
               en: "Website: the developer's note leaves the footer — a click on the little character (the logo) shows it in a bubble; the filter menus show the tracks' flags, the cars' logos and the classes' colours.",
               fr: "Site : le mot du développeur quitte le pied de page — un clic sur le petit personnage (le logo) l'affiche dans une bulle ; les menus des filtres montrent les drapeaux des circuits, les logos des voitures et la couleur des classes.",
               es: "Web: la nota del desarrollador sale del pie de página — un clic en el pequeño personaje (el logo) la muestra en una burbuja; los menús de filtros muestran las banderas de los circuitos, los logos de los coches y el color de las clases.",

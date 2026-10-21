@@ -270,7 +270,7 @@ export function Telemetry() {
               ]}
             />
             {hasFilters && (
-              <Button variant="ghost" size="sm" className="h-9 gap-1 text-xs text-muted-foreground" onClick={clearFilters}>
+              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs text-muted-foreground" onClick={clearFilters}>
                 <X className="h-3.5 w-3.5" />
                 {t("sessions.clearFilters")}
               </Button>

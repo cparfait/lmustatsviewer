@@ -1062,6 +1062,17 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   le nom reste le lien d'accueil ; Échap / clic dehors ferme ; lien « Signaler un bug ») ; **menus des
   filtres** : drapeaux (circuit, tracé), logos (voiture), pastilles de couleur (classe), aussi sur le
   choix affiché. `?v=60`. Vu en local.
+- ✅ Déployé `f27c810` (vérifié en ligne). Puis, page Classements du site : **légende des couleurs**
+  sous la barre du tableau (record vert, provisoire gris, secteur violet, barre de fréquentation à la
+  couleur de la classe, jaune en attente de 20 pilotes), 5 langues ; `?v=61`. Vu en local.
+- 🔁 Légende jugée « trop moche » → remplacée par un **bouton « i »** dans la barre orange du tableau
+  (menu « Comprendre les couleurs », Échap / clic dehors ferme). **Barre de filtres** jugée terne :
+  3 maquettes proposées, **style A retenu** (intitulé sur fond saumon et texte orange comme les
+  en-têtes de tableau, valeur en gras, filtre actif ≠ « Tous » bordé d'orange) — site
+  (`enhanceSelect`, `.fsel.is-set`) **et app** (`FilterField`, actif si la valeur ≠ option vide/`all`).
+  Croix « retirer le filtre » essayée puis **retirée** à la demande (le menu suffit). `?v=63`.
+  Champs de filtre jugés « trop hauts » : 36 → **32 px** (`FilterField` h-8, site padding 5 px), boutons
+  voisins (« Réinitialiser », « Mes combos ») alignés à 32 px (Sessions, Dashboard, Télémétrie, Classements).
 - 📋 **Prochaine étape** : commiter et redéployer ce lot ;
   vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
   jeu un setup mixte enregistré sur un autre circuit.

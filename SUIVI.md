@@ -1077,6 +1077,12 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   de déploiement restés ouverts bloquent le lancement d'un nouveau). Puis, page Classements : bouton
   « Partager mes tours » masqué quand le site connaît le pilote (repère « c'est moi ») — seul « Ma fiche
   pilote » reste ; `?v=64`. Vu en local.
+- ✅ Déployé `68b66f3` (filtres style A, « i », partage masqué ; vérifié en ligne). Puis : **menus des
+  filtres de l'app** comme le site — `Select` variante `filter` (repère via `decorate`, coche orange à
+  droite, recherche au-delà de 10 choix, choix en cours toujours gardé pour le texte du champ) ;
+  `FilterField` choisit le repère selon son icône (Flag/Route → drapeau, Car → logo, Tag → pastille) ;
+  champs **28 px** (« trop haut ») + boutons voisins. Site : légende reformulée (« mal expliqué »),
+  `?v=65`. App **non revue à l'écran** (fenêtre réduite).
 - 📋 **Prochaine étape** : commiter et redéployer ce lot ;
   vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
   jeu un setup mixte enregistré sur un autre circuit.

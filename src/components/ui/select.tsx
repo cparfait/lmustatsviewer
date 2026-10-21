@@ -1,5 +1,6 @@
+import { useRef, useState, type ReactNode } from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -49,19 +50,36 @@ const ITEM_CLASS =
   "focus:bg-accent focus:text-accent-foreground data-[state=checked]:font-medium " +
   "data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
 
-function Item({ option }: { option: SelectOption }) {
+/** Variante « filtre » (barres de filtres) : choix en cours en orange, coche à droite. */
+const FILTER_ITEM_CLASS =
+  "relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-2.5 pr-8 text-sm outline-none " +
+  "focus:bg-primary/10 data-[state=checked]:font-semibold data-[state=checked]:text-primary " +
+  "data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
+
+function Item({ option, filter, decorate }: { option: SelectOption; filter?: boolean; decorate?: (value: string) => ReactNode }) {
+  const deco = decorate?.(option.value);
   return (
     <SelectPrimitive.Item
       value={toRadix(option.value)}
       disabled={option.disabled}
-      className={ITEM_CLASS}
+      className={filter ? FILTER_ITEM_CLASS : ITEM_CLASS}
     >
-      <span className="absolute left-1.5 flex h-3.5 w-3.5 items-center justify-center">
+      <span className={cn("absolute flex h-3.5 w-3.5 items-center justify-center", filter ? "right-2.5 text-primary" : "left-1.5")}>
         <SelectPrimitive.ItemIndicator>
           <Check className="h-3.5 w-3.5" />
         </SelectPrimitive.ItemIndicator>
       </span>
-      <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+      {/* Le repère (drapeau, logo, pastille) fait partie du texte : il s'affiche aussi dans le champ. */}
+      <SelectPrimitive.ItemText>
+        {deco ? (
+          <span className="inline-flex min-w-0 items-center gap-2">
+            {deco}
+            <span className="truncate">{option.label}</span>
+          </span>
+        ) : (
+          option.label
+        )}
+      </SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
   );
 }
@@ -75,6 +93,9 @@ export function Select({
   placeholder,
   disabled,
   ariaLabel,
+  variant,
+  decorate,
+  searchPlaceholder,
 }: {
   value: string;
   onValueChange: (value: string) => void;
@@ -87,12 +108,31 @@ export function Select({
   placeholder?: string;
   disabled?: boolean;
   ariaLabel?: string;
+  /** « filter » : style des barres de filtres (orange, coche à droite, recherche au-delà de 10 choix). */
+  variant?: "filter";
+  /** Repère affiché devant un choix (drapeau, logo…) ; `null` = rien. */
+  decorate?: (value: string) => ReactNode;
+  /** Texte du champ de recherche (variante « filter », listes longues). */
+  searchPlaceholder?: string;
 }) {
+  const filter = variant === "filter";
+  const flat = options.flatMap((o) => (isGroup(o) ? o.options : [o]));
+  const searchable = filter && flat.length > 10;
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const q = query.trim().toLowerCase();
+  // Le choix en cours reste toujours dans la liste : Radix en tire le texte affiché dans le champ.
+  const match = (o: SelectOption) => !q || o.value === value || o.label.toLowerCase().includes(q);
   return (
     <SelectPrimitive.Root
       value={toRadix(value)}
       onValueChange={(v) => onValueChange(fromRadix(v))}
       disabled={disabled}
+      onOpenChange={(open) => {
+        setQuery("");
+        // Recherche : le champ prend la main dès l'ouverture (Radix place d'abord le focus sur le choix en cours).
+        if (open && searchable) setTimeout(() => searchRef.current?.focus(), 30);
+      }}
     >
       <SelectPrimitive.Trigger
         aria-label={ariaLabel}
@@ -119,7 +159,8 @@ export function Select({
             // z-80 : au-dessus des modales (z-50, NewSetupDialog/LapChartModal),
             // des toasts (z-60) et des dialogues confirm/prompt (z-70) — un menu
             // ouvert depuis une modale doit passer devant elle.
-            "z-[80] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-lg",
+            "z-[80] overflow-hidden border border-border bg-popover text-popover-foreground shadow-lg",
+            filter ? "rounded-lg" : "rounded-md",
             "max-h-[min(20rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)]",
             contentClassName,
           )}
@@ -127,6 +168,29 @@ export function Select({
           <SelectPrimitive.ScrollUpButton className="flex h-5 cursor-default items-center justify-center bg-popover">
             <ChevronUp className="h-3.5 w-3.5 opacity-60" />
           </SelectPrimitive.ScrollUpButton>
+          {searchable && (
+            <div className="border-b border-border/60 p-1.5">
+              <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
+                <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  // Les touches restent dans le champ (sinon la recherche par lettre de Radix les capte) ;
+                  // ↓ descend dans la liste.
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      (e.currentTarget.closest("[role=listbox]")?.querySelector("[role=option]") as HTMLElement | null)?.focus();
+                    } else if (e.key !== "Escape" && e.key !== "Tab") e.stopPropagation();
+                  }}
+                  placeholder={searchPlaceholder}
+                  aria-label={searchPlaceholder}
+                  className="h-7 min-w-0 flex-1 bg-transparent text-sm outline-none"
+                />
+              </div>
+            </div>
+          )}
           <SelectPrimitive.Viewport className="p-1">
             {options.map((o, i) =>
               isGroup(o) ? (
@@ -134,14 +198,14 @@ export function Select({
                   <SelectPrimitive.Label className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {o.label}
                   </SelectPrimitive.Label>
-                  {o.options.map((opt, j) => (
-                    <Item key={`${opt.value}:${j}`} option={opt} />
+                  {o.options.filter(match).map((opt, j) => (
+                    <Item key={`${opt.value}:${j}`} option={opt} filter={filter} decorate={decorate} />
                   ))}
                 </SelectPrimitive.Group>
               ) : (
                 // Clé indexée : deux entrées peuvent partager la même valeur
                 // (homonymes d'une liste de pilotes, par exemple).
-                <Item key={`${o.value}:${i}`} option={o} />
+                match(o) && <Item key={`${o.value}:${i}`} option={o} filter={filter} decorate={decorate} />
               ),
             )}
           </SelectPrimitive.Viewport>

@@ -660,6 +660,7 @@ export default {
     },
   },
   header: {
+    searchList: "Search…",
     playLmu: "Launch Le Mans Ultimate",
     lmuRunning: "Le Mans Ultimate is running",
     lmuLaunching: "Launching Le Mans Ultimate…",

@@ -1842,7 +1842,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
               variant={showMine ? "default" : "outline"}
               size="sm"
               className={cn(
-                "h-8 gap-1.5 text-xs",
+                "h-7 gap-1.5 text-xs",
                 showMine
                   ? "hover:bg-primary/85 hover:text-primary-foreground"
                   : "hover:border-primary hover:bg-primary/10 hover:text-primary",
@@ -1854,7 +1854,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
               {t("leaderboard.onlyMine")}
             </Button>
             {hasFilters && (
-              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs text-muted-foreground" onClick={clearFilters}>
+              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-muted-foreground" onClick={clearFilters}>
                 <X className="h-3.5 w-3.5" /> {t("sessions.clearFilters")}
               </Button>
             )}

@@ -37,17 +37,18 @@ export const CAR_CLASS_LABELS: Record<string, string> = {
   GTE: "GTE",
 };
 
-export const CAR_CLASS_COLORS: Record<string, { color: string; background: string; border?: string }> = {
-  Hypercar:    { color: "#f87171", background: "rgba(239,68,68,0.15)" },
-  Hyper:       { color: "#f87171", background: "rgba(239,68,68,0.15)" },
-  LMP2_WEC:    { color: "#60a5fa", background: "rgba(96,165,250,0.15)" },
-  "LMP2 WEC":  { color: "#60a5fa", background: "rgba(96,165,250,0.15)" },
-  LMP2_ELMS:   { color: "#60a5fa", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(251,146,60,0.6)" },
-  "LMP2 ELMS": { color: "#60a5fa", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(251,146,60,0.6)" },
-  LMP2:        { color: "#60a5fa", background: "rgba(96,165,250,0.15)" },
-  LMP3:        { color: "#c084fc", background: "rgba(192,132,252,0.15)" },
-  GT3:         { color: "#4ade80", background: "rgba(74,222,128,0.15)" },
-  GTE:         { color: "#fb923c", background: "rgba(251,146,60,0.15)" },
+/** `color` : texte en thème sombre ; `light` : texte en thème clair (teintes du site, plus lisibles). */
+export const CAR_CLASS_COLORS: Record<string, { color: string; background: string; border?: string; light?: string }> = {
+  Hypercar:    { color: "#f87171", light: "#c62828", background: "rgba(239,68,68,0.15)" },
+  Hyper:       { color: "#f87171", light: "#c62828", background: "rgba(239,68,68,0.15)" },
+  LMP2_WEC:    { color: "#60a5fa", light: "#1d5fc4", background: "rgba(96,165,250,0.15)" },
+  "LMP2 WEC":  { color: "#60a5fa", light: "#1d5fc4", background: "rgba(96,165,250,0.15)" },
+  LMP2_ELMS:   { color: "#60a5fa", light: "#1d5fc4", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(251,146,60,0.6)" },
+  "LMP2 ELMS": { color: "#60a5fa", light: "#1d5fc4", background: "rgba(96,165,250,0.15)", border: "1px solid rgba(251,146,60,0.6)" },
+  LMP2:        { color: "#60a5fa", light: "#1d5fc4", background: "rgba(96,165,250,0.15)" },
+  LMP3:        { color: "#c084fc", light: "#7e3fc9", background: "rgba(192,132,252,0.15)" },
+  GT3:         { color: "#4ade80", light: "#15803d", background: "rgba(74,222,128,0.15)" },
+  GTE:         { color: "#fb923c", light: "#c2570c", background: "rgba(251,146,60,0.15)" },
 };
 
 export const CAR_CLASS_SOLID_COLORS: Record<string, { color: string; background: string; border?: string }> = {

@@ -1000,7 +1000,24 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   efface `$DIR/state/maintenance.json` relativement à ce dossier → fichier jamais trouvé. Corrigé
   (`DIR="$(pwd)"` après le `cd`) — effet au prochain déploiement ; le fichier en place est à retirer
   à la main sur le VPS (`rm -f ~/docker/lmustatsviewer/state/maintenance.json`).
-- 📋 **Prochaine étape** : retirer le bandeau sur le VPS, commiter le correctif de `update.sh` ;
+- ✅ Site, cohérence avec l'app : colonne « Classement › » remplacée par l'œil **Détail** (fiche
+  pilote et cartes de la page Classements), « Comparer » de la fiche → icône ; squelette de
+  chargement sur la fiche (écran vide entre le clic et l'affichage) et profil « vous » demandé en
+  parallèle ; assets `?v=53`. Vu en local.
+- ✅ Œil « Détail » déplacé **en tête** des tableaux (règles mobiles par position décalées d'une
+  colonne, œil masqué sur téléphone comme l'ancien lien) ; corrigé au passage un double échappement
+  de l'adresse du lien (page Classements). Pilote sans avatar : **pastille de couleur unie** (teinte
+  stable tirée du repère, `lib/driverHue.ts`, même calcul que `site.js`) — les initiales à 16-20 px
+  étaient illisibles ; initiales gardées dans le grand avatar de la fiche. Badges de classe de l'app
+  aux teintes du site en thème clair (`CAR_CLASS_COLORS.light`), pastel inchangé en sombre.
+- ✅ Classe la plus jouée jugée trop lourde côté serveur → **« les couleurs du site pour ne pas
+  charger »** : pastille à la couleur de la **classe affichée** (ligne ou classement ; `driverDotColor`,
+  palette `CAR_CLASS_COLORS` = variables `--c-*` du site), sur la fiche pilote sa classe la plus jouée
+  calculée depuis ses combos déjà chargés (`mainClassOf`) ; repère `#xxxx` en repli (recherche).
+- ✅ Setups « Par circuit » : grand drapeau du bandeau (jugé affreux) remplacé par un drapeau de taille
+  normale devant le nom (le tracé du site est indexé par nom officiel, pas par dossier du jeu).
+- 📋 **Prochaine étape** : commiter et redéployer (le `update.sh` corrigé retirera aussi le bandeau
+  resté affiché) ;
   vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
   jeu un setup mixte enregistré sur un autre circuit.
 

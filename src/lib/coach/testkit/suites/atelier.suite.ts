@@ -21,6 +21,7 @@ import { buildCompareMessages, diffLines, MAX_DIFF_LINES, shownValue } from "@/l
 import { kiloProvider } from "@/lib/ai/providers/free";
 import { diffIds, mixPatches, pickId } from "@/lib/setupMix";
 import { RULES, compareByRules, isNeutralRule, isSetting, measure, ruleFor } from "@/lib/setupCompareRules";
+import { driverDotColor, hueOf, mainClassOf } from "@/lib/driverHue";
 import lab from "@/i18n/lab";
 import fr from "@/i18n/fr";
 import en from "@/i18n/en";
@@ -366,6 +367,21 @@ function compareRules(): void {
   eq(uncovered, [], `les ${REAL_KEYS.length} réglages des vrais fichiers ont tous une règle`);
 }
 
+function driverHue(): void {
+  section("classements — pastille de couleur (pilote sans avatar)");
+  eq(hueOf("#7dd4"), hueOf("#7dd4"), "même repère, même couleur");
+  ok(hueOf("#7dd4") >= 0 && hueOf("#7dd4") < 360, "teinte dans le cercle");
+  ok(new Set(["#0517", "#ac4a", "#7dd4", "#32b1", "#6151"].map(hueOf)).size >= 4, "pilotes différents : couleurs variées");
+  // Même calcul que le site (site.js) : la pastille d'un pilote est la même partout.
+  eq(hueOf("#0517"), [..."#0517"].reduce((h, ch) => (h * 31 + ch.codePointAt(0)!) % 360, 0), "calcul identique au site");
+  eq(driverDotColor("#0517", "Hyper"), "#f87171", "classe connue : couleur de la classe (site)");
+  eq(driverDotColor("#0517", "LMP2 ELMS"), driverDotColor("#ac4a", "LMP2 WEC"), "LMP2 ELMS et WEC : même bleu");
+  eq(driverDotColor("#0517", "Hypercar LMH"), "#f87171", "nom brut du jeu normalisé");
+  eq(driverDotColor("#0517"), `hsl(${hueOf("#0517")} 55% 50%)`, "classe inconnue : couleur du repère");
+  eq(mainClassOf([{ car_class: "GT3" }, { car_class: "Hyper" }, { car_class: "GT3" }]), "GT3", "classe la plus jouée");
+  eq(mainClassOf([]), null, "aucun combo : pas de classe");
+}
+
 export function run(): void {
   notches();
   audit();
@@ -378,5 +394,6 @@ export function run(): void {
   achievements();
   compareAi();
   compareRules();
+  driverHue();
   i18nKeys();
 }

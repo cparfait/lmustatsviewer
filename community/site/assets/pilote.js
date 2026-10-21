@@ -1,6 +1,6 @@
 // Fiche pilote : son rang sur chaque combo, une carte par circuit (même présentation que
 // l'accueil et que la page Classements de l'app). Un pilote anonyme n'a pas de fiche.
-/* global avatarImg, countryFlag, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, flagImg, carImg, classBadge, chrome, dataReady */
+/* global avatarImg, initialsBadge, countryFlag, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, flagImg, carImg, classBadge, chrome, dataReady */
 "use strict";
 
 const RANKED_MIN = 20;
@@ -21,6 +21,9 @@ chrome();
 
 (async () => {
   const tag = new URLSearchParams(location.search).get("tag") || "";
+  // Vos temps (repère « c'est moi ») : demandés en même temps que sa fiche, pas après.
+  const me = getMe();
+  const mineP = me && me !== tag ? api("drivers/profile", { tag: me }).catch(() => null) : Promise.resolve(null);
   let p;
   try {
     [p] = await Promise.all([api("drivers/profile", { tag }), dataReady]);
@@ -32,12 +35,19 @@ chrome();
     $("notice").innerHTML = `<div class="empty"><b>${esc(t("profile.none"))}</b><a href="/classements.html">${esc(t("back"))}</a></div>`;
     return;
   }
+  $("notice").innerHTML = ""; // squelette de chargement retiré
   document.title = `${p.name} — LMU Stats Viewer`;
   $("head").hidden = false;
   $("bar").hidden = false;
   // Avatar Steam s'il l'a choisi, sinon son initiale.
   if (p.avatar) $("avatar").innerHTML = avatarImg(p, "av-lg");
-  else $("avatar").textContent = (p.name || "?").trim().charAt(0).toUpperCase();
+  else {
+    // Sa classe la plus jouée (combos de sa fiche) donne la couleur de la pastille.
+    const n = new Map();
+    for (const c of p.combos) n.set(c.car_class, (n.get(c.car_class) || 0) + 1);
+    const main = [...n.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+    $("avatar").innerHTML = initialsBadge(p, "av-lg", main);
+  }
   $("name").innerHTML = countryFlag(p.country) + esc(p.name) + (p.homonym ? ` <span class="muted" style="font-size:1rem">${esc(p.tag)}</span>` : "");
   $("headTag").textContent = p.tag;
 
@@ -67,8 +77,7 @@ chrome();
   $("tbarCount").textContent = p.combos.length === 1 ? t("home.count1") : t("home.count", { n: fmtNum(p.combos.length) });
 
   // Vous (repère « c'est moi » de ce navigateur) : vos temps sur les mêmes combos, à côté des siens.
-  const me = getMe();
-  const mine = me && !isMe ? await api("drivers/profile", { tag: me }).catch(() => null) : null;
+  const mine = me && !isMe ? await mineP : null;
   const key = (c) => `${c.track}|${c.track_course}|${c.car_class}`;
   const myBy = new Map((mine?.combos ?? []).map((c) => [key(c), c]));
   const vs = !!mine;
@@ -92,8 +101,8 @@ chrome();
     .map(([track, list]) => ({ track, list: list.sort((a, b) => classRank(a.car_class) - classRank(b.car_class) || score(a) - score(b)) }))
     .sort((a, b) => Math.min(...a.list.map(score)) - Math.min(...b.list.map(score)));
 
-  const head = `<colgroup><col class="c-class"><col><col class="c-time"><col class="c-rank"><col class="c-top"><col class="c-where"><col class="c-gap">${vs ? `<col class="c-you"><col class="c-vs">` : ""}<col class="c-go"></colgroup>
-    <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.car"))}</th><th class="perf sep r">${esc(t("col.time"))}</th><th class="perf c">${esc(t("col.rank"))}</th><th class="perf">${esc(t("col.top"))}</th><th class="perf">${esc(t("col.where"))}</th><th class="perf r">${esc(t("col.gapFirst"))}</th>${vs ? `<th class="sep r">${esc(t("profile.you"))}</th><th class="r">${esc(t("profile.vsGap"))}</th>` : ""}<th class="sep"></th></tr></thead>`;
+  const head = `<colgroup><col class="c-go"><col class="c-class"><col><col class="c-time"><col class="c-rank"><col class="c-top"><col class="c-where"><col class="c-gap">${vs ? `<col class="c-you"><col class="c-vs">` : ""}</colgroup>
+    <thead><tr><th class="c">${esc(t("col.detail"))}</th><th>${esc(t("col.class"))}</th><th>${esc(t("col.car"))}</th><th class="perf sep r">${esc(t("col.time"))}</th><th class="perf c">${esc(t("col.rank"))}</th><th class="perf">${esc(t("col.top"))}</th><th class="perf">${esc(t("col.where"))}</th><th class="perf r">${esc(t("col.gapFirst"))}</th>${vs ? `<th class="sep r">${esc(t("profile.you"))}</th><th class="r">${esc(t("profile.vsGap"))}</th>` : ""}</tr></thead>`;
 
   $("groups").innerHTML = groups
     .map(
@@ -109,7 +118,7 @@ chrome();
           const cmpUrl = `${url}&${new URLSearchParams({ cmp: p.tag })}`;
           return `<td class="sep r mono">${fmtTime(m.time)} <span class="muted">${m.rank} / ${fmtNum(m.drivers)}</span></td>
             <td class="r mono"><span class="${g < 0 ? "vs-win" : g > 0 ? "vs-lose" : ""}">${g > 0 ? "+" : g < 0 ? "−" : "±"}${Math.abs(g).toFixed(3)}</span>
-            <a class="go-link vs-cmp" href="${esc(cmpUrl)}">${esc(t("profile.compare"))}</a></td>`;
+            <a class="cmp-link vs-cmp" href="${esc(cmpUrl)}" title="${esc(t("cmp.tip"))}" aria-label="${esc(t("cmp.tip"))}">${ICON_USERS}</a></td>`;
         };
         const renderRow = (c) => {
           const url = `/combo.html?${new URLSearchParams({ track: c.track, course: c.track_course, class: c.car_class })}`;
@@ -121,12 +130,12 @@ chrome();
                <td class="perf"><span class="gauge"><i style="left:${c.drivers <= 1 ? 0 : Math.round(((c.rank - 1) / (c.drivers - 1)) * 100)}%"></i></span></td>
                <td class="perf r mono gap">${c.rank === 1 ? "—" : "+" + c.gap_best.toFixed(3)}</td>`;
           return `<tr class="row-link" data-href="${esc(url)}">
+          <td class="c go-cell">${detailLink(url)}</td>
           <td>${classBadge(c.car_class)}</td>
           <td><div class="car"><span class="logo-slot">${carImg(c.car_model)}</span><span class="car-txt"><span>${esc(c.car_model)}</span></span></div></td>
           <td class="perf sep r best-t mono">${fmtTime(c.time)}</td>
           ${pos}
           ${vs ? vsCells(c, url) : ""}
-          <td class="sep r"><a class="go-link" href="${esc(url)}">${esc(t("home.open"))}</a></td>
         </tr>`;
         };
         return courses

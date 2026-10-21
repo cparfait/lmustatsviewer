@@ -204,7 +204,7 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
       .map((r) => `
       <tr class="${me && r.driver.tag === me ? "is-me" : ""}" data-rank="${r.rank}">
         <td class="pos c">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : r.rank}</td>
-        <td class="marks">${driverMarks(r.driver)}</td>
+        <td class="marks">${driverMarks(r.driver, q.class || r.car_class || "")}</td>
         <td class="drv">${r.driver.name
           ? `<a class="drv-btn" href="/pilote.html?${new URLSearchParams({ tag: r.driver.tag })}" title="${esc(t("profile.open"))}">${driverName(r.driver, false)}</a>`
           : `<button type="button" class="drv-btn" data-tag="${esc(r.driver.tag)}" title="${esc(t("cmp.tip"))}">${driverName(r.driver, false)}</button>`}</td>
@@ -325,7 +325,7 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
         <select data-side="${side}" aria-label="${esc(t("col.driver"))}">${options(side)}</select>
         <div class="cmp-who">
           <span class="cmp-rank">P${r.rank}</span>
-          <div><b>${driverName(r.driver, !!(r.driver.name && (r.driver.country || r.driver.avatar)))}</b><div class="car">${q.class ? "" : classBadge(r.car_class)}${carImg(r.car_model)}<span>${esc(r.car_model)}</span></div></div>
+          <div><b>${driverName(r.driver, !!r.driver.name, q.class || r.car_class || "")}</b><div class="car">${q.class ? "" : classBadge(r.car_class)}${carImg(r.car_model)}<span>${esc(r.car_model)}</span></div></div>
         </div>
         <div class="cmp-time"><span class="mono">${fmtTime(r.time)}</span>${isSlower ? deficit(`+${f3(Math.abs(gap))} s`, true) : ""}</div>
       </div>`;
@@ -461,7 +461,7 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
       $("meCard").innerHTML = `
         <div class="me-card">
           <div class="me-rank">${r.rank}<small style="font-size:.9rem;color:var(--muted)"> / ${fmtNum(lb.drivers)}</small></div>
-          <div class="me-main"><span class="me-k">${esc(t("me.title"))}</span><b>${driverName(r.driver)}</b></div>
+          <div class="me-main"><span class="me-k">${esc(t("me.title"))}</span><b>${driverName(r.driver, true, q.class || r.car_class || "")}</b></div>
           <div class="me-main"><span class="me-k">${esc(t("col.time"))}</span><span class="me-time">${fmtTime(r.time)}</span></div>
           <div class="me-main"><span class="me-k">${esc(t("col.gap"))}</span><span class="me-time">${r.rank === 1 ? "—" : "+" + (r.time - detail.best.time).toFixed(3)}</span></div>
           <div class="me-main"><span class="me-k">${esc(t("me.where"))}</span><span class="me-where"><b class="${st.cls}">${esc(st.label)}</b><span class="gauge"><i style="left:${lb.drivers <= 1 ? 0 : Math.round(((r.rank - 1) / (lb.drivers - 1)) * 100)}%"></i></span></span></div>

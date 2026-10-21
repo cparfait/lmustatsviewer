@@ -38,6 +38,7 @@ import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { References } from "@/routes/References";
 import { CarIndexTab, INSIGHTS_KEY, PatchTab, RivalTab } from "@/routes/ClassementInsights";
 import { AvatarFetch } from "@/components/CommunitySettings";
+import { driverDotColor, mainClassOf } from "@/lib/driverHue";
 
 const RANKED_MIN = 20;
 /** Bloc « performance » teinté + séparateurs, comme les tableaux du tableau de bord. */
@@ -58,9 +59,11 @@ interface RecordHolder {
 
 /**
  * Avatar Steam (si le pilote l'a choisi) et drapeau du pays de son profil du jeu, servis
- * par le site communautaire. Rien pour un pilote anonyme (le serveur ne les renvoie pas).
+ * par le site communautaire ; sans avatar, une pastille à la couleur de la classe affichée
+ * (`cls`, teintes du site ; sinon couleur tirée de son repère). Rien pour un pilote anonyme
+ * (le serveur ne les renvoie pas).
  */
-function DriverMarks({ d }: { d: { country?: string | null; avatar?: string | null } }) {
+function DriverMarks({ d, cls }: { d: { country?: string | null; avatar?: string | null; name?: string | null; tag?: string }; cls?: string | null }) {
   const country = d.country && /^[A-Za-z]{2,3}$/.test(d.country) ? d.country.toLowerCase() : null;
   const avatar = d.avatar && /^[0-9a-f]{40}$/.test(d.avatar) ? d.avatar : null;
   const hide = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -82,7 +85,11 @@ function DriverMarks({ d }: { d: { country?: string | null; avatar?: string | nu
         )}
       </span>
       <span className="inline-flex h-4 w-4">
-        {avatar && <img src={`${SITE}/api/v1/avatar/${avatar}`} alt="" loading="lazy" onError={hide} className="h-4 w-4 rounded-full" />}
+        {avatar ? (
+          <img src={`${SITE}/api/v1/avatar/${avatar}`} alt="" loading="lazy" onError={hide} className="h-4 w-4 rounded-full" />
+        ) : d.name ? (
+          <span aria-hidden="true" className="h-4 w-4 rounded-full" style={{ background: driverDotColor(d.tag || d.name, cls) }} />
+        ) : null}
       </span>
     </span>
   );
@@ -528,7 +535,7 @@ function DriverCompare({
                     <span className={cn("text-2xl font-extrabold", CMP_SIDES[side].text)}>P{r.rank}</span>
                     <span className="min-w-0">
                       <span className="flex items-center text-sm font-bold">
-                        {(r.driver.country || r.driver.avatar) && <DriverMarks d={r.driver} />}
+                        {(r.driver.country || r.driver.avatar || r.driver.name) && <DriverMarks d={r.driver} cls={r.car_class ?? q.class} />}
                         <span className="truncate">{name(r.driver)}</span>
                       </span>
                       <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
@@ -763,7 +770,7 @@ function DriverCombos({
             </div>
             <div className="min-w-0">
               <div className="flex items-center text-sm font-semibold leading-tight">
-                <DriverMarks d={his ?? driver} />
+                <DriverMarks d={his ?? driver} cls={his ? mainClassOf(his.combos) : current.class} />
                 <span className="truncate">{label}</span>
               </div>
               {his && (
@@ -1059,7 +1066,7 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
           <span className="min-w-0">
             <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.meTitle")}</span>
             <span className="flex items-center font-bold">
-              <DriverMarks d={me.driver} />
+              <DriverMarks d={me.driver} cls={me.car_class ?? q.class} />
               <span className="truncate">{name(me.driver)}</span>
             </span>
           </span>
@@ -1129,7 +1136,7 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
                   </td>
                   <td className="px-2 py-1.5">
                     <span className="flex min-w-0 items-center">
-                      <DriverMarks d={r.driver} />
+                      <DriverMarks d={r.driver} cls={r.car_class ?? q.class} />
                       {/* Pseudo : ses combos (profil public) ; anonyme : pas de profil, comparaison directe. */}
                       <button
                         type="button"
@@ -2101,12 +2108,12 @@ function LeaderCell({ row, myTag }: { row: Row; myTag: string | null }) {
         <span className="text-muted-foreground">—</span>
       ) : mine ? (
         <span className="flex items-center font-semibold text-emerald-500">
-          <DriverMarks d={l} />
+          <DriverMarks d={l} cls={row.combo.car_class} />
           {t("leaderboard.recordYou")}
         </span>
       ) : l.name ? (
         <span className="flex min-w-0 items-center font-medium" title={l.homonym ? `${l.name} · ${l.tag}` : l.name}>
-          <DriverMarks d={l} />
+          <DriverMarks d={l} cls={row.combo.car_class} />
           <span className="truncate">
             {l.name}
             {l.homonym && <span className="text-muted-foreground"> · {l.tag}</span>}

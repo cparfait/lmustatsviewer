@@ -453,6 +453,9 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 .kpi b.skeleton { min-width: 64px; }
 .sk-row td { padding: 12px !important; }
 .sk-line { height: 14px; border-radius: 6px; }
+/* Fiche pilote : squelette affiché entre le clic et l'arrivée des données. */
+.pf-sk { display: grid; gap: 12px; padding: 8px 0 24px; }
+.pf-sk .sk-head { height: 120px; border-radius: 14px; }
 
 /* Apparition douce des cartes (désactivée si l'utilisateur réduit les animations). */
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -599,7 +602,7 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 .cg-drivers { margin-left: auto; flex: none; font-size: .74rem; font-weight: 600; opacity: .85; }
 .cg-table { table-layout: fixed; min-width: 1270px; font-size: .82rem; }
 .cg-table col.c-class { width: 112px; } .cg-table col.c-pilot { width: 210px; } .cg-table col.c-time { width: 120px; } .cg-table col.c-drv { width: 90px; }
-.cg-table col.c-sec { width: 78px; } .cg-table col.c-pop { width: 190px; } .cg-table col.c-ver { width: 90px; } .cg-table col.c-go { width: 130px; }
+.cg-table col.c-sec { width: 78px; } .cg-table col.c-pop { width: 190px; } .cg-table col.c-ver { width: 90px; } .cg-table col.c-go { width: 76px; }
 .cg-table th { padding: 5px 10px; font-size: .64rem; overflow: hidden; text-overflow: ellipsis; }
 .cg-table td { padding: 5px 10px; }
 .cg-table .r { text-align: right; } .cg-table .c { text-align: center; }
@@ -723,7 +726,7 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
 .profile-me { margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .85rem; }
 .pf-table { min-width: 1000px; }
 .pf-table col.c-rank { width: 110px; } .pf-table col.c-top { width: 130px; } .pf-table col.c-where { width: 180px; }
-.pf-table col.c-gap { width: 110px; } .pf-table col.c-go { width: 120px; }
+.pf-table col.c-gap { width: 110px; } .pf-table col.c-go { width: 76px; }
 /* Jauge « où il se situe » : du plus rapide (vert) au plus lent (rouge), repère = sa place. */
 .gauge { position: relative; display: block; width: 144px; height: 8px; border-radius: 99px; background: linear-gradient(90deg, #10b981, #facc15, #ef4444); opacity: .9; }
 .gauge i { position: absolute; top: -6px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.6); }
@@ -795,18 +798,20 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
   .cg-table td.perf + td.perf { justify-content: flex-start; }
   /* Accueil : classe | pilote du record / voiture | temps | pilotes. */
   .cg-table:not(.pf-table) tr.row-link { grid-template-columns: 92px minmax(0, 1fr) 84px 46px; grid-template-areas: "cls pilot time drv" "cls car time drv"; }
-  .cg-table:not(.pf-table) td:nth-child(1) { grid-area: cls; }
-  .cg-table:not(.pf-table) td:nth-child(2) { grid-area: pilot; padding-bottom: 0; }
-  .cg-table:not(.pf-table) td:nth-child(3) { grid-area: car; padding-top: 0; font-size: .76rem; color: var(--muted); }
-  .cg-table:not(.pf-table) td:nth-child(3) .car-txt span { font-weight: 500; }
-  .cg-table:not(.pf-table) td:nth-child(4) { grid-area: time; }
-  .cg-table:not(.pf-table) td:nth-child(8) { grid-area: drv; padding-left: 4px; }
-  .cg-table:not(.pf-table) td:nth-child(n+5):not(:nth-child(8)) { display: none; }
+  /* 1ʳᵉ colonne = œil « Détail » : masquée (toute la ligne ouvre le classement). */
+  .cg-table td.go-cell { display: none; }
+  .cg-table:not(.pf-table) td:nth-child(2) { grid-area: cls; }
+  .cg-table:not(.pf-table) td:nth-child(3) { grid-area: pilot; padding-bottom: 0; }
+  .cg-table:not(.pf-table) td:nth-child(4) { grid-area: car; padding-top: 0; font-size: .76rem; color: var(--muted); }
+  .cg-table:not(.pf-table) td:nth-child(4) .car-txt span { font-weight: 500; }
+  .cg-table:not(.pf-table) td:nth-child(5) { grid-area: time; }
+  .cg-table:not(.pf-table) td:nth-child(9) { grid-area: drv; padding-left: 4px; }
+  .cg-table:not(.pf-table) td:nth-child(n+6):not(:nth-child(9)) { display: none; }
   .cg-table:not(.pf-table) .logo-slot, .cg-table:not(.pf-table) .logo-slot img.brand-img { width: 14px !important; height: 14px !important; }
   /* Fiche pilote : classe | voiture | temps | position. */
   .pf-table tr.row-link { grid-template-columns: 92px minmax(0, 1fr) 84px 64px; }
-  .pf-table td:nth-child(n+5) { display: none; }
-  .pf-table td:nth-child(4) { padding-left: 4px; }
+  .pf-table td:nth-child(n+6) { display: none; }
+  .pf-table td:nth-child(5) { padding-left: 4px; }
 
   /* Vue Liste : circuit, classe, temps, pilote, pilotes (voiture et version sur la page du classement). */
   .lb-list th:nth-child(5), .lb-list td:nth-child(5), .lb-list th:nth-child(7), .lb-list td:nth-child(7), .lb-list th:nth-child(8), .lb-list td:nth-child(8) { display: none; }
@@ -832,6 +837,11 @@ h1 .cflag { width: 28px; height: 21px; margin-right: 10px; border-radius: 3px; v
 .avatar .av-lg { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .profile-id .avatar:has(.av-lg) { background: none; overflow: hidden; }
 .dsearch-list .av { width: 18px; height: 18px; }
+/* Pilote sans avatar : pastille de couleur (initiales dans le grand avatar de la fiche). */
+.av-ini { display: inline-grid; place-items: center; color: #fff; font-size: .55rem; font-weight: 800; line-height: 1; letter-spacing: .02em; }
+.avatar .av-ini.av-lg { display: grid; font-size: 1.45rem; }
+.av-ini.dot-hyper { background: var(--c-hyper); } .av-ini.dot-lmp2 { background: var(--c-lmp2); } .av-ini.dot-lmp3 { background: var(--c-lmp3); }
+.av-ini.dot-gt3 { background: var(--c-gt3); } .av-ini.dot-gte { background: var(--c-gte); }
 
 /* Colonne / emplacement fixe drapeau puis avatar : noms alignés quel que soit le pilote. */
 .dmarks { display: inline-flex; align-items: center; gap: 5px; width: 45px; margin-right: 6px; vertical-align: middle; flex: none; }
@@ -942,4 +952,10 @@ body.cmp-open { overflow: hidden; }
 .tbar-vs { margin-left: auto; font-size: .82rem; }
 .vs-win { color: #16a34a; font-weight: 700; }
 .vs-lose { color: #dc2626; font-weight: 700; }
-.vs-cmp { margin-left: .6rem; }
+.vs-cmp { margin-left: .5rem; }
+/* Œil « Détail » et icône « Comparer » : même rendu que dans l'app. */
+.eye-link, .cmp-link { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; vertical-align: middle; transition: background .15s, color .15s; }
+.eye-link { background: color-mix(in srgb, var(--amber) 14%, transparent); color: var(--amber-ink); }
+.eye-link:hover, .cmp-link:hover { background: var(--amber); color: #fff; }
+.cmp-link { color: var(--muted); }
+.eye-link:focus-visible, .cmp-link:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }

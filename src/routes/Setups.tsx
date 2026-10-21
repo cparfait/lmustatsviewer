@@ -416,14 +416,15 @@ function ComboCard({
   );
 }
 
-/** Bandeau de la sélection : visuel, nom, compteurs. */
-function Hero({ visual, title, badge, setups, other, otherKey }: { visual: ReactNode; title: string; badge?: ReactNode; setups: number; other: number; otherKey: string }) {
+/** Bandeau de la sélection : repère devant le nom (drapeau), nom, compteurs, visuel à droite. */
+function Hero({ visual, lead, title, badge, setups, other, otherKey }: { visual?: ReactNode; lead?: ReactNode; title: string; badge?: ReactNode; setups: number; other: number; otherKey: string }) {
   const { t } = useTranslation();
   return (
     <Card className="overflow-hidden">
       <CardContent className="flex items-center gap-4 p-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
+            {lead}
             <h2 className="truncate text-lg font-bold">{title}</h2>
             {badge}
           </div>
@@ -1112,7 +1113,7 @@ function CircuitView({
               setups={total}
               other={cars.length}
               otherKey="setups.countCars"
-              visual={<TrackFlag track={activeCircuit} className="h-10 w-auto shrink-0 rounded shadow-sm" />}
+              lead={<TrackFlag track={activeCircuit} className="h-4 w-auto shrink-0 rounded-[2px] ring-1 ring-black/10" />}
             />
           )}
           {cars.length === 0 ? (

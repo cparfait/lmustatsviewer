@@ -187,19 +187,19 @@ syncSegs();
               ? `<span class="pop"><i class="pop-bar"><i class="pend" style="width:${Math.round((c.drivers / RANKED_MIN) * 100)}%"></i></i><span class="muted">${esc(t("home.pending", { n: c.drivers }))}</span></span>`
               : `<span class="pop"><i class="pop-bar"><i class="cc-${classKey(c.car_class)}" style="width:${Math.max(4, Math.round((c.drivers / classMax.get(c.car_class)) * 100))}%"></i></i></span>`;
             return `<tr class="row-link${prov ? " is-prov" : ""}" data-href="${url}">
+            <td class="c go-cell">${detailLink(comboUrl(c))}</td>
             <td>${classBadge(c.car_class)}</td>
-            <td class="pilot">${c.best_driver ? driverName(c.best_driver) : "—"}</td>
+            <td class="pilot">${c.best_driver ? driverName(c.best_driver, true, c.car_class) : "—"}</td>
             <td><div class="car"><span class="logo-slot">${carImg(c.best_car)}</span><span class="car-txt"><span>${esc(c.best_car)}</span>${!sub && c.track_course !== c.track ? `<small class="muted">${esc(c.track_course)}</small>` : ""}</span></div></td>
             <td class="perf sep r best-t mono">${fmtTime(c.best)}</td>
             ${SECTORS.map((k) => `<td class="perf r mono sec${c[k] != null && c[k] === c[`best_${k}`] ? " pb" : ""}">${c[k] != null ? c[k].toFixed(3) : "—"}</td>`).join("")}
             <td class="perf c mono" title="${esc(`${fmtNum(c.drivers)} ${driversWord(c.drivers)}`)}"><span class="drv-n">${PERSON_SVG}<b>${fmtNum(c.drivers)}</b></span></td>
             <td class="perf">${pop}</td>
             <td class="sep c"><span class="ver">v${esc(c.version)}</span></td>
-            <td class="r"><a class="go-link" href="${url}">${esc(t("home.open"))}</a></td>
           </tr>`;
     };
-    const head = `<colgroup><col class="c-class"><col class="c-pilot"><col><col class="c-time"><col class="c-sec"><col class="c-sec"><col class="c-sec"><col class="c-drv"><col class="c-pop"><col class="c-ver"><col class="c-go"></colgroup>
-      <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.recordDriver"))}</th><th>${esc(t("col.recordCar"))}</th><th class="perf sep r">${esc(t("kpi.best"))}</th><th class="perf r">S1</th><th class="perf r">S2</th><th class="perf r">S3</th><th class="perf c">${esc(t("stat.drivers"))}</th><th class="perf">${esc(t("col.pop"))}</th><th class="sep c">${esc(t("col.version"))}</th><th></th></tr></thead>`;
+    const head = `<colgroup><col class="c-go"><col class="c-class"><col class="c-pilot"><col><col class="c-time"><col class="c-sec"><col class="c-sec"><col class="c-sec"><col class="c-drv"><col class="c-pop"><col class="c-ver"></colgroup>
+      <thead><tr><th class="c">${esc(t("col.detail"))}</th><th>${esc(t("col.class"))}</th><th>${esc(t("col.recordDriver"))}</th><th>${esc(t("col.recordCar"))}</th><th class="perf sep r">${esc(t("kpi.best"))}</th><th class="perf r">S1</th><th class="perf r">S2</th><th class="perf r">S3</th><th class="perf c">${esc(t("stat.drivers"))}</th><th class="perf">${esc(t("col.pop"))}</th><th class="sep c">${esc(t("col.version"))}</th></tr></thead>`;
     return groups
       .map((g) => {
         const open = !collapsed.has(g.track);
@@ -227,7 +227,7 @@ syncSegs();
           <td><a class="combo-cell" href="${esc(comboUrl(c))}">${flagImg(c.track)}<span><b>${esc(c.track_course)}</b>${c.track !== c.track_course ? `<small class="muted">${esc(c.track)}</small>` : ""}</span></a></td>
           <td>${classBadge(c.car_class)}</td>
           <td class="t best-t">${fmtTime(c.best)}</td>
-          <td class="pilot">${c.best_driver ? driverName(c.best_driver) : "—"}</td>
+          <td class="pilot">${c.best_driver ? driverName(c.best_driver, true, c.car_class) : "—"}</td>
           <td><div class="car">${carImg(c.best_car)}<span>${esc(c.best_car)}</span></div></td>
           <td>${driversCell(c.drivers)}</td>
           <td><span class="ver">v${esc(c.version)}</span></td>

@@ -1073,6 +1073,10 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   Croix « retirer le filtre » essayée puis **retirée** à la demande (le menu suffit). `?v=63`.
   Champs de filtre jugés « trop hauts » : 36 → **32 px** (`FilterField` h-8, site padding 5 px), boutons
   voisins (« Réinitialiser », « Mes combos ») alignés à 32 px (Sessions, Dashboard, Télémétrie, Classements).
+- ✅ Commit `e4af8ac` (filtres style A, bouton « i »), **pas encore déployé** (6 onglets de terminal
+  de déploiement restés ouverts bloquent le lancement d'un nouveau). Puis, page Classements : bouton
+  « Partager mes tours » masqué quand le site connaît le pilote (repère « c'est moi ») — seul « Ma fiche
+  pilote » reste ; `?v=64`. Vu en local.
 - 📋 **Prochaine étape** : commiter et redéployer ce lot ;
   vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
   jeu un setup mixte enregistré sur un autre circuit.

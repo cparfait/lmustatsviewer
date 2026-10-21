@@ -37,6 +37,9 @@ const me = getMe();
 if (me) {
   $("meLink").href = `/pilote.html?tag=${encodeURIComponent(me)}`;
   $("meLink").hidden = false;
+  // Le site vous connaît (lien depuis l'app, ou « C'est moi ») : vous partagez déjà vos tours,
+  // l'invitation à le faire n'a plus lieu d'être.
+  $("shareLink").hidden = true;
 }
 
 // Vue et tri retenus dans ce navigateur ; affichés dès le chargement.

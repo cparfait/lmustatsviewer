@@ -1,6 +1,6 @@
 // Fiche pilote : son rang sur chaque combo, une carte par circuit (même présentation que
 // l'accueil et que la page Classements de l'app). Un pilote anonyme n'a pas de fiche.
-/* global avatarImg, initialsBadge, countryFlag, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, flagImg, carImg, classBadge, chrome, dataReady */
+/* global toggleInlineBoard, avatarImg, initialsBadge, countryFlag, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, flagImg, carImg, classBadge, chrome, dataReady */
 "use strict";
 
 const RANKED_MIN = 20;
@@ -149,6 +149,6 @@ chrome();
   // Toute la ligne ouvre le classement du combo (le lien reste le lien accessible).
   $("groups").addEventListener("click", (e) => {
     const tr = e.target.closest("tr.row-link");
-    if (tr && !e.target.closest("a")) location.href = tr.dataset.href;
+    if (tr && !e.target.closest("a")) toggleInlineBoard(tr);
   });
 })();

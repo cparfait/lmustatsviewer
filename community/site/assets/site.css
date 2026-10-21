@@ -959,3 +959,27 @@ body.cmp-open { overflow: hidden; }
 .eye-link:hover, .cmp-link:hover { background: var(--amber); color: #fff; }
 .cmp-link { color: var(--muted); }
 .eye-link:focus-visible, .cmp-link:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* Ligne d'un combo ouvert remplacée par la vôtre (page Classements). */
+.cg-table tr.row-self td { font-weight: 700; }
+.cg-table .self-gap { display: block; font-size: .7rem; font-weight: 600; }
+.pin-tag { display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 4px; background: var(--amber); color: #fff; font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; vertical-align: 1px; }
+/* Classement ouvert sur place sous une ligne de combo (page Classements, fiche pilote). */
+.cg-table tr.row-open td { background: color-mix(in srgb, var(--amber) 10%, transparent) !important; }
+.lb tr.cg-detail > td { padding: 0 !important; background: var(--bg-2, var(--surface)) !important; }
+.cg-detail-in { display: grid; gap: 10px; padding: 14px 16px 16px; border-left: 3px solid var(--amber); }
+.cg-detail-in .cgd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .9rem; }
+.cg-detail-in .cgd-sub { font-size: .76rem; font-weight: 400; }
+.cg-detail-in .cgd-more { text-align: center; }
+.cg-detail-in .lb-dense { table-layout: auto; min-width: 900px; }
+@media (max-width: 760px) {
+  .cg-table tr.cg-detail, .cg-table tr.cg-detail > td { display: block; }
+  .cg-table .cg-detail-in table { display: table; }
+  .cg-table .cg-detail-in thead { display: table-header-group; }
+  .cg-table .cg-detail-in tbody { display: table-row-group; }
+  .cg-table .cg-detail-in tr { display: table-row; }
+  /* !important : les règles par position des cartes (plus spécifiques) ne s'y appliquent pas. */
+  .cg-table .cg-detail-in td, .cg-table .cg-detail-in th { display: table-cell !important; padding: 5px 6px; grid-area: auto; }
+  .cg-detail-in .lb-dense { min-width: 0; }
+  .cg-table .cg-detail-in .lb-dense th.cmp-col, .cg-table .cg-detail-in .lb-dense td.cmp-cell { display: none !important; }
+}

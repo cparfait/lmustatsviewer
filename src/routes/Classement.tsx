@@ -970,7 +970,23 @@ function RemoteCompare({
  * des temps en dessous. Sans classe (`q.class` absent) : tous les pilotes de toutes les
  * classes du circuit, colonne Classe en plus.
  */
-function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; myBest: number | null; myRank: number | null; myTag?: string | null }) {
+/** Vous, tel qu'affiché dans un classement (nom, repère, pays, avatar). */
+type SelfDriver = { name?: string | null; tag?: string; country?: string | null; avatar?: string | null };
+
+function ComboDetail({
+  q,
+  myBest,
+  myRank,
+  myTag,
+  onMe,
+}: {
+  q: Record<string, string>;
+  myBest: number | null;
+  myRank: number | null;
+  myTag?: string | null;
+  /** Votre ligne trouvée dans le classement : la ligne du combo l'affiche à la place du record. */
+  onMe?: (d: SelfDriver) => void;
+}) {
   const { t, i18n } = useTranslation();
   const playerName = useAppStore((s) => s.playerName);
   const [detail, setDetail] = useState<CommunityDetail | null>(null);
@@ -1019,6 +1035,13 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
     : all;
   const list: (LbRow | null)[] | null = lb === null ? null : cls ? rows : lb;
   const me = rows.find(isMe) ?? null;
+  // Votre identité (avatar, pays) remontée à la ligne du combo, qui l'affiche à la place du record.
+  const meTagFound = me?.driver.tag;
+  useEffect(() => {
+    if (me && onMe) onMe(me.driver);
+    // Une fois par pilote trouvé (l'objet `me` est recréé à chaque rendu).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meTagFound]);
   const best = rows[0]?.time ?? null;
   // Meilleur secteur du classement (violet), comme sur le site.
   const bestSec = (k: "s1" | "s2" | "s3") => {
@@ -1488,6 +1511,9 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [offline, setOffline] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  /** Vous, tel que vu dans un classement ouvert (avatar compris) ; remplace le pilote du record. */
+  const [myDriver, setMyDriver] = useState<SelfDriver | null>(null);
+  const playerName = useAppStore((s) => s.playerName);
   /** Circuit dont le classement toutes classes est ouvert (clic sur son nom). */
   const [openTrack, setOpenTrack] = useState<string | null>(null);
   // Combo (ou circuit toutes classes) ouvert : sa ligne remonte en haut de l'écran, sous
@@ -1602,6 +1628,8 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   const placed = (rows ?? []).filter((r) => r.pos);
   const ranked = placed.filter((r) => r.pos!.drivers >= RANKED_MIN);
   const myTag = status?.registered ? status.tag : null;
+  // Avant que le classement ouvert ne vous ait trouvé : votre nom et votre pays.
+  const selfFallback: SelfDriver = { name: playerName, tag: myTag ?? undefined, country: status?.nationality ?? null };
   // Place réelle, de 0 (1er) à 1 (dernier) : le « top % » ne compare pas (1er sur 1 = top 100 %).
   const place = (r: Row) => gaugePct(r.pos!.rank, r.pos!.drivers) / 100;
   // Meilleur classement : meilleure place, puis le plus disputé (un record à 10 pilotes > à 1).
@@ -2001,7 +2029,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                               <ClassBadge carClass={r.combo.car_class} size="sm" />
                             </TableCell>
                             {/* Pilote du record en début de ligne, comme sur le site. */}
-                            <LeaderCell row={r} myTag={myTag} />
+                            <LeaderCell row={r} myTag={myTag} self={isOpen && r.pos ? (myDriver ?? selfFallback) : null} />
                             <TableCell className="px-2 py-1.5">
                               <div className="flex items-center gap-2">
                                 <CarLogo carName={r.combo.car_model} className="h-3.5 w-auto shrink-0 object-contain opacity-80" />
@@ -2079,7 +2107,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                                 colSpan={showOhne ? 11 : 10}
                                 className="border-b-2 border-primary/50 p-0 shadow-[inset_5px_0_0_var(--color-primary)]"
                               >
-                                <ComboDetail q={r.q} myBest={r.other ? null : r.combo.best} myRank={r.pos?.rank ?? null} myTag={myTag} />
+                                <ComboDetail q={r.q} myBest={r.other ? null : r.combo.best} myRank={r.pos?.rank ?? null} myTag={myTag} onMe={setMyDriver} />
                               </TableCell>
                             </TableRow>
                           )}
@@ -2097,14 +2125,23 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
   );
 }
 
-/** Pilote du record du combo : « Vous » si c'est le joueur, sinon son nom (ou son repère s'il est anonyme). */
-function LeaderCell({ row, myTag }: { row: Row; myTag: string | null }) {
+/**
+ * Pilote du record du combo : « Vous » si c'est le joueur, sinon son nom (ou son repère s'il est
+ * anonyme). Combo ouvert (`self`) : votre ligne à la place — le 1er est déjà en tête du classement.
+ */
+function LeaderCell({ row, myTag, self }: { row: Row; myTag: string | null; self?: SelfDriver | null }) {
   const { t } = useTranslation();
   const l = row.leader;
   const mine = !!l && !!myTag && l.tag === myTag;
   return (
     <TableCell className="px-2 py-1.5">
-      {!l ? (
+      {self ? (
+        <span className="flex min-w-0 items-center font-bold">
+          <DriverMarks d={self} cls={row.combo.car_class} />
+          <span className="truncate">{self.name}</span>
+          <span className="ml-1.5 shrink-0 rounded bg-primary px-1 py-px text-[9px] uppercase tracking-wide text-primary-foreground">{t("leaderboard.you")}</span>
+        </span>
+      ) : !l ? (
         <span className="text-muted-foreground">—</span>
       ) : mine ? (
         <span className="flex items-center font-semibold text-emerald-500">

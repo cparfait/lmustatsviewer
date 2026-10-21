@@ -1,7 +1,7 @@
 // Accueil du site communautaire : chiffres, puis tous les classements d'un coup d'œil.
 // Vue « Par circuit » (une carte repliable par circuit, une ligne par classement — même
 // présentation que la page Classements de l'app) ou vue « Liste » (tableau unique).
-/* global carImg, driverName, driversWord, t, esc, api, fmtTime, fmtNum, flagImg, classBadge, classKey, chrome, dataReady, filterBar, bindFilterBar, getMe */
+/* global toggleInlineBoard, carImg, driverName, driversWord, t, esc, api, fmtTime, fmtNum, flagImg, classBadge, classKey, chrome, dataReady, filterBar, bindFilterBar, getMe */
 "use strict";
 
 const RANKED_MIN = 20;
@@ -249,8 +249,9 @@ syncSegs();
       render();
       return;
     }
+    // Clic sur la ligne : le classement s'ouvre sur place (l'œil mène à la page complète).
     const tr = e.target.closest("tr.row-link");
-    if (tr && !e.target.closest("a")) location.href = tr.dataset.href;
+    if (tr && !e.target.closest("a")) toggleInlineBoard(tr);
   });
   render();
 })();

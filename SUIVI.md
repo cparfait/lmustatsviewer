@@ -1016,8 +1016,23 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   calculée depuis ses combos déjà chargés (`mainClassOf`) ; repère `#xxxx` en repli (recherche).
 - ✅ Setups « Par circuit » : grand drapeau du bandeau (jugé affreux) remplacé par un drapeau de taille
   normale devant le nom (le tracé du site est indexé par nom officiel, pas par dossier du jeu).
-- 📋 **Prochaine étape** : commiter et redéployer (le `update.sh` corrigé retirera aussi le bandeau
-  resté affiché) ;
+- ✅ Déployé `3d934ed` (2ᵉ essai : 1ᵉʳ refusé, mot de passe tapé trop tard) : bandeau de maintenance
+  **retiré** par le `update.sh` corrigé (`/status` → `maintenance: null`).
+- ✅ « Clic sur une ligne : s'ouvre comme dans l'app, avec le titre, et notre ligne en tête » (app et
+  site, choix confirmé) : **ligne « vous » épinglée** avant le P1 (place / effectif, temps, écart au
+  1er au tour et par secteur, vert/rouge) — app (`ComboDetail`, carte « Votre position » gardée),
+  site (`pinnedRowHtml`, page d'un combo). **Site** : clic sur une ligne (page Classements, fiche
+  pilote) → classement **ouvert sur place** (`toggleInlineBoard` : titre, ligne épinglée, 50
+  premiers, « Voir les N pilotes »), rendu de ligne partagé (`lbRowHtml`) ; l'œil mène toujours à
+  la page. Mobile : tableau intérieur protégé des règles par position des cartes ; `?v=54`. Vu en
+  local (bureau + mobile) ; **app pas revue à l'écran**.
+- 🔁 **Corrigé à la demande** (« pas la mettre au-dessus du 1er ; sans la ligne en double du 1er,
+  notre ligne à la place ») : plus de ligne épinglée dans le tableau (app, site, page d'un combo) ;
+  à l'ouverture, la **ligne du combo** devient la vôtre — app : `LeaderCell` reçoit `self` (identité
+  remontée du classement ouvert par `onMe`, repli nom + pays), voiture / temps / écart / place y
+  étaient déjà ; site : `showSelfInRow` (pilote, voiture, temps + écart, écarts par secteur, place),
+  ligne d'origine rendue à la fermeture. Vu dans l'app et sur le site en local.
+- 📋 **Prochaine étape** : commiter et redéployer ce lot ;
   vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
   jeu un setup mixte enregistré sur un autre circuit.
 

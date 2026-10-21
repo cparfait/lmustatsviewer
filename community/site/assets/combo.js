@@ -1,5 +1,5 @@
 // Page combo circuit × classe : répartition, position d'un temps, classement, par voiture.
-/* global driverMarks, driversWord, classKey, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, fmtDate, flagImg, carImg, classBadge, trackSvg, chrome, dataReady, driverName, filterBar, bindFilterBar */
+/* global lbRowHtml, driverMarks, driversWord, classKey, getMe, setMe, standing, t, esc, api, fmtTime, fmtNum, fmtDate, flagImg, carImg, classBadge, trackSvg, chrome, dataReady, driverName, filterBar, bindFilterBar */
 "use strict";
 
 const RANKED_MIN = 20;
@@ -200,23 +200,8 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
     rows.push(...lb.rows);
     for (const r of rows) ["s1", "s2", "s3"].forEach((k, i) => { if (r[k] != null && r[k] < bestS[i]) bestS[i] = r[k]; });
     offset += lb.rows.length;
-    $("lbBody").innerHTML = rows
-      .map((r) => `
-      <tr class="${me && r.driver.tag === me ? "is-me" : ""}" data-rank="${r.rank}">
-        <td class="pos c">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : r.rank}</td>
-        <td class="marks">${driverMarks(r.driver, q.class || r.car_class || "")}</td>
-        <td class="drv">${r.driver.name
-          ? `<a class="drv-btn" href="/pilote.html?${new URLSearchParams({ tag: r.driver.tag })}" title="${esc(t("profile.open"))}">${driverName(r.driver, false)}</a>`
-          : `<button type="button" class="drv-btn" data-tag="${esc(r.driver.tag)}" title="${esc(t("cmp.tip"))}">${driverName(r.driver, false)}</button>`}</td>
-        <td class="cmp-cell c"><button type="button" class="drv-btn cmp-btn" data-tag="${esc(r.driver.tag)}" title="${esc(t("cmp.tip"))}" aria-label="${esc(t("cmp.tip"))}"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button></td>
-        <td><div class="car">${q.class ? "" : classBadge(r.car_class)}<span class="logo-slot">${carImg(r.car_model)}</span><span>${esc(r.car_model)}</span></div></td>
-        <td class="t perf sep r">${fmtTime(r.time)}</td>
-        <td class="gap perf r">${r.rank === 1 ? "—" : "+" + (r.time - detail.best.time).toFixed(3)}</td>
-        ${["s1", "s2", "s3"].map((k, i) => `<td class="sec perf r ${r[k] != null && r[k] === bestS[i] ? "pb" : ""}">${r[k] != null ? r[k].toFixed(3) : "—"}</td>`).join("")}
-        <td class="sep c"><span class="ver">${esc(r.game_version)}</span></td>
-        <td class="muted r">${esc(fmtDate(r.played_on))}</td>
-      </tr>`)
-      .join("");
+    const ctx = { q, me, bestTime: detail.best.time, bestS };
+    $("lbBody").innerHTML = rows.map((r) => lbRowHtml(r, ctx)).join("");
     $("more").hidden = offset >= lb.matches;
   }
   $("more").addEventListener("click", () => loadMore());

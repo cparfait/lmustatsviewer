@@ -25,6 +25,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppStore } from "@/stores/app";
 import { queries, records } from "@/lib/api";
+import { AchievementsSection } from "@/components/AchievementsSection";
 import { formatTime, chartTooltipStyle, cn } from "@/lib/utils";
 import { ClassBadge } from "@/components/ClassBadge";
 import { classChartColor } from "@/lib/staticData";
@@ -630,6 +631,19 @@ export function Profile() {
         </section>
       )}
 
+      {/* Succès (Atelier, opt-in) : calculés depuis la base locale. */}
+      <AchievementsSection
+        totalLaps={stats.totalLaps}
+        totalLapsValid={stats.totalLapsValid}
+        drivingHours={stats.drivingHours}
+        distanceKm={stats.distanceKm}
+        races={stats.races}
+        podiums={stats.podiums}
+        wins={stats.wins}
+        onlineWins={stats.onlineWins}
+        records={recordOverview}
+        activity={raceActivity}
+      />
     </div>
   );
 }

@@ -607,6 +607,8 @@ export interface LiveWheel {
    * `> 0` = patinage, `< 0` = blocage, `~0` = roulement propre. `0` à l'arrêt.
    */
   slip_ratio: number;
+  /** Angle de dérive de la roue (degrés, ≥ 0 ; 0 sous 5 m/s). Absent des anciennes captures. */
+  slip_angle?: number;
 }
 
 export interface LiveTelemetry {
@@ -767,6 +769,8 @@ export interface LiveExtended {
   track_limits_per_penalty: number;
   gap_ahead: number;
   gap_behind: number;
+  /** Setup imposé par le serveur (`mIsFixedSetup`), `null`/absent si inconnu. */
+  fixed_setup?: boolean | null;
   stability_control: number;
   auto_shift: number;
   auto_clutch: number;
@@ -1123,7 +1127,59 @@ export const telemetry = {
       lap,
       maxPoints,
     }),
+  /** Atelier : zones ABS/TC, effet du dernier changement d'aide, plateforme par tour. */
+  analyzeLab: (path: string) => invoke<LabTelemetryReport>("analyze_telemetry_lab", { path }),
 };
+
+/** Un tour vu par l'Atelier (`telemetry_lab.rs`). */
+export interface LabLap {
+  lap: number;
+  start: number;
+  duration: number;
+  /** Bouclé et sans passage aux stands. */
+  clean: boolean;
+  in_pits: boolean;
+  abs_s: number | null;
+  tc_s: number | null;
+  front_3rd_max: number | null;
+  rear_3rd_max: number | null;
+  ride_min: [number | null, number | null, number | null, number | null];
+  brake_front_max: number | null;
+  brake_rear_max: number | null;
+  lat_g_max: number | null;
+}
+
+export interface AidZone {
+  aid: "abs" | "tc";
+  from_m: number;
+  to_m: number;
+  laps: number;
+  seconds: number;
+}
+
+export interface AidEffect {
+  laps: number;
+  avg_lap: number | null;
+  avg_active_s: number | null;
+}
+
+export interface LevelChange {
+  aid: "abs" | "tc";
+  at: number;
+  lap: number;
+  from: number;
+  to: number;
+  before: AidEffect;
+  after: AidEffect;
+}
+
+export interface LabTelemetryReport {
+  laps: LabLap[];
+  zones: AidZone[];
+  changes: LevelChange[];
+  has_abs: boolean;
+  has_tc: boolean;
+}
 
 // ─── AI Coach — proxy HTTP générique (`ai`) ─────────────────────────────────
 
@@ -1497,6 +1553,9 @@ export const setups = {
   /** Retourne les setups liés à une session (vue inverse — page Race Details). */
   getForSession: (sessionId: number) =>
     invoke<SetupForSession[]>("get_setups_for_session", { sessionId }),
+  /** Setups en base avec leur instantané, filtrés par voiture / circuit, les plus récents d'abord. */
+  entries: (car?: string | null, circuit?: string | null) =>
+    invoke<SetupEntry[]>("list_setup_entries", { car: car ?? null, circuit: circuit ?? null }),
   /** Résumé d'une session par ID (lookup direct, sans matching). Utilisé pour
    *  afficher les infos de la session liée dans la modale d'édition setup. */
   getSessionSummary: (sessionId: number) =>

@@ -7,8 +7,10 @@ import { Select } from "@/components/ui/select";
 import { isTauri, live, setups as setupsApi, type RestSettingBound, type SetupEntry, type SetupSessionMatch, type SvmFile } from "@/lib/api";
 import { fresh } from "@/lib/lmuRest";
 import { paramLabel } from "@/lib/setupParams";
-import { applyStep, nextVersionName, PHASED, recommend, type Phase, type Recommendation, type Regime, type Symptom } from "@/lib/setupAssistant";
+import { applyStep, nextVersionName, PHASED, recommend, unknownLevers, type Phase, type Recommendation, type Regime, type Symptom } from "@/lib/setupAssistant";
+import { learnForCar, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
 import { usePageState } from "@/lib/usePageState";
+import { UnknownNotchesNote } from "@/components/UnknownNotchesNote";
 import { formatTime } from "@/lib/utils";
 import { toastError, toastSuccess } from "@/stores/dialogs";
 
@@ -34,6 +36,7 @@ export function SetupAssistantPanel({ entry, svm, notes, onNotes }: { entry: Set
   const [phase, setPhase] = usePageState<Phase>("setupAssistant.phase", "entry");
   const [regime, setRegime] = usePageState<Regime>("setupAssistant.regime", "slow");
   const [bounds, setBounds] = useState<RestSettingBound[] | null>(null);
+  const [table, setTable] = useState<NotchTable | undefined>(undefined);
   const [busy, setBusy] = useState(false);
 
   // Limites réelles des réglages, si le jeu tourne avec cette voiture au garage.
@@ -45,7 +48,23 @@ export function SetupAssistantPanel({ entry, svm, notes, onNotes }: { entry: Set
       .catch(() => {});
   }, []);
 
-  const recs = useMemo(() => recommend(svm, symptom, phase, regime, bounds), [svm, symptom, phase, regime, bounds]);
+  // Table des crans de la voiture : retrouve l'index des réglages restés « par
+  // défaut » (le fichier n'en garde que l'affichage), sinon ils seraient ignorés.
+  useEffect(() => {
+    if (!isTauri()) return;
+    let alive = true;
+    void (async () => {
+      const others = await setupsApi.entries(entry.car).catch(() => []);
+      const t = await learnForCar(svm, others.map(svmOfEntry), bounds).catch(() => undefined);
+      if (alive) setTable(t);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [svm, entry.car, bounds]);
+
+  const recs = useMemo(() => recommend(svm, symptom, phase, regime, bounds, 3, table), [svm, symptom, phase, regime, bounds, table]);
+  const unknown = useMemo(() => unknownLevers(svm, table), [svm, table]);
   const symptomLabel = t(`setupAssistant.symptom.${symptom}`) + (PHASED.includes(symptom) ? ` · ${t(`setupAssistant.phase.${phase}`)}` : "") + ` · ${t(`setupAssistant.regime.${regime}`)}`;
 
   const tryLever = async (r: Recommendation) => {
@@ -103,8 +122,9 @@ export function SetupAssistantPanel({ entry, svm, notes, onNotes }: { entry: Set
         />
       </div>
 
+      <UnknownNotchesNote levers={unknown} />
       {recs.length === 0 ? (
-        <p className="text-muted-foreground">{t("setupAssistant.none")}</p>
+        !unknown.length && <p className="text-muted-foreground">{t("setupAssistant.none")}</p>
       ) : (
         <ol className="flex flex-col gap-2">
           {recs.map((r, i) => (
@@ -117,6 +137,7 @@ export function SetupAssistantPanel({ entry, svm, notes, onNotes }: { entry: Set
                 </div>
                 <div className="text-xs text-muted-foreground truncate">
                   {r.values.map((v) => `${paramLabel(v.key)} ${v.index}${v.display ? ` (${v.display})` : ""}${r.max != null ? ` / ${r.max}` : ""}`).join(" · ")}
+                  {r.inferred && <span title={t("setupAssistant.inferredHint")}> · {t("setupAssistant.inferred")}</span>}
                 </div>
               </div>
               {r.atLimit ? (

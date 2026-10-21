@@ -38,6 +38,9 @@ import { usePitLoss } from "@/lib/usePitLoss";
 import { useRacePrep } from "@/lib/racePlan/useRacePrep";
 import { useLiveEvents } from "@/lib/useLiveEvents";
 import { usePitAutoEnergy } from "@/lib/usePitAutoEnergy";
+import { useBoxDebrief } from "@/lib/useBoxDebrief";
+import { useStreamEvents } from "@/lib/raceEvents";
+import { BoxDebriefCard } from "@/components/BoxDebriefCard";
 import { useCoachVoice } from "@/lib/useCoachVoice";
 import { useCornerCoach } from "@/lib/useCornerCoach";
 import { RaceEngineerHost } from "@/components/RaceEngineerHost";
@@ -99,6 +102,10 @@ export default function App() {
   useLiveEvents();
   // Énergie au menu des stands réglée toute seule (opt-in, écritures dans le jeu).
   usePitAutoEnergy();
+  // Bilan au box (Atelier, opt-in) : équilibre du relais + une correction proposée.
+  useBoxDebrief();
+  // Événements de course pour les widgets de stream (Atelier, opt-in).
+  useStreamEvents();
   // Coach IA vocal : raccourci global push-to-talk → question libre → réponse parlée.
   useCoachVoice();
   // Coach par virage : conseils vocaux automatiques en roulage (fenêtre de délivrance).
@@ -159,6 +166,7 @@ export default function App() {
       {/* Ingénieur de course : annonces live actives sur toutes les pages. */}
       <RaceEngineerHost />
       <DialogHost />
+      <BoxDebriefCard />
       {/* Animation de lancement (désactivable dans Configuration → Préférences). */}
       {!isLive && <LaunchIntro />}
       {!isLive && !needsOnboarding && <Header />}

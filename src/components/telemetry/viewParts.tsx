@@ -47,11 +47,14 @@ export function LapRow({
   );
 }
 
+/** Titre de section de la vue télémétrie : couleur primaire pour ressortir. */
+export const SECTION_TITLE = "text-micro font-semibold uppercase tracking-wide text-primary";
+
 export function DashCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Card>
       <CardContent className="p-3">
-        <span className="text-micro uppercase tracking-wide text-muted-foreground">{title}</span>
+        <span className={SECTION_TITLE}>{title}</span>
         <div className="mt-1.5 flex flex-col gap-0.5">{children}</div>
       </CardContent>
     </Card>

@@ -52,6 +52,8 @@ import { usesRadioPrompt } from "@/lib/ai/prompts/radio";
 import { checkVoiceAnswer, repairVoiceAnswer, type GuardReason } from "@/lib/ai/voiceGuard";
 import { lastTrackHistory, trackHistoryBlock } from "@/lib/engineer/trackRecall";
 import { CLARIFY_MAX, THREAD_MS, clarifyStreak, isClarification, sttUnsure, type Exchange } from "@/lib/engineer/askRules";
+import { deliverRadio } from "@/lib/engineer/radioSplit";
+import { FLAG_RADIO_SPLIT, readConfigFlag } from "@/lib/configFlag";
 
 // Phrases radio d'échec (« pas compris », coach indisponible) : variantes
 // « A | B | C » en rotation ; rappels de cause déjà dits (cf. `radioErrorKey`).
@@ -239,9 +241,12 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
 
   // Test sans rouler : sans session en cours, la course d'exemple prend le relais.
   let sample = false;
+  // Réponse longue de l'IA découpée, un morceau par ligne droite (Atelier, opt-in).
+  const split = await readConfigFlag(FLAG_RADIO_SPLIT);
   const say = (text: string, via: AskResult["via"]): AskResult => {
     if (!gone() && text) {
-      announceAnswer(text, lang);
+      if (split && via === "ai") deliverRadio(text, lang, gone);
+      else announceAnswer(text, lang);
       toastSuccess(text);
       void emit("coach-voice", { question: heard, answer: text });
     }

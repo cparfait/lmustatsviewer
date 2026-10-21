@@ -17,6 +17,7 @@ pub mod track_align;
 pub mod overlay;
 pub mod records;
 pub mod telemetry;
+pub mod telemetry_lab;
 pub mod tts;
 pub mod tts_cloud;
 pub mod assets;

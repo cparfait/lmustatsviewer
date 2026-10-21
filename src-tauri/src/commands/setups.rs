@@ -1619,3 +1619,45 @@ pub fn get_setups_for_session(
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|e| AppError::Database(format!("get_setups_for_session collect: {e}")))
 }
+
+/// Setups en base avec leur instantané (`content_json`), filtrés par voiture
+/// et/ou circuit (insensible à la casse), les plus récents d'abord. Sert à
+/// apprendre la table des crans d'une voiture sur tous ses fichiers et à
+/// retrouver le dernier setup roulé sur un combo.
+#[tauri::command]
+pub async fn list_setup_entries(
+    car: Option<String>,
+    circuit: Option<String>,
+    db: State<'_, DbState>,
+) -> Result<Vec<SetupEntry>, AppError> {
+    let conn = get_conn(&db)?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, car, circuit, name, svm_path, content_json, updated_at,
+                    setup_type, linked_session_id, source
+             FROM setups
+             WHERE (?1 IS NULL OR LOWER(car) = LOWER(?1))
+               AND (?2 IS NULL OR LOWER(circuit) = LOWER(?2))
+             ORDER BY updated_at DESC
+             LIMIT 500",
+        )
+        .map_err(|e| AppError::Database(format!("list_setup_entries prepare: {e}")))?;
+    let rows = stmt
+        .query_map(params![car, circuit], |row| {
+            Ok(SetupEntry {
+                id: row.get(0)?,
+                car: row.get(1)?,
+                circuit: row.get(2)?,
+                name: row.get(3)?,
+                svm_path: row.get(4)?,
+                content_json: row.get(5)?,
+                updated_at: row.get(6)?,
+                setup_type: row.get(7)?,
+                linked_session_id: row.get(8)?,
+                source: row.get(9)?,
+            })
+        })
+        .map_err(|e| AppError::Database(format!("list_setup_entries query: {e}")))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| AppError::Database(format!("list_setup_entries collect: {e}")))
+}

@@ -16,6 +16,7 @@ import { cardsContextText, matchCards } from "../knowledge/engineering-cards";
 import { normalize } from "../../engineer/router";
 import { fresh, garageBoundsText } from "../../lmuRest";
 import { buildLiveContext } from "./live-context";
+import { driverStyleContext, fixedSetupContext } from "./lab-context";
 import { formatTime } from "../../utils";
 import type { LiveData } from "../../api";
 
@@ -122,6 +123,9 @@ export async function buildLiveCoachContext(
   question?: string,
 ): Promise<string> {
   let base = buildLiveContext(data);
+  // Atelier (opt-in) : setup imposé par le serveur, style déclaré du pilote.
+  const lab = (await Promise.all([fixedSetupContext(data), driverStyleContext()])).filter(Boolean);
+  if (lab.length) base = [base, ...lab].join("\n\n");
   // Fiches de savoir pertinentes (niveau de confiance explicite).
   if (question) {
     const cards = cardsContextText(matchCards(normalize(question, "en")));

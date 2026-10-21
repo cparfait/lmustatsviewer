@@ -46,6 +46,7 @@ import { buildTrackKnowledgeText } from "@/lib/ai/knowledge/track-knowledge";
 import { getVideoGuide } from "@/lib/ai/knowledge/video-guides";
 import i18nGlobal from "@/i18n";
 import { buildSetupSummary } from "@/lib/ai/context/setup-context";
+import { driverStyleContext } from "@/lib/ai/context/lab-context";
 import { buildTelemetryContext } from "@/lib/ai/context/telemetry-context";
 import {
   buildSessionTelemetryText,
@@ -913,6 +914,17 @@ export function CoachPanel({
 
 /** Coach IA pour le détail d'une session (analyse post-course depuis SQLite). */
 export function AICoachPanel({ detail }: { detail: SessionDetail }) {
+  // Style de pilotage déclaré (Atelier, opt-in) → joint à la mémoire du pilote.
+  const [styleText, setStyleText] = useState("");
+  useEffect(() => {
+    let alive = true;
+    void driverStyleContext()
+      .then((v) => alive && setStyleText(v))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
   // Setup `.svm` lié à la session (Garage) → réglage réel injecté dans le contexte.
   const [setupText, setSetupText] = useState("");
   useEffect(() => {
@@ -1050,13 +1062,13 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
         detail,
         setupText,
         alienText,
-        historyText,
+        [historyText, styleText].filter(Boolean).join("\n\n"),
         knowledgeText,
         telemetryText,
         communityText,
         locate,
       ),
-    [detail, setupText, alienText, historyText, knowledgeText, telemetryText, communityText, locate],
+    [detail, setupText, alienText, historyText, styleText, knowledgeText, telemetryText, communityText, locate],
   );
   // Débrief calculé (sans IA) + défaut qui revient : seule source de ces chiffres pour le coach.
   const debriefText = useMemo(() => {

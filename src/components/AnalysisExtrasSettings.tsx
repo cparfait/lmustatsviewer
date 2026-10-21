@@ -23,7 +23,7 @@ import {
 import { recordBeeps } from "@/lib/radioFx";
 import { MARK_BINDINGS_EVENT, MARK_KEY_KEY, MARK_WHEEL_KEY } from "@/lib/reviewMarks";
 
-function FlagRow({ flag, icon, title, desc, children }: { flag: string; icon: React.ReactNode; title: string; desc: string; children?: React.ReactNode }) {
+export function FlagRow({ flag, icon, title, desc, children }: { flag: string; icon: React.ReactNode; title: string; desc: string; children?: React.ReactNode }) {
   const on = useConfigFlag(flag);
   return (
     <div className="space-y-2 rounded-md border border-border p-3">

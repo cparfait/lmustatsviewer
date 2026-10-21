@@ -270,6 +270,12 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 ## 7. Notes / points ouverts
 
+- ⏳ **Atelier setup (2026-10-21)** : tout est derrière Config › Atelier (désactivé par défaut) et
+  n'a pas roulé en jeu. À valider : `maxValue` de `getPlayerGarageData` = nombre de crans ; octet
+  `mIsFixedSetup` (1980) sur un serveur à setup imposé ; le jeu relit un `.svm` dont l'index change
+  mais pas le commentaire ; signe et ordre de grandeur de `slip_angle` AV/AR (sonde du bilan au box,
+  seuils 1° / 140 km/h) ; rapprochement circuit / voiture du bilan au box (`setups.entries` n'est
+  à jour qu'après un rescan). S12/S5 (partage) non commencé.
 - ⏳ **Fournisseurs IA gratuits (2026-10-21)** : vérifié dans `npm run tauri dev` (OVHcloud et Kilo sans clé, bascule OVHcloud → Kilo en vrai). Clés gratuites Groq / NVIDIA / Z.ai / Cohere / Hugging Face / Ollama Cloud non testées (seuls OVHcloud, Kilo et LLM7 ont répondu à un vrai appel sans clé). Les catalogues gratuits bougent vite (Kilo, LLM7) : revérifier les listes de repli à chaque version. OVHcloud sous charge : jusqu'à 28 s par réponse, plus de 2 min pour une question d'analyse avec Qwen3.8-27B (raisonnement long) → le pilote peut choisir `Mistral-Small-3.2-24B-Instruct-2506` ou `gpt-oss-120b` à la main (défaut gardé : le plus récent, décision du 2026-10-21).
 - ⏳ **Branche `feat/veille-pistes` (2026-10-17)** : 6 commits non fusionnés dans `main`,
   rien poussé. Avant fusion : validation en jeu (`VALIDATION-EN-JEU.md` § Veille) et
@@ -944,6 +950,30 @@ développement lancée par une autre session (`tauri dev --config`, Vite sur 517
 
 📋 **Prochaine étape** : commiter le correctif quand le mainteneur le demande.
 
+### 2026-10-21 — Atelier vérifié à l'écran ; titres de la télémétrie en couleur ; « cran inconnu » expliqué
+
+**Demande** : « lance ta propre instance tauri dev et termine la vérification à l'écran », puis « il faut
+mettre des couleurs aux titres des sections pour les faire ressortir » (vue télémétrie).
+- ✅ **Instance séparée** : `CARGO_TARGET_DIR=D:/lmu_lab_target`, Vite sur 5175, identifiant
+  `com.cparfait.lmustatsviewer.lab` (données dans `%APPDATA%\com.cparfait.lmustatsviewer.lab`, copie
+  cohérente de la base par sauvegarde SQLite). Avec le même identifiant, la 2ᵉ instance restait bloquée
+  après « démarrage » (dossier WebView2/base partagés avec l'instance de l'autre session).
+- ✅ **Vu à l'écran** : Config › Atelier (titre en double retiré, interrupteurs, choix du style), page
+  Setups (liste globale avec recherche/filtre/meilleur tour, aperçu rapide rempli), fiche (valeur du
+  garage, « par défaut », réglages figés repliés, onglets Audit IA / Profils / Planche), vue télémétrie
+  (zones ABS/TC et vigie sur Sebring 7 tours : hauteur mini −87 % / −75 % aux tours 5 et 6), Succès
+  du Profil (11/14). Non vu : bandeau setup imposé et carte du bilan au box (il faut rouler).
+- ✅ **Bug trouvé** : sur un setup sauvé sans modification (Alpine, 11 réglages « par défaut », seul
+  fichier de la voiture), Profils disait « aucun réglage ajustable » et l'audit « 0 réglage ». Nouveau
+  `unknownLevers()` + `UnknownNotchesNote` (assistant, audit, profils) : dit que le cran est inconnu et
+  comment l'apprendre (ouvrir au garage jeu lancé, ou modifier puis sauver). Test ajouté.
+- ✅ **Titres de section de la vue télémétrie** en couleur primaire (`SECTION_TITLE` dans
+  `components/telemetry/viewParts.tsx`, repris par le panneau Atelier) ; groupes des Succès aussi.
+  Changelog 1.0.10 (amélioration, 5 langues).
+- ✅ `tsc -b` propre, `npm test` 6716/6716, eslint propre sur les fichiers touchés.
+- 📋 **Prochaine étape** : rouler pour voir le bilan au box et le bandeau setup imposé ; proposer le
+  commit (fichiers de ce chantier seulement, l'autre session a des modifications en parallèle).
+
 ### 2026-10-21 — Coach IA : bouton « Ajouter un fournisseur gratuit », personnalisé dans le menu, crédit GitHub
 
 **Demandes** : remplacer « Ajouter un fournisseur personnalisé » par « Ajouter un fournisseur
@@ -1043,6 +1073,52 @@ faire la bascule automatique ; question sur les modèles de voix des catalogues 
 
 📋 **Prochaine étape** : ressaisir la clé OpenRouter si besoin ; commiter le chantier IA gratuite.
 
+### 2026-10-21 — Atelier setup, suite : traductions, Config › Atelier, S6–S10, S7/S8, G1–G4, tests (non commité)
+
+**Demande** : « continue le travail sur la section setup » (suite de `REPRISE-ATELIER-SETUP.md`, §4).
+- ✅ **Traductions** : `src/i18n/lab.ts` (un objet par langue typé sur le FR → parité vérifiée à la
+  compilation), fusionné sous `lab.*` dans `index.ts` ; clés ajoutées aux blocs `setups`,
+  `setupDetail`, `setupAssistant` des 5 langues. 202 clés des pages Setups vérifiées.
+- ✅ **Config › Atelier** (`LabSettings.tsx`, catégorie `lab`) : un interrupteur par option, groupes
+  Fiche du setup / Pilote (style + succès) / En piste / Analyse télémétrie / Radio et stream.
+  `FlagRow` exporté d'`AnalysisExtrasSettings.tsx`.
+- ✅ **S9** : bandeau « setup imposé » sur la page Live (`FixedSetupBanner`) ; bloc « Fixed setup »
+  dans le contexte du Coach IA live/vocal (`lab-context.ts`, via `buildLiveCoachContext`).
+- ✅ **S10** : style du pilote dans le contexte live/vocal et post-course (joint à la mémoire du pilote,
+  pas au setup, pour ne pas masquer « setup non lié »).
+- ✅ **S6 bilan au box** : `balanceProbe.ts` (pur : virages repérés par la dérive ≥ 1°, sans géométrie ;
+  phases autour de l'apex ; écart à la médiane du pilote ≥ 1°, même sens sur ≥ 2/3 des tours, ≥ 2 tours ;
+  lent/rapide à 140 km/h) + `useBoxDebrief` (App) + carte `BoxDebriefCard` : à l'entrée aux stands,
+  phrase radio + « Créer la nouvelle version » sur le dernier setup de la voiture sur ce circuit
+  (rapprochement dossier circuit / livrée « contient » + jeton de modèle). Muet si setup imposé.
+- ✅ **S7/S8** : `telemetry_lab.rs` (cœur `analyze` pur + 5 tests, dont un sur un vrai fichier),
+  commande `analyze_telemetry_lab` ; zones ABS/TC (cases de 50 m fusionnées, ≥ 2 tours propres),
+  effet du dernier changement de niveau (2 tours propres avant/après), maxima de plateforme par tour
+  (pics > 6 g = chocs écartés). Vigie TS `platformWatch.ts` (bruit = écart médian au meilleur tour,
+  signalé au-delà de 1,25 × bruit et ≥ 10 %). Panneau `TelemetryLabPanel` dans la vue télémétrie.
+  Sur le fichier Sebring (7 tours) : zones cohérentes avec les freinages.
+- ✅ **G1** : `radioSplit.ts` — réponse IA > 180 caractères coupée aux fins de phrase, un morceau par
+  ligne droite (ou tout de suite à l'arrêt / aux stands, 20 s max), dans `askEngineer`.
+- ✅ **G2** : `raceEvents.ts` (détecteur pur) → évènement `race-event` relayé par `widget_server.rs`.
+- ✅ **G3** : vérifié, pas de bug — le meilleur tour exige chrono + 3 secteurs (les vrais XML ont des
+  tours chronométrés sans secteurs, écartés) ; test Rust `incomplete_or_garage_laps_never_record`.
+- ✅ **G4** : `achievements.ts` (14 succès × 3 paliers, depuis les données déjà chargées par le Profil)
+  + `AchievementsSection` en bas du Profil.
+- ✅ **Tests** : suite `atelier` (crans, bornes REST, audit, profils, lecture setup, sonde, radio,
+  évènements, plateforme, succès, textes) ; `plan.suite` passée à 7 crans. `npm test` 6640/6640,
+  `cargo test --lib` 160/160, `tsc -b` propre, eslint propre sur les fichiers du chantier.
+- ✅ **Changelog** 1.0.10 (dev, 5 langues) : ajout Atelier, amélioration page Setups, correctifs.
+- ⚠️ **Disque C: plein** (260 Mo libres) : l'éditeur de liens échouait (LNK1318). Cache incrémental
+  Rust (`target/debug/incremental`, 6,7 Go) supprimé ; `src-tauri/target` pèse ~113 Go.
+- ⚠️ Une **autre session** travaillait en parallèle dans ce dossier (insights, telemetry_link,
+  fournisseurs IA, `api.ts`, `telemetry.rs`, `changelog.ts`) : commits à séparer par fichier/hunk.
+- ⏳ Non fait : **S12/S5** (partage communautaire : serveur + déploiement VPS par le mainteneur, et
+  `community.rs` en cours d'édition par l'autre session) ; **vérification à l'écran** (`tauri dev`
+  non lancé : disque plein + build concurrent).
+- 📋 **Prochaine étape** : `npx tauri dev`, activer chaque option de Config › Atelier, vérifier
+  Setups + fiche + onglets, la carte du bilan au box en roulant (≥ 2 tours puis stands), la vue
+  télémétrie d'un fichier multi-tours ; puis proposer le commit (fichiers de ce chantier seulement).
+
 ### 2026-10-21 — Coach IA : fournisseurs gratuits ajoutés à la liste (awesome-free-llm-apis)
 
 **Demande** : intégrer la liste github.com/mnfst/awesome-free-llm-apis à la partie IA, étude
@@ -1103,6 +1179,176 @@ la bascule automatique vers un autre fournisseur gratuit sur limite atteinte.
   Changelog 1.0.10 (fixed, 5 langues).
 - 📋 **Prochaine étape** : publier la 1.0.10 et répondre au joueur ; envisager de relever le quota
   serveur pour le premier envoi d'un historique (déploiement serveur, décision à prendre).
+
+### 2026-10-21 — Atelier setup (S1–S12, G1–G4) + refonte de la page Setups : chantier en cours, non commité
+
+**Demande** : « toutes les idées » de la veille TrackMind 0.9.5, puis « profites-en pour améliorer
+la page setup qui est mal faite », puis « consigne tout dans un fichier pour reprendre ».
+- ✅ Écrit (tsc et cargo check propres) : table des crans (S2), correctifs de l'assistant
+  (ailerons jamais proposés, butée = nombre de crans − 1), `mIsFixedSetup` et angle de dérive
+  par roue lus en direct (Rust), style du pilote (S10, sans écran de réglage), audit IA (S1),
+  profils Débutant/Stable/Course/Qualif + Pluie (S3), planche illustrée (S11), refonte de la
+  liste (aperçu rapide qui était toujours vide, recherche, filtre, meilleur tour, suppression
+  sans recharger l'app) et de la fiche (valeur du garage d'abord, réglages figés repliés, +/−
+  qui repartait de 0 sur un réglage « par défaut »).
+- ⏳ Reste : traductions (bloquant), Config › Atelier, S6, S7/S8, S9 côté interface, S12/S5,
+  G1–G4, tests, vérification à l'écran, changelog.
+- 📋 **Prochaine étape** : suivre **`REPRISE-ATELIER-SETUP.md`** (racine), section 4, dans l'ordre.
+
+### 2026-10-20 — Veille TrackMind 0.9.5 (build 287), passe complète 283 → 287 avec REA (aucun code modifié)
+
+**Demande** : « relance l'analyse, il y a eu une mise à jour », puis « regarde aussi tous les ajouts à faire
+au niveau de l'app générale » et « utilise REA pour tout analyser ». Constat : la mise à jour annoncée
+(notes de version 0.9.5 envoyées par l'utilisateur) **est** le build 287 déjà sur le disque ; aucun pack
+plus récent. Le Studio retélécharge son socle (`_download\TrackMind-Setup-0.9.5.exe`, 648 Mo).
+Comparaison statique `pack_283` → `pack_287` : 16 fichiers `.py` nouveaux, ~70 modifiés. Idées seulement,
+aucun nom de concurrent dans le code.
+
+- ✅ **REA** : `analyze_javascript_application` sur `studio/web` (24 JS analysés, 343 k nœuds, 0 erreur ;
+  scripts en ligne de `index.html`, `regie.html`, `guide.html` et `visualiseur_3d.html` non couverts par
+  l'outil) → nouveaux écrans **Forge** et **Atelier/plans**, nouvelle route `/api/forge`, visualiseur 3D
+  three.js. `inspect_pe_resources` sur l'installeur : **refusé** (648 Mo > plafond REA de 512 Mo) ; sans
+  enjeu, le code qui tourne est celui du pack. Le Python est en clair : lu directement (données seulement).
+- ✅ **Setups — nouveau en 0.9.5** :
+  - **bilan au box** : à chaque retour aux stands (≥ 2 tours mesurés), l'ingé résume ce que la voiture a
+    fait (sonde d'équilibre par virage) et **propose la correction du pire défaut** en question fermée ;
+    le « oui » écrit le cran dans un nouveau fichier. La proposition est inscrite au carnet du PC pour que
+    le « oui » la retrouve (bug de Bahreïn : « oui » sans question) ; « je corrige quoi ? » = accepter ;
+    **deux crans** dans le même fichier si les défauts sont dans des virages différents ;
+  - **« elle se comporte bien ? » / « je la trouve instable ici »** : réponse tirée de la télémétrie
+    (équilibre vu, sur combien de tours ; sinon combien de tours il faut), plus envoyée à l'IA ;
+  - **style du pilote retenu** (« j'aime une voiture stable », « je suis plutôt agressif » → stable / vive /
+    agressive), qui choisit la base par défaut ; « fais-moi un setup » demande d'abord le goût ;
+  - **setup fixe** (serveur à setup imposé) détecté : plus aucune proposition de réglage, « le garage est
+    fermé » ; le bloc du prompt IA le dit aussi ;
+  - **vigie de la caisse** : à chaque tour au rythme (≤ 105 % du meilleur), roulis maxi, enfoncement du
+    3ᵉ élément arrière, pression de frein maxi AV/AR et écrasement des pneus comparés **au meilleur tour du
+    pilote depuis sa sortie des stands** ; écart ≥ 25 % au-dessus du bruit → signalé (hystérésis 15 %),
+    jamais une prescription ; référence remise à zéro au stand ;
+  - **plateforme au fil rapide** : lecture à la fréquence du jeu (au lieu de 1 Hz) de la pression de frein
+    par roue, du roulis/tangage, du 3ᵉ élément, des hauteurs, des efforts et de l'écrasement des pneus,
+    résumés par tour (« toujours comparer au meilleur tour ») ;
+  - **où l'ABS et le TC travaillent** (lu dans la base de télémétrie du jeu au retour aux stands) :
+    l'endroit, sur combien de tours, et l'effet mesuré du dernier cran d'aide (2 tours propres avant/après,
+    deux nombres, aucun jugement) ;
+  - **Atelier / plans** : écran illustré de l'Hypercar (dessus, profil, arrière) ; chaque pièce cliquée
+    donne son rôle, une astuce et les réglages liés par phase (freinage, entrée, milieu, sortie, ligne
+    droite) ; sources publiques citées ; pin's à collectionner ;
+  - **Forge (hub communautaire de setups)** : clé secrète par setup née localement (vu naître ou modifié
+    puis roulé), numéro public dans les Notes du `.svm`, **publication** (sec/pluie, course/qualif, note de
+    140 car., meilleur tour et secteurs), **téléchargement en un clic** dans le bon dossier, tours et
+    records comptés par setup, « mon setup fait gagner » (victoires), versions v1 → v2 ; un setup
+    téléchargé reste au créateur tant qu'au moins **50 %** de ses réglages sont inchangés ; filtre
+    « Toutes » météo/séance.
+- ✅ **Hors setup — nouveau en 0.9.5** :
+  - **réponse radio longue découpée** aux frontières de phrase, un morceau par ligne droite, sans
+    réécrire le texte ; accusé immédiat si le pilote parle en plein freinage ;
+  - **overlays de stream** (désactivé par défaut) : WebSocket `127.0.0.1:7788` + GET JSON (CORS), séance +
+    événements uniques (départ, entrée/arrêt/sortie stand avec durées, damier, meilleur tour, record perso),
+    option réseau local pour un 2ᵉ PC ;
+  - **stratégie** : la grille n'est pas un arrêt, une voiture remorquée n'est pas une sortie, « la classe
+    rentre » annoncé avec rappel du plan, rival au stand dit pour info ; LMP3 : essence de l'arrêt réglée
+    en litres ; pas de « lève le pied » si le carburant suffit ;
+  - **tours** : retour garage ≠ tour, tour incomplet jamais record, XML de course lu **après** le damier
+    (résultats de course enfin remontés) ; coaching muet sur un tour perturbé (sortie, contact) ;
+  - **succès** : catalogue v11, 77 succès (Forge, plans secrets) ; **Dojo** : détail des missions,
+    suppression d'une voiture ;
+  - prévision météo du cerveau rejouée après coup pour la juger ; trace ~20 Hz de chaque tour envoyée à
+    leur serveur ; mesure hybride séparée des alertes (alertes côté serveur seulement).
+- ✅ **Déjà chez nous** : widgets par adresse locale + WebSocket (`widget_server.rs`, OBS/2ᵉ écran),
+  télémétrie du jeu (DuckDB) et talonnage, classements communautaires opt-in, assistant setup un cran.
+  **Absents** : succès, partage de setups, zones ABS/TC, comparaison au meilleur tour des canaux de
+  plateforme, détection du setup imposé, mémoire du style du pilote, découpage des réponses radio longues.
+- 📋 **Idées en plus de S1–S5** (priorité = valeur ÷ effort) :
+  - **S6 — Bilan au box** : au retour aux stands, résumé de l'équilibre + **une** correction proposée,
+    « Appliquer » = nouvelle version (s'appuie sur S1) ;
+  - **S7 — Zones ABS/TC** depuis notre base DuckDB : où les aides travaillent, effet du dernier cran
+    (deux nombres avant/après, pas de verdict) ;
+  - **S8 — Vigie du meilleur tour** : roulis, 3ᵉ élément, frein, écrasement de chaque tour comparés au
+    meilleur tour du relais (hystérésis, aucune prescription) ;
+  - **S9 — Setup imposé détecté** : masquer l'assistant et les propositions de réglage, le dire au Coach IA ;
+  - **S10 — Style du pilote** (stable / vif / agressif) retenu dans le Profil et passé au Coach IA et à S3 ;
+  - **S11 — Planche illustrée des réglages** (rôle de chaque pièce + réglages liés par phase), à relier à
+    l'assistant ;
+  - **S12 — Partage de setups communautaire** (complète S5, opt-in, sur notre serveur) : publier / télécharger,
+    tours et records par setup, versions ; jamais de setup envoyé sans action du pilote ;
+  - **G1 — Réponses radio longues découpées** aux frontières de phrase, posées en ligne droite ;
+  - **G2 — Événements pour les widgets de stream** (départ, stands avec durées, damier, record perso) sur
+    notre WebSocket existant ;
+  - **G3 — Garde-fous de comptage** : retour garage ≠ tour, tour incomplet jamais record (à vérifier chez
+    nous), aucune remarque de rythme sur un tour perturbé ;
+  - **G4 — Succès** (exploration, régularité, records), désactivés par défaut.
+- 📋 **Prochaine étape** : arbitrage du mainteneur. Recommandation : **S1 + S6** (même moteur : audit puis
+  bilan au box), puis **S7** (données déjà en base) et **S9** (faible, évite des conseils inapplicables).
+
+### 2026-10-20 — Veille TrackMind 0.9.5 (build 287) : setups complets proposés par l'ingénieur (aucun code modifié)
+
+**Demande** : « regarde ce que l'on peut proposer pour l'amélioration des setups ; j'aimerais que l'IA
+propose des setups complets ; regarde si TrackMind fait quelque chose dans ce sens, avec REA ».
+Lecture statique du pack actif `%LOCALAPPDATA%\SLM Engineer\maj\pack_287` (sources `.py` en clair,
+lues comme données, cible jamais exécutée). REA n'apporte rien de direct à cette passe : l'inventaire
+de l'exe PyInstaller (passes précédentes, `%TEMP%\rea_tm\pyz_top.txt`) confirme que le code de
+construction n'est **ni dans l'exe ni dans les packs**. Idées seulement, aucun nom de concurrent dans le code.
+
+- ✅ **Oui, TrackMind propose des setups complets** (« bases LMU », offre payante ENGINEER), et la
+  recette est **côté serveur** (`atelier_setup/` : doctrine, recette, catalogue, résolution des
+  upgrades ; « protéger la façon de construire »). Le PC n'est qu'un exécutant :
+  - **4 profils** (doctrine du 17/10) : *Agressive* (qualif / sprint, dure à piloter), *Competitive*
+    (course / endurance), *Safe*, *Ultra safe* (débutant) + une version **pluie** ; profil reconnu dans
+    la phrase du pilote (≈ 150 synonymes FR/EN, intensifs, négations « moins agressive ») ;
+  - **gabarit obligatoire = le `.svm` du pilote** pour cette voiture (son setup chargé, sinon le
+    dernier sauvé de la même voiture dans le dossier) ; sinon « sauve ton setup une fois au garage » ;
+  - le serveur reçoit voiture / circuit / `UpgradeSetting` / texte du `.svm` / profil / séance / style,
+    et **renvoie le fichier entier** + jusqu'à 80 **explications** (réglage, valeur, raison) + une
+    phrase radio ; le PC vérifie que la **version installée** de la voiture et du circuit est celle du
+    calcul (chaîne de signatures des `.mft` de `Installed\Vehicles|Locations`), sinon refus « le jeu a
+    été mis à jour » ;
+  - écrit un **nouveau fichier** « TM - <voiture> <Profil> V<n> » dans le dossier du circuit **en cours**
+    (jamais d'écrasement d'un fichier du pilote), puis suit l'état *créé → visible → chargé* ;
+  - **carburant / énergie** : le serveur pose le ratio depuis le fichier ; en essais, la **conso mesurée**
+    en roulant prime (`poser_ratio`) ;
+  - **table des crans** par voiture servie par le serveur (valeur affichée de chaque index, sens prouvé
+    des amortisseurs) ; **bornes** de chaque réglage apprises en 3 étages : REST en direct
+    (`getPlayerGarageData`), mémoire locale par `<dossier voiture>/<version>`, table « flotte » partagée ;
+  - **audit** (nouveau, 19/10) : « regarde mon setup » → le serveur compare au setup visé pour ce
+    circuit, l'ingé dit 2-3 écarts + une question fermée ; « oui » = fichier avec **ces seuls** réglages ;
+    « pourquoi ? » sur un poste → la raison du choix ;
+  - **un setup par séance** (warm-up / qualif / course / pluie) rempli à la voix, rechargé par
+    l'ingénieur au garage quand la séance l'appelle ; **bibliothèque** des versions validées (JSON hors
+    jeu, lignée, météo, verdict) ; relais d'un setup partagé par un coéquipier en un clic ;
+  - **référence personnelle** : effets mesurés d'un levier sur ≥ 5 transitions comparables, abstention
+    si la version physique est inconnue.
+- ✅ **Contrainte technique relevée sur nos fichiers** : un `.svm` sauvé sans modification ne porte que
+  l'affichage (`RWSetting=//7.0 deg`, « commented out if using the default ») ; pour écrire une valeur il
+  faut l'**index** (`RWSetting=12//…`). Il faut donc une **table index ↔ affichage** par voiture (et
+  version) : on a déjà `value/min/max/text` par réglage via `getPlayerGarageData` (`RestSettingBound`).
+  11 `.svm` seulement sur le poste de test.
+- ✅ **Chez nous** : parser / writer `.svm` (`setups.rs`), duplication + mise à jour, `setup_type`,
+  assistant un-levier-un-cran (`setupAssistant.ts`, 13 leviers, bornes REST), résumé du setup lié pour
+  le Coach IA (`setup-context.ts`). L'IA **explique** un setup, elle n'en **produit** aucun.
+- 📋 **Propositions** (priorité = valeur ÷ effort) :
+  - **S1 — Audit du setup par l'IA** (faible) : le Coach IA reçoit le setup + télémétrie + une doctrine
+    maison et répond en **JSON fermé** `{écarts: [{levier, sens, crans, raison}]}` (3 max) ; le moteur
+    borne (min/max), écarte les réglages N/A, et « Appliquer » crée une nouvelle version via
+    `duplicate_setup` + `update_setup` (l'original jamais touché, lignée dans les notes). L'IA ne pose
+    jamais un chiffre elle-même.
+  - **S2 — Table des crans apprise** (moyen) : mémoriser `index ↔ texte` par `<voiture>/<version>` à
+    chaque lecture REST en piste et à chaque `.svm` portant des index ; prérequis de S3.
+  - **S3 — Setup complet par profil** (élevé) : 4 profils maison (*Débutant*, *Stable*, *Course*,
+    *Qualif*) + *Pluie* ; doctrine déterministe = position cible de chaque levier en **% de la plage**
+    selon profil × type de circuit (appui, bosses, vibreurs) × météo ; carburant / énergie calculés
+    (conso mesurée × tours + marge) ; gabarit = un `.svm` du pilote pour la voiture ; nouveau fichier
+    « <voiture> <Profil> V<n> » dans le dossier du circuit ; **une explication par réglage modifié** ;
+    contrôle de version (`VEH` / `.mft`). L'IA choisit le profil et nuance la doctrine (JSON fermé),
+    le moteur écrit.
+  - **S4 — Setups par séance** (faible, on a `setup_type`) : cases qualif / course / pluie (+ warm-up)
+    par voiture × circuit, rappel au chargement de la séance.
+  - **S5 — Partage communautaire des tables de crans / bornes** (opt-in, serveur existant) : une voiture
+    jamais conduite a ses bornes tout de suite. Jamais les valeurs d'un setup sans accord.
+  - Risque principal : la **doctrine** est le cœur (TrackMind la garde secrète) ; à écrire nous-mêmes
+    (dynamique du véhicule + guides vidéo déjà intégrés), à valider en jeu voiture par voiture ;
+    commencer par S1 (changements relatifs depuis le setup du pilote, moins risqués qu'un setup ex nihilo).
+- 📋 **Prochaine étape** : arbitrage du mainteneur sur S1–S5 (recommandation : S1 puis S2, S3 ensuite).
 
 ### 2026-10-20 — Coach vocal : prompt radio et message optimisés
 

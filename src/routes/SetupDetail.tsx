@@ -35,11 +35,22 @@ import {
   Ruler,
   StickyNote,
   FlaskConical,
+  Sparkles,
+  Wand2,
+  Map as MapIcon,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { cn, formatTime, formatDateTime } from "@/lib/utils";
 import { usePageState } from "@/lib/usePageState";
 import { paramLabel } from "@/lib/setupParams";
 import { SetupAssistantPanel } from "@/components/SetupAssistantPanel";
+import { SetupAuditPanel } from "@/components/SetupAuditPanel";
+import { SetupProfilesPanel } from "@/components/SetupProfilesPanel";
+import { SetupPlatesPanel } from "@/components/SetupPlatesPanel";
+import { displayOf, indexOf, isFixedParam } from "@/lib/setupView";
+import { learnForCar, paramId, resolveIndex, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
+import { FLAG_SETUP_AUDIT, FLAG_SETUP_PLATES, FLAG_SETUP_PROFILES, useConfigFlag } from "@/lib/configFlag";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 
 // ── Onglets de l'éditeur (regroupement logique des sections SVM) ─────────────
@@ -51,6 +62,9 @@ type TabId =
   | "dampers"
   | "chassis"
   | "assistant"
+  | "audit"
+  | "profiles"
+  | "plates"
   | "meta";
 
 const TABS: { id: TabId; icon: typeof Cog; labelKey: string }[] = [
@@ -60,8 +74,14 @@ const TABS: { id: TabId; icon: typeof Cog; labelKey: string }[] = [
   { id: "dampers", icon: SlidersHorizontal, labelKey: "setupDetail.tabDampers" },
   { id: "chassis", icon: Ruler, labelKey: "setupDetail.tabChassis" },
   { id: "assistant", icon: FlaskConical, labelKey: "setupDetail.tabAssistant" },
+  { id: "audit", icon: Sparkles, labelKey: "lab.audit.tab" },
+  { id: "profiles", icon: Wand2, labelKey: "lab.profiles.tab" },
+  { id: "plates", icon: MapIcon, labelKey: "lab.plates.tab" },
   { id: "meta", icon: StickyNote, labelKey: "setupDetail.tabMeta" },
 ];
+
+/** Onglets qui ne listent pas des paramètres du fichier. */
+const PANEL_TABS: TabId[] = ["meta", "assistant", "audit", "profiles", "plates"];
 
 /** Clé i18n des libellés de sections brutes du `.svm`. */
 const SECTION_LABEL_KEYS: Record<string, string> = {
@@ -123,15 +143,17 @@ function classifyParam(section: string, key: string): TabId {
   return "chassis";
 }
 
-/** Incrémente une valeur numérique. Si le champ est vide ou non numérique
- *  (« (Default) »…), on part de 0 : un clic +/− pose directement une valeur
- *  sans obliger l'utilisateur à la taper au clavier. */
-function bump(value: string, delta: number): string {
-  const num = Number(value);
-  if (value.trim() === "" || Number.isNaN(num)) return String(delta);
-  const next = num + delta;
-  const decimals = value.includes(".") ? value.split(".")[1].length : 0;
-  return next.toFixed(decimals);
+/**
+ * Index suivant d'un réglage (jamais sous 0). Un réglage resté « par défaut »
+ * n'a pas d'index dans le fichier : on part de celui que retrouve la table des
+ * crans (`start`) ; sans lui, `null` — partir de 0 aurait écrit une autre
+ * valeur que celle affichée (un aileron à 7° posé au premier cran).
+ */
+function bump(value: string, delta: number, start: number | null): string | null {
+  const v = value.trim();
+  const num = v === "" ? start : Number(v);
+  if (num == null || Number.isNaN(num)) return null;
+  return String(Math.max(0, Math.round(num) + delta));
 }
 
 /** Retire les guillemets entourant une valeur de note. */
@@ -158,6 +180,37 @@ export function SetupDetail() {
   const [saving, setSaving] = useState(false);
   // Confirmation visuelle transitoire après une sauvegarde réussie.
   const [savedFlash, setSavedFlash] = useState(false);
+  // Réglages figés sur la voiture (« N/A », « Fixed »…) : repliés par défaut.
+  const [showFixed, setShowFixed] = usePageState("setupDetail.showFixed", false);
+  // Table des crans de la voiture (index des réglages restés « par défaut »).
+  const [table, setTable] = useState<NotchTable | undefined>(undefined);
+  const auditOn = useConfigFlag(FLAG_SETUP_AUDIT);
+  const profilesOn = useConfigFlag(FLAG_SETUP_PROFILES);
+  const platesOn = useConfigFlag(FLAG_SETUP_PLATES);
+  const visibleTabs = TABS.filter(
+    (tab) =>
+      (tab.id !== "audit" || auditOn) &&
+      (tab.id !== "profiles" || profilesOn) &&
+      (tab.id !== "plates" || platesOn),
+  );
+
+  useEffect(() => {
+    if (!svm || !entry) return;
+    let alive = true;
+    void (async () => {
+      const others = await setupsApi.entries(entry.car).catch(() => []);
+      const tb = await learnForCar(svm, others.map(svmOfEntry)).catch(() => undefined);
+      if (alive) setTable(tb);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [svm, entry]);
+
+  // Un onglet optionnel coupé dans la Configuration : retour au premier onglet.
+  useEffect(() => {
+    if (!visibleTabs.some((x) => x.id === activeTab)) setActiveTab("drivetrain");
+  }, [visibleTabs, activeTab]);
 
   useEffect(() => {
     if (!id) return;
@@ -296,18 +349,50 @@ export function SetupDetail() {
     [editing, draft, svm]
   );
 
-  // Sections (avec leurs paramètres) appartenant à l'onglet actif.
-  const tabSections = useMemo(() => {
-    if (activeTab === "meta" || activeTab === "assistant") return [];
-    return sections
+  // Sections (avec leurs paramètres) appartenant à l'onglet actif ; les
+  // réglages figés sont repliés sauf demande (compteur `hiddenFixed`).
+  const { tabSections, hiddenFixed } = useMemo(() => {
+    if (PANEL_TABS.includes(activeTab)) return { tabSections: [], hiddenFixed: 0 };
+    let hidden = 0;
+    const out = sections
       .map((s) => ({
         name: s.name,
-        params: s.params.filter(
-          (p) => classifyParam(s.name, p.key) === activeTab
-        ),
+        params: s.params.filter((p) => {
+          if (classifyParam(s.name, p.key) !== activeTab) return false;
+          if (!showFixed && isFixedParam(p)) {
+            hidden++;
+            return false;
+          }
+          return true;
+        }),
       }))
       .filter((s) => s.params.length > 0);
-  }, [sections, activeTab]);
+    return { tabSections: out, hiddenFixed: hidden };
+  }, [sections, activeTab, showFixed]);
+
+  // Réglages réglables par onglet (pastille du menu de gauche).
+  const tabCounts = useMemo(() => {
+    const c: Partial<Record<TabId, number>> = {};
+    for (const s of sections)
+      for (const p of s.params) {
+        if (isFixedParam(p)) continue;
+        const tab = classifyParam(s.name, p.key);
+        c[tab] = (c[tab] ?? 0) + 1;
+      }
+    return c;
+  }, [sections]);
+
+  /** Index courant d'un réglage ; pour un réglage « par défaut », celui de la table des crans. */
+  const currentIndex = (section: string, p: SvmSection["params"][number]): number | null =>
+    indexOf(p) ?? resolveIndex(table?.[paramId(section, p.key)], displayOf(p));
+
+  /** Ce que le garage affichera pour cet index, s'il est connu. */
+  const displayAt = (section: string, key: string, index: number | null): string | null =>
+    index == null ? null : (table?.[paramId(section, key)]?.displays[String(index)] ?? null);
+
+  /** Valeur d'origine (fichier chargé) d'un paramètre, pour signaler les modifications. */
+  const original = (section: string, key: string) =>
+    svm?.sections.find((x) => x.name === section)?.params.find((x) => x.key === key) ?? null;
 
   // Paramètre « Notes » de la section [GENERAL].
   const generalSection = sections.find(
@@ -428,8 +513,9 @@ export function SetupDetail() {
       {/* Body : sidebar onglets + panneau (flex-1, overflow contrôlé) */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         <nav className="w-44 shrink-0 border-r border-border/60 p-2 flex flex-col gap-0.5 overflow-y-auto bg-background/40">
-            {TABS.map((tab) => {
+            {visibleTabs.map((tab) => {
               const Icon = tab.icon;
+              const n = tabCounts[tab.id];
               return (
                 <button
                   key={tab.id}
@@ -442,7 +528,10 @@ export function SetupDetail() {
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  {t(tab.labelKey)}
+                  <span className="flex-1 truncate">{t(tab.labelKey)}</span>
+                  {!PANEL_TABS.includes(tab.id) && n != null && (
+                    <span className="text-micro tabular-nums text-muted-foreground">{n}</span>
+                  )}
                 </button>
               );
             })}
@@ -458,6 +547,12 @@ export function SetupDetail() {
                 notes={notesParam ? unquote(notesParam.value) : null}
                 onNotes={() => loadSetup(entry.id)}
               />
+            ) : activeTab === "audit" ? (
+              <SetupAuditPanel entry={entry} svm={svm} notes={notesParam ? unquote(notesParam.value) : null} />
+            ) : activeTab === "profiles" ? (
+              <SetupProfilesPanel entry={entry} svm={svm} notes={notesParam ? unquote(notesParam.value) : null} />
+            ) : activeTab === "plates" ? (
+              <SetupPlatesPanel svm={svm} />
             ) : activeTab === "meta" ? (
               <MetaPanel
                 entry={entry}
@@ -469,92 +564,115 @@ export function SetupDetail() {
                 }
                 onLinkChanged={() => loadSetup(entry.id)}
               />
-            ) : tabSections.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                {t("setupDetail.noParams")}
-              </p>
             ) : (
-              // Densité calquée sur la V1 (`.cfg-row` ~8px padding, ~12px
-              // texte) : plus d'infos par écran sans dégrader la lisibilité.
               <div className="flex flex-col gap-4">
-                {tabSections.map((section) => (
-                  <div key={section.name}>
-                    <h3 className="text-micro font-bold uppercase tracking-[0.18em] text-primary mb-1.5 pb-1 border-b border-primary/15">
-                      {sectionLabel(section.name, t)}
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0">
-                      {section.params.map((p) => (
-                        <div
-                          key={p.key}
-                          className="flex items-center justify-between gap-2 px-2 py-1 rounded-md border border-transparent hover:border-border/60 hover:bg-accent/30 transition-colors"
-                        >
-                          <div className="flex flex-col min-w-0">
-                            <span
-                              className="text-xs truncate"
-                              title={p.key}
+                {/* Bandeau : valeur du garage d'abord ; réglages figés repliables. */}
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>{t("setupDetail.valueHint")}</span>
+                  {(hiddenFixed > 0 || showFixed) && (
+                    <button
+                      type="button"
+                      onClick={() => setShowFixed(!showFixed)}
+                      className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 hover:bg-accent/50 shrink-0"
+                    >
+                      {showFixed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      {showFixed ? t("setupDetail.hideFixed") : t("setupDetail.showFixed", { count: hiddenFixed })}
+                    </button>
+                  )}
+                </div>
+                {tabSections.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-8 text-center">
+                    {t("setupDetail.noParams")}
+                  </p>
+                ) : (
+                  tabSections.map((section) => (
+                    <div key={section.name}>
+                      <h3 className="text-micro font-bold uppercase tracking-[0.18em] text-primary mb-1.5 pb-1 border-b border-primary/15">
+                        {sectionLabel(section.name, t)}
+                      </h3>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-0.5">
+                        {section.params.map((p) => {
+                          const fixed = isFixedParam(p);
+                          const idx = currentIndex(section.name, p);
+                          const orig = original(section.name, p.key);
+                          const changed = editing && orig != null && orig.value !== p.value;
+                          // En édition, un index changé n'a plus le texte d'origine : on
+                          // montre celui que la table des crans connaît pour le nouvel index.
+                          const shown = changed ? displayAt(section.name, p.key, indexOf(p)) : displayOf(p);
+                          return (
+                            <div
+                              key={p.key}
+                              className={cn(
+                                "flex items-center justify-between gap-3 px-2 py-1.5 rounded-md border transition-colors",
+                                changed
+                                  ? "border-primary/40 bg-primary/5"
+                                  : "border-transparent hover:border-border/60 hover:bg-accent/30",
+                                fixed && "opacity-60"
+                              )}
                             >
-                              {paramLabel(p.key)}
-                            </span>
-                            {p.comment && (
-                              <span className="text-micro text-muted-foreground truncate">
-                                {p.comment}
+                              <span className="text-xs truncate min-w-0" title={`[${section.name}] ${p.key}`}>
+                                {paramLabel(p.key)}
                               </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {editing ? (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() =>
-                                    setParamValue(
-                                      section.name,
-                                      p.key,
-                                      bump(p.value, -1)
-                                    )
-                                  }
-                                >
-                                  <Minus className="h-2.5 w-2.5" />
-                                </Button>
-                                <input
-                                  value={p.value}
-                                  onChange={(e) =>
-                                    setParamValue(
-                                      section.name,
-                                      p.key,
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-20 rounded border border-input bg-background px-1.5 py-0.5 font-mono text-xs text-right focus:outline-none focus:ring-1 focus:ring-ring"
-                                />
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() =>
-                                    setParamValue(
-                                      section.name,
-                                      p.key,
-                                      bump(p.value, 1)
-                                    )
-                                  }
-                                >
-                                  <Plus className="h-2.5 w-2.5" />
-                                </Button>
-                              </>
-                            ) : (
-                              <span className="font-mono text-xs font-medium min-w-[64px] text-right">
-                                {p.value}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                              <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex flex-col items-end leading-tight">
+                                  <span className="font-mono text-xs font-semibold tabular-nums">
+                                    {shown ?? (changed ? t("setupDetail.newValueUnknown") : "—")}
+                                  </span>
+                                  {!fixed && (
+                                    <span className="text-micro text-muted-foreground tabular-nums">
+                                      {indexOf(p) != null
+                                        ? t("setupDetail.notch", { n: indexOf(p) })
+                                        : idx != null
+                                          ? t("setupDetail.defaultNotch", { n: idx })
+                                          : t("setupDetail.defaultValue")}
+                                    </span>
+                                  )}
+                                </div>
+                                {editing && !fixed && (
+                                  <div className="flex items-center gap-0.5">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      title={idx == null ? t("setupDetail.unknownIndex") : undefined}
+                                      disabled={idx == null}
+                                      onClick={() => {
+                                        const v = bump(p.value, -1, idx);
+                                        if (v != null) setParamValue(section.name, p.key, v);
+                                      }}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <input
+                                      value={p.value}
+                                      onChange={(e) => setParamValue(section.name, p.key, e.target.value)}
+                                      aria-label={paramLabel(p.key)}
+                                      placeholder={idx != null ? String(idx) : ""}
+                                      className="w-14 rounded border border-input bg-background px-1.5 py-0.5 font-mono text-xs text-right focus:outline-none focus:ring-1 focus:ring-ring"
+                                    />
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      title={idx == null ? t("setupDetail.unknownIndex") : undefined}
+                                      disabled={idx == null}
+                                      onClick={() => {
+                                        const v = bump(p.value, 1, idx);
+                                        if (v != null) setParamValue(section.name, p.key, v);
+                                      }}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             )}
         </div>
@@ -685,7 +803,7 @@ function ModalShell({
       <div
         className={cn(
           "w-full bg-card border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col",
-          compact ? "max-w-4xl max-h-[92vh]" : "max-w-md"
+          compact ? "max-w-6xl h-[92vh]" : "max-w-md"
         )}
       >
         {children}

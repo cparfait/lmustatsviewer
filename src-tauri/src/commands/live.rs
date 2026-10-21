@@ -64,6 +64,10 @@ const LMU_OFF_TRACK_LIMITS: usize = 767; // mTrackLimitsSteps : u8 (points norma
 const LMU_OFF_GAP_AHEAD: usize = 780; // mTimeGapCarAhead : f32 (s)
 const LMU_OFF_GAP_BEHIND: usize = 784; // mTimeGapCarBehind : f32 (s)
 // Seuils limites de piste : offsets ABSOLUS dans LMU_Data (bloc ScoringInfo, fixe).
+// Ordre du header officiel (`Support\SharedMemoryInterface\InternalsPlugin.hpp`,
+// `ScoringInfoV01`) : mIsFixedSetup, mTrackGripLevel, mCloudCoverage,
+// mTrackLimitsStepsPerPenalty — quatre octets contigus.
+const LMU_OFF_FIXED_SETUP: usize = 1980; // mIsFixedSetup : bool (setup imposé par le serveur)
 const LMU_OFF_TL_PER_PENALTY: usize = 1983; // mTrackLimitsStepsPerPenalty : u8
 
 /// Maps électroniques embarquées du joueur lues dans « LMU_Data ».
@@ -90,6 +94,8 @@ struct LmuElectronics {
     track_limits_per_penalty: u8,
     gap_ahead: f32,
     gap_behind: f32,
+    /// `mIsFixedSetup` brut : 0 = libre, 1 = imposé, autre = inconnu.
+    fixed_setup: u8,
 }
 
 /// État de la mémoire native LMU pour le diagnostic (`LiveDiag.lmu_data`).
@@ -154,7 +160,9 @@ fn read_lmu_electronics(shm: &mut shm::ShmReader) -> (Option<LmuElectronics>, Lm
         }
         let veh_off = LMU_TELEMINFO_OFF + idx * LMU_VEH_STRIDE;
         let v = shm.read_range(LMU_DATA_MAP, veh_off, LMU_VEH_STRIDE)?;
-        let tl_pen: u8 = shm.read_range(LMU_DATA_MAP, LMU_OFF_TL_PER_PENALTY, 1)?[0];
+        let scoring = shm.read_range(LMU_DATA_MAP, LMU_OFF_FIXED_SETUP, 4)?;
+        let tl_pen: u8 = scoring[LMU_OFF_TL_PER_PENALTY - LMU_OFF_FIXED_SETUP];
+        let fixed_setup: u8 = scoring[0];
         Some(LmuElectronics {
             tc: unsafe { read_at(&v, LMU_OFF_TC)? },
             tc_max: unsafe { read_at(&v, LMU_OFF_TC_MAX)? },
@@ -176,6 +184,7 @@ fn read_lmu_electronics(shm: &mut shm::ShmReader) -> (Option<LmuElectronics>, Lm
             track_limits_per_penalty: tl_pen,
             gap_ahead: unsafe { read_at(&v, LMU_OFF_GAP_AHEAD)? },
             gap_behind: unsafe { read_at(&v, LMU_OFF_GAP_BEHIND)? },
+            fixed_setup,
         })
     };
     match decode(shm) {
@@ -613,6 +622,12 @@ pub struct LiveWheel {
     /// blocage/patinage, à la place des anciens proxys basés sur l'accélération
     /// longitudinale, qui confondaient un virage rapide avec du patinage.
     pub slip_ratio: f32,
+    /// **Angle de dérive** de la roue (degrés, valeur absolue) :
+    /// `atan(|vitesse latérale sol| / |vitesse longitudinale sol|)`. Comparé
+    /// entre l'avant et l'arrière, il dit l'équilibre réel de la voiture
+    /// (avant qui glisse plus = sous-virage). `0` sous 5 m/s.
+    #[serde(default)]
+    pub slip_angle: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -792,6 +807,10 @@ pub struct LiveExtended {
     pub track_limits_per_penalty: u8,
     pub gap_ahead: f32,
     pub gap_behind: f32,
+    /// Setup imposé par le serveur (`mIsFixedSetup`) : `None` si l'octet est
+    /// illisible ou hors de 0/1 (jamais deviné).
+    #[serde(default)]
+    pub fixed_setup: Option<bool>,
     pub stability_control: u8,
     pub auto_shift: u8,
     pub auto_clutch: u8,
@@ -1044,6 +1063,15 @@ impl AxisVote {
             default
         })
     }
+}
+
+/// Angle de dérive d'une roue (degrés, ≥ 0) depuis ses vitesses au sol. Sous
+/// 5 m/s (stands, arrêt) l'angle n'a pas de sens : 0.
+fn slip_angle_deg(lat_ground: f64, long_ground: f64) -> f32 {
+    if long_ground.abs() < 5.0 || !lat_ground.is_finite() || !long_ground.is_finite() {
+        return 0.0;
+    }
+    (lat_ground.abs() / long_ground.abs()).atan().to_degrees() as f32
 }
 
 /// Auto-calibration des sens des axes locaux du joueur.
@@ -1842,6 +1870,7 @@ fn extract_frame(state: &mut PollState) -> LiveData {
                         0.0
                     }
                 },
+                slip_angle: slip_angle_deg(w.m_lateral_ground_vel, w.m_longitudinal_ground_vel),
             }
         });
 
@@ -2315,6 +2344,11 @@ fn extract_frame(state: &mut PollState) -> LiveData {
                 .unwrap_or(0),
             gap_ahead: lmu_elec.as_ref().map(|e| e.gap_ahead).unwrap_or(0.0),
             gap_behind: lmu_elec.as_ref().map(|e| e.gap_behind).unwrap_or(0.0),
+            fixed_setup: lmu_elec.as_ref().and_then(|e| match e.fixed_setup {
+                0 => Some(false),
+                1 => Some(true),
+                _ => None,
+            }),
             stability_control: physics.m_stability_control,
             auto_shift: physics.m_auto_shift,
             auto_clutch: physics.m_auto_clutch,
@@ -3058,12 +3092,21 @@ mod shm_tests {
     }
 
     #[test]
+    fn slip_angle_from_ground_velocities() {
+        assert_eq!(slip_angle_deg(1.0, 2.0), 0.0, "sous 5 m/s : pas d'angle");
+        assert!((slip_angle_deg(5.0, -50.0) - 5.710_593).abs() < 1e-3);
+        assert!((slip_angle_deg(-5.0, 50.0) - 5.710_593).abs() < 1e-3, "signes rF2 ignorés");
+        assert_eq!(slip_angle_deg(f64::NAN, 50.0), 0.0);
+    }
+
+    #[test]
     fn lmu_plausibility_rejects_shifted_layout() {
         let ok = LmuElectronics {
             tc: 3, tc_max: 11, tc_slip: 0, tc_slip_max: 0, tc_cut: 0, tc_cut_max: 0,
             abs: 2, abs_max: 9, motor_map: 1, virtual_energy: 0.62, state_of_charge: 48.0,
             regen: 0.0, battery_charge: 0.5, boost_state: 2, delta_best: -0.3, lift_coast: 0,
             track_limits: 2, track_limits_per_penalty: 4, gap_ahead: 1.2, gap_behind: 0.8,
+            fixed_setup: 0,
         };
         assert!(lmu_plausible(&ok));
         assert!(!lmu_plausible(&LmuElectronics { tc: 200, tc_max: 211, ..ok }));

@@ -36,6 +36,7 @@ import { ReplayBenchPanel } from "@/components/ReplayBenchPanel";
 import { RegieSettings } from "@/components/RegieSettings";
 import { ToolsSettings } from "@/components/ToolsSettings";
 import { InsightsToggle, TierSourceSelect } from "@/components/ClassementOptions";
+import { LabSettings } from "@/components/LabSettings";
 import { RecordAnnounceSetting, ReviewMarksSetting, SessionDetailSettings } from "@/components/AnalysisExtrasSettings";
 import {
   FolderOpen,
@@ -98,6 +99,7 @@ import {
   BatteryCharging,
   Film,
   Pencil,
+  FlaskConical,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { DictationEngine, VoiceDownloads } from "@/components/VoiceDownloads";
@@ -215,6 +217,7 @@ type CatId =
   | "display"
   | "voice"
   | "coach"
+  | "lab"
   | "community"
   | "regie"
   | "tools"
@@ -226,6 +229,7 @@ const SIDEBAR: { id: CatId; icon: typeof User; labelKey: string }[] = [
   { id: "display", icon: Settings2, labelKey: "config.preferences" },
   { id: "voice", icon: Volume2, labelKey: "config.audioVoice" },
   { id: "coach", icon: Brain, labelKey: "config.aiCoach" },
+  { id: "lab", icon: FlaskConical, labelKey: "lab.settings.title" },
   { id: "community", icon: Users, labelKey: "config.community" },
   { id: "regie", icon: Tablet, labelKey: "config.regieNav" },
   { id: "tools", icon: Hammer, labelKey: "config.toolsNav" },
@@ -2752,6 +2756,9 @@ export function ConfigV2() {
                 </CollapsibleSection>
               </div>
             )}
+
+            {/* ── Atelier (outils de setup et d'analyse, opt-in) ── */}
+            {cat === "lab" && <LabSettings />}
 
             {/* ── Communauté (partage des meilleurs tours, opt-in) ── */}
             {cat === "community" && <CommunitySettings />}

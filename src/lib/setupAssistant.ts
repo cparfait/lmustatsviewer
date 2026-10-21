@@ -17,6 +17,7 @@
  */
 
 import type { RestSettingBound, SvmFile } from "@/lib/api";
+import { paramId, topIndex, withResolvedIndices, type NotchTable } from "@/lib/setupNotches";
 
 export type Symptom = "understeer" | "oversteer" | "brakeInstability" | "bottoming" | "kerbs" | "topSpeed" | "lowGrip";
 export type Phase = "entry" | "mid" | "exit";
@@ -51,8 +52,9 @@ const ANY = /.*/;
 export const LEVERS: Record<LeverId, LeverSpec> = {
   frontArb: { match: [{ section: ANY, key: /^FrontAntiSwaySetting$/ }], rest: ["FRONT_ANTISWAY", "FRONT_ANTI_SWAY", "FRONT_ARB"] },
   rearArb: { match: [{ section: ANY, key: /^RearAntiSwaySetting$/ }], rest: ["REAR_ANTISWAY", "REAR_ANTI_SWAY", "REAR_ARB"] },
-  frontWing: { match: [{ section: ANY, key: /^FrontWingSetting$/ }], rest: ["FRONT_WING"] },
-  rearWing: { match: [{ section: ANY, key: /^RearWingSetting$/ }], rest: ["REAR_WING"] },
+  // Les fichiers du jeu écrivent `FWSetting` / `RWSetting` (sections [FRONTWING] / [REARWING]).
+  frontWing: { match: [{ section: ANY, key: /^(FW|FrontWing)Setting$/ }], rest: ["FRONT_WING"] },
+  rearWing: { match: [{ section: ANY, key: /^(RW|RearWing)Setting$/ }], rest: ["REAR_WING"] },
   rearBrake: { match: [{ section: ANY, key: /^RearBrakeSetting$/ }], rest: ["BRAKE_BALANCE", "BRAKE_BIAS"] },
   diffPower: { match: [{ section: ANY, key: /^Diff(erential)?PowerSetting$/ }], rest: ["DIFF_POWER"] },
   diffCoast: { match: [{ section: ANY, key: /^Diff(erential)?CoastSetting$/ }], rest: ["DIFF_COAST"] },
@@ -120,8 +122,10 @@ export interface Recommendation {
   values: LeverValue[];
   /** Déjà en butée dans ce sens : proposé quand même mais signalé. */
   atLimit: boolean;
-  /** Index maximal connu (pont REST), sinon null. */
+  /** Index le plus haut connu (jeu ou table des crans), sinon null. */
   max: number | null;
+  /** Au moins une valeur venait d'un réglage « par défaut », index retrouvé par la table des crans. */
+  inferred: boolean;
 }
 
 function leverValues(svm: SvmFile, spec: LeverSpec): LeverValue[] {
@@ -140,10 +144,55 @@ function leverValues(svm: SvmFile, spec: LeverSpec): LeverValue[] {
 /** Réglage figé sur cette voiture (« Detached » = barre déconnectée : réglable, c'est le cran 0). */
 const N_A = /^(n\/a|non-adjustable|fixed)$/i;
 
+/**
+ * Index le plus haut d'un réglage d'après le jeu. `maxValue` est un NOMBRE de
+ * crans quand l'index part de 0 (aileron à 7 crans : index 0 à 6).
+ */
+export function restTop(b: RestSettingBound | undefined): number | null {
+  if (!b || !(b.max > b.min)) return null;
+  return b.min === 0 ? b.max - 1 : b.max;
+}
+
 function restMax(bounds: RestSettingBound[] | null | undefined, spec: LeverSpec): number | null {
   if (!bounds) return null;
-  const b = bounds.find((x) => spec.rest.some((r) => x.key.toUpperCase().includes(r)));
-  return b && b.max > b.min ? b.max : null;
+  return restTop(bounds.find((x) => spec.rest.some((r) => x.key.toUpperCase().includes(r))));
+}
+
+function tableMax(table: NotchTable | undefined, values: LeverValue[]): number | null {
+  if (!table) return null;
+  const tops = values.map((v) => topIndex(table[paramId(v.section, v.key)])).filter((x): x is number => x != null);
+  return tops.length ? Math.min(...tops) : null;
+}
+
+/**
+ * Valeurs d'un réglage sur ce fichier, réglages « par défaut » compris quand la
+ * table des crans retrouve leur index.
+ */
+export function leverState(svm: SvmFile, lever: LeverId, bounds?: RestSettingBound[] | null, table?: NotchTable) {
+  const resolved = withResolvedIndices(svm, table);
+  const values = leverValues(resolved.svm, LEVERS[lever]);
+  const inferred = values.some((v) => resolved.inferred.has(paramId(v.section, v.key)));
+  const top = restMax(bounds, LEVERS[lever]) ?? tableMax(table, values);
+  return { values, inferred, top };
+}
+
+/**
+ * Réglages présents et réglables mais restés « par défaut » dans le fichier
+ * sans que la table des crans retrouve leur index : le fichier ne garde que le
+ * texte affiché, l'app ne sait pas quel cran écrire. Sert à dire pourquoi un
+ * réglage n'est pas proposé (au lieu de « non réglable »).
+ */
+export function unknownLevers(svm: SvmFile, table?: NotchTable): LeverId[] {
+  const resolved = withResolvedIndices(svm, table).svm;
+  return (Object.keys(LEVERS) as LeverId[]).filter((lever) =>
+    resolved.sections.some((sec) =>
+      sec.params.some((p) => {
+        if (!LEVERS[lever].match.some((m) => m.section.test(sec.name) && m.key.test(p.key))) return false;
+        const shown = (p.comment ?? "").trim();
+        return !!shown && !N_A.test(shown) && !Number.isFinite(Number.parseInt(p.value.trim(), 10));
+      }),
+    ),
+  );
 }
 
 /** Recommandations pour un symptôme, sur un `.svm` donné (3 au plus). */
@@ -154,32 +203,52 @@ export function recommend(
   regime: Regime,
   bounds?: RestSettingBound[] | null,
   max = 3,
+  table?: NotchTable,
 ): Recommendation[] {
   const t = TABLE[symptom];
   const chain = (PHASED.includes(symptom) ? t[phase] : t.any)?.[regime] ?? [];
   const out: Recommendation[] = [];
   for (const [lever, dir] of chain) {
-    const values = leverValues(svm, LEVERS[lever]);
+    const { values, inferred, top } = leverState(svm, lever, bounds, table);
     // Réglage absent ou figé (« N/A ») sur cette voiture : on passe au suivant.
     if (!values.length || values.every((v) => N_A.test(v.display))) continue;
-    const top = restMax(bounds, LEVERS[lever]);
     const atLimit = dir < 0 ? values.every((v) => v.index <= 0) : top != null && values.every((v) => v.index >= top);
-    out.push({ lever, dir, values, atLimit, max: top });
+    out.push({ lever, dir, values, atLimit, max: top, inferred });
     if (out.length >= max) break;
   }
   // Les réglages encore libres d'abord ; une butée reste visible mais en dernier.
   return out.sort((a, b) => Number(a.atLimit) - Number(b.atLimit));
 }
 
+export type SectionPatch = { name: string; params: { key: string; value: string; comment: string | null }[] };
+
 /** Sections modifiées pour appliquer un cran (`setups.update`). */
-export function applyStep(svm: SvmFile, rec: Recommendation): { name: string; params: { key: string; value: string; comment: string | null }[] }[] {
+export function applyStep(svm: SvmFile, rec: Recommendation): SectionPatch[] {
+  return applyChanges([{ values: rec.values, delta: rec.dir, max: rec.max }]);
+}
+
+/**
+ * Sections modifiées pour plusieurs réglages, chacun de `delta` crans (borné
+ * à 0 et à l'index le plus haut connu). Un même paramètre visé deux fois
+ * cumule ses crans.
+ */
+export function applyChanges(changes: { values: LeverValue[]; delta: number; max: number | null }[]): SectionPatch[] {
+  const next = new Map<string, { section: string; key: string; index: number; max: number | null }>();
+  for (const c of changes) {
+    for (const v of c.values) {
+      const id = `${v.section}|${v.key}`;
+      const cur = next.get(id) ?? { section: v.section, key: v.key, index: v.index, max: c.max };
+      cur.index += c.delta;
+      next.set(id, cur);
+    }
+  }
   const bySection = new Map<string, { key: string; value: string; comment: string | null }[]>();
-  for (const v of rec.values) {
-    const next = Math.max(0, v.index + rec.dir);
+  // Le texte du jeu n'est plus juste pour le nouvel index : on le retire, le jeu
+  // le recalcule au chargement.
+  for (const v of next.values()) {
+    const idx = Math.max(0, v.max != null ? Math.min(v.max, v.index) : v.index);
     const list = bySection.get(v.section) ?? [];
-    // Le texte du jeu n'est plus juste pour le nouvel index : on le retire, le
-    // jeu le recalcule au chargement.
-    list.push({ key: v.key, value: String(next), comment: null });
+    list.push({ key: v.key, value: String(idx), comment: null });
     bySection.set(v.section, list);
   }
   return [...bySection.entries()].map(([name, params]) => ({ name, params }));

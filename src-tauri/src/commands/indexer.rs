@@ -967,4 +967,65 @@ mod tests {
             "trop de lignes joueur ({n_player}) — l'identification par nom a échoué"
         );
     }
+
+    fn lap(num: i32, time: f64, sectors: Option<(f64, f64, f64)>, pit: bool) -> crate::xml_parser::ParsedLap {
+        crate::xml_parser::ParsedLap {
+            lap_num: num,
+            position: 1,
+            et: None,
+            lap_time: time,
+            s1: sectors.map(|s| s.0),
+            s2: sectors.map(|s| s.1),
+            s3: sectors.map(|s| s.2),
+            top_speed: 0.0,
+            fuel: None,
+            fuel_used: None,
+            twfl: None,
+            twfr: None,
+            twrl: None,
+            twrr: None,
+            fcompound: String::new(),
+            rcompound: String::new(),
+            is_pit: pit,
+            is_valid: time > 0.0,
+        }
+    }
+
+    /// Garde-fou de comptage : un tour incomplet (`--.----`), un tour chronométré
+    /// sans ses trois secteurs (retour au garage, tour coupé) ne sont jamais le
+    /// meilleur tour ni comptés comme tours valides.
+    #[test]
+    fn incomplete_or_garage_laps_never_record() {
+        let d = crate::xml_parser::ParsedDriver {
+            name: "P".into(),
+            veh_file: String::new(),
+            veh_name: String::new(),
+            category: String::new(),
+            car_type: String::new(),
+            car_class: String::new(),
+            car_number: 0,
+            team_name: String::new(),
+            is_player: true,
+            position: 1,
+            grid_pos: 1,
+            class_position: 1,
+            class_grid_pos: 1,
+            best_lap_time: 0.0,
+            total_laps: 4,
+            finish_time: 0.0,
+            finish_status: String::new(),
+            dnf_reason: String::new(),
+            pitstops: 0,
+            control_aids: String::new(),
+            laps: vec![
+                lap(1, 0.0, None, false),                          // `--.----`
+                lap(2, 95.0, None, false),                         // chrono sans secteurs (tour coupé)
+                lap(3, 101.5, Some((33.0, 35.5, 33.0)), false),    // tour complet
+                lap(4, 80.0, None, true),                          // retour au garage
+            ],
+        };
+        let a = compute_aggregates(&d, "Practice");
+        assert_eq!(a.best_lap, Some(101.5));
+        assert_eq!(a.total_laps_valid, 1);
+    }
 }

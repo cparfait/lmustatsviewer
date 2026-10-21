@@ -164,6 +164,7 @@ pub fn run() {
             commands::setups::search_sessions_for_setup,
             commands::setups::set_setup_linked_session,
             commands::setups::get_setups_for_session,
+            commands::setups::list_setup_entries,
             commands::setups::get_session_summary,
             // Records personnels
             commands::records::get_records_overview,
@@ -172,6 +173,7 @@ pub fn run() {
             commands::telemetry::list_telemetry_files,
             commands::telemetry::get_telemetry_meta,
             commands::telemetry::get_telemetry_channels,
+            commands::telemetry_lab::analyze_telemetry_lab,
             // AI Coach — proxy HTTP générique vers les fournisseurs d'IA
             commands::ai::ai_chat,
             commands::ai::ai_chat_stream,

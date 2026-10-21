@@ -10,7 +10,8 @@
 //!   (assets embarqués), qui rend le widget demandé sur fond transparent ;
 //! - `GET /ws` : WebSocket **en lecture seule**. Le serveur pousse les trames
 //!   live (`live-data`, sans les champs lourds), le tracé quand il change, la
-//!   config des overlays et quelques évènements (coach vocal). Les messages
+//!   config des overlays et quelques évènements (coach vocal, événements de
+//!   course si l'option de l'Atelier est active). Les messages
 //!   du navigateur sont ignorés : aucune commande n'est acceptée.
 //!
 //! Garde-fous : boucle locale seule, en-tête `Host` limité à une adresse IP ou
@@ -52,7 +53,8 @@ const TRACK_KEYS: [&str; 4] = ["track_points", "track_dists", "pit_lane_points",
 /// Réglages de l'app transmis aux widgets (lecture seule).
 const SETTING_KEYS: [&str; 2] = ["spotter_key_coach", "map_north_up"];
 /// Évènements de l'app relayés tels quels aux widgets.
-const RELAYED_EVENTS: [&str; 3] = ["coach-voice", "coach-corner", "radio-subtitle"];
+/// `race-event` : départ, stands, damier, meilleur tour, record perso (Atelier, opt-in).
+const RELAYED_EVENTS: [&str; 4] = ["coach-voice", "coach-corner", "radio-subtitle", "race-event"];
 const WS_GUID: &str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
 #[derive(Debug, Clone, Serialize)]

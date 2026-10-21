@@ -68,6 +68,7 @@ import { flagFromPhase, type FlagKind } from "@/lib/engineer/useRaceEngineer";
 import type { Tr } from "@/i18n";
 import { IncidentDots } from "@/components/IncidentDots";
 import { BriefingPanel } from "@/components/BriefingPanel";
+import { FixedSetupBanner } from "@/components/FixedSetupBanner";
 
 /**
  * Estimation « carburant pour finir » :
@@ -571,6 +572,9 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
           </div>
         </div>
       )}
+
+      {/* Setup imposé par le serveur (Atelier, opt-in) */}
+      <FixedSetupBanner fixed={ext?.fixed_setup} />
 
       {/* Bandeau supérieur */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-border gap-4 flex-wrap">

@@ -86,7 +86,7 @@ export function run(): void {
     const ov = recommend(svm, "oversteer", "mid", "slow");
     ok(ov[ov.length - 1].lever === "rearArb" && ov[ov.length - 1].atLimit, "barre AR déjà à 0 : en butée, rangée en dernier");
     const withBounds = recommend(svm, "understeer", "mid", "slow", [{ key: "VM_FRONT_ANTISWAY", value: 4, min: 0, max: 8, text: "120 N/mm" }]);
-    eq(withBounds[0].max, 8, "borne du jeu reprise (pont REST)");
+    eq(withBounds[0].max, 7, "borne du jeu reprise (pont REST) : 8 crans = index 0 à 7");
     const springs = recommend(svm, "understeer", "entry", "slow", null, 4).find((x) => x.lever === "frontSprings")!;
     eq(applyStep(svm, springs), [
       { name: "FRONTLEFT", params: [{ key: "SpringSetting", value: "6", comment: null }] },

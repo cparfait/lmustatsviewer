@@ -15,6 +15,7 @@ import {
   Loader2,
   Car,
   MapPin,
+  Search,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tip } from "@/components/ui/tooltip";
@@ -49,114 +50,13 @@ import { ClassBadge } from "@/components/ClassBadge";
 import { CarLogo } from "@/components/CarLogo";
 import { CarImage } from "@/components/CarImage";
 import { NewSetupDialog } from "@/components/NewSetupDialog";
-import { paramLabel } from "@/lib/setupParams";
+import { keyFigures, notesOf, perCorner } from "@/lib/setupView";
 
-// ── Helpers : extraction des stats QuickView depuis un `.svm` ────────────────
-
-/**
- * Cherche la valeur d'un paramètre dans la 1ʳᵉ section/clé qui matche.
- * Insensible à la casse. Renvoie la valeur brute du .svm (souvent un nombre
- * ou « (Default) »).
- */
-function findParam(
-  svm: SvmFile,
-  candidates: { section: string; keys: string[] }[]
-): string | null {
-  for (const { section, keys } of candidates) {
-    const sec = svm.sections.find(
-      (s) => s.name.toUpperCase() === section.toUpperCase()
-    );
-    if (!sec) continue;
-    for (const k of keys) {
-      const p = sec.params.find((p) => p.key.toLowerCase() === k.toLowerCase());
-      if (p) return p.value;
-    }
-  }
-  return null;
-}
-
-/** Retire les guillemets entourant une valeur de note. */
-function unquote(v: string): string {
-  return v.replace(/^"(.*)"$/s, "$1");
-}
-
-/** Couple clé brute + valeur (utile pour conserver le libellé d'origine). */
-interface KeyedValue {
-  key: string;
-  value: string;
-}
-
-/** Stats clés affichées dans le QuickView (V1 « Électronique » + Pressions). */
-interface QuickStats {
-  /**
-   * Tous les paramètres « TC* » trouvés dans la section CONTROLS / ENGINE
-   * (V1 affichait TC, TC Power Cut, TC Slip Angle — typiquement 3 champs).
-   */
-  tcParams: KeyedValue[];
-  abs: string | null;
-  brakeBias: string | null;
-  engineMap: string | null;
-  pressureFL: string | null;
-  pressureFR: string | null;
-  pressureRL: string | null;
-  pressureRR: string | null;
-  notes: string | null;
-}
-
-/**
- * Trouve tous les paramètres d'une section dont la clé commence par `TC` ou
- * `TractionControl` (insensible à la casse), en préservant l'ordre du fichier.
- * Renvoie au maximum 3 entrées (V1 en avait 3).
- */
-function findTcParams(svm: SvmFile): KeyedValue[] {
-  const out: KeyedValue[] = [];
-  for (const sec of svm.sections) {
-    const upper = sec.name.toUpperCase();
-    if (upper !== "CONTROLS" && upper !== "ENGINE") continue;
-    for (const p of sec.params) {
-      const k = p.key.toLowerCase();
-      const isTc =
-        k.startsWith("tc") ||
-        k.startsWith("tractioncontrol") ||
-        k === "traction";
-      if (isTc) out.push({ key: p.key, value: p.value });
-      if (out.length >= 3) return out;
-    }
-  }
-  return out;
-}
-
-function extractQuickStats(svm: SvmFile): QuickStats {
-  return {
-    tcParams: findTcParams(svm),
-    abs: findParam(svm, [
-      { section: "CONTROLS", keys: ["AntiLockBrakes", "ABS"] },
-    ]),
-    brakeBias: findParam(svm, [
-      { section: "CONTROLS", keys: ["BrakeBias", "RearBrake"] },
-      { section: "BASIC", keys: ["BrakeBias"] },
-    ]),
-    engineMap: findParam(svm, [
-      { section: "ENGINE", keys: ["EngineMapping", "EngineMap"] },
-      { section: "CONTROLS", keys: ["EngineMapping"] },
-    ]),
-    pressureFL: findParam(svm, [
-      { section: "FRONTLEFT", keys: ["Pressure"] },
-    ]),
-    pressureFR: findParam(svm, [
-      { section: "FRONTRIGHT", keys: ["Pressure"] },
-    ]),
-    pressureRL: findParam(svm, [
-      { section: "REARLEFT", keys: ["Pressure"] },
-    ]),
-    pressureRR: findParam(svm, [
-      { section: "REARRIGHT", keys: ["Pressure"] },
-    ]),
-    notes: (() => {
-      const v = findParam(svm, [{ section: "GENERAL", keys: ["Notes"] }]);
-      return v ? unquote(v) : null;
-    })(),
-  };
+/** Libellé traduit d'un type de setup (valeurs en base : Course / Qualif / Autres). */
+function typeLabel(type: string, t: (k: string) => string): string {
+  if (type === "Course") return t("setupDetail.typeRace");
+  if (type === "Qualif") return t("setupDetail.typeQualif");
+  return t("setupDetail.typeOther");
 }
 
 // ── Composant principal ─────────────────────────────────────────────────────
@@ -215,6 +115,17 @@ export function Setups() {
       /* dossier indisponible */
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Après une suppression : la liste vient de la base (pas besoin de rescanner
+  // le disque) et la sélection disparue est oubliée.
+  async function afterDelete() {
+    setSelectedSetupId(null);
+    try {
+      setGroups(await setupsApi.list());
+    } catch {
+      /* liste indisponible : l'ancienne reste affichée */
     }
   }
 
@@ -334,6 +245,7 @@ export function Setups() {
           selectedSetupId={selectedSetupId}
           setSelectedSetupId={setSelectedSetupId}
           navigate={navigate}
+          onDeleted={afterDelete}
         />
       ) : (
         <CarView
@@ -347,6 +259,7 @@ export function Setups() {
           selectedSetupId={selectedSetupId}
           setSelectedSetupId={setSelectedSetupId}
           navigate={navigate}
+          onDeleted={afterDelete}
         />
       )}
 
@@ -377,7 +290,9 @@ function CarView({
   selectedSetupId,
   setSelectedSetupId,
   navigate,
+  onDeleted,
 }: {
+  onDeleted: () => void;
   carOptions: Record<string, SetupGroup[]>;
   activeCar: string | null;
   setActiveCar: (c: string) => void;
@@ -527,6 +442,7 @@ function CarView({
             setupId={selectedSetupId}
             allSetups={activeGroup}
             navigate={navigate}
+            onDeleted={onDeleted}
           />
         </div>
       </div>
@@ -614,10 +530,13 @@ function QuickView({
   setupId,
   allSetups,
   navigate,
+  onDeleted,
 }: {
   setupId: number | null;
   allSetups: SetupGroup | null;
   navigate: (path: string) => void;
+  /** Après suppression : la liste se recharge, sans relancer l'application. */
+  onDeleted: () => void;
 }) {
   const { t } = useTranslation();
   const [svm, setSvm] = useState<SvmFile | null>(null);
@@ -657,7 +576,19 @@ function QuickView({
     };
   }, [setupId]);
 
-  const stats = useMemo(() => (svm ? extractQuickStats(svm) : null), [svm]);
+  const figures = useMemo(() => (svm ? keyFigures(svm) : null), [svm]);
+  const corners = useMemo(
+    () =>
+      svm
+        ? {
+            pressure: perCorner(svm, /^PressureSetting$/),
+            camber: perCorner(svm, /^CamberSetting$/),
+            ride: perCorner(svm, /^RideHeightSetting$/),
+          }
+        : null,
+    [svm],
+  );
+  const notes = useMemo(() => (svm ? notesOf(svm) : null), [svm]);
 
   // ── États ───────────────────────────────────────────────────────────────
   if (!setupId) {
@@ -682,7 +613,7 @@ function QuickView({
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="min-w-0 flex-1">
             <p className="text-micro uppercase tracking-widest text-muted-foreground font-bold mb-0.5">
-              {summary?.setup.setup_type ?? "—"}
+              {summary ? typeLabel(summary.setup.setup_type, t) : "—"}
             </p>
             <h3 className="font-mono text-sm font-bold truncate">
               {summary?.setup.name.replace(/\.svm$/i, "") ?? "—"}
@@ -774,8 +705,7 @@ function QuickView({
                 if (!ok) return;
                 try {
                   await setupsApi.remove(setupId, true);
-                  // Forçage du re-scan via reset (le parent ré-affiche au prochain mount)
-                  window.location.reload();
+                  onDeleted();
                 } catch (err) {
                   toastError(String(err));
                 }
@@ -794,69 +724,53 @@ function QuickView({
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : !stats ? (
+        ) : !figures || !corners ? (
           <p className="text-xs text-muted-foreground italic text-center py-4">
             {t("setups.quickViewNoContent")}
           </p>
         ) : (
           <>
-            {/* Électronique — 3 champs TC (V1) + ABS + Bias + Map. */}
+            {/* Chiffres clés : la valeur affichée au garage, seulement ce que la voiture règle. */}
             <div>
               <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground mb-2">
-                {t("setups.qvElectronics")}
+                {t("setups.qvKey")}
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                {stats.tcParams.length > 0 ? (
-                  stats.tcParams.map((p) => (
-                    <QvCard
-                      key={p.key}
-                      label={paramLabel(p.key)}
-                      value={p.value || null}
-                      accent="text-yellow-500"
-                    />
-                  ))
-                ) : (
-                  // Aucun param TC trouvé : on garde au moins une carte
-                  // « TC » vide pour rappeler la structure.
-                  <QvCard label="TC" value={null} accent="text-yellow-500" />
-                )}
-                <QvCard label="ABS" value={stats.abs} accent="text-rose-400" />
-                <QvCard
-                  label={t("setups.qvBias")}
-                  value={stats.brakeBias}
-                  accent="text-foreground"
-                />
-                <QvCard
-                  label={t("setups.qvMap")}
-                  value={stats.engineMap}
-                  accent="text-foreground"
-                />
-              </div>
+              {figures.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">{t("setups.qvNoKey")}</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {figures.map((f) => (
+                    <QvCard key={f.id} label={t(`setups.key.${f.id}`)} value={f.value} accent="text-foreground" />
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Pressions pneus */}
-            <div>
-              <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground mb-2">
-                {t("setups.qvPressures")}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <QvCard label="FL" value={stats.pressureFL} accent="text-sky-400" center />
-                <QvCard label="FR" value={stats.pressureFR} accent="text-sky-400" center />
-                <QvCard label="RL" value={stats.pressureRL} accent="text-sky-400" center />
-                <QvCard label="RR" value={stats.pressureRR} accent="text-sky-400" center />
-              </div>
-            </div>
+            {/* Par roue : pression, carrossage, hauteur (seulement les lignes connues). */}
+            {(["pressure", "camber", "ride"] as const).map((k) => {
+              const c = corners[k];
+              if (!c.FL && !c.FR && !c.RL && !c.RR) return null;
+              return (
+                <div key={k}>
+                  <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                    {t(`setups.corner.${k}`)}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["FL", "FR", "RL", "RR"] as const).map((w) => (
+                      <QvCard key={w} label={w} value={c[w]} accent="text-sky-500" center />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
 
-            {/* Notes */}
-            {stats.notes && stats.notes.trim() !== "" && (
+            {notes && (
               <div>
                 <p className="text-micro font-bold uppercase tracking-widest text-muted-foreground mb-2">
                   {t("setups.qvNotes")}
                 </p>
                 <div className="rounded-md border border-border/60 bg-background/40 p-3">
-                  <p className="text-xs text-muted-foreground leading-relaxed italic whitespace-pre-wrap">
-                    {stats.notes}
-                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed italic whitespace-pre-wrap">{notes}</p>
                 </div>
               </div>
             )}
@@ -912,6 +826,8 @@ function GlobalView({
   navigate: (path: string) => void;
 }) {
   const { t } = useTranslation();
+  const [query, setQuery] = usePageState("setups.query", "");
+  const [type, setType] = usePageState<string>("setups.type", "");
 
   // Aplatit toute la hiérarchie (voiture → circuit → setups) en lignes.
   // Tri : ordre canonique des classes V1 (Hyper, LMP2 ELMS, LMP2 WEC, LMP2,
@@ -951,7 +867,11 @@ function GlobalView({
         }
       }
     }
-    return out.sort((a, b) => {
+    const q = query.trim().toLowerCase();
+    return out
+      .filter((r) => !type || r.setup.setup_type === type)
+      .filter((r) => !q || `${r.car} ${r.circuit} ${r.setup.name}`.toLowerCase().includes(q))
+      .sort((a, b) => {
       const byClass = classRank(a.carClass) - classRank(b.carClass);
       if (byClass !== 0) return byClass;
       const byCar = a.car.localeCompare(b.car);
@@ -960,9 +880,34 @@ function GlobalView({
       if (byCircuit !== 0) return byCircuit;
       return a.setup.name.localeCompare(b.setup.name);
     });
-  }, [groups]);
+  }, [groups, query, type]);
 
   return (
+    <div className="flex flex-col gap-3">
+      <Card>
+        <CardContent className="p-2.5 flex items-center gap-2.5 flex-wrap">
+          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("setups.searchPlaceholder")}
+            aria-label={t("setups.searchPlaceholder")}
+            className="h-9 min-w-[220px] flex-1 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <Select
+            value={type}
+            onValueChange={setType}
+            ariaLabel={t("setups.newType")}
+            className="w-44 px-3"
+            options={[
+              { value: "", label: t("setups.allTypes") },
+              { value: "Course", label: t("setupDetail.typeRace") },
+              { value: "Qualif", label: t("setupDetail.typeQualif") },
+              { value: "Autres", label: t("setupDetail.typeOther") },
+            ]}
+          />
+        </CardContent>
+      </Card>
     <Card className="overflow-hidden">
       <TableTitle
         title={
@@ -995,6 +940,9 @@ function GlobalView({
                 </TableHead>
                 <TableHead className="px-3 py-1.5">
                   <Tip content={t("setups.newTypeTip")}>{t("setups.newType")}</Tip>
+                </TableHead>
+                <TableHead className="px-3 py-1.5 text-right">
+                  <Tip content={t("setups.bestLapTip")}>{t("setups.bestLap")}</Tip>
                 </TableHead>
                 <TableHead className="px-3 py-1.5">
                   <Tip content={t("setups.sourceLabelTip")}>{t("setups.sourceLabel")}</Tip>
@@ -1030,9 +978,12 @@ function GlobalView({
                     {r.circuit}
                   </TableCell>
                   <TableCell className="px-3 py-1.5 font-mono text-xs">
-                    {r.setup.name}
+                    {r.setup.name.replace(/\.svm$/i, "")}
                   </TableCell>
-                  <TableCell className="px-3 py-1.5 text-xs">{r.setup.setup_type}</TableCell>
+                  <TableCell className="px-3 py-1.5 text-xs">{typeLabel(r.setup.setup_type, t)}</TableCell>
+                  <TableCell className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
+                    {r.setup.best_lap != null ? formatTime(r.setup.best_lap) : <span className="text-muted-foreground/40">—</span>}
+                  </TableCell>
                   <TableCell className="px-3 py-1.5">
                     <SourceBadge source={r.setup.source} />
                   </TableCell>
@@ -1043,9 +994,13 @@ function GlobalView({
               ))}
             </TableBody>
           </Table>
+          {rows.length === 0 && (
+            <p className="py-10 text-center text-sm text-muted-foreground">{t("setups.noMatch")}</p>
+          )}
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 }
 
@@ -1058,7 +1013,9 @@ function CircuitView({
   selectedSetupId,
   setSelectedSetupId,
   navigate,
+  onDeleted,
 }: {
+  onDeleted: () => void;
   groups: SetupGroup[];
   activeCircuit: string | null;
   setActiveCircuit: (c: string) => void;
@@ -1246,6 +1203,7 @@ function CircuitView({
             setupId={selectedSetupId}
             allSetups={virtualGroup}
             navigate={navigate}
+            onDeleted={onDeleted}
           />
         </div>
       </div>

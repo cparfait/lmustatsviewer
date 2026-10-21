@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
+import { TelemetryLabPanel } from "@/components/TelemetryLabPanel";
 import { TelemetryLoading } from "@/components/telemetry/TelemetryLoading";
 import { Loader2, ArrowLeft, Play, Pause, ChevronDown, ChevronUp, LocateFixed, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +45,7 @@ import {
   Stat,
   InfoRow,
   Elec,
+  SECTION_TITLE,
 } from "@/components/telemetry/viewParts";
 import { gearLabel, fmtLap, fmtNum, divK } from "@/lib/telemetry/format";
 import { telemetry } from "@/lib/api";
@@ -790,7 +792,7 @@ export function TelemetryView() {
         {/* Sélecteurs de tour */}
         <Card>
           <CardContent className="flex flex-col gap-2 p-3">
-            <label className="text-micro uppercase tracking-wide text-muted-foreground">
+            <label className={SECTION_TITLE}>
               {t("telemetry.selectLap")}
             </label>
             <Select
@@ -813,7 +815,7 @@ export function TelemetryView() {
             />
             {lap !== null && (
               <>
-                <label className="text-micro uppercase tracking-wide text-muted-foreground">
+                <label className={SECTION_TITLE}>
                   {t("telemetry.compareWith")}
                 </label>
                 <p className="text-xs text-muted-foreground/70 -mt-1">
@@ -890,7 +892,7 @@ export function TelemetryView() {
         {data.channels.some((c) => ELECTRONICS_CHANNELS.includes(c.name)) && (
           <Card>
             <CardContent className="flex flex-wrap gap-1.5 p-3">
-              <span className="w-full text-micro uppercase tracking-wide text-muted-foreground">
+              <span className={cn("w-full", SECTION_TITLE)}>
                 {t("telemetry.electronics")}
               </span>
               {hasChan("ABSLevel") && <Elec l="ABS" v={elecInt("ABSLevel")} />}
@@ -1129,7 +1131,7 @@ export function TelemetryView() {
         {cornerChips.length > 0 && (
           <Card>
             <CardContent className="flex flex-wrap items-center gap-1 p-2">
-              <span className="mr-1 text-micro font-medium uppercase tracking-wide text-muted-foreground">
+              <span className={cn("mr-1", SECTION_TITLE)}>
                 {t("telemetry.cornerZoom")}
               </span>
               <button
@@ -1175,7 +1177,7 @@ export function TelemetryView() {
         {comparing && compare && (
           <Card>
             <CardContent className="p-2">
-              <div className="mb-1 px-1 text-micro font-medium uppercase tracking-wide text-muted-foreground">
+              <div className={cn("mb-1 px-1", SECTION_TITLE)}>
                 {t("telemetry.deltaTitle")}
               </div>
               <TelemetryChart
@@ -1200,7 +1202,7 @@ export function TelemetryView() {
             <CardContent className="p-2">
               <div className="mb-1 flex flex-wrap items-center gap-2 px-1">
                 <span
-                  className="text-micro font-medium uppercase tracking-wide text-muted-foreground"
+                  className={SECTION_TITLE}
                   title={t("telemetry.weakHint")}
                 >
                   {t("telemetry.weakTitle")}
@@ -1354,7 +1356,7 @@ export function TelemetryView() {
             <Card key={c.key}>
               <CardContent className="p-2">
                 <div className="flex items-center gap-2 px-1">
-                  <span className="text-micro font-medium uppercase tracking-wide text-muted-foreground">
+                  <span className={SECTION_TITLE}>
                     {c.title}
                   </span>
                   <span className="ml-auto text-sm font-semibold tabular-nums">
@@ -1426,7 +1428,7 @@ export function TelemetryView() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="text-micro uppercase tracking-wide text-muted-foreground">
+                <span className={SECTION_TITLE}>
                   {t("telemetry.lapTiming")}
                 </span>
                 <span className="text-micro tabular-nums text-muted-foreground">
@@ -1456,7 +1458,7 @@ export function TelemetryView() {
         {/* Pneus : 3 points (G/C/D), usure, pression, frein */}
         <Card>
           <CardContent className="p-3">
-            <span className="text-micro uppercase tracking-wide text-muted-foreground">
+            <span className={SECTION_TITLE}>
               {t("telemetry.tyres")}
             </span>
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -1513,7 +1515,7 @@ export function TelemetryView() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="text-micro uppercase tracking-wide text-muted-foreground">
+                <span className={SECTION_TITLE}>
                   {t("telemetry.analysisTitle")} ({analysis.corners.length})
                 </span>
                 {analysis.totalCornerLoss != null && analysis.totalCornerLoss > 0 && (
@@ -1628,9 +1630,10 @@ export function TelemetryView() {
             </CardContent>
           </Card>
         )}
+
+        {/* Atelier (opt-in) : zones ABS/TC et vigie de la plateforme. */}
+        {path && <TelemetryLabPanel path={path} />}
       </div>
     </div>
   );
 }
-
-

@@ -24,6 +24,7 @@ import { run as runPostRace } from "./suites/postrace.suite";
 import { run as runWhatsNew } from "./suites/whatsnew.suite";
 import { run as runCoachVoice } from "./suites/coachvoice.suite";
 import { run as runFreeAi } from "./suites/freeai.suite";
+import { run as runAtelier } from "./suites/atelier.suite";
 
 runPure();
 runCoach();
@@ -40,6 +41,7 @@ runRace();
 runPostRace();
 runWhatsNew();
 runCoachVoice();
+runAtelier();
 void (async () => {
   await runVoice();
   await runFreeAi();

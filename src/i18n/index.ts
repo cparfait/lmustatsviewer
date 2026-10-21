@@ -6,6 +6,7 @@ import en from "./en";
 import de from "./de";
 import es from "./es";
 import it from "./it";
+import lab from "./lab";
 
 /**
  * Fonction de traduction (typage léger pour les helpers/sous-composants qui
@@ -20,11 +21,11 @@ export const i18nReady = i18n
   .use(initReactI18next)
   .init({
     resources: {
-      fr: { translation: fr },
-      en: { translation: en },
-      de: { translation: de },
-      es: { translation: es },
-      it: { translation: it },
+      fr: { translation: { ...fr, lab: lab.fr } },
+      en: { translation: { ...en, lab: lab.en } },
+      de: { translation: { ...de, lab: lab.de } },
+      es: { translation: { ...es, lab: lab.es } },
+      it: { translation: { ...it, lab: lab.it } },
     },
     // Anglais par défaut : la langue du système est détectée en premier (un
     // Windows français ouvre l'app en français), mais toute langue hors des

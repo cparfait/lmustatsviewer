@@ -126,7 +126,7 @@ pub struct ChannelData {
 // Ouverture / introspection DuckDB
 // ===========================================================================
 
-fn open_ro(path: &str) -> Result<Connection, AppError> {
+pub(super) fn open_ro(path: &str) -> Result<Connection, AppError> {
     let cfg = Config::default()
         .access_mode(AccessMode::ReadOnly)
         .map_err(|e| AppError::Database(format!("duckdb config: {e}")))?;
@@ -135,7 +135,7 @@ fn open_ro(path: &str) -> Result<Connection, AppError> {
 }
 
 /// Ensemble des noms de tables présentes dans le fichier.
-fn table_names(conn: &Connection) -> Result<HashSet<String>, AppError> {
+pub(super) fn table_names(conn: &Connection) -> Result<HashSet<String>, AppError> {
     let mut stmt = conn
         .prepare("SELECT table_name FROM information_schema.tables")
         .map_err(|e| AppError::Database(format!("table_names prepare: {e}")))?;
@@ -187,17 +187,17 @@ fn escape_ident(ident: &str) -> String {
 // Lecture brute d'un canal
 // ===========================================================================
 
-struct ChannelRaw {
-    is_event: bool,
-    dims: usize,
+pub(super) struct ChannelRaw {
+    pub(super) is_event: bool,
+    pub(super) dims: usize,
     /// Pour les canaux événementiels uniquement : horodatages GPS.
-    ts: Vec<f64>,
+    pub(super) ts: Vec<f64>,
     /// `dims` colonnes, chacune contenant tous les échantillons (DOUBLE).
-    data: Vec<Vec<f64>>,
+    pub(super) data: Vec<Vec<f64>>,
 }
 
 /// Charge intégralement un canal en mémoire (quelques centaines de Ko au plus).
-fn read_channel(conn: &Connection, table: &str) -> Result<ChannelRaw, AppError> {
+pub(super) fn read_channel(conn: &Connection, table: &str) -> Result<ChannelRaw, AppError> {
     let (is_event, value_cols) = channel_columns(conn, table)?;
     if value_cols.is_empty() {
         return Err(AppError::NotFound(format!(
@@ -269,7 +269,7 @@ fn read_channel(conn: &Connection, table: &str) -> Result<ChannelRaw, AppError> 
 // ===========================================================================
 
 /// `t0` (première valeur GPS Time) et durée totale enregistrée.
-fn gps_time_bounds(conn: &Connection) -> Result<(f64, f64), AppError> {
+pub(super) fn gps_time_bounds(conn: &Connection) -> Result<(f64, f64), AppError> {
     let (min, max): (f64, f64) = conn
         .query_row(
             "SELECT CAST(MIN(value) AS DOUBLE), CAST(MAX(value) AS DOUBLE) FROM \"GPS Time\"",
@@ -284,7 +284,7 @@ fn gps_time_bounds(conn: &Connection) -> Result<(f64, f64), AppError> {
 /// chaque ligne `(ts, lap)` ouvre un tour qui court jusqu'au `ts` suivant.
 /// En l'absence de table `Lap` exploitable, retourne un unique segment couvrant
 /// toute la session.
-fn segment_laps(conn: &Connection, tables: &HashSet<String>, t0: f64, t_end: f64) -> Vec<LapInfo> {
+pub(super) fn segment_laps(conn: &Connection, tables: &HashSet<String>, t0: f64, t_end: f64) -> Vec<LapInfo> {
     let mut laps: Vec<LapInfo> = Vec::new();
 
     if tables.contains("Lap") {

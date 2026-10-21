@@ -923,6 +923,27 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-21 — Micro : demande WebView2 revenue sur une instance de dev au port 5175
+
+**Constat** : « http://localhost:5175 souhaite utiliser vos microphones » sur une instance de
+développement lancée par une autre session (`tauri dev --config`, Vite sur 5175, compilée dans
+`D:/lmu_lab_target`). `mic_permission.rs` n'accordait le micro qu'à `tauri.localhost` et à
+`http://localhost:5173` écrit en dur.
+
+**Fait**
+- ✅ `mic_permission.rs` : l'origine de dev n'est plus écrite en dur ; c'est celle de
+  `build.devUrl` réellement compilée (y compris quand `--config` la change), et **seulement dans
+  une version de développement** (`debug_assertions`). Version installée : `tauri.localhost`
+  seul (l'ancien `localhost:5173` n'y servait à rien).
+- ✅ Tests Rust : pages de prod, serveur de dev configuré (5173 et 5175), ports voisins et faux
+  domaines refusés. `cargo test mic_permission` : 2 réussis.
+- ✅ Preuve : instance de test sur le port 5176 (`tauri dev --config`, débogage 9444) →
+  `getUserMedia` accordé sans demande ; instance de test fermée ensuite.
+- ℹ️ Pas d'entrée au changelog : seules les versions de développement étaient touchées.
+- ⏳ L'instance 5175 de l'autre session garde l'ancien code tant qu'elle n'est pas recompilée.
+
+📋 **Prochaine étape** : commiter le correctif quand le mainteneur le demande.
+
 ### 2026-10-21 — Coach IA : bouton « Ajouter un fournisseur gratuit », personnalisé dans le menu, crédit GitHub
 
 **Demandes** : remplacer « Ajouter un fournisseur personnalisé » par « Ajouter un fournisseur

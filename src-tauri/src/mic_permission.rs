@@ -8,21 +8,35 @@
 //! lien) garde la demande habituelle. Les réglages de confidentialité de Windows
 //! (accès au micro) s'appliquent toujours.
 
-/// Origines des pages de l'app : protocole personnalisé (prod) et serveur Vite (dev).
-const APP_ORIGINS: &[&str] = &["http://tauri.localhost", "https://tauri.localhost", "http://localhost:5173"];
+use tauri::Manager;
 
-/// Vrai si `uri` est une page de l'app (origine exacte, pas un simple préfixe :
-/// `http://tauri.localhost.exemple.com` ne passe pas).
-fn is_app_page(uri: &str) -> bool {
-    APP_ORIGINS.iter().any(|o| {
+/// Origines des pages de l'app en production (protocole personnalisé).
+const APP_ORIGINS: &[&str] = &["http://tauri.localhost", "https://tauri.localhost"];
+
+/// Vrai si `uri` est une page de l'app : protocole de prod, ou serveur de dev
+/// (`dev_origin`, versions de développement seulement). Origine exacte, pas un
+/// simple préfixe : `http://tauri.localhost.exemple.com` ne passe pas.
+fn is_app_page(uri: &str, dev_origin: Option<&str>) -> bool {
+    APP_ORIGINS.iter().copied().chain(dev_origin).any(|o| {
         uri.strip_prefix(o)
             .is_some_and(|rest| rest.is_empty() || rest.starts_with('/') || rest.starts_with('?') || rest.starts_with('#'))
     })
 }
 
+/// Origine du serveur de dev réellement utilisé (`build.devUrl`, y compris quand
+/// `tauri dev --config` la change : port 5175 d'une instance parallèle…). `None`
+/// dans une version installée : seules les pages `tauri.localhost` y passent.
+fn dev_origin(win: &tauri::WebviewWindow) -> Option<String> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
+    win.config().build.dev_url.as_ref().map(|u| u.origin().ascii_serialization())
+}
+
 /// Branche l'autorisation sur la WebView de `win` (fenêtre principale, overlay).
 pub fn allow_app_microphone(win: &tauri::WebviewWindow) {
     let label = win.label().to_string();
+    let dev = dev_origin(win);
     let res = win.with_webview(move |wv| {
         #[cfg(windows)]
         unsafe {
@@ -39,7 +53,7 @@ pub fn allow_app_microphone(win: &tauri::WebviewWindow) {
                     return;
                 }
             };
-            let handler = PermissionRequestedEventHandler::create(Box::new(|_, args| {
+            let handler = PermissionRequestedEventHandler::create(Box::new(move |_, args| {
                 let Some(args) = args else { return Ok(()) };
                 let mut kind = COREWEBVIEW2_PERMISSION_KIND::default();
                 args.PermissionKind(&mut kind)?;
@@ -48,7 +62,7 @@ pub fn allow_app_microphone(win: &tauri::WebviewWindow) {
                 }
                 let mut uri = windows_core::PWSTR::null();
                 args.Uri(&mut uri)?;
-                if is_app_page(&webview2_com::take_pwstr(uri)) {
+                if is_app_page(&webview2_com::take_pwstr(uri), dev.as_deref()) {
                     args.SetState(COREWEBVIEW2_PERMISSION_STATE_ALLOW)?;
                 }
                 Ok(())
@@ -70,13 +84,23 @@ mod tests {
 
     #[test]
     fn app_pages_only() {
-        assert!(is_app_page("http://tauri.localhost/"));
-        assert!(is_app_page("http://tauri.localhost/config?cat=voice"));
-        assert!(is_app_page("https://tauri.localhost"));
-        assert!(is_app_page("http://localhost:5173/live"));
-        assert!(!is_app_page("http://tauri.localhost.exemple.com/"));
-        assert!(!is_app_page("http://localhost:51730/"));
-        assert!(!is_app_page("http://127.0.0.1:8791/?w=radio"));
-        assert!(!is_app_page("https://exemple.com/"));
+        assert!(is_app_page("http://tauri.localhost/", None));
+        assert!(is_app_page("http://tauri.localhost/config?cat=voice", None));
+        assert!(is_app_page("https://tauri.localhost", None));
+        assert!(!is_app_page("http://tauri.localhost.exemple.com/", None));
+        assert!(!is_app_page("http://127.0.0.1:8791/?w=radio", None));
+        assert!(!is_app_page("https://exemple.com/", None));
+        // Version installée : aucun serveur de dev accepté.
+        assert!(!is_app_page("http://localhost:5173/live", None));
+    }
+
+    #[test]
+    fn dev_server_is_the_configured_one() {
+        // Port par défaut (tauri.conf.json) comme port changé par `tauri dev --config`.
+        assert!(is_app_page("http://localhost:5173/live", Some("http://localhost:5173")));
+        assert!(is_app_page("http://localhost:5175/config?cat=coach", Some("http://localhost:5175")));
+        assert!(!is_app_page("http://localhost:5173/", Some("http://localhost:5175")));
+        assert!(!is_app_page("http://localhost:51750/", Some("http://localhost:5175")));
+        assert!(!is_app_page("http://localhost:5175.exemple.com/", Some("http://localhost:5175")));
     }
 }

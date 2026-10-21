@@ -1040,6 +1040,8 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   site (`inlineBannerHtml`, choix du nom dans le bandeau puis ré-ouverture) ; mécanique « votre ligne
   à la place du record » retirée. Vu dans l'app (avec / sans temps) et sur le site (avec, sans,
   inconnu → choix du nom, croix, fiche pilote, mobile) ; `?v=55`.
+- ✅ Déployé `dbf0cad` (vérifié en ligne). Site, carte « Votre position » d'un combo : bouton
+  « Voir dans le tableau » → **« Voir ma position »** (5 langues) ; `?v=56`.
 - 📋 **Prochaine étape** : commiter et redéployer ce lot ;
   vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
   jeu un setup mixte enregistré sur un autre circuit.

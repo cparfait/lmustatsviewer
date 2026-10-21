@@ -40,7 +40,7 @@ const I18N = {
     "f.toggle": "Filtres", "search.open": "Rechercher un pilote", "f.circuit": "Circuit", "f.layout": "Tracé", "f.class": "Classe", "f.car": "Voiture", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aides", "f.all": "Tous", "f.allF": "Toutes", "f.allClasses": "Toutes les classes", "home.allClasses": "Classement du circuit, toutes classes", "f.race": "Course", "f.qualify": "Qualif", "f.practice": "Essais", "f.online": "En ligne", "f.offline": "Hors ligne", "f.latest": "Dernière", "f.several": "Plusieurs",
     "anon": "Pilote {tag}", "notFound": "Ce combo n'a encore aucun tour partagé.", "back": "Retour aux circuits", "latest": "actuelle",
     "f.search": "Rechercher…", "inline.notDone": "Vous n'avez pas encore fait ce combo.", "inline.open": "Page du classement", "inline.more": "Voir les {n} pilotes", "col.detail": "Détail", "col.compare": "Comparer", "profile.open": "Voir sa fiche (ses combos, comparés aux vôtres)", "profile.you": "Vous", "profile.vsGap": "Votre écart", "profile.ahead": "Vous êtes devant sur <b>{a} / {n}</b> combos en commun.", "profile.noCommon": "Aucun combo en commun avec vous.", "profile.compare": "Comparer", "cmp.tip": "Comparer avec ce pilote", "cmp.title": "Comparaison de pilotes", "cmp.close": "Fermer", "cmp.gap": "Écart", "cmp.sectors": "Où se fait l'écart", "cmp.detail": "Meilleur tour", "cmp.behind": "{name} perd <b>{gap} s</b> au tour, dont <b>{part} s en {sector}</b>.", "cmp.behindOnly": "{name} perd <b>{gap} s</b> au tour.", "cmp.gains": "En {sector}, c'est l'inverse : <b>{gain} s</b> de mieux.", "cmp.tie": "Même temps au tour.", "cmp.optimal": "Tour idéal (meilleurs secteurs)", "cmp.median": "Rythme médian", "cmp.spread": "Régularité (médian − meilleur)", "cmp.vmax": "Vitesse de pointe", "cmp.tyres": "Pneus", "cmp.session": "Session", "cmp.sessions": "Sessions sur ce combo", "cmp.laps": "Tours valides sur ce combo", "cmp.diffClass": "Classes différentes : écart indicatif.", "cmp.diffVersion": "Versions du jeu différentes ({a} / {b}) : l'équilibrage a pu changer.", "cmp.context": "Contexte", "cmp.alone": "Seul pilote de ce classement : personne à qui se comparer.", "cmp.you": "vous",
-    "nav.features": "Fonctionnalités", "nav.community": "Classements", "nav.screenshots": "Captures", "nav.install": "Installation", "nav.faq": "FAQ", "nav.changelog": "Nouveautés", "nav.download": "Télécharger", "footer.solo": "Un passionné, seul, le soir après le boulot — et pas développeur de métier. Autant dire qu'il reste des bugs : considérez l'application en tour de rodage. Si vous en croisez un, signalez-le, c'est le plus sûr moyen de le voir disparaître.", "footer.noCookie": "Ce site ne dépose aucun cookie et ne collecte aucune donnée personnelle sur ses visiteurs.", "footer.releases": "Versions", "footer.issues": "Signaler un bug",
+    "nav.features": "Fonctionnalités", "nav.community": "Classements", "nav.screenshots": "Captures", "nav.install": "Installation", "nav.faq": "FAQ", "nav.changelog": "Nouveautés", "nav.download": "Télécharger", "footer.soloTip": "Un mot du développeur", "footer.solo": "Un passionné, seul, le soir après le boulot — et pas développeur de métier. Autant dire qu'il reste des bugs : considérez l'application en tour de rodage. Si vous en croisez un, signalez-le, c'est le plus sûr moyen de le voir disparaître.", "footer.noCookie": "Ce site ne dépose aucun cookie et ne collecte aucune donnée personnelle sur ses visiteurs.", "footer.releases": "Versions", "footer.issues": "Signaler un bug",
   },
   en: {
     "home.title": "Community leaderboards", "home.lead": "The best laps of LMU Stats Viewer drivers, by track and class. Click a lap time to open the full leaderboard.", "home.trust": "Times read from the game's own files: nothing is typed in by hand.",
@@ -78,7 +78,7 @@ const I18N = {
     "f.toggle": "Filters", "search.open": "Search a driver", "f.circuit": "Track", "f.layout": "Layout", "f.class": "Class", "f.car": "Car", "f.session": "Session", "f.mode": "Mode", "f.version": "Version", "f.conditions": "Conditions", "f.aids": "Aids", "f.all": "All", "f.allF": "All", "f.allClasses": "All classes", "home.allClasses": "Track leaderboard, all classes", "f.race": "Race", "f.qualify": "Qualifying", "f.practice": "Practice", "f.online": "Online", "f.offline": "Offline", "f.latest": "Latest", "f.several": "Several",
     "anon": "Driver {tag}", "notFound": "No lap has been shared on this combo yet.", "back": "Back to tracks", "latest": "current",
     "f.search": "Search…", "inline.notDone": "You haven't driven this combo yet.", "inline.open": "Leaderboard page", "inline.more": "See all {n} drivers", "col.detail": "Details", "col.compare": "Compare", "profile.open": "Open their profile (their combos, compared with yours)", "profile.you": "You", "profile.vsGap": "Your gap", "profile.ahead": "You are ahead on <b>{a} / {n}</b> combos in common.", "profile.noCommon": "No combo in common with you.", "profile.compare": "Compare", "cmp.tip": "Compare with this driver", "cmp.title": "Driver comparison", "cmp.close": "Close", "cmp.gap": "Gap", "cmp.sectors": "Where the gap is made", "cmp.detail": "Best lap", "cmp.behind": "{name} loses <b>{gap} s</b> per lap, <b>{part} s of it in {sector}</b>.", "cmp.behindOnly": "{name} loses <b>{gap} s</b> per lap.", "cmp.gains": "In {sector} it's the other way round: <b>{gain} s</b> faster.", "cmp.tie": "Same lap time.", "cmp.optimal": "Ideal lap (best sectors)", "cmp.median": "Median pace", "cmp.spread": "Consistency (median − best)", "cmp.vmax": "Top speed", "cmp.tyres": "Tyres", "cmp.session": "Session", "cmp.sessions": "Sessions on this combo", "cmp.laps": "Valid laps on this combo", "cmp.diffClass": "Different classes: the gap is only indicative.", "cmp.diffVersion": "Different game versions ({a} / {b}): the balance may have changed.", "cmp.context": "Context", "cmp.alone": "Only driver on this leaderboard: nobody to compare with.", "cmp.you": "you",
-    "nav.features": "Features", "nav.community": "Leaderboards", "nav.screenshots": "Screenshots", "nav.install": "Install", "nav.faq": "FAQ", "nav.changelog": "What's new", "nav.download": "Download", "footer.solo": "One enthusiast, on his own, in the evenings after work — and not a developer by trade. Which is to say there are bugs left: consider the app on its shakedown lap. Run into one? Report it, that is the surest way to see it gone.", "footer.noCookie": "This site sets no cookies and collects no personal data about its visitors.", "footer.releases": "Releases", "footer.issues": "Report a bug",
+    "nav.features": "Features", "nav.community": "Leaderboards", "nav.screenshots": "Screenshots", "nav.install": "Install", "nav.faq": "FAQ", "nav.changelog": "What's new", "nav.download": "Download", "footer.soloTip": "A word from the developer", "footer.solo": "One enthusiast, on his own, in the evenings after work — and not a developer by trade. Which is to say there are bugs left: consider the app on its shakedown lap. Run into one? Report it, that is the surest way to see it gone.", "footer.noCookie": "This site sets no cookies and collects no personal data about its visitors.", "footer.releases": "Releases", "footer.issues": "Report a bug",
   },
   es: {
     "home.title": "Clasificaciones de la comunidad", "home.lead": "Las mejores vueltas de los pilotos de LMU Stats Viewer, por circuito y por clase. Haz clic en un tiempo para abrir la clasificación completa.", "home.trust": "Tiempos leídos de los archivos del juego: nada se introduce a mano.",
@@ -116,7 +116,7 @@ const I18N = {
     "f.toggle": "Filtros", "search.open": "Buscar un piloto", "f.circuit": "Circuito", "f.layout": "Trazado", "f.class": "Clase", "f.car": "Coche", "f.session": "Sesión", "f.mode": "Modo", "f.version": "Versión", "f.conditions": "Condiciones", "f.aids": "Ayudas", "f.all": "Todos", "f.allF": "Todas", "f.allClasses": "Todas las clases", "home.allClasses": "Clasificación del circuito, todas las clases", "f.race": "Carrera", "f.qualify": "Clasificación", "f.practice": "Libres", "f.online": "En línea", "f.offline": "Sin conexión", "f.latest": "Última", "f.several": "Varias",
     "anon": "Piloto {tag}", "notFound": "Nadie ha compartido todavía una vuelta en este combo.", "back": "Volver a los circuitos", "latest": "actual",
     "f.search": "Buscar…", "inline.notDone": "Aún no has hecho este combo.", "inline.open": "Página de la clasificación", "inline.more": "Ver los {n} pilotos", "col.detail": "Detalle", "col.compare": "Comparar", "profile.open": "Ver su ficha (sus combos, comparados con los tuyos)", "profile.you": "Tú", "profile.vsGap": "Tu diferencia", "profile.ahead": "Vas por delante en <b>{a} / {n}</b> combos en común.", "profile.noCommon": "Ningún combo en común contigo.", "profile.compare": "Comparar", "cmp.tip": "Comparar con este piloto", "cmp.title": "Comparación de pilotos", "cmp.close": "Cerrar", "cmp.gap": "Diferencia", "cmp.sectors": "Dónde se hace la diferencia", "cmp.detail": "Mejor vuelta", "cmp.behind": "{name} pierde <b>{gap} s</b> por vuelta, <b>{part} s de ellos en {sector}</b>.", "cmp.behindOnly": "{name} pierde <b>{gap} s</b> por vuelta.", "cmp.gains": "En {sector} es al revés: <b>{gain} s</b> más rápido.", "cmp.tie": "Mismo tiempo por vuelta.", "cmp.optimal": "Vuelta ideal (mejores sectores)", "cmp.median": "Ritmo mediano", "cmp.spread": "Regularidad (mediana − mejor)", "cmp.vmax": "Velocidad punta", "cmp.tyres": "Neumáticos", "cmp.session": "Sesión", "cmp.sessions": "Sesiones en este combo", "cmp.laps": "Vueltas válidas en este combo", "cmp.diffClass": "Clases distintas: la diferencia es orientativa.", "cmp.diffVersion": "Versiones del juego distintas ({a} / {b}): el equilibrio puede haber cambiado.", "cmp.context": "Contexto", "cmp.alone": "Único piloto de esta clasificación: nadie con quien compararse.", "cmp.you": "tú",
-    "nav.features": "Funciones", "nav.community": "Clasificaciones", "nav.screenshots": "Capturas", "nav.install": "Instalación", "nav.faq": "Preguntas", "nav.changelog": "Novedades", "nav.download": "Descargar", "footer.solo": "Un aficionado, solo, por las noches después del trabajo — y que no es programador de profesión. O sea que quedan bugs: considera que la aplicación está en vuelta de reconocimiento. Si te encuentras con uno, avísame: es la forma más segura de que desaparezca.", "footer.noCookie": "Este sitio no instala cookies ni recoge datos personales de sus visitantes.", "footer.releases": "Versiones", "footer.issues": "Informar de un fallo",
+    "nav.features": "Funciones", "nav.community": "Clasificaciones", "nav.screenshots": "Capturas", "nav.install": "Instalación", "nav.faq": "Preguntas", "nav.changelog": "Novedades", "nav.download": "Descargar", "footer.soloTip": "Unas palabras del desarrollador", "footer.solo": "Un aficionado, solo, por las noches después del trabajo — y que no es programador de profesión. O sea que quedan bugs: considera que la aplicación está en vuelta de reconocimiento. Si te encuentras con uno, avísame: es la forma más segura de que desaparezca.", "footer.noCookie": "Este sitio no instala cookies ni recoge datos personales de sus visitantes.", "footer.releases": "Versiones", "footer.issues": "Informar de un fallo",
   },
   de: {
     "home.title": "Community-Ranglisten", "home.lead": "Die besten Runden der LMU-Stats-Viewer-Fahrer, nach Strecke und Klasse. Klicke auf eine Zeit, um die ganze Rangliste zu öffnen.", "home.trust": "Rundenzeiten aus den Dateien des Spiels: nichts wird von Hand eingetragen.",
@@ -154,7 +154,7 @@ const I18N = {
     "f.toggle": "Filter", "search.open": "Fahrer suchen", "f.circuit": "Strecke", "f.layout": "Variante", "f.class": "Klasse", "f.car": "Auto", "f.session": "Session", "f.mode": "Modus", "f.version": "Version", "f.conditions": "Bedingungen", "f.aids": "Hilfen", "f.all": "Alle", "f.allF": "Alle", "f.allClasses": "Alle Klassen", "home.allClasses": "Rangliste der Strecke, alle Klassen", "f.race": "Rennen", "f.qualify": "Qualifying", "f.practice": "Training", "f.online": "Online", "f.offline": "Offline", "f.latest": "Neueste", "f.several": "Mehrere",
     "anon": "Fahrer {tag}", "notFound": "Auf dieser Kombo wurde noch keine Runde geteilt.", "back": "Zurück zu den Strecken", "latest": "aktuell",
     "f.search": "Suchen…", "inline.notDone": "Du bist diese Kombination noch nicht gefahren.", "inline.open": "Seite der Rangliste", "inline.more": "Alle {n} Fahrer ansehen", "col.detail": "Details", "col.compare": "Vergleich", "profile.open": "Profil öffnen (seine Kombinationen, mit deinen verglichen)", "profile.you": "Du", "profile.vsGap": "Dein Abstand", "profile.ahead": "Du liegst bei <b>{a} / {n}</b> gemeinsamen Kombinationen vorn.", "profile.noCommon": "Keine gemeinsame Kombination mit dir.", "profile.compare": "Vergleichen", "cmp.tip": "Mit diesem Fahrer vergleichen", "cmp.title": "Fahrervergleich", "cmp.close": "Schließen", "cmp.gap": "Abstand", "cmp.sectors": "Wo der Abstand entsteht", "cmp.detail": "Beste Runde", "cmp.behind": "{name} verliert <b>{gap} s</b> pro Runde, davon <b>{part} s in {sector}</b>.", "cmp.behindOnly": "{name} verliert <b>{gap} s</b> pro Runde.", "cmp.gains": "In {sector} ist es umgekehrt: <b>{gain} s</b> schneller.", "cmp.tie": "Gleiche Rundenzeit.", "cmp.optimal": "Ideale Runde (beste Sektoren)", "cmp.median": "Median-Tempo", "cmp.spread": "Konstanz (Median − Bestzeit)", "cmp.vmax": "Höchstgeschwindigkeit", "cmp.tyres": "Reifen", "cmp.session": "Session", "cmp.sessions": "Sessions auf dieser Kombination", "cmp.laps": "Gültige Runden auf dieser Kombination", "cmp.diffClass": "Unterschiedliche Klassen: Abstand nur als Richtwert.", "cmp.diffVersion": "Unterschiedliche Spielversionen ({a} / {b}): die Balance kann sich geändert haben.", "cmp.context": "Kontext", "cmp.alone": "Einziger Fahrer in dieser Rangliste: niemand zum Vergleichen.", "cmp.you": "du",
-    "nav.features": "Funktionen", "nav.community": "Ranglisten", "nav.screenshots": "Screenshots", "nav.install": "Installation", "nav.faq": "FAQ", "nav.changelog": "Neuerungen", "nav.download": "Herunterladen", "footer.solo": "Ein Enthusiast, allein, abends nach Feierabend — und von Beruf kein Entwickler. Heißt: Es sind noch Bugs drin. Betrachte die App als in der Einrollrunde. Wenn dir einer begegnet, meld ihn — so verschwindet er am schnellsten.", "footer.noCookie": "Diese Website setzt keine Cookies und erhebt keine personenbezogenen Daten über ihre Besucher.", "footer.releases": "Versionen", "footer.issues": "Fehler melden",
+    "nav.features": "Funktionen", "nav.community": "Ranglisten", "nav.screenshots": "Screenshots", "nav.install": "Installation", "nav.faq": "FAQ", "nav.changelog": "Neuerungen", "nav.download": "Herunterladen", "footer.soloTip": "Ein Wort vom Entwickler", "footer.solo": "Ein Enthusiast, allein, abends nach Feierabend — und von Beruf kein Entwickler. Heißt: Es sind noch Bugs drin. Betrachte die App als in der Einrollrunde. Wenn dir einer begegnet, meld ihn — so verschwindet er am schnellsten.", "footer.noCookie": "Diese Website setzt keine Cookies und erhebt keine personenbezogenen Daten über ihre Besucher.", "footer.releases": "Versionen", "footer.issues": "Fehler melden",
   },
   it: {
     "home.title": "Classifiche della community", "home.lead": "I giri migliori dei piloti di LMU Stats Viewer, per circuito e per classe. Clicca su un tempo per aprire la classifica completa.", "home.trust": "Tempi letti dai file del gioco: nulla viene inserito a mano.",
@@ -192,7 +192,7 @@ const I18N = {
     "f.toggle": "Filtri", "search.open": "Cerca un pilota", "f.circuit": "Circuito", "f.layout": "Tracciato", "f.class": "Classe", "f.car": "Vettura", "f.session": "Sessione", "f.mode": "Modo", "f.version": "Versione", "f.conditions": "Condizioni", "f.aids": "Aiuti", "f.all": "Tutti", "f.allF": "Tutte", "f.allClasses": "Tutte le classi", "home.allClasses": "Classifica del circuito, tutte le classi", "f.race": "Gara", "f.qualify": "Qualifica", "f.practice": "Prove libere", "f.online": "Online", "f.offline": "Offline", "f.latest": "Ultima", "f.several": "Diverse",
     "anon": "Pilota {tag}", "notFound": "Nessuno ha ancora condiviso un giro su questa combo.", "back": "Torna ai circuiti", "latest": "attuale",
     "f.search": "Cerca…", "inline.notDone": "Non hai ancora fatto questa combo.", "inline.open": "Pagina della classifica", "inline.more": "Vedi tutti i {n} piloti", "col.detail": "Dettagli", "col.compare": "Confronta", "profile.open": "Apri la sua scheda (le sue combo, confrontate con le tue)", "profile.you": "Tu", "profile.vsGap": "Il tuo distacco", "profile.ahead": "Sei davanti su <b>{a} / {n}</b> combo in comune.", "profile.noCommon": "Nessuna combo in comune con te.", "profile.compare": "Confronta", "cmp.tip": "Confronta con questo pilota", "cmp.title": "Confronto piloti", "cmp.close": "Chiudi", "cmp.gap": "Distacco", "cmp.sectors": "Dove nasce il distacco", "cmp.detail": "Miglior giro", "cmp.behind": "{name} perde <b>{gap} s</b> al giro, di cui <b>{part} s in {sector}</b>.", "cmp.behindOnly": "{name} perde <b>{gap} s</b> al giro.", "cmp.gains": "In {sector} è il contrario: <b>{gain} s</b> più veloce.", "cmp.tie": "Stesso tempo sul giro.", "cmp.optimal": "Giro ideale (migliori settori)", "cmp.median": "Passo mediano", "cmp.spread": "Costanza (mediano − migliore)", "cmp.vmax": "Velocità massima", "cmp.tyres": "Gomme", "cmp.session": "Sessione", "cmp.sessions": "Sessioni su questa combo", "cmp.laps": "Giri validi su questa combo", "cmp.diffClass": "Classi diverse: il distacco è solo indicativo.", "cmp.diffVersion": "Versioni del gioco diverse ({a} / {b}): il bilanciamento può essere cambiato.", "cmp.context": "Contesto", "cmp.alone": "Unico pilota in questa classifica: nessuno con cui confrontarsi.", "cmp.you": "tu",
-    "nav.features": "Funzionalità", "nav.community": "Classifiche", "nav.screenshots": "Screenshot", "nav.install": "Installazione", "nav.faq": "FAQ", "nav.changelog": "Novità", "nav.download": "Scarica", "footer.solo": "Un appassionato, da solo, la sera dopo il lavoro — e non sviluppatore di professione. Vale a dire che qualche bug c'è ancora: considera l'app nel suo giro di rodaggio. Se ne incontri uno, segnalalo: è il modo più sicuro per vederlo sparire.", "footer.noCookie": "Questo sito non usa cookie e non raccoglie dati personali sui suoi visitatori.", "footer.releases": "Versioni", "footer.issues": "Segnala un bug",
+    "nav.features": "Funzionalità", "nav.community": "Classifiche", "nav.screenshots": "Screenshot", "nav.install": "Installazione", "nav.faq": "FAQ", "nav.changelog": "Novità", "nav.download": "Scarica", "footer.soloTip": "Una parola dallo sviluppatore", "footer.solo": "Un appassionato, da solo, la sera dopo il lavoro — e non sviluppatore di professione. Vale a dire che qualche bug c'è ancora: considera l'app nel suo giro di rodaggio. Se ne incontri uno, segnalalo: è il modo più sicuro per vederlo sparire.", "footer.noCookie": "Questo sito non usa cookie e non raccoglie dati personali sui suoi visitatori.", "footer.releases": "Versioni", "footer.issues": "Segnala un bug",
   },
 };
 
@@ -531,7 +531,7 @@ function chrome() {
   const header = document.querySelector("header.site-header");
   header.innerHTML = `
     <div class="wrap header-inner">
-      <a class="brand" href="/"><img class="brand-logo" src="/assets/icon-32.png?v=1" alt=""><span>LMU Stats Viewer</span></a>
+      <div class="brand-wrap"><button type="button" class="dev-note-btn" aria-expanded="false" title="${esc(t("footer.soloTip"))}" aria-label="${esc(t("footer.soloTip"))}"><img class="brand-logo" src="/assets/icon-32.png?v=1" alt=""></button><a class="brand" href="/"><span>LMU Stats Viewer</span></a></div>
       <nav class="nav" id="nav">${NAV.map(([href, k]) => `<a href="${href}"${current(href) ? ' aria-current="page"' : ""}>${esc(t(k))}</a>`).join("")}</nav>
       <div class="header-actions">
         <div class="dsearch"><input class="search" id="driverSearch" placeholder="${esc(t("search.ph"))}" autocomplete="off"><div class="dsearch-list" id="driverResults" hidden></div></div>
@@ -600,8 +600,7 @@ function chrome() {
   document.querySelector("footer.site-footer").innerHTML = `
     <div class="wrap footer-inner">
       <div class="footer-about">
-        <div class="footer-brand"><img src="/assets/icon-32.png?v=1" width="24" height="24" alt=""><div><strong>LMU Stats Viewer</strong><span>${esc(t("footer.tagline"))}</span></div></div>
-        <p class="footer-solo">${esc(t("footer.solo"))}</p>
+        <div class="footer-brand"><button type="button" class="dev-note-btn" aria-expanded="false" title="${esc(t("footer.soloTip"))}" aria-label="${esc(t("footer.soloTip"))}"><img src="/assets/icon-32.png?v=1" width="24" height="24" alt=""></button><div><strong>LMU Stats Viewer</strong><span>${esc(t("footer.tagline"))}</span></div></div>
       </div>
       <nav class="footer-links">
         <a href="/changelog.html">${esc(t("nav.changelog"))}</a>
@@ -619,8 +618,54 @@ function chrome() {
     </div>`;
   // Pages de la vitrine : leur script les traduit avec le dictionnaire de la vitrine.
   if (!window.VITRINE_I18N) document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll(".dev-note-btn").forEach((b) => b.addEventListener("click", () => toggleDevNote(b)));
   watchMaintenance();
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
+}
+
+/**
+ * Le mot du développeur (« un passionné, seul… ») : plus dans le pied de page, mais dans une
+ * bulle qui s'ouvre d'un clic sur le petit personnage (logo de l'en-tête et du pied de page).
+ */
+let devNoteOpen = null;
+function toggleDevNote(btn) {
+  if (devNoteOpen) {
+    const same = devNoteOpen.btn === btn;
+    devNoteOpen.close();
+    if (same) return;
+  }
+  const note = document.createElement("div");
+  note.className = "dev-note";
+  note.setAttribute("role", "dialog");
+  note.setAttribute("aria-label", t("footer.soloTip"));
+  note.innerHTML = `<p>${esc(t("footer.solo"))}</p><a href="https://github.com/cparfait/lmustatsviewer/issues" target="_blank" rel="noopener noreferrer">${esc(t("footer.issues"))} ›</a>`;
+  document.body.appendChild(note);
+  // Sous le personnage (ou au-dessus s'il est en bas de l'écran), ramenée dans l'écran.
+  const place = () => {
+    const r = btn.getBoundingClientRect();
+    const below = r.bottom + note.offsetHeight + 12 < window.innerHeight;
+    note.style.top = `${below ? r.bottom + 10 : r.top - note.offsetHeight - 10}px`;
+    note.style.left = `${Math.max(8, Math.min(r.left - 6, window.innerWidth - note.offsetWidth - 8))}px`;
+    note.classList.toggle("is-above", !below);
+  };
+  place();
+  btn.setAttribute("aria-expanded", "true");
+  const onOutside = (e) => { if (!note.contains(e.target) && !btn.contains(e.target)) close(); };
+  const onKey = (e) => { if (e.key === "Escape") { close(); btn.focus(); } };
+  const close = () => {
+    note.remove();
+    btn.setAttribute("aria-expanded", "false");
+    document.removeEventListener("mousedown", onOutside, true);
+    document.removeEventListener("keydown", onKey);
+    window.removeEventListener("scroll", place, true);
+    window.removeEventListener("resize", place);
+    devNoteOpen = null;
+  };
+  document.addEventListener("mousedown", onOutside, true);
+  document.addEventListener("keydown", onKey);
+  window.addEventListener("scroll", place, true);
+  window.addEventListener("resize", place);
+  devNoteOpen = { btn, close };
 }
 
 // ── Barre de filtres (même présentation que l'app : icône + libellé + liste) ──
@@ -715,7 +760,18 @@ function enhanceSelect(sel) {
   btn.setAttribute("aria-expanded", "false");
   const label = box.querySelector(".fsel-k")?.textContent.trim() || "";
   btn.setAttribute("aria-label", label);
-  const paint = () => { btn.innerHTML = `<span class="fdrop-val">${esc(sel.selectedOptions[0]?.textContent ?? "")}</span>${FDROP_CHEV}`; };
+  // Repère visuel devant chaque choix : drapeau (circuit, tracé), logo (voiture), pastille de
+  // couleur (classe). « Tous / Toutes » : rien.
+  const key = sel.dataset.key;
+  const deco = (v) => {
+    if (!v || v === "all") return "";
+    if (key === "track") return flagImg(v);
+    if (key === "course") return flagImg(v) || flagImg(box.closest(".fbar")?.querySelector('select[data-key="track"]')?.value || "");
+    if (key === "car") return `<span class="fdrop-logo">${carImg(v)}</span>`;
+    if (key === "class") return `<i class="cls-dot dot-${classKey(v)}"></i>`;
+    return "";
+  };
+  const paint = () => { btn.innerHTML = `<span class="fdrop-val">${deco(sel.value)}<span>${esc(sel.selectedOptions[0]?.textContent ?? "")}</span></span>${FDROP_CHEV}`; };
   paint();
   sel.after(btn);
   sel.addEventListener("change", paint);
@@ -737,7 +793,7 @@ function enhanceSelect(sel) {
     list.setAttribute("aria-label", label);
     const search = opts.length > 10;
     list.innerHTML = `${search ? `<input class="fdrop-search" type="search" placeholder="${esc(t("f.search"))}" aria-label="${esc(t("f.search"))}">` : ""}
-      <div class="fdrop-opts">${opts.map((o) => `<button type="button" role="option" class="fdrop-opt${o.selected ? " is-on" : ""}" aria-selected="${o.selected}" data-v="${esc(o.value)}"><span>${esc(o.textContent)}</span>${o.selected ? FDROP_CHECK : ""}</button>`).join("")}</div>`;
+      <div class="fdrop-opts">${opts.map((o) => `<button type="button" role="option" class="fdrop-opt${o.selected ? " is-on" : ""}" aria-selected="${o.selected}" data-v="${esc(o.value)}"><span class="fdrop-lbl">${deco(o.value)}<span>${esc(o.textContent)}</span></span>${o.selected ? FDROP_CHECK : ""}</button>`).join("")}</div>`;
     document.body.appendChild(list);
     // Sous le filtre, aligné à gauche ; ramené dans l'écran s'il déborde. Recalculé au
     // défilement (clavier du téléphone qui apparaît, page qu'on fait glisser).

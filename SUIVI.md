@@ -1057,6 +1057,11 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   du développeur sous le nom de l'app, liens à droite. `?v=58`. Vu en local (bureau, clavier, mobile).
 - 📋 Captures du site à refaire à la publication de la prochaine version : ajouté à la checklist de
   `RELEASE.md` (A.6).
+- ✅ Déployé `e22af39` (vérifié en ligne). Puis, site : **mot du développeur retiré du pied de page**
+  (« pas adapté au site ») → bulle au clic sur le **petit personnage** (logo de l'en-tête et du pied ;
+  le nom reste le lien d'accueil ; Échap / clic dehors ferme ; lien « Signaler un bug ») ; **menus des
+  filtres** : drapeaux (circuit, tracé), logos (voiture), pastilles de couleur (classe), aussi sur le
+  choix affiché. `?v=60`. Vu en local.
 - 📋 **Prochaine étape** : commiter et redéployer ce lot ;
   vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
   jeu un setup mixte enregistré sur un autre circuit.

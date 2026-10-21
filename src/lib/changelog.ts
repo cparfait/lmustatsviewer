@@ -749,6 +749,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Website: the developer's note leaves the footer — a click on the little character (the logo) shows it in a bubble; the filter menus show the tracks' flags, the cars' logos and the classes' colours.",
+              fr: "Site : le mot du développeur quitte le pied de page — un clic sur le petit personnage (le logo) l'affiche dans une bulle ; les menus des filtres montrent les drapeaux des circuits, les logos des voitures et la couleur des classes.",
+              es: "Web: la nota del desarrollador sale del pie de página — un clic en el pequeño personaje (el logo) la muestra en una burbuja; los menús de filtros muestran las banderas de los circuitos, los logos de los coches y el color de las clases.",
+              de: "Website: Die Notiz des Entwicklers verlässt die Fußzeile — ein Klick auf die kleine Figur (das Logo) zeigt sie in einer Sprechblase; die Filtermenüs zeigen die Flaggen der Strecken, die Logos der Autos und die Farben der Klassen.",
+              it: "Sito: la nota dello sviluppatore lascia il piè di pagina — un clic sul piccolo personaggio (il logo) la mostra in una nuvoletta; i menu dei filtri mostrano le bandiere dei circuiti, i loghi delle vetture e i colori delle classi.",
+            },
+          },
+          {
+            text: {
               en: "Website: the filter menus (track, class, session…) open as a menu in the site's colours — orange check on the current choice, search in long lists, keyboard friendly — instead of the system list; the “Download the app” button says what it does (it downloads the installer directly); the developer's note in the footer now sits under the app's name, opposite the links.",
               fr: "Site : les menus des filtres (circuit, classe, session…) s'ouvrent dans un menu aux couleurs du site — coche orange sur le choix en cours, recherche dans les longues listes, utilisable au clavier — au lieu de la liste du système ; le bouton « Télécharger l'application » dit ce qu'il fait (il télécharge directement l'installateur) ; le mot du développeur, en pied de page, est désormais sous le nom de l'app, en face des liens.",
               es: "Web: los menús de filtros (circuito, clase, sesión…) se abren en un menú con los colores de la web — marca naranja en la opción actual, búsqueda en las listas largas, usable con el teclado — en lugar de la lista del sistema; el botón «Descargar la aplicación» dice lo que hace (descarga directamente el instalador); la nota del desarrollador, al pie, está ahora bajo el nombre de la app, frente a los enlaces.",

@@ -67,7 +67,7 @@ h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); letter-spacing: -.028em; }
 .site-footer { border-top: 1px solid var(--border); padding: 32px 0 40px; color: var(--muted); font-size: .88rem; }
 .footer-inner { display: flex; justify-content: space-between; gap: 20px 40px; flex-wrap: wrap; align-items: flex-start; }
 /* À gauche : l'app et le mot du développeur ; à droite : les liens. */
-.footer-about { display: grid; gap: 14px; flex: 0 1 52ch; min-width: 280px; }
+.footer-about { display: grid; gap: 14px; flex: 0 1 52ch; min-width: 240px; }
 .footer-inner .footer-links { flex: 1 1 320px; justify-content: flex-end; align-items: center; }
 .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
 .footer-links a { text-decoration: none; }
@@ -79,9 +79,6 @@ h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); letter-spacing: -.028em; }
 .footer-legal { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
 .footer-legal p { margin: 0 0 4px; font-size: .8rem; }
 .footer-legal p:last-child { margin-bottom: 0; }
-/* Le mot du développeur : plus personnel que les mentions légales, traité à part. */
-.footer-solo { display: flex; gap: 11px; margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 10px; background: var(--bg-3); font-size: .86rem; line-height: 1.6; }
-.footer-solo::before { content: "🏁"; flex: none; font-size: 1rem; line-height: 1.4; }
 .notice { padding: 14px 18px; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--border)); background: color-mix(in srgb, var(--amber) 8%, transparent); font-size: .92rem; }
 .empty { text-align: center; padding: 48px 20px; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--muted); }
 .empty b { display: block; color: var(--text); font-size: 1.1rem; margin-bottom: 6px; }
@@ -1020,3 +1017,25 @@ body.cmp-open { overflow: hidden; }
   #filters .fbar .fdrop-btn { flex: 1 1 auto; max-width: none; font-size: 16px; }
   .fdrop-opt { padding: 10px 12px; font-size: 1rem; }
 }
+
+/* Petit personnage (logo) : ouvre la bulle du mot du développeur ; le nom reste le lien d'accueil. */
+.brand-wrap { display: flex; align-items: center; gap: 10px; }
+.dev-note-btn { all: unset; display: inline-grid; place-items: center; border-radius: 8px; cursor: pointer; transition: transform .15s var(--ease, ease); }
+.dev-note-btn:hover { transform: rotate(-8deg) scale(1.06); }
+.dev-note-btn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.dev-note-btn[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--glow); }
+.dev-note { position: fixed; z-index: 90; width: min(360px, calc(100vw - 16px)); padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); color: var(--text); font-size: .88rem; line-height: 1.55; animation: fdrop-in .14s var(--ease, ease); }
+.dev-note p { display: flex; gap: 10px; margin: 0 0 10px; }
+.dev-note p::before { content: "🏁"; flex: none; }
+.dev-note a { font-size: .8rem; font-weight: 700; color: var(--amber-ink); text-decoration: none; }
+.dev-note a:hover { text-decoration: underline; }
+
+/* Repères dans les menus des filtres : drapeau, logo de marque, pastille de classe. */
+.fdrop-lbl, .fdrop-btn .fdrop-val { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.fdrop-lbl > span:last-child, .fdrop-btn .fdrop-val > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.fdrop-lbl .flag-img, .fdrop-btn .flag-img { flex: none; height: 12px; width: auto; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.12); }
+.fdrop-logo { flex: none; display: inline-grid; place-items: center; width: 18px; height: 18px; }
+.fdrop-logo img { max-width: 18px !important; max-height: 18px !important; width: auto !important; height: auto !important; }
+.cls-dot { flex: none; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.cls-dot.dot-hyper { background: var(--c-hyper); } .cls-dot.dot-lmp2 { background: var(--c-lmp2); } .cls-dot.dot-lmp3 { background: var(--c-lmp3); }
+.cls-dot.dot-gt3 { background: var(--c-gt3); } .cls-dot.dot-gte { background: var(--c-gte); }

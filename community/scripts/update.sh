@@ -36,6 +36,9 @@ ok() { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 fail() { printf '  \033[31m✗ %s\033[0m\n' "$*" >&2; }
 
 cd "$HOME" && cd "$DIR" 2>/dev/null || { fail "dossier introuvable : $DIR"; exit 1; }
+# Chemin absolu : `deploy.sh` passe un dossier relatif au dossier personnel, et le
+# piège de fin (retrait du bandeau) le relirait depuis l'intérieur de ce dossier.
+DIR="$(pwd)"
 [ -f .env ] || { fail ".env absent dans $DIR (première installation : voir README.md)"; exit 1; }
 
 # Verrou (util-linux, présent sur Debian) : deux mises à jour ne se chevauchent jamais.

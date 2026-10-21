@@ -993,8 +993,16 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   « Piper indisponible » jusqu'au redémarrage → voix Windows même après téléchargement. Échec retenu
   30 s seulement, oublié au téléchargement/suppression/choix d'une voix (`resetPiperAvailability`).
 - ✅ `tsc -b` propre, eslint propre sur les fichiers touchés, `npm test` vert. Changelog 1.0.10.
-- 📋 **Prochaine étape** : vérification à l'écran dans l'instance de dev puis commit de ces fichiers
-  (index privé) après accord ; tester en jeu un setup mixte enregistré sur un autre circuit.
+- ✅ Commit `02b9ab5`, puis **serveur + site déployés** (`deploy.cmd --smoke`, version `baf8042`) :
+  test de bout en bout OK, `combos/compare` répond, colonne « Comparer » et fiche pilote en ligne.
+- ⚠️ **Bandeau « mise à jour en cours » resté affiché** après le déploiement depuis le PC :
+  `update.sh` reçoit un dossier relatif (`docker/lmustatsviewer`), y entre, puis son piège de fin
+  efface `$DIR/state/maintenance.json` relativement à ce dossier → fichier jamais trouvé. Corrigé
+  (`DIR="$(pwd)"` après le `cd`) — effet au prochain déploiement ; le fichier en place est à retirer
+  à la main sur le VPS (`rm -f ~/docker/lmustatsviewer/state/maintenance.json`).
+- 📋 **Prochaine étape** : retirer le bandeau sur le VPS, commiter le correctif de `update.sh` ;
+  vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
+  jeu un setup mixte enregistré sur un autre circuit.
 
 ### 2026-10-21 — Comparaison de setups : tous les réglages couverts, setup mixte A/B, inversion, IA guidée par les règles (non commité)
 

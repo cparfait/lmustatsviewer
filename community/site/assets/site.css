@@ -65,7 +65,10 @@ h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); letter-spacing: -.028em; }
 [data-theme="dark"] .i-moon, [data-theme="light"] .i-sun { display: none; }
 .lang-select { height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: 600 .82rem var(--font); padding: 0 8px; }
 .site-footer { border-top: 1px solid var(--border); padding: 32px 0 40px; color: var(--muted); font-size: .88rem; }
-.footer-inner { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+.footer-inner { display: flex; justify-content: space-between; gap: 20px 40px; flex-wrap: wrap; align-items: flex-start; }
+/* À gauche : l'app et le mot du développeur ; à droite : les liens. */
+.footer-about { display: grid; gap: 14px; flex: 0 1 52ch; min-width: 280px; }
+.footer-inner .footer-links { flex: 1 1 320px; justify-content: flex-end; align-items: center; }
 .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
 .footer-links a { text-decoration: none; }
 .footer-links a:hover { color: var(--text); }
@@ -77,7 +80,7 @@ h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); letter-spacing: -.028em; }
 .footer-legal p { margin: 0 0 4px; font-size: .8rem; }
 .footer-legal p:last-child { margin-bottom: 0; }
 /* Le mot du développeur : plus personnel que les mentions légales, traité à part. */
-.footer-legal .footer-solo { display: flex; gap: 11px; max-width: 76ch; margin-bottom: 16px; padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 10px; background: var(--bg-3); font-size: .86rem; line-height: 1.6; }
+.footer-solo { display: flex; gap: 11px; margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 10px; background: var(--bg-3); font-size: .86rem; line-height: 1.6; }
 .footer-solo::before { content: "🏁"; flex: none; font-size: 1rem; line-height: 1.4; }
 .notice { padding: 14px 18px; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--border)); background: color-mix(in srgb, var(--amber) 8%, transparent); font-size: .92rem; }
 .empty { text-align: center; padding: 48px 20px; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--muted); }
@@ -986,4 +989,34 @@ body.cmp-open { overflow: hidden; }
   .cg-table .cg-detail-in td, .cg-table .cg-detail-in th { display: table-cell !important; padding: 5px 6px; grid-area: auto; }
   .cg-detail-in .lb-dense { min-width: 0; }
   .cg-table .cg-detail-in .lb-dense th.cmp-col, .cg-table .cg-detail-in .lb-dense td.cmp-cell { display: none !important; }
+}
+
+/* Menus des filtres aux couleurs du site (le <select> natif reste en coulisse). */
+.fsel .fsel-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.fsel { position: relative; }
+.fsel .fsel-k { cursor: pointer; }
+.fdrop-btn { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 72px; max-width: 240px; padding: 7px 10px; color: var(--text); font: 600 .86rem var(--font); cursor: pointer; }
+.fdrop-btn .fdrop-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fdrop-btn .fdrop-chev { flex: none; color: var(--muted); transition: transform .15s var(--ease, ease); }
+.fsel.is-open { border-color: var(--amber); box-shadow: 0 0 0 3px var(--glow); }
+.fsel.is-open .fdrop-chev { transform: rotate(180deg); color: var(--amber); }
+.fdrop-btn:focus-visible { outline: none; }
+.fsel:has(.fdrop-btn:focus-visible) { border-color: var(--amber); box-shadow: 0 0 0 3px var(--glow); }
+.fdrop-list { position: fixed; z-index: 80; display: flex; flex-direction: column; gap: 6px; max-width: min(360px, calc(100vw - 16px)); padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; animation: fdrop-in .12s var(--ease, ease); }
+@keyframes fdrop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.fdrop-search { box-sizing: border-box; width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-2); color: var(--text); font: 500 .86rem var(--font); }
+.fdrop-search:focus { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px var(--glow); }
+.fdrop-opts { display: grid; gap: 1px; overflow-y: auto; min-height: 0; }
+.fdrop-opt { all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 10px; border-radius: 7px; color: var(--text); font: 500 .88rem var(--font); cursor: pointer; white-space: nowrap; }
+.fdrop-opt:hover, .fdrop-opt:focus-visible { background: var(--glow); outline: none; }
+.fdrop-opt.is-on { color: var(--amber-ink); font-weight: 700; }
+.fdrop-opt.is-on svg { flex: none; color: var(--amber); }
+/* Choix multiple (déjà personnalisé) : même allure. */
+.fmulti-list { border-radius: 12px; box-shadow: var(--shadow); padding: 6px; }
+.fmulti-list label { border-radius: 7px; padding: 7px 10px; }
+.fmulti-list label:hover { background: var(--glow); }
+.fmulti-list input[type=checkbox] { accent-color: var(--amber); }
+@media (max-width: 760px) {
+  #filters .fbar .fdrop-btn { flex: 1 1 auto; max-width: none; font-size: 16px; }
+  .fdrop-opt { padding: 10px 12px; font-size: 1rem; }
 }

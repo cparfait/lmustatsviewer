@@ -237,6 +237,10 @@ utilisateurs voient la mise à jour au prochain lancement. Rien à héberger à 
 - [ ] Workflow *Release* vert (Actions).
 - [ ] Release **brouillon** vérifiée : présence de l'`.exe` **et** de `latest.json`.
 - [ ] Notes de version rédigées → **Publish release**.
+- [ ] **Captures du site refaites** (vitrine `assets/img/shots/<nom>-light|dark.png`) avec l'app
+  publiée : depuis `community/site`, `powershell -ExecutionPolicy Bypass -File
+  ../site-tools/capture-set.ps1 -Theme dark` puis `-Theme light` (cf. `community/README.md`),
+  puis redéployer le site (`community\scripts\deploy.cmd --smoke`).
 - [ ] (Facultatif) Tester l'auto-update depuis une version précédente installée.
 
 ---

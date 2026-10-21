@@ -207,7 +207,7 @@ window.VITRINE_I18N = {
     "install.req.telV": "« Telemetry Recording » activé en jeu <em>(optionnel)</em>",
     "install.req.ai": "Coach IA",
     "install.req.aiV": "Une clé API, ou Ollama en local <em>(optionnel)</em>",
-    "install.cta": "Aller à la page de téléchargement",
+    "install.cta": "Télécharger l'application",
 
     "faq.kicker": "Questions fréquentes",
     "faq.title": "Bon à savoir",
@@ -440,7 +440,7 @@ window.VITRINE_I18N = {
     "install.req.telV": "“Telemetry Recording” enabled in game <em>(optional)</em>",
     "install.req.ai": "AI coach",
     "install.req.aiV": "An API key, or Ollama running locally <em>(optional)</em>",
-    "install.cta": "Go to the download page",
+    "install.cta": "Download the app",
 
     "faq.kicker": "Frequently asked",
     "faq.title": "Good to know",
@@ -673,7 +673,7 @@ window.VITRINE_I18N = {
     "install.req.telV": "«Telemetry Recording» activado en el juego <em>(opcional)</em>",
     "install.req.ai": "Entrenador IA",
     "install.req.aiV": "Una clave API, u Ollama en local <em>(opcional)</em>",
-    "install.cta": "Ir a la página de descarga",
+    "install.cta": "Descargar la aplicación",
 
     "faq.kicker": "Preguntas frecuentes",
     "faq.title": "Conviene saber",
@@ -906,7 +906,7 @@ window.VITRINE_I18N = {
     "install.req.telV": "„Telemetry Recording“ im Spiel aktiviert <em>(optional)</em>",
     "install.req.ai": "KI-Coach",
     "install.req.aiV": "Ein API-Schlüssel oder Ollama lokal <em>(optional)</em>",
-    "install.cta": "Zur Download-Seite",
+    "install.cta": "App herunterladen",
 
     "faq.kicker": "Häufige Fragen",
     "faq.title": "Gut zu wissen",
@@ -1139,7 +1139,7 @@ window.VITRINE_I18N = {
     "install.req.telV": "«Telemetry Recording» attivato nel gioco <em>(facoltativo)</em>",
     "install.req.ai": "Coach IA",
     "install.req.aiV": "Una chiave API, oppure Ollama in locale <em>(facoltativo)</em>",
-    "install.cta": "Vai alla pagina di download",
+    "install.cta": "Scarica l'app",
 
     "faq.kicker": "Domande frequenti",
     "faq.title": "Buono a sapersi",

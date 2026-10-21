@@ -270,6 +270,11 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 ## 7. Notes / points ouverts
 
+- ⏳ **Libellé des classes (2026-10-21, reporté par le mainteneur)** : les XML du jeu écrivent
+  `<CarClass>` = `GT3` / `GTE` / `Hyper` / `LMP2` / `LMP2_ELMS` / `LMP3` (227 fichiers vérifiés) ;
+  « LMGT3 » n'apparaît que dans les noms de voitures (`<CarType>`). Option : afficher « LMGT3 » (et
+  « LMGTE ») sur les badges seulement — `CAR_CLASS_LABELS` (app), `classBadge` (site) — sans toucher
+  aux valeurs stockées, filtres ni adresses.
 - ⏳ **Atelier setup (2026-10-21)** : tout est derrière Config › Atelier (désactivé par défaut) et
   n'a pas roulé en jeu. À valider : `maxValue` de `getPlayerGarageData` = nombre de crans ; octet
   `mIsFixedSetup` (1980) sur un serveur à setup imposé ; le jeu relit un `.svm` dont l'index change
@@ -1042,6 +1047,16 @@ question libre, choisir circuit et type du setup mixte, page Setups « Par voitu
   inconnu → choix du nom, croix, fiche pilote, mobile) ; `?v=55`.
 - ✅ Déployé `dbf0cad` (vérifié en ligne). Site, carte « Votre position » d'un combo : bouton
   « Voir dans le tableau » → **« Voir ma position »** (5 langues) ; `?v=56`.
+- ✅ Déployé `a426eac` (« Voir ma position », vérifié en ligne). Puis, site : **menus des filtres
+  « moches » une fois dépliés** → `enhanceSelect` (le `<select>` reste en coulisse et émet `change` ;
+  bouton + menu flottant aux couleurs du site, coche orange, recherche si > 10 choix, ↑ ↓ Entrée Échap
+  et lettres ; repositionné au défilement — sinon le clavier du téléphone le refermait) ; filtres à
+  choix multiple alignés ; `<label class="fsel">` → `<div>` (le clic sur l'intitulé n'ouvre plus la
+  liste native). Bouton de la vitrine « Aller à la page de téléchargement » → **« Télécharger
+  l'application »** (il télécharge l'installateur directement), 5 langues. **Pied de page** : le mot
+  du développeur sous le nom de l'app, liens à droite. `?v=58`. Vu en local (bureau, clavier, mobile).
+- 📋 Captures du site à refaire à la publication de la prochaine version : ajouté à la checklist de
+  `RELEASE.md` (A.6).
 - 📋 **Prochaine étape** : commiter et redéployer ce lot ;
   vérifier à l'écran l'analyse IA lancée et la fenêtre des combos d'un pilote dans l'app ; tester en
   jeu un setup mixte enregistré sur un autre circuit.

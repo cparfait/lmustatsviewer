@@ -87,16 +87,20 @@ async function chatOnce(
 ): Promise<string> {
   const url = provider.chatUrl(model, apiKey);
   const headers = provider.buildHeaders(apiKey);
-  const body = provider.buildBody(messages, model, maxTokens);
+  let body = provider.buildBody(messages, model, maxTokens);
   let raw: unknown;
-  try {
-    raw = await ai.chat(url, headers, body);
-  } catch (e) {
-    // Option facultative refusée (ex. raisonnement coupé sur un modèle où il est
-    // obligatoire) : une seule relance, sans elle.
-    const fallback = /HTTP 400/.test(errorMessage(e)) ? provider.fallbackBody?.(body) : null;
-    if (!fallback) throw e;
-    raw = await ai.chat(url, headers, fallback);
+  // Option facultative refusée (ex. raisonnement coupé sur un modèle où il est
+  // obligatoire) : relance avec la variante suivante du fournisseur (raisonnement
+  // court, puis sans l'option), deux fois au plus.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      raw = await ai.chat(url, headers, body);
+      break;
+    } catch (e) {
+      const next = attempt < 2 && /HTTP 400/.test(errorMessage(e)) ? provider.fallbackBody?.(body) : null;
+      if (!next) throw e;
+      body = next;
+    }
   }
   return stripThinking(provider.parseResponse(raw)).trim();
 }

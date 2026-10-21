@@ -91,7 +91,9 @@ export function run(): void {
     const stream = openrouterProvider.buildBody(msgs, "m", 4000, true) as Record<string, unknown>;
     ok(!("reasoning" in stream), "OpenRouter : raisonnement conservé en streaming (analyse)");
     const back = openrouterProvider.fallbackBody?.(quick) as Record<string, unknown> | null;
-    ok(!!back && !("reasoning" in back) && back.model === "qwen/qwen3.5-35b-a3b", "repli 400 : même requête sans reasoning");
+    eq(JSON.stringify(back?.reasoning), '{"effort":"low"}', "repli 400 sur « none » : raisonnement court (modèle à raisonnement obligatoire)");
+    const back2 = openrouterProvider.fallbackBody?.(back) as Record<string, unknown> | null;
+    ok(!!back2 && !("reasoning" in back2) && back2.model === "qwen/qwen3.5-35b-a3b", "« low » refusé aussi : même requête sans reasoning");
     ok(openaiProvider.fallbackBody?.(openaiProvider.buildBody(msgs, "m", 16)) === null, "OpenAI : pas de repli");
   }
 

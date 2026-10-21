@@ -17,6 +17,10 @@ import { radioWindowOpen, splitRadio } from "@/lib/engineer/radioSplit";
 import { RaceEventTracker } from "@/lib/raceEvents";
 import { platformWatch } from "@/lib/platformWatch";
 import { evaluateAchievements, longestWeekStreak } from "@/lib/achievements";
+import { buildCompareMessages, diffLines, MAX_DIFF_LINES, shownValue } from "@/lib/setupCompareAi";
+import { kiloProvider } from "@/lib/ai/providers/free";
+import { diffIds, mixPatches, pickId } from "@/lib/setupMix";
+import { RULES, compareByRules, isNeutralRule, isSetting, measure, ruleFor } from "@/lib/setupCompareRules";
 import lab from "@/i18n/lab";
 import fr from "@/i18n/fr";
 import en from "@/i18n/en";
@@ -275,6 +279,90 @@ function i18nKeys(): void {
   ok(!/séance/i.test(JSON.stringify(lab.fr)), "« session », jamais « séance »");
 }
 
+function compareAi(): void {
+  section("atelier — analyse IA d'une comparaison");
+  eq(shownValue("12", "7.0 deg"), "7.0 deg (index 12)", "texte du garage + index");
+  eq(shownValue("", "7.0 deg"), "7.0 deg (default notch)", "réglage resté par défaut");
+  eq(shownValue("4", null), "4", "sans texte : valeur brute");
+  const diffs = [
+    { name: "REARWING", params: [{ key: "RWSetting", value_a: "10", value_b: "12", comment_a: "6.0 deg", comment_b: "7.0 deg", is_diff: true }] },
+    { name: "CONTROLS", params: [{ key: "TractionControlMapSetting", value_a: "5", value_b: "5", comment_a: "5", comment_b: "5", is_diff: false }] },
+  ];
+  const d = diffLines(diffs);
+  eq([d.total, d.lines], [1, ["[REARWING] RWSetting: A = 6.0 deg (index 10) → B = 7.0 deg (index 12)"]], "seuls les réglages différents");
+  const many = [{ name: "X", params: Array.from({ length: 80 }, (_, i) => ({ key: `K${i}`, value_a: "1", value_b: "2", comment_a: null, comment_b: null, is_diff: true })) }];
+  eq([diffLines(many).total, diffLines(many).lines.length], [80, MAX_DIFF_LINES], "liste tronquée, total gardé");
+  const side = (name: string, circuit: string) => ({ name: `${name}.svm`, car: "BMW M4", carClass: "GT3", circuit, setupType: "Course", bestLap: null, notes: null });
+  const m = buildCompareMessages({ a: side("Gemini", "Monza"), b: side("Balanced", "Spa"), diffs, lang: "fr" });
+  ok(m[0].content.includes("Write in French"), "réponse dans la langue de l'app");
+  ok(m[1].content.includes("Setup A: \"Gemini\"") && m[1].content.includes("track folder Spa"), "les deux setups et leurs circuits");
+  ok(m[1].content.includes("no linked session"), "pas de chrono inventé sans session liée");
+  const bb = [{ name: "CONTROLS", params: [{ key: "RearBrakeSetting", value_a: "25", value_b: "20", comment_a: "52.5:47.5", comment_b: "52.0:48.0", is_diff: true }] }];
+  const facts = buildCompareMessages({ a: side("A", "Spa"), b: side("B", "Spa"), diffs: bb, lang: "fr" })[1].content;
+  ok(facts.includes("AUTHORITATIVE") && /Brake balance: 52\.5:47\.5 → 52\.0:48\.0\. Brake balance further back/.test(facts), "l'IA reçoit le sens de la répartition (vers l'arrière) calculé par les règles");
+  ok(buildCompareMessages({ a: side("A", "Spa"), b: side("B", "Spa"), diffs: [], lang: "en" })[1].content.includes("identical"), "setups identiques : dit tel quel");
+  // Kilo : raisonnement coupé sur les appels courts, repli « low » puis sans option.
+  const kb = kiloProvider.buildBody([{ role: "user", content: "x" }], "minimax/minimax-m3.1-flash:free", 1200) as Record<string, unknown>;
+  eq(JSON.stringify(kb.reasoning), '{"effort":"none"}', "Kilo : raisonnement coupé sur appel court");
+  const k1 = kiloProvider.fallbackBody?.(kb) as Record<string, unknown> | null;
+  eq(JSON.stringify(k1?.reasoning), '{"effort":"low"}', "Kilo : « none » refusé → effort low");
+  const k2 = kiloProvider.fallbackBody?.(k1) as Record<string, unknown> | null;
+  ok(!!k2 && !("reasoning" in k2), "Kilo : « low » refusé → sans l'option");
+  ok(!("reasoning" in (kiloProvider.buildBody([{ role: "user", content: "x" }], "m", 4000, true) as object)), "Kilo : streaming inchangé");
+}
+
+function compareRules(): void {
+  section("atelier — comparaison par règles de dynamique");
+  const P = (key: string, value_a: string, value_b: string, comment_a: string | null, comment_b: string | null) => ({ key, value_a, value_b, comment_a, comment_b, is_diff: true });
+  eq(measure(P("RWSetting", "4", "6", "1.0 deg", "1.4 deg"), "number"), { dir: 1, steps: 2 }, "aileron : sens lu sur les degrés affichés");
+  eq(measure(P("RearBrakeSetting", "25", "20", "52.5:47.5", "52.0:48.0"), "frontShare").dir, 1, "répartition 52.5 → 52.0 % à l'avant = plus vers l'arrière");
+  eq(measure(P("CamberSetting", "22", "10", "-2.2 deg", "-1.0 deg"), "abs").dir, -1, "carrossage : moins de carrossage en valeur absolue");
+  eq(measure(P("PressureSetting", "30", "0", "176 kPa", "136 kPa"), "number").dir, -1, "pression : kPa affichés");
+  const diffs = [
+    { name: "REARWING", params: [P("RWSetting", "4", "6", "1.0 deg", "1.4 deg")] },
+    { name: "CONTROLS", params: [P("RearBrakeSetting", "25", "20", "52.5:47.5", "52.0:48.0"), P("TCSlipAngleMapSetting", "4", "7", "4", "7"), P("TCSetting", "0", "0", "Disponible", "Available")] },
+    { name: "FRONTLEFT", params: [P("PressureSetting", "30", "0", "176 kPa", "136 kPa")] },
+    { name: "FRONTRIGHT", params: [P("PressureSetting", "30", "0", "176 kPa", "136 kPa")] },
+    { name: "SUSPENSION", params: [P("MysteryKnobSetting", "1", "2", "x", "y")] },
+    { name: "GENERAL", params: [P("Notes", "", "", "\"a\"", "\"b\""), P("NumPitstopsSetting", "0", "1", "0", "1")] },
+  ];
+  const r = compareByRules(diffs);
+  eq(r.changes.map((c) => c.id), ["rearWing", "frontPressure", "rearBrake", "tcSlip", "pitStrategy"], "écarts reconnus, rangés par thème ; langue du jeu et notes ignorées, stratégie d'arrêts gardée");
+  eq(r.changes.find((c) => c.id === "frontPressure")?.sections, ["FRONTLEFT", "FRONTRIGHT"], "gauche et droite réunies en un seul écart");
+  eq(r.changes.find((c) => c.id === "rearWing")?.effects, { uFast: 1, topSpeed: -1 }, "aileron arrière plus incliné : plus stable en courbe rapide, moins de vitesse de pointe");
+  ok(isNeutralRule("tcSlip") && !isNeutralRule("rearWing"), "réglage au sens inconnu : décrit, sans effet compté");
+  eq(r.others.map((o) => o.key), ["MysteryKnobSetting"], "réglage sans règle : listé à part");
+  const brake = r.trends.find((t) => t.axis === "brakeStab");
+  ok(!!brake && brake.score < 0 && brake.by[0] === "rearBrake", "bilan : freinage moins stable, à cause de la répartition");
+  const top = r.trends.find((t) => t.axis === "topSpeed");
+  ok(!!top && top.score < 0 && top.by.includes("rearWing"), "bilan : moins de vitesse de pointe (aileron)");
+  ok(r.preferB.length > 0 && r.preferB.length <= 4, "traits pour « choisis A / B » (4 au plus)");
+  eq(compareByRules([]).changes.length, 0, "setups identiques : rien");
+
+  // Setup mixte : copie de A + réglages choisis de B (valeur et texte du garage de B).
+  const mix = [
+    { name: "REARWING", params: [P("RWSetting", "4", "6", "1.0 deg", "1.4 deg"), { ...P("FWSetting", "0", "0", "Std", "Std"), is_diff: false }] },
+    { name: "FRONTLEFT", params: [P("PressureSetting", "30", "0", "176 kPa", "136 kPa"), P("CamberSetting", "22", "10", "-2.2 deg", "-1.0 deg")] },
+  ];
+  eq(diffIds(mix[0]), ["REARWING|RWSetting"], "seuls les réglages différents se choisissent");
+  eq(mixPatches(mix, new Set([pickId("FRONTLEFT", "CamberSetting")])), [{ name: "FRONTLEFT", params: [{ key: "CamberSetting", value: "10", comment: "-1.0 deg" }] }], "seul le réglage choisi est repris de B");
+  eq(mixPatches(mix, new Set()), [], "rien de choisi : rien à écrire");
+
+  // Chaque règle a un nom et ses textes dans l'Atelier (les 13 leviers des profils réutilisent lab.profiles.why).
+  const fr = lab.fr as unknown as { cmp: { name: Record<string, string>; fx: Record<string, Record<string, string>> }; profiles: { why: Record<string, unknown> } };
+  const missing = [...new Set(RULES.map((x) => x.id))].filter((id) => {
+    if (!fr.cmp.name[id]) return true;
+    if (isNeutralRule(id)) return !fr.cmp.fx[id]?.changed;
+    return !(fr.profiles.why[id] || (fr.cmp.fx[id]?.up && fr.cmp.fx[id]?.down));
+  });
+  eq(missing, [], "chaque règle a son nom et ses textes");
+
+  // Couverture : chaque réglage rencontré dans les vrais fichiers .svm a une règle.
+  const REAL_KEYS: [string, string][] = [["BASIC", "Balance"], ["BASIC", "Custom"], ["BASIC", "Downforce"], ["BASIC", "Gearing"], ["BASIC", "Ride"], ["BODYAERO", "BrakeDuctRearSetting"], ["BODYAERO", "BrakeDuctSetting"], ["BODYAERO", "OilRadiatorSetting"], ["BODYAERO", "WaterRadiatorSetting"], ["CONTROLS", "ABSSetting"], ["CONTROLS", "AntilockBrakeSystemMapSetting"], ["CONTROLS", "BrakeMigrationSetting"], ["CONTROLS", "BrakePressureSetting"], ["CONTROLS", "HandbrakePressSetting"], ["CONTROLS", "HandfrontbrakePressSetting"], ["CONTROLS", "RearBrakeSetting"], ["CONTROLS", "SteerLockSetting"], ["CONTROLS", "TCPowerCutMapSetting"], ["CONTROLS", "TCSetting"], ["CONTROLS", "TCSlipAngleMapSetting"], ["CONTROLS", "TractionControlMapSetting"], ["DRIVELINE", "DiffCoastSetting"], ["DRIVELINE", "DiffPowerSetting"], ["DRIVELINE", "DiffPreloadSetting"], ["DRIVELINE", "DiffPumpSetting"], ["DRIVELINE", "FinalDriveSetting"], ["DRIVELINE", "FrontDiffCoastSetting"], ["DRIVELINE", "FrontDiffPowerSetting"], ["DRIVELINE", "FrontDiffPreloadSetting"], ["DRIVELINE", "FrontDiffPumpSetting"], ["DRIVELINE", "Gear1Setting"], ["DRIVELINE", "Gear2Setting"], ["DRIVELINE", "Gear3Setting"], ["DRIVELINE", "Gear4Setting"], ["DRIVELINE", "Gear5Setting"], ["DRIVELINE", "Gear6Setting"], ["DRIVELINE", "Gear7Setting"], ["DRIVELINE", "GearAutoDownShiftSetting"], ["DRIVELINE", "GearAutoUpShiftSetting"], ["DRIVELINE", "RatioSetSetting"], ["DRIVELINE", "RearSplitSetting"], ["DRIVELINE", "ReverseSetting"], ["ENGINE", "ElectricMotorMapSetting"], ["ENGINE", "EngineBoostSetting"], ["ENGINE", "EngineBrakingMapSetting"], ["ENGINE", "EngineMixtureSetting"], ["ENGINE", "RegenerationMapSetting"], ["ENGINE", "RevLimitSetting"], ["FRONTLEFT", "BrakeDiscSetting"], ["FRONTLEFT", "BrakePadSetting"], ["FRONTLEFT", "CamberSetting"], ["FRONTLEFT", "CompoundSetting"], ["FRONTLEFT", "FastBumpSetting"], ["FRONTLEFT", "FastReboundSetting"], ["FRONTLEFT", "PackerSetting"], ["FRONTLEFT", "PressureSetting"], ["FRONTLEFT", "RideHeightSetting"], ["FRONTLEFT", "SlowBumpSetting"], ["FRONTLEFT", "SlowReboundSetting"], ["FRONTLEFT", "SpringRubberSetting"], ["FRONTLEFT", "SpringSetting"], ["FRONTLEFT", "TenderSpringSetting"], ["FRONTLEFT", "TenderTravelSetting"], ["FRONTRIGHT", "BrakeDiscSetting"], ["FRONTRIGHT", "BrakePadSetting"], ["FRONTRIGHT", "CamberSetting"], ["FRONTRIGHT", "CompoundSetting"], ["FRONTRIGHT", "FastBumpSetting"], ["FRONTRIGHT", "FastReboundSetting"], ["FRONTRIGHT", "PackerSetting"], ["FRONTRIGHT", "PressureSetting"], ["FRONTRIGHT", "RideHeightSetting"], ["FRONTRIGHT", "SlowBumpSetting"], ["FRONTRIGHT", "SlowReboundSetting"], ["FRONTRIGHT", "SpringRubberSetting"], ["FRONTRIGHT", "SpringSetting"], ["FRONTRIGHT", "TenderSpringSetting"], ["FRONTRIGHT", "TenderTravelSetting"], ["FRONTWING", "FWSetting"], ["GENERAL", "CGHeightSetting"], ["GENERAL", "CGRearSetting"], ["GENERAL", "CGRightSetting"], ["GENERAL", "FuelCapacitySetting"], ["GENERAL", "FuelSetting"], ["GENERAL", "Notes"], ["GENERAL", "NumPitstopsSetting"], ["GENERAL", "Pitstop1Setting"], ["GENERAL", "Pitstop2Setting"], ["GENERAL", "Pitstop3Setting"], ["GENERAL", "Symmetric"], ["GENERAL", "VirtualEnergySetting"], ["GENERAL", "WedgeSetting"], ["LEFTFENDER", "FenderFlareSetting"], ["REARLEFT", "BrakeDiscSetting"], ["REARLEFT", "BrakePadSetting"], ["REARLEFT", "CamberSetting"], ["REARLEFT", "CompoundSetting"], ["REARLEFT", "FastBumpSetting"], ["REARLEFT", "FastReboundSetting"], ["REARLEFT", "PackerSetting"], ["REARLEFT", "PressureSetting"], ["REARLEFT", "RideHeightSetting"], ["REARLEFT", "SlowBumpSetting"], ["REARLEFT", "SlowReboundSetting"], ["REARLEFT", "SpringRubberSetting"], ["REARLEFT", "SpringSetting"], ["REARLEFT", "TenderSpringSetting"], ["REARLEFT", "TenderTravelSetting"], ["REARRIGHT", "BrakeDiscSetting"], ["REARRIGHT", "BrakePadSetting"], ["REARRIGHT", "CamberSetting"], ["REARRIGHT", "CompoundSetting"], ["REARRIGHT", "FastBumpSetting"], ["REARRIGHT", "FastReboundSetting"], ["REARRIGHT", "PackerSetting"], ["REARRIGHT", "PressureSetting"], ["REARRIGHT", "RideHeightSetting"], ["REARRIGHT", "SlowBumpSetting"], ["REARRIGHT", "SlowReboundSetting"], ["REARRIGHT", "SpringRubberSetting"], ["REARRIGHT", "SpringSetting"], ["REARRIGHT", "TenderSpringSetting"], ["REARRIGHT", "TenderTravelSetting"], ["REARWING", "RWSetting"], ["RIGHTFENDER", "FenderFlareSetting"], ["SUSPENSION", "ChassisAdj00Setting"], ["SUSPENSION", "ChassisAdj01Setting"], ["SUSPENSION", "ChassisAdj02Setting"], ["SUSPENSION", "ChassisAdj03Setting"], ["SUSPENSION", "ChassisAdj04Setting"], ["SUSPENSION", "ChassisAdj05Setting"], ["SUSPENSION", "ChassisAdj06Setting"], ["SUSPENSION", "ChassisAdj07Setting"], ["SUSPENSION", "ChassisAdj08Setting"], ["SUSPENSION", "ChassisAdj09Setting"], ["SUSPENSION", "ChassisAdj10Setting"], ["SUSPENSION", "ChassisAdj11Setting"], ["SUSPENSION", "Front3rdFastBumpSetting"], ["SUSPENSION", "Front3rdFastReboundSetting"], ["SUSPENSION", "Front3rdPackerSetting"], ["SUSPENSION", "Front3rdSlowBumpSetting"], ["SUSPENSION", "Front3rdSlowReboundSetting"], ["SUSPENSION", "Front3rdSpringSetting"], ["SUSPENSION", "Front3rdTenderSpringSetting"], ["SUSPENSION", "Front3rdTenderTravelSetting"], ["SUSPENSION", "FrontAntiSwaySetting"], ["SUSPENSION", "FrontToeInSetting"], ["SUSPENSION", "FrontToeOffsetSetting"], ["SUSPENSION", "FrontWheelTrackSetting"], ["SUSPENSION", "LeftCasterSetting"], ["SUSPENSION", "LeftTrackBarSetting"], ["SUSPENSION", "Rear3rdFastBumpSetting"], ["SUSPENSION", "Rear3rdFastReboundSetting"], ["SUSPENSION", "Rear3rdPackerSetting"], ["SUSPENSION", "Rear3rdSlowBumpSetting"], ["SUSPENSION", "Rear3rdSlowReboundSetting"], ["SUSPENSION", "Rear3rdSpringSetting"], ["SUSPENSION", "Rear3rdTenderSpringSetting"], ["SUSPENSION", "Rear3rdTenderTravelSetting"], ["SUSPENSION", "RearAntiSwaySetting"], ["SUSPENSION", "RearToeInSetting"], ["SUSPENSION", "RearToeOffsetSetting"], ["SUSPENSION", "RearWheelTrackSetting"], ["SUSPENSION", "RightCasterSetting"], ["SUSPENSION", "RightTrackBarSetting"]];
+  const uncovered = REAL_KEYS.filter(([sec, key]) => isSetting(key) && !ruleFor(sec, key)).map(([sec, key]) => `${sec}.${key}`);
+  eq(uncovered, [], `les ${REAL_KEYS.length} réglages des vrais fichiers ont tous une règle`);
+}
+
 export function run(): void {
   notches();
   audit();
@@ -285,5 +373,7 @@ export function run(): void {
   events();
   platform();
   achievements();
+  compareAi();
+  compareRules();
   i18nKeys();
 }

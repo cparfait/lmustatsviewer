@@ -116,7 +116,15 @@ export function makeOpenAICompatProvider(cfg: OpenAICompatConfig): AIProvider {
       if (!cfg.quickNoReasoning || !body || typeof body !== "object" || !("reasoning" in body)) {
         return null;
       }
-      const { reasoning: _dropped, ...rest } = body as Record<string, unknown>;
+      const b = body as Record<string, unknown>;
+      // Raisonnement obligatoire (« Reasoning is mandatory ») : `none` refusé → on
+      // demande un raisonnement court plutôt que de le laisser libre (sinon un
+      // modèle de ce type épuise le plafond en réflexion et ne répond rien) ;
+      // `low` refusé à son tour → requête sans l'option.
+      if ((b.reasoning as { effort?: string } | undefined)?.effort === "none") {
+        return { ...b, reasoning: { effort: "low" } };
+      }
+      const { reasoning: _dropped, ...rest } = b;
       return rest;
     },
 

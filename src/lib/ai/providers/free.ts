@@ -158,6 +158,10 @@ export const kiloProvider = makeOpenAICompatProvider({
   chatEndpoint: "https://api.kilo.ai/api/gateway/chat/completions",
   modelsEndpoint: "https://api.kilo.ai/api/gateway/models",
   keyOptional: true,
+  // Passerelle au format OpenRouter : raisonnement coupé sur les appels courts.
+  // Certains modèles gratuits le rendent obligatoire (refus de `none`) : le repli
+  // passe alors en effort `low`, sinon ils épuisent le plafond sans répondre.
+  quickNoReasoning: true,
   freeTier: {
     limits: "200 req/heure (sans clé)",
     noKey: true,

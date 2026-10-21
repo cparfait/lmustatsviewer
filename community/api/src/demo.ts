@@ -131,7 +131,7 @@ export async function seedDemo(db: Db, drivers = 900): Promise<{ drivers: number
           wet: r.next() < 0.04,
           has_telemetry: false,
         },
-      ], { ...DEFAULT_INGEST, dailyQuota: 10_000 });
+      ], DEFAULT_INGEST);
       sessions += res.accepted;
       d.accepted += res.accepted;
       rejected += res.rejected.length;

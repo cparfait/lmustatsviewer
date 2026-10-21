@@ -137,13 +137,13 @@ describe("validation des envois", () => {
     assert.equal((await send(ctx.app, token, Array.from({ length: 51 }, () => session()))).status, 400);
   });
 
-  test("quota journalier", async () => {
-    const c2 = await setup({ ingest: { ...DEFAULT_INGEST, dailyQuota: 2, today: () => "2026-09-26" } });
-    const t = (await register(c2.app)).token;
-    const r = await (await send(c2.app, t, [session(), session(), session()])).json();
-    assert.equal(r.accepted, 2);
-    assert.equal(r.rejected[0].reason, "daily_quota");
-    await c2.close();
+  test("aucun plafond journalier : tout l'historique est accepté, par lots", async () => {
+    const t = (await register(ctx.app)).token;
+    let accepted = 0;
+    for (let i = 0; i < 5; i++) {
+      accepted += (await (await send(ctx.app, t, Array.from({ length: 50 }, () => session()))).json()).accepted;
+    }
+    assert.equal(accepted, 250);
   });
 
   test("limite de débit à l'enregistrement → 429", async () => {

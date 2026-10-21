@@ -55,7 +55,6 @@ export async function findInstallByToken(db: Db, token: string): Promise<Install
 export type RejectReason =
   | "invalid"
   | "bad_date"
-  | "daily_quota"
   | "too_fast";
 
 export interface IngestResult {
@@ -70,8 +69,6 @@ export interface IngestResult {
 }
 
 export interface IngestOptions {
-  /** Sessions acceptées par installation et par jour (UTC). */
-  dailyQuota: number;
   /** Nombre de pilotes à partir duquel les bornes du combo s'appliquent. */
   boundsMinDrivers: number;
   /** Rejet si le temps est sous ce ratio du p1 du combo. */
@@ -83,7 +80,6 @@ export interface IngestOptions {
 }
 
 export const DEFAULT_INGEST: IngestOptions = {
-  dailyQuota: 200,
   boundsMinDrivers: 20,
   tooFastRatio: 0.97,
   slowRatio: 1.3,
@@ -98,7 +94,9 @@ const addDays = (iso: string, n: number) => {
 
 /**
  * Reçoit un lot : chaque session est validée et insérée indépendamment (un rejet
- * n'annule pas le lot). Idempotent grâce à `session_key`.
+ * n'annule pas le lot). Idempotent grâce à `session_key`. Aucun plafond journalier :
+ * tout l'historique d'un pilote doit pouvoir partir ; seule la limite de débit par
+ * installation (`writePerInstall`, lots de 50) étale un gros premier envoi.
  */
 export async function ingestSessions(
   db: Db,
@@ -111,12 +109,6 @@ export async function ingestSessions(
   let latest: SessionSummary | null = null;
 
   await db.transaction(async (tx) => {
-    const [{ n: receivedToday }] = await tx.query<{ n: number }>(
-      "select count(*)::int as n from sessions where install_id = $1 and received_at >= $2::date",
-      [install.id, today],
-    );
-    let quotaLeft = opts.dailyQuota - receivedToday;
-
     for (const [index, raw] of items.entries()) {
       const parsed = SessionSummarySchema.safeParse(raw);
       const key = typeof (raw as { session_key?: unknown })?.session_key === "string"
@@ -130,10 +122,6 @@ export async function ingestSessions(
       const s = parsed.data;
       if (s.played_on < "2023-01-01" || s.played_on > addDays(today, 1)) {
         result.rejected.push({ index, session_key: s.session_key, reason: "bad_date" });
-        continue;
-      }
-      if (quotaLeft <= 0) {
-        result.rejected.push({ index, session_key: s.session_key, reason: "daily_quota" });
         continue;
       }
 
@@ -189,7 +177,6 @@ export async function ingestSessions(
       }
       result.accepted++;
       result.received.push(s.session_key);
-      quotaLeft--;
       if (!latest || s.played_on >= latest.played_on) latest = s;
     }
 

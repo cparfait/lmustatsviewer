@@ -929,6 +929,73 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-21 — Comparaison de setups : tous les réglages couverts, setup mixte A/B, inversion, IA guidée par les règles (non commité)
+
+**Demandes** : « il faut couvrir TOUT ce qui est paramétrable », « quand on clique sur inverser il faut voir
+directement la comparaison », « proposer de choisir chaque réglage et pouvoir le sauvegarder », et l'IA
+qui se trompait de sens sur la répartition de freinage.
+- ✅ **80 règles** : + châssis et géométrie (chasse, décalage de pincement, voies, barre Panhard, centre de
+  gravité, poids en croix, réglages châssis), extensions d'ailes, ressorts auxiliaires et leur course,
+  caoutchoucs, butées, frein à main, TC/ABS on-off, boost, frein moteur, différentiel pompe et avant,
+  répartition du couple, boîte auto, capacité, stratégie d'arrêts, mode simplifié (BASIC). Test de
+  couverture sur les **165 couples section/clé des 11 vrais `.svm`** : tous ont une règle.
+- ✅ « Nettement » (mal placé en français) remplacé par une étiquette « marqué » après la phrase.
+- ✅ **Inverser** refait la comparaison dans l'autre sens au lieu d'effacer le résultat.
+- ✅ **Setup mixte** (`lib/setupMix.ts`, `SetupMixBar`) : A | B par ligne différente, « Tout A / Tout B »
+  par section, barre collante (nom libre « A + B ») ; copie de A + valeurs ET textes du garage de B,
+  lignée dans les notes ; refusé entre deux voitures. Vu à l'écran jusqu'à la barre ; **création non
+  cliquée** (écrirait un `.svm` dans le dossier du jeu).
+- ✅ **IA guidée** : `ruleFactsText()` met dans le prompt chaque écart mesuré + son effet (anglais) et les
+  tendances, « faisant foi » ; essai réel Kilo : la répartition est enfin dite « vers l'arrière ».
+- ✅ `tsc -b` propre, `npm test` 6764/6764, eslint propre. Changelog 1.0.10 (ajout + amélioration).
+- 📋 **Prochaine étape** : commit des fichiers de ce sujet (en cours de préparation à la demande du
+  mainteneur) ; essayer la création d'un setup mixte en jeu.
+
+### 2026-10-21 — Comparaison de setups : analyse détaillée par règles de dynamique, sans IA (non commité)
+
+**Demande** : « il faut un algo qui répond quand même en détail, comme ce sont des règles connues de physique ».
+- ✅ `lib/setupCompareRules.ts` (pur) : 44 règles (aéro, barres, ressorts, 3ᵉ éléments, butées,
+  compression/détente AV/AR et 3ᵉ éléments, hauteurs, pressions, carrossage en valeur absolue,
+  pincement, répartition lue sur la part avant « 52.5:47.5 », pression de frein, écopes, différentiel,
+  TC niveau/coupure, régénération, déploiement, carburant, énergie, braquage ; règles descriptives sans
+  sens pour gomme, migration, disques/plaquettes, glisse TC, ABS, carto, limiteur, boîte, radiateurs).
+  Sens mesuré sur la valeur affichée (même unité), l'index en secours ; gauche/droite réunies ; écarts
+  dus à la langue du jeu, notes et stratégie d'arrêts ignorés ; réglages sans règle listés à part.
+  12 axes (sous-virage entrée/milieu/sortie/courbes rapides, stabilité et puissance au freinage,
+  motricité, vitesse de pointe, vivacité, bosses, chauffe des pneus, autonomie) : bilan B vs A avec
+  seuils 0,5 / 1,5 et réglages responsables, puis 4 traits « choisis A / B pour… ».
+- ✅ `SetupCompareRulesPanel` sur la page Comparaison, toujours visible, au-dessus de l'analyse IA.
+  Textes `lab.cmp.*` en 5 langues (les 13 leviers des profils réutilisent `lab.profiles.why`).
+  Vu à l'écran (BMW Gemini Monza vs GT3_M4_Balanced_Spa) : avertissement de circuits différents,
+  bilan en 9 points, choix A/B, détail par thème avec crans et phases.
+- ✅ Tests (mesure, regroupement, bilan, couverture des textes de chaque règle) ; `npm test` 6759/6759,
+  `tsc -b` propre, eslint propre. Changelog 1.0.10 (mis en avant, 5 langues).
+- 📋 **Prochaine étape** : joindre ce bilan au prompt de l'analyse IA (cohérence des deux) ; valider en
+  piste le sens des règles incertaines (glisse TC, ABS) ; commit des fichiers de ce sujet.
+
+### 2026-10-21 — Comparaison de setups : analyse IA ; Kilo et les modèles à raisonnement obligatoire (non commité)
+
+**Demande** : « peut-on avoir une analyse de comparaison IA quand on a activé l'IA ? » (page Comparaison).
+- ✅ `lib/setupCompareAi.ts` (pur, testé) : prompt à partir des écarts déjà calculés (`compare_setups`),
+  valeur du garage + index, 60 lignes au plus ; écarts dus seulement à la langue du jeu
+  (« Détaché » / « Detached », même index) écartés ; circuits/voitures différents signalés ; aucun
+  chiffre inventé. `SetupCompareAiPanel` sous le sélecteur A/B, visible seulement si le Coach IA est
+  configuré ; réponse vide dite clairement (`setupCompare.aiEmpty`).
+- ✅ Essai réel (Kilo, `minimax/minimax-m3.1-flash:free`, BMW Gemini Monza vs GT3_M4_Balanced_Spa) :
+  sans réglage, le modèle épuise son budget en raisonnement et ne répond rien ; `reasoning.effort: none`
+  est refusé (« Reasoning is mandatory ») ; `effort: low` donne une analyse complète en français.
+- ✅ **Couche IA commune** (à la demande du mainteneur, ici) : Kilo reçoit `quickNoReasoning`
+  (raisonnement coupé sur les appels non streamés) ; `fallbackBody` passe d'abord `none` → `low`, puis
+  retire l'option si `low` est refusé ; `chatOnce` accepte deux relances sur HTTP 400. Tests : suite
+  `atelier` (Kilo) et `feedback` (OpenRouter, repli en deux temps).
+- ✅ **Vu à l'écran** (instance séparée, Kilo `minimax-m3.1-flash:free`, BMW Gemini Monza vs
+  GT3_M4_Balanced_Spa) : panneau sous le sélecteur, analyse complète en français, titres par thème,
+  « Relancer », avertissement. Qualité du modèle gratuit moyenne (quelques mots anglais).
+- ✅ `tsc -b` propre, `npm test` 6745/6745, eslint propre. Changelog 1.0.10 (ajout + correctif Kilo).
+- 📋 **Prochaine étape** : commit (fichiers de ce sujet seulement, `feedback.suite.ts` et `changelog.ts`
+  contiennent aussi des modifications d'autres sessions).
+  le panneau à l'écran et commiter.
+
 ### 2026-10-21 — Coach IA : Z.ai dans les deux listes, cartes inactives grisées, erreurs de test en entier
 
 **Demandes** : messages coupés à côté de « Tester » ; Z.ai dans la liste des fournisseurs non
@@ -1213,8 +1280,12 @@ la bascule automatique vers un autre fournisseur gratuit sur limite atteinte.
   récent au plus ancien dans chaque groupe. `game_minor` (copie de `gameMinor` du serveur).
   Tests `best_lap_of_each_version_is_sent_first`, `game_minor_matches_server` ; 11 tests community OK.
   Changelog 1.0.10 (fixed, 5 langues).
-- 📋 **Prochaine étape** : publier la 1.0.10 et répondre au joueur ; envisager de relever le quota
-  serveur pour le premier envoi d'un historique (déploiement serveur, décision à prendre).
+- ✅ **Quota journalier supprimé côté serveur** (décision utilisateur : « il faut faire des paquets
+  mais il faut tout envoyer ») : `ingest.ts` n'a plus `dailyQuota` ni le refus `daily_quota` ;
+  restent les lots de 50 et la limite de débit `writePerInstall` (60 envois/h ≈ 3 000 sessions/h,
+  réponse 429 + `retry-after` que l'app respecte). L'app garde `is_transient("daily_quota")`
+  (inoffensif). Test « aucun plafond journalier » ; 51 tests serveur OK, typecheck OK. README à jour.
+- 📋 **Prochaine étape** : déployer le serveur (`community/`), publier la 1.0.10, répondre au joueur.
 
 ### 2026-10-21 — Atelier setup (S1–S12, G1–G4) + refonte de la page Setups : chantier en cours, non commité
 

@@ -253,7 +253,8 @@ docker compose exec api node dist/api/src/admin.js purge-demo --yes   # efface l
   SHA-256 est stocké.
 - **Minimisation** : ni IP, ni jeton, ni nom de fichier en base ou dans les journaux ; seuls
   les tours du joueur sont acceptés (schéma strict, champ inconnu = rejet).
-- **Abus** : limites de débit par IP et par installation, quota journalier, bornes par combo
+- **Abus** : limites de débit par IP et par installation (lots de 50 sessions, sans plafond
+  journalier : tout l'historique d'un pilote finit par partir), bornes par combo
   (trop rapide = rejet, trop lent = hors classement), modération.
 - **Conteneurs** : utilisateur non-root, système de fichiers en lecture seule,
   `no-new-privileges`, mémoire bornée (API 256 Mo, Postgres 384 Mo ; mesuré ≈ 70 Mo au repos).

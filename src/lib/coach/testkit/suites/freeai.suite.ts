@@ -9,6 +9,8 @@ import { section, ok, eq } from "../assert";
 import { PROVIDERS, getProvider } from "@/lib/ai/providers";
 import {
   FREE_LIST_URL,
+  FREE_SECTION_PROVIDERS,
+  cardInFreeSection,
   FREE_PROVIDERS,
   isFreeListProvider,
   kiloProvider,
@@ -87,6 +89,21 @@ export async function run(): Promise<void> {
   eq(friendlyError(new Error("HTTP 429: too many"), t, openaiProvider), "coach.errRate", "429 payant inchangé");
   eq(friendlyError(new Error("HTTP 429: too many"), t), "coach.errRate", "sans fournisseur : inchangé");
   eq(friendlyError(new Error("HTTP 401: bad"), t, ovhcloudProvider), "coach.errKey", "401 gratuit : clé");
+  // Offre mixte (Z.ai) : limite gratuite seulement sur un modèle gratuit.
+  const zai = getProvider("zai")!;
+  ok(
+    friendlyError(new Error("HTTP 429: x"), t, zai, "glm-4.7-flash").startsWith("coach.errRateFree"),
+    "Z.ai, modèle Flash : limite gratuite",
+  );
+  eq(friendlyError(new Error("HTTP 429: x"), t, zai, "glm-5.3"), "coach.errRate", "Z.ai, modèle payant : message habituel");
+  ok(
+    friendlyError(new Error("HTTP 429: x"), t, zai).startsWith("coach.errRatePartial"),
+    "Z.ai, modèle inconnu : message qui évoque les deux",
+  );
+  ok(
+    friendlyError(new Error("HTTP 429: x"), t, getProvider("google")!, "gemini-x").startsWith("coach.errRatePartial"),
+    "Google (modèles gratuits non distinguables) : message qui évoque les deux",
+  );
 
   section("ai.free.offre-mixte");
   for (const id of ["openrouter", "google", "mistral", "huggingface", "zai"]) {
@@ -115,24 +132,42 @@ export async function run(): Promise<void> {
   );
   ok(!freeFallbackTargets("kilo", src).some((x) => x.provider.id === "kilo"), "jamais le fournisseur d'origine");
   eq(freeFallbackTargets("llm7", { ...src, enabled: false }).length, 0, "réglage coupé : aucune bascule");
-  ok(isFreeLimitError("HTTP 429: x", ovhcloudProvider), "429 gratuit = limite");
-  ok(isFreeLimitError("HTTP 402: x", openrouterProvider), "402 gratuit = limite");
-  ok(!isFreeLimitError("HTTP 429: x", openaiProvider), "429 payant : pas de bascule");
-  ok(!isFreeLimitError("HTTP 500: x", ovhcloudProvider), "500 : pas de bascule");
+  ok(isFreeLimitError("HTTP 429: x", ovhcloudProvider, "m"), "429 gratuit = limite");
+  ok(isFreeLimitError("HTTP 402: x", openrouterProvider, "openrouter/free"), "402 sur modèle :free = limite");
+  ok(!isFreeLimitError("HTTP 429: x", openrouterProvider, "anthropic/claude-x"), "OpenRouter, modèle payant : pas de bascule");
+  ok(isFreeLimitError("HTTP 429: x", zai, "glm-4.7-flash"), "Z.ai, modèle Flash = limite");
+  ok(!isFreeLimitError("HTTP 429: x", zai, "glm-5.3"), "Z.ai, modèle payant : pas de bascule");
+  ok(!isFreeLimitError("HTTP 429: x", getProvider("google")!, "gemini-x"), "Google : jamais de bascule depuis lui");
+  ok(!isFreeLimitError("HTTP 429: x", openaiProvider, "m"), "429 payant : pas de bascule");
+  ok(!isFreeLimitError("HTTP 500: x", ovhcloudProvider, "m"), "500 : pas de bascule");
 
   // Réglage affiché seulement si un relais existe vraiment (section gratuite).
   const relay = (configured: string[], keys: Record<string, string> = {}) =>
     freeRelayPossible({ configured, keys });
   ok(!relay(["ovhcloud"]), "un seul fournisseur gratuit : pas de relais");
   ok(!relay(["google", "mistral"], { google: "g", mistral: "m" }), "offres mixtes seules : pas de relais");
-  ok(relay(["huggingface", "ovhcloud"], { huggingface: "h" }), "Hugging Face → OVHcloud : relais possible");
-  ok(!relay(["huggingface", "ovhcloud"]), "Hugging Face sans clé : inutilisable, pas de relais");
+  ok(
+    !relay(["huggingface", "ovhcloud"], { huggingface: "h" }),
+    "Hugging Face (offre mixte indistinguable) → pas de départ de bascule",
+  );
+  ok(relay(["zai", "ovhcloud"], { zai: "z" }), "Z.ai (modèle Flash) → OVHcloud : relais possible");
+  ok(!relay(["zai", "ovhcloud"]), "Z.ai sans clé : inutilisable, pas de relais");
   ok(!relay(["ovhcloud", "groq"]), "Groq sans clé : pas de relais");
   ok(relay(["ovhcloud", "kilo"]), "OVHcloud ↔ Kilo : relais possible");
 
   section("ai.free.section");
   ok(isFreeListProvider("ovhcloud") && isFreeListProvider("cohere"), "liste gratuite : OVHcloud, Cohere…");
-  ok(!isFreeListProvider("openrouter") && !isFreeListProvider("google"), "OpenRouter, Google : section classique");
+  ok(
+    !isFreeListProvider("openrouter") && !isFreeListProvider("google") && !isFreeListProvider("zai"),
+    "OpenRouter, Google, Z.ai : section classique",
+  );
+  ok(PROVIDERS.some((p) => p.id === "zai"), "Z.ai reste disponible (liste classique)");
+  // Z.ai, offre mixte, est proposé dans les deux menus ; sa carte suit la section d'ajout.
+  ok(FREE_SECTION_PROVIDERS.some((p) => p.id === "zai"), "Z.ai aussi dans le menu gratuit");
+  ok(!cardInFreeSection("zai", []), "Z.ai ajouté depuis la liste classique : carte classique");
+  ok(cardInFreeSection("zai", ["zai"]), "Z.ai ajouté depuis la section gratuite : carte gratuite");
+  ok(cardInFreeSection("ovhcloud", []), "OVHcloud : toujours dans la section gratuite");
+  ok(!cardInFreeSection("openai", ["openai"]), "OpenAI : jamais dans la section gratuite");
   ok(FREE_LIST_URL.startsWith("https://github.com/"), "lien vers le projet GitHub");
 
   setFreeFallbackSource(() => ({ enabled: true, configured: ["ovhcloud", "kilo"], keys: {} }));

@@ -78,6 +78,13 @@ export interface FreeTierInfo {
    * risque pas de facturer le pilote) ; à défaut, 1er modèle de repli.
    */
   fallbackModel?: string;
+  /**
+   * Offre mixte : vrai si ce modèle est un des modèles gratuits. Une limite
+   * atteinte n'est rattachée à l'offre gratuite (et ne déclenche la bascule)
+   * que sur un modèle gratuit ; sur un modèle payant, c'est le forfait du
+   * pilote. Absent = on ne sait pas distinguer → jamais de bascule depuis lui.
+   */
+  isFreeModel?: (modelId: string) => boolean;
 }
 
 export interface AIProvider {

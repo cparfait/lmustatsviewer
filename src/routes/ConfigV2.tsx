@@ -548,7 +548,7 @@ export function ConfigV2() {
         setAiFunResult({ error: t("coach.errNetwork") });
       }
     } catch (e) {
-      setAiFunResult({ error: friendlyError(e, t, aiProviderDef) });
+      setAiFunResult({ error: friendlyError(e, t, aiProviderDef, aiModel) });
     } finally {
       setAiFunTesting(false);
     }
@@ -2492,24 +2492,10 @@ export function ConfigV2() {
                     </div>
                     <Separator />
                     <div className="flex items-center justify-end gap-2 py-2">
-                      {aiTestResult && (
-                        <span
-                          className={cn(
-                            "text-xs truncate max-w-[180px]",
-                            aiTestResult.ok
-                              ? "text-emerald-500"
-                              : "text-destructive",
-                          )}
-                          title={
-                            aiTestResult.ok
-                              ? t("config.aiTestOk")
-                              : aiTestResult.error
-                          }
-                        >
-                          {aiTestResult.ok
-                            ? t("config.aiTestOk")
-                            : aiTestResult.error}
-                        </span>
+                      {/* « Connexion OK » à côté du bouton ; une erreur, souvent longue
+                          (limite gratuite, clé, modèle), s'affiche en entier dessous. */}
+                      {aiTestResult?.ok && (
+                        <span className="text-xs text-emerald-500">{t("config.aiTestOk")}</span>
                       )}
                       <Button
                         variant="outline"
@@ -2540,6 +2526,11 @@ export function ConfigV2() {
                         {t("config.aiTestFun")}
                       </Button>
                     </div>
+                    {aiTestResult && !aiTestResult.ok && (
+                      <div className="mb-2 rounded-md border border-destructive/40 px-3 py-2 text-sm leading-snug text-destructive">
+                        {aiTestResult.error}
+                      </div>
+                    )}
                     {aiFunResult && (
                       <div
                         className={cn(

@@ -232,6 +232,7 @@ export const openrouterProvider = makeOpenAICompatProvider({
     mayLog: true,
     partial: true,
     fallbackModel: "openrouter/free",
+    isFreeModel: (id) => id.endsWith(":free") || id === "openrouter/free",
   },
   keyUrl: "https://openrouter.ai/keys",
   fallbackModels: [

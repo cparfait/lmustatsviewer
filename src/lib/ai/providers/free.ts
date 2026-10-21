@@ -64,14 +64,23 @@ export const huggingfaceProvider = makeOpenAICompatProvider({
   docsUrl: "https://huggingface.co/inference/models",
 });
 
-/** Modèles GLM « Flash » gratuits (plateforme internationale z.ai). */
+/**
+ * Modèles GLM « Flash » gratuits (plateforme internationale z.ai), les autres
+ * payants : offre mixte, proposée dans les DEUX listes (classique et gratuite,
+ * cf. `DUAL_SECTION_IDS`). Enregistrée avec les classiques (`index.ts`).
+ */
 export const zaiProvider = makeOpenAICompatProvider({
   id: "zai",
   name: "Z.ai (GLM)",
   chatEndpoint: "https://api.z.ai/api/paas/v4/chat/completions",
   modelsEndpoint: "https://api.z.ai/api/paas/v4/models",
   // Seuls les modèles « Flash » sont gratuits.
-  freeTier: { limits: "1 requête à la fois (modèles Flash)", partial: true, fallbackModel: "glm-4.7-flash" },
+  freeTier: {
+    limits: "1 requête à la fois (modèles Flash)",
+    partial: true,
+    fallbackModel: "glm-4.7-flash",
+    isFreeModel: (id) => /flash/i.test(id),
+  },
   keyUrl: "https://z.ai/manage-apikey/apikey-list",
   fallbackModels: [
     { id: "glm-4.7-flash", label: "GLM-4.7-Flash" },
@@ -194,8 +203,35 @@ export const llm7Provider = makeOpenAICompatProvider({
 /** Projet communautaire d'où vient la sélection (mis en avant dans la page Config). */
 export const FREE_LIST_URL = "https://github.com/mnfst/awesome-free-llm-apis";
 
-/** Les fournisseurs gratuits ajoutés au catalogue, dans l'ordre d'affichage. */
+/**
+ * Fournisseurs de la section gratuite, dans l'ordre d'affichage. Z.ai (offre
+ * mixte) n'y figure pas : il est dans la liste classique.
+ */
 export const FREE_PROVIDERS = [
+  ovhcloudProvider,
+  kiloProvider,
+  llm7Provider,
+  groqProvider,
+  nvidiaProvider,
+  ollamaCloudProvider,
+  huggingfaceProvider,
+  cohereProvider,
+];
+
+/** Vrai pour un fournisseur de la liste gratuite (section dédiée de la page Config). */
+export function isFreeListProvider(id: string): boolean {
+  return FREE_PROVIDERS.some((p) => p.id === id);
+}
+
+/**
+ * Offres mixtes proposées dans les deux listes d'ajout (classique et gratuite).
+ * Un fournisseur ne s'ajoute qu'une fois : sa carte s'affiche dans la section
+ * d'où il a été ajouté (`ai_free_section_ids`, cf. `cardInFreeSection`).
+ */
+export const DUAL_SECTION_IDS = ["zai"];
+
+/** Menu d'ajout de la section gratuite : la liste gratuite + Z.ai (après Ollama Cloud). */
+export const FREE_SECTION_PROVIDERS = [
   ovhcloudProvider,
   kiloProvider,
   llm7Provider,
@@ -207,7 +243,8 @@ export const FREE_PROVIDERS = [
   cohereProvider,
 ];
 
-/** Vrai pour un fournisseur de la liste gratuite (section dédiée de la page Config). */
-export function isFreeListProvider(id: string): boolean {
-  return FREE_PROVIDERS.some((p) => p.id === id);
+/** Vrai si la carte de `id` va dans la section gratuite (`addedFromFree` : ids ajoutés depuis elle). */
+export function cardInFreeSection(id: string, addedFromFree: string[]): boolean {
+  if (isFreeListProvider(id)) return true;
+  return DUAL_SECTION_IDS.includes(id) && addedFromFree.includes(id);
 }

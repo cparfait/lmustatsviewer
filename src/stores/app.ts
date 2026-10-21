@@ -299,6 +299,11 @@ interface AppState {
    * s'affiche, comme avant.
    */
   aiFreeFallback: boolean;
+  /**
+   * Fournisseurs à double liste (Z.ai) ajoutés depuis la section gratuite : leur
+   * carte s'y affiche (`cardInFreeSection`). Les autres restent dans la liste classique.
+   */
+  aiFreeSectionIds: string[];
 
   // Données Dashboard
   dashboardStats: DashboardStats | null;
@@ -392,6 +397,8 @@ interface AppState {
   setAiVoiceRadioPrompt: (v: boolean) => Promise<void>;
   setAiVoiceGuard: (v: boolean) => Promise<void>;
   setAiFreeFallback: (v: boolean) => Promise<void>;
+  /** Range (ou non) la carte d'un fournisseur à double liste dans la section gratuite. */
+  setProviderInFreeSection: (id: string, inFree: boolean) => Promise<void>;
   setSttConfirmUnsure: (v: boolean) => Promise<void>;
   setSttEngine: (v: "parakeet" | "vosk") => Promise<void>;
   setDebriefRadio: (v: boolean) => Promise<void>;
@@ -544,6 +551,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   aiVoiceProvider: "",
   aiSystemPromptByLang: {},
   aiFreeFallback: true,
+  aiFreeSectionIds: [],
   dashboardStats: null,
   bestLaps: [],
   filterOptions: null,
@@ -809,6 +817,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       aiVoiceProvider: cfg.ai_voice_provider ?? "",
       aiSystemPromptByLang,
       aiFreeFallback: cfg.ai_free_fallback !== "false",
+      aiFreeSectionIds: (() => {
+        try {
+          const parsed = JSON.parse(cfg.ai_free_section_ids || "[]");
+          return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+        } catch {
+          return [];
+        }
+      })(),
       selectedVersion: cfg.default_since_version ?? null,
     });
     // Moteur de dictée côté Rust (précharge Parakeet s'il est choisi et installé).
@@ -1195,6 +1211,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ aiVoiceGuard: v });
   },
 
+  setProviderInFreeSection: async (id, inFree) => {
+    const cur = get().aiFreeSectionIds.filter((x) => x !== id);
+    const next = inFree ? [...cur, id] : cur;
+    await config.set("ai_free_section_ids", JSON.stringify(next));
+    set({ aiFreeSectionIds: next });
+  },
+
   setAiFreeFallback: async (v) => {
     await config.set("ai_free_fallback", v ? "true" : "false");
     set({ aiFreeFallback: v });
@@ -1440,6 +1463,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const keys = { ...get().aiProviderKeys };
     delete keys[id];
     set({ aiProviderList: list, aiProviderKeys: keys });
+    // Supprimé : un nouvel ajout repartira de la section choisie à ce moment-là.
+    if (get().aiFreeSectionIds.includes(id)) await get().setProviderInFreeSection(id, false);
     await get().onProviderRemoved(id);
   },
 

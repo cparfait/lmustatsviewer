@@ -5,7 +5,7 @@ import { googleProvider } from "./google";
 import { ollamaProvider } from "./ollama";
 import { anthropicProvider } from "./anthropic";
 import { getCustomProviders } from "./custom";
-import { FREE_PROVIDERS } from "./free";
+import { FREE_PROVIDERS, zaiProvider } from "./free";
 import {
   openaiProvider,
   deepseekProvider,
@@ -25,6 +25,8 @@ export const PROVIDERS: AIProvider[] = [
   openrouterProvider,
   deepseekProvider,
   mistralProvider,
+  // Offre mixte (seuls les modèles GLM « Flash » sont gratuits) : avec les classiques.
+  zaiProvider,
   ollamaProvider,
   ...FREE_PROVIDERS,
 ];

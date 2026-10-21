@@ -17,15 +17,23 @@ import { withFreeFallback, type AiTarget } from "./freeFallback";
 
 /**
  * Rend lisible (et traduite) une erreur de proxy (`HTTP 401: …`). `provider`
- * (facultatif) : chez un fournisseur à offre gratuite, un 429/402 vient presque
- * toujours de la limite gratuite → on la rappelle et on oriente vers un autre
- * fournisseur gratuit, au lieu d'un « réessaie » qui échouerait encore.
+ * et `model` (facultatifs) : chez un fournisseur entièrement gratuit, un 429/402
+ * vient de la limite gratuite → on la rappelle et on oriente vers un autre
+ * fournisseur gratuit, au lieu d'un « réessaie » qui échouerait encore. Offre
+ * mixte (Z.ai, OpenRouter…) : limite gratuite seulement sur un modèle gratuit ;
+ * sur un modèle payant, message habituel (c'est le forfait du pilote) ; modèle
+ * inconnu, message qui évoque les deux.
  */
-export function friendlyError(e: unknown, t: Tr, provider?: AIProvider): string {
+export function friendlyError(e: unknown, t: Tr, provider?: AIProvider, model?: string): string {
   const msg = errorMessage(e);
   const { kind, code } = aiErrorKind(msg);
-  if ((kind === "rate" || kind === "quota") && provider?.freeTier) {
-    return t("coach.errRateFree", { name: provider.name, limits: provider.freeTier.limits });
+  const ft = provider?.freeTier;
+  if ((kind === "rate" || kind === "quota") && provider && ft) {
+    const vars = { name: provider.name, limits: ft.limits };
+    if (!ft.partial) return t("coach.errRateFree", vars);
+    const free = model && ft.isFreeModel ? ft.isFreeModel(model) : undefined;
+    if (free === true) return t("coach.errRateFree", vars);
+    if (free === undefined) return t("coach.errRatePartial", vars);
   }
   switch (kind) {
     case "model":
@@ -119,7 +127,7 @@ export async function testConnection(
     );
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: friendlyError(e, t, provider) };
+    return { ok: false, error: friendlyError(e, t, provider, model) };
   }
 }
 

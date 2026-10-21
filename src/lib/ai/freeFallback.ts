@@ -45,11 +45,22 @@ export function setFreeFallbackSource(fn: () => FreeFallbackSource): void {
   source = fn;
 }
 
-/** Vrai si l'erreur vient de la limite d'une offre gratuite. */
-export function isFreeLimitError(message: string, provider: AIProvider): boolean {
-  if (!provider.freeTier) return false;
+/**
+ * Vrai si l'erreur vient de la limite d'une offre gratuite. Offre mixte : seulement
+ * sur un de ses modèles gratuits (`isFreeModel`) — sur un modèle payant, c'est le
+ * forfait du pilote, et on ne bascule pas vers un service gratuit à son insu.
+ */
+export function isFreeLimitError(message: string, provider: AIProvider, model: string): boolean {
+  const ft = provider.freeTier;
+  if (!ft) return false;
+  if (ft.partial && !ft.isFreeModel?.(model)) return false;
   const { kind } = aiErrorKind(message);
   return kind === "rate" || kind === "quota";
+}
+
+/** Vrai si le fournisseur peut être le point de départ d'une bascule. */
+function canStartFallback(p: AIProvider): boolean {
+  return !!p.freeTier && (!p.freeTier.partial || !!p.freeTier.isFreeModel);
 }
 
 /** Modèle sûrement gratuit pour la bascule, ou `null` (fournisseur exclu). */
@@ -85,7 +96,7 @@ export function freeRelayPossible(src: Omit<FreeFallbackSource, "enabled">): boo
   const full = { ...src, enabled: true };
   return src.configured.some((id) => {
     const p = getProvider(id);
-    if (!p?.freeTier || (p.needsKey && !src.keys[id])) return false;
+    if (!p || !canStartFallback(p) || (p.needsKey && !src.keys[id])) return false;
     return freeFallbackTargets(id, full).length > 0;
   });
 }
@@ -114,7 +125,7 @@ export async function withFreeFallback<T>(
     return await run(origin);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (!isFreeLimitError(msg, origin.provider)) throw e;
+    if (!isFreeLimitError(msg, origin.provider, origin.model)) throw e;
     for (const target of currentFreeFallbacks(origin.provider)) {
       try {
         const res = await run(target);

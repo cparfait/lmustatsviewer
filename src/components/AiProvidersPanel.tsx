@@ -28,7 +28,12 @@ import { Plus, Pencil, Trash2, Eye, EyeOff, ExternalLink, Gift, ChevronDown } fr
 import { useAppStore } from "@/stores/app";
 import { PROVIDERS, getProvider } from "@/lib/ai/providers";
 import type { AIProvider } from "@/lib/ai/types";
-import { FREE_LIST_URL, isFreeListProvider } from "@/lib/ai/providers/free";
+import {
+  FREE_LIST_URL,
+  FREE_SECTION_PROVIDERS,
+  cardInFreeSection,
+  isFreeListProvider,
+} from "@/lib/ai/providers/free";
 import { freeRelayPossible } from "@/lib/ai/freeFallback";
 import { ai } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -102,6 +107,9 @@ function ProviderCard({ id, onEdit }: { id: string; onEdit: () => void }) {
   const def = useAppStore((s) => s.aiCustomProviders.find((d) => d.id === id));
   const provider = getProvider(id);
   const [probe, setProbe] = useState<Probe>("probing");
+  // Fournisseur en service : analyse, ou coach vocal quand il a son propre fournisseur.
+  // Les autres sont grisés (voyant inchangé : il dit seulement si le service répond).
+  const inUse = useAppStore((s) => s.aiProvider === id || s.aiVoiceProvider === id);
 
   useEffect(() => {
     let alive = true;
@@ -121,7 +129,11 @@ function ProviderCard({ id, onEdit }: { id: string; onEdit: () => void }) {
 
   if (!provider) return null;
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2">
+    <div
+      className={`flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2 transition-opacity ${
+        inUse ? "" : "opacity-55 hover:opacity-100 focus-within:opacity-100"
+      }`}
+    >
       <div className="flex min-w-0 items-center gap-2">
         <Tip
           content={t(
@@ -259,11 +271,13 @@ function ProviderForm({
         await st.setProviderKey(editId, key);
       } else {
         await st.addProvider(builtinId, key);
+        // Fournisseur à double liste (Z.ai) : sa carte suit la section d'ajout.
+        if (inFreeSection) await st.setProviderInFreeSection(builtinId, true);
         await st.setAIProvider(builtinId);
       }
     }
     onClose();
-  }, [isCustom, editId, builtinId, name, baseUrl, key, onClose]);
+  }, [isCustom, editId, builtinId, name, baseUrl, key, inFreeSection, onClose]);
 
   return (
     <div className="space-y-2 rounded-md border border-input p-3">
@@ -378,10 +392,10 @@ function ProviderForm({
   );
 }
 
-/** Catalogue de la section classique : tout sauf la liste gratuite. */
+/** Catalogue de la section classique : tout sauf la liste gratuite (Z.ai y figure aussi). */
 const MAIN_CATALOG = PROVIDERS.filter((p) => !isFreeListProvider(p.id));
-/** Catalogue de la section gratuite. */
-const FREE_CATALOG = PROVIDERS.filter((p) => isFreeListProvider(p.id));
+/** Catalogue de la section gratuite : la liste gratuite + Z.ai. */
+const FREE_CATALOG = FREE_SECTION_PROVIDERS;
 
 type FormState = { mode: "builtin" | "custom"; editId: string | null; section: "main" | "free" };
 
@@ -447,7 +461,8 @@ function FreeProvidersSection({
   const [howOpen, setHowOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const freeIds = list.filter(isFreeListProvider);
+  const freeAdded = useAppStore((s) => s.aiFreeSectionIds);
+  const freeIds = list.filter((id) => cardInFreeSection(id, freeAdded));
   const adding = form?.section === "free" && form.editId === null;
   // Réglage de bascule affiché seulement s'il peut agir (cf. `freeRelayPossible`) ;
   // sinon, une ligne explique quoi ajouter dès qu'un fournisseur gratuit est là.
@@ -544,8 +559,10 @@ export function AiProvidersPanel() {
   // Bloc vert ouvert à la demande (avant tout fournisseur gratuit configuré).
   const [freeOpen, setFreeOpen] = useState(false);
 
-  const mainIds = list.filter((id) => !isFreeListProvider(id));
-  const freeIds = list.filter(isFreeListProvider);
+  // Carte d'un fournisseur à double liste (Z.ai) : dans la section d'où il a été ajouté.
+  const freeAdded = useAppStore((s) => s.aiFreeSectionIds);
+  const mainIds = list.filter((id) => !cardInFreeSection(id, freeAdded));
+  const freeIds = list.filter((id) => cardInFreeSection(id, freeAdded));
   const hasAvailableFree = FREE_CATALOG.some((p) => !list.includes(p.id));
   const addingMain = form?.section === "main" && form.editId === null;
   const showFree = freeIds.length > 0 || freeOpen;

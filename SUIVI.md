@@ -929,6 +929,42 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-21 — Coach IA : Z.ai dans les deux listes, cartes inactives grisées, erreurs de test en entier
+
+**Demandes** : messages coupés à côté de « Tester » ; Z.ai dans la liste des fournisseurs non
+gratuits, puis « s'il a une option gratuite, le laisser aussi dans les fournisseurs gratuits » ;
+griser les fournisseurs qui ne sont pas l'actif (voyant laissé vert).
+
+**Fait**
+- ✅ `ConfigV2.tsx` : « Connexion OK » reste à côté du bouton ; une erreur de « Tester » s'affiche
+  en entier dans un encadré sous les boutons (avant : coupée à 180 px, texte complet au survol).
+- ✅ Z.ai proposé dans **les deux** menus d'ajout (classique après Mistral, gratuit après Ollama Cloud),
+  avec « · Modèles gratuits » (`DUAL_SECTION_IDS`, `FREE_SECTION_PROVIDERS`). Ajouté une seule
+  fois : sa carte s'affiche dans la section d'où il a été ajouté, retenue en config
+  (`ai_free_section_ids`, store `aiFreeSectionIds` / `setProviderInFreeSection`, nettoyée à la
+  suppression ; `cardInFreeSection`).
+- ✅ Offres mixtes : `FreeTierInfo.isFreeModel` (OpenRouter : `:free` / `openrouter/free` ;
+  Z.ai : modèles « Flash »). `friendlyError(e, t, provider, model)` : limite gratuite seulement sur
+  un modèle gratuit, message habituel sur un modèle payant, `coach.errRatePartial` (évoque les deux)
+  si on ne sait pas distinguer (Google, Mistral, Hugging Face). Bascule : ne part d'une offre mixte
+  que sur un de ses modèles gratuits (un forfait payant ne bascule pas en douce vers un service
+  gratuit qui peut journaliser). Corrige « Limite de l'offre gratuite de Z.ai » affiché sur un
+  modèle payant.
+- ✅ Cartes : celle du fournisseur en service (analyse ou coach vocal distinct) normale, les autres
+  à 55 % d'opacité (normales au survol / au focus) ; le voyant garde sa signification (répond).
+- ✅ Messages de limite sans parenthèses imbriquées ; mode d'emploi et changelog 1.0.10 à jour
+  (5 langues). Suite `freeai` étendue. `npm test` : 6 726 réussis, 0 échec ; eslint propre ;
+  `tsc -b` sans erreur nouvelle.
+- ✅ Vérifié sur une instance de test **isolée** (identifiant `com.cparfait.lmustatsviewer.test`,
+  base neuve, port 5176, débogage 9444 ; supprimée ensuite) : menu classique avec Z.ai, menu gratuit
+  sans Z.ai, OVHcloud grisé / Kilo actif normal, erreur de limite OVHcloud affichée en entier.
+  Configuration réelle du mainteneur non touchée. 2ᵉ instance isolée pour la double liste : Z.ai
+  dans les deux menus ; ajouté depuis la section gratuite → carte dans le bloc vert ; supprimé puis
+  ajouté depuis la liste classique → carte classique, place retenue après rechargement.
+  `npm test` : 6 740 réussis, 0 échec.
+
+📋 **Prochaine étape** : commiter quand le mainteneur le demande.
+
 ### 2026-10-21 — Micro : demande WebView2 revenue sur une instance de dev au port 5175
 
 **Constat** : « http://localhost:5175 souhaite utiliser vos microphones » sur une instance de

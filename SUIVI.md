@@ -1360,6 +1360,12 @@ la bascule automatique vers un autre fournisseur gratuit sur limite atteinte.
   restent les lots de 50 et la limite de débit `writePerInstall` (60 envois/h ≈ 3 000 sessions/h,
   réponse 429 + `retry-after` que l'app respecte). L'app garde `is_transient("daily_quota")`
   (inoffensif). Test « aucun plafond journalier » ; 51 tests serveur OK, typecheck OK. README à jour.
+- ✅ **Limite d'envoi dédiée** (`app.ts`) : `POST /sessions` a ses propres limites
+  `uploadPerInstall` 600 lots/h (≈ 30 000 sessions/h) et `uploadPerIp` 2 400/h (plusieurs PC
+  derrière une box), à part de `writePerInstall` (60/h : profil, rival). Lots de 50 inchangés, donc
+  aussi valable pour les apps déjà installées : un historique de 5 000 sessions part en ~10 min.
+  Test « limite à part des autres écritures » ; 52 tests serveur OK, typecheck OK. Pastille
+  « envoi en cours » dans l'app envisagée puis abandonnée (décision utilisateur).
 - 📋 **Prochaine étape** : déployer le serveur (`community/`), publier la 1.0.10, répondre au joueur.
 
 ### 2026-10-21 — Atelier setup (S1–S12, G1–G4) + refonte de la page Setups : chantier en cours, non commité

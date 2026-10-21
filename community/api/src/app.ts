@@ -56,6 +56,12 @@ export interface Limits {
   steam: Limit;
   writePerInstall: Limit;
   writePerIp: Limit;
+  /**
+   * Envoi des sessions (lots de 50), à part des autres écritures : un pilote qui partage
+   * tout son historique doit pouvoir l'envoyer en quelques minutes.
+   */
+  uploadPerInstall: Limit;
+  uploadPerIp: Limit;
   read: Limit;
 }
 
@@ -64,6 +70,9 @@ export const DEFAULT_LIMITS: Limits = {
   steam: { max: 30, windowMs: 3_600_000 },
   writePerInstall: { max: 60, windowMs: 3_600_000 },
   writePerIp: { max: 240, windowMs: 3_600_000 },
+  // 600 lots/h ≈ 30 000 sessions/h par installation ; 2 400/h par IP (plusieurs PC, une box).
+  uploadPerInstall: { max: 600, windowMs: 3_600_000 },
+  uploadPerIp: { max: 2_400, windowMs: 3_600_000 },
   read: { max: 300, windowMs: 60_000 },
 };
 
@@ -272,8 +281,8 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     "/sessions",
     bodyLimit({ maxSize: 256 * 1024, onError: (c) => c.json({ error: "payload_too_large" }, 413) }),
     auth,
-    limit("writePerInstall", (c) => c.get("install").id),
-    limit("writePerIp", clientIp),
+    limit("uploadPerInstall", (c) => c.get("install").id),
+    limit("uploadPerIp", clientIp),
     async (c) => {
       const raw = new Uint8Array(await c.req.arrayBuffer());
       // Réception complète : l'empreinte doit correspondre au corps effectivement reçu.

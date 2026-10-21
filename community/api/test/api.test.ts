@@ -146,8 +146,20 @@ describe("validation des envois", () => {
     assert.equal(accepted, 250);
   });
 
+  test("envoi des sessions : limite à part des autres écritures", async () => {
+    const one = { max: 1, windowMs: 60_000 }, many = { max: 99, windowMs: 60_000 };
+    const c4 = await setup({ limits: { register: many, steam: many, writePerInstall: one, writePerIp: many, uploadPerInstall: { max: 3, windowMs: 60_000 }, uploadPerIp: many, read: many } });
+    const t = (await register(c4.app)).token;
+    // Plus de lots que la limite des autres écritures (1) : tous passent jusqu'à celle de l'envoi (3).
+    for (let i = 0; i < 3; i++) assert.equal((await send(c4.app, t, [session()])).status, 200);
+    const res = await send(c4.app, t, [session()]);
+    assert.equal(res.status, 429);
+    assert.ok(res.headers.get("retry-after"));
+    await c4.close();
+  });
+
   test("limite de débit à l'enregistrement → 429", async () => {
-    const c3 = await setup({ limits: { register: { max: 2, windowMs: 60_000 }, steam: { max: 99, windowMs: 60_000 }, writePerInstall: { max: 99, windowMs: 60_000 }, writePerIp: { max: 99, windowMs: 60_000 }, read: { max: 99, windowMs: 60_000 } } });
+    const c3 = await setup({ limits: { register: { max: 2, windowMs: 60_000 }, steam: { max: 99, windowMs: 60_000 }, writePerInstall: { max: 99, windowMs: 60_000 }, writePerIp: { max: 99, windowMs: 60_000 }, uploadPerInstall: { max: 99, windowMs: 60_000 }, uploadPerIp: { max: 99, windowMs: 60_000 }, read: { max: 99, windowMs: 60_000 } } });
     await register(c3.app, "1.1.1.1");
     await register(c3.app, "1.1.1.1");
     const res = await c3.app.request("/api/v1/register", { method: "POST", headers: { "x-real-ip": "1.1.1.1" } });

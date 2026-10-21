@@ -96,7 +96,7 @@ const addDays = (iso: string, n: number) => {
  * Reçoit un lot : chaque session est validée et insérée indépendamment (un rejet
  * n'annule pas le lot). Idempotent grâce à `session_key`. Aucun plafond journalier :
  * tout l'historique d'un pilote doit pouvoir partir ; seule la limite de débit par
- * installation (`writePerInstall`, lots de 50) étale un gros premier envoi.
+ * installation (`uploadPerInstall`, 600 lots de 50 par heure) étale un très gros envoi.
  */
 export async function ingestSessions(
   db: Db,

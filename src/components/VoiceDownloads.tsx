@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { assets, isTauri, type AssetInfo, type AssetKind } from "@/lib/api";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 import { useAppStore } from "@/stores/app";
+import { resetPiperAvailability } from "@/lib/voice";
 
 /** État commun à tous les rendus (bandeau, liste, fenêtre d'accueil de la voix). */
 const useDownloads = create<{
@@ -86,6 +87,7 @@ export function VoiceDownloads({
     if (!ok) return;
     try {
       await assets.remove(kind, a.id);
+      if (kind === "tts") resetPiperAvailability();
       toastSuccess(t("config.assetDeleted", { name }));
       bumpCatalog();
       onInstalled?.();
@@ -143,6 +145,8 @@ export function VoiceDownloads({
     setBusy(kind, a.id);
     try {
       await assets.download(kind, a.id);
+      // Une annonce ratée avant le téléchargement ne doit pas bloquer Piper.
+      if (kind === "tts") resetPiperAvailability();
       toastSuccess(t("config.assetDlDone"));
       bumpCatalog();
       onInstalled?.();

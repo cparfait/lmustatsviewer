@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,12 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { type SetupGroup, type SetupDiffSection, setups as setupsApi } from "@/lib/api";
-import { ArrowLeft, ArrowLeftRight, AlertTriangle, Loader2, ChevronDown, FileText, X } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClassBadge } from "@/components/ClassBadge";
 import { CarLogo } from "@/components/CarLogo";
-import { CAR_CLASS_COLORS } from "@/lib/staticData";
 import { SetupCompareAiPanel } from "@/components/SetupCompareAiPanel";
+import { SetupPicker } from "@/components/SetupPicker";
 import { SetupCompareRulesPanel } from "@/components/SetupCompareRulesPanel";
 import { SetupMixBar } from "@/components/SetupMixBar";
 import { diffIds, pickId } from "@/lib/setupMix";
@@ -136,19 +136,21 @@ export function SetupCompare() {
         <CardContent className="p-5">
           <div className="flex items-start gap-3">
             {/* Setup A */}
-            <SetupPick
-              label="A"
+            <SetupPicker
+              side="A"
               groups={allGroups}
               selected={selectedA}
+              other={infoB}
               onSelect={(id) => { setSelectedA(id); setDiffs(null); }}
             />
 
             {/* Bouton swap central */}
-            <div className="flex flex-col items-center gap-1 pt-8 shrink-0">
+            <div className="flex flex-col items-center gap-1 pt-4 shrink-0">
               <button
                 onClick={handleSwap}
                 disabled={!selectedA && !selectedB}
-                title={t("setupCompare.compare")}
+                title={t("setupCompare.swap")}
+                aria-label={t("setupCompare.swap")}
                 className="p-2 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors disabled:opacity-30 disabled:pointer-events-none"
               >
                 <ArrowLeftRight className="h-4 w-4" />
@@ -156,10 +158,11 @@ export function SetupCompare() {
             </div>
 
             {/* Setup B */}
-            <SetupPick
-              label="B"
+            <SetupPicker
+              side="B"
               groups={allGroups}
               selected={selectedB}
+              other={infoA}
               onSelect={(id) => { setSelectedB(id); setDiffs(null); }}
             />
           </div>
@@ -169,7 +172,7 @@ export function SetupCompare() {
             {diffs && (
               <Badge variant="default" className="gap-1.5">
                 <AlertTriangle className="h-3 w-3" />
-                {totalDiffs === 1 ? t("setupCompare.diffs") : t("setupCompare.diffs_many")}
+                {totalDiffs} {totalDiffs === 1 ? t("setupCompare.diffs") : t("setupCompare.diffs_many")}
               </Badge>
             )}
             <Button
@@ -187,12 +190,7 @@ export function SetupCompare() {
         </CardContent>
       </Card>
 
-      {/* Analyse détaillée par règles de dynamique (toujours, sans IA). */}
-      {diffs && infoA && infoB && (
-        <SetupCompareRulesPanel diffs={diffs} a={{ car: infoA.car, circuit: infoA.circuit }} b={{ car: infoB.car, circuit: infoB.circuit }} />
-      )}
-
-      {/* Analyse IA des écarts (seulement si le Coach IA est configuré). */}
+      {/* Analyse IA des écarts (seulement si le Coach IA est configuré) : en tête. */}
       {diffs && infoA && infoB && selectedA && selectedB && (
         <SetupCompareAiPanel
           idA={selectedA}
@@ -201,6 +199,11 @@ export function SetupCompare() {
           a={{ name: infoA.setup.name, car: infoA.car, carClass: infoA.car_class, circuit: infoA.circuit, setupType: infoA.setup.setup_type, bestLap: infoA.setup.best_lap }}
           b={{ name: infoB.setup.name, car: infoB.car, carClass: infoB.car_class, circuit: infoB.circuit, setupType: infoB.setup.setup_type, bestLap: infoB.setup.best_lap }}
         />
+      )}
+
+      {/* Analyse détaillée par règles de dynamique (toujours, sans IA). */}
+      {diffs && infoA && infoB && (
+        <SetupCompareRulesPanel diffs={diffs} a={{ car: infoA.car, circuit: infoA.circuit }} b={{ car: infoB.car, circuit: infoB.circuit }} />
       )}
 
       {/* Résultats diff */}
@@ -312,7 +315,7 @@ export function SetupCompare() {
 
       {/* Setup mixte : copie de A avec les réglages pris de B. */}
       {diffs && selectedA && selectedB && (
-        <SetupMixBar idA={selectedA} idB={selectedB} diffs={diffs} picked={picked} sameCar={!!infoA && !!infoB && infoA.car === infoB.car} />
+        <SetupMixBar idA={selectedA} idB={selectedB} diffs={diffs} picked={picked} sameCar={!!infoA && !!infoB && infoA.car === infoB.car} circuits={allGroups.flatMap((g) => g.tracks.map((tr) => tr.name))} />
       )}
     </div>
   );
@@ -337,195 +340,8 @@ function SetupChip({
         {label}
       </span>
       <CarLogo carName={info.car} className="h-3.5 w-auto object-contain opacity-80 shrink-0" />
-      <ClassBadge carClass={info.car_class} size="sm" />
+      <ClassBadge carClass={info.car_class} solid />
       <span className="text-xs font-mono font-medium truncate">{info.setup.name}</span>
-    </div>
-  );
-}
-
-// ── Sélecteur custom ─────────────────────────────────────────────────────────
-
-function SetupPick({
-  label,
-  groups,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  groups: SetupGroup[];
-  selected: number | null;
-  onSelect: (id: number | null) => void;
-}) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const info = findSetupInfo(groups, selected);
-  const clsColor = info ? CAR_CLASS_COLORS[info.car_class]?.color : undefined;
-
-  // Fermeture sur clic extérieur
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node))
-        setOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
-
-  // Fermeture sur Échap
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false); }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  const isA = label === "A";
-
-  return (
-    <div className="flex-1 flex flex-col gap-3 min-w-0" ref={containerRef}>
-
-      {/* Aperçu du setup sélectionné */}
-      <div className={cn(
-        "rounded-xl border p-3 flex items-center gap-3 min-h-[72px] transition-colors",
-        info
-          ? "border-border bg-card/60"
-          : "border-dashed border-border/50 bg-muted/20"
-      )}>
-        {/* Badge A / B */}
-        <div className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-bold text-base",
-          isA
-            ? "bg-primary/20 text-primary border border-primary/30"
-            : "bg-sky-500/20 text-sky-400 border border-sky-500/30"
-        )}>
-          {label}
-        </div>
-
-        {info ? (
-          <>
-            {/* Infos setup */}
-            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              <CarLogo
-                carName={info.car}
-                className="h-5 w-auto object-contain opacity-80 shrink-0"
-              />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold font-mono truncate leading-tight">
-                  {info.setup.name}
-                </p>
-                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  <ClassBadge carClass={info.car_class} size="sm" />
-                  <span className="text-xs text-muted-foreground truncate">{info.car}</span>
-                  {info.circuit && (
-                    <span className="text-micro text-muted-foreground/60 truncate">· {info.circuit}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-            {/* Effacer */}
-            <button
-              onClick={() => onSelect(null)}
-              className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title="Effacer"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground/60 italic">{t("setupCompare.choose")}</p>
-        )}
-      </div>
-
-      {/* Bouton d'ouverture du dropdown */}
-      <div className="relative">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className={cn(
-            "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-colors",
-            open
-              ? "border-primary bg-primary/10 text-foreground"
-              : "border-border bg-background hover:border-primary/50 hover:bg-accent/30 text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-150", open && "rotate-180")} />
-          <span className="flex-1 text-left truncate text-xs">
-            {info ? info.setup.name : t("setupCompare.choose")}
-          </span>
-          {info && clsColor && (
-            <span className="text-micro font-bold shrink-0" style={{ color: clsColor }}>
-              {info.car_class}
-            </span>
-          )}
-        </button>
-
-        {/* Dropdown panel */}
-        {open && (
-          <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
-            <div className="max-h-80 overflow-y-auto">
-
-              {/* Option vide */}
-              <button
-                onClick={() => { onSelect(null); setOpen(false); }}
-                className="w-full px-4 py-2 text-xs text-muted-foreground hover:bg-muted/60 text-left italic transition-colors"
-              >
-                — {t("setupCompare.choose")}
-              </button>
-
-              {groups.map((g) => {
-                const setups = g.tracks
-                  .flatMap((tr) => tr.setups)
-                  .sort((a, b) => a.name.localeCompare(b.name));
-                if (setups.length === 0) return null;
-                const color = CAR_CLASS_COLORS[g.car_class]?.color ?? "#888";
-
-                return (
-                  <div key={g.car}>
-                    {/* En-tête classe + voiture */}
-                    <div
-                      className="px-3 py-1.5 flex items-center gap-2 bg-muted/50 border-t border-border/40"
-                      style={{ borderLeftWidth: 3, borderLeftColor: color, borderLeftStyle: "solid" }}
-                    >
-                      <span className="text-micro font-bold uppercase tracking-widest shrink-0" style={{ color }}>
-                        {g.car_class}
-                      </span>
-                      <span className="text-muted-foreground/50 text-micro">·</span>
-                      <CarLogo carName={g.car} className="h-3.5 w-auto object-contain opacity-70 shrink-0" />
-                      <span className="text-xs font-medium truncate text-foreground/80">{g.car}</span>
-                    </div>
-
-                    {/* Items setups */}
-                    {setups.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => { onSelect(s.id); setOpen(false); }}
-                        className={cn(
-                          "w-full flex items-center gap-2.5 px-5 py-2 text-sm text-left transition-colors",
-                          selected === s.id
-                            ? "bg-primary/15 text-primary"
-                            : "hover:bg-primary/8 hover:text-foreground text-foreground/80"
-                        )}
-                      >
-                        <FileText className={cn(
-                          "h-3.5 w-3.5 shrink-0",
-                          selected === s.id ? "text-primary" : "text-muted-foreground"
-                        )} />
-                        <span className="font-mono text-xs truncate flex-1">{s.name}</span>
-                        {s.setup_type && s.setup_type !== "Autres" && (
-                          <span className="text-micro text-muted-foreground shrink-0 ml-auto">
-                            {s.setup_type}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

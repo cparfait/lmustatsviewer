@@ -150,8 +150,24 @@ let speechRate = 1.05;
 let speechVolume = 1;
 /** Moteur de synthèse : Piper neuronal embarqué (défaut) ou voix système. */
 let engine: VoiceEngine = "piper";
-/** Langues où Piper a échoué/est absent → on n'y retente pas (repli direct). */
-const piperUnavailable = new Set<string>();
+/** Langues où Piper vient d'échouer (heure de l'échec) → repli direct, sans
+ *  réessayer en boucle. Réessayé après `PIPER_RETRY_MS`, et tout de suite quand
+ *  une voix est téléchargée/choisie : avant, l'échec valait jusqu'au redémarrage
+ *  (voix téléchargée après coup → voix système quand même). */
+const piperUnavailable = new Map<string, number>();
+const PIPER_RETRY_MS = 30_000;
+function piperDown(code: string): boolean {
+  const at = piperUnavailable.get(code);
+  if (at == null) return false;
+  if (Date.now() - at < PIPER_RETRY_MS) return true;
+  piperUnavailable.delete(code);
+  return false;
+}
+
+/** Oublie les échecs Piper (voix téléchargée, supprimée ou choisie) : prochaine annonce en Piper. */
+export function resetPiperAvailability() {
+  piperUnavailable.clear();
+}
 
 /** Applique les préférences utilisateur (voix par langue, vitesse, volume, moteur). */
 export function configureVoice(opts: {
@@ -171,6 +187,7 @@ export function configureVoice(opts: {
     setMasterVolume(speechVolume); // voix Piper + bips
   }
   if (opts.engine !== undefined) engine = opts.engine;
+  if (opts.piperByLang !== undefined || opts.speakerByLang !== undefined || opts.engine !== undefined) resetPiperAvailability();
 }
 
 /**
@@ -597,7 +614,7 @@ async function synthBuffer(
       urgent: urgent || undefined,
     });
   } catch {
-    piperUnavailable.add(code); // évite de réessayer en boucle
+    piperUnavailable.set(code, Date.now()); // évite de réessayer en boucle
     return null;
   }
   if (!b64) return null;
@@ -618,7 +635,7 @@ export async function prewarmSpeech(texts: string[], lang: string): Promise<void
   const code = norm(lang);
   const ctx = audioContext();
   if (!ctx) return;
-  for (const raw of piperUnavailable.has(code) ? [] : texts) {
+  for (const raw of piperDown(code) ? [] : texts) {
     if (!raw) continue;
     // Même normalisation que `speak` : sinon la clé ne correspond jamais au
     // texte réellement dit dès qu'il contient un chiffre ou une unité.
@@ -627,7 +644,7 @@ export async function prewarmSpeech(texts: string[], lang: string): Promise<void
     if (synthCache.has(key)) continue;
     const buffer = await synthBuffer(ctx, code, text);
     if (buffer) synthCache.set(key, buffer);
-    else if (piperUnavailable.has(code)) break; // Piper indisponible → inutile d'insister
+    else if (piperDown(code)) break; // Piper indisponible → inutile d'insister
   }
   // Voix en ligne : les phrases déjà préparées passent en mémoire (lecture
   // instantanée au moment critique). Cache disque seulement, aucune requête.
@@ -961,7 +978,7 @@ async function trySynthAndPlay(job: InFlight): Promise<boolean> {
       return true;
     }
   }
-  if (!raw && piperUnavailable.has(code)) return false;
+  if (!raw && piperDown(code)) return false;
   // Callout pré-synthétisé (P3.3) ou phrase fixe déjà dite → lecture immédiate,
   // sans appel Piper.
   const key = synthKey(code, item.text);

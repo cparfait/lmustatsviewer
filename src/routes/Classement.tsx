@@ -667,6 +667,295 @@ function DriverCompare({
   );
 }
 
+/** Profil public d'un pilote (`drivers/profile`) : ses combos classés, toutes versions. */
+interface DriverProfile {
+  name: string;
+  tag: string;
+  homonym: boolean;
+  country?: string | null;
+  avatar?: string | null;
+  combos: {
+    track: string;
+    track_course: string;
+    car_class: string;
+    car_model: string;
+    time: number;
+    rank: number;
+    drivers: number;
+    top_pct: number;
+    gap_best: number;
+  }[];
+}
+
+const comboKey = (track: string, course: string, cls: string) => `${track}|${course}|${cls}`;
+
+/**
+ * Fenêtre ouverte d'un clic sur le pseudo d'un pilote : tous ses combos classés, avec
+ * vos temps à côté (même source : votre profil public) et l'écart. « Comparer » ouvre la
+ * comparaison détaillée (secteurs, tour idéal…) du combo choisi.
+ */
+function DriverCombos({
+  driver,
+  meTag,
+  current,
+  onCompare,
+  onClose,
+}: {
+  driver: LbRow["driver"];
+  meTag: string | null;
+  /** Combo ouvert dans le classement (mis en avant). */
+  current: Record<string, string>;
+  onCompare: (q: Record<string, string>) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [his, setHis] = useState<DriverProfile | null | undefined>(undefined);
+  const [mine, setMine] = useState<DriverProfile | null>(null);
+  const [onlyCommon, setOnlyCommon] = useState(true);
+  const self = !!meTag && meTag === driver.tag;
+
+  useEffect(() => {
+    let alive = true;
+    community
+      .get<DriverProfile>("drivers/profile", { tag: driver.tag })
+      .then((p) => alive && setHis(p ?? null))
+      .catch(() => alive && setHis(null));
+    if (meTag && !self)
+      community
+        .get<DriverProfile>("drivers/profile", { tag: meTag })
+        .then((p) => alive && setMine(p ?? null))
+        .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [driver.tag, meTag, self]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const myBy = new Map((mine?.combos ?? []).map((c) => [comboKey(c.track, c.track_course, c.car_class), c]));
+  const curKey = comboKey(current.track ?? "", current.course ?? "", current.class ?? "");
+  const all = (his?.combos ?? []).map((c) => ({ c, me: myBy.get(comboKey(c.track, c.track_course, c.car_class)) ?? null }));
+  const common = all.filter((x) => x.me);
+  const ahead = common.filter((x) => x.me!.time < x.c.time).length;
+  const shown = (onlyCommon && common.length > 0 ? common : all).sort(
+    (a, b) => Number(!!b.me) - Number(!!a.me) || Number(comboKey(b.c.track, b.c.track_course, b.c.car_class) === curKey) - Number(comboKey(a.c.track, a.c.track_course, a.c.car_class) === curKey) || a.c.top_pct - b.c.top_pct,
+  );
+  const label = driver.name ? (driver.homonym ? `${driver.name} · ${driver.tag}` : driver.name) : t("leaderboard.anonDriver", { tag: driver.tag });
+  const fmtGap = (g: number) => `${g > 0 ? "+" : g < 0 ? "−" : "±"}${Math.abs(g).toFixed(3)}`;
+  const th = "px-2 py-1.5 font-medium";
+
+  return createPortal(
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={(e) => e.target === overlayRef.current && onClose()}
+    >
+      <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-5 py-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2">
+              <Route className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center text-sm font-semibold leading-tight">
+                <DriverMarks d={his ?? driver} />
+                <span className="truncate">{label}</span>
+              </div>
+              {his && (
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {t("leaderboard.profCombos", { count: his.combos.length })}
+                  {!self && meTag && mine && <> · {t("leaderboard.profCommon", { count: common.length })}</>}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href={`${SITE}/pilote.html?${new URLSearchParams({ tag: driver.tag })}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              {t("leaderboard.profSite")}
+            </a>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label={t("community.close")}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+          {his === undefined ? (
+            <p className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t("leaderboard.profLoading")}
+            </p>
+          ) : his === null ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("leaderboard.profError")}</p>
+          ) : his.combos.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("leaderboard.profNone")}</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                {common.length > 0 ? (
+                  <p className="text-sm">
+                    <Trans
+                      i18nKey="leaderboard.profAhead"
+                      values={{ ahead, count: common.length, name: driver.name ?? driver.tag }}
+                      components={{ b: <strong className={ahead * 2 >= common.length ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"} /> }}
+                    />
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{self ? "" : meTag ? t("leaderboard.profNoCommon") : t("leaderboard.profNoMe")}</p>
+                )}
+                {common.length > 0 && common.length < all.length && (
+                  <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <input type="checkbox" checked={onlyCommon} onChange={(e) => setOnlyCommon(e.target.checked)} />
+                    {t("leaderboard.profOnlyCommon")}
+                  </label>
+                )}
+              </div>
+              <div className="overflow-x-auto rounded-lg border border-border/60">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
+                    <tr>
+                      <th className={th}>{t("leaderboard.profCombo")}</th>
+                      <th className={cn(th, CMP_SIDES[1].text)}>{label}</th>
+                      {!self && <th className={cn(th, CMP_SIDES[0].text)}>{t("leaderboard.profYou")}</th>}
+                      {!self && <th className={cn(th, "text-right")}>{t("leaderboard.profGap")}</th>}
+                      <th className={th} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shown.map(({ c, me }) => {
+                      const key = comboKey(c.track, c.track_course, c.car_class);
+                      const gap = me ? me.time - c.time : null;
+                      const q = { track: c.track, course: c.track_course, class: c.car_class };
+                      return (
+                        <tr key={key} className={cn("border-t border-border/40", key === curKey && "bg-primary/5")}>
+                          <td className="px-2 py-1.5">
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <TrackFlag track={c.track} />
+                              <span className="truncate">{c.track_course || c.track}</span>
+                              <ClassBadge carClass={c.car_class} size="sm" />
+                              {key === curKey && <span className="rounded bg-primary/15 px-1 text-[10px] font-semibold text-primary">{t("leaderboard.profCurrent")}</span>}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              <CarLogo carName={c.car_model} className="h-3.5 w-auto shrink-0 object-contain opacity-80" />
+                              <span className="font-mono tabular-nums">{formatTime(c.time)}</span>
+                              <span className="text-xs text-muted-foreground">
+                                P{c.rank}/{c.drivers}
+                              </span>
+                            </span>
+                          </td>
+                          {!self && (
+                            <td className="px-2 py-1.5">
+                              {me ? (
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                  <CarLogo carName={me.car_model} className="h-3.5 w-auto shrink-0 object-contain opacity-80" />
+                                  <span className="font-mono tabular-nums">{formatTime(me.time)}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    P{me.rank}/{me.drivers}
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                          )}
+                          {!self && (
+                            <td className={cn("px-2 py-1.5 text-right font-mono tabular-nums", gap == null ? "text-muted-foreground" : gap < 0 ? "text-emerald-600 dark:text-emerald-400" : gap > 0 ? "text-red-500" : "")}>
+                              {gap == null ? "—" : fmtGap(gap)}
+                            </td>
+                          )}
+                          <td className="px-2 py-1.5 text-right">
+                            <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" title={t("leaderboard.profCompareTip")} onClick={() => onCompare(q)}>
+                              <Users className="h-3.5 w-3.5" />
+                              {t("leaderboard.profCompare")}
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/**
+ * Comparaison détaillée sur un autre combo que celui ouvert : charge son classement
+ * (tête + voisinage des deux pilotes) puis ouvre `DriverCompare`.
+ */
+function RemoteCompare({
+  q,
+  tag,
+  meTag,
+  name,
+  onClose,
+}: {
+  q: Record<string, string>;
+  tag: string;
+  meTag: string | null;
+  name: (d: LbRow["driver"]) => string;
+  onClose: () => void;
+}) {
+  const [rows, setRows] = useState<LbRow[] | null>(null);
+  const qKey = JSON.stringify(q);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const head = await community.get<CommunityLeaderboard>("combos/leaderboard", { ...q, limit: 100, offset: 0 });
+      const got = new Map((head?.rows ?? []).map((r) => [r.driver.tag, r]));
+      // Pilote hors du top 100 : son voisinage (positions tirées de son profil).
+      for (const want of [tag, meTag]) {
+        if (!want || got.has(want)) continue;
+        const p = await community.get<DriverProfile>("drivers/profile", { tag: want }).catch(() => null);
+        const c = p?.combos.find((x) => x.track === q.track && x.track_course === q.course && x.car_class === q.class);
+        if (!c) continue;
+        const near = await community.get<CommunityLeaderboard>("combos/leaderboard", { ...q, limit: 11, offset: Math.max(0, c.rank - 6) }).catch(() => null);
+        for (const r of near?.rows ?? []) got.set(r.driver.tag, r);
+      }
+      if (alive) setRows([...got.values()].sort((a, b) => a.rank - b.rank));
+    })().catch(() => alive && setRows([]));
+    return () => {
+      alive = false;
+    };
+    // `qKey` : même combo = pas de nouvelle requête.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qKey, tag, meTag]);
+
+  const target = rows?.find((r) => r.driver.tag === tag) ?? null;
+  // Pilote introuvable dans ce classement (temps retiré entre-temps) : on referme.
+  useEffect(() => {
+    if (rows && !target) onClose();
+  }, [rows, target, onClose]);
+  if (!rows) {
+    return createPortal(
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <Loader2 className="h-6 w-6 animate-spin text-white" />
+      </div>,
+      document.body,
+    );
+  }
+  if (!target) return null;
+  return <DriverCompare q={q} rows={rows} target={target} meTag={meTag} allClasses={false} name={name} onClose={onClose} />;
+}
+
 /**
  * Détail d'un combo, comme la page d'un classement sur le site : carte « Votre position »,
  * puis le classement complet en pleine largeur (secteurs, version, date ; meilleurs
@@ -683,6 +972,10 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
   const [cls, setCls] = useState<string | null>(null);
   /** Pilote cliqué : fenêtre de comparaison ouverte. */
   const [cmp, setCmp] = useState<LbRow | null>(null);
+  /** Pseudo cliqué : ses combos (comparés aux vôtres). */
+  const [prof, setProf] = useState<LbRow | null>(null);
+  /** Comparaison détaillée lancée depuis ses combos, sur un autre combo. */
+  const [remote, setRemote] = useState<{ q: Record<string, string>; tag: string } | null>(null);
 
   const qKey = JSON.stringify(q);
   useEffect(() => {
@@ -736,7 +1029,7 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
   const th = "px-2 py-1.5 font-medium";
   // Classement d'un circuit toutes classes (clic sur son nom) : une colonne Classe en plus.
   const allClasses = !q.class;
-  const cols = allClasses ? 11 : 10;
+  const cols = allClasses ? 12 : 11;
 
   return (
     <div className="space-y-4 border-t border-border/60 bg-muted/20 p-4">
@@ -800,6 +1093,7 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
             <tr className="border-b border-primary/30 bg-primary/15 dark:bg-primary/10">
               <th className={cn(th, "w-12 text-center")}>#</th>
               <th className={cn(th, "text-left")}>{t("leaderboard.lbDriver")}</th>
+              <th className={cn(th, "w-16 text-center")}>{t("leaderboard.lbCompare")}</th>
               {allClasses && <th className={cn(th, "text-left")}>{t("leaderboard.colClass")}</th>}
               <th className={cn(th, "text-left")}>{t("leaderboard.colCar")}</th>
               <th className={cn(th, "text-right", GROUP_SEP, PERF_HEAD)}>{t("leaderboard.lbTime")}</th>
@@ -836,10 +1130,11 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
                   <td className="px-2 py-1.5">
                     <span className="flex min-w-0 items-center">
                       <DriverMarks d={r.driver} />
+                      {/* Pseudo : ses combos (profil public) ; anonyme : pas de profil, comparaison directe. */}
                       <button
                         type="button"
-                        onClick={() => setCmp(r)}
-                        title={t("leaderboard.cmpTip")}
+                        onClick={() => (r.driver.name ? setProf(r) : setCmp(r))}
+                        title={r.driver.name ? t("leaderboard.profTip") : t("leaderboard.cmpTip")}
                         className={cn(
                           "cursor-pointer truncate text-left text-sm hover:text-primary",
                           !r.driver.name && "italic text-muted-foreground",
@@ -848,6 +1143,18 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
                         {name(r.driver)}
                       </button>
                     </span>
+                  </td>
+                  {/* Comparaison directe sur ce classement : colonne à part, icônes alignées. */}
+                  <td className="px-1 py-1.5 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setCmp(r)}
+                      title={t("leaderboard.cmpTip")}
+                      aria-label={t("leaderboard.cmpTip")}
+                      className="cursor-pointer rounded p-0.5 text-muted-foreground/70 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                    </button>
                   </td>
                   {allClasses && (
                     <td className="px-2 py-1.5">
@@ -897,6 +1204,22 @@ function ComboDetail({ q, myBest, myRank, myTag }: { q: Record<string, string>; 
         </table>
       </div>
 
+      {prof && (
+        <DriverCombos
+          driver={prof.driver}
+          meTag={myTag ?? me?.driver.tag ?? null}
+          current={q}
+          onClose={() => setProf(null)}
+          onCompare={(cq) => {
+            const here = cq.track === q.track && cq.course === (q.course ?? "") && cq.class === q.class;
+            const target = here ? rows.find((r) => r.driver.tag === prof.driver.tag) : undefined;
+            setProf(null);
+            if (target) setCmp(target);
+            else setRemote({ q: cq, tag: prof.driver.tag });
+          }}
+        />
+      )}
+      {remote && <RemoteCompare q={remote.q} tag={remote.tag} meTag={myTag ?? me?.driver.tag ?? null} name={name} onClose={() => setRemote(null)} />}
       {cmp && (
         <DriverCompare
           q={q}

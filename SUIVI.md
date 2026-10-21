@@ -929,6 +929,48 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-21 — Setups : sélecteur A/B, IA complète avec écoute et questions, setup mixte circuit/type, vues par voiture/circuit refaites (non commité)
+
+**Demandes** : menus de choix A/B « incompréhensibles » (circuit absent), badge GT3 illisible, analyse IA
+en haut quand le coach est actif, « l'IA ne fait pas une comparaison totale ? », bouton d'écoute et
+question libre, choisir circuit et type du setup mixte, page Setups « Par voiture » « affreuse ».
+- ✅ `SetupPicker` : une carte par côté (voiture, catégorie, drapeau + circuit, type, meilleur tour,
+  date) ; panneau avec recherche, arbre voiture → circuit → setup, filtre « même voiture que A » (B),
+  « déjà en A ». `ClassBadge solid` partout dans la comparaison. Bouton inverser titré, nombre
+  d'écarts affiché.
+- ✅ Analyse IA en tête (avant les règles) ; mode **complet** par défaut (chaque écart cité, budget
+  3000, 700 mots ; `MAX_DIFF_LINES` 60 → 200, un `.svm` réel = 165 réglages) ; **résumé court**
+  conservé (ancien prompt 250 mots). Fil de questions (1er échange + 6 derniers tours, budget 800),
+  bouton Écouter (`announceAnswer`). `stripMarkdown` sorti dans `lib/ai/stripMarkdown.ts`.
+- ✅ Setup mixte : `duplicate_setup` accepte un `circuit` cible (dossier frère sous `Settings`, même
+  validation que la création, session liée non reprise hors circuit) ; choix du type (Course / Qualif /
+  Autres) via `setType`. Nom libre recalculé pour le dossier choisi.
+- ✅ Vues « Par voiture » / « Par circuit » : liste avec recherche à gauche (voitures par classe,
+  circuits avec drapeau), bandeau (visuel, compteurs), une carte par circuit/voiture (types colorés,
+  meilleur tour en vert), fiche rapide à droite (≥ 2xl) ou dessous. La matrice 3 colonnes disparaît ;
+  le type reste visible sur chaque ligne (aucune info perdue).
+- ✅ **Classements › clic sur un pseudo** (« voir ses combos avec la possibilité de les comparer aux
+  nôtres ») : `DriverCombos` lit `drivers/profile` (route du site, ajoutée à `PUBLIC_ROUTES` Rust et
+  `CommunityRoute`) pour lui et pour vous ; combos en commun d'abord, écart, filtre « en commun
+  seulement ». « Comparer » : combo affiché → `DriverCompare` existant ; autre combo → `RemoteCompare`
+  (tête du classement + voisinage des deux pilotes). Icône à côté du nom = comparaison directe
+  (ancien comportement). Pseudo anonyme : pas de profil → comparaison directe. Route vérifiée sur le
+  serveur public (0,4 s, 73 combos) ; **fenêtre pas encore vue à l'écran**.
+  Puis (« aligne le perso, ajoute le titre, et sur le site ») : icône dans sa colonne « Comparer »
+  titrée (app). **Site** : pseudo public → `pilote.html` ; colonne « Comparer » (icônes alignées) ;
+  `combo.html?…&cmp=#tag` ouvre la comparaison ; fiche pilote : colonnes « Vous » / « Votre écart »
+  (repère « c'est moi » du navigateur), « Comparer », résumé « devant sur X / Y » ; assets `?v=52`.
+  Téléphone (≤ 760 px) : colonne « Comparer » masquée, sinon le temps sortait de l'écran (375 px).
+  Vu en local (`community-site`, API publique). ⚠️ `combos/compare` répond **404 en production** :
+  la route (commit 6be10fc) n'est pas déployée — la comparaison du site affiche « ne répond pas »
+  jusqu'au déploiement (l'app a son repli).
+- ✅ **Voix Piper bloquée** (vu en écoutant l'analyse IA) : un échec de synthèse marquait la langue
+  « Piper indisponible » jusqu'au redémarrage → voix Windows même après téléchargement. Échec retenu
+  30 s seulement, oublié au téléchargement/suppression/choix d'une voix (`resetPiperAvailability`).
+- ✅ `tsc -b` propre, eslint propre sur les fichiers touchés, `npm test` vert. Changelog 1.0.10.
+- 📋 **Prochaine étape** : vérification à l'écran dans l'instance de dev puis commit de ces fichiers
+  (index privé) après accord ; tester en jeu un setup mixte enregistré sur un autre circuit.
+
 ### 2026-10-21 — Comparaison de setups : tous les réglages couverts, setup mixte A/B, inversion, IA guidée par les règles (non commité)
 
 **Demandes** : « il faut couvrir TOUT ce qui est paramétrable », « quand on clique sur inverser il faut voir

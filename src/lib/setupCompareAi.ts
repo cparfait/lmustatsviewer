@@ -23,8 +23,12 @@ export interface CompareSide {
   notes: string | null;
 }
 
-/** Au-delà, la liste est tronquée (le reste est résumé par un compte). */
-export const MAX_DIFF_LINES = 60;
+/** Au-delà, la liste est tronquée (le reste est résumé par un compte). Un vrai
+ *  `.svm` a ~165 réglages : tous les écarts passent. */
+export const MAX_DIFF_LINES = 200;
+
+/** « full » : chaque écart expliqué ; « short » : synthèse de 250 mots (ancien mode). */
+export type CompareDetail = "full" | "short";
 
 const LANG_NAME: Record<string, string> = { fr: "French", en: "English", es: "Spanish", de: "German", it: "Italian" };
 
@@ -93,8 +97,8 @@ function side(label: string, x: CompareSide): string {
     .join("\n");
 }
 
-export function buildCompareMessages(args: { a: CompareSide; b: CompareSide; diffs: SetupDiffSection[]; lang: string; style?: string }): AIMessage[] {
-  const { a, b, diffs, lang, style } = args;
+export function buildCompareMessages(args: { a: CompareSide; b: CompareSide; diffs: SetupDiffSection[]; lang: string; style?: string; detail?: CompareDetail }): AIMessage[] {
+  const { a, b, diffs, lang, style, detail = "full" } = args;
   const lng = LANG_NAME[lang.slice(0, 2)] ?? "English";
   const { lines, total } = diffLines(diffs);
   const system =
@@ -107,8 +111,14 @@ export function buildCompareMessages(args: { a: CompareSide; b: CompareSide; dif
     "If the two setups are for different tracks or cars, say first that the comparison is limited. " +
     "When an 'App rule-based reading' is given, follow it for the direction and effect of each change and never contradict it; " +
     "your job is to group, explain and conclude. " +
-    "Format: short Markdown — a one-sentence summary, then a few '## ' headings (in the target language) with " +
-    "bullet points, at most 250 words. No setup advice beyond these two files. " +
+    (detail === "full"
+      ? "Cover EVERY setting listed as different, each at least once (one short bullet: the change, its effect, the corner phase), " +
+        "grouped by theme; group very similar changes (e.g. the four dampers of one axle) in one bullet. " +
+        "Format: Markdown — a two-sentence summary, then '## ' headings per theme (in the target language) with bullet points, " +
+        "then a '## ' heading on when to prefer A and when to prefer B. At most 700 words. "
+      : "Format: short Markdown — a one-sentence summary, then a few '## ' headings (in the target language) with " +
+        "bullet points, at most 250 words. ") +
+    "No setup advice beyond these two files. Follow-up questions from the driver are about these two setups: answer them briefly, same rules. " +
     `Write in ${lng}.`;
   const user = [
     side("A", a),

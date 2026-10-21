@@ -926,3 +926,20 @@ body.cmp-open { overflow: hidden; }
   .cmp-sec > span:nth-child(2) .cmp-val { flex-direction: column-reverse; align-items: flex-end; gap: 1px; }
   .cmp-sec > span:last-child .cmp-val { flex-direction: column; align-items: flex-start; gap: 1px; }
 }
+
+/* Colonne « Comparer » du classement : icônes alignées. */
+.lb th.cmp-col, .lb td.cmp-cell { width: 64px; text-align: center; }
+.lb .cmp-btn { display: inline-grid; place-items: center; padding: 3px; border-radius: 4px; color: var(--muted); }
+.lb .cmp-btn:hover { color: var(--amber-ink); background: color-mix(in srgb, var(--amber) 14%, transparent); }
+/* Téléphone : pas de place pour la colonne sans pousser le temps hors de l'écran. Le pseudo
+   mène à la fiche du pilote (liens « Comparer ») ; celui d'un anonyme ouvre la comparaison. */
+@media (max-width: 760px) {
+  .lb-dense th.cmp-col, .lb-dense td.cmp-cell { display: none; }
+}
+/* Fiche pilote : vos temps à côté des siens. */
+.pf-table.pf-vs { min-width: 1360px; }
+.pf-table col.c-you { width: 170px; } .pf-table col.c-vs { width: 190px; }
+.tbar-vs { margin-left: auto; font-size: .82rem; }
+.vs-win { color: #16a34a; font-weight: 700; }
+.vs-lose { color: #dc2626; font-weight: 700; }
+.vs-cmp { margin-left: .6rem; }

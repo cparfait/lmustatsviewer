@@ -31,10 +31,18 @@ export async function createSetupVersion(args: {
   notes: string | null;
   name?: string;
   lines?: string[];
+  /** Autre dossier circuit (absent = celui de l'original). */
+  circuit?: string;
+  /** Type Course / Qualif / Autres (absent = celui de l'original). */
+  setupType?: string;
 }): Promise<SetupEntry> {
   const { entry, patches, label, notes } = args;
   const name = safeSetupName(args.name ?? nextVersionName(baseName(entry)));
-  const copy = await setupsApi.duplicate(entry.id, name);
+  const copy = await setupsApi.duplicate(entry.id, name, args.circuit);
+  if (args.setupType && args.setupType !== copy.setup_type) {
+    await setupsApi.setType(copy.id, args.setupType);
+    copy.setup_type = args.setupType;
+  }
   if (patches.length) await setupsApi.update({ id: copy.id, sections: patches });
   const lineage = `${name} ← #${entry.id} : ${label}`;
   const all = [notes?.trim() || "", lineage, ...(args.lines ?? [])].filter(Boolean).join("\n");

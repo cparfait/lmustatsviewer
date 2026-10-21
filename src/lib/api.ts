@@ -1509,8 +1509,9 @@ export const setups = {
     invoke<SvmFile>("get_setup_content", { id }),
   update: (payload: UpdateSetupPayload) =>
     invoke<void>("update_setup", { payload }),
-  duplicate: (id: number, newName: string) =>
-    invoke<SetupEntry>("duplicate_setup", { id, newName }),
+  /** Copie du setup ; `circuit` = autre dossier circuit du jeu (absent = le même). */
+  duplicate: (id: number, newName: string, circuit?: string | null) =>
+    invoke<SetupEntry>("duplicate_setup", { id, newName, circuit: circuit ?? null }),
   setType: (id: number, setupType: string) =>
     invoke<void>("set_setup_type", { id, setupType }),
   /** Met à jour les notes pilote (annotation utilisateur, tous setups). */
@@ -1859,7 +1860,8 @@ export type CommunityRoute =
   | "combos/compare"
   | "tiers"
   | "cars"
-  | "patch";
+  | "patch"
+  | "drivers/profile";
 
 /** Pilote tel qu'affiché publiquement (anonyme : repère seul). */
 export interface CommunityPublicDriver {

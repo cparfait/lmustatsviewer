@@ -205,7 +205,10 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
       <tr class="${me && r.driver.tag === me ? "is-me" : ""}" data-rank="${r.rank}">
         <td class="pos c">${r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : r.rank}</td>
         <td class="marks">${driverMarks(r.driver)}</td>
-        <td class="drv"><button type="button" class="drv-btn" data-tag="${esc(r.driver.tag)}" title="${esc(t("cmp.tip"))}">${driverName(r.driver, false)}</button></td>
+        <td class="drv">${r.driver.name
+          ? `<a class="drv-btn" href="/pilote.html?${new URLSearchParams({ tag: r.driver.tag })}" title="${esc(t("profile.open"))}">${driverName(r.driver, false)}</a>`
+          : `<button type="button" class="drv-btn" data-tag="${esc(r.driver.tag)}" title="${esc(t("cmp.tip"))}">${driverName(r.driver, false)}</button>`}</td>
+        <td class="cmp-cell c"><button type="button" class="drv-btn cmp-btn" data-tag="${esc(r.driver.tag)}" title="${esc(t("cmp.tip"))}" aria-label="${esc(t("cmp.tip"))}"><svg class="ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button></td>
         <td><div class="car">${q.class ? "" : classBadge(r.car_class)}<span class="logo-slot">${carImg(r.car_model)}</span><span>${esc(r.car_model)}</span></div></td>
         <td class="t perf sep r">${fmtTime(r.time)}</td>
         <td class="gap perf r">${r.rank === 1 ? "—" : "+" + (r.time - detail.best.time).toFixed(3)}</td>
@@ -218,8 +221,9 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
   }
   $("more").addEventListener("click", () => loadMore());
 
-  // Comparaison : un clic sur un pseudo ouvre la fenêtre — vous à gauche (sinon le 1er, ou
-  // le pilote juste devant si c'est votre nom), le pilote cliqué à droite, chacun modifiable.
+  // Comparaison : un clic sur l'icône (ou le pseudo d'un anonyme) ouvre la fenêtre — vous à
+  // gauche (sinon le 1er, ou le pilote juste devant si c'est votre nom), le pilote cliqué à
+  // droite, chacun modifiable. Le pseudo d'un pilote public ouvre sa fiche.
   let cmpTags = ["", ""];
   let cmpSeq = 0;
   const plainName = (d) => (d.name ? (d.homonym ? `${d.name} · ${d.tag}` : d.name) : t("anon", { tag: d.tag }));
@@ -485,6 +489,16 @@ const unskel = () => document.querySelectorAll("#combo .skeleton").forEach((e) =
     }, 250);
   });
   await loadMore();
+  // Arrivée depuis la fiche d'un pilote (« Comparer ») : la comparaison s'ouvre tout de suite.
+  const cmpWanted = params.get("cmp");
+  if (cmpWanted) {
+    const b = $("lbBody").querySelector(`button.cmp-btn[data-tag="${CSS.escape(cmpWanted)}"]`);
+    if (b) b.click();
+    else {
+      cmpTags = [me && me !== cmpWanted ? me : "", cmpWanted];
+      renderCompare();
+    }
+  }
 
   // Par voiture.
   const cars = detail.by_car;

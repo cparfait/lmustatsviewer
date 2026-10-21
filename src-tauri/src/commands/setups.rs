@@ -718,6 +718,8 @@ pub fn update_setup(payload: UpdateSetupPayload, db: State<'_, DbState>) -> Resu
 pub fn duplicate_setup(
     id: i64,
     new_name: String,
+    // Dossier circuit cible (`Settings/<circuit>`) ; absent = celui de l'original.
+    circuit: Option<String>,
     db: State<'_, DbState>,
 ) -> Result<SetupEntry, AppError> {
     let entry = get_setup(id, db.clone())?;
@@ -733,10 +735,36 @@ pub fn duplicate_setup(
         format!("{}.svm", safe_name)
     };
 
-    let svm_dir = Path::new(&entry.svm_path)
+    let src_dir = Path::new(&entry.svm_path)
         .parent()
         .ok_or_else(|| AppError::Internal("Pas de dossier parent".to_string()))?;
+    // Autre circuit : dossier frère sous `Settings`, validé comme à la création.
+    let target_circuit = match circuit.as_deref().map(str::trim) {
+        Some(c) if !c.is_empty() && !c.eq_ignore_ascii_case(&entry.circuit) => Some(sanitize_component(c, "Circuit")?),
+        _ => None,
+    };
+    let svm_dir: PathBuf = match &target_circuit {
+        Some(c) => {
+            let settings_dir = src_dir
+                .parent()
+                .ok_or_else(|| AppError::Internal("Pas de dossier Settings".to_string()))?;
+            let dir = settings_dir.join(c);
+            fs::create_dir_all(&dir).map_err(AppError::Io)?;
+            if let (Ok(base), Ok(target)) = (settings_dir.canonicalize(), dir.canonicalize()) {
+                if !target.starts_with(&base) {
+                    return Err(AppError::Unsupported(
+                        "Chemin de circuit invalide : il sort du dossier Settings du jeu.".to_string(),
+                    ));
+                }
+            }
+            dir
+        }
+        None => src_dir.to_path_buf(),
+    };
     let new_svm_path = svm_dir.join(&new_file_name);
+    let new_circuit = target_circuit.clone().unwrap_or_else(|| entry.circuit.clone());
+    // La session de référence appartient au circuit d'origine : pas reprise ailleurs.
+    let linked = if target_circuit.is_some() { None } else { entry.linked_session_id };
 
     let new_content = write_svm(&svm);
     // `create_new` : on refuse d'écraser un setup existant portant ce nom.
@@ -754,14 +782,14 @@ pub fn duplicate_setup(
         "INSERT INTO setups (car, circuit, name, svm_path, content_json, updated_at, setup_type, linked_session_id, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'app')",
         params![
             entry.car,
-            entry.circuit,
+            &new_circuit,
             new_file_name,
             new_svm_path.to_string_lossy().to_string(),
             &content_json,
             &now,
             &entry.setup_type,
-            // Duplication = on copie aussi la session de référence.
-            &entry.linked_session_id,
+            // Duplication = on copie aussi la session de référence (même circuit).
+            &linked,
         ],
     )
     .map_err(|e| AppError::Database(format!("duplicate_setup insert: {e}")))?;
@@ -771,13 +799,13 @@ pub fn duplicate_setup(
     Ok(SetupEntry {
         id: new_id,
         car: entry.car,
-        circuit: entry.circuit,
+        circuit: new_circuit,
         name: new_file_name,
         svm_path: new_svm_path.to_string_lossy().to_string(),
         content_json: Some(content_json),
         updated_at: now,
         setup_type: entry.setup_type,
-        linked_session_id: entry.linked_session_id,
+        linked_session_id: linked,
         // Duplication via V3 → l'enfant est un fichier géré par l'app
         // (modifiable même si l'original venait du jeu).
         source: "app".to_string(),

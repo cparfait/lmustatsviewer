@@ -290,11 +290,14 @@ function compareAi(): void {
   ];
   const d = diffLines(diffs);
   eq([d.total, d.lines], [1, ["[REARWING] RWSetting: A = 6.0 deg (index 10) → B = 7.0 deg (index 12)"]], "seuls les réglages différents");
-  const many = [{ name: "X", params: Array.from({ length: 80 }, (_, i) => ({ key: `K${i}`, value_a: "1", value_b: "2", comment_a: null, comment_b: null, is_diff: true })) }];
-  eq([diffLines(many).total, diffLines(many).lines.length], [80, MAX_DIFF_LINES], "liste tronquée, total gardé");
+  const many = [{ name: "X", params: Array.from({ length: 250 }, (_, i) => ({ key: `K${i}`, value_a: "1", value_b: "2", comment_a: null, comment_b: null, is_diff: true })) }];
+  eq([diffLines(many).total, diffLines(many).lines.length], [250, MAX_DIFF_LINES], "liste tronquée, total gardé");
+  ok(diffLines(many.map((x) => ({ ...x, params: x.params.slice(0, 165) }))).lines.length === 165, "un vrai .svm (165 réglages) passe en entier");
   const side = (name: string, circuit: string) => ({ name: `${name}.svm`, car: "BMW M4", carClass: "GT3", circuit, setupType: "Course", bestLap: null, notes: null });
   const m = buildCompareMessages({ a: side("Gemini", "Monza"), b: side("Balanced", "Spa"), diffs, lang: "fr" });
   ok(m[0].content.includes("Write in French"), "réponse dans la langue de l'app");
+  ok(m[0].content.includes("EVERY setting") && !m[0].content.includes("250 words"), "par défaut : chaque écart est expliqué");
+  ok(buildCompareMessages({ a: side("A", "Spa"), b: side("B", "Spa"), diffs, lang: "fr", detail: "short" })[0].content.includes("250 words"), "résumé court toujours disponible");
   ok(m[1].content.includes("Setup A: \"Gemini\"") && m[1].content.includes("track folder Spa"), "les deux setups et leurs circuits");
   ok(m[1].content.includes("no linked session"), "pas de chrono inventé sans session liée");
   const bb = [{ name: "CONTROLS", params: [{ key: "RearBrakeSetting", value_a: "25", value_b: "20", comment_a: "52.5:47.5", comment_b: "52.0:48.0", is_diff: true }] }];

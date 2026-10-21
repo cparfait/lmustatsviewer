@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   Plus,
   GitCompareArrows,
   RefreshCw,
-  Grid3x3,
   Table as TableIcon,
   FileText,
   Edit3,
@@ -49,6 +48,7 @@ import {
 import { ClassBadge } from "@/components/ClassBadge";
 import { CarLogo } from "@/components/CarLogo";
 import { CarImage } from "@/components/CarImage";
+import { TrackFlag } from "@/components/TrackFlag";
 import { NewSetupDialog } from "@/components/NewSetupDialog";
 import { keyFigures, notesOf, perCorner } from "@/lib/setupView";
 
@@ -280,7 +280,174 @@ export function Setups() {
   );
 }
 
-// ── Vue par voiture (sélecteur + hero + matrice + QuickView) ────────────────
+// ── Vues par voiture / par circuit : liste à gauche, cartes au centre, fiche à droite ──
+
+const TYPE_ORDER = ["Qualif", "Course", "Autres"] as const;
+type SetupKind = (typeof TYPE_ORDER)[number];
+const kindOf = (s: SetupSummary): SetupKind => (TYPE_ORDER.includes(s.setup_type as SetupKind) ? (s.setup_type as SetupKind) : "Autres");
+
+/** Étiquette de type colorée (Qualif / Course / Autres). */
+function KindTag({ kind, active }: { kind: SetupKind; active?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <span
+      className={cn(
+        "w-14 shrink-0 rounded px-1 py-px text-center text-micro font-bold uppercase tracking-wide",
+        active
+          ? "bg-primary-foreground/20 text-primary-foreground"
+          : kind === "Qualif"
+            ? "bg-violet-500/15 text-violet-600 dark:text-violet-300"
+            : kind === "Course"
+              ? "bg-primary/15 text-primary"
+              : "bg-muted text-muted-foreground",
+      )}
+    >
+      {typeLabel(kind, t)}
+    </span>
+  );
+}
+
+/** Colonne de gauche : recherche + liste cliquable (voitures par classe, ou circuits). */
+function SideList({
+  sections,
+  activeKey,
+  onPick,
+  placeholder,
+}: {
+  sections: { title?: ReactNode; items: { key: string; label: ReactNode; text: string; count: number }[] }[];
+  activeKey: string | null;
+  onPick: (key: string) => void;
+  placeholder: string;
+}) {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const shown = sections
+    .map((s) => ({ ...s, items: s.items.filter((it) => !q || it.text.toLowerCase().includes(q)) }))
+    .filter((s) => s.items.length > 0);
+  return (
+    <Card className="overflow-hidden lg:sticky lg:top-3">
+      <div className="border-b border-border/60 p-2">
+        <div className="flex items-center gap-2 rounded-md border border-input bg-background px-2">
+          <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={placeholder}
+            aria-label={placeholder}
+            className="h-8 min-w-0 flex-1 bg-transparent text-sm outline-none"
+          />
+        </div>
+      </div>
+      <div className="max-h-[70vh] overflow-y-auto py-1">
+        {shown.map((s, i) => (
+          <div key={i} className="pb-1">
+            {s.title && <div className="px-3 pb-1 pt-2">{s.title}</div>}
+            {s.items.map((it) => {
+              const on = it.key === activeKey;
+              return (
+                <button
+                  key={it.key}
+                  type="button"
+                  onClick={() => onPick(it.key)}
+                  className={cn(
+                    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors",
+                    on ? "bg-primary text-primary-foreground" : "hover:bg-accent/50",
+                  )}
+                >
+                  <span className="flex min-w-0 flex-1 items-center gap-2 truncate">{it.label}</span>
+                  <span className={cn("shrink-0 rounded-full px-1.5 text-micro font-semibold tabular-nums", on ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground")}>
+                    {it.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/** Carte d'un combo (un circuit pour la vue voiture, une voiture pour la vue circuit). */
+function ComboCard({
+  header,
+  setups,
+  selectedId,
+  onSelect,
+}: {
+  header: ReactNode;
+  setups: SetupSummary[];
+  selectedId: number | null;
+  onSelect: (id: number) => void;
+}) {
+  const sorted = [...setups].sort((a, b) => TYPE_ORDER.indexOf(kindOf(a)) - TYPE_ORDER.indexOf(kindOf(b)) || a.name.localeCompare(b.name));
+  // Meilleur tour de la carte (parmi les setups qui ont un best_lap).
+  const best = setups.reduce<number | null>((m, s) => (s.best_lap == null ? m : m == null || s.best_lap < m ? s.best_lap : m), null);
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-border/60 bg-muted/40 px-3 py-2">
+        <span className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm font-semibold">{header}</span>
+        <span className="shrink-0 rounded-full bg-background px-1.5 text-micro font-semibold tabular-nums text-muted-foreground">{setups.length}</span>
+      </div>
+      <div className="flex flex-col gap-0.5 p-1.5">
+        {sorted.map((s) => {
+          const on = s.id === selectedId;
+          const isBest = s.best_lap != null && best != null && Math.abs(s.best_lap - best) < 0.0005;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onSelect(s.id)}
+              title={s.name}
+              className={cn("flex items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors", on ? "bg-primary text-primary-foreground" : "hover:bg-accent/60")}
+            >
+              <KindTag kind={kindOf(s)} active={on} />
+              <span className="min-w-0 flex-1 truncate font-mono text-xs">{s.name.replace(/\.svm$/i, "")}</span>
+              {s.best_lap != null && (
+                <span className={cn("shrink-0 font-mono text-micro font-semibold tabular-nums", on ? "text-primary-foreground/90" : isBest ? "text-success" : "text-muted-foreground")}>
+                  {formatTime(s.best_lap)}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/** Bandeau de la sélection : visuel, nom, compteurs. */
+function Hero({ visual, title, badge, setups, other, otherKey }: { visual: ReactNode; title: string; badge?: ReactNode; setups: number; other: number; otherKey: string }) {
+  const { t } = useTranslation();
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="flex items-center gap-4 p-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="truncate text-lg font-bold">{title}</h2>
+            {badge}
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t("setups.countSetups", { count: setups })} · {t(otherKey, { count: other })}
+          </p>
+        </div>
+        {visual}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Grille : liste | cartes | fiche rapide. */
+function BrowseLayout({ side, main, quick }: { side: ReactNode; main: ReactNode; quick: ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[15rem_minmax(0,1fr)] 2xl:grid-cols-[16rem_minmax(0,1fr)_24rem]">
+      {side}
+      <div className="flex min-w-0 flex-col gap-4">{main}</div>
+      {/* Une seule fiche : sous les cartes, ou en 3ᵉ colonne sur grand écran. */}
+      <div className="min-w-0 lg:col-start-2 2xl:sticky 2xl:top-3 2xl:col-start-3 2xl:row-start-1">{quick}</div>
+    </div>
+  );
+}
 
 function CarView({
   carOptions,
@@ -302,225 +469,71 @@ function CarView({
   navigate: (path: string) => void;
 }) {
   const { t } = useTranslation();
-
-  // Matrice : 1 ligne par circuit ; 3 colonnes (Qualif/Course/Autres) contenant
-  // les setups du combo. Tri par nom de circuit.
-  const matrixRows = useMemo(() => {
-    if (!activeGroup) return [];
-    return [...activeGroup.tracks]
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((tr) => {
-        const byType: Record<string, SetupSummary[]> = {
-          Qualif: [],
-          Course: [],
-          Autres: [],
-        };
-        for (const s of tr.setups) {
-          const key = (
-            ["Qualif", "Course", "Autres"].includes(s.setup_type)
-              ? s.setup_type
-              : "Autres"
-          ) as "Qualif" | "Course" | "Autres";
-          byType[key].push(s);
-        }
-        return { circuit: tr.name, byType };
-      });
-  }, [activeGroup]);
+  const sections = Object.entries(carOptions).map(([cls, gs]) => ({
+    title: <ClassBadge carClass={cls} solid />,
+    items: [...gs]
+      .sort((a, b) => a.car.localeCompare(b.car))
+      .map((g) => ({
+        key: g.car,
+        text: `${g.car} ${cls}`,
+        count: g.tracks.reduce((n, tr) => n + tr.setups.length, 0),
+        label: (
+          <>
+            <CarLogo carName={g.car} className="h-4 w-5 shrink-0 object-contain opacity-80" />
+            <span className="truncate">{g.car}</span>
+          </>
+        ),
+      })),
+  }));
+  const tracks = activeGroup ? [...activeGroup.tracks].sort((a, b) => a.name.localeCompare(b.name)) : [];
+  const total = tracks.reduce((n, tr) => n + tr.setups.length, 0);
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Sélecteur voiture (groupé par classe) — picto à gauche, select étendu. */}
-      <Card>
-        <CardContent className="p-2.5 flex items-center gap-2.5 flex-wrap">
-          <Car
-            className="h-4 w-4 text-muted-foreground shrink-0"
-            aria-label={t("setups.car")}
-          />
-          <Select
-            value={activeCar ?? ""}
-            onValueChange={setActiveCar}
-            ariaLabel={t("setups.car")}
-            className="min-w-[280px] flex-1 px-3"
-            options={[
-              { value: "", label: t("setups.selectCar") },
-              ...Object.entries(carOptions).map(([cls, gs]) => ({
-                label: cls,
-                options: gs.map((g) => {
-                  const total = g.tracks.reduce(
-                    (acc, tr) => acc + tr.setups.length,
-                    0
-                  );
-                  return { value: g.car, label: `${g.car} (${total})` };
-                }),
-              })),
-            ]}
-          />
-          {activeCar && (
-            <CarImage
-              carName={activeCar}
-              className="ml-auto h-9 w-auto max-w-[170px] shrink-0 object-contain opacity-80 [mask-image:linear-gradient(to_right,transparent,black_22%)]"
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Matrice + QuickView */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Matrice par circuit (2/3) */}
-        <div className="lg:col-span-2">
-          <Card className="overflow-hidden">
-            <TableTitle
-              title={
-                <span className="inline-flex items-center gap-2">
-                  <Grid3x3 className="h-3.5 w-3.5" /> {t("setups.matrixTitle", { name: activeCar ?? "—" })}
-                </span>
+    <BrowseLayout
+      side={<SideList sections={sections} activeKey={activeCar} onPick={setActiveCar} placeholder={t("setups.searchCar")} />}
+      main={
+        <>
+          {activeGroup && (
+            <Hero
+              title={activeGroup.car}
+              badge={<ClassBadge carClass={activeGroup.car_class} solid />}
+              setups={total}
+              other={tracks.length}
+              otherKey="setups.countCircuits"
+              visual={
+                <CarImage
+                  carName={activeGroup.car}
+                  className="h-16 w-auto max-w-[260px] shrink-0 object-contain [mask-image:linear-gradient(to_right,transparent,black_18%)]"
+                />
               }
             />
-            <CardContent className="p-0">
-              {matrixRows.length === 0 ? (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  {t("setups.matrixEmpty")}
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table className="w-full text-sm">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="px-3 py-1.5">
-                          <Tip content={t("setups.circuitTip")}>{t("setups.circuit")}</Tip>
-                        </TableHead>
-                        <TableHead className="px-3 py-1.5 border-l border-border/55">
-                          <Tip content={t("setups.typeQualifTip")}>{t("setups.typeQualif")}</Tip>
-                        </TableHead>
-                        <TableHead className="px-3 py-1.5 border-l border-border/55">
-                          <Tip content={t("setups.typeRaceTip")}>{t("setups.typeRace")}</Tip>
-                        </TableHead>
-                        <TableHead className="px-3 py-1.5 border-l border-border/55">
-                          <Tip content={t("setups.typeOtherTip")}>{t("setups.typeOther")}</Tip>
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {matrixRows.map((row, idx) => (
-                        <TableRow
-                          key={row.circuit}
-                          className={cn(
-                            "border-b border-border/40 last:border-0",
-                            idx % 2 === 1 && "bg-muted/20"
-                          )}
-                        >
-                          <TableCell className="px-3 py-1.5 font-medium">
-                            {row.circuit}
-                          </TableCell>
-                          {(["Qualif", "Course", "Autres"] as const).map(
-                            (type) => (
-                              <TableCell
-                                key={type}
-                                className="px-2 py-1.5 border-l border-border/55"
-                              >
-                                <MatrixCell
-                                  setups={row.byType[type]}
-                                  selectedId={selectedSetupId}
-                                  onSelect={setSelectedSetupId}
-                                />
-                              </TableCell>
-                            )
-                          )}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* QuickView (1/3) */}
-        <div className="lg:col-span-1">
-          <QuickView
-            setupId={selectedSetupId}
-            allSetups={activeGroup}
-            navigate={navigate}
-            onDeleted={onDeleted}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Cellule de matrice : liste compacte de setups cliquables avec leur best lap. */
-function MatrixCell({
-  setups,
-  selectedId,
-  onSelect,
-}: {
-  setups: SetupSummary[];
-  selectedId: number | null;
-  onSelect: (id: number) => void;
-}) {
-  if (setups.length === 0) {
-    return <span className="text-muted-foreground/40 text-xs">—</span>;
-  }
-  // Meilleur tour de la cellule (parmi les setups qui ont un best_lap).
-  const bestOfCell = setups.reduce<number | null>((min, s) => {
-    if (s.best_lap == null) return min;
-    return min == null || s.best_lap < min ? s.best_lap : min;
-  }, null);
-  return (
-    <div className="flex flex-col gap-1">
-      {setups.map((s) => {
-        const selected = s.id === selectedId;
-        const isCellBest =
-          s.best_lap != null &&
-          bestOfCell != null &&
-          Math.abs(s.best_lap - bestOfCell) < 0.0005;
-        return (
-          <button
-            key={s.id}
-            onClick={() => onSelect(s.id)}
-            className={cn(
-              "text-left flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono transition-colors",
-              selected
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/40 hover:bg-accent text-foreground"
-            )}
-            title={s.name}
-          >
-            <FileText className="h-3 w-3 shrink-0 opacity-70" />
-            <span className="truncate flex-1 min-w-0">
-              {s.name.replace(/\.svm$/i, "")}
-            </span>
-            {s.best_lap != null ? (
-              <span
-                className={cn(
-                  "shrink-0 tabular-nums text-micro font-semibold",
-                  selected
-                    ? "text-primary-foreground/90"
-                    : isCellBest
-                    ? "text-success"
-                    : "text-muted-foreground"
-                )}
-              >
-                {formatTime(s.best_lap)}
-              </span>
-            ) : (
-              <span
-                className={cn(
-                  "shrink-0 text-micro font-mono",
-                  selected
-                    ? "text-primary-foreground/50"
-                    : "text-muted-foreground/40"
-                )}
-              >
-                —
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+          )}
+          {tracks.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-sm text-muted-foreground">{t("setups.matrixEmpty")}</CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {tracks.map((tr) => (
+                <ComboCard
+                  key={tr.name}
+                  header={
+                    <>
+                      <TrackFlag track={tr.name} />
+                      <span className="truncate">{tr.name}</span>
+                    </>
+                  }
+                  setups={tr.setups}
+                  selectedId={selectedSetupId}
+                  onSelect={setSelectedSetupId}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      }
+      quick={<QuickView setupId={selectedSetupId} allSetups={activeGroup} navigate={navigate} onDeleted={onDeleted} />}
+    />
   );
 }
 
@@ -1004,7 +1017,7 @@ function GlobalView({
   );
 }
 
-// ── Vue par circuit (mirror de CarView, groupé par circuit) ─────────────────
+// ── Vue par circuit (miroir de CarView, une carte par voiture) ───────────────
 
 function CircuitView({
   groups,
@@ -1046,38 +1059,17 @@ function CircuitView({
     }
   }, [activeCircuit, circuitsList, setActiveCircuit]);
 
-  // Construit la matrice « voiture × type » pour le circuit actif.
-  const matrixRows = useMemo(() => {
+  // Voitures ayant des setups sur le circuit actif.
+  const cars = useMemo(() => {
     if (!activeCircuit) return [];
-    type CarRow = {
-      car: string;
-      carClass: string;
-      byType: Record<string, SetupSummary[]>;
-    };
-    const out: CarRow[] = [];
-    for (const g of groups) {
-      const track = g.tracks.find((tr) => tr.name === activeCircuit);
-      if (!track) continue;
-      const byType: Record<string, SetupSummary[]> = {
-        Qualif: [],
-        Course: [],
-        Autres: [],
-      };
-      for (const s of track.setups) {
-        const key = (
-          ["Qualif", "Course", "Autres"].includes(s.setup_type)
-            ? s.setup_type
-            : "Autres"
-        ) as "Qualif" | "Course" | "Autres";
-        byType[key].push(s);
-      }
-      out.push({ car: g.car, carClass: g.car_class, byType });
-    }
-    return out.sort((a, b) => a.car.localeCompare(b.car));
+    return groups
+      .map((g) => ({ g, track: g.tracks.find((tr) => tr.name === activeCircuit) }))
+      .filter((x): x is { g: SetupGroup; track: SetupGroup["tracks"][number] } => !!x.track)
+      .sort((a, b) => a.g.car.localeCompare(b.g.car));
   }, [groups, activeCircuit]);
 
   // Setup group « virtuel » pour permettre à QuickView de retrouver le
-  // résumé d'un setup sélectionné dans la matrice circuit.
+  // résumé d'un setup sélectionné dans les cartes du circuit.
   const virtualGroup = useMemo<SetupGroup | null>(() => {
     if (!activeCircuit) return null;
     const setups: SetupSummary[] = [];
@@ -1092,121 +1084,63 @@ function CircuitView({
     };
   }, [groups, activeCircuit]);
 
+  const sections = [
+    {
+      items: circuitsList.map((c) => ({
+        key: c.name,
+        text: c.name,
+        count: c.count,
+        label: (
+          <>
+            <TrackFlag track={c.name} />
+            <span className="truncate">{c.name}</span>
+          </>
+        ),
+      })),
+    },
+  ];
+  const total = cars.reduce((n, x) => n + x.track.setups.length, 0);
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Sélecteur circuit */}
-      <Card>
-        <CardContent className="p-2.5 flex items-center gap-2.5 flex-wrap">
-          <MapPin
-            className="h-4 w-4 text-muted-foreground shrink-0"
-            aria-label={t("setups.circuit")}
-          />
-          <Select
-            value={activeCircuit ?? ""}
-            onValueChange={setActiveCircuit}
-            ariaLabel={t("setups.circuit")}
-            className="min-w-[280px] flex-1 px-3"
-            options={[
-              { value: "", label: t("setups.selectCircuit") },
-              ...circuitsList.map((c) => ({
-                value: c.name,
-                label: `${c.name} (${c.count})`,
-              })),
-            ]}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Matrice voiture × type + QuickView */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <Card className="overflow-hidden">
-            <TableTitle
-              title={
-                <span className="inline-flex items-center gap-2">
-                  <Grid3x3 className="h-3.5 w-3.5" /> {t("setups.matrixCircuitTitle", { name: activeCircuit ?? "—" })}
-                </span>
-              }
+    <BrowseLayout
+      side={<SideList sections={sections} activeKey={activeCircuit} onPick={setActiveCircuit} placeholder={t("setups.searchCircuit")} />}
+      main={
+        <>
+          {activeCircuit && (
+            <Hero
+              title={activeCircuit}
+              setups={total}
+              other={cars.length}
+              otherKey="setups.countCars"
+              visual={<TrackFlag track={activeCircuit} className="h-10 w-auto shrink-0 rounded shadow-sm" />}
             />
-            <CardContent className="p-0">
-              {matrixRows.length === 0 ? (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                  {t("setups.matrixEmptyCircuit")}
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table className="w-full text-sm">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="px-3 py-1.5">
-                          <Tip content={t("setups.carTip")}>{t("setups.car")}</Tip>
-                        </TableHead>
-                        <TableHead className="px-3 py-1.5 border-l border-border/55">
-                          <Tip content={t("setups.typeQualifTip")}>{t("setups.typeQualif")}</Tip>
-                        </TableHead>
-                        <TableHead className="px-3 py-1.5 border-l border-border/55">
-                          <Tip content={t("setups.typeRaceTip")}>{t("setups.typeRace")}</Tip>
-                        </TableHead>
-                        <TableHead className="px-3 py-1.5 border-l border-border/55">
-                          <Tip content={t("setups.typeOtherTip")}>{t("setups.typeOther")}</Tip>
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {matrixRows.map((row, idx) => (
-                        <TableRow
-                          key={row.car}
-                          className={cn(
-                            "border-b border-border/40 last:border-0",
-                            idx % 2 === 1 && "bg-muted/20"
-                          )}
-                        >
-                          <TableCell className="px-3 py-1.5">
-                            <span className="inline-flex items-center gap-1.5">
-                              <CarLogo
-                                carName={row.car}
-                                className="h-3.5 w-auto object-contain opacity-80"
-                              />
-                              <span className="font-medium truncate">
-                                {row.car}
-                              </span>
-                            </span>
-                          </TableCell>
-                          {(["Qualif", "Course", "Autres"] as const).map(
-                            (type) => (
-                              <TableCell
-                                key={type}
-                                className="px-2 py-1.5 border-l border-border/55"
-                              >
-                                <MatrixCell
-                                  setups={row.byType[type]}
-                                  selectedId={selectedSetupId}
-                                  onSelect={setSelectedSetupId}
-                                />
-                              </TableCell>
-                            )
-                          )}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* QuickView — réutilise le composant existant avec un SetupGroup
-            virtuel construit pour le circuit actif. */}
-        <div className="lg:col-span-1">
-          <QuickView
-            setupId={selectedSetupId}
-            allSetups={virtualGroup}
-            navigate={navigate}
-            onDeleted={onDeleted}
-          />
-        </div>
-      </div>
-    </div>
+          )}
+          {cars.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-sm text-muted-foreground">{t("setups.matrixEmptyCircuit")}</CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {cars.map(({ g, track }) => (
+                <ComboCard
+                  key={g.car}
+                  header={
+                    <>
+                      <CarLogo carName={g.car} className="h-4 w-5 shrink-0 object-contain opacity-80" />
+                      <span className="truncate">{g.car}</span>
+                      <ClassBadge carClass={g.car_class} solid />
+                    </>
+                  }
+                  setups={track.setups}
+                  selectedId={selectedSetupId}
+                  onSelect={setSelectedSetupId}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      }
+      quick={<QuickView setupId={selectedSetupId} allSetups={virtualGroup} navigate={navigate} onDeleted={onDeleted} />}
+    />
   );
 }

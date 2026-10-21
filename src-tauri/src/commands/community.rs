@@ -1077,7 +1077,7 @@ async fn sync_inner(db: &DbState) -> Result<SyncReport, AppError> {
 // ── Lectures publiques (page « Classement », lot 4) ──────────────────────────
 
 /// Routes publiques autorisées (agrégats seulement ; aucune donnée personnelle).
-const PUBLIC_ROUTES: [&str; 9] = [
+const PUBLIC_ROUTES: [&str; 10] = [
     "stats",
     "combos",
     "combos/detail",
@@ -1088,6 +1088,8 @@ const PUBLIC_ROUTES: [&str; 9] = [
     "tiers",
     "cars",
     "patch",
+    // Combos classés d'un pilote public (même contenu que sa page sur le site).
+    "drivers/profile",
 ];
 
 /// Lecture publique du service (sans jeton). `null` si le combo n'existe pas (404).

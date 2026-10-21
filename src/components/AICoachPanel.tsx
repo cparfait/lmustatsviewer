@@ -63,6 +63,7 @@ import {
   type PostRaceMode,
 } from "@/lib/ai/prompts/postrace";
 import { announceAnswer, cancelSpeech, speak } from "@/lib/voice";
+import { stripMarkdown } from "@/lib/ai/stripMarkdown";
 
 /** Nombre de tours d'historique envoyés (en plus du 1er message qui porte le contexte). */
 const HISTORY_TAIL = 8;
@@ -70,33 +71,6 @@ const HISTORY_TAIL = 8;
 const ASK_MAX_TOKENS = 600;
 
 type Turn = { role: "user" | "assistant"; content: string; display?: string };
-
-/** Retire le markdown pour la synthèse vocale (gras, titres, listes, code).
- *  Un bloc ``` non refermé (stream en cours) est aussi retiré : le JSON
- *  d'objectifs ne doit jamais être lu à voix haute. */
-/** Termine un titre par un point s'il n'a pas déjà une ponctuation forte —
- *  c'est ce qui fait marquer une pause au TTS entre le titre et le paragraphe
- *  (sans ça, « Point fort principal » et la phrase suivante s'enchaînent). */
-function punctuateTitle(t: string): string {
-  const clean = t.trim().replace(/:$/, "");
-  return /[.!?]$/.test(clean) ? clean : `${clean}.`;
-}
-
-function stripMarkdown(s: string): string {
-  return s
-    .replace(/```[\s\S]*?```/g, "")
-    .replace(/```[\s\S]*$/, "")
-    .replace(/`([^`]+)`/g, "$1")
-    // Titres : `### Titre` et lignes en gras seules (`**Titre**`) → « Titre. »
-    .replace(/^#{1,6}\s*(.+?)\s*$/gm, (_, t: string) => punctuateTitle(t))
-    .replace(/^\s*\*\*([^*\n]+)\*\*\s*:?\s*$/gm, (_, t: string) => punctuateTitle(t))
-    .replace(/\*\*([^*]+)\*\*/g, "$1")
-    .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/^\s*[-*]\s+/gm, "")
-    .replace(/^\s*\d+\.\s+/gm, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
 
 /** Objectif structuré proposé par le coach (bloc JSON de l'analyse complète). */
 export interface CoachObjective {

@@ -93,6 +93,24 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Leaderboards: clicking a driver's name opens all their ranked combos with your time, rank and gap next to theirs (combos in common first, “in common only” filter); “Compare” opens the detailed comparison on any of those combos. The comparison on the displayed leaderboard stays one click away in the new “Compare” column (aligned icons). Same on the website: a name opens the driver's page, which now shows your times and gap next to theirs.",
+              fr: "Classements : un clic sur le nom d'un pilote ouvre tous ses combos classés, avec votre temps, votre place et l'écart à côté des siens (combos en commun d'abord, filtre « en commun seulement ») ; « Comparer » ouvre la comparaison détaillée sur n'importe lequel de ces combos. La comparaison sur le classement affiché reste à un clic, dans la nouvelle colonne « Comparer » (icônes alignées). Pareil sur le site : un nom ouvre la fiche du pilote, qui montre désormais vos temps et l'écart à côté des siens.",
+              es: "Clasificaciones: un clic en el nombre de un piloto abre todos sus combos clasificados, con tu tiempo, tu puesto y la diferencia junto a los suyos (combos en común primero, filtro «solo en común»); «Comparar» abre la comparación detallada en cualquiera de esos combos. La comparación en la clasificación mostrada sigue a un clic, en la nueva columna «Comparar» (iconos alineados). Igual en la web: un nombre abre la ficha del piloto, que ahora muestra tus tiempos y la diferencia junto a los suyos.",
+              de: "Ranglisten: Ein Klick auf den Namen eines Fahrers öffnet alle seine gewerteten Kombinationen, mit deiner Zeit, deinem Platz und dem Abstand daneben (gemeinsame Kombinationen zuerst, Filter „nur gemeinsame“); „Vergleichen“ öffnet den Detailvergleich auf jeder dieser Kombinationen. Der Vergleich in der angezeigten Rangliste bleibt einen Klick entfernt, in der neuen Spalte „Vergleich“ (ausgerichtete Symbole). Ebenso auf der Website: Ein Name öffnet das Fahrerprofil, das jetzt deine Zeiten und den Abstand neben seinen zeigt.",
+              it: "Classifiche: un clic sul nome di un pilota apre tutte le sue combo in classifica, con il tuo tempo, la tua posizione e il distacco accanto ai suoi (prima le combo in comune, filtro «solo in comune»); «Confronta» apre il confronto dettagliato su una qualsiasi di queste combo. Il confronto sulla classifica mostrata resta a un clic, nella nuova colonna «Confronta» (icone allineate). Lo stesso sul sito: un nome apre la scheda del pilota, che ora mostra i tuoi tempi e il distacco accanto ai suoi.",
+            },
+          },
+          {
+            text: {
+              en: "Setup comparison, AI analysis: listen to the answer and ask your own questions about the two setups; a mixed setup can be saved to another track folder and with its own type (Race / Qualifying / Other).",
+              fr: "Comparaison de setups, analyse IA : écoute de la réponse et questions libres sur les deux setups ; le setup mixte peut être enregistré dans un autre dossier circuit et avec son propre type (Course / Qualif / Autres).",
+              es: "Comparación de setups, análisis IA: escucha la respuesta y haz tus propias preguntas sobre los dos setups; el setup mixto puede guardarse en otra carpeta de circuito y con su propio tipo (Carrera / Clasificación / Otros).",
+              de: "Setup-Vergleich, KI-Analyse: Antwort anhören und eigene Fragen zu beiden Setups stellen; das gemischte Setup kann in einem anderen Streckenordner und mit eigenem Typ (Rennen / Qualifying / Andere) gespeichert werden.",
+              it: "Confronto setup, analisi IA: ascolta la risposta e fai le tue domande sui due setup; il setup misto può essere salvato in un'altra cartella circuito e con un proprio tipo (Gara / Qualifica / Altri).",
+            },
+          },
+          {
+            text: {
               en: "Setup comparison: choose A or B for each differing setting (or “All A / All B” per section) and save the result as a new mixed setup — a copy of A with the chosen values from B, lineage noted in the notes; neither original is modified. Not available between two different cars.",
               fr: "Comparaison de setups : choisis A ou B pour chaque réglage qui diffère (ou « Tout A / Tout B » par section) et enregistre le résultat comme un nouveau setup mixte — une copie de A avec les valeurs choisies de B, lignée notée dans les notes ; aucun des deux originaux n'est modifié. Indisponible entre deux voitures différentes.",
               es: "Comparación de setups: elige A o B para cada ajuste distinto (o «Todo A / Todo B» por sección) y guarda el resultado como un nuevo setup mixto — una copia de A con los valores elegidos de B, con el origen anotado en las notas; ninguno de los originales se modifica. No disponible entre dos coches distintos.",
@@ -729,6 +747,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "improved",
         items: [
+          {
+            text: {
+              en: "Setups: new selection of setups A and B in the comparison (one card per side with car, track and flag, type, best lap; search, setups listed by car then track, “same car as A” filter for B), the AI analysis moves to the top and now explains every difference (a short summary is still available), the difference count is shown and the GT3 badge is easier to read. The “By car” and “By track” views are redesigned: searchable list on the left, a card per track (or per car) with coloured types, setup sheet on the right.",
+              fr: "Setups : nouveau choix des setups A et B dans la comparaison (une carte par côté avec voiture, circuit et drapeau, type, meilleur tour ; recherche, setups rangés par voiture puis circuit, filtre « même voiture que A » pour B), l'analyse IA passe en tête et explique désormais chaque écart (le résumé court reste disponible), le nombre de différences est affiché et le badge GT3 se lit mieux. Les vues « Par voiture » et « Par circuit » sont refaites : liste avec recherche à gauche, une carte par circuit (ou par voiture) avec types colorés, fiche du setup à droite.",
+              es: "Setups: nueva elección de los setups A y B en la comparación (una tarjeta por lado con coche, circuito y bandera, tipo, mejor vuelta; búsqueda, setups ordenados por coche y luego circuito, filtro «mismo coche que A» para B), el análisis IA pasa arriba y ahora explica cada diferencia (el resumen corto sigue disponible), se muestra el número de diferencias y la insignia GT3 se lee mejor. Las vistas «Por coche» y «Por circuito» se rehacen: lista con búsqueda a la izquierda, una tarjeta por circuito (o por coche) con tipos de color, ficha del setup a la derecha.",
+              de: "Setups: neue Auswahl der Setups A und B im Vergleich (eine Karte je Seite mit Auto, Strecke und Flagge, Typ, Bestzeit; Suche, Setups nach Auto und dann Strecke geordnet, Filter „gleiches Auto wie A“ für B), die KI-Analyse steht nun oben und erklärt jeden Unterschied (die kurze Zusammenfassung bleibt verfügbar), die Anzahl der Unterschiede wird angezeigt und das GT3-Abzeichen ist besser lesbar. Die Ansichten „Nach Auto“ und „Nach Strecke“ sind neu gestaltet: durchsuchbare Liste links, eine Karte je Strecke (oder je Auto) mit farbigen Typen, Setup-Blatt rechts.",
+              it: "Setup: nuova scelta dei setup A e B nel confronto (una scheda per lato con vettura, circuito e bandiera, tipo, miglior giro; ricerca, setup ordinati per vettura e poi circuito, filtro «stessa vettura di A» per B), l'analisi IA passa in alto e ora spiega ogni differenza (il riassunto breve resta disponibile), il numero di differenze è mostrato e il badge GT3 si legge meglio. Le viste «Per vettura» e «Per circuito» sono rifatte: elenco con ricerca a sinistra, una scheda per circuito (o per vettura) con tipi colorati, scheda del setup a destra.",
+            },
+          },
           {
             text: {
               en: "Setup comparison: swapping A and B re-runs the comparison straight away instead of clearing it; the AI analysis now receives the app's rule-based reading and no longer gets the direction of a change wrong (e.g. brake balance moved rearward); every adjustable setting found in setup files has its rule (geometry, centre of gravity, tender springs, front differential, torque split, pit strategy, simplified mode…).",
@@ -1380,6 +1407,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "Voice: after a failed Piper announcement (e.g. before any neural voice was downloaded), the app kept using the Windows voice until restart, even once a voice was downloaded; Piper is now retried right after a voice is downloaded or chosen (and 30 s after a failure).",
+              fr: "Voix : après une annonce Piper ratée (par ex. avant d'avoir téléchargé une voix neuronale), l'app restait sur la voix Windows jusqu'au redémarrage, même une fois la voix téléchargée ; Piper est maintenant réessayé dès qu'une voix est téléchargée ou choisie (et 30 s après un échec).",
+              es: "Voz: tras un aviso Piper fallido (p. ej. antes de descargar una voz neuronal), la app seguía con la voz de Windows hasta reiniciar, incluso con la voz ya descargada; ahora Piper se reintenta en cuanto se descarga o elige una voz (y 30 s después de un fallo).",
+              de: "Stimme: Nach einer fehlgeschlagenen Piper-Ansage (z. B. bevor eine neuronale Stimme geladen war) blieb die App bis zum Neustart bei der Windows-Stimme, selbst nach dem Download; Piper wird jetzt sofort nach dem Laden oder Auswählen einer Stimme erneut versucht (und 30 s nach einem Fehler).",
+              it: "Voce: dopo un annuncio Piper fallito (es. prima di aver scaricato una voce neurale), l'app restava sulla voce di Windows fino al riavvio, anche a voce scaricata; ora Piper viene riprovato appena una voce è scaricata o scelta (e 30 s dopo un errore).",
+            },
+          },
           {
             text: {
               en: "AI coach (Kilo, free): some free models always reason before answering and returned an empty reply to quick requests (AI setup audit, setup comparison…). Their reasoning is now cut on quick requests, and when a model refuses that, it is asked to reason briefly instead of not at all.",

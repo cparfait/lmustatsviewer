@@ -66,6 +66,21 @@ chrome();
   }
   $("tbarCount").textContent = p.combos.length === 1 ? t("home.count1") : t("home.count", { n: fmtNum(p.combos.length) });
 
+  // Vous (repère « c'est moi » de ce navigateur) : vos temps sur les mêmes combos, à côté des siens.
+  const me = getMe();
+  const mine = me && !isMe ? await api("drivers/profile", { tag: me }).catch(() => null) : null;
+  const key = (c) => `${c.track}|${c.track_course}|${c.car_class}`;
+  const myBy = new Map((mine?.combos ?? []).map((c) => [key(c), c]));
+  const vs = !!mine;
+  if (vs) {
+    const common = p.combos.filter((c) => myBy.has(key(c)));
+    const ahead = common.filter((c) => myBy.get(key(c)).time < c.time).length;
+    const line = document.createElement("span");
+    line.className = "tbar-vs";
+    line.innerHTML = common.length ? t("profile.ahead", { a: fmtNum(ahead), n: fmtNum(common.length) }) : esc(t("profile.noCommon"));
+    $("bar").appendChild(line);
+  }
+
   // Une carte par circuit ; les circuits où il est le mieux placé d'abord.
   const byTrack = new Map();
   for (const c of p.combos) {
@@ -77,15 +92,25 @@ chrome();
     .map(([track, list]) => ({ track, list: list.sort((a, b) => classRank(a.car_class) - classRank(b.car_class) || score(a) - score(b)) }))
     .sort((a, b) => Math.min(...a.list.map(score)) - Math.min(...b.list.map(score)));
 
-  const head = `<colgroup><col class="c-class"><col><col class="c-time"><col class="c-rank"><col class="c-top"><col class="c-where"><col class="c-gap"><col class="c-go"></colgroup>
-    <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.car"))}</th><th class="perf sep r">${esc(t("col.time"))}</th><th class="perf c">${esc(t("col.rank"))}</th><th class="perf">${esc(t("col.top"))}</th><th class="perf">${esc(t("col.where"))}</th><th class="perf r">${esc(t("col.gapFirst"))}</th><th class="sep"></th></tr></thead>`;
+  const head = `<colgroup><col class="c-class"><col><col class="c-time"><col class="c-rank"><col class="c-top"><col class="c-where"><col class="c-gap">${vs ? `<col class="c-you"><col class="c-vs">` : ""}<col class="c-go"></colgroup>
+    <thead><tr><th>${esc(t("col.class"))}</th><th>${esc(t("col.car"))}</th><th class="perf sep r">${esc(t("col.time"))}</th><th class="perf c">${esc(t("col.rank"))}</th><th class="perf">${esc(t("col.top"))}</th><th class="perf">${esc(t("col.where"))}</th><th class="perf r">${esc(t("col.gapFirst"))}</th>${vs ? `<th class="sep r">${esc(t("profile.you"))}</th><th class="r">${esc(t("profile.vsGap"))}</th>` : ""}<th class="sep"></th></tr></thead>`;
 
   $("groups").innerHTML = groups
     .map(
       (g) => `<section class="cgroup">
       <div class="cg-head cg-static">${flagImg(g.track)}<span class="cg-name">${esc(g.track)}</span><span class="cg-n">${g.list.length}</span></div>
-      <div class="lb-scroll"><table class="lb cg-table pf-table">${head}<tbody>${(() => {
+      <div class="lb-scroll"><table class="lb cg-table pf-table${vs ? " pf-vs" : ""}">${head}<tbody>${(() => {
         const { groups: courses, withHeaders } = groupByCourse(g.list, g.track, () => 1);
+        // Vos colonnes : votre temps et place, votre écart (vert = vous êtes devant), « Comparer ».
+        const vsCells = (c, url) => {
+          const m = myBy.get(key(c));
+          if (!m) return `<td class="sep r muted">—</td><td></td>`;
+          const g = m.time - c.time;
+          const cmpUrl = `${url}&${new URLSearchParams({ cmp: p.tag })}`;
+          return `<td class="sep r mono">${fmtTime(m.time)} <span class="muted">${m.rank} / ${fmtNum(m.drivers)}</span></td>
+            <td class="r mono"><span class="${g < 0 ? "vs-win" : g > 0 ? "vs-lose" : ""}">${g > 0 ? "+" : g < 0 ? "−" : "±"}${Math.abs(g).toFixed(3)}</span>
+            <a class="go-link vs-cmp" href="${esc(cmpUrl)}">${esc(t("profile.compare"))}</a></td>`;
+        };
         const renderRow = (c) => {
           const url = `/combo.html?${new URLSearchParams({ track: c.track, course: c.track_course, class: c.car_class })}`;
           const isRanked = c.drivers >= RANKED_MIN;
@@ -100,11 +125,12 @@ chrome();
           <td><div class="car"><span class="logo-slot">${carImg(c.car_model)}</span><span class="car-txt"><span>${esc(c.car_model)}</span></span></div></td>
           <td class="perf sep r best-t mono">${fmtTime(c.time)}</td>
           ${pos}
+          ${vs ? vsCells(c, url) : ""}
           <td class="sep r"><a class="go-link" href="${esc(url)}">${esc(t("home.open"))}</a></td>
         </tr>`;
         };
         return courses
-          .map((cg) => (withHeaders ? courseHeader(cg.course, 8) : "") + cg.rows.map((c) => renderRow(c, withHeaders)).join(""))
+          .map((cg) => (withHeaders ? courseHeader(cg.course, vs ? 10 : 8) : "") + cg.rows.map((c) => renderRow(c, withHeaders)).join(""))
           .join("");
       })()}</tbody></table></div>
     </section>`,

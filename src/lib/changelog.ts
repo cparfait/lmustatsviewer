@@ -1409,6 +1409,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Online AI voice (ElevenLabs): when your API key has restricted permissions, the app now says which one is missing (for example “Voices → Read”, needed for the voice list) and where to enable it, instead of showing the service's raw error.",
+              fr: "Voix IA en ligne (ElevenLabs) : quand ta clé API a des droits restreints, l'app indique maintenant quelle permission manque (par exemple « Voices → Read », nécessaire à la liste des voix) et où l'activer, au lieu d'afficher l'erreur brute du service.",
+              es: "Voz IA en línea (ElevenLabs): cuando tu clave API tiene permisos restringidos, la app indica ahora qué permiso falta (por ejemplo «Voices → Read», necesario para la lista de voces) y dónde activarlo, en lugar de mostrar el error en bruto del servicio.",
+              de: "Online-KI-Stimme (ElevenLabs): Hat dein API-Schlüssel eingeschränkte Rechte, sagt die App jetzt, welche Berechtigung fehlt (zum Beispiel „Voices → Read“, nötig für die Stimmenliste) und wo man sie aktiviert, statt den rohen Fehler des Dienstes anzuzeigen.",
+              it: "Voce IA online (ElevenLabs): quando la tua chiave API ha permessi limitati, l'app ora indica quale permesso manca (per esempio «Voices → Read», necessario per l'elenco delle voci) e dove attivarlo, invece di mostrare l'errore grezzo del servizio.",
+            },
+          },
+          {
+            text: {
               en: "Voice: after a failed Piper announcement (e.g. before any neural voice was downloaded), the app kept using the Windows voice until restart, even once a voice was downloaded; Piper is now retried right after a voice is downloaded or chosen (and 30 s after a failure).",
               fr: "Voix : après une annonce Piper ratée (par ex. avant d'avoir téléchargé une voix neuronale), l'app restait sur la voix Windows jusqu'au redémarrage, même une fois la voix téléchargée ; Piper est maintenant réessayé dès qu'une voix est téléchargée ou choisie (et 30 s après un échec).",
               es: "Voz: tras un aviso Piper fallido (p. ej. antes de descargar una voz neuronal), la app seguía con la voz de Windows hasta reiniciar, incluso con la voz ya descargada; ahora Piper se reintenta en cuanto se descarga o elige una voz (y 30 s después de un fallo).",

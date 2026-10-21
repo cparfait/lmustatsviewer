@@ -2283,6 +2283,8 @@ export default {
     cloudVoiceVoiceRequired: "identificador necesario",
     cloudVoiceVoicesLoading: "Cargando voces…",
     cloudVoiceVoicesError: "Lista de voces no disponible: {{error}}",
+    cloudVoiceMissingPermission: "tu clave de {{name}} no tiene el permiso «{{permission}}». Abre la página de claves API (botón «Obtener una clave»), edita la clave para permitirlo (o crea una con ese derecho) y pulsa «Recargar».",
+    cloudVoiceMissingPermissionAny: "tu clave de {{name}} no tiene todos los permisos necesarios. Abre la página de claves API (botón «Obtener una clave»), permite «Voices → Read» y «Text to Speech» en la clave (o crea una con esos derechos) y pulsa «Recargar».",
     cloudVoiceVoicesCount: "{{n}} voces disponibles: escribe un nombre para buscar. Se guarda para cada idioma de la app.",
     cloudVoiceVoiceActive: "Voz en uso: {{name}}",
     cloudVoiceReload: "Recargar",

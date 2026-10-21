@@ -2279,6 +2279,8 @@ export default {
     cloudVoiceVoiceRequired: "ID necessario",
     cloudVoiceVoicesLoading: "Caricamento delle voci…",
     cloudVoiceVoicesError: "Elenco delle voci non disponibile: {{error}}",
+    cloudVoiceMissingPermission: "alla tua chiave {{name}} manca il permesso «{{permission}}». Apri la pagina delle chiavi API (pulsante «Ottieni una chiave»), modifica la chiave per consentirlo (o creane una con questo diritto), poi clicca «Ricarica».",
+    cloudVoiceMissingPermissionAny: "alla tua chiave {{name}} mancano alcuni permessi necessari. Apri la pagina delle chiavi API (pulsante «Ottieni una chiave»), consenti «Voices → Read» e «Text to Speech» sulla chiave (o creane una con questi diritti), poi clicca «Ricarica».",
     cloudVoiceVoicesCount: "{{n}} voci disponibili: digita un nome per cercare. Salvata per ogni lingua dell'app.",
     cloudVoiceVoiceActive: "Voce in uso: {{name}}",
     cloudVoiceReload: "Ricarica",

@@ -2284,6 +2284,8 @@ export default {
     cloudVoiceVoiceRequired: "ID erforderlich",
     cloudVoiceVoicesLoading: "Stimmen werden geladen…",
     cloudVoiceVoicesError: "Stimmenliste nicht verfügbar: {{error}}",
+    cloudVoiceMissingPermission: "deinem {{name}}-Schlüssel fehlt die Berechtigung „{{permission}}“. Öffne die Seite der API-Schlüssel (Schaltfläche „Schlüssel holen“), erlaube sie für den Schlüssel (oder erstelle einen mit diesem Recht) und klicke dann auf „Neu laden“.",
+    cloudVoiceMissingPermissionAny: "deinem {{name}}-Schlüssel fehlen nötige Berechtigungen. Öffne die Seite der API-Schlüssel (Schaltfläche „Schlüssel holen“), erlaube „Voices → Read“ und „Text to Speech“ für den Schlüssel (oder erstelle einen mit diesen Rechten) und klicke dann auf „Neu laden“.",
     cloudVoiceVoicesCount: "{{n}} Stimmen verfügbar: Namen eintippen zum Suchen. Wird pro App-Sprache gespeichert.",
     cloudVoiceVoiceActive: "Verwendete Stimme: {{name}}",
     cloudVoiceReload: "Neu laden",

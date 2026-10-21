@@ -16,6 +16,8 @@ import { Combobox } from "@/components/ui/combobox";
 import {
   CLOUD_VOICE_PROVIDERS,
   getCloudVoiceProvider,
+  missingPermission,
+  permissionLabel,
   providerDefaultVoice,
   type CloudVoiceOption,
   type CloudVoiceProviderId,
@@ -39,6 +41,19 @@ import { CloudVoiceBench } from "@/components/CloudVoiceBench";
 import { toastError, toastSuccess } from "@/stores/dialogs";
 
 /** Champ texte enregistré à la sortie (ou sur Entrée). */
+/**
+ * Message lisible pour une erreur du fournisseur de voix. Clé à droits restreints
+ * (ElevenLabs `missing_permissions`) : quelle permission manque et où l'activer,
+ * au lieu du JSON brut renvoyé par le service. Autres erreurs : texte inchangé.
+ */
+function explainCloudError(raw: string, providerName: string, t: (k: string, o?: Record<string, unknown>) => string): string {
+  const perm = missingPermission(raw);
+  if (perm === null) return raw;
+  return perm
+    ? t("config.cloudVoiceMissingPermission", { name: providerName, permission: permissionLabel(perm) })
+    : t("config.cloudVoiceMissingPermissionAny", { name: providerName });
+}
+
 function CommitInput(props: {
   value: string;
   placeholder?: string;
@@ -154,7 +169,7 @@ function VoicePicker() {
 
   let desc = provider.voiceExamples || t("config.cloudVoiceVoiceId");
   if (loading) desc = t("config.cloudVoiceVoicesLoading");
-  else if (error) desc = t("config.cloudVoiceVoicesError", { error });
+  else if (error) desc = t("config.cloudVoiceVoicesError", { error: explainCloudError(error, provider.name, t) });
   else if (voices) desc = t("config.cloudVoiceVoicesCount", { n: shown.length });
 
   return (
@@ -252,7 +267,8 @@ export function CloudVoiceSettings() {
       const ms = await previewCloudVoice(t("config.voiceTestPhrase"), i18n.language);
       toastSuccess(t("config.cloudVoiceTestOk", { ms }));
     } catch (e) {
-      toastError(t("config.cloudVoiceTestFail", { error: e instanceof Error ? e.message : String(e) }));
+      const raw = e instanceof Error ? e.message : String(e);
+      toastError(t("config.cloudVoiceTestFail", { error: explainCloudError(raw, provider.name, t) }));
     } finally {
       setTesting(false);
     }
@@ -377,7 +393,7 @@ export function CloudVoiceSettings() {
           {benchOpen && <CloudVoiceBench onClose={() => setBenchOpen(false)} />}
           {lastError && !snap.prep?.running && (
             <div className="text-xs text-amber-500 break-words">
-              {t("config.cloudVoiceLastError", { error: lastError })}
+              {t("config.cloudVoiceLastError", { error: explainCloudError(lastError, provider.name, t) })}
             </div>
           )}
           <div className="text-xs text-muted-foreground/70">

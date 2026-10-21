@@ -292,3 +292,28 @@ export function providerDefaultVoice(p: CloudVoiceProvider, lang?: string): stri
 export function getCloudVoiceProvider(id: string): CloudVoiceProvider {
   return CLOUD_VOICE_PROVIDERS.find((p) => p.id === id) ?? CLOUD_VOICE_PROVIDERS[0];
 }
+
+/**
+ * Clé API à droits restreints : permission manquante signalée par le fournisseur
+ * (ElevenLabs : `"status":"missing_permissions"`, « The API key you used is
+ * missing the permission voices_read… »). Renvoie l'identifiant de la permission,
+ * `""` si le refus ne la nomme pas, `null` si ce n'est pas ce type d'erreur.
+ */
+export function missingPermission(raw: string): string | null {
+  if (!/missing_permissions|missing the permission/i.test(raw)) return null;
+  return /missing the permission ([a-z_]+)/i.exec(raw)?.[1] ?? "";
+}
+
+/** Libellés des permissions tels qu'affichés sur la page des clés API d'ElevenLabs. */
+const PERMISSION_LABELS: Record<string, string> = {
+  voices_read: "Voices → Read",
+  voices_write: "Voices → Write",
+  text_to_speech: "Text to Speech",
+  models_read: "Models → Read",
+  user_read: "User → Read",
+};
+
+/** Libellé lisible d'une permission (`voices_read` → « Voices → Read »). */
+export function permissionLabel(perm: string): string {
+  return PERMISSION_LABELS[perm] ?? perm.replace(/_/g, " ");
+}

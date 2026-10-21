@@ -929,6 +929,31 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-21 — Voix IA en ligne : message clair quand la clé ElevenLabs manque d'une permission
+
+**Constat** : « Liste des voix indisponible : Internal error: HTTP 401: {"detail":{…
+"status":"missing_permissions"… missing the permission voices_read…}} » — clé ElevenLabs à droits
+restreints (sans « Voices → Read »), affichée en JSON brut. Rien à voir avec la langue : l'app lit
+`GET /v2/voices` et met déjà en tête les voix vérifiées pour la langue (`verified_languages`).
+
+**Fait**
+- ✅ `cloudVoiceProviders.ts` : `missingPermission(raw)` (id de la permission, `""` si non nommée,
+  `null` sinon) et `permissionLabel` (libellés de la page des clés ElevenLabs : « Voices → Read »…).
+- ✅ `CloudVoiceSettings.tsx` : `explainCloudError` aux trois endroits du panneau (liste des voix,
+  échec du test, « Dernière erreur ») : « ta clé ElevenLabs n'a pas la permission « Voices → Read ».
+  Ouvre la page des clés API (bouton « Obtenir une clé »), modifie la clé… puis clique « Recharger » ».
+  Autres erreurs inchangées.
+- ✅ i18n 5 langues (`cloudVoiceMissingPermission`, `…Any`), changelog 1.0.10 (corrections).
+  Tests dans la suite `freeai` (section « voix-en-ligne.permission », message réel). `npm test` :
+  6 773 réussis, 0 échec ; eslint propre ; `tsc -b` sans erreur nouvelle.
+- ℹ️ Non reproduit dans l'app : la configuration actuelle du mainteneur charge la liste (42 voix,
+  « Jules — Polished Host (fr-FR) ») ; vérification sur une instance de test, en lecture seule,
+  fermée ensuite.
+- 💡 Piste non faite : chercher dans la bibliothèque publique ElevenLabs filtrée par langue
+  (`/v1/shared-voices?language=fr`), voix à ajouter au compte avant usage.
+
+📋 **Prochaine étape** : commiter quand le mainteneur le demande.
+
 ### 2026-10-21 — Setups : sélecteur A/B, IA complète avec écoute et questions, setup mixte circuit/type, vues par voiture/circuit refaites (non commité)
 
 **Demandes** : menus de choix A/B « incompréhensibles » (circuit absent), badge GT3 illisible, analyse IA

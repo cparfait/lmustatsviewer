@@ -19,6 +19,7 @@ import {
 } from "@/lib/ai/providers/free";
 import { openaiProvider, openrouterProvider } from "@/lib/ai/providers/openai-compat";
 import { friendlyError } from "@/lib/ai/coach";
+import { missingPermission, permissionLabel } from "@/lib/cloudVoiceProviders";
 import {
   freeFallbackModel,
   freeFallbackTargets,
@@ -189,4 +190,17 @@ export async function run(): Promise<void> {
   }
   eq(thrown, "HTTP 401: bad key", "autre erreur : relancée telle quelle");
   setFreeFallbackSource(() => ({ enabled: false, configured: [], keys: {} }));
+
+  // Voix en ligne : clé ElevenLabs à droits restreints (message réel du 2026-10-21).
+  section("voix-en-ligne.permission");
+  const raw =
+    'Internal error: HTTP 401: {"detail":{"type":"authentication_error","code":"unauthorized",' +
+    '"message":"The API key you used is missing the permission voices_read to execute this operation.",' +
+    '"status":"missing_permissions","request_id":"81fdc4115b9106c210b5259f2317bcdf"}}';
+  eq(missingPermission(raw), "voices_read", "permission manquante reconnue");
+  eq(permissionLabel("voices_read"), "Voices → Read", "libellé de la page des clés ElevenLabs");
+  eq(permissionLabel("speech_history_read"), "speech history read", "permission inconnue : lisible");
+  eq(missingPermission('HTTP 401: {"detail":{"status":"missing_permissions"}}'), "", "refus sans nom de permission");
+  eq(missingPermission('HTTP 401: {"detail":{"status":"invalid_api_key"}}'), null, "clé invalide : autre erreur");
+  eq(missingPermission("error sending request"), null, "erreur réseau : autre erreur");
 }

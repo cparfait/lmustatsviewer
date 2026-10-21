@@ -2279,6 +2279,8 @@ export default {
     cloudVoiceVoiceRequired: "ID required",
     cloudVoiceVoicesLoading: "Loading voices…",
     cloudVoiceVoicesError: "Voice list unavailable: {{error}}",
+    cloudVoiceMissingPermission: "your {{name}} key lacks the “{{permission}}” permission. Open the API keys page (“Get a key” button), edit the key to allow it (or create one with that right), then click “Reload”.",
+    cloudVoiceMissingPermissionAny: "your {{name}} key lacks some required permissions. Open the API keys page (“Get a key” button), allow “Voices → Read” and “Text to Speech” on the key (or create one with those rights), then click “Reload”.",
     cloudVoiceVoicesCount: "{{n}} voices available: type a name to search. Kept for each app language.",
     cloudVoiceVoiceActive: "Voice in use: {{name}}",
     cloudVoiceReload: "Reload",

@@ -156,6 +156,54 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 7,
+    name: "setup_sharing",
+    sql: `
+      -- Tables de crans (opt-in) : texte affiché par le garage pour chaque index d'un
+      -- réglage, par voiture (<dossier>/<version> du jeu). Donnée du jeu, pas un setup.
+      create table notch_reports (
+        install_id uuid not null references installs(id) on delete cascade,
+        car_key text not null,
+        param_id text not null,
+        idx integer not null,
+        display text not null,
+        updated_at timestamptz not null default now(),
+        primary key (install_id, car_key, param_id, idx)
+      );
+      create index notch_reports_car on notch_reports (car_key);
+      create table notch_counts (
+        install_id uuid not null references installs(id) on delete cascade,
+        car_key text not null,
+        param_id text not null,
+        count integer not null,
+        updated_at timestamptz not null default now(),
+        primary key (install_id, car_key, param_id)
+      );
+      -- Setups publiés par le pilote (bouton « Publier », jamais automatique) : une
+      -- ligne par version ; republier le même nom crée la version suivante.
+      create table shared_setups (
+        id bigserial primary key,
+        install_id uuid not null references installs(id) on delete cascade,
+        car_key text not null,
+        car_folder text not null,
+        car_class text not null,
+        car_model text not null,
+        track text not null,
+        name text not null,
+        version integer not null,
+        setup_type text not null,
+        notes text not null default '',
+        svm text not null,
+        best_lap double precision,
+        game_version text,
+        downloads integer not null default 0,
+        created_at timestamptz not null default now(),
+        unique (install_id, car_key, track, name, version)
+      );
+      create index shared_setups_combo on shared_setups (car_folder, track);
+    `,
+  },
 ];
 
 export async function migrate(db: Db): Promise<number[]> {

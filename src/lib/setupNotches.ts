@@ -299,5 +299,8 @@ export async function learnForCar(
     all[key] = table;
     await saveNotchTables(all).catch(() => {});
   }
-  return table;
+  // Partage des setups (option de l'Atelier) : déclare la table, la complète par le
+  // consensus de la communauté. Seule notre table est écrite en config.
+  const { shareNotches } = await import("@/lib/setupSharing");
+  return shareNotches(key, table).catch(() => table);
 }

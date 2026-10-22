@@ -280,7 +280,8 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   `mIsFixedSetup` (1980) sur un serveur à setup imposé ; le jeu relit un `.svm` dont l'index change
   mais pas le commentaire ; signe et ordre de grandeur de `slip_angle` AV/AR (sonde du bilan au box,
   seuils 1° / 140 km/h) ; rapprochement circuit / voiture du bilan au box (`setups.entries` n'est
-  à jour qu'après un rescan). À voir aussi en roulant : bandeau « setup imposé » (page Live) et
+  à jour qu'après un rescan). S12/S5 (partage des setups) codé le 2026-10-22, serveur à déployer
+  (migration 7). À voir aussi en roulant : bandeau « setup imposé » (page Live) et
   carte « Bilan au box » (≥ 2 tours puis stands). Commité le 2026-10-21 (`79f9a59`) ; note de
   passation `REPRISE-ATELIER-SETUP.md` supprimée le 2026-10-22 (son contenu restant est ici).
 - ⏳ **Fournisseurs IA gratuits (2026-10-21)** : vérifié dans `npm run tauri dev` (OVHcloud et Kilo sans clé, bascule OVHcloud → Kilo en vrai). Clés gratuites Groq / NVIDIA / Z.ai / Cohere / Hugging Face / Ollama Cloud non testées (seuls OVHcloud, Kilo et LLM7 ont répondu à un vrai appel sans clé). Les catalogues gratuits bougent vite (Kilo, LLM7) : revérifier les listes de repli à chaque version. OVHcloud sous charge : jusqu'à 28 s par réponse, plus de 2 min pour une question d'analyse avec Qwen3.8-27B (raisonnement long) → le pilote peut choisir `Mistral-Small-3.2-24B-Instruct-2506` ou `gpt-oss-120b` à la main (défaut gardé : le plus récent, décision du 2026-10-21).
@@ -936,6 +937,38 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-22 — Commits découpés, `main` poussé, partage des setups (S12/S5)
+
+**Fait**
+- ✅ Travail en cours commité en 3 commits (ingénieur `fc11447`, onglet Coach `6adf7b6`, Analyse et
+  suivi `c5069c9`) : fichiers partagés répartis par hunk, contenu construit par lignes de l'index
+  (un premier essai par `git apply --unidiff-zero` décalait les insertions : refait). Commit Coach
+  vérifié seul (`tsc -b`, `npm test`). Points ouverts §7 remis à jour, `REPRISE-ATELIER-SETUP.md`
+  supprimée (`d5d538d`). `main` poussé (117 commits ; CI de vérification seulement, aucun tag).
+- ✅ **S12/S5 — partage des setups**, derrière `FLAG_SETUP_SHARING` (Config › Atelier, désactivé par
+  défaut) ET le partage communautaire (jeton + Steam) :
+  - Serveur (`community/api/src/setupshare.ts`, migration 7 `setup_sharing`) : `POST/GET /notches`
+    (tables de crans par `<dossier>/<version>`, consensus à la majorité stricte, égalité = vide),
+    `POST /setups` (`.svm` validé ligne à ligne, ≤ 64 Ko, version suivante si même nom, 300 max),
+    `GET /setups?car=&track=`, `GET|DELETE /setups/item`, `GET /setups/mine` ; écritures avec
+    `Content-Digest` + Steam ; export `/me` et effacement en cascade. Doc : `COMMUNITY-SPEC.md` §6.
+    Tests `setupshare.test.ts` (10) : 62/62.
+  - Rust : `community_notches_push`, `community_setup_publish` (contenu relu en base,
+    `shareable_svm` : notes remplacées, `//VEH=` réduit à `\Vehicles\…` — le chemin d'installation
+    peut contenir le nom de la session Windows), `community_setups_mine`, `community_setup_delete` ;
+    routes publiques `notches`, `setups`, `setups/item` ; `import_setup_content` (texte relu par
+    `parse_svm` puis réécrit par `write_svm`, nouveau fichier seulement, `source = 'community'`).
+    `new_svm_path` extrait de `create_setup`. 3 tests (`share_tests`).
+  - App : `lib/setupSharing.ts` (nettoyage, empreinte FNV, fusion où notre table l'emporte, cache
+    10 min) appelé à la fin de `learnForCar` ; onglet « Partager » (`SetupSharePanel`) dans la fiche ;
+    interrupteur dans Config › Atelier ; textes `lab.share.*` 5 langues ; suite `sharing` (19
+    vérifications). `tsc -b`, eslint, `npm test` 6967/6967, `cargo check`.
+- ⏳ **Non vu à l'écran ni en jeu** (pas de `tauri dev` : disque C: presque plein) ; serveur **pas
+  déployé** (migration 7 appliquée au démarrage du conteneur). Pas de page « setups » sur le site.
+- 📋 Prochaine étape : déployer le service communautaire sur le VPS (migrations 6 et 7), puis
+  activer l'option dans un `tauri dev` : publier un setup, le retrouver depuis un 2ᵉ compte,
+  télécharger, vérifier que le jeu le charge et que le `//VEH=` ne contient plus de chemin local.
 
 ### 2026-10-22 — Ingénieur : retours d'un testeur (course de 100 min)
 

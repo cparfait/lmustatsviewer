@@ -189,6 +189,21 @@ Implémentée au lot 1 (`community/api`, détail dans `community/README.md`) :
 | GET | `/api/v1/combos/position?…&time=` | Rang, top %, écarts au meilleur et à la médiane d'un temps |
 | GET | `/api/v1/combos/compare?…&tags=#a,#b` | Comparaison de 1 à 4 pilotes (fenêtre ouverte d'un clic sur un pseudo) : ligne du classement + meilleurs secteurs de la session, vitesse de pointe, rythme médian, pneus, type de session, sessions et tours sur le combo. **Aides de pilotage non publiées.** |
 
+**Partage des setups** (migration 7 `setup_sharing`, 2026-10-22 ; opt-in côté app : Config ›
+Atelier › « Partage de setups », qui exige le partage communautaire). Écritures : `Bearer` +
+`Content-Digest` + compte Steam lié ; lectures publiques. Tout est effacé avec l'installation
+et figure dans l'export `GET /me` (`shared_setups`, `notch_cars`).
+
+| Méthode | Route | Rôle |
+|---|---|---|
+| POST | `/api/v1/notches` | `{ car_key: "<dossier>/<version>", table }` : table de crans de la voiture (texte du garage par index, nombre de crans) — remplace la déclaration précédente de l'installation |
+| GET | `/api/v1/notches?car=` | Consensus : par index, l'affichage déclaré par le plus d'installations (égalité au sommet = laissé vide) ; 404 si inconnue |
+| POST | `/api/v1/setups` | Publie un setup (bouton « Publier », jamais automatique) : `.svm` validé ligne à ligne (≤ 64 Ko, `[GENERAL]` requis), notes ≤ 1000, meilleur tour facultatif ; même nom = version suivante ; 300 versions au plus par installation → `201 { id, version }` |
+| GET | `/api/v1/setups?car=<dossier>[&track=]` | Dernière version de chaque setup publié (auteur selon ses règles d'anonymat), meilleur tour d'abord, 100 au plus |
+| GET | `/api/v1/setups/item?id=[&download=1]` | Contenu `.svm` + versions ; `download=1` compte un téléchargement |
+| GET | `/api/v1/setups/mine` | Mes publications (toutes versions, sans contenu) |
+| DELETE | `/api/v1/setups/item?id=[&all=1]` | Retire une version (ou toutes) — seulement les siennes |
+
 Les lectures publiques ne renvoient **que des agrégats** et le classement, jamais de lignes
 brutes ; `Cache-Control: public, max-age=120`, CORS ouvert en lecture seule. Les routes
 authentifiées sont en `no-store`. Agrégats calculés à la demande (un meilleur tour par pilote) :

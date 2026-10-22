@@ -617,7 +617,12 @@ pub fn scan_setups(lmu_path: String, db: State<'_, DbState>) -> Result<Vec<Setup
 
 #[tauri::command]
 pub fn get_setup(id: i64, db: State<'_, DbState>) -> Result<SetupEntry, AppError> {
-    let conn = get_conn(&db)?;
+    load_setup(&db, id)
+}
+
+/// Entrée en base, sans passer par l'état Tauri (aussi pour le partage communautaire).
+pub(crate) fn load_setup(db: &DbState, id: i64) -> Result<SetupEntry, AppError> {
+    let conn = get_conn(db)?;
     let row = conn
         .query_row(
             "SELECT id, car, circuit, name, svm_path, content_json, updated_at, setup_type, linked_session_id, source FROM setups WHERE id = ?1",
@@ -1040,34 +1045,7 @@ pub fn create_setup(
     // validation, `Path::join` acceptait une remontée `..\..\` ou un chemin
     // absolu (qui remplace entièrement le dossier de base) et le `.svm` partait
     // n'importe où sur le disque.
-    let safe_circuit = sanitize_component(&circuit, "Circuit")?;
-    let safe_name = sanitize_component(&name, "Nom du setup")?;
-
-    let file_name = if safe_name.to_lowercase().ends_with(".svm") {
-        safe_name
-    } else {
-        format!("{}.svm", safe_name)
-    };
-
-    let settings_dir = PathBuf::from(&lmu_path)
-        .join("UserData")
-        .join("player")
-        .join("Settings");
-    let circuit_dir = settings_dir.join(&safe_circuit);
-
-    fs::create_dir_all(&circuit_dir).map_err(|e| AppError::Io(e))?;
-
-    // Défense en profondeur : après création, on vérifie que le dossier obtenu
-    // est bien SOUS `Settings` (protège d'un lien symbolique ou d'une jonction).
-    if let (Ok(base), Ok(target)) = (settings_dir.canonicalize(), circuit_dir.canonicalize()) {
-        if !target.starts_with(&base) {
-            return Err(AppError::Unsupported(
-                "Chemin de circuit invalide : il sort du dossier Settings du jeu.".to_string(),
-            ));
-        }
-    }
-
-    let svm_path = circuit_dir.join(&file_name);
+    let (settings_dir, svm_path, file_name) = new_svm_path(&lmu_path, &circuit, &name)?;
 
     // Clone d'un `.svm` existant de la même voiture pour servir de template :
     // sinon le nouveau fichier serait vide et l'éditeur afficherait
@@ -1146,6 +1124,132 @@ pub fn create_setup(
         setup_type: final_type,
         linked_session_id,
         source: "app".to_string(),
+    })
+}
+
+/// Dossier `Settings`, chemin et nom de fichier d'un nouveau `.svm` (`<circuit>/<nom>.svm`),
+/// noms validés et dossier créé sous `Settings` (jamais ailleurs).
+fn new_svm_path(lmu_path: &str, circuit: &str, name: &str) -> Result<(PathBuf, PathBuf, String), AppError> {
+    let safe_circuit = sanitize_component(circuit, "Circuit")?;
+    let safe_name = sanitize_component(name, "Nom du setup")?;
+
+    let file_name = if safe_name.to_lowercase().ends_with(".svm") {
+        safe_name
+    } else {
+        format!("{}.svm", safe_name)
+    };
+
+    let settings_dir = PathBuf::from(lmu_path)
+        .join("UserData")
+        .join("player")
+        .join("Settings");
+    let circuit_dir = settings_dir.join(&safe_circuit);
+
+    fs::create_dir_all(&circuit_dir).map_err(|e| AppError::Io(e))?;
+
+    // Défense en profondeur : après création, on vérifie que le dossier obtenu
+    // est bien SOUS `Settings` (protège d'un lien symbolique ou d'une jonction).
+    if let (Ok(base), Ok(target)) = (settings_dir.canonicalize(), circuit_dir.canonicalize()) {
+        if !target.starts_with(&base) {
+            return Err(AppError::Unsupported(
+                "Chemin de circuit invalide : il sort du dossier Settings du jeu.".to_string(),
+            ));
+        }
+    }
+
+    let svm_path = circuit_dir.join(&file_name);
+    Ok((settings_dir, svm_path, file_name))
+}
+
+// ─── Partage communautaire ──────────────────────────────────────────────────
+
+/// Notes publiables : une seule ligne, sans `//` (le `.svm` le lirait comme un commentaire).
+fn one_line_notes(notes: &str) -> String {
+    notes
+        .replace(['\r', '\n', '\t'], " ")
+        .replace("//", "/")
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(1000)
+        .collect::<String>()
+        .trim()
+        .to_string()
+}
+
+/// `//VEH=` réduit à `\Vehicles\…` : le chemin d'installation du jeu peut contenir le
+/// nom de la session Windows. `None` si le chemin ne passe pas par `Vehicles`.
+fn public_veh_path(p: &str) -> Option<String> {
+    let norm = p.replace('/', "\\");
+    norm.to_lowercase().find(r"\vehicles\").map(|i| norm[i..].to_string())
+}
+
+/// Texte `.svm` d'un setup prêt à publier : notes du pilote remplacées par `notes`,
+/// chemin local du véhicule réduit (cf. `public_veh_path`).
+pub(crate) fn shareable_svm(db: &DbState, id: i64, notes: &str) -> Result<(SetupEntry, String), AppError> {
+    let entry = load_setup(db, id)?;
+    let json = entry
+        .content_json
+        .clone()
+        .ok_or_else(|| AppError::NotFound(format!("Pas de contenu JSON pour le setup {id}")))?;
+    let mut svm: SvmFile = serde_json::from_str(&json).map_err(|e| AppError::Parse(format!("deserialize svm: {e}")))?;
+    svm.header.veh_path = svm.header.veh_path.as_deref().and_then(public_veh_path);
+    upsert_general_notes(&mut svm, &one_line_notes(notes));
+    Ok((entry, write_svm(&svm)))
+}
+
+/// Enregistre un setup téléchargé de la communauté comme NOUVEAU fichier du jeu
+/// (`Settings/<circuit>/<nom>.svm`, jamais d'écrasement). Le texte reçu est relu puis
+/// réécrit par notre propre écrivain : seules les lignes `.svm` reconnues passent.
+#[tauri::command]
+pub fn import_setup_content(
+    lmu_path: String,
+    circuit: String,
+    name: String,
+    content: String,
+    setup_type: Option<String>,
+    notes: Option<String>,
+    db: State<'_, DbState>,
+) -> Result<SetupEntry, AppError> {
+    if content.len() > 64 * 1024 {
+        return Err(AppError::Unsupported("Setup trop volumineux.".to_string()));
+    }
+    let mut svm = parse_svm(&content)?;
+    if svm.sections.is_empty() || svm.header.vehicle_class.trim().is_empty() {
+        return Err(AppError::Unsupported("Ce n'est pas un setup lisible.".to_string()));
+    }
+    svm.header.veh_path = svm.header.veh_path.as_deref().and_then(public_veh_path);
+    if let Some(n) = notes.as_deref() {
+        upsert_general_notes(&mut svm, &one_line_notes(n));
+    }
+    let (_, svm_path, file_name) = new_svm_path(&lmu_path, &circuit, &name)?;
+    write_svm_new(&svm_path, &write_svm(&svm))?;
+
+    let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let car = extract_car_name(&svm.header.vehicle_class);
+    let content_json = serde_json::to_string(&svm).map_err(|e| AppError::Internal(format!("serialize svm: {e}")))?;
+    let final_type = setup_type
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("Autres")
+        .to_string();
+    let conn = get_conn(&db)?;
+    conn.execute(
+        "INSERT INTO setups (car, circuit, name, svm_path, content_json, updated_at, setup_type, linked_session_id, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, NULL, 'community')",
+        params![&car, &circuit, &file_name, svm_path.to_string_lossy().to_string(), &content_json, &now, &final_type],
+    )
+    .map_err(|e| AppError::Database(format!("import_setup_content insert: {e}")))?;
+    Ok(SetupEntry {
+        id: conn.last_insert_rowid(),
+        car,
+        circuit,
+        name: file_name,
+        svm_path: svm_path.to_string_lossy().to_string(),
+        content_json: Some(content_json),
+        updated_at: now,
+        setup_type: final_type,
+        linked_session_id: None,
+        source: "community".to_string(),
     })
 }
 
@@ -1688,4 +1792,32 @@ pub async fn list_setup_entries(
         .map_err(|e| AppError::Database(format!("list_setup_entries query: {e}")))?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|e| AppError::Database(format!("list_setup_entries collect: {e}")))
+}
+
+#[cfg(test)]
+mod share_tests {
+    use super::{one_line_notes, parse_svm, public_veh_path, write_svm};
+
+    #[test]
+    fn veh_path_loses_the_local_install_path() {
+        let p = r"C:\Users\chris\Steam\steamapps\common\Le Mans Ultimate\Installed\Vehicles\Mercedes_AMGGT3Evo_2025\1.11\car.veh";
+        assert_eq!(public_veh_path(p).as_deref(), Some(r"\Vehicles\Mercedes_AMGGT3Evo_2025\1.11\car.veh"));
+        assert_eq!(public_veh_path("D:/Games/LMU/Installed/vehicles/X/1.0/a.veh").as_deref(), Some(r"\vehicles\X\1.0\a.veh"));
+        assert_eq!(public_veh_path(r"C:\Users\chris\car.veh"), None);
+    }
+
+    #[test]
+    fn published_notes_stay_on_one_line_without_comment_marker() {
+        assert_eq!(one_line_notes("stable\r\nen sortie // pas d'ABS\t"), "stable  en sortie / pas d'ABS");
+    }
+
+    #[test]
+    fn notes_survive_a_write_parse_round_trip() {
+        let mut svm = parse_svm("VehicleClassSetting=\"GT3\"\n[GENERAL]\nNotes=\"\"\n[REARWING]\nRWSetting=7//7.0 deg\n").unwrap();
+        super::upsert_general_notes(&mut svm, &one_line_notes("a // b\nc"));
+        let back = parse_svm(&write_svm(&svm)).unwrap();
+        let notes = &back.sections[0].params[0];
+        assert_eq!(notes.value, "\"a / b c\"");
+        assert!(notes.comment.is_none());
+    }
 }

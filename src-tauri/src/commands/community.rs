@@ -1077,7 +1077,7 @@ async fn sync_inner(db: &DbState) -> Result<SyncReport, AppError> {
 // ── Lectures publiques (page « Classement », lot 4) ──────────────────────────
 
 /// Routes publiques autorisées (agrégats seulement ; aucune donnée personnelle).
-const PUBLIC_ROUTES: [&str; 10] = [
+const PUBLIC_ROUTES: [&str; 13] = [
     "stats",
     "combos",
     "combos/detail",
@@ -1090,6 +1090,10 @@ const PUBLIC_ROUTES: [&str; 10] = [
     "patch",
     // Combos classés d'un pilote public (même contenu que sa page sur le site).
     "drivers/profile",
+    // Partage des setups : table de crans d'une voiture, setups publiés, un setup.
+    "notches",
+    "setups",
+    "setups/item",
 ];
 
 /// Lecture publique du service (sans jeton). `null` si le combo n'existe pas (404).
@@ -1117,6 +1121,118 @@ async fn public_inner(db: &DbState, route: &str, query: &[(String, String)]) -> 
         200 => resp.json().await.map_err(net_err),
         404 => Ok(Value::Null),
         code => Err(AppError::Internal(format!("serveur : HTTP {code}"))),
+    }
+}
+
+// ── Partage des setups (Config › Atelier, désactivé par défaut) ─────────────
+
+/// Interrupteur « Partage de setups » de l'Atelier (même clé que `FLAG_SETUP_SHARING`).
+const K_SETUP_SHARING: &str = "lab_setup_sharing";
+
+/// Jeton si le partage des setups est permis : interrupteur de l'Atelier ET partage
+/// communautaire activé (installation enregistrée). Sinon rien ne part.
+fn sharing_token(db: &DbState) -> Result<Option<String>, AppError> {
+    if !cfg_bool(db, K_SETUP_SHARING)? || !cfg_bool(db, K_ENABLED)? {
+        return Ok(None);
+    }
+    token(db)
+}
+
+/// Envoi authentifié avec empreinte `Content-Digest` (refus du serveur si le corps reçu diffère).
+async fn post_signed(db: &DbState, tok: &str, route: &str, body: &Value) -> Result<(u16, Value), AppError> {
+    let base = api_base(db)?;
+    let raw = body.to_string();
+    let resp = client(&base)?
+        .post(format!("{base}/{route}"))
+        .bearer_auth(tok)
+        .header("content-type", "application/json")
+        .header("content-digest", content_digest(raw.as_bytes()))
+        .body(raw)
+        .send()
+        .await
+        .map_err(net_err)?;
+    let code = resp.status().as_u16();
+    Ok((code, resp.json().await.unwrap_or(Value::Null)))
+}
+
+fn server_err(code: u16, v: &Value) -> AppError {
+    let what = v["error"].as_str().unwrap_or("");
+    AppError::Internal(format!("serveur : HTTP {code} {what}").trim().to_string())
+}
+
+/// Déclare la table de crans apprise pour une voiture (donnée du jeu : texte du garage par
+/// index). `false` si le partage n'est pas permis (rien n'est envoyé).
+#[tauri::command]
+pub async fn community_notches_push(car_key: String, table: Value, db: State<'_, DbState>) -> Result<bool, AppError> {
+    let Some(tok) = sharing_token(&db)? else { return Ok(false) };
+    match post_signed(&db, &tok, "notches", &json!({ "car_key": car_key, "table": table })).await? {
+        (200, _) => Ok(true),
+        (c, v) => Err(server_err(c, &v)),
+    }
+}
+
+/// Publie un setup du pilote (action explicite) : contenu relu en base, notes remplacées
+/// par celles choisies, chemin local du véhicule retiré. Rend `{ id, version }`.
+#[tauri::command]
+pub async fn community_setup_publish(
+    setup_id: i64,
+    meta: Value,
+    db: State<'_, DbState>,
+) -> Result<Value, AppError> {
+    let Some(tok) = sharing_token(&db)? else {
+        return Err(AppError::Unsupported("sharing_off".into()));
+    };
+    let s = |k: &str| meta[k].as_str().unwrap_or("").to_string();
+    let notes = s("notes");
+    let (_, svm) = crate::commands::setups::shareable_svm(&db, setup_id, &notes)?;
+    let body = json!({
+        "car_key": s("car_key"),
+        "car_class": s("car_class"),
+        "car_model": s("car_model"),
+        "track": s("track"),
+        "name": s("name"),
+        "setup_type": s("setup_type"),
+        "notes": truncate(notes.trim(), 1000),
+        "svm": svm,
+        "best_lap": meta["best_lap"].as_f64(),
+        "game_version": meta["game_version"].as_str(),
+    });
+    match post_signed(&db, &tok, "setups", &body).await? {
+        (201, v) => Ok(v),
+        (c, v) => Err(server_err(c, &v)),
+    }
+}
+
+/// Mes setups publiés (toutes versions) ; liste vide si le partage n'est pas permis.
+#[tauri::command]
+pub async fn community_setups_mine(db: State<'_, DbState>) -> Result<Value, AppError> {
+    let Some(tok) = sharing_token(&db)? else { return Ok(json!({ "setups": [] })) };
+    let base = api_base(&db)?;
+    let resp = client(&base)?.get(format!("{base}/setups/mine")).bearer_auth(tok).send().await.map_err(net_err)?;
+    match resp.status().as_u16() {
+        200 => resp.json().await.map_err(net_err),
+        code => Err(AppError::Internal(format!("serveur : HTTP {code}"))),
+    }
+}
+
+/// Retire une version publiée (ou toutes les versions de ce setup avec `all`).
+#[tauri::command]
+pub async fn community_setup_delete(id: i64, all: bool, db: State<'_, DbState>) -> Result<u32, AppError> {
+    let Some(tok) = token(&db)? else { return Err(AppError::Unsupported("not_registered".into())) };
+    let base = api_base(&db)?;
+    let resp = client(&base)?
+        .delete(format!("{base}/setups/item"))
+        .query(&[("id", id.to_string()), ("all", if all { "1" } else { "0" }.to_string())])
+        .bearer_auth(tok)
+        .send()
+        .await
+        .map_err(net_err)?;
+    let code = resp.status().as_u16();
+    let v: Value = resp.json().await.unwrap_or(Value::Null);
+    match code {
+        200 => Ok(v["deleted"].as_u64().unwrap_or(0) as u32),
+        404 => Ok(0),
+        c => Err(server_err(c, &v)),
     }
 }
 

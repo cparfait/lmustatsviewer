@@ -49,6 +49,19 @@ import {
   type Filters,
 } from "./stats.js";
 import { briefing, carIndex, patchEffect, rivalStatus, tierReferences, TIER_TOP_N } from "./insights.js";
+import {
+  deleteSetup,
+  exportShared,
+  getSetup,
+  ListQuery,
+  listSetups,
+  mySetups,
+  notchConsensus,
+  NotchReportSchema,
+  publishSetup,
+  PublishSchema,
+  reportNotches,
+} from "./setupshare.js";
 
 export interface Limits {
   register: Limit;
@@ -307,7 +320,7 @@ export function createApp(db: Db, opts: AppOptions = {}) {
   );
 
   v1.get("/me", auth, limit("writePerInstall", (c) => c.get("install").id), async (c) =>
-    c.json(await exportInstall(db, c.get("install"))),
+    c.json({ ...(await exportInstall(db, c.get("install"))), ...(await exportShared(db, c.get("install").id)) }),
   );
 
   v1.patch(
@@ -538,6 +551,88 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     if (!tag.success) return c.json({ error: "bad_request" }, 400);
     const p = await driverProfile(db, tag.data);
     return p ? c.json(p) : c.json({ error: "not_found" }, 404);
+  });
+
+  // ── Partage des setups (opt-in) : tables de crans et setups publiés ─────────
+
+  /** Corps JSON dont l'empreinte `Content-Digest` correspond (sinon réponse d'erreur). */
+  const verifiedJson = async (c: Context<Env>): Promise<{ body: unknown } | Response> => {
+    const raw = new Uint8Array(await c.req.arrayBuffer());
+    if (!digestMatches(c.req.header("content-digest"), raw)) return c.json({ error: "integrity_mismatch" }, 400);
+    try {
+      return { body: JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw)) };
+    } catch {
+      return c.json({ error: "bad_json" }, 400);
+    }
+  };
+  const steamRequired: MiddlewareHandler<Env> = async (c, next) => {
+    if ((opts.requireSteam ?? true) && !c.get("install").steam_linked) return c.json({ error: "steam_required" }, 403);
+    await next();
+  };
+  const idQuery = z.object({ id: z.coerce.number().int().positive(), download: z.enum(["0", "1"]).optional(), all: z.enum(["0", "1"]).optional() });
+
+  v1.post(
+    "/notches",
+    bodyLimit({ maxSize: 128 * 1024, onError: (c) => c.json({ error: "payload_too_large" }, 413) }),
+    auth,
+    limit("writePerInstall", (c) => c.get("install").id),
+    limit("writePerIp", clientIp),
+    steamRequired,
+    async (c) => {
+      const got = await verifiedJson(c);
+      if (got instanceof Response) return got;
+      const report = NotchReportSchema.safeParse(got.body);
+      if (!report.success) return c.json({ error: "bad_request" }, 400);
+      return c.json({ stored: await reportNotches(db, c.get("install").id, report.data) });
+    },
+  );
+
+  v1.get("/notches", publicRead, async (c) => {
+    const car = z.string().min(3).max(101).safeParse(c.req.query("car"));
+    if (!car.success) return c.json({ error: "bad_request" }, 400);
+    const t = await notchConsensus(db, car.data);
+    return t ? c.json(t) : c.json({ error: "not_found" }, 404);
+  });
+
+  v1.post(
+    "/setups",
+    bodyLimit({ maxSize: 96 * 1024, onError: (c) => c.json({ error: "payload_too_large" }, 413) }),
+    auth,
+    limit("writePerInstall", (c) => c.get("install").id),
+    limit("writePerIp", clientIp),
+    steamRequired,
+    async (c) => {
+      const got = await verifiedJson(c);
+      if (got instanceof Response) return got;
+      const p = PublishSchema.safeParse(got.body);
+      if (!p.success) return c.json({ error: "bad_setup", detail: p.error.issues[0]?.message ?? null }, 400);
+      const r = await publishSetup(db, c.get("install"), p.data);
+      return r === "quota" ? c.json({ error: "quota" }, 409) : c.json(r, 201);
+    },
+  );
+
+  v1.get("/setups", publicRead, async (c) => {
+    const q = ListQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "bad_request" }, 400);
+    return c.json(await listSetups(db, q.data));
+  });
+
+  v1.get("/setups/item", publicRead, async (c) => {
+    const q = idQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "bad_request" }, 400);
+    const s = await getSetup(db, q.data.id, q.data.download === "1");
+    return s ? c.json(s) : c.json({ error: "not_found" }, 404);
+  });
+
+  v1.get("/setups/mine", auth, limit("writePerInstall", (c) => c.get("install").id), async (c) =>
+    c.json(await mySetups(db, c.get("install").id)),
+  );
+
+  v1.delete("/setups/item", auth, limit("writePerInstall", (c) => c.get("install").id), async (c) => {
+    const q = idQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ error: "bad_request" }, 400);
+    const n = await deleteSetup(db, c.get("install").id, q.data.id, q.data.all === "1");
+    return n ? c.json({ deleted: n }) : c.json({ error: "not_found" }, 404);
   });
 
   app.route("/api/v1", v1);

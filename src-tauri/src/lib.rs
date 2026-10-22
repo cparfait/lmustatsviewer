@@ -165,6 +165,7 @@ pub fn run() {
             commands::setups::set_setup_linked_session,
             commands::setups::get_setups_for_session,
             commands::setups::list_setup_entries,
+            commands::setups::import_setup_content,
             commands::setups::get_session_summary,
             // Records personnels
             commands::records::get_records_overview,
@@ -202,6 +203,10 @@ pub fn run() {
             commands::community::community_public,
             commands::community::community_briefing,
             commands::community::community_rival,
+            commands::community::community_notches_push,
+            commands::community::community_setup_publish,
+            commands::community::community_setups_mine,
+            commands::community::community_setup_delete,
             commands::community::community_set_rival,
             commands::community::community_my_combos,
             commands::coach::coach_ref_save,

@@ -4,7 +4,7 @@
  * choisit sous son interrupteur.
  */
 import { useTranslation } from "react-i18next";
-import { Activity, Award, Gauge, Lock, Map as MapIcon, Radio, Scissors, Sparkles, UserRound, Wand2, Wrench } from "lucide-react";
+import { Activity, Award, Gauge, Lock, Map as MapIcon, Radio, Scissors, Share2, Sparkles, UserRound, Wand2, Wrench } from "lucide-react";
 import { FlagRow } from "@/components/AnalysisExtrasSettings";
 import {
   FLAG_ACHIEVEMENTS,
@@ -17,6 +17,7 @@ import {
   FLAG_SETUP_AUDIT,
   FLAG_SETUP_PLATES,
   FLAG_SETUP_PROFILES,
+  FLAG_SETUP_SHARING,
   FLAG_STREAM_EVENTS,
 } from "@/lib/configFlag";
 import { setDriverStyle, useDriverStyleValue, type DriverStyle } from "@/lib/driverStyle";
@@ -68,6 +69,7 @@ export function LabSettings() {
         <FlagRow flag={FLAG_SETUP_AUDIT} icon={<Sparkles className="h-4 w-4" />} title={t("lab.settings.auditTitle")} desc={t("lab.settings.auditDesc")} />
         <FlagRow flag={FLAG_SETUP_PROFILES} icon={<Wand2 className="h-4 w-4" />} title={t("lab.settings.profilesTitle")} desc={t("lab.settings.profilesDesc")} />
         <FlagRow flag={FLAG_SETUP_PLATES} icon={<MapIcon className="h-4 w-4" />} title={t("lab.settings.platesTitle")} desc={t("lab.settings.platesDesc")} />
+        <FlagRow flag={FLAG_SETUP_SHARING} icon={<Share2 className="h-4 w-4" />} title={t("lab.settings.shareTitle")} desc={t("lab.settings.shareDesc")} />
       </Group>
 
       <Group title={t("lab.settings.groupDriver")}>

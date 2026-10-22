@@ -38,6 +38,7 @@ import {
   Sparkles,
   Wand2,
   Map as MapIcon,
+  Share2,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -48,9 +49,10 @@ import { SetupAssistantPanel } from "@/components/SetupAssistantPanel";
 import { SetupAuditPanel } from "@/components/SetupAuditPanel";
 import { SetupProfilesPanel } from "@/components/SetupProfilesPanel";
 import { SetupPlatesPanel } from "@/components/SetupPlatesPanel";
+import { SetupSharePanel } from "@/components/SetupSharePanel";
 import { displayOf, indexOf, isFixedParam } from "@/lib/setupView";
 import { learnForCar, paramId, resolveIndex, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
-import { FLAG_SETUP_AUDIT, FLAG_SETUP_PLATES, FLAG_SETUP_PROFILES, useConfigFlag } from "@/lib/configFlag";
+import { FLAG_SETUP_AUDIT, FLAG_SETUP_PLATES, FLAG_SETUP_PROFILES, FLAG_SETUP_SHARING, useConfigFlag } from "@/lib/configFlag";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 
 // ── Onglets de l'éditeur (regroupement logique des sections SVM) ─────────────
@@ -65,6 +67,7 @@ type TabId =
   | "audit"
   | "profiles"
   | "plates"
+  | "share"
   | "meta";
 
 const TABS: { id: TabId; icon: typeof Cog; labelKey: string }[] = [
@@ -77,11 +80,12 @@ const TABS: { id: TabId; icon: typeof Cog; labelKey: string }[] = [
   { id: "audit", icon: Sparkles, labelKey: "lab.audit.tab" },
   { id: "profiles", icon: Wand2, labelKey: "lab.profiles.tab" },
   { id: "plates", icon: MapIcon, labelKey: "lab.plates.tab" },
+  { id: "share", icon: Share2, labelKey: "lab.share.tab" },
   { id: "meta", icon: StickyNote, labelKey: "setupDetail.tabMeta" },
 ];
 
 /** Onglets qui ne listent pas des paramètres du fichier. */
-const PANEL_TABS: TabId[] = ["meta", "assistant", "audit", "profiles", "plates"];
+const PANEL_TABS: TabId[] = ["meta", "assistant", "audit", "profiles", "plates", "share"];
 
 /** Clé i18n des libellés de sections brutes du `.svm`. */
 const SECTION_LABEL_KEYS: Record<string, string> = {
@@ -187,11 +191,13 @@ export function SetupDetail() {
   const auditOn = useConfigFlag(FLAG_SETUP_AUDIT);
   const profilesOn = useConfigFlag(FLAG_SETUP_PROFILES);
   const platesOn = useConfigFlag(FLAG_SETUP_PLATES);
+  const shareOn = useConfigFlag(FLAG_SETUP_SHARING);
   const visibleTabs = TABS.filter(
     (tab) =>
       (tab.id !== "audit" || auditOn) &&
       (tab.id !== "profiles" || profilesOn) &&
-      (tab.id !== "plates" || platesOn),
+      (tab.id !== "plates" || platesOn) &&
+      (tab.id !== "share" || shareOn),
   );
 
   useEffect(() => {
@@ -553,6 +559,8 @@ export function SetupDetail() {
               <SetupProfilesPanel entry={entry} svm={svm} notes={notesParam ? unquote(notesParam.value) : null} />
             ) : activeTab === "plates" ? (
               <SetupPlatesPanel svm={svm} />
+            ) : activeTab === "share" ? (
+              <SetupSharePanel entry={entry} svm={svm} />
             ) : activeTab === "meta" ? (
               <MetaPanel
                 entry={entry}

@@ -1630,6 +1630,26 @@ export const setups = {
   /** Retourne les setups liés à une session (vue inverse — page Race Details). */
   getForSession: (sessionId: number) =>
     invoke<SetupForSession[]>("get_setups_for_session", { sessionId }),
+  /**
+   * Setup téléchargé de la communauté enregistré comme NOUVEAU fichier du jeu
+   * (`Settings/<circuit>/<nom>.svm`, jamais d'écrasement ; texte relu puis réécrit).
+   */
+  importContent: (
+    lmuPath: string,
+    circuit: string,
+    name: string,
+    content: string,
+    setupType?: string | null,
+    notes?: string | null,
+  ) =>
+    invoke<SetupEntry>("import_setup_content", {
+      lmuPath,
+      circuit,
+      name,
+      content,
+      setupType: setupType ?? null,
+      notes: notes ?? null,
+    }),
   /** Setups en base avec leur instantané, filtrés par voiture / circuit, les plus récents d'abord. */
   entries: (car?: string | null, circuit?: string | null) =>
     invoke<SetupEntry[]>("list_setup_entries", { car: car ?? null, circuit: circuit ?? null }),
@@ -1925,7 +1945,75 @@ export const community = {
   rival: () => invoke<CommunityRival | null>("community_rival"),
   /** Inscription au rival de la semaine (désactivée par défaut). */
   setRival: (on: boolean) => invoke<boolean>("community_set_rival", { on }),
+  /**
+   * Partage des setups (Config › Atelier, désactivé par défaut ; exige le partage
+   * communautaire). Table de crans d'une voiture : `false` = rien envoyé.
+   */
+  notchesPush: (carKey: string, table: unknown) => invoke<boolean>("community_notches_push", { carKey, table }),
+  /** Publie un setup (action du pilote) ; le contenu est relu en base côté Rust. */
+  setupPublish: (setupId: number, meta: SharedSetupMeta) =>
+    invoke<{ id: number; version: number }>("community_setup_publish", { setupId, meta }),
+  setupsMine: () => invoke<{ setups: MySharedSetup[] }>("community_setups_mine"),
+  /** Retire une version publiée (`all` : toutes les versions de ce setup). */
+  setupDelete: (id: number, all: boolean) => invoke<number>("community_setup_delete", { id, all }),
 };
+
+/** Ce que le pilote choisit en publiant un setup. */
+export interface SharedSetupMeta {
+  car_key: string;
+  car_class: string;
+  car_model: string;
+  /** Dossier circuit du jeu (`Settings/<track>`). */
+  track: string;
+  name: string;
+  setup_type: string;
+  notes: string;
+  best_lap: number | null;
+  game_version: string | null;
+}
+
+export interface MySharedSetup {
+  id: number;
+  car_key: string;
+  track: string;
+  name: string;
+  version: number;
+  setup_type: string;
+  best_lap: number | null;
+  downloads: number;
+  created_at: string;
+}
+
+/** Setup publié tel que listé (dernière version de chaque setup). */
+export interface CommunitySharedSetup {
+  id: number;
+  car_key: string;
+  car_class: string;
+  car_model: string;
+  track: string;
+  name: string;
+  version: number;
+  versions: number;
+  setup_type: string;
+  notes: string;
+  best_lap: number | null;
+  game_version: string | null;
+  downloads: number;
+  created_at: string;
+  author: CommunityPublicDriver;
+}
+
+export interface CommunitySharedSetupItem extends Omit<CommunitySharedSetup, "versions"> {
+  svm: string;
+  versions: { id: number; version: number; best_lap: number | null; created_at: string }[];
+}
+
+/** Table de crans de consensus d'une voiture (`notches`). */
+export interface CommunityNotchTable {
+  car_key: string;
+  reporters: number;
+  table: Record<string, { displays: Record<string, string>; count?: number }>;
+}
 
 export type CommunityRoute =
   | "stats"
@@ -1937,7 +2025,10 @@ export type CommunityRoute =
   | "tiers"
   | "cars"
   | "patch"
-  | "drivers/profile";
+  | "drivers/profile"
+  | "notches"
+  | "setups"
+  | "setups/item";
 
 /** Pilote tel qu'affiché publiquement (anonyme : repère seul). */
 export interface CommunityPublicDriver {

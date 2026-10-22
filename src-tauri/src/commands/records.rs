@@ -100,7 +100,7 @@ fn fetch_player_rows(
 }
 
 #[tauri::command]
-pub fn get_records_overview(
+pub async fn get_records_overview(
     min_version: Option<String>,
     version_exact: Option<bool>,
     db: State<'_, DbState>,
@@ -247,7 +247,7 @@ pub struct ProgressionFilters {
 }
 
 #[tauri::command]
-pub fn get_record_progression(
+pub async fn get_record_progression(
     filters: ProgressionFilters,
     db: State<'_, DbState>,
 ) -> Result<RecordProgression, AppError> {

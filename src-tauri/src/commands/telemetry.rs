@@ -443,7 +443,7 @@ fn telemetry_dir(db: &DbState) -> Result<PathBuf, AppError> {
 /// les plus récents en premier. Lit uniquement la table `metadata` de chaque
 /// fichier (rapide).
 #[tauri::command]
-pub fn list_telemetry_files(db: State<'_, DbState>) -> Result<Vec<TelemetryFileInfo>, AppError> {
+pub async fn list_telemetry_files(db: State<'_, DbState>) -> Result<Vec<TelemetryFileInfo>, AppError> {
     let dir = telemetry_dir(&db)?;
     if !dir.is_dir() {
         // Pas de dossier = l'utilisateur n'a jamais activé l'enregistrement.
@@ -494,7 +494,7 @@ pub fn list_telemetry_files(db: State<'_, DbState>) -> Result<Vec<TelemetryFileI
 
 /// Métadonnées complètes d'un fichier : infos, canaux, tours segmentés, bornes.
 #[tauri::command]
-pub fn get_telemetry_meta(
+pub async fn get_telemetry_meta(
     path: String,
     db: State<'_, DbState>,
 ) -> Result<TelemetryMeta, AppError> {
@@ -637,7 +637,7 @@ fn unwrap_lap_distance(dist: &mut [f32]) {
 /// commune. `lap` (optionnel) restreint à un tour (par numéro de tour du jeu) ;
 /// sinon toute la session. `max_points` borne la résolution (défaut 4000).
 #[tauri::command]
-pub fn get_telemetry_channels(
+pub async fn get_telemetry_channels(
     path: String,
     channels: Vec<String>,
     lap: Option<i64>,

@@ -40,7 +40,9 @@ export function ComparableBadge({ session, player }: { session: SessionInfo; pla
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-        c.ok ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300",
+        c.ok
+          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          : "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300",
       )}
       title={rows.map((r) => `${r.ok ? "✓" : "✗"} ${r.label}`).join("\n") + "\n" + t("extras.cmpNote")}
     >

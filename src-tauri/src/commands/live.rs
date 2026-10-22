@@ -1538,7 +1538,7 @@ pub struct TrackOutline {
 /// Tracé connu d'un circuit (livré avec l'app, recouvert par celui de l'utilisateur) ;
 /// `None` tant qu'il n'a pas assez de points. `track` = nom du tracé (`track_course`).
 #[tauri::command]
-pub fn track_outline(app: AppHandle, track: String) -> Result<Option<TrackOutline>, AppError> {
+pub async fn track_outline(app: AppHandle, track: String) -> Result<Option<TrackOutline>, AppError> {
     let dir = app
         .path()
         .app_data_dir()

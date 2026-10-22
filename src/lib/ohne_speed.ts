@@ -429,10 +429,10 @@ export const TIER_LABELS: Record<OhneSpeedTier, string> = {
 };
 
 export const TIER_COLORS: Record<OhneSpeedTier, string> = {
-  Alien: "bg-purple-500/20 text-purple-300 border-purple-500/40",
-  Competitive: "bg-green-500/20 text-green-300 border-green-500/40",
-  Good: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-  "Midpack": "bg-yellow-500/20 text-yellow-300 border-yellow-500/40",
-  "Tail-ender": "bg-yellow-700/20 text-yellow-600 border-yellow-700/40",
-  Offline: "bg-red-500/20 text-red-300 border-red-500/40",
+  Alien: "bg-purple-500/15 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border-purple-500/50",
+  Competitive: "bg-green-500/15 text-green-700 dark:bg-green-500/20 dark:text-green-300 border-green-500/50",
+  Good: "bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-500/50",
+  "Midpack": "bg-yellow-500/15 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-300 border-yellow-500/50",
+  "Tail-ender": "bg-yellow-700/15 text-yellow-800 dark:bg-yellow-700/20 dark:text-yellow-600 border-yellow-700/50",
+  Offline: "bg-red-500/15 text-red-700 dark:bg-red-500/20 dark:text-red-300 border-red-500/50",
 };

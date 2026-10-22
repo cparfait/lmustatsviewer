@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { TableTitle } from "@/components/TableTitle";
 import { Input } from "@/components/ui/input";
 import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { cn } from "@/lib/utils";
@@ -44,6 +46,7 @@ import {
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { buildTrackKnowledgeText } from "@/lib/ai/knowledge/track-knowledge";
 import { getVideoGuide } from "@/lib/ai/knowledge/video-guides";
+import { splitLapTimes, type LapLinks } from "@/lib/ai/lapLinks";
 import i18nGlobal from "@/i18n";
 import { buildSetupSummary } from "@/lib/ai/context/setup-context";
 import { driverStyleContext } from "@/lib/ai/context/lab-context";
@@ -102,16 +105,34 @@ function splitObjectives(text: string): { body: string; objectives: CoachObjecti
   }
 }
 
-/** Rendu inline minimal : **gras**. */
-function renderInline(text: string): ReactNode[] {
+/** Temps au tour cités → liens vers leur session (cf. `lapLinks.ts`). */
+function renderTimes(text: string, links: LapLinks | undefined): ReactNode[] {
+  return splitLapTimes(text, links).map((part, i) =>
+    typeof part === "string" ? (
+      <Fragment key={i}>{part}</Fragment>
+    ) : (
+      <Link
+        key={i}
+        to={`/sessions/${part.link.sessionId}`}
+        title={part.link.hint}
+        className="font-medium text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
+      >
+        {part.time}
+      </Link>
+    ),
+  );
+}
+
+/** Rendu inline minimal : **gras** + temps cliquables. */
+function renderInline(text: string, links?: LapLinks): ReactNode[] {
   return text.split(/(\*\*[^*]+\*\*)/g).map((p, i) => {
     const m = /^\*\*([^*]+)\*\*$/.exec(p);
-    return m ? <strong key={i}>{m[1]}</strong> : <span key={i}>{p}</span>;
+    return m ? <strong key={i}>{renderTimes(m[1], links)}</strong> : <span key={i}>{renderTimes(p, links)}</span>;
   });
 }
 
 /** Rendu markdown léger (titres, listes, gras, paragraphes) sans dépendance. */
-function CoachMarkdown({ text }: { text: string }) {
+function CoachMarkdown({ text, links }: { text: string; links?: LapLinks }) {
   const blocks: ReactNode[] = [];
   let list: string[] = [];
   const flushList = () => {
@@ -120,7 +141,7 @@ function CoachMarkdown({ text }: { text: string }) {
       blocks.push(
         <ul key={`ul-${blocks.length}`} className="list-disc pl-5 space-y-1 my-2">
           {items.map((it, i) => (
-            <li key={i}>{renderInline(it)}</li>
+            <li key={i}>{renderInline(it, links)}</li>
           ))}
         </ul>,
       );
@@ -139,7 +160,7 @@ function CoachMarkdown({ text }: { text: string }) {
       flushList();
       blocks.push(
         <p key={`h-${blocks.length}`} className="font-semibold text-foreground mt-3 first:mt-0">
-          {renderInline(h[2])}
+          {renderInline(h[2], links)}
         </p>,
       );
     } else if (li) {
@@ -148,7 +169,7 @@ function CoachMarkdown({ text }: { text: string }) {
       flushList();
       blocks.push(
         <p key={`p-${blocks.length}`} className="mt-2 first:mt-0">
-          {renderInline(line)}
+          {renderInline(line, links)}
         </p>,
       );
     }
@@ -164,8 +185,10 @@ function AssistantTurn({
   onPin,
   pinLabel,
   header,
+  links,
 }: {
   text: string;
+  links?: LapLinks;
   canPin: boolean;
   onPin: (o: CoachObjective) => Promise<void>;
   pinLabel: string;
@@ -179,7 +202,7 @@ function AssistantTurn({
   };
   return (
     <div>
-      <CoachMarkdown text={body} />
+      <CoachMarkdown text={body} links={links} />
       {objectives.length > 0 && (
         <div className="mt-3 space-y-1.5">
           <div className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
@@ -227,10 +250,15 @@ function AssistantTurn({
  * suivi) dans une modale, avec lecture audio (TTS) et copie. Le contexte n'est
  * injecté qu'une fois (1er message) pour économiser les tokens.
  */
+/** Fil de conversation par cible (`resetKey`), le temps de la session de l'app. */
+const threadCache = new Map<string, Turn[]>();
+
 export function CoachPanel({
   getContext,
   resetKey,
   combo,
+  showVideoGuide = true,
+  lapLinks,
 }: {
   /** Construit le contexte de données AU MOMENT de l'envoi (live = snapshot frais).
    *  `question` permet d'adapter le contexte (ex. joindre l'historique seulement
@@ -240,6 +268,10 @@ export function CoachPanel({
   resetKey: string;
   /** Combo circuit/voiture — clé des objectifs épinglés ; absent = épinglage désactivé. */
   combo?: { track: string; trackCourse: string; car: string; carClass: string };
+  /** Lien vers le guide vidéo du combo. Faux quand la page lui donne son propre onglet. */
+  showVideoGuide?: boolean;
+  /** Temps au tour du contexte → session d'origine (rendus cliquables). */
+  lapLinks?: LapLinks;
 }) {
   const { t, i18n } = useTranslation();
   const aiProvider = useAppStore((s) => s.aiProvider);
@@ -286,7 +318,9 @@ export function CoachPanel({
   const [showContext, setShowContext] = useState(false);
   const [previewText, setPreviewText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [thread, setThread] = useState<Turn[]>([]);
+  const [thread, setThread] = useState<Turn[]>(() => threadCache.get(resetKey) ?? []);
+  const threadRef = useRef(thread);
+  threadRef.current = thread;
   const [error, setError] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -302,6 +336,9 @@ export function CoachPanel({
   const lastUserRef = useRef<HTMLDivElement>(null);
   const [scrollTick, setScrollTick] = useState(0);
   const cancelRef = useRef(false); // A2 : stop génération
+  // Envoi en préparation (contexte en cours de construction, avant `busy`) : un
+  // 2ᵉ envoi pendant cette attente empilait la même question dans le fil.
+  const sendingRef = useRef(false);
   const spokenRef = useRef(0); // B2 : offset déjà lu à voix haute
 
   const lastAnswer = [...thread].reverse().find((x) => x.role === "assistant")?.content ?? null;
@@ -326,10 +363,16 @@ export function CoachPanel({
   useEffect(() => {
     cancelSpeech();
     setReading(false);
-    setThread([]);
+    setThread(threadCache.get(resetKey) ?? []);
     setError(null);
     setOpen(false);
     setShowContext(false);
+    // Au départ de la cible : on mémorise son fil (sans réponse en cours vide).
+    return () => {
+      const kept = threadRef.current.filter((x) => x.role === "user" || x.content.trim());
+      if (kept.length) threadCache.set(resetKey, kept);
+      else threadCache.delete(resetKey);
+    };
   }, [resetKey]);
 
   // Objectifs épinglés du combo — rechargés au changement de cible.
@@ -504,28 +547,39 @@ export function CoachPanel({
 
   /** Démarre une nouvelle analyse (réinitialise le fil). */
   const analyze = async (mode: PostRaceMode) => {
-    const context = await resolveContext();
-    const first: Turn = {
-      role: "user",
-      content: `${postRacePrompt(mode, i18n.language)}\n\n---\n${context}`,
-      display: mode === "quick" ? t("coach.quick") : t("coach.full"),
-    };
-    void runTurn([first], POST_RACE_MAX_TOKENS[mode]);
+    if (busy || sendingRef.current) return;
+    sendingRef.current = true;
+    try {
+      const context = await resolveContext();
+      const first: Turn = {
+        role: "user",
+        content: `${postRacePrompt(mode, i18n.language)}\n\n---\n${context}`,
+        display: mode === "quick" ? t("coach.quick") : t("coach.full"),
+      };
+      void runTurn([first], POST_RACE_MAX_TOKENS[mode]);
+    } finally {
+      sendingRef.current = false;
+    }
   };
 
   /** Question libre (continue le fil ; injecte le contexte si c'est le 1er message). */
   const ask = async () => {
     const q = question.trim();
-    if (!q) return;
-    const isFirst = thread.length === 0;
-    const context = isFirst ? await resolveContext(q) : "";
-    const user: Turn = {
-      role: "user",
-      content: isFirst ? `${q}\n\n--- Session data ---\n${context}` : q,
-      display: q,
-    };
-    setQuestion("");
-    void runTurn([...thread, user], ASK_MAX_TOKENS);
+    if (!q || busy || sendingRef.current) return;
+    sendingRef.current = true;
+    setQuestion(""); // vidé tout de suite : la question est partie
+    try {
+      const isFirst = thread.length === 0;
+      const context = isFirst ? await resolveContext(q) : "";
+      const user: Turn = {
+        role: "user",
+        content: isFirst ? `${q}\n\n--- Session data ---\n${context}` : q,
+        display: q,
+      };
+      void runTurn([...thread, user], ASK_MAX_TOKENS);
+    } finally {
+      sendingRef.current = false;
+    }
   };
 
   const togglePreview = async () => {
@@ -595,134 +649,209 @@ export function CoachPanel({
     [combo],
   );
 
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-primary">
-        <Brain className="h-4 w-4" />
-        <span className="text-sm font-medium">{t("coach.title")}</span>
-      </div>
-
-      {!ready ? (
-        <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-          <p>{t("coach.notConfigured")}</p>
-          <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">
-            <Link to="/config?cat=coach">
-              {t("coach.goConfig")}
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Link>
+  // Zone de question : plusieurs lignes, micro et envoi dans sa barre du bas.
+  // Entrée envoie, Maj+Entrée va à la ligne (une question détaillée tient à l'aise).
+  const askBox = (
+    <div className="rounded-lg border border-input bg-background focus-within:ring-1 focus-within:ring-ring">
+      <textarea
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            void ask();
+          }
+        }}
+        rows={3}
+        placeholder={t("coach.ask")}
+        aria-label={t("coach.ask")}
+        className="block max-h-60 min-h-[76px] w-full resize-y bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground"
+      />
+      <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-2 py-1.5">
+        <span className="min-w-0 flex-1 basis-40 pl-1 text-[11px] text-muted-foreground/70">{t("coach.askHint")}</span>
+        <div className="ml-auto flex items-center gap-1.5">
+          {sttOk && (
+            <Button
+              size="icon"
+              variant={recording ? "secondary" : "ghost"}
+              className="h-8 w-8 shrink-0"
+              onClick={() => void toggleMic()}
+              aria-label={t("coach.speak")}
+              title={t("coach.speak")}
+            >
+              <Mic className={cn("h-4 w-4", recording && "text-primary animate-pulse")} />
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="h-8 gap-1.5"
+            disabled={busy || !question.trim()}
+            onClick={() => void ask()}
+          >
+            <Send className="h-3.5 w-3.5" />
+            {t("coach.send")}
           </Button>
         </div>
-      ) : (
-        <div className="space-y-2">
-          {(reach === "down" || reach === "noModel") && (
-            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400">
-              <p>
-                {reach === "down"
-                  ? t("coach.providerDown", { name: provider?.name ?? aiProvider })
-                  : t("coach.modelMissing", { name: provider?.name ?? aiProvider, model: aiModel })}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => setReachTry((n) => n + 1)}>
-                  {t("coach.recheck")}
-                </Button>
-                <Button asChild variant="outline" size="sm" className="gap-1.5">
-                  <Link to="/config?cat=coach">
-                    {t("coach.goConfig")}
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
+      </div>
+    </div>
+  );
+
+  /** Tuile d'analyse : libellé + ce qu'elle produit (le choix se fait en connaissance). */
+  const modeTile = (mode: PostRaceMode) => {
+    const quick = mode === "quick";
+    const Icon = quick ? Sparkles : Brain;
+    return (
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void analyze(mode)}
+        className={cn(
+          "group flex items-start gap-3 rounded-lg border p-3 text-left transition-colors disabled:pointer-events-none disabled:opacity-50",
+          quick
+            ? "border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10"
+            : "border-border bg-muted/30 hover:border-primary/40 hover:bg-muted/60",
+        )}
+      >
+        <span
+          className={cn(
+            "mt-0.5 rounded-md p-1.5",
+            quick ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary",
           )}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" className="gap-1.5" disabled={busy} onClick={() => void analyze("quick")}>
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("coach.quick")}
-            </Button>
-            <Button size="sm" variant="secondary" className="gap-1.5" disabled={busy} onClick={() => void analyze("full")}>
-              <Brain className="h-3.5 w-3.5" />
-              {t("coach.full")}
-            </Button>
-            {hasThread && !open && (
-              <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setOpen(true)}>
-                <FileText className="h-3.5 w-3.5" />
-                {t("coach.reopen")}
-              </Button>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void ask();
-              }}
-              placeholder={t("coach.ask")}
-              className="h-8 text-sm"
-            />
-            {sttOk && (
-              <Button
-                size="icon"
-                variant={recording ? "secondary" : "outline"}
-                className="h-8 w-8 shrink-0"
-                onClick={() => void toggleMic()}
-                aria-label={t("coach.speak")}
-                title={t("coach.speak")}
-              >
-                <Mic className={cn("h-3.5 w-3.5", recording && "text-primary animate-pulse")} />
-              </Button>
-            )}
-            <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" disabled={busy || !question.trim()} onClick={() => void ask()} aria-label={t("coach.send")}>
-              <Send className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            {!needsKey && (
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  reach === "ok" ? "bg-emerald-500" : reach === "checking" ? "bg-muted-foreground/50" : "bg-amber-500",
-                )}
-              />
-            )}
-            {provider?.name} · {aiModel}
-          </div>
-        </div>
-      )}
-
-      {/* Guide vidéo du combo (lap guide) — lien direct visible. */}
-      {videoGuide && (
-        <a
-          href={videoGuide.url}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-red-500/40 hover:bg-red-500/5 hover:text-foreground"
-          title={videoGuide.title}
         >
-          <Youtube className="h-3.5 w-3.5 text-red-500" />
-          {t("coach.videoGuide")}
-          <span className="max-w-[220px] truncate text-muted-foreground/70">
-            · {videoGuide.title}
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-semibold">{t(quick ? "coach.quick" : "coach.full")}</span>
+          <span className="block text-xs text-muted-foreground">
+            {t(quick ? "coach.quickDesc" : "coach.fullDesc")}
           </span>
-          <ExternalLink className="h-3 w-3 opacity-60" />
-        </a>
-      )}
+        </span>
+      </button>
+    );
+  };
 
-      <div>
-        <button
-          type="button"
-          onClick={() => void togglePreview()}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+  return (
+    <div className="space-y-3">
+      <Card className="overflow-hidden">
+        {/* En-tête orange comme les autres cartes ; modèle utilisé (lien réglages) à droite. */}
+        <TableTitle
+          title={
+            <span className="inline-flex items-center gap-2">
+              <Brain className="h-3.5 w-3.5" />
+              {t("coach.title")}
+            </span>
+          }
         >
-          <FileText className="h-3.5 w-3.5" />
-          {showContext ? t("coach.hideContext") : t("coach.showContext")}
-        </button>
+          {ready && (
+            <Link
+              to="/config?cat=coach"
+              title={t("coach.settings")}
+              className="inline-flex max-w-[50vw] items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] text-primary-foreground hover:bg-white/25"
+            >
+              {!needsKey && (
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 shrink-0 rounded-full",
+                    reach === "ok" ? "bg-emerald-300" : reach === "checking" ? "bg-white/50" : "bg-amber-300",
+                  )}
+                />
+              )}
+              <span className="truncate">
+                {provider?.name} · {aiModel}
+              </span>
+            </Link>
+          )}
+        </TableTitle>
+
+        <div className="space-y-3 p-4">
+          {!ready ? (
+            <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+              <p>{t("coach.notConfigured")}</p>
+              <Button asChild variant="outline" size="sm" className="mt-2 gap-1.5">
+                <Link to="/config?cat=coach">
+                  {t("coach.goConfig")}
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <>
+              {(reach === "down" || reach === "noModel") && (
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400">
+                  <p>
+                    {reach === "down"
+                      ? t("coach.providerDown", { name: provider?.name ?? aiProvider })
+                      : t("coach.modelMissing", { name: provider?.name ?? aiProvider, model: aiModel })}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setReachTry((n) => n + 1)}>
+                      {t("coach.recheck")}
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="gap-1.5">
+                      <Link to="/config?cat=coach">
+                        {t("coach.goConfig")}
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {/* Analyse déjà faite (modale fermée) : on la rouvre sans la relancer. */}
+              {hasThread && !open && (
+                <button
+                  type="button"
+                  onClick={() => setOpen(true)}
+                  className="flex w-full items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-left text-sm hover:bg-primary/10"
+                >
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span className="font-medium">{t("coach.reopen")}</span>
+                  <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
+                </button>
+              )}
+              {/* Côte à côte seulement si le panneau est assez large (colonne étroite de la
+                  page Télémétrie : tuiles empilées). */}
+              <div className="@container">
+                <div className="grid gap-2 @md:grid-cols-2">
+                  {modeTile("quick")}
+                  {modeTile("full")}
+                </div>
+              </div>
+              {askBox}
+            </>
+          )}
+        </div>
+
+        {/* Pied : guide vidéo (si la page ne lui donne pas d'onglet) et données envoyées. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-border px-4 py-2">
+          {showVideoGuide && videoGuide && (
+            <a
+              href={videoGuide.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              title={videoGuide.title}
+            >
+              <Youtube className="h-3.5 w-3.5 shrink-0 text-red-500" />
+              {t("coach.videoGuide")}
+              <span className="max-w-[220px] truncate text-muted-foreground/70">· {videoGuide.title}</span>
+              <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => void togglePreview()}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            {showContext ? t("coach.hideContext") : t("coach.showContext")}
+          </button>
+        </div>
         {showContext && (
-          <pre className="mt-2 max-h-72 overflow-auto rounded-md border bg-muted/40 p-3 text-[11px] leading-snug">
+          <pre className="mx-4 mb-4 max-h-72 overflow-auto rounded-md border bg-muted/40 p-3 text-[11px] leading-snug">
             {previewText}
           </pre>
         )}
-      </div>
+      </Card>
 
       {/* ── Objectifs épinglés du combo (mémoire longitudinale) ── */}
       {combo && notes.length > 0 && (
@@ -829,6 +958,7 @@ export function CoachPanel({
                   <AssistantTurn
                     key={i}
                     text={turn.content}
+                    links={lapLinks}
                     canPin={!!combo}
                     onPin={pinObjective}
                     pinLabel={t("coach.pin")}
@@ -887,7 +1017,14 @@ export function CoachPanel({
 }
 
 /** Coach IA pour le détail d'une session (analyse post-course depuis SQLite). */
-export function AICoachPanel({ detail }: { detail: SessionDetail }) {
+export function AICoachPanel({
+  detail,
+  showVideoGuide = true,
+}: {
+  detail: SessionDetail;
+  /** Faux quand la page affiche le guide vidéo dans son propre onglet. */
+  showVideoGuide?: boolean;
+}) {
   // Style de pilotage déclaré (Atelier, opt-in) → joint à la mémoire du pilote.
   const [styleText, setStyleText] = useState("");
   useEffect(() => {
@@ -962,10 +1099,12 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
 
   // Mémoire longitudinale : historique du combo (PB, tendance secteurs) depuis SQLite.
   const [historyText, setHistoryText] = useState("");
+  // Temps cités dans cet historique → leur session (liens dans les réponses).
+  const lapLinks = useMemo<LapLinks>(() => new Map(), [detail]);
   useEffect(() => {
     let cancelled = false;
     setHistoryText("");
-    buildDriverHistoryText(detail)
+    buildDriverHistoryText(detail, lapLinks)
       .then((txt) => {
         if (!cancelled) setHistoryText(txt);
       })
@@ -975,7 +1114,7 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
     return () => {
       cancelled = true;
     };
-  }, [detail]);
+  }, [detail, lapLinks]);
 
   // Télémétrie de la session (fichier .duckdb du jeu retrouvé) : virages, entrées,
   // électronique, météo. Absente si la télémétrie du jeu n'était pas activée.
@@ -1075,6 +1214,8 @@ export function AICoachPanel({ detail }: { detail: SessionDetail }) {
       getContext={() => [ctx.text, debriefText, recurringText].filter(Boolean).join("\n\n")}
       resetKey={`session-${detail.session.id}`}
       combo={combo}
+      showVideoGuide={showVideoGuide}
+      lapLinks={lapLinks}
     />
   );
 }

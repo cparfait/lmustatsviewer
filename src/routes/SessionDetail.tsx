@@ -70,6 +70,8 @@ import { TierBadge } from "@/components/TierBadge";
 import { ComparableBadge, RegularityPanel, ReviewMarksPanel } from "@/components/SessionExtras";
 import { FLAG_REGULARITY, useConfigFlag } from "@/lib/configFlag";
 import { AICoachPanel } from "@/components/AICoachPanel";
+import { VideoGuideCard } from "@/components/VideoGuideCard";
+import { getVideoGuide } from "@/lib/ai/knowledge/video-guides";
 import { useAppStore } from "@/stores/app";
 import type { Tr } from "@/i18n";
 
@@ -293,6 +295,14 @@ function SessionView({ data }: { data: SessionDetailData }) {
     [results]
   );
   const showRegularity = useConfigFlag(FLAG_REGULARITY);
+  // Guide vidéo du circuit pour la catégorie du pilote : onglet dédié.
+  const videoGuide = useMemo(
+    () =>
+      data && playerResult
+        ? getVideoGuide(data.session.track, data.session.track_course, playerResult.car_class)
+        : null,
+    [data, playerResult],
+  );
   // Classes uniques présentes dans cette session (multi-classes : LMP2 + GT3
   // par exemple). Triées suivant l'ordre canonique V1 (Hyper → LMP2 → GT3 …).
   const sessionClasses = useMemo(() => {
@@ -834,8 +844,8 @@ function SessionView({ data }: { data: SessionDetailData }) {
           {showRegularity && playerName && (
             <TabsTrigger value="regularity">{t("extras.tabRegularity")}</TabsTrigger>
           )}
-          {aiCoachEnabled && (
-            <TabsTrigger value="coach">{t("sessionDetail.tabCoach")}</TabsTrigger>
+          {(aiCoachEnabled || playerResult) && (
+            <TabsTrigger value="coach">{t("sessionDetail.tabCoachAll")}</TabsTrigger>
           )}
         </TabsList>
 
@@ -930,9 +940,23 @@ function SessionView({ data }: { data: SessionDetailData }) {
           />
         </TabsContent>
 
-        {aiCoachEnabled && (
+        {/* Onglet Coach : Coach IA et guide vidéo du circuit côte à côte. La carte
+            vidéo est toujours là (message + recherche si aucun guide référencé) ;
+            sans Coach IA activé, elle occupe seule la largeur. */}
+        {(aiCoachEnabled || playerResult) && (
           <TabsContent value="coach">
-            <AICoachPanel detail={data} />
+            <div
+              className={cn("grid items-start gap-4", aiCoachEnabled && playerResult && "xl:grid-cols-2")}
+            >
+              {aiCoachEnabled && <AICoachPanel detail={data} showVideoGuide={false} />}
+              {playerResult && (
+                <VideoGuideCard
+                  guide={videoGuide}
+                  track={data.session.track}
+                  carClass={playerResult.car_class}
+                />
+              )}
+            </div>
           </TabsContent>
         )}
       </Tabs>

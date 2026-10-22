@@ -1616,7 +1616,7 @@ pub struct SetupForSession {
 /// Retourne tous les setups dont `linked_session_id = ?session_id`. Vide si
 /// aucun setup n'est associé à la session (cas par défaut).
 #[tauri::command]
-pub fn get_setups_for_session(
+pub async fn get_setups_for_session(
     session_id: i64,
     db: State<'_, DbState>,
 ) -> Result<Vec<SetupForSession>, AppError> {

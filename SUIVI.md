@@ -1685,6 +1685,39 @@ construction n'est **ni dans l'exe ni dans les packs**. Idées seulement, aucun 
   « pourquoi je perds en S2 ? ») avec le modèle vocal habituel, vérifier la réponse en une phrase
   sans « reçu » ; corriger la regex de `radio.suite.ts:565`.
 
+### 2026-10-20 — Onglet « Coach » (IA + guide vidéo), gel à l'ouverture, temps cliquables
+
+**Demandes successives** : partie Coach IA « brouillonne » → pleine largeur, en-tête orange comme
+les autres cartes, zone de saisie plus grande ; guide vidéo dans un onglet → finalement **un seul
+onglet « Coach »** moitié IA / moitié vidéo ; miniature moins grosse + message si pas de vidéo ;
+« je dois patienter pour taper » ; badges jaunes illisibles ; temps cités cliquables.
+
+- ✅ `CoachPanel` (AICoachPanel.tsx, partagé post-course / télémétrie / live) : `Card` +
+  `TableTitle` (pastille fournisseur · modèle → Config › Coach) ; tuiles d'analyse décrites
+  (`coach.quickDesc/fullDesc`) ; zone de question `textarea` 3 lignes (Entrée envoie, Maj+Entrée
+  à la ligne, `coach.askHint`) ; bandeau « Voir l'analyse » ; pied : données envoyées. Prop
+  `showVideoGuide` (faux sur SessionDetail, vrai ailleurs : pas de perte du lien vidéo).
+- ✅ `SessionDetail` : onglet `coach` libellé « Coach » (`sessionDetail.tabCoachAll`), grille
+  `xl:grid-cols-2` Coach IA + `VideoGuideCard` (vignette 300 px via i.ytimg.com — CSP sans
+  `frame-src` externe, pas de lecteur intégré ; sans guide : message + recherche YouTube).
+  `getVideoGuide` renvoie aussi `channel`.
+- ✅ **Gel** : 7 commandes Tauri appelées à l'ouverture étaient `fn` synchrones → exécutées sur
+  le fil principal (fenêtre figée). Passées en `async fn` : `get_records_overview`,
+  `get_record_progression`, `get_telemetry_meta`, `list_telemetry_files`,
+  `get_telemetry_channels`, `track_outline`, `get_setups_for_session` (`get_setup_content`
+  laissée sync : appelée en interne). Verrou `sendingRef` contre l'empilement d'une question
+  pendant la préparation du contexte.
+- ✅ **Temps cliquables** : `lib/ai/lapLinks.ts` (temps formaté → session ; ambigu = pas de
+  lien) rempli par `buildDriverHistoryText` (historique du combo + records du circuit) ;
+  `CoachMarkdown` rend les temps en `Link` `/sessions/:id`. Fil gardé par `resetKey`
+  (`threadCache`, durée de vie de l'app) pour retrouver la conversation au retour.
+- ✅ Badges clair/sombre : `TIER_COLORS` et `ComparableBadge` → texte `-700` en clair, `-300`
+  en sombre.
+- ✅ tsc OK, 6495 tests OK. Vérifié dans l'app : carte Coach pleine largeur + onglet vidéo.
+  ⏳ Non revus à l'écran (PC verrouillé) : gel corrigé, carte « pas de vidéo », liens de temps.
+- 📋 **Prochaine étape** : l'utilisateur teste l'onglet Coach (frappe immédiate, clic sur un
+  temps cité) ; étendre les liens au digest de records du coach live si utile.
+
 ### 2026-10-20 — Coach IA post-course : « aucune donnée Mercedes » malgré 28 sessions à Spa
 
 **Symptôme** : session BMW M4 à Spa, question « je fais mieux en BMW qu'en Mercedes à Spa ? » →

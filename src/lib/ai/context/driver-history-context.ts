@@ -14,6 +14,7 @@
 import { records } from "../../api";
 import { formatTime, formatSectorSeconds } from "../../utils";
 import type { RecordOverviewRow, SessionDetail } from "../../api";
+import { addLapLink, type LapLinks } from "../lapLinks";
 
 /** Sessions récentes listées dans le contexte (au-delà : résumé via stats). */
 const MAX_SESSIONS = 10;
@@ -35,8 +36,10 @@ export async function buildComboHistoryText(args: {
   trackCourse?: string;
   currentSessionId?: number;
   currentBest?: number | null;
+  /** Rempli avec temps → session (temps cliquables dans la réponse). */
+  links?: LapLinks;
 }): Promise<string> {
-  const { track, car, trackCourse, currentSessionId, currentBest } = args;
+  const { track, car, trackCourse, currentSessionId, currentBest, links } = args;
   if (!track || !car) return "";
 
   let prog;
@@ -50,6 +53,11 @@ export async function buildComboHistoryText(args: {
     return ""; // historique indisponible → contexte sans cette section
   }
   const pts = prog.points.filter((p) => p.best_lap > 0);
+  if (links) {
+    for (const p of pts) {
+      if (p.session_id !== currentSessionId) addLapLink(links, p.best_lap, p.session_id, `${day(p.timestamp)} · ${p.session_type} · ${car}`);
+    }
+  }
   const hasHistory =
     currentSessionId != null
       ? pts.some((p) => p.session_id !== currentSessionId)
@@ -164,6 +172,8 @@ export function trackOtherCarsText(
   rows: RecordOverviewRow[],
   track: string,
   currentCar: string,
+  links?: LapLinks,
+  currentSessionId?: number,
 ): string {
   const here = rows
     .filter((r) => r.track === track && r.best_lap > 0)
@@ -174,6 +184,9 @@ export function trackOtherCarsText(
     "(all-time best lap per car; use this to compare cars on this track)",
   ];
   for (const r of here) {
+    if (links && r.record_session_id !== currentSessionId) {
+      addLapLink(links, r.best_lap, r.record_session_id, `${day(r.record_date)} · ${r.car}`);
+    }
     const layout = r.track_course && r.track_course !== r.track ? ` (${r.track_course})` : "";
     lines.push(
       `${r.car} · ${r.car_class}${layout}: ${formatTime(r.best_lap)} · ${r.sessions_count} sessions` +
@@ -184,7 +197,7 @@ export function trackOtherCarsText(
 }
 
 /** Variante post-course : extrait la clé combo d'un `SessionDetail`. */
-export async function buildDriverHistoryText(detail: SessionDetail): Promise<string> {
+export async function buildDriverHistoryText(detail: SessionDetail, links?: LapLinks): Promise<string> {
   const player = detail.results.find((r) => r.is_player);
   const car = player?.unique_car_name || player?.car_type || "";
   if (!player || !car) return "";
@@ -195,10 +208,11 @@ export async function buildDriverHistoryText(detail: SessionDetail): Promise<str
       car,
       currentSessionId: detail.session.id,
       currentBest: player.best_lap,
+      links,
     }),
     records
       .getOverview()
-      .then((rows) => trackOtherCarsText(rows, detail.session.track, car))
+      .then((rows) => trackOtherCarsText(rows, detail.session.track, car, links, detail.session.id))
       .catch(() => ""),
   ]);
   return [combo, others].filter(Boolean).join("\n\n");

@@ -12,6 +12,7 @@ import { stripThinking, ThinkingStreamFilter } from "@/lib/ai/thinking";
 import { openaiProvider, openrouterProvider } from "@/lib/ai/providers/openai-compat";
 import { buildLiveContext } from "@/lib/ai/context/live-context";
 import { trackOtherCarsText } from "@/lib/ai/context/driver-history-context";
+import { addLapLink, splitLapTimes, type LapLinks } from "@/lib/ai/lapLinks";
 import { isHistoricalQuestion } from "@/lib/ai/context/records-context";
 import type { LiveData, LiveStanding, RecordOverviewRow } from "@/lib/api";
 
@@ -113,6 +114,30 @@ export function run(): void {
     ok(isHistoricalQuestion("est ce que je fais mieux en bmw qu'en mercedes à SPA ?"), "« mieux » = question d'historique");
     ok(isHistoricalQuestion("Sono più veloce con la Ferrari?"), "italien couvert");
     ok(!isHistoricalQuestion("dois-je rentrer au stand ?"), "question courante : pas d'historique");
+
+    const links: LapLinks = new Map();
+    trackOtherCarsText(
+      [{ ...rows[0], record_session_id: 41 }, { ...rows[1], record_session_id: 7 }],
+      "Spa", "BMW M4 LMGT3", links, 7,
+    );
+    eq(links.get("2:27.324")?.sessionId, 41, "record Mercedes → sa session");
+    ok(!links.has("2:26.707"), "session courante : pas de lien vers elle-même");
+  }
+
+  section("ai.lapLinks (temps cliquables)");
+  {
+    const links: LapLinks = new Map();
+    addLapLink(links, 146.707, 12, "a");
+    addLapLink(links, 150.5, 20, "b");
+    addLapLink(links, 150.5, 21, "c");
+    addLapLink(links, 146.707, 12, "a bis");
+    const parts = splitLapTimes("PB 2:26.707 contre 2:30.500 et 2:31.000.", links);
+    eq(parts.length, 3, "un seul temps relié");
+    const link = parts[1];
+    ok(typeof link !== "string" && link.time === "2:26.707" && link.link.sessionId === 12, "temps relié à sa session");
+    ok(links.get("2:30.500") === null, "même temps, deux sessions → ambigu, pas de lien");
+    eq(splitLapTimes("12:26.7071 et 22:26.707", links).length, 1, "morceau d'un nombre plus long ignoré");
+    eq(splitLapTimes("2:26.707", undefined).length, 1, "sans table : texte intact");
   }
 
   section("ai.live-context (garage)");

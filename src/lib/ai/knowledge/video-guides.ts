@@ -109,14 +109,14 @@ export function getVideoGuide(
   track: string,
   trackCourse: string | undefined,
   carClass: string,
-): { title: string; url: string } | null {
+): { title: string; url: string; channel: string } | null {
   const tid = matchTrackId(track, trackCourse);
   const cid = matchClassId(carClass);
   if (!tid || !cid) return null;
   const matches = VIDEO_GUIDES.filter((v) => v.trackId === tid && v.classId === cid);
   if (matches.length === 0) return null;
   const pick = pickGuide(matches, carClass, trackCourse);
-  return pick ? { title: pick.title, url: pick.url } : null;
+  return pick ? { title: pick.title, url: pick.url, channel: pick.channel ?? "Unleashed Drivers" } : null;
 }
 
 /**

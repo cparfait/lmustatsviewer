@@ -953,6 +953,22 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-22 — Serveur déployé (migration 9) ; page Setups du site en tableau
+
+- ✅ **Déploiement** (`deploy.cmd --smoke`, lancé dans le terminal du mainteneur, mot de passe SSH
+  saisi par lui) : version « 2026-10-22_2117 1cad0db+modifié », API « healthy », test de bout en bout
+  OK. Le dossier `community/` envoyé contenait aussi le travail non commité de l'autre session (liste
+  en lignes, `?v=67`).
+- ✅ **Page Setups en tableau** (demande : « adapter le style du tableau comme le reste du site / app ») :
+  même gabarit que les classements (`.lb .cg-table`, colonnes à largeur fixe, temps en vert, colonnes
+  de performance teintées) — classe, setup (version, type et notes dessous), voiture et logo, circuit
+  et drapeau, meilleur tour, tours roulés (pluie dessous), auteur, téléchargements, version du jeu,
+  date, bouton ; sur mobile, ligne repliée en grille (règles d'accueil exclues pour `.su-table`).
+  Vérifié dans l'aperçu (bureau, mobile, sombre). Fichiers du site passés en `?v=68`. Changelog : la
+  ligne « liste en lignes » de l'autre session réécrite pour décrire le tableau.
+- 📋 **Prochaine étape** : redéployer (`deploy.cmd --smoke`) pour mettre le tableau en ligne (commité avec
+  la refonte « liste en lignes » de l'autre session, les fichiers du site mêlant les deux travaux).
+
 ### 2026-10-22 — Tours roulés publiés avec les setups (API, app, site)
 
 **Demande** : « il faut aussi apporter ces modifs sur le site » → choix « tout, serveur compris ».
@@ -1040,6 +1056,36 @@ dans le code.
   ids changent à chaque visite de la page Setups, ce qui casse la lignée « ← #id » et le verdict mesuré de
   l'assistant. Non corrigé (page Setups en cours dans une autre session).
 - 📋 **Prochaine étape** : arbitrage du mainteneur sur les idées ; corriger la stabilité des ids de setups.
+
+### 2026-10-22 — Site, page « Setups » : cartes remplacées par une liste en lignes (lisibilité)
+
+**Demande** : carte illisible (« · » orphelin en début de ligne, aide coupée), puis « trop d'info, de
+logos » et « toujours très moche » sur une carte allégée. Trois maquettes montrées dans l'aperçu
+(fiche, liste en lignes, minimal) : le mainteneur a choisi la **liste en lignes**.
+
+**Fait**
+- ✅ `community/site/assets/setups.js` : `card()` → `row()`, un setup par ligne dans un seul panneau
+  `.su-rows`, comme un classement : liseré à la couleur de la classe (`--c-<classKey>`, nom de classe
+  en infobulle), nom + version (type · notes dessous), voiture · circuit, meilleur tour (infobulle :
+  « Meilleur tour signé avec ce setup » + version du jeu), auteur (nom seul, `driverName(…, false)`)
+  avec dessous ⬇ téléchargements · date (· N versions), bouton orange icône seule ⬇ (`btn-primary`,
+  sans « .svm » à la demande du mainteneur ; « Télécharger le .svm » en `aria-label` et en tête de
+  l'infobulle ; le bouton sans variante prenait le style natif, illisible en thème sombre). Plus de
+  logo de marque, de drapeau ni d'avatar. Ce qui est coupé (ellipse) est en entier dans l'infobulle.
+- ✅ Tout le site : pied de page collé en bas de l'écran sur les pages courtes (`body` en colonne
+  flex `min-height: 100dvh`, `body > main { flex: 1 0 auto; width: 100% }` — le `width` évite que
+  `main.wrap` (combo, pilote) se rétrécisse à son contenu à cause des marges auto). Mesuré sur les
+  6 pages : `main` pleine largeur, pied en bas du document.
+- ✅ Le « · » orphelin venait de la ligne des stats en `flex-wrap` ; il disparaît avec les colonnes.
+- ✅ Moins de 760 px : la ligne se replie sur trois rangs (nom + bouton / voiture · circuit + temps /
+  auteur).
+- ✅ Aide « Le fichier se range dans … » déplacée au-dessus de la liste (lisible en entier) et reprise
+  en infobulle du bouton. Clés i18n `su.bestLap`, `su.gameVer` (5 langues). Cache `?v=67` sur toutes
+  les pages du site.
+- ✅ Vérifié dans l'aperçu (serveur `community-site`, API réelle, `?tests=1` + lignes fictives
+  longues) : clair/sombre, 375 px. `tsc -b` propre, changelog 1.0.10 (improved, 5 langues).
+  Non commité (à la demande du mainteneur).
+- 📋 Prochaine étape : validation visuelle du mainteneur, puis commit et déploiement du site.
 
 ### 2026-10-22 — Page Setups de l'app : vue « Communauté » et repère « Partagé »
 

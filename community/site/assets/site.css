@@ -28,6 +28,9 @@
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 var(--font); -webkit-font-smoothing: antialiased; }
+/* Pied de page toujours en bas de l'écran, même quand la page est courte. */
+body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+body > main { flex: 1 0 auto; width: 100%; }
 a { color: inherit; }
 img { max-width: 100%; }
 h1, h2, h3 { line-height: 1.12; margin: 0; font-weight: 800; }
@@ -797,17 +800,17 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
   .cg-table .best-t { font-size: .88rem; }
   .cg-table td.perf + td.perf { justify-content: flex-start; }
   /* Accueil : classe | pilote du record / voiture | temps | pilotes. */
-  .cg-table:not(.pf-table) tr.row-link { grid-template-columns: 92px minmax(0, 1fr) 84px 46px; grid-template-areas: "cls pilot time drv" "cls car time drv"; }
+  .cg-table:not(.pf-table):not(.su-table) tr.row-link { grid-template-columns: 92px minmax(0, 1fr) 84px 46px; grid-template-areas: "cls pilot time drv" "cls car time drv"; }
   /* 1ʳᵉ colonne = œil « Détail » : masquée (toute la ligne ouvre le classement). */
   .cg-table td.go-cell { display: none; }
-  .cg-table:not(.pf-table) td:nth-child(2) { grid-area: cls; }
-  .cg-table:not(.pf-table) td:nth-child(3) { grid-area: pilot; padding-bottom: 0; }
-  .cg-table:not(.pf-table) td:nth-child(4) { grid-area: car; padding-top: 0; font-size: .76rem; color: var(--muted); }
-  .cg-table:not(.pf-table) td:nth-child(4) .car-txt span { font-weight: 500; }
-  .cg-table:not(.pf-table) td:nth-child(5) { grid-area: time; }
-  .cg-table:not(.pf-table) td:nth-child(9) { grid-area: drv; padding-left: 4px; }
-  .cg-table:not(.pf-table) td:nth-child(n+6):not(:nth-child(9)) { display: none; }
-  .cg-table:not(.pf-table) .logo-slot, .cg-table:not(.pf-table) .logo-slot img.brand-img { width: 14px !important; height: 14px !important; }
+  .cg-table:not(.pf-table):not(.su-table) td:nth-child(2) { grid-area: cls; }
+  .cg-table:not(.pf-table):not(.su-table) td:nth-child(3) { grid-area: pilot; padding-bottom: 0; }
+  .cg-table:not(.pf-table):not(.su-table) td:nth-child(4) { grid-area: car; padding-top: 0; font-size: .76rem; color: var(--muted); }
+  .cg-table:not(.pf-table):not(.su-table) td:nth-child(4) .car-txt span { font-weight: 500; }
+  .cg-table:not(.pf-table):not(.su-table) td:nth-child(5) { grid-area: time; }
+  .cg-table:not(.pf-table):not(.su-table) td:nth-child(9) { grid-area: drv; padding-left: 4px; }
+  .cg-table:not(.pf-table):not(.su-table) td:nth-child(n+6):not(:nth-child(9)) { display: none; }
+  .cg-table:not(.pf-table):not(.su-table) .logo-slot, .cg-table:not(.pf-table):not(.su-table) .logo-slot img.brand-img { width: 14px !important; height: 14px !important; }
   /* Fiche pilote : classe | voiture | temps | position. */
   .pf-table tr.row-link { grid-template-columns: 92px minmax(0, 1fr) 84px 64px; }
   .pf-table td:nth-child(n+6) { display: none; }
@@ -1069,19 +1072,55 @@ body.cmp-open { overflow: hidden; }
 
 /* ── Setups de la communauté (setups.html) ── */
 .su-soon { margin: 18px 0 0; }
-.su-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-.su-card { padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
-.su-head { display: flex; align-items: center; gap: 10px; }
-.su-head .brand-img { width: 28px; height: 28px; object-fit: contain; flex: none; }
-.su-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.su-meta { font-size: .88rem; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.su-meta .flag-img { height: 12px; margin-right: 4px; }
-.su-notes { margin: 4px 0 0; font-size: .9rem; white-space: pre-line; overflow-wrap: anywhere; }
-.su-actions { margin-top: 6px; }
-.su-list .empty, .su-list .notice { grid-column: 1 / -1; }
-.su-author { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-.su-author .dmarks { display: inline-flex; align-items: center; gap: 4px; width: auto; }
-.su-author .fl-slot:empty, .su-author .av-slot:empty { display: none; }
+.su-legend { margin: 10px 2px 12px; }
+/* Un setup par ligne, comme un classement : liseré de classe, nom, voiture · circuit, temps,
+   auteur, bouton. Ce qui est coupé est en entier dans l'infobulle. */
+.su-rows { overflow: hidden; }
+.su-row { display: grid; grid-template-columns: 6px minmax(0, 1.3fr) minmax(0, 1.5fr) 92px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 10px 14px 10px 0; border-top: 1px solid var(--border); font-size: .92rem; }
+.su-row:first-child { border-top: 0; }
+.su-bar { align-self: stretch; background: var(--cc, var(--muted)); }
+.su-ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.su-name b { font-weight: 800; }
+.su-sub { font-size: .8rem; margin-top: 1px; }
+.su-lap { font-weight: 700; text-align: right; cursor: help; }
+.su-dls svg { width: 11px; height: 11px; margin-right: 2px; vertical-align: -1px; }
+.su-row .btn { padding: 0; width: 34px; height: 30px; }
+.su-row .btn svg { width: 16px; height: 16px; }
+/* Étroit : nom + bouton en haut, puis voiture · circuit et temps, puis auteur. */
+@media (max-width: 760px) {
+  .su-row { grid-template-columns: 6px minmax(0, 1fr) auto; grid-template-areas: "bar name btn" "bar where lap" "bar who who"; gap: 4px 12px; padding-right: 12px; }
+  .su-bar { grid-area: bar; }
+  .su-name { grid-area: name; }
+  .su-where { grid-area: where; }
+  .su-lap { grid-area: lap; }
+  .su-who { grid-area: who; }
+  .su-row .btn { grid-area: btn; }
+}
 
 /* Tours roulés avec le setup chez son auteur, sous le meilleur tour (page Setups). */
-.su-laps { font: 400 11px/1.3 var(--font, inherit); text-align: right; white-space: nowrap; }
+.su-laps { display: inline-grid; justify-items: end; line-height: 1.2; white-space: nowrap; font-size: .84rem; }
+.su-laps small { font-size: .72rem; }
+/* Tableau des setups : même gabarit que les classements (.lb .cg-table). */
+.su-table { min-width: 1320px; }
+.su-table col.su-c-class { width: 112px; } .su-table col.su-c-track { width: 160px; } .su-table col.su-c-time { width: 130px; }
+.su-table col.su-c-laps { width: 110px; } .su-table col.su-c-who { width: 180px; } .su-table col.su-c-dl { width: 84px; }
+.su-table col.su-c-ver { width: 96px; } .su-table col.su-c-date { width: 104px; } .su-table col.su-c-btn { width: 64px; }
+.su-table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.su-table .su-name .su-ell { overflow: hidden; text-overflow: ellipsis; }
+.su-table .su-name .su-sub { font-size: .78rem; }
+.su-table .su-track { display: inline-flex; align-items: center; gap: 6px; }
+.su-table .su-dls { display: inline-flex; align-items: center; gap: 3px; }
+.su-table .su-dl { padding: 0; width: 32px; height: 28px; display: inline-grid; place-items: center; }
+.su-table .su-date { font-size: .84rem; }
+@media (max-width: 760px) {
+  /* Setups : classe | setup / voiture / circuit · auteur | temps / tours | bouton. */
+  .su-table tr { grid-template-columns: 92px minmax(0, 1fr) 96px 40px; grid-template-areas: "cls name time btn" "cls car laps btn" "cls where where btn"; }
+  .su-table td:nth-child(1) { grid-area: cls; }
+  .su-table td:nth-child(2) { grid-area: name; padding-bottom: 0; }
+  .su-table td:nth-child(3) { grid-area: car; padding-top: 0; padding-bottom: 0; font-size: .76rem; color: var(--muted); }
+  .su-table td:nth-child(4) { grid-area: where; padding-top: 2px; font-size: .76rem; color: var(--muted); }
+  .su-table td:nth-child(5) { grid-area: time; }
+  .su-table td:nth-child(6) { grid-area: laps; font-size: .76rem; }
+  .su-table td:nth-child(11) { grid-area: btn; padding-left: 0; }
+  .su-table td:nth-child(n+7):not(:nth-child(11)) { display: none; }
+}

@@ -280,10 +280,12 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   `mIsFixedSetup` (1980) sur un serveur à setup imposé ; le jeu relit un `.svm` dont l'index change
   mais pas le commentaire ; signe et ordre de grandeur de `slip_angle` AV/AR (sonde du bilan au box,
   seuils 1° / 140 km/h) ; rapprochement circuit / voiture du bilan au box (`setups.entries` n'est
-  à jour qu'après un rescan). S12/S5 (partage) non commencé.
+  à jour qu'après un rescan). À voir aussi en roulant : bandeau « setup imposé » (page Live) et
+  carte « Bilan au box » (≥ 2 tours puis stands). Commité le 2026-10-21 (`79f9a59`) ; note de
+  passation `REPRISE-ATELIER-SETUP.md` supprimée le 2026-10-22 (son contenu restant est ici).
 - ⏳ **Fournisseurs IA gratuits (2026-10-21)** : vérifié dans `npm run tauri dev` (OVHcloud et Kilo sans clé, bascule OVHcloud → Kilo en vrai). Clés gratuites Groq / NVIDIA / Z.ai / Cohere / Hugging Face / Ollama Cloud non testées (seuls OVHcloud, Kilo et LLM7 ont répondu à un vrai appel sans clé). Les catalogues gratuits bougent vite (Kilo, LLM7) : revérifier les listes de repli à chaque version. OVHcloud sous charge : jusqu'à 28 s par réponse, plus de 2 min pour une question d'analyse avec Qwen3.8-27B (raisonnement long) → le pilote peut choisir `Mistral-Small-3.2-24B-Instruct-2506` ou `gpt-oss-120b` à la main (défaut gardé : le plus récent, décision du 2026-10-21).
-- ⏳ **Branche `feat/veille-pistes` (2026-10-17)** : 6 commits non fusionnés dans `main`,
-  rien poussé. Avant fusion : validation en jeu (`VALIDATION-EN-JEU.md` § Veille) et
+- ⏳ **Branche `feat/veille-pistes` (2026-10-17)** : fusionnée dans `main` depuis. Reste :
+  validation en jeu (`VALIDATION-EN-JEU.md` § Veille) et
   **déploiement du serveur communautaire** (migration 6 `rival_week` + routes `/tiers`,
   `/cars`, `/patch`, `POST /briefing`, `/rival`) — sans lui, les onglets Index voitures /
   Effet du patch / Rival et le briefing restent vides (l'app reste fonctionnelle).
@@ -306,7 +308,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   (sécurité, spotter) ; nouvelles alertes urgentes pré-synthétisées. Reste à **mesurer en
   jeu** (avec OBS en encodage CPU) ; piste suivante si insuffisant : `ort` avec 2 threads.
 - ⏳ **Branche `feat/radio-parity` (2026-10-18)** : annonces de course, stands à la voix,
-  son, diagnostic. Rien n'a roulé en jeu → `VALIDATION-EN-JEU.md` § 00 avant fusion. Points
+  son, diagnostic — fusionnée dans `main` depuis. Rien n'a roulé en jeu → `VALIDATION-EN-JEU.md` § 00. Points
   à vérifier en priorité : textes du centre de messages traduits ou non par le jeu ; zone
   « Rules » remplie en ligne ; libellés du menu des stands par classe ; CSP sur un build
   installé (`tauri.conf.json`, retour à `"csp": null` si une page casse).

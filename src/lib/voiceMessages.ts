@@ -144,6 +144,9 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vGapAheadName", vars: ["name"], sample: { name: "Martin" } },
       { key: "vUnderAttackName", vars: ["name"], sample: { name: "Martin" } },
       { key: "vGapLeader", vars: ["time"], sample: { time: "12 secondes" } },
+      { key: "vGapsBoth", vars: ["ahead", "behind"], sample: { ahead: "2.3 secondes", behind: "1.8 secondes" } },
+      { key: "vGapsAhead", vars: ["ahead"], sample: { ahead: "2.3 secondes" } },
+      { key: "vGapsBehind", vars: ["behind"], sample: { behind: "1.8 secondes" } },
       { key: "vClosingAhead", vars: ["name", "d", "n"], sample: { name: "Martin", d: "0.4", n: 6 } },
       { key: "vPullingAway", vars: ["name", "d"], sample: { name: "Martin", d: "0.3" } },
       { key: "vClosingBehind", vars: ["name", "d", "n"], sample: { name: "Martin", d: "0.5", n: 4 } },
@@ -278,6 +281,8 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
     items: [
       { key: "vFastest", vars: ["driver", "time"], sample: { driver: "Martin", time: "1 minute 22.5" } },
       { key: "vFastestYou", vars: ["time"], sample: { time: "1 minute 22.5" } },
+      { key: "vFastestClass", vars: ["driver", "time"], sample: { driver: "Martin", time: "1 minute 22.5" } },
+      { key: "vFastestYouClass", vars: ["time"], sample: { time: "1 minute 22.5" } },
     ],
   },
   {

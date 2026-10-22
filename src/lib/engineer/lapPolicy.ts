@@ -20,6 +20,10 @@ export const FLYING_FACTOR = 1.05;
 export const RACE_LAP_EVERY = 3;
 /** Écart au leader annoncé au plus un tour sur N (course seulement). */
 export const LEADER_GAP_EVERY = 5;
+/** Écarts devant / derrière (classe) annoncés au plus un tour sur N (course seulement). */
+export const CLASS_GAPS_EVERY = 3;
+/** Au-delà (s), une voiture n'est plus un rival direct : écart non annoncé. */
+export const CLASS_GAPS_MAX_S = 30;
 
 export interface LapCalloutIn {
   isRace: boolean;

@@ -22,6 +22,7 @@ export const RADIO_EXTRAS = [
   "crashCheck",
   "cornerNames",
   "rivalNames",
+  "classGaps",
   "voiceNotes",
 ] as const;
 export type RadioExtra = (typeof RADIO_EXTRAS)[number];

@@ -40,7 +40,7 @@ import { driverBusy } from "./focus";
 import { NameDoser, VariantPicker, splitVariants } from "./variants";
 import { ProximitySpotter, type SpotCall } from "./proximity";
 import { ToneArbiter, setSharedTone, BATTLE_GAP_S } from "./tone";
-import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY, FLYING_FACTOR } from "./lapPolicy";
+import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY, CLASS_GAPS_EVERY, CLASS_GAPS_MAX_S, FLYING_FACTOR } from "./lapPolicy";
 import { applyLapPref, parseLapPrefs, questionDue, sessionKind } from "./prefs";
 import { onTrack, slowerPackAhead, fasterBehind } from "./traffic";
 import { RivalPitWatcher } from "./rivalPits";
@@ -52,7 +52,7 @@ import { engineer } from "./state";
 import { brakeAvgLimits } from "./brakes";
 import { isWetCompound, wheelWear } from "./tyres";
 import { radioClass, radioName } from "./text";
-import { scopedPosition } from "@/lib/livePosition";
+import { isMulticlass, scopedPosition } from "@/lib/livePosition";
 import {
   currentForecast,
   currentPitWindow,
@@ -311,6 +311,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const announcedFinal = useRef(false);
   const announcedHalf = useRef(false);
   const prevFastest = useRef<number>(0);
+  /** Périmètre de `prevFastest` : classe du joueur, ou `null` = toutes classes. */
+  const prevFastestScope = useRef<string | null>(null);
   const prevPitState = useRef<number>(0);
   const prevLeader = useRef(false);
   const podiumWarned = useRef(false);
@@ -813,7 +815,10 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       // qui passent ne sont pas un écart à annoncer.
       const rolling = (tel?.speed_kmh ?? 0) >= GAP_MIN_SPEED_KMH;
       const gapsReady = warmedUp && player.total_laps >= 1 && rolling;
-      if (inPits) {
+      // Hors course, le classement suit le meilleur tour : « dans ta seconde »
+      // y compare des chronos, pas des voitures en piste (fausse alerte en essais
+      // et en qualif privée). Le mode Complet garde l'ancien comportement.
+      if (inPits || (!isRace && !full)) {
         gapAheadWarned.current = false;
         underAttackWarned.current = false;
       } else {
@@ -930,6 +935,10 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       }
 
       // ── Passage de la ligne : point de tour, secteurs, rapprochement ─────
+      // Tour qui vient de se boucler parti des stands (ou 1er tour de la
+      // session) : son chrono n'est pas représentatif. Sans meilleur tour connu,
+      // il passait pour un record (« Meilleur tour… » au bout de l'out-lap).
+      const outLapDone = lapDone && outLap.current && !full;
       if (lapDone) {
         lapsSinceLapCallout.current++;
         outLap.current = false;
@@ -967,7 +976,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         });
         // Préférence posée à la voix pour ce type de séance (sinon : politique habituelle).
         const flyingLap = isPb || (prevBest.current > 0 && player.last_lap_time <= prevBest.current * FLYING_FACTOR);
-        const decision = applyLapPref(engineer.lapPrefs.prefs[sessionKind(sc.session)], autoDecision, isPb, flyingLap);
+        const decision = outLapDone
+          ? null
+          : applyLapPref(engineer.lapPrefs.prefs[sessionKind(sc.session)], autoDecision, isPb, flyingLap);
         if (decision && lapVoice) {
           say(
             "lap:time",
@@ -986,12 +997,12 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
             playerStanding.is_class_best_s2 ||
             playerStanding.is_class_best_s3);
         const newPurple = purple && !prevPurple.current;
-        if (newPurple) {
+        if (newPurple && !outLapDone) {
           say("lap:purple", t("live.vPurpleSector"), "chatty", { group: "lap", order: 1, score: 25 });
         }
         // Mode ingénieur : le meilleur secteur perso est implicite sur un nouveau
         // meilleur tour ou un secteur violet tout juste pris ; sinon il est dit.
-        if (full || (!newPurple && !isPb)) {
+        if (full || (!newPurple && !isPb && !outLapDone)) {
           for (let i = 0; i < 3; i++) {
             const s = player.last_sectors[i];
             const prevB = prevBestSectors.current[i];
@@ -1032,7 +1043,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
               score: 15,
               cooldownLaps: 8,
             });
-        } else if (!isPb && !debriefSkip.current) {
+        } else if (!isPb && !debriefSkip.current && !outLapDone) {
           if (verdict.weak) {
             say(
               "sector:weak",
@@ -1062,6 +1073,25 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
             "chatty",
             full ? { score: 5 } : { score: 5, cooldownLaps: LEADER_GAP_EVERY },
           );
+        }
+
+        // Écarts devant / derrière (dans la classe en multiclasse) — en course,
+        // un tour sur CLASS_GAPS_EVERY. Voitures du même tour seulement.
+        if (isRace && extras.classGaps && playerStanding && gapsReady) {
+          const near = (g: number | null | undefined) => (g != null && g > 0 && g <= CLASS_GAPS_MAX_S ? g : null);
+          const ga = near(sp?.gapAhead);
+          const gb = near(sp?.gapBehind);
+          const ahead = ga != null ? fmtLapVoice(ga, t, true) : "";
+          const behind = gb != null ? fmtLapVoice(gb, t, true) : "";
+          const text =
+            ahead && behind
+              ? t("live.vGapsBoth", { ahead, behind })
+              : ahead
+                ? t("live.vGapsAhead", { ahead })
+                : behind
+                  ? t("live.vGapsBehind", { behind })
+                  : "";
+          if (text) say("gap:class", text, "chatty", full ? { score: 6 } : { score: 6, cooldownLaps: CLASS_GAPS_EVERY });
         }
 
         // Rapprochement chiffré avec les voisins de classe (course, même tour).
@@ -1119,7 +1149,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (playerStanding && playerStanding.current_sector !== prevSector.current) {
         const atLine = playerStanding.current_sector === 1;
         const minDelta = full ? 0.1 : 0.2;
-        if (!inPits && (full || !atLine) && prevSector.current >= 0 && Math.abs(player.lap_delta) >= minDelta) {
+        // En course, le delta au meilleur tour dépend surtout de l'essence, des
+        // pneus et du trafic : bruit à chaque secteur, coupé (sauf mode Complet).
+        if (!inPits && (full || (!atLine && !isRace)) && prevSector.current >= 0 && Math.abs(player.lap_delta) >= minDelta) {
           const d = Math.abs(player.lap_delta).toFixed(1);
           say(
             "delta",
@@ -1544,10 +1576,19 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
     // ── Meilleur temps de la session — détenteur annoncé à chaque amélioration ─
     // (un autre pilote : au plus une fois par minute — en essais, le record tombe
-    // sans arrêt ; le tien est toujours dit).
+    // sans arrêt ; le tien est toujours dit). En multiclasse avec « Positions
+    // annoncées dans la classe », le meilleur temps de ta classe : celui du
+    // général est presque toujours celui de la classe la plus rapide.
+    const playerClass = data.standings.find((s) => s.is_player)?.vehicle_class;
+    const fastestCls = classPositions && playerClass != null && isMulticlass(data.standings) ? playerClass : null;
+    if (fastestCls !== prevFastestScope.current) {
+      prevFastestScope.current = fastestCls;
+      prevFastest.current = 0;
+    }
     let fastest = 0;
     let fastestDriver = "";
     for (const s of data.standings) {
+      if (fastestCls != null && s.vehicle_class !== fastestCls) continue;
       if (s.best_lap_time > 0 && (fastest === 0 || s.best_lap_time < fastest)) {
         fastest = s.best_lap_time;
         fastestDriver = s.driver;
@@ -1559,11 +1600,14 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (improved) {
         const tv = fmtLapVoice(fastest, t, tenth);
         const isPlayer = !!player && fastestDriver === player.driver;
-        if (isPlayer) say("fastest:me", t("live.vFastestYou", { time: tv }), "chatty", { score: 30 });
+        if (isPlayer)
+          say("fastest:me", t(fastestCls != null ? "live.vFastestYouClass" : "live.vFastestYou", { time: tv }), "chatty", {
+            score: 30,
+          });
         else
           say(
             "fastest",
-            t("live.vFastest", { driver: radioName(fastestDriver), time: tv }),
+            t(fastestCls != null ? "live.vFastestClass" : "live.vFastest", { driver: radioName(fastestDriver), time: tv }),
             "chatty",
             full ? { score: 12 } : { score: 12, cooldownS: 60 },
           );

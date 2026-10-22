@@ -934,6 +934,38 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-22 — Ingénieur : retours d'un testeur (course de 100 min)
+
+**Retours** : (1) chrono annoncé au bout du tour de sortie en essais / qualif ; (2) « sous attaque »
+en essais et qualif privée ; (3) meilleur temps du leader au général (classe la plus rapide), rien
+sur les rivaux de classe devant / derrière ; (4) écart au meilleur tour à chaque secteur en course ;
+(5) « dégâts importants » répétés malgré des dégâts non réparés.
+
+**Fait** (`useRaceEngineer.ts`, sauf mention)
+- ✅ (5) déjà corrigé dans la 1.0.10 non publiée (`alertLatch.ts`, 2026-10-16) : le testeur ne l'a pas.
+- ✅ (1) `outLapDone` : le tour bouclé parti des stands (ou 1er tour de la session — `outLap` vaut
+  vrai au reset) ne donne ni chrono, ni secteur violet / meilleur secteur, ni débrief de secteur.
+  Cause : sans meilleur tour connu, `isPb` était vrai sur l'out-lap → « Meilleur tour… ».
+- ✅ (2) `gap:ahead` / `gap:behind` réservés à la course : hors course `time_behind_next` compare
+  des meilleurs tours, pas des voitures en piste.
+- ✅ (3) meilleur temps de la session limité à la classe du joueur en multiclasse quand
+  `classPositions` est actif (clés `vFastestClass` / `vFastestYouClass`) ; nouvelle annonce
+  `gap:class` en course, un tour sur `CLASS_GAPS_EVERY` (3), écarts devant / derrière ≤
+  `CLASS_GAPS_MAX_S` (30 s), même tour (`scopedPosition`), clés `vGapsBoth/Ahead/Behind` ;
+  famille d'annonces `classGaps` (`radioSettings.ts`, active par défaut, réglage Audio / Voix).
+- ✅ (4) delta prédictif par secteur coupé en course (gardé en essais / qualif).
+- ✅ Ancien comportement conservé en débit « Complet » (1, 2, 4) et réglage « Positions annoncées
+  dans la classe » coupé (3). i18n 5 langues (annonces, `vmWhen`, `extra_classGaps*`), catalogue
+  `voiceMessages.ts`, changelog 1.0.10 (ajout + correction). `tsc -b` propre, `npm test` : 6 948
+  réussis, 0 échec.
+- ✅ **Bêta `1.0.10-beta.2`** : build LOCAL non signé (pas de clé updater → pas de `latest.json`),
+  version propagée avant le build puis remise à 1.0.9 (`cargo check` lancé deux fois pour Cargo.lock).
+  Contient ces correctifs et tout le travail non commité du moment. Installeur :
+  `src-tauri/target/release/bundle/nsis/LMU Stats Viewer_1.0.10-beta.2_x64-setup.exe`.
+- 📋 Prochaine étape : faire valider en piste par le testeur sur la beta.2 (essais
+  avec sortie des stands, qualif privée, course multiclasse) ; vérifier que l'annonce des écarts
+  un tour sur trois n'est pas trop bavarde en endurance.
+
 ### 2026-10-21 — Voix IA en ligne : message clair quand la clé ElevenLabs manque d'une permission
 
 **Constat** : « Liste des voix indisponible : Internal error: HTTP 401: {"detail":{…

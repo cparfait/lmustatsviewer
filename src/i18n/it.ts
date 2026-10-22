@@ -1011,6 +1011,7 @@ export default {
     fileLabel: "File",
     sourceGame: "Gioco",
     sourceApp: "App",
+    sourceCommunity: "Community",
     gameReadOnlyHint:
       "Questo setup proviene dal gioco: i valori tecnici sono di sola lettura (duplicalo per modificarli). Tipo, note e giro migliore collegato restano modificabili.",
     linkedSession: "Giro migliore collegato",

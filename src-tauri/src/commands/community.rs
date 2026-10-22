@@ -1077,7 +1077,7 @@ async fn sync_inner(db: &DbState) -> Result<SyncReport, AppError> {
 // ── Lectures publiques (page « Classement », lot 4) ──────────────────────────
 
 /// Routes publiques autorisées (agrégats seulement ; aucune donnée personnelle).
-const PUBLIC_ROUTES: [&str; 13] = [
+const PUBLIC_ROUTES: [&str; 14] = [
     "stats",
     "combos",
     "combos/detail",
@@ -1093,6 +1093,7 @@ const PUBLIC_ROUTES: [&str; 13] = [
     // Partage des setups : table de crans d'une voiture, setups publiés, un setup.
     "notches",
     "setups",
+    "setups/facets",
     "setups/item",
 ];
 

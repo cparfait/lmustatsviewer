@@ -10,7 +10,14 @@
  *    un NOUVEAU fichier du jeu (jamais d'écrasement).
  */
 
-import { community, type CommunityNotchTable, type CommunitySharedSetup } from "@/lib/api";
+import {
+  community,
+  setups as setupsApi,
+  type CommunityNotchTable,
+  type CommunitySharedSetup,
+  type CommunitySharedSetupItem,
+  type SetupEntry,
+} from "@/lib/api";
 import { FLAG_SETUP_SHARING, readConfigFlag } from "@/lib/configFlag";
 import { mergeTables, type NotchTable } from "@/lib/setupNotches";
 import { freeName } from "@/lib/setupVersion";
@@ -126,3 +133,30 @@ export function importName(s: Pick<CommunitySharedSetup, "name" | "author">, tak
   const who = s.author.name ?? s.author.tag.replace("#", "");
   return freeName(`${s.name} (${who})`, taken);
 }
+
+/**
+ * Télécharge un setup publié et l'enregistre comme NOUVEAU fichier du jeu
+ * (`Settings/<circuit>/<nom> (<auteur>).svm`). `lineage` : texte ajouté aux notes
+ * (auteur, version). Compte un téléchargement sur le serveur.
+ */
+export async function importShared(
+  lmuPath: string,
+  s: Pick<CommunitySharedSetup, "id" | "name" | "author">,
+  lineage: (who: string, version: number) => string,
+): Promise<SetupEntry> {
+  const item = await community.get<CommunitySharedSetupItem>("setups/item", { id: s.id, download: 1 });
+  if (!item) throw new Error("not_found");
+  const taken = (await setupsApi.entries(null, item.track).catch(() => [])).map((e) => e.name);
+  const who = s.author.name ?? s.author.tag;
+  return setupsApi.importContent(
+    lmuPath,
+    item.track,
+    importName(s, taken),
+    item.svm,
+    item.setup_type,
+    [item.notes, lineage(who, item.version)].filter(Boolean).join(" — "),
+  );
+}
+
+/** Clé de rapprochement d'un setup publié et d'un setup local : circuit + nom, sans casse. */
+export const sharedKey = (track: string, name: string) => `${track}|${name.replace(/\.svm$/i, "").trim().toLowerCase()}`;

@@ -1011,6 +1011,7 @@ export default {
     fileLabel: "Datei",
     sourceGame: "Spiel",
     sourceApp: "App",
+    sourceCommunity: "Community",
     gameReadOnlyHint:
       "Dieses Setup stammt aus dem Spiel: technische Werte sind schreibgeschützt (dupliziere es zum Bearbeiten). Typ, Notizen und verknüpfte Bestzeit bleiben editierbar.",
     linkedSession: "Verknüpfte Bestzeit",

@@ -14,7 +14,6 @@ import {
   isTauri,
   setups as setupsApi,
   type CommunitySharedSetup,
-  type CommunitySharedSetupItem,
   type CommunityStatus,
   type MySharedSetup,
   type SetupEntry,
@@ -23,7 +22,7 @@ import {
 } from "@/lib/api";
 import { carKeyOf } from "@/lib/setupNotches";
 import { APP_VERSION } from "@/lib/changelog";
-import { carFolderOf, importName, isShareableCarKey, isTestBuild } from "@/lib/setupSharing";
+import { carFolderOf, importShared, isShareableCarKey, isTestBuild } from "@/lib/setupSharing";
 import { baseName, safeSetupName } from "@/lib/setupVersion";
 import { liveClassKey } from "@/lib/staticData";
 import { cn, formatTime } from "@/lib/utils";
@@ -131,19 +130,7 @@ export function SetupSharePanel({ entry, svm }: { entry: SetupEntry; svm: SvmFil
     }
     setFetching(s.id);
     try {
-      const item = await community.get<CommunitySharedSetupItem>("setups/item", { id: s.id, download: 1 });
-      if (!item) throw new Error(t("lab.share.loadError"));
-      const taken = (await setupsApi.entries(null, item.track).catch(() => [])).map((e) => e.name);
-      const fileName = importName(s, taken);
-      const who = s.author.name ?? s.author.tag;
-      const copy = await setupsApi.importContent(
-        lmuPath,
-        item.track,
-        fileName,
-        item.svm,
-        item.setup_type,
-        [item.notes, t("lab.share.lineage", { who, version: item.version })].filter(Boolean).join(" — "),
-      );
+      const copy = await importShared(lmuPath, s, (who, version) => t("lab.share.lineage", { who, version }));
       toastSuccess(t("lab.share.downloaded", { name: copy.name }));
       navigate(`/setups/${copy.id}`);
     } catch (e) {

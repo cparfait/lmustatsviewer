@@ -1012,6 +1012,7 @@ export default {
     fileLabel: "Archivo",
     sourceGame: "Juego",
     sourceApp: "App",
+    sourceCommunity: "Comunidad",
     gameReadOnlyHint:
       "Este setup viene del juego: los valores técnicos son de solo lectura (duplícalo para editarlos). Tipo, notas y mejor vuelta vinculada siguen siendo editables.",
     linkedSession: "Mejor vuelta vinculada",

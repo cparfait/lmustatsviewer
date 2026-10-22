@@ -15,6 +15,7 @@ import {
   Car,
   MapPin,
   Search,
+  Users,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tip } from "@/components/ui/tooltip";
@@ -31,6 +32,7 @@ import {
 import { TableTitle } from "@/components/TableTitle";
 import { SourceBadge } from "@/components/SourceBadge";
 import {
+  community,
   setups as setupsApi,
   type SetupGroup,
   type SetupSummary,
@@ -51,6 +53,9 @@ import { CarImage } from "@/components/CarImage";
 import { TrackFlag } from "@/components/TrackFlag";
 import { NewSetupDialog } from "@/components/NewSetupDialog";
 import { keyFigures, notesOf, perCorner } from "@/lib/setupView";
+import { CommunitySetupsView } from "@/components/CommunitySetupsView";
+import { FLAG_SETUP_SHARING, useConfigFlag } from "@/lib/configFlag";
+import { sharedKey } from "@/lib/setupSharing";
 
 /** Libellé traduit d'un type de setup (valeurs en base : Course / Qualif / Autres). */
 function typeLabel(type: string, t: (k: string) => string): string {
@@ -71,7 +76,26 @@ export function Setups() {
   // Défaut « Tous les setups » : c'est la vue tableau plat qui sert d'index
   // d'entrée — l'utilisateur peut ensuite basculer vers la vue par voiture
   // ou par circuit pour explorer.
-  const [view, setView] = usePageState<"car" | "global" | "circuit">("setups.view", "global");
+  const [savedView, setView] = usePageState<"car" | "global" | "circuit" | "community">("setups.view", "global");
+  // Vue « Communauté » : seulement avec l'option Atelier › Partage de setups.
+  const shareOn = useConfigFlag(FLAG_SETUP_SHARING);
+  const view = savedView === "community" && !shareOn ? "global" : savedView;
+  // Mes setups publiés (circuit + nom → dernière version), repère « Partagé » de la liste.
+  const [shared, setShared] = useState<Map<string, number>>(new Map());
+  useEffect(() => {
+    if (!shareOn) return;
+    void community
+      .setupsMine()
+      .then((r) => {
+        const m = new Map<string, number>();
+        for (const x of r.setups) {
+          const k = sharedKey(x.track, x.name);
+          m.set(k, Math.max(m.get(k) ?? 0, x.version));
+        }
+        setShared(m);
+      })
+      .catch(() => {});
+  }, [shareOn]);
   const [activeCircuit, setActiveCircuit] = usePageState<string | null>("setups.circuit", null);
   const [activeCar, setActiveCar] = usePageState<string | null>("setups.car", null);
   const [selectedSetupId, setSelectedSetupId] = useState<number | null>(null);
@@ -194,6 +218,19 @@ export function Setups() {
             >
               <MapPin className="h-3.5 w-3.5" /> {t("setups.viewCircuit")}
             </button>
+            {shareOn && (
+              <button
+                onClick={() => setView("community")}
+                className={cn(
+                  "h-9 px-3 text-xs font-medium flex items-center gap-1.5 transition-colors border-l border-input",
+                  view === "community"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Users className="h-3.5 w-3.5" /> {t("lab.share.viewCommunity")}
+              </button>
+            )}
           </div>
           <Button
             variant="outline"
@@ -220,7 +257,9 @@ export function Setups() {
         </div>
       </div>
 
-      {loading && groups.length === 0 ? (
+      {view === "community" ? (
+        <CommunitySetupsView lmuPath={lmuPath} onImported={(e) => navigate(`/setups/${e.id}`)} />
+      ) : loading && groups.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             {lmuPath ? t("setups.scanning") : t("setups.configurePath")}
@@ -233,7 +272,7 @@ export function Setups() {
           </CardContent>
         </Card>
       ) : view === "global" ? (
-        <GlobalView groups={groups} navigate={navigate} />
+        <GlobalView groups={groups} navigate={navigate} shared={shared} />
       ) : view === "circuit" ? (
         <CircuitView
           groups={groups}
@@ -835,9 +874,12 @@ function QvCard({
 function GlobalView({
   groups,
   navigate,
+  shared,
 }: {
   groups: SetupGroup[];
   navigate: (path: string) => void;
+  /** Mes setups publiés : circuit + nom → dernière version (vide sans le partage). */
+  shared: Map<string, number>;
 }) {
   const { t } = useTranslation();
   const [query, setQuery] = usePageState("setups.query", "");
@@ -998,8 +1040,16 @@ function GlobalView({
                   <TableCell className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
                     {r.setup.best_lap != null ? formatTime(r.setup.best_lap) : <span className="text-muted-foreground/40">—</span>}
                   </TableCell>
-                  <TableCell className="px-3 py-1.5">
+                  <TableCell className="px-3 py-1.5 whitespace-nowrap">
                     <SourceBadge source={r.setup.source} />
+                    {shared.has(sharedKey(r.circuit, r.setup.name)) && (
+                      <Tip content={t("lab.share.sharedTip")}>
+                        <span className="ml-1.5 inline-flex items-center gap-1 rounded-full border border-sky-500/45 bg-sky-500/15 px-1.5 py-px text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+                          <Users className="h-3 w-3" />
+                          {t("lab.share.sharedBadge", { version: shared.get(sharedKey(r.circuit, r.setup.name)) })}
+                        </span>
+                      </Tip>
+                    )}
                   </TableCell>
                   <TableCell className="px-3 py-1.5 text-right text-xs text-muted-foreground">
                     {r.setup.updated_at}

@@ -2030,6 +2030,7 @@ export type CommunityRoute =
   | "drivers/profile"
   | "notches"
   | "setups"
+  | "setups/facets"
   | "setups/item";
 
 /** Pilote tel qu'affiché publiquement (anonyme : repère seul). */

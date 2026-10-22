@@ -1011,6 +1011,7 @@ export default {
     fileLabel: "File",
     sourceGame: "Game",
     sourceApp: "App",
+    sourceCommunity: "Community",
     gameReadOnlyHint:
       "This setup comes from the game: technical values are read-only (duplicate to edit them). Type, notes and linked best lap remain editable.",
     linkedSession: "Linked best lap",

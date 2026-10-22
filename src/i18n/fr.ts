@@ -1012,6 +1012,7 @@ export default {
     fileLabel: "Fichier",
     sourceGame: "Jeu",
     sourceApp: "App",
+    sourceCommunity: "Communauté",
     gameReadOnlyHint:
       "Ce setup vient du jeu : les réglages techniques restent en lecture seule (duplique-le pour les éditer). Type, notes et meilleur tour lié restent modifiables.",
     linkedSession: "Meilleur tour lié",

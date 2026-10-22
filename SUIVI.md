@@ -939,6 +939,24 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-22 — Page Setups de l'app : vue « Communauté » et repère « Partagé »
+
+**Demande** : voir dans l'app les setups partagés (pas seulement dans l'onglet de la fiche).
+
+**Fait**
+- ✅ `CommunitySetupsView` : 4ᵉ bouton de vue « Communauté » (si Atelier › Partage de setups) dans la
+  page Setups : tous les setups publiés, filtres classe / voiture / circuit (`GET /setups/facets`,
+  ajouté aux routes publiques Rust et TS) + recherche, auteur, meilleur tour, téléchargements ;
+  « Télécharger » = `importShared` (nouveau helper commun avec l'onglet Partager) puis ouverture de
+  la fiche. Lecture publique : pas besoin de partager soi-même. App de dev/bêta : essais compris.
+- ✅ Vue « Tous les setups » : pastille « Partagé vN » sur mes setups publiés (rapprochement circuit +
+  nom via `/setups/mine`, `sharedKey`) ; origine « Communauté » (bleu) pour les setups téléchargés
+  (`source = 'community'`, conservée au rescan).
+- ✅ Textes 5 langues, changelog 1.0.10 complété. `tsc -b`, eslint, `cargo check`, `npm test` 6971/6971.
+- ⏳ Non vu à l'écran (la page a besoin du backend Tauri ; `tauri dev` non lancé).
+- 📋 Prochaine étape : dans `tauri dev`, activer l'option, ouvrir Setups › Communauté, télécharger le
+  setup publié en essai et vérifier la pastille « Partagé » sur l'original.
+
 ### 2026-10-22 — Page « Setups » du site (non liée) et publications d'essai cachées
 
 **Demande** : la page du site pour les setups partagés, marquée « arrive à la prochaine mise à

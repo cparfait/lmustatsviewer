@@ -105,6 +105,22 @@ export async function shareNotches(carKey: string, table: NotchTable): Promise<N
   return withCommunity(table, shared);
 }
 
+/** Première version de l'app qui publie des setups (même règle que le serveur). */
+export const SETUPS_SINCE = "1.0.10";
+
+/**
+ * App de développement ou bêta (version antérieure à `SETUPS_SINCE` ou préliminaire) :
+ * ses publications sont des essais, invisibles du public ; elle seule les liste.
+ */
+export function isTestBuild(version: string, since = SETUPS_SINCE): boolean {
+  const num = (v: string) => (/^\d+\.\d+\.\d+$/.test(v) ? v.split(".").map(Number) : null);
+  const v = num(version);
+  const min = num(since)!;
+  if (!v) return true;
+  for (let i = 0; i < 3; i++) if (v[i] !== min[i]) return v[i] < min[i];
+  return false;
+}
+
 /** Nom du fichier créé au téléchargement : « <nom> (<auteur>) », puis V2, V3… si pris. */
 export function importName(s: Pick<CommunitySharedSetup, "name" | "author">, taken: string[]): string {
   const who = s.author.name ?? s.author.tag.replace("#", "");

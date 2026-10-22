@@ -281,7 +281,8 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   mais pas le commentaire ; signe et ordre de grandeur de `slip_angle` AV/AR (sonde du bilan au box,
   seuils 1° / 140 km/h) ; rapprochement circuit / voiture du bilan au box (`setups.entries` n'est
   à jour qu'après un rescan). S12/S5 (partage des setups) codé le 2026-10-22, serveur à déployer
-  (migration 7). À voir aussi en roulant : bandeau « setup imposé » (page Live) et
+  (migrations 7 et 8). Page du site `setups.html` **non liée** (`noindex`) : à la sortie de la
+  1.0.10, ajouter le lien (menu et pied de page, `site.js`) et retirer le `noindex`. À voir aussi en roulant : bandeau « setup imposé » (page Live) et
   carte « Bilan au box » (≥ 2 tours puis stands). Commité le 2026-10-21 (`79f9a59`) ; note de
   passation `REPRISE-ATELIER-SETUP.md` supprimée le 2026-10-22 (son contenu restant est ici).
 - ⏳ **Fournisseurs IA gratuits (2026-10-21)** : vérifié dans `npm run tauri dev` (OVHcloud et Kilo sans clé, bascule OVHcloud → Kilo en vrai). Clés gratuites Groq / NVIDIA / Z.ai / Cohere / Hugging Face / Ollama Cloud non testées (seuls OVHcloud, Kilo et LLM7 ont répondu à un vrai appel sans clé). Les catalogues gratuits bougent vite (Kilo, LLM7) : revérifier les listes de repli à chaque version. OVHcloud sous charge : jusqu'à 28 s par réponse, plus de 2 min pour une question d'analyse avec Qwen3.8-27B (raisonnement long) → le pilote peut choisir `Mistral-Small-3.2-24B-Instruct-2506` ou `gpt-oss-120b` à la main (défaut gardé : le plus récent, décision du 2026-10-21).
@@ -937,6 +938,34 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-22 — Page « Setups » du site (non liée) et publications d'essai cachées
+
+**Demande** : la page du site pour les setups partagés, marquée « arrive à la prochaine mise à
+jour », sans montrer les essais du mainteneur ; finalement pas de lien publié pour l'instant, test
+en tapant l'adresse.
+
+**Fait**
+- ✅ Serveur : migration 8 `shared_setups_test` (colonne `test`). Une publication est un **essai**
+  si l'app qui l'envoie (User-Agent `LMU-Stats-Viewer/<version>`) est antérieure à `SETUPS_SINCE`
+  (1.0.10), préliminaire (`-beta.N`) ou inconnue (`isTestPublisher`). Essais exclus de
+  `GET /setups` et du nouveau `GET /setups/facets` (voitures, circuits, `since`) sauf `tests=1` ;
+  `/setups/mine` et l'export les marquent. `GET /setups` : `car` devient facultatif, filtre
+  `class`. 3 tests de plus : 65/65.
+- ✅ App : `isTestBuild(APP_VERSION)` → une app de développement ou bêta liste aussi les essais
+  (onglet Partager) ; « essai, invisible du public » sur ses publications. Suite `sharing` : 4
+  vérifications de plus (6971/6971).
+- ✅ Site : `community/site/setups.html` + `assets/setups.js` (filtres voiture / circuit, cartes avec
+  auteur selon l'anonymat, meilleur tour, versions, téléchargements, notes, bouton « Télécharger
+  le .svm » qui compte le téléchargement). **Aucun lien** (menu, pied de page) et `noindex`. Bandeau
+  « Arrive avec la prochaine mise à jour de l'app » tant que la dernière version GitHub est
+  antérieure à `since` (disparaît seul ; rien si GitHub ne répond pas). `?tests=1` montre les
+  essais avec un bandeau qui le dit. Textes `su.*` 5 langues ; assets `?v=66`. Vérifié dans un
+  aperçu local (API en mémoire, 4 setups dont 1 essai) : essai caché, visible avec `?tests=1`,
+  filtre voiture, téléchargement (200), aucun lien dans le menu, aucune erreur console.
+- 📋 Prochaine étape : déployer le service (migrations 6, 7 et 8), tester
+  `https://lmu.cparfait.ovh/setups.html?tests=1` ; à la sortie de la 1.0.10, ajouter le lien
+  (`NAV` et pied de page de `site.js`) et retirer le `noindex` de `setups.html`.
 
 ### 2026-10-22 — Commits découpés, `main` poussé, partage des setups (S12/S5)
 

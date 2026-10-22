@@ -151,7 +151,35 @@ export async function notchConsensus(db: Db, carKey: string): Promise<{ car_key:
 
 // ── Setups publiés ───────────────────────────────────────────────────────────
 
-export async function publishSetup(db: Db, install: Install, p: Publish): Promise<{ id: number; version: number } | "quota"> {
+/** Première version de l'app qui publie des setups. */
+export const SETUPS_SINCE = "1.0.10";
+
+/** « 1.0.10 » → [1, 0, 10] ; `null` si ce n'est pas une version `x.y.z`. */
+const triple = (v: string) => {
+  const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(v);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+};
+
+/**
+ * Publication d'essai : envoyée par une app de développement ou une bêta (version
+ * antérieure à `SETUPS_SINCE`, version préliminaire « -beta.N », ou app inconnue).
+ * Elle n'apparaît ni sur le site ni dans les versions publiées de l'app.
+ */
+export function isTestPublisher(userAgent: string | undefined, since = SETUPS_SINCE): boolean {
+  const m = /^LMU-Stats-Viewer\/(\S+)/.exec(userAgent ?? "");
+  const v = m ? triple(m[1]) : null;
+  const min = triple(since)!;
+  if (!v) return true; // absente, préliminaire (« 1.0.10-beta.2 ») ou illisible
+  for (let i = 0; i < 3; i++) if (v[i] !== min[i]) return v[i] < min[i];
+  return false;
+}
+
+export async function publishSetup(
+  db: Db,
+  install: Install,
+  p: Publish,
+  test = false,
+): Promise<{ id: number; version: number; test: boolean } | "quota"> {
   return db.transaction(async (tx) => {
     const [{ n }] = await tx.query<{ n: number }>("select count(*)::int as n from shared_setups where install_id = $1", [install.id]);
     if (n >= MAX_SHARED_PER_INSTALL) return "quota" as const;
@@ -162,11 +190,11 @@ export async function publishSetup(db: Db, install: Install, p: Publish): Promis
     );
     const [row] = await tx.query<{ id: string }>(
       `insert into shared_setups (install_id, car_key, car_folder, car_class, car_model, track, name, version,
-                                  setup_type, notes, svm, best_lap, game_version)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id`,
-      [install.id, p.car_key, carFolder(p.car_key), p.car_class, p.car_model, p.track, p.name, v + 1, p.setup_type, p.notes, p.svm, p.best_lap, p.game_version],
+                                  setup_type, notes, svm, best_lap, game_version, test)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) returning id`,
+      [install.id, p.car_key, carFolder(p.car_key), p.car_class, p.car_model, p.track, p.name, v + 1, p.setup_type, p.notes, p.svm, p.best_lap, p.game_version, test],
     );
-    return { id: Number(row.id), version: v + 1 };
+    return { id: Number(row.id), version: v + 1, test };
   });
 }
 
@@ -175,12 +203,28 @@ type AuthorRow = { tag: string; anonymous: boolean; display_name: string | null;
 const author = (r: AuthorRow) => publicDriver(r);
 
 export const ListQuery = z.object({
-  /** Dossier du véhicule (toutes versions de la voiture). */
-  car: z.string().min(1).max(80),
+  /** Dossier du véhicule (toutes versions de la voiture) ; absent = toutes les voitures. */
+  car: z.string().min(1).max(80).optional(),
   track: z.string().min(1).max(120).optional(),
+  class: z.string().min(1).max(32).optional(),
+  /** `1` : publications d'essai comprises (apps de développement et bêtas seulement). */
+  tests: z.enum(["0", "1"]).optional(),
 });
 
-/** Dernière version de chaque setup publié pour une voiture (et un circuit). */
+/** Voitures et circuits qui ont au moins un setup publié (filtres du site). */
+export async function setupFacets(db: Db, tests: boolean) {
+  const visible = "from shared_setups s join installs i on i.id = s.install_id where not i.hidden and ($1::boolean or not s.test)";
+  const cars = await db.query<{ car_folder: string; car_model: string; car_class: string; n: number }>(
+    `select s.car_folder, (array_agg(s.car_model order by s.created_at desc))[1] as car_model,
+            (array_agg(s.car_class order by s.created_at desc))[1] as car_class, count(*)::int as n
+       ${visible} group by s.car_folder order by car_model`,
+    [tests],
+  );
+  const tracks = await db.query<{ track: string; n: number }>(`select s.track, count(*)::int as n ${visible} group by s.track order by s.track`, [tests]);
+  return { since: SETUPS_SINCE, cars, tracks };
+}
+
+/** Dernière version de chaque setup publié (voiture, circuit et classe facultatifs). */
 export async function listSetups(db: Db, q: z.infer<typeof ListQuery>) {
   const rows = await db.query<
     AuthorRow & {
@@ -208,12 +252,13 @@ export async function listSetups(db: Db, q: z.infer<typeof ListQuery>) {
               sum(s.downloads) over (partition by s.install_id, s.car_key, s.track, lower(s.name))::int as downloads,
               s.created_at::text as created_at, ${AUTHOR_COLS}
          from shared_setups s join installs i on i.id = s.install_id
-        where s.car_folder = $1 and ($2::text is null or s.track = $2) and not i.hidden
+        where ($1::text is null or s.car_folder = $1) and ($2::text is null or s.track = $2)
+          and ($3::text is null or s.car_class = $3) and ($4::boolean or not s.test) and not i.hidden
         order by s.install_id, s.car_key, s.track, lower(s.name), s.version desc
      ) t
      order by best_lap asc nulls last, created_at desc
      limit 100`,
-    [q.car, q.track ?? null],
+    [q.car ?? null, q.track ?? null, q.class ?? null, q.tests === "1"],
   );
   return {
     setups: rows.map(({ tag, anonymous, display_name, homonym, nationality, avatar, id, ...r }) => ({
@@ -270,8 +315,8 @@ export async function getSetup(db: Db, id: number, download: boolean) {
 
 /** Mes setups publiés (toutes versions), sans le contenu. */
 export async function mySetups(db: Db, installId: string) {
-  const rows = await db.query<{ id: string; car_key: string; track: string; name: string; version: number; setup_type: string; best_lap: number | null; downloads: number; created_at: string }>(
-    `select id, car_key, track, name, version, setup_type, best_lap, downloads, created_at::text as created_at
+  const rows = await db.query<{ id: string; car_key: string; track: string; name: string; version: number; setup_type: string; best_lap: number | null; downloads: number; test: boolean; created_at: string }>(
+    `select id, car_key, track, name, version, setup_type, best_lap, downloads, test, created_at::text as created_at
        from shared_setups where install_id = $1 order by created_at desc, id desc`,
     [installId],
   );
@@ -298,7 +343,7 @@ export async function deleteSetup(db: Db, installId: string, id: number, all: bo
 export async function exportShared(db: Db, installId: string) {
   const shared_setups = await db.query(
     `select id, car_key, car_class, car_model, track, name, version, setup_type, notes, svm, best_lap,
-            game_version, downloads, created_at from shared_setups where install_id = $1 order by id`,
+            game_version, downloads, test, created_at from shared_setups where install_id = $1 order by id`,
     [installId],
   );
   const notch_cars = (

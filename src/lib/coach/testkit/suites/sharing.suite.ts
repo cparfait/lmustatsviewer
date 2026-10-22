@@ -5,7 +5,7 @@
  */
 
 import { section, ok, eq } from "../assert";
-import { carFolderOf, cleanTable, importName, isShareableCarKey, tableFingerprint, withCommunity } from "@/lib/setupSharing";
+import { carFolderOf, cleanTable, importName, isShareableCarKey, isTestBuild, tableFingerprint, withCommunity } from "@/lib/setupSharing";
 import type { NotchTable } from "@/lib/setupNotches";
 
 export function run(): void {
@@ -52,4 +52,10 @@ export function run(): void {
   eq(importName({ name: "Spa course", author }, []), "Spa course (Jean Dupont)", "nom + auteur");
   eq(importName({ name: "Spa course", author }, ["Spa course (Jean Dupont).svm"]), "Spa course (Jean Dupont) V2", "nom pris → V2");
   eq(importName({ name: "Q", author: { ...author, name: null } }, []), "Q (a1b2)", "anonyme : repère");
+
+  section("partage.version-essai");
+  ok(isTestBuild("1.0.9"), "version de développement avant la sortie → essai");
+  ok(isTestBuild("1.0.10-beta.2"), "bêta → essai");
+  ok(!isTestBuild("1.0.10"), "version publiée → public");
+  ok(!isTestBuild("1.2.0"), "version suivante → public");
 }

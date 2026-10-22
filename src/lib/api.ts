@@ -1981,6 +1981,8 @@ export interface MySharedSetup {
   setup_type: string;
   best_lap: number | null;
   downloads: number;
+  /** Publiée par une app de développement ou une bêta : invisible du public. */
+  test: boolean;
   created_at: string;
 }
 

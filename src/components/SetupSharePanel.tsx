@@ -22,7 +22,8 @@ import {
   type SvmFile,
 } from "@/lib/api";
 import { carKeyOf } from "@/lib/setupNotches";
-import { carFolderOf, importName, isShareableCarKey } from "@/lib/setupSharing";
+import { APP_VERSION } from "@/lib/changelog";
+import { carFolderOf, importName, isShareableCarKey, isTestBuild } from "@/lib/setupSharing";
 import { baseName, safeSetupName } from "@/lib/setupVersion";
 import { liveClassKey } from "@/lib/staticData";
 import { cn, formatTime } from "@/lib/utils";
@@ -74,7 +75,12 @@ export function SetupSharePanel({ entry, svm }: { entry: SetupEntry; svm: SvmFil
     if (!isTauri() || !shareable) return;
     setListError(false);
     void community
-      .get<{ setups: CommunitySharedSetup[] }>("setups", allTracks ? { car: folder } : { car: folder, track: entry.circuit })
+      .get<{ setups: CommunitySharedSetup[] }>("setups", {
+        car: folder,
+        ...(allTracks ? {} : { track: entry.circuit }),
+        // App de développement ou bêta : les publications d'essai sont listées aussi.
+        ...(isTestBuild(APP_VERSION) ? { tests: 1 } : {}),
+      })
       .then((r) => setList(r?.setups ?? []))
       .catch(() => {
         setList([]);
@@ -203,6 +209,7 @@ export function SetupSharePanel({ entry, svm }: { entry: SetupEntry; svm: SvmFil
                 <span className="flex-1 truncate">
                   {m.name} · v{m.version} · {m.track}
                   {m.best_lap ? ` · ${formatTime(m.best_lap)}` : ""} · {t("lab.share.downloads", { count: m.downloads })}
+                  {m.test && <span className="ml-1 text-amber-600 dark:text-amber-400">· {t("lab.share.testTag")}</span>}
                 </span>
                 <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => void unpublish(m.id, false)}>
                   <Trash2 className="h-3.5 w-3.5" />

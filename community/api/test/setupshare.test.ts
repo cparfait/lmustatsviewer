@@ -4,17 +4,19 @@
  */
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
+import { isTestPublisher } from "../src/setupshare.js";
 import { digest, register, setup } from "./helpers.js";
 
 type Ctx = Awaited<ReturnType<typeof setup>>;
 
 const CAR = "Mercedes_AMGGT3Evo_2025/1.11";
 
-const post = (ctx: Ctx, path: string, token: string, body: unknown, digestOverride?: string) => {
+const post = (ctx: Ctx, path: string, token: string, body: unknown, digestOverride?: string, app = "1.0.10") => {
   const raw = JSON.stringify(body);
   return ctx.app.request(`/api/v1${path}`, {
     method: "POST",
     headers: {
+      "user-agent": `LMU-Stats-Viewer/${app}`,
       authorization: `Bearer ${token}`,
       "content-type": "application/json",
       "content-digest": digestOverride ?? digest(raw),
@@ -177,5 +179,52 @@ describe("setups publiés", () => {
     } finally {
       await strict.close();
     }
+  });
+});
+
+describe("publications d'essai (app de développement ou bêta)", () => {
+  let ctx: Ctx;
+  let dev: string;
+  before(async () => {
+    ctx = await setup();
+    dev = (await register(ctx.app, "10.0.3.1")).token;
+  });
+  after(() => ctx.close());
+
+  test("version de l'app → essai ou public", () => {
+    assert.equal(isTestPublisher("LMU-Stats-Viewer/1.0.9"), true);
+    assert.equal(isTestPublisher("LMU-Stats-Viewer/1.0.10-beta.2"), true);
+    assert.equal(isTestPublisher(undefined), true);
+    assert.equal(isTestPublisher("curl/8.0"), true);
+    assert.equal(isTestPublisher("LMU-Stats-Viewer/1.0.10"), false);
+    assert.equal(isTestPublisher("LMU-Stats-Viewer/1.1.0"), false);
+    assert.equal(isTestPublisher("LMU-Stats-Viewer/2.0.0"), false);
+  });
+
+  test("absentes de la liste et des filtres publics, visibles avec tests=1", async () => {
+    const r = await post(ctx, "/setups", dev, setupBody({ name: "Essai dev" }), undefined, "1.0.9");
+    assert.equal(((await r.json()) as { test: boolean }).test, true);
+    await post(ctx, "/setups", dev, setupBody({ name: "Essai bêta" }), undefined, "1.0.10-beta.2");
+    await post(ctx, "/setups", dev, setupBody({ name: "Vrai", track: "Monza" }));
+
+    const pub = (await (await ctx.app.request("/api/v1/setups")).json()) as { setups: { name: string }[] };
+    assert.deepEqual(pub.setups.map((s) => s.name), ["Vrai"]);
+    const all = (await (await ctx.app.request("/api/v1/setups?tests=1")).json()) as { setups: unknown[] };
+    assert.equal(all.setups.length, 3);
+
+    const f = (await (await ctx.app.request("/api/v1/setups/facets")).json()) as { since: string; cars: { n: number }[]; tracks: { track: string }[] };
+    assert.equal(f.since, "1.0.10");
+    assert.deepEqual(f.tracks.map((t) => t.track), ["Monza"]);
+    assert.equal(f.cars[0].n, 1);
+
+    const mine = (await (await authed(ctx, "GET", "/setups/mine", dev)).json()) as { setups: { name: string; test: boolean }[] };
+    assert.equal(mine.setups.filter((s) => s.test).length, 2, "l'auteur voit ses essais");
+  });
+
+  test("filtre par classe", async () => {
+    const gt3 = (await (await ctx.app.request("/api/v1/setups?class=GT3&tests=1")).json()) as { setups: unknown[] };
+    assert.equal(gt3.setups.length, 3);
+    const hyper = (await (await ctx.app.request("/api/v1/setups?class=Hypercar")).json()) as { setups: unknown[] };
+    assert.equal(hyper.setups.length, 0);
   });
 });

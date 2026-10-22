@@ -53,6 +53,7 @@ import {
   deleteSetup,
   exportShared,
   getSetup,
+  isTestPublisher,
   ListQuery,
   listSetups,
   mySetups,
@@ -61,6 +62,7 @@ import {
   publishSetup,
   PublishSchema,
   reportNotches,
+  setupFacets,
 } from "./setupshare.js";
 
 export interface Limits {
@@ -606,7 +608,8 @@ export function createApp(db: Db, opts: AppOptions = {}) {
       if (got instanceof Response) return got;
       const p = PublishSchema.safeParse(got.body);
       if (!p.success) return c.json({ error: "bad_setup", detail: p.error.issues[0]?.message ?? null }, 400);
-      const r = await publishSetup(db, c.get("install"), p.data);
+      // Publication d'essai (app de développement ou bêta) : jamais montrée au public.
+      const r = await publishSetup(db, c.get("install"), p.data, isTestPublisher(c.req.header("user-agent")));
       return r === "quota" ? c.json({ error: "quota" }, 409) : c.json(r, 201);
     },
   );
@@ -616,6 +619,8 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     if (!q.success) return c.json({ error: "bad_request" }, 400);
     return c.json(await listSetups(db, q.data));
   });
+
+  v1.get("/setups/facets", publicRead, async (c) => c.json(await setupFacets(db, c.req.query("tests") === "1")));
 
   v1.get("/setups/item", publicRead, async (c) => {
     const q = idQuery.safeParse(c.req.query());

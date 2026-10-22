@@ -204,6 +204,15 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       create index shared_setups_combo on shared_setups (car_folder, track);
     `,
   },
+  {
+    id: 8,
+    name: "shared_setups_test",
+    sql: `
+      -- Publication d'essai (app de développement ou bêta) : jamais montrée sur le site
+      -- ni dans les versions publiées de l'app.
+      alter table shared_setups add column test boolean not null default false;
+    `,
+  },
 ];
 
 export async function migrate(db: Db): Promise<number[]> {

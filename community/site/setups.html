@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setups de la communauté — LMU Stats Viewer</title>
+<!-- Page pas encore liée depuis le menu (arrive avec l'app 1.0.10) : pas d'indexation. -->
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#D93B00">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=66">
+<link rel="icon" href="/favicon.ico?v=66">
+<link rel="apple-touch-icon" href="/assets/icon-128.png?v=66">
+<link rel="stylesheet" href="/assets/site.css?v=66">
+<script src="/assets/boot.js?v=66"></script>
+</head>
+<body>
+<header class="site-header"></header>
+
+<main>
+  <section class="intro">
+    <div class="wrap intro-grid">
+      <div class="intro-text">
+        <h1 data-i18n="su.title"></h1>
+        <p class="lead" data-i18n="su.lead"></p>
+        <p class="intro-trust muted" data-i18n="su.privacy"></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <!-- Affiché tant que la dernière version publiée de l'app ne publie pas encore de setups. -->
+    <div class="notice su-soon" id="soon" hidden><b data-i18n="su.soonT"></b> <span data-i18n="su.soonD"></span></div>
+    <div class="notice su-soon" id="testsOn" hidden data-i18n="su.tests"></div>
+  </div>
+
+  <div class="topfilters"><div class="wrap"><div class="filters" id="filters"></div></div></div>
+
+  <section class="board">
+    <div class="wrap">
+      <div class="tbar board-bar">
+        <h3 data-i18n="su.title"></h3>
+        <span class="tbar-right"><b class="tbar-n" id="count"></b></span>
+      </div>
+      <div id="list" class="su-list">
+        <div class="panel sk-panel"><div class="sk-line skeleton"></div><div class="sk-line skeleton"></div></div>
+      </div>
+      <p class="board-legend muted" data-i18n="su.hint"></p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer"></footer>
+
+<script src="/assets/site.js?v=66"></script>
+<script src="/assets/setups.js?v=66"></script>
+</body>
+</html>

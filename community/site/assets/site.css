@@ -1066,3 +1066,19 @@ body.cmp-open { overflow: hidden; }
 .fsel .fdrop-btn, .fsel .fmulti-btn { color: var(--text); font-weight: 700; padding-top: 5px; padding-bottom: 5px; }
 .fsel.is-set { border-color: var(--amber); box-shadow: 0 0 0 3px var(--glow); }
 .fsel.is-set .fdrop-btn { background: color-mix(in srgb, var(--amber) 8%, transparent); color: var(--amber-ink); }
+
+/* ── Setups de la communauté (setups.html) ── */
+.su-soon { margin: 18px 0 0; }
+.su-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.su-card { padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+.su-head { display: flex; align-items: center; gap: 10px; }
+.su-head .brand-img { width: 28px; height: 28px; object-fit: contain; flex: none; }
+.su-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.su-meta { font-size: .88rem; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.su-meta .flag-img { height: 12px; margin-right: 4px; }
+.su-notes { margin: 4px 0 0; font-size: .9rem; white-space: pre-line; overflow-wrap: anywhere; }
+.su-actions { margin-top: 6px; }
+.su-list .empty, .su-list .notice { grid-column: 1 / -1; }
+.su-author { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.su-author .dmarks { display: inline-flex; align-items: center; gap: 4px; width: auto; }
+.su-author .fl-slot:empty, .su-author .av-slot:empty { display: none; }

@@ -199,7 +199,8 @@ et figure dans l'export `GET /me` (`shared_setups`, `notch_cars`).
 | POST | `/api/v1/notches` | `{ car_key: "<dossier>/<version>", table }` : table de crans de la voiture (texte du garage par index, nombre de crans) — remplace la déclaration précédente de l'installation |
 | GET | `/api/v1/notches?car=` | Consensus : par index, l'affichage déclaré par le plus d'installations (égalité au sommet = laissé vide) ; 404 si inconnue |
 | POST | `/api/v1/setups` | Publie un setup (bouton « Publier », jamais automatique) : `.svm` validé ligne à ligne (≤ 64 Ko, `[GENERAL]` requis), notes ≤ 1000, meilleur tour facultatif ; même nom = version suivante ; 300 versions au plus par installation → `201 { id, version }` |
-| GET | `/api/v1/setups?car=<dossier>[&track=]` | Dernière version de chaque setup publié (auteur selon ses règles d'anonymat), meilleur tour d'abord, 100 au plus |
+| GET | `/api/v1/setups[?car=<dossier>&track=&class=&tests=1]` | Dernière version de chaque setup publié (auteur selon ses règles d'anonymat), meilleur tour d'abord, 100 au plus. Les publications d'**essai** (app antérieure à 1.0.10, bêta ou inconnue — migration 8) n'y figurent qu'avec `tests=1` |
+| GET | `/api/v1/setups/facets[?tests=1]` | Voitures et circuits qui ont un setup publié (filtres du site) + `since` (1ʳᵉ version de l'app qui publie) |
 | GET | `/api/v1/setups/item?id=[&download=1]` | Contenu `.svm` + versions ; `download=1` compte un téléchargement |
 | GET | `/api/v1/setups/mine` | Mes publications (toutes versions, sans contenu) |
 | DELETE | `/api/v1/setups/item?id=[&all=1]` | Retire une version (ou toutes) — seulement les siennes |

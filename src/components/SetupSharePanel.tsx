@@ -128,6 +128,10 @@ export function SetupSharePanel({ entry, svm }: { entry: SetupEntry; svm: SvmFil
         notes: notes.trim().slice(0, 1000),
         best_lap: attachBest ? bestLap : null,
         game_version: gameVersion?.slice(0, 20) || null,
+        // Ce que ce setup a roulé chez moi (tours reconnus en piste), si connu.
+        ...(stats && stats.laps > 0
+          ? { laps: stats.laps, clean_laps: stats.clean_laps, wet_laps: stats.wet_laps }
+          : {}),
       });
       toastSuccess(t("lab.share.published", { version: r.version }));
       loadMine();
@@ -307,6 +311,8 @@ export function SetupSharePanel({ entry, svm }: { entry: SetupEntry; svm: SvmFil
                         {t("lab.share.by", { who: own ? t("lab.share.you") : (s.author.name ?? s.author.tag) })}
                         {allTracks ? ` · ${s.track}` : ""} · {s.setup_type}
                         {s.best_lap ? ` · ${formatTime(s.best_lap)}` : ""}
+                        {s.laps ? ` · ${t("lab.stats.laps", { count: s.laps })}` : ""}
+                        {s.wet_laps ? ` (${t("lab.stats.wet")} ${s.wet_laps})` : ""}
                         {s.game_version ? ` · ${s.game_version}` : ""} · {t("lab.share.downloads", { count: s.downloads })}
                       </div>
                       {s.notes && <div className="mt-1 line-clamp-2 text-xs">{s.notes}</div>}

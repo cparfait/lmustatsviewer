@@ -85,7 +85,7 @@ async function download(id, btn) {
     const item = await api("setups/item", { id, download: 1 });
     if (!item) throw new Error("not_found");
     const url = URL.createObjectURL(new Blob([item.svm], { type: "text/plain;charset=utf-8" }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: `${item.name}.svm` });
+    const a = Object.assign(document.createElement("a"), { href: url, download: `${asciiFileName(item.name)}.svm` });
     document.body.append(a);
     a.click();
     a.remove();
@@ -105,6 +105,36 @@ async function loadList() {
   } catch {
     list.innerHTML = `<p class="notice">${esc(t("offline"))}</p>`;
     return;
+/**
+ * Tours roulés avec ce setup chez son auteur (setup chargé reconnu en piste par l'app),
+ * sous le meilleur tour ; rien pour une publication d'une app plus ancienne.
+ */
+function lapsLine(s) {
+  if (!s.laps) return "";
+  const txt = [t(s.laps === 1 ? "su.lap1" : "su.laps", { n: fmtNum(s.laps) }), s.wet_laps ? t("su.wet", { n: fmtNum(s.wet_laps) }) : ""]
+    .filter(Boolean)
+    .join(" · ");
+  const tip = [t("su.lapsTip"), s.clean_laps != null ? t("su.clean", { n: fmtNum(s.clean_laps) }) : ""].filter(Boolean).join("\n");
+  return `<div class="su-laps muted" title="${esc(tip)}">${esc(txt)}</div>`;
+}
+
+/**
+ * Nom de fichier en ASCII, comme dans l'app : accents retirés, « · » et tirets longs en
+ * « - », le reste hors ASCII retiré (le jeu peut ne pas lister au garage un nom accentué).
+ */
+function asciiFileName(name) {
+  const special = { æ: "ae", Æ: "AE", œ: "oe", Œ: "OE", ß: "ss", ø: "o", Ø: "O", ł: "l", Ł: "L", "·": "-", "–": "-", "—": "-", "’": "'" };
+  const out = [...String(name)]
+    .map((c) => {
+      if (c.charCodeAt(0) < 128) return c;
+      if (special[c]) return special[c];
+      const base = c.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return base && [...base].every((x) => x.charCodeAt(0) < 128) ? base : " ";
+    })
+    .join("");
+  return out.replace(/[\\/:*?"<>|]/g, " ").split(/\s+/).filter(Boolean).join(" ") || "setup";
+}
+
   }
   const rows = r?.setups ?? [];
   $("count").textContent = rows.length === 1 ? t("su.count1") : t("su.count", { n: fmtNum(rows.length) });

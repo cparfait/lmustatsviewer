@@ -216,6 +216,12 @@ export function CommunitySetupsView({ lmuPath, onImported }: { lmuPath: string; 
                       </TableCell>
                       <TableCell className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
                         {s.best_lap != null ? formatTime(s.best_lap) : <span className="text-muted-foreground/40">—</span>}
+                        {s.laps ? (
+                          <div className="font-sans text-[10px] text-muted-foreground" title={t("lab.stats.publishedTip")}>
+                            {t("lab.stats.laps", { count: s.laps })}
+                            {s.wet_laps ? ` · ${t("lab.stats.wet")} ${s.wet_laps}` : ""}
+                          </div>
+                        ) : null}
                       </TableCell>
                       <TableCell className="px-3 py-1.5 text-right text-xs tabular-nums">{s.downloads}</TableCell>
                       <TableCell className="px-3 py-1.5 text-right">

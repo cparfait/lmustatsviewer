@@ -150,6 +150,7 @@ describe("setups publiés", () => {
     assert.equal((await post(ctx, "/setups", alice, setupBody({ svm: long, name: "Longues notes" }))).status, 201);
   });
 
+
   test("on ne retire que les siens ; « all » retire toutes les versions", async () => {
     const mine = (await (await authed(ctx, "GET", "/setups/mine", alice)).json()) as { setups: { id: number; name: string }[] };
     assert.equal(mine.setups.length, 3); // « Spa course » v1 et v2, « Longues notes »
@@ -179,6 +180,37 @@ describe("setups publiés", () => {
     } finally {
       await strict.close();
     }
+  });
+});
+
+describe("tours roulés publiés avec un setup", () => {
+  let ctx: Ctx;
+  let alice: string;
+  before(async () => {
+    ctx = await setup();
+    alice = (await register(ctx.app, "10.0.4.1")).token;
+  });
+  after(() => ctx.close());
+
+  test("tours roulés chez l'auteur : gardés, montrés, bornés ; absents = null", async () => {
+    const ok = await post(ctx, "/setups", alice, setupBody({ name: "Roulé", laps: 42, clean_laps: 30, wet_laps: 12 }));
+    assert.equal(ok.status, 201);
+    const { id } = (await ok.json()) as { id: number };
+    const item = (await (await ctx.app.request(`/api/v1/setups/item?id=${id}`)).json()) as { laps: number; clean_laps: number; wet_laps: number };
+    assert.deepEqual([item.laps, item.clean_laps, item.wet_laps], [42, 30, 12]);
+    const list = (await (await ctx.app.request("/api/v1/setups?car=Mercedes_AMGGT3Evo_2025&track=Spa")).json()) as {
+      setups: { id: number; laps: number | null; wet_laps: number | null }[];
+    };
+    const row = list.setups.find((s) => s.id === id)!;
+    assert.deepEqual([row.laps, row.wet_laps], [42, 12]);
+    // Une ancienne app n'envoie rien : null partout.
+    const old = (await (await post(ctx, "/setups", alice, setupBody({ name: "Ancienne app" }))).json()) as { id: number };
+    const o = (await (await ctx.app.request(`/api/v1/setups/item?id=${old.id}`)).json()) as { laps: number | null };
+    assert.equal(o.laps, null);
+    // Incohérent (plus de tours propres que de tours), négatif ou fractionnaire : refusé.
+    assert.equal((await post(ctx, "/setups", alice, setupBody({ name: "x1", laps: 5, clean_laps: 9 }))).status, 400);
+    assert.equal((await post(ctx, "/setups", alice, setupBody({ name: "x2", laps: -1 }))).status, 400);
+    assert.equal((await post(ctx, "/setups", alice, setupBody({ name: "x3", laps: 2.5 }))).status, 400);
   });
 });
 

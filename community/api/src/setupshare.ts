@@ -51,6 +51,9 @@ export const MAX_SVM_BYTES = 64 * 1024;
 /** Versions publiées au plus par installation (toutes confondues). */
 export const MAX_SHARED_PER_INSTALL = 300;
 
+/** Un nombre de tours : entier, borné ; absent pour une app qui ne le sait pas. */
+const Laps = z.number().int().min(0).max(100_000).nullable().default(null);
+
 export const PublishSchema = z
   .object({
     car_key: CarKey,
@@ -69,8 +72,13 @@ export const PublishSchema = z
       .refine((s) => s.split(/\r?\n/).every((l) => SVM_LINE.test(l)), "bad_line"),
     best_lap: z.number().min(20).max(1200).nullable().default(null),
     game_version: z.string().max(20).nullable().default(null),
+    /** Ce que le setup a roulé chez l'auteur (tours reconnus en piste par l'app). */
+    laps: Laps,
+    clean_laps: Laps,
+    wet_laps: Laps,
   })
-  .strict();
+  .strict()
+  .refine((p) => p.laps == null || ((p.clean_laps ?? 0) <= p.laps && (p.wet_laps ?? 0) <= p.laps), "bad_laps");
 
 export type Publish = z.infer<typeof PublishSchema>;
 
@@ -190,9 +198,9 @@ export async function publishSetup(
     );
     const [row] = await tx.query<{ id: string }>(
       `insert into shared_setups (install_id, car_key, car_folder, car_class, car_model, track, name, version,
-                                  setup_type, notes, svm, best_lap, game_version, test)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) returning id`,
-      [install.id, p.car_key, carFolder(p.car_key), p.car_class, p.car_model, p.track, p.name, v + 1, p.setup_type, p.notes, p.svm, p.best_lap, p.game_version, test],
+                                  setup_type, notes, svm, best_lap, game_version, test, laps, clean_laps, wet_laps)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) returning id`,
+      [install.id, p.car_key, carFolder(p.car_key), p.car_class, p.car_model, p.track, p.name, v + 1, p.setup_type, p.notes, p.svm, p.best_lap, p.game_version, test, p.laps, p.clean_laps, p.wet_laps],
     );
     return { id: Number(row.id), version: v + 1, test };
   });
@@ -240,6 +248,9 @@ export async function listSetups(db: Db, q: z.infer<typeof ListQuery>) {
       notes: string;
       best_lap: number | null;
       game_version: string | null;
+      laps: number | null;
+      clean_laps: number | null;
+      wet_laps: number | null;
       downloads: number;
       created_at: string;
     }
@@ -248,7 +259,7 @@ export async function listSetups(db: Db, q: z.infer<typeof ListQuery>) {
        select distinct on (s.install_id, s.car_key, s.track, lower(s.name))
               s.id, s.car_key, s.car_class, s.car_model, s.track, s.name, s.version,
               count(*) over (partition by s.install_id, s.car_key, s.track, lower(s.name))::int as versions,
-              s.setup_type, s.notes, s.best_lap, s.game_version,
+              s.setup_type, s.notes, s.best_lap, s.game_version, s.laps, s.clean_laps, s.wet_laps,
               sum(s.downloads) over (partition by s.install_id, s.car_key, s.track, lower(s.name))::int as downloads,
               s.created_at::text as created_at, ${AUTHOR_COLS}
          from shared_setups s join installs i on i.id = s.install_id
@@ -285,12 +296,15 @@ export async function getSetup(db: Db, id: number, download: boolean) {
       svm: string;
       best_lap: number | null;
       game_version: string | null;
+      laps: number | null;
+      clean_laps: number | null;
+      wet_laps: number | null;
       downloads: number;
       created_at: string;
     }
   >(
     `select s.install_id, s.car_key, s.car_class, s.car_model, s.track, s.name, s.version, s.setup_type, s.notes,
-            s.svm, s.best_lap, s.game_version, s.downloads, s.created_at::text as created_at, ${AUTHOR_COLS}
+            s.svm, s.best_lap, s.game_version, s.laps, s.clean_laps, s.wet_laps, s.downloads, s.created_at::text as created_at, ${AUTHOR_COLS}
        from shared_setups s join installs i on i.id = s.install_id
       where s.id = $1 and not i.hidden`,
     [id],
@@ -315,8 +329,8 @@ export async function getSetup(db: Db, id: number, download: boolean) {
 
 /** Mes setups publiés (toutes versions), sans le contenu. */
 export async function mySetups(db: Db, installId: string) {
-  const rows = await db.query<{ id: string; car_key: string; track: string; name: string; version: number; setup_type: string; best_lap: number | null; downloads: number; test: boolean; created_at: string }>(
-    `select id, car_key, track, name, version, setup_type, best_lap, downloads, test, created_at::text as created_at
+  const rows = await db.query<{ id: string; car_key: string; track: string; name: string; version: number; setup_type: string; best_lap: number | null; laps: number | null; downloads: number; test: boolean; created_at: string }>(
+    `select id, car_key, track, name, version, setup_type, best_lap, laps, downloads, test, created_at::text as created_at
        from shared_setups where install_id = $1 order by created_at desc, id desc`,
     [installId],
   );
@@ -343,7 +357,7 @@ export async function deleteSetup(db: Db, installId: string, id: number, all: bo
 export async function exportShared(db: Db, installId: string) {
   const shared_setups = await db.query(
     `select id, car_key, car_class, car_model, track, name, version, setup_type, notes, svm, best_lap,
-            game_version, downloads, test, created_at from shared_setups where install_id = $1 order by id`,
+            game_version, laps, clean_laps, wet_laps, downloads, test, created_at from shared_setups where install_id = $1 order by id`,
     [installId],
   );
   const notch_cars = (

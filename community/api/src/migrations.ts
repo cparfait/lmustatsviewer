@@ -213,6 +213,18 @@ const MIGRATIONS: { id: number; name: string; sql: string }[] = [
       alter table shared_setups add column test boolean not null default false;
     `,
   },
+  {
+    id: 9,
+    name: "shared_setups_laps",
+    sql: `
+      -- Ce que le setup a roulé chez son auteur (setup chargé reconnu en piste par l'app) :
+      -- tours, tours propres (chrono + trois secteurs, non invalidés), tours sous la pluie.
+      -- NULL : publié par une app qui ne le sait pas.
+      alter table shared_setups add column laps integer;
+      alter table shared_setups add column clean_laps integer;
+      alter table shared_setups add column wet_laps integer;
+    `,
+  },
 ];
 
 export async function migrate(db: Db): Promise<number[]> {

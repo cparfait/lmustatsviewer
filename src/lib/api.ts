@@ -2044,6 +2044,10 @@ export interface SharedSetupMeta {
   notes: string;
   best_lap: number | null;
   game_version: string | null;
+  /** Ce que le setup a roulé chez l'auteur (setup chargé reconnu en piste), si connu. */
+  laps?: number | null;
+  clean_laps?: number | null;
+  wet_laps?: number | null;
 }
 
 export interface MySharedSetup {
@@ -2074,6 +2078,10 @@ export interface CommunitySharedSetup {
   notes: string;
   best_lap: number | null;
   game_version: string | null;
+  /** Tours roulés avec ce setup chez l'auteur (absents : publié par une app plus ancienne). */
+  laps?: number | null;
+  clean_laps?: number | null;
+  wet_laps?: number | null;
   downloads: number;
   created_at: string;
   author: CommunityPublicDriver;

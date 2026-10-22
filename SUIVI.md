@@ -286,6 +286,9 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   1.0.10, ajouter le lien (menu et pied de page, `site.js`) et retirer le `noindex`. À voir aussi en roulant : bandeau « setup imposé » (page Live) et
   carte « Bilan au box » (≥ 2 tours puis stands). Commité le 2026-10-21 (`79f9a59`) ; note de
   passation `REPRISE-ATELIER-SETUP.md` supprimée le 2026-10-22 (son contenu restant est ici).
+- ⏳ **Serveur communautaire : migration 9 à déployer (2026-10-22)** : tours roulés publiés avec les
+  setups (`laps`, `clean_laps`, `wet_laps`). Tant qu'elle n'est pas en production, l'app republie
+  sans ces champs et le site n'affiche rien de plus.
 - ⏳ **Noms de setup en ASCII (2026-10-22)** : réglage actif par défaut sur la foi d'un relevé chez un
   outil du marché (« LMU n'affiche pas un `.svm` au nom accentué ou avec « · » »), **non vérifié chez
   nous**. À tester : un fichier « Été · test.svm » dans `Settings/<circuit>/` apparaît-il au garage ?
@@ -949,6 +952,25 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-22 — Tours roulés publiés avec les setups (API, app, site)
+
+**Demande** : « il faut aussi apporter ces modifs sur le site » → choix « tout, serveur compris ».
+- ✅ **API** (`community/api`) : migration 9 `shared_setups_laps` (`laps`, `clean_laps`, `wet_laps`,
+  NULL pour une app plus ancienne) ; `POST /setups` les accepte (entiers ≥ 0, propres et pluie ≤ total,
+  sinon 400) ; liste, fiche, « mes setups » et export les rendent. `COMMUNITY-SPEC.md` à jour.
+  `npm test` (community) 66 OK, `typecheck` propre.
+- ✅ **App** : la publication envoie les chiffres du setup (`lap_counts`) ; **serveur pas encore
+  déployé → schéma strict** : sur un 400, l'app republie sans ces champs (rien ne casse avant le
+  déploiement). Tours affichés sous le meilleur tour dans la vue « Communauté » et l'onglet Partager.
+- ✅ **Site** (`community/site`) : « 42 tours · pluie 12 » sous le meilleur tour (tours propres en
+  infobulle), textes 5 langues dans `site.js` ; nom du `.svm` téléchargé en ASCII. Vérifié dans
+  l'aperçu local (ligne injectée : l'API de production n'a pas encore ces champs), bureau et mobile.
+- ⚠️ `setups.js`, `site.js`, `site.css` portent aussi des modifications non commitées d'une autre
+  session (liste en lignes) : mes ajouts sont posés à part, mais l'affichage des tours est dans sa
+  fonction `row()`.
+- 📋 **Prochaine étape** : déployer le serveur (`community/scripts/deploy.*`, migration 9) avec
+  l'accord du mainteneur, puis publier un setup roulé et vérifier la ligne sur le site.
 
 ### 2026-10-22 — Chiffres par setup, publication pré-remplie, noms de fichiers ASCII
 

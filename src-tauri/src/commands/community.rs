@@ -1186,7 +1186,7 @@ pub async fn community_setup_publish(
     let s = |k: &str| meta[k].as_str().unwrap_or("").to_string();
     let notes = s("notes");
     let (_, svm) = crate::commands::setups::shareable_svm(&db, setup_id, &notes)?;
-    let body = json!({
+    let mut body = json!({
         "car_key": s("car_key"),
         "car_class": s("car_class"),
         "car_model": s("car_model"),
@@ -1198,10 +1198,44 @@ pub async fn community_setup_publish(
         "best_lap": meta["best_lap"].as_f64(),
         "game_version": meta["game_version"].as_str(),
     });
+    // Ce que le setup a roulé chez l'auteur (setup chargé reconnu en piste), s'il est connu.
+    let laps = lap_counts(&meta);
+    if let (Some(obj), Some(l)) = (body.as_object_mut(), laps.as_ref()) {
+        obj.extend(l.clone());
+    }
     match post_signed(&db, &tok, "setups", &body).await? {
         (201, v) => Ok(v),
+        // Serveur d'avant ces champs (schéma strict) : on republie sans eux.
+        (400, _) if laps.is_some() => {
+            if let Some(obj) = body.as_object_mut() {
+                for k in LAP_FIELDS {
+                    obj.remove(k);
+                }
+            }
+            match post_signed(&db, &tok, "setups", &body).await? {
+                (201, v) => Ok(v),
+                (c, v) => Err(server_err(c, &v)),
+            }
+        }
         (c, v) => Err(server_err(c, &v)),
     }
+}
+
+/// Nombres de tours publiés avec un setup (entiers ≥ 0, propres et pluie ≤ total).
+const LAP_FIELDS: [&str; 3] = ["laps", "clean_laps", "wet_laps"];
+
+/// Les nombres de tours de `meta`, s'ils sont tous présents et cohérents ; sinon rien.
+pub fn lap_counts(meta: &Value) -> Option<serde_json::Map<String, Value>> {
+    let n = |k: &str| meta[k].as_u64().filter(|x| *x <= 100_000);
+    let (laps, clean, wet) = (n("laps")?, n("clean_laps")?, n("wet_laps")?);
+    if laps == 0 || clean > laps || wet > laps {
+        return None;
+    }
+    let mut m = serde_json::Map::new();
+    m.insert("laps".into(), json!(laps));
+    m.insert("clean_laps".into(), json!(clean));
+    m.insert("wet_laps".into(), json!(wet));
+    Some(m)
 }
 
 /// Mes setups publiés (toutes versions) ; liste vide si le partage n'est pas permis.
@@ -1421,6 +1455,11 @@ mod tests {
         assert_eq!(compound_name("").as_deref(), None);
         assert!(is_wet("Wet"));
         assert!(!is_wet("Medium"));
+        assert!(lap_counts(&json!({"laps": 12, "clean_laps": 9, "wet_laps": 3})).is_some());
+        assert!(lap_counts(&json!({"laps": 12, "clean_laps": 13, "wet_laps": 0})).is_none());
+        assert!(lap_counts(&json!({"laps": 0, "clean_laps": 0, "wet_laps": 0})).is_none());
+        assert!(lap_counts(&json!({"laps": 5})).is_none());
+        assert!(lap_counts(&json!({})).is_none());
         assert!(valid_game_version("1.4200"));
         assert!(!valid_game_version(""));
         assert!(!valid_game_version("1.42.1"));

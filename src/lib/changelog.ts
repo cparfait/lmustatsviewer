@@ -120,6 +120,15 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
+              en: "Shared setups now show how much their author drove them: laps, of which wet laps, under the best lap in the “Community” view, the Share tab and on the website's “Setups” page (only for setups published from this version on). The .svm downloaded from the website also gets a file name without accents.",
+              fr: "Les setups partagés montrent maintenant combien leur auteur les a roulés : tours, dont sous la pluie, sous le meilleur tour dans la vue « Communauté », l'onglet Partager et la page « Setups » du site (seulement pour les setups publiés à partir de cette version). Le .svm téléchargé depuis le site reçoit aussi un nom de fichier sans accent.",
+              es: "Los setups compartidos muestran ahora cuánto los rodó su autor: vueltas, de ellas en lluvia, bajo la mejor vuelta en la vista «Comunidad», la pestaña Compartir y la página «Setups» de la web (solo para los setups publicados a partir de esta versión). El .svm descargado desde la web recibe también un nombre de archivo sin acentos.",
+              de: "Geteilte Setups zeigen jetzt, wie viel ihr Autor damit gefahren ist: Runden, davon im Regen, unter der besten Runde in der Ansicht „Community“, im Tab Teilen und auf der Seite „Setups“ der Website (nur für ab dieser Version veröffentlichte Setups). Die von der Website heruntergeladene .svm erhält außerdem einen Dateinamen ohne Akzente.",
+              it: "I setup condivisi mostrano ora quanto il loro autore li ha guidati: giri, di cui sul bagnato, sotto il giro migliore nella vista «Community», nella scheda Condividi e nella pagina «Setup» del sito (solo per i setup pubblicati da questa versione in poi). Il .svm scaricato dal sito riceve anche un nome di file senza accenti.",
+            },
+          },
+          {
+            text: {
               en: "New race call-out: every third lap, the engineer gives the gap to the car ahead and the car behind — within your class in multiclass, cars on the same lap and less than 30 s away. Can be turned off in Settings › Audio / Voice › “Gaps ahead / behind”.",
               fr: "Nouvelle annonce en course : un tour sur trois, l'ingénieur donne l'écart avec la voiture devant et celle derrière — dans ta classe en multiclasse, voitures dans le même tour et à moins de 30 s. Se coupe dans Configuration › Audio / Voix › « Écarts devant / derrière ».",
               es: "Nuevo aviso en carrera: una vuelta de cada tres, el ingeniero da la diferencia con el coche de delante y el de detrás — en tu clase en multiclase, coches en la misma vuelta y a menos de 30 s. Se desactiva en Configuración › Audio / Voz › «Diferencias delante / detrás».",

@@ -18,6 +18,8 @@ pub mod overlay;
 pub mod records;
 pub mod telemetry;
 pub mod telemetry_lab;
+pub mod telemetry_link;
+pub mod insights;
 pub mod tts;
 pub mod tts_cloud;
 pub mod assets;

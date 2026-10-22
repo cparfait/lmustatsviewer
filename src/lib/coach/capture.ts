@@ -16,7 +16,9 @@
  */
 
 import type { CoachRefSavePayload, CoachCornerRow, LiveData } from "@/lib/api";
-import { CHANNELS, assignUid, type LapBuffer, type DetectedCorner } from "./windows";
+import { CHANNELS, assignUid, detectAllCorners, refToLapBuffer, type KnownApex, type LapBuffer, type DetectedCorner } from "./windows";
+import type { CoachRef } from "@/lib/api";
+import type { DetectCornersOptions } from "@/lib/telemetry/corners";
 import type { CompletedLap } from "./engine";
 import type { CoachFrame } from "./frame";
 
@@ -91,9 +93,9 @@ function sampleAt(dist: number[], vals: number[], d: number): number {
 }
 
 /** Ligne `coach_corner` d'un virage détecté (cibles vitesse échantillonnées au tampon). */
-function cornerRow(buf: LapBuffer, c: DetectedCorner): CoachCornerRow {
+function cornerRow(buf: LapBuffer, c: DetectedCorner, known: KnownApex[] = []): CoachCornerRow {
   return {
-    corner_uid: assignUid(c.apexDist, []),
+    corner_uid: assignUid(c.apexDist, known),
     n: c.n,
     entry_dist: c.entryDist,
     brake_dist: c.brakeDist,
@@ -105,6 +107,31 @@ function cornerRow(buf: LapBuffer, c: DetectedCorner): CoachCornerRow {
     // La sortie est déjà définie comme la reprise du plein gaz (windows.exitIndex).
     full_throttle_dist: c.exitDist,
   };
+}
+
+/**
+ * Fenêtres d'une réf **déjà enregistrée** recalculées avec d'autres options de
+ * détection (détection fine), à partir de sa grille dense — sans rien réécrire en
+ * base. Un virage dont l'apex est à moins de 40 m d'un virage stocké garde son
+ * `corner_uid` (historique, dispersion, notes et phrases restent attachés) ; un
+ * virage nouvellement trouvé reçoit un UID neuf. Réf vide/illisible : fenêtres
+ * d'origine.
+ */
+export function rebuildRefCorners(ref: CoachRef, opts: DetectCornersOptions): CoachCornerRow[] {
+  if (ref.n_points < 20 || ref.step_m <= 0) return ref.corners;
+  const buf = refToLapBuffer(ref);
+  const found = detectAllCorners(buf, opts);
+  if (found.length === 0) return ref.corners;
+  const known: KnownApex[] = ref.corners.map((c) => ({ corner_uid: c.corner_uid, apexDist: c.apex_dist }));
+  const rows = found.map((c) => cornerRow(buf, c, known));
+  // Deux virages redétectés ne peuvent pas reprendre la même identité : le second
+  // (le plus loin de l'apex connu) reçoit un UID neuf.
+  const seen = new Set<string>();
+  for (const r of rows) {
+    if (seen.has(r.corner_uid)) r.corner_uid = assignUid(r.apex_dist, []);
+    seen.add(r.corner_uid);
+  }
+  return rows;
 }
 
 /**

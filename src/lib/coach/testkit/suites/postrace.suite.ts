@@ -120,6 +120,8 @@ const tFile = (filename: string, o: Partial<TelemetryFileInfo> = {}): TelemetryF
   mtime: 0,
   best_lap: null,
   duration_s: null,
+  lap_times: [],
+  best_game_lap: null,
   ...o,
 });
 

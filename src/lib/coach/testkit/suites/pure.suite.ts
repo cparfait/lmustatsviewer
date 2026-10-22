@@ -196,7 +196,7 @@ export function run(): void {
     ok(buildLapBufferFromChannels({ time: [0], dist: [0], channels: [] }) === null, "short → null");
     const meta = (ds: number[]): TelemetryMeta => ({
       info: {} as never, metadata: {}, channels: [],
-      laps: ds.map((d, i) => ({ lap: i + 1, start_time: 0, end_time: d, duration: d })),
+      laps: ds.map((d, i) => ({ lap: i + 1, start_time: 0, end_time: d, duration: d, game_time: null, valid: null, s1: null, s2: null, s3: null })),
       t0: 0, duration: 0,
     });
     eq(pickBestLap(meta([95, 92, 99])), 2, "pick fastest lap");

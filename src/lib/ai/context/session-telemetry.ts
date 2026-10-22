@@ -17,6 +17,8 @@ import { buildElectronicsSummary, ELEC_CHANNELS } from "./telemetry-context";
 import { detectCorners, summarizeCorners, type Corner } from "../../telemetry/corners";
 import { computeLapMetrics, summarizeLapMetrics } from "../../telemetry/lapMetrics";
 import { compareToBestApex, summarizeTheoreticalBest } from "../../telemetry/theoreticalBest";
+import { cachedConfigFlag, FLAG_FINE_CORNERS, FLAG_OFFICIAL_LAPS, FLAG_TELEM_LINK, readConfigFlag } from "../../configFlag";
+import { fastestOfficialLap, lapStatuses } from "../../telemetry/officialLaps";
 
 /** Fenêtre de recherche autour du `timestamp` de la session (début de l'événement). */
 const BEFORE_S = 10 * 60;
@@ -38,6 +40,21 @@ export function parseTelemetryFilename(filename: string): { letter: string; star
   if (!m) return null;
   const [, letter, y, mo, d, h, mi, s] = m;
   return { letter: letter.toUpperCase(), start: Date.UTC(+y, +mo - 1, +d, +h, +mi, +s) / 1000 };
+}
+
+/** Lettre du nom de fichier → type de session du jeu. */
+const LETTER_TYPE: Record<string, string> = { R: "Race", Q: "Qualify", W: "Warmup", P: "Practice1" };
+
+/**
+ * Type de session d'un enregistrement : celui des métadonnées, sauf s'il est vide ou
+ * « Practice » par défaut alors que le nom du fichier (`…_R_…`, `…_Q_…`) dit autre chose.
+ */
+export function sessionTypeFromFile(f: Pick<TelemetryFileInfo, "session_type" | "filename">): string {
+  const meta = (f.session_type || "").trim();
+  const letter = parseTelemetryFilename(f.filename)?.letter;
+  if (!letter) return meta;
+  const muted = meta === "" || /^(prac|unknown)/i.test(meta);
+  return muted && letter !== "P" ? LETTER_TYPE[letter] : meta || LETTER_TYPE[letter];
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -75,6 +92,10 @@ export function pickSessionTelemetry(
 }
 
 const fastestLap = (meta: TelemetryMeta) => {
+  if (cachedConfigFlag(FLAG_OFFICIAL_LAPS)) {
+    const best = fastestOfficialLap(meta.laps);
+    if (best) return { ...best, duration: best.game_time ?? best.duration };
+  }
   const laps = meta.laps.filter((l) => l.duration > 0);
   return laps.length ? laps.reduce((a, b) => (b.duration < a.duration ? b : a)) : null;
 };
@@ -107,7 +128,7 @@ export async function loadFastestLapTexts(meta: TelemetryMeta): Promise<{ corner
   const get = (n: string) => d.channels.find((c) => c.name === n)?.values[0] ?? [];
   const speed = get("Ground Speed");
   const brake = get("Brake Pos");
-  const corners = detectCorners(speed, brake, d.dist);
+  const corners = detectCorners(speed, brake, d.dist, { fine: cachedConfigFlag(FLAG_FINE_CORNERS) });
   const metrics = summarizeLapMetrics(
     computeLapMetrics(
       corners,
@@ -133,7 +154,15 @@ export async function loadFastestLapTexts(meta: TelemetryMeta): Promise<{ corner
 
 /** Meilleure vitesse d'apex par virage sur les tours propres (meilleur théorique « self »). */
 export async function loadTheoreticalBestText(meta: TelemetryMeta): Promise<string> {
-  const laps = meta.laps.filter((l) => l.duration > 0);
+  let laps = meta.laps.filter((l) => l.duration > 0);
+  if (cachedConfigFlag(FLAG_OFFICIAL_LAPS)) {
+    // Tours valides et bouclés seulement, comparés à leur chrono officiel.
+    const st = lapStatuses(meta.laps);
+    const ok = meta.laps
+      .filter((l) => st.get(l.lap) === "valid" && l.game_time != null)
+      .map((l) => ({ ...l, duration: l.game_time as number }));
+    if (ok.length >= 2) laps = ok;
+  }
   if (laps.length < 2 || !meta.channels.some((c) => c.name === "Ground Speed")) return "";
   const fastest = laps.reduce((a, b) => (b.duration < a.duration ? b : a));
   const clean = laps.filter((l) => l.duration <= fastest.duration * 1.08).slice(0, 10);
@@ -144,7 +173,7 @@ export async function loadTheoreticalBestText(meta: TelemetryMeta): Promise<stri
         .then((d) => {
           const sp = d.channels.find((c) => c.name === "Ground Speed")?.values[0] ?? [];
           const br = d.channels.find((c) => c.name === "Brake Pos")?.values[0] ?? [];
-          return { lap: l.lap, corners: detectCorners(sp, br, d.dist) };
+          return { lap: l.lap, corners: detectCorners(sp, br, d.dist, { fine: cachedConfigFlag(FLAG_FINE_CORNERS) }) };
         })
         .catch(() => null),
     ),
@@ -159,7 +188,16 @@ export async function loadTheoreticalBestText(meta: TelemetryMeta): Promise<stri
 export async function findSessionTelemetryFile(detail: SessionDetail): Promise<TelemetryFileInfo | null> {
   const player = detail.results.find((r) => r.is_player);
   if (!player) return null;
+  // Lu ici pour que les calculs synchrones qui suivent connaissent l'option.
+  await readConfigFlag(FLAG_OFFICIAL_LAPS);
+  await readConfigFlag(FLAG_FINE_CORNERS);
   const files = await telemetry.listFiles();
+  // Option : l'enregistrement dont les chronos sont ceux de la session (un seul possible).
+  if (await readConfigFlag(FLAG_TELEM_LINK)) {
+    const links = await telemetry.linksForSession(detail.session.id).catch(() => []);
+    const hit = links.length ? files.find((f) => f.path === links[0].path) : undefined;
+    if (hit) return hit;
+  }
   return pickSessionTelemetry(files, {
     track: detail.session.track,
     session_type: detail.session.session_type,

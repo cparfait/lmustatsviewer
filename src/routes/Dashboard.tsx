@@ -58,6 +58,7 @@ import {
 } from "lucide-react";
 import { FilterField } from "@/components/FilterField";
 import { LapChartModal } from "@/components/LapChartModal";
+import { WeeklyGoalsCard } from "@/components/WeeklyGoalsCard";
 import { Tip } from "@/components/ui/tooltip";
 import { useAppStore } from "@/stores/app";
 import type { BestLapRow } from "@/lib/api";
@@ -338,6 +339,9 @@ export function Dashboard() {
           );
         })}
       </div>
+
+      {/* Objectifs de la semaine (option, désactivée par défaut) */}
+      <WeeklyGoalsCard />
 
       {/* Barre de filtres */}
       <Card>

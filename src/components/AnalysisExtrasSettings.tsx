@@ -8,18 +8,28 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
-import { Bell, Bookmark, Gauge, Loader2, ShieldCheck, Volume2, X } from "lucide-react";
+import { Activity, Bell, Waypoints, Bookmark, BookOpenCheck, CircleDot, FolderSearch, Gauge, History, Link2, Loader2, ShieldCheck, Target, Timer, Volume2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { config, isTauri, type WheelBinding } from "@/lib/api";
 import {
   FLAG_COMPARABLE,
+  FLAG_CONSISTENCY_DOTS,
+  FLAG_EVIDENCE_CARDS,
+  FLAG_FINE_CORNERS,
+  FLAG_OFFICIAL_LAPS,
+  FLAG_PEAK_PEDALS,
+  FLAG_BEST_SESSION,
   FLAG_RECORD_BEEPS,
   FLAG_REGULARITY,
   FLAG_REVIEW_MARKS,
+  FLAG_TELEM_DIAG,
+  FLAG_TELEM_LINK,
+  FLAG_WEEKLY_GOALS,
   setConfigFlag,
   useConfigFlag,
 } from "@/lib/configFlag";
+import { GOAL_DEFAULTS, GOAL_KEYS, GOAL_MAX, parseGoal, type GoalKind } from "@/lib/weeklyGoals";
 import { recordBeeps } from "@/lib/radioFx";
 import { MARK_BINDINGS_EVENT, MARK_KEY_KEY, MARK_WHEEL_KEY } from "@/lib/reviewMarks";
 
@@ -176,5 +186,71 @@ export function ReviewMarksSetting() {
     <FlagRow flag={FLAG_REVIEW_MARKS} icon={<Bookmark className="h-4 w-4" />} title={t("extras.marksSettingTitle")} desc={t("extras.marksSettingDesc")}>
       <MarkBindings />
     </FlagRow>
+  );
+}
+
+/** Cibles des objectifs de la semaine (une cible à 0 masque l'objectif). */
+function WeeklyGoalTargets() {
+  const { t } = useTranslation();
+  const [vals, setVals] = useState<Record<GoalKind, number>>(GOAL_DEFAULTS);
+  useEffect(() => {
+    if (!isTauri()) return;
+    for (const k of Object.keys(GOAL_KEYS) as GoalKind[]) {
+      void config.get(GOAL_KEYS[k]).then((v) => setVals((o) => ({ ...o, [k]: parseGoal(k, v) })));
+    }
+  }, []);
+  const save = (k: GoalKind, raw: string) => {
+    const v = parseGoal(k, raw);
+    setVals((o) => ({ ...o, [k]: v }));
+    void config.set(GOAL_KEYS[k], String(v)).catch(() => {});
+    window.dispatchEvent(new Event(GOALS_EVENT));
+  };
+  return (
+    <div className="flex flex-wrap gap-3 pl-7 text-xs">
+      {(Object.keys(GOAL_KEYS) as GoalKind[]).map((k) => (
+        <label key={k} className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">{t(`news.goal_${k}`)}</span>
+          <input
+            type="number"
+            min={0}
+            max={GOAL_MAX[k]}
+            value={vals[k]}
+            onChange={(e) => save(k, e.target.value)}
+            className="h-7 w-20 rounded-md border border-border bg-background px-2 tabular-nums"
+          />
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** Prévient le tableau de bord qu'une cible a changé. */
+export const GOALS_EVENT = "lmusv:weekly-goals";
+
+/**
+ * Préférences › Affichage › « Analyse : nouveautés » (veille 2026-10-21) : chaque
+ * nouveauté a son interrupteur, toutes désactivées par défaut ; rien ne change tant
+ * qu'on ne les active pas.
+ */
+export function AnalysisNewsSettings() {
+  const { t } = useTranslation();
+  return (
+    <div className="mt-6 space-y-2">
+      <div>
+        <h3 className="font-semibold">{t("news.title")}</h3>
+        <p className="text-xs text-muted-foreground">{t("news.desc")}</p>
+      </div>
+      <FlagRow flag={FLAG_TELEM_LINK} icon={<Link2 className="h-4 w-4" />} title={t("news.linkTitle")} desc={t("news.linkDesc")} />
+      <FlagRow flag={FLAG_OFFICIAL_LAPS} icon={<Timer className="h-4 w-4" />} title={t("news.lapsTitle")} desc={t("news.lapsDesc")} />
+      <FlagRow flag={FLAG_EVIDENCE_CARDS} icon={<BookOpenCheck className="h-4 w-4" />} title={t("news.cardsTitle")} desc={t("news.cardsDesc")} />
+      <FlagRow flag={FLAG_CONSISTENCY_DOTS} icon={<CircleDot className="h-4 w-4" />} title={t("news.dotsTitle")} desc={t("news.dotsDesc")} />
+      <FlagRow flag={FLAG_BEST_SESSION} icon={<History className="h-4 w-4" />} title={t("news.bestTitle")} desc={t("news.bestDesc")} />
+      <FlagRow flag={FLAG_WEEKLY_GOALS} icon={<Target className="h-4 w-4" />} title={t("news.goalsTitle")} desc={t("news.goalsDesc")}>
+        <WeeklyGoalTargets />
+      </FlagRow>
+      <FlagRow flag={FLAG_FINE_CORNERS} icon={<Waypoints className="h-4 w-4" />} title={t("news.fineTitle")} desc={t("news.fineDesc")} />
+      <FlagRow flag={FLAG_PEAK_PEDALS} icon={<Activity className="h-4 w-4" />} title={t("news.peakTitle")} desc={t("news.peakDesc")} />
+      <FlagRow flag={FLAG_TELEM_DIAG} icon={<FolderSearch className="h-4 w-4" />} title={t("news.diagTitle")} desc={t("news.diagDesc")} />
+    </div>
   );
 }

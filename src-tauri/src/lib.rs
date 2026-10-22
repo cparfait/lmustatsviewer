@@ -173,6 +173,11 @@ pub fn run() {
             commands::telemetry::list_telemetry_files,
             commands::telemetry::get_telemetry_meta,
             commands::telemetry::get_telemetry_channels,
+            commands::telemetry_link::telemetry_link_for_file,
+            commands::telemetry_link::telemetry_links_for_session,
+            commands::telemetry_link::telemetry_folder_status,
+            commands::insights::best_session,
+            commands::insights::weekly_progress,
             commands::telemetry_lab::analyze_telemetry_lab,
             // AI Coach — proxy HTTP générique vers les fournisseurs d'IA
             commands::ai::ai_chat,

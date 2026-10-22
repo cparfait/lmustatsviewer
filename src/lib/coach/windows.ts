@@ -18,7 +18,7 @@
  * s'indexe sur cet UID, jamais sur l'ordre `n` (qui bouge dès qu'un kink apparaît).
  */
 
-import { detectCorners } from "@/lib/telemetry/corners";
+import { detectCorners, type DetectCornersOptions } from "@/lib/telemetry/corners";
 import type { CoachRef, CoachCornerRow } from "@/lib/api";
 
 /** Ordre fixe des 8 canaux d'une réf dense (§3.1). */
@@ -102,6 +102,26 @@ export function refValueAt(ref: CoachRef, ch: ChannelName, d: number): number {
   const v0 = refAt(ref, ch, i);
   const v1 = refAt(ref, ch, i + 1);
   return v0 + (v1 - v0) * f;
+}
+
+/**
+ * Tampon de tour reconstruit depuis la grille dense d'une réf (un point tous les
+ * `step_m`) : permet de redétecter les virages d'une réf déjà enregistrée.
+ */
+export function refToLapBuffer(ref: CoachRef): LapBuffer {
+  const n = ref.n_points;
+  const col = (ch: ChannelName) => Array.from({ length: n }, (_, i) => refAt(ref, ch, i));
+  return {
+    dist: Array.from({ length: n }, (_, i) => i * ref.step_m),
+    time: col("time"),
+    speed: col("speed"),
+    brake: col("brake"),
+    throttle: col("throttle"),
+    steer: col("steer"),
+    gLat: col("gLat"),
+    gLong: col("gLong"),
+    gear: col("gear"),
+  };
 }
 
 // ── Fenêtres projetées depuis une réf ────────────────────────────────────────
@@ -196,8 +216,8 @@ function exitIndex(buf: LapBuffer, apexIdx: number): number {
  * Détecte tous les virages d'un tour bouclé (freinage + à fond), fusionnés et
  * triés, avec bornes d'entrée/sortie et cibles vitesse.
  */
-export function detectAllCorners(buf: LapBuffer): DetectedCorner[] {
-  const speedCorners = detectCorners(buf.speed, buf.brake, buf.dist);
+export function detectAllCorners(buf: LapBuffer, opts?: DetectCornersOptions): DetectedCorner[] {
+  const speedCorners = detectCorners(buf.speed, buf.brake, buf.dist, opts);
   // Index d'apex connus (vitesse) pour dédoublonner les apex gLat.
   const apexIdxs = speedCorners.map((c) => c.apexIdx);
   const flatIdxs = detectFlatCornersGLat(buf).filter((fi) =>

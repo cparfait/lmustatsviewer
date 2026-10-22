@@ -20,8 +20,10 @@ import { CarLogo } from "@/components/CarLogo";
 import { ClassBadge } from "@/components/ClassBadge";
 import { SessionBadge } from "@/components/SessionBadge";
 import { sessionTypeLabel } from "@/lib/sessionLabels";
-import { telemetry } from "@/lib/api";
-import type { TelemetryFileInfo } from "@/lib/api";
+import { isTauri, telemetry } from "@/lib/api";
+import type { TelemetryFileInfo, TelemetryFolderStatus } from "@/lib/api";
+import { FLAG_OFFICIAL_LAPS, FLAG_TELEM_DIAG, useConfigFlag } from "@/lib/configFlag";
+import { sessionTypeFromFile } from "@/lib/ai/context/session-telemetry";
 import { usePageState, useChangeEffect } from "@/lib/usePageState";
 import { formatDateTime, formatTime } from "@/lib/utils";
 import { TelemetryLoading } from "@/components/telemetry/TelemetryLoading";
@@ -44,8 +46,32 @@ export function Telemetry() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [files, setFiles] = useState<TelemetryFileInfo[] | null>(null);
+  const [rawFiles, setFiles] = useState<TelemetryFileInfo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Options (désactivées par défaut) : type de session lu dans le nom du fichier quand
+  // les métadonnées sont muettes, meilleur tour au chrono officiel du jeu.
+  const diagOn = useConfigFlag(FLAG_TELEM_DIAG);
+  const officialOn = useConfigFlag(FLAG_OFFICIAL_LAPS);
+  const files = useMemo(
+    () =>
+      rawFiles?.map((f) => ({
+        ...f,
+        session_type: diagOn ? sessionTypeFromFile(f) : f.session_type,
+        // Chronos officiels présents : seul un tour complet (3 secteurs) compte ; un
+        // tour de sortie des stands chronométré n'en fait pas un enregistrement utile.
+        best_lap: officialOn && f.lap_times.length > 0 ? f.best_game_lap : f.best_lap,
+      })) ?? null,
+    [rawFiles, diagOn, officialOn],
+  );
+  // Diagnostic du dossier quand la liste est vide (option).
+  const [folder, setFolder] = useState<TelemetryFolderStatus | null>(null);
+  useEffect(() => {
+    if (!diagOn || !isTauri() || (rawFiles && rawFiles.length > 0)) return;
+    telemetry
+      .folderStatus()
+      .then(setFolder)
+      .catch(() => setFolder(null));
+  }, [diagOn, rawFiles]);
 
   const [fTrack, setFTrack] = usePageState("telemetry.track", "");
   const [fClass, setFClass] = usePageState("telemetry.class", "");
@@ -190,6 +216,29 @@ export function Telemetry() {
         <FileWarning className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
         <h1 className="mb-2 text-xl font-bold">{t("telemetry.title")}</h1>
         <p className="mb-4 text-sm text-muted-foreground">{t("telemetry.emptyHelp")}</p>
+        {diagOn && folder && (
+          <div className="mx-auto mb-4 max-w-xl space-y-1 rounded-md border border-border bg-muted/30 p-3 text-left text-xs">
+            <p className="font-semibold">{t("news.diagTitleShort")}</p>
+            {!folder.lmu_path_set && !folder.overridden ? (
+              <p className="text-amber-700 dark:text-amber-300">{t("news.diagNoPath")}</p>
+            ) : (
+              <>
+                <p className="break-all font-mono text-muted-foreground">
+                  {folder.dir}
+                  {folder.overridden && <span className="ml-1 font-sans">({t("news.diagOverride")})</span>}
+                </p>
+                {!folder.exists ? (
+                  <p className="text-amber-700 dark:text-amber-300">{t("news.diagMissing")}</p>
+                ) : folder.duckdb_count === 0 ? (
+                  <p className="text-amber-700 dark:text-amber-300">{t("news.diagEmpty")}</p>
+                ) : (
+                  <p className="text-amber-700 dark:text-amber-300">{t("news.diagUnreadable", { n: folder.duckdb_count })}</p>
+                )}
+                {folder.wal_count > 0 && <p className="text-muted-foreground">{t("news.diagWal", { n: folder.wal_count })}</p>}
+              </>
+            )}
+          </div>
+        )}
         <a
           href="https://guide.lemansultimate.com/hc/en-gb/articles/14524956311695-Telemetry-Recording"
           target="_blank"

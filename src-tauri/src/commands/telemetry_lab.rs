@@ -356,7 +356,7 @@ mod tests {
     use super::*;
 
     fn lap(n: i64, a: f64, b: f64) -> LapInfo {
-        LapInfo { lap: n, start_time: a, end_time: b, duration: b - a }
+        LapInfo { lap: n, start_time: a, end_time: b, duration: b - a, ..Default::default() }
     }
 
     fn ev(pairs: &[(f64, f64)]) -> Events {

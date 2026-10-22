@@ -887,6 +887,7 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 | **popometer.io** | SaaS cloud | Abonnement | Comparaison avec données pros, assisted analysis (apex, slowest point), overlays avec référence | https://popometer.io |
 | **LMU Telemetry Lab** | Open source | Gratuit | 60+ canaux 50-100Hz, 2D/3D track map, ghost car, 27 chart types, comparaison laps | https://github.com/rabbit20031225/LMU-Telemetry-Lab |
 | **TrackMind** (ex-« SLM Engineer ») | Desktop Python/pywebview, fermé | Bêta Discord (paliers prévus) | Ingénieur radio vocal (STT local Parakeet/Whisper, Piper, LLM), prévision météo `.wet`, API REST LMU, setup construit à la voix (lignée v1→v2), plan de course, carrière + fiche saison PNG, écurie/pitwall en ligne, régie spectateur. LMU + iRacing. Étude : journal 2026-09-24 | https://trackmind.gg |
+| **Apex Sim Tracker** (agent « Apex Agent » 1.1.2) | SaaS web + apps iOS/Android + agent tray Electron | Freemium (Pro £5,99/mois, £49,99/an) | Hub social multi-jeux (iRacing, LMU, F1 25) : fil d'activité, objectifs hebdo, classements, défis, communauté. Agent = simple collecteur `.duckdb`/XML/scoring → cloud ; analyse côté serveur à base de règles (cartes avec confiance + preuves). Étude : journal 2026-10-21 | https://apexsimtracker.com |
 
 **🟡 Compléments / Menace partielle**
 
@@ -1483,6 +1484,257 @@ la bascule automatique vers un autre fournisseur gratuit sur limite atteinte.
   « envoi en cours » dans l'app envisagée puis abandonnée (décision utilisateur).
 - 📋 **Prochaine étape** : déployer le serveur (`community/`), publier la 1.0.10, répondre au joueur.
 
+### 2026-10-21 — Détection fine des virages étendue au coach en direct
+
+**Demande** : « tu peux l'étendre au coach ».
+
+- ✅ **Constat** (correction de l'entrée précédente) : la mémoire du coach n'est **pas** indexée par
+  numéro de virage mais par `corner_uid` = `c<distance d'apex>` (appariement < 40 m) :
+  `coach_corner`, `coach_stats`, `corner_history`. Le numéro `n` ne sert qu'à l'affichage (le
+  dernier vu). Les réfs stockent leurs fenêtres à la capture ; la base ne contient ici aucune réf
+  ni historique (rien à convertir sur cette machine).
+- ✅ **Conversion à la volée, sans écriture en base** : `service.loadRefFor` recalcule, si l'option
+  est active, les fenêtres de la réf chargée depuis sa grille dense (`windows.refToLapBuffer` +
+  `capture.rebuildRefCorners`) ; virages connus = même UID (historique/dispersion/phrases
+  conservés), nouveaux virages = UID neuf, doublon d'UID → UID neuf. Captures et imports de
+  fantôme restent en détection standard (la base ne dépend jamais de l'option). Changement
+  d'option à chaud → réf rechargée (`CONFIG_FLAG_EVENT`). Option coupée = fenêtres enregistrées.
+- ✅ Simulation hors appli sur vrais tours (modules du coach empaquetés par esbuild, export Python
+  du `.duckdb`) : Spa 11 → 15 fenêtres (Malmedy, Campus, Blanchimont, 2ᵉ élément de chicane),
+  Sebring 11 → 15, **identités conservées 11/11** dans les deux cas. Tests : conversion (virage
+  lent ajouté, UID connus gardés, uniques, réf illisible → fenêtres d'origine). `npm test` 6 720 ✓,
+  `tsc -b` 0. Note : le correctif de résolution du matin s'applique aussi au tampon live (~20 Hz).
+- ⏳ Non vu en piste (pas de session LMU ; une autre session occupait l'appli de dev).
+- 📋 **Prochaine étape** : rouler avec l'option active sur un combo connu et écouter les annonces
+  des nouveaux virages ; commit en séparant du chantier Atelier.
+
+### 2026-10-21 — Détection fine des virages (option) : Spa 6 → 10 virages
+
+**Demande** : « regarde pourquoi seulement 6 virages sont détectés à Spa et propose un réglage, sans
+perdre l'ancien comportement ».
+
+- ✅ **Diagnostic** (tour propre 2:31.360, 13 creux de vitesse mesurés) : la proéminence (8 km/h)
+  était mesurée dans la seule fenêtre du minimum local (±72 m) ; à la sortie d'un virage lent la
+  voiture réaccélère progressivement (3 à 7 km/h sur 72 m) et, en chicane, le second creux tombe
+  dans la fenêtre du premier. Manqués : Malmedy (2.93 km), Campus (4.80), Blanchimont (6.14),
+  chicane (6.59) — tous avec un vrai freinage.
+- ✅ **Réglage** : `detectCorners(…, { fine })` mesure la remontée sur ±150 m
+  (`FINE_PROM_WINDOW_M`). Option « Détection fine des virages » (`an_fine_corners`), **désactivée par
+  défaut** ; ancien comportement intact. Appliquée à l'analyse après la session seulement
+  (lecteur, coach IA post-course, meilleur théorique) ; **pas** au coach en direct
+  (`coach/windows.ts`, `useLiveDelta`) dont les références enregistrées sont numérotées par virage.
+- ✅ Résultats : Spa 10 virages stables à 1 000 et 4 000 points, freinages = les 10 freinages réels
+  (0.13 … 6.58 km) ; Sebring 8-9 par tour (contre 4-7, variable). Tests : virage à sortie lente
+  ignoré en standard / trouvé en fin, virages nets inchangés. `npm test` 6 713 ✓, `tsc -b` 0.
+  Changelog 1.0.10 (phrase ajoutée, 5 langues).
+- 📋 **Prochaine étape** : si l'option convainc à l'usage, étudier son passage au coach en
+  direct avec une migration des références par virage (sinon décalage de numérotation) ;
+  commit en séparant du chantier Atelier.
+
+### 2026-10-21 — Preuves de zone de freinage vérifiées ; détection des virages réparée
+
+**Demande** : « vérifie les preuves de zone de freinage dans le lecteur en choisissant une référence ».
+
+- ❌→✅ **Bug trouvé (antérieur)** : `detectCorners` ne trouvait **aucun** virage sur nos `.duckdb`
+  à 4 000 points (lecteur) ni en pleine résolution (coach IA) — 6 virages à Spa et 5 à Sebring
+  seulement à 1 000 points. Cause : fenêtres comptées en points (±12 pour la proéminence de
+  8 km/h, soit ±0,45 s à 27 pts/s). Points faibles, liste des virages, virages du coach IA et
+  meilleur théorique étaient vides. Correctif : fenêtres converties en distance (réglage
+  d'origine ≈ 6 m/point), jamais plus petites qu'avant → identique en basse résolution
+  (Road Atlanta 13 virages inchangé). Test « même nombre de virages à 1 000 / 4 000 / 15 000 pts ».
+  Changelog 1.0.10 › Corrigé.
+- ✅ Libellés de la comparaison alignés sur « chronos officiels » : meilleur tour de chaque
+  fichier de référence (2:31.360 au lieu de 2:28.880 ; 29/06 : 2:28.580 au lieu de 1:56.400),
+  tours de référence au chrono officiel + statut, tour de référence par défaut = meilleur
+  tour officiel (au lieu du tour 0 de départ).
+- ✅ Vu à l'écran (Spa, tour 3 contre tour 1 = 2:31.360) : temps au tour / secteurs officiels des
+  deux tours (S2 1:19.295 contre 1:06.755…) ; points faibles T2 (accident : mini 0 contre 93 km/h,
+  +10.262 s), T4 (freinage 3 564 m contre 3 571 m, sortie 162 contre 170 km/h, +1.225 s), T1.
+- ✅ `tsc -b` 0 erreur, `npm test` 6 710 ✓.
+- 📋 **Prochaine étape** : regarder la pertinence du seuil de 8 km/h (6 virages à Spa sur 19) et
+  commit en séparant ce travail du chantier Atelier.
+
+### 2026-10-21 — Vérification à l'écran (course Spa, session 418) + retouches demandées
+
+**Demande** : « lance l'appli, active les 8 options et vérifie les écrans », puis en cours de route :
+« mets ça mieux en forme pour être adapté à l'app », « pb sur la page télémétrie » (Coach IA écrasé),
+« le patch course est trop grand », « le comparatif course précédente ne sert à rien, il faut
+comparer à la meilleure session ». Rien de commité.
+
+- ✅ Méthode : appli de dev (`target\debug`) relancée avec `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=
+  --remote-debugging-port=9333` + petit client CDP (`C:	mp\lmusv-probe\cdp.mjs`) : texte exact
+  et captures nettes (les captures d'écran du bureau ultra-large sont illisibles). ⚠️ En ouvrant la
+  fenêtre, le `tauri dev` d'une autre session s'est arrêté (prévenue) ; Vite relancé (aperçu « dev »).
+- ✅ Vu à l'écran : 8 options activées (Config › Préférences), cibles des objectifs ; carte
+  Objectifs (0/3, 0/1, 0/100 — exact : un seul essai sans tour valide cette semaine) ; badge
+  « Télémétrie » sur la session 418 ; « Voir le tour 3 » ouvre le tour annulé (S1 0:58.475, S2/S3
+  vides) ; sélecteur « Tour 4 — 2:28.886 » ; « Voir la session » ; liste Télémétrie (Spa 2:31.360).
+- ✅ Corrigé pendant la vérification :
+  - session comparée : la course DNF au même horodatage était prise → remplacée, à la demande, par
+    la **meilleure session** du combo (`insights::best_session`, autre horodatage, meilleur tour ;
+    pastille « Nouveau record » si battue). Interrupteur renommé `an_best_session` ;
+  - meilleur tour de référence aligné sur la règle §3 (3 secteurs connus) : constance/progression
+    (« meilleur tour au tour 2 » au lieu du tour 5 sans S2), `best_game_lap` (Rust) et
+    `fastestOfficialLap` ; la liste prend le chrono officiel seul quand il existe ;
+  - accord « 1 tours » (pluriels `_one/_other`) ;
+  - Débrief remis en forme au style de la fiche (bandeaux `TableTitle`, mesures en capitales,
+    cartes à liseré, boutons) ;
+  - page Télémétrie : tuiles du Coach IA en container query (`@md:grid-cols-2`) + pied de saisie
+    qui passe à la ligne (code de l'autre session dans `AICoachPanel.tsx`, 2 lignes) ; badge de
+    type de session qui ne s'étire plus ; erreur d'un fichier précédent effacée au changement.
+- ✅ `tsc -b` 0 erreur, `npm test` 6 709 ✓, `cargo test` télémétrie 18 ✓.
+- ⏳ Non vu à l'écran : preuves de zone de freinage (comparaison à une référence), pics de
+  pédale, diagnostic de dossier vide (dossier non vide ici).
+- 📋 **Prochaine étape** : dans le lecteur, choisir une référence et regarder les preuves sous
+  « Points faibles » ; puis commit (en séparant du chantier Atelier de l'autre session).
+
+### 2026-10-21 — Idées 1 à 10 de la veille du jour réalisées (analyse et suivi, tout désactivé par défaut)
+
+**Demande** : « fais tout d'une traite » (les 10 idées de l'entrée suivante). Rien de commité ;
+une autre session travaillait en même temps sur l'Atelier dans ce dossier (fichiers partagés
+modifiés par insertions ciblées : traductions, changelog, `configFlag.ts`, `api.ts`, `ConfigV2.tsx`).
+
+- ✅ **Constat sur nos vraies données** (course Spa du 2026-06-08, `.duckdb` + XML) : l'événement
+  `Lap Time` posé au passage de la ligne = chrono du XML au 1/10 000 s, **0 = tour annulé**
+  (`--.----`) ; `Last Sector2` est cumulé et parfois à 0 ; le jeu n'écrit pas toujours de S2
+  (tour 5) et le XML non plus. **Bug existant** : le lecteur prenait alors le S2 resté du tour
+  précédent (S2/S3 faux), et le contexte IA listait les durées de segments (tour de sortie
+  de 246 s, dernier segment partiel) au lieu des chronos.
+- ✅ **Rust** : `LapInfo` gagne `game_time`, `valid`, `s1..s3` (`apply_official_lap_data` : chrono
+  à la ligne, secteurs lus seulement dans les événements du tour, vide plutôt que repris) ;
+  `TelemetryFileInfo.lap_times` / `best_game_lap` ; option `peak_pedals` de
+  `get_telemetry_channels` (max par case pour frein/gaz/embrayage en vue large) ;
+  `telemetry_link.rs` (empreinte des chronos ↔ tours du joueur, à 2 ms, aucun écart toléré,
+  un seul lien sinon rien ; diagnostic du dossier) ; `insights.rs` (session précédente même
+  circuit + tracé + voiture ; bilan de la semaine). Tests : reproduction exacte du XML de Spa,
+  alignement (fragment décalé, tour différent, annulé d'un seul côté, ambiguïté), `bucket_max`.
+- ✅ **Interface** (Configuration › Préférences › « Analyse : nouveautés », 8 interrupteurs, tous
+  coupés par défaut, décision §2 « veille ») : lien Télémétrie ↔ Session + `?lap=N` ; chronos
+  officiels / annulé / pause / non bouclé dans le lecteur, la liste et le contexte IA ; débrief
+  en cartes (confiance, preuves dépliables, « Voir le tour N ») + preuves de zone de freinage
+  dans les points faibles ; pastilles de constance (0,8 / 1,6 s) et progression depuis le
+  premier tour lancé ; « par rapport à la session précédente » ; objectifs de la semaine
+  (cibles réglables, 0 = masqué) ; pics de pédale ; diagnostic du dossier + type de session lu
+  dans le nom du fichier quand les métadonnées sont muettes. Cache synchrone
+  `cachedConfigFlag` pour les contextes IA.
+- ✅ Vérifié : `cargo test` 160 ✓, `npm test` 6 673 ✓ (nouvelle suite `analysis.suite.ts`,
+  dont le garde-fou « aucune constante un tiers dans le code »), `tsc -b` propre hors
+  `src/lib/achievements.ts` (chantier Atelier de l'autre session). Rattachement rejoué sur
+  la vraie base : 3/3 enregistrements chronométrés reliés à une seule session (les 22 autres
+  sont des fragments sans tour). Changelog 1.0.10 (5 langues).
+- ⏳ **Non vu à l'écran** : l'appli n'a pas été lancée (Tauri) ; rendu des cartes, du badge
+  Télémétrie, des pastilles et des objectifs à contrôler en activant les options.
+- 📋 **Prochaine étape** : lancer l'appli, activer les 8 options, ouvrir la course Spa du
+  2026-06-08 (session 418) : badge « Télémétrie », tour 5 sans S2/S3 dans le lecteur, tour 3
+  « annulé », cartes du débrief ; puis commit si validé.
+
+### 2026-10-21 — Veille Apex Sim Tracker (site + « Apex Agent » 1.1.2) avec REA (aucun code modifié)
+
+**Demande** : « analyse en profondeur avec REA » l'appli installée et le site apexsimtracker.com
+pour voir comment les fonctionnalités sont gérées et quelles idées reprendre. Idées seulement :
+aucun nom de concurrent dans le code, aucune ligne reprise, aucune table de données recopiée.
+
+**Méthode**
+- ✅ Agent installé : `%LOCALAPPDATA%\Programs\Apex Agent` (Electron 41, `app.asar` 53 Mo + DuckDB-WASM
+  et koffi dépaquetés). REA `analyze_javascript_application` (résumé, preuve
+  `ev_918ac953…`) : 2 707 fichiers, 1 fenêtre, 1 preload, 32 membres exposés, 25 canaux IPC
+  appariés, 1 addon natif (koffi). Code applicatif `dist-electron/` (~17 k lignes JS non minifié,
+  tests inclus) extrait hors dépôt dans `C:\tmp\rea-apex\extract\` et lu comme donnée (rien exécuté,
+  `token.json` jamais ouvert).
+- ✅ Site : pages publiques + session LMU de démonstration (Laguna Seca, Oreca 07) dans le
+  navigateur intégré (extension Chrome non connectée) ; FAQ dépliée ; JSON public de la session
+  (`/api/sessions/<id>` et `/telemetry?view=summary`) ; chaînes des modules `SessionDetail` /
+  `SessionTelemetry`. Les blocs Pro (analyse, tour idéal, traces) sont verrouillés dans la démo :
+  leur logique est déduite du bundle, pas vue en fonctionnement.
+
+**Ce qu'est le produit**
+- Hub **social multi-jeux** (iRacing `.ibt`, LMU `.duckdb`, F1 25 UDP) : fil d'activité,
+  **objectifs hebdo** (sessions de course, top 3, tours / semaine), classements globaux (victoires,
+  courses, podiums, tours, arrivée moyenne), **défis** (sim + piste + classe, départage à 0,1 s en
+  faveur du Pro), communauté (fils, likes, abonnements, blocage), confidentialité par session
+  (tous / abonnés / moi), apps mobiles, saisie manuelle, import de fichier ≤ 350 Mo.
+- L'**agent** est un pur collecteur : surveille `UserData/Telemetry` et `Log/Results` (chokidar en
+  polling), parse le `.duckdb` en JS, lit la mémoire partagée scoring (plugin rF2 requis), envoie
+  un JSON par session au cloud. **Aucune analyse affichée en local.** LMU/iRacing = Windows seul.
+- **Page session (web)** : position / meilleur tour / voiture ; « meilleur tour au tour N, gagné
+  X s depuis le tour M (premier tour lancé) » ; secteurs + tour idéal ; historique des tours avec
+  deltas ; **consistance** (pastilles vert ≤ 0,8 s du meilleur, jaune ≤ 1,6 s, rouge au-delà ;
+  « 4 tours sur 7 à moins de 0,8 s ») ; usure pneus ; courbe de progression du rythme ; onglets
+  Pilotage (traces distance, curseur synchronisé, tour comparé, bandes de secteurs) / Carburant
+  (niveau et conso par tour, moyenne, tours projetés) / Pneus (temp. carcasse 4 coins + usure) ;
+  bloc « vs session précédente » (écart meilleur tour et tour médian) ; temps de traitement affiché.
+- **« Analyse » Pro = règles, pas d'IA** : cartes typées *tendance sur plusieurs sessions*
+  (consistance ou meilleur tour), *secteur* (cible vs base, delta), *résumé de session*,
+  *zone de freinage* (point de freinage en m, vitesse mini, vitesse de sortie, delta de zone vs
+  tour de référence). Chaque carte : titre, **niveau de confiance**, explication, **preuves
+  dépliables**, bouton « voir ce tour ».
+
+**Pipeline LMU de l'agent (observé dans le code)**
+- Détection : `libraryfolders.vdf` → registre Steam → lecteurs C–Z → Documents ; liste des chemins
+  essayés montrée dans l'UI ; dossier présent mais vide → « activer Record Telemetry ».
+- Fichier verrouillé : attente de stabilité (taille + mtime figées 10 s), copie temporaire avec
+  réessais EBUSY/EPERM, 15 réessais exponentiels sans afficher d'échec tant que c'est un verrou ;
+  rattrapage au démarrage des fichiers de 5 s à 24 h.
+- Fins de tour en cascade : transitions de `Lap Time`/`Best LapTime` → `Sector3 Flag` (booléen ou
+  index 0–3, octets parasites ignorés) → index `Lap` → tour unique reconstruit.
+- **Tours de pause/menu** : médiane des tours (hors 1ᵉʳ et out-laps), moyenne de ceux ≤ 2 ×
+  médiane ; un tour > 3 × cette moyenne est invalidé et ses secteurs effacés. Out-lap = 1ᵉʳ tour
+  < 45 s. Pas de validité « jeu » (limites de piste) ni de vraie détection stands.
+- **Secteurs** depuis `Last Sector1/2` cumulés lus en fin de tour, avec détection du
+  `Last Sector2` resté sur l'ancienne valeur (ratio ls2/ls1 entre 1,92 et 2,08, ou nouveau
+  meilleur S1 avec S2 ≈ S1) et récupérations ; validation (somme ± 0,1 s, S1 ≠ S2) ; **jamais de
+  secteurs inventés** (un test interdit les constantes 0,333/0,666 dans le code).
+- Traces : 8 canaux (distance, vitesse, gaz, frein, rapport, volant, régime, embrayage), ≤ 600
+  points par tour ; sous-échantillonnage qui **garde les pics de pédale** (îlots isolés écrêtés,
+  puis dans chaque case le début de la plus longue suite proche du max gaz/frein) ; unités devinées
+  par cohérence (distance intégrée vs canal). Pas de X/Z ni de carte.
+- Position finale : meilleur instantané scoring noté (course > qualifs, phase 8, statut
+  d'arrivée), plateau plausible vs télémétrie, joueur unique exigé ; **le XML fait foi**, la
+  position de course du `.duckdb` n'est jamais retenue (valeur de grille possible).
+- **XML écrit après le `.duckdb`** : empreinte gardée 7 jours (piste normalisée, type, liste
+  exacte des temps au tour à la ms) ; rattachement seulement s'il y a **exactement une**
+  correspondance. Fenêtre mtime réduite de 60 s à 15 s après une mauvaise attribution réelle.
+- Joueur dans un XML multijoueur : nom de `player/Settings.JSON` → `#nn` du véhicule →
+  `isPlayer` unique → sinon rien. Type de session tiré du nom de fichier (`_R_`/`_Q_`/`_P_`)
+  quand les métadonnées disent « Practice ». Identifiant de session = SHA-256 des octets ;
+  horodatage = `RecordingTime`, jamais la mtime.
+- Identité voiture/équipe : `CarName` « Équipe #nn:SÉRIE » ; série réelle (WEC/ELMS) vs
+  communautaire ; listes d'engagés + empreinte `Engine Max RPM` (+ setup) — données marquées
+  « non confirmées » chez eux.
+- Faiblesses : `tasklist` synchrone toutes les 2 s, fichier entier en mémoire, scoring lu sans
+  contrôle de version, volant non converti, `team`/`car` perdus à l'envoi, 4xx non persistés.
+
+**Où nous sommes devant** : tout l'outillage local (live, overlays, carte/3D, delta à la distance,
+analyse par virage, coach IA et vocal, ingénieur radio, setups, stratégie/relais, régie,
+résultats multi-pilotes du XML, incidents/pénalités). **Où ils sont devant** : social, mobile,
+multi-jeux, objectifs/défis, présentation « grand public » des chiffres.
+
+**Idées à reprendre (classées), toutes optionnelles et désactivées par défaut (décision §2)**
+1. ⭐ **Rattacher un `.duckdb` à sa session XML par empreinte exacte des temps au tour**
+   (+ piste, type, une seule correspondance sinon rien) : ouvrir la télémétrie depuis la fiche
+   session et l'inverse, sans heuristique horaire.
+2. ⭐ **Fiabiliser les secteurs télémétrie** : détecter le `Last Sector2` périmé et valider la
+   somme ; vide plutôt que faux (à confronter à `TelemetryView`).
+3. ⭐ **Écarter les tours de pause/menu** (règle médiane / 2× / 3×) des moyennes, de la régularité
+   et du contexte IA.
+4. **Cartes du débrief calculé avec niveau de confiance + preuves dépliables + « aller au
+   tour »** ; ajouter une carte *zone de freinage* (point de freinage, vitesse mini et de sortie
+   vs tour de référence) — nous avons déjà les données.
+5. **Pastilles de consistance** (≤ 0,8 s / ≤ 1,6 s / au-delà) et phrase « N tours sur M » en tête
+   de l'onglet Régularité ; phrase « meilleur tour au tour N, +X s depuis le premier tour lancé ».
+6. **Bloc « vs session précédente »** (même circuit + voiture) : écart meilleur tour et médiane.
+7. **Objectifs hebdomadaires** locaux (sessions, top 3, tours) sur le tableau de bord.
+8. **Sous-échantillonnage qui garde les pics de pédale** pour le contexte IA et les exports
+   (nos graphes à 4 000 points n'en ont pas besoin).
+9. **Diagnostic de détection** : chemins essayés + conseil « Record Telemetry » si dossier vide ;
+   type de session tiré du nom de fichier quand les métadonnées sont muettes (filtres Télémétrie).
+10. Test garde-fou contre des secteurs synthétiques ; identifiant = SHA-256 des octets pour les
+    envois communautaires (déjà proche de notre empreinte).
+
+- 📋 **Prochaine étape** : si le mainteneur retient des idées, commencer par 1 → 3 (fiabilité
+  des données), à valider sur nos propres `.duckdb` (dont un fichier avec pause et un avec
+  nouveau meilleur S1) ; sinon reprendre `REPRISE-ATELIER-SETUP.md`.
+
 ### 2026-10-21 — Atelier setup (S1–S12, G1–G4) + refonte de la page Setups : chantier en cours, non commité
 
 **Demande** : « toutes les idées » de la veille TrackMind 0.9.5, puis « profites-en pour améliorer
@@ -1806,9 +2058,21 @@ dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idée
 - ✅ **Charte** : fond `#121212`, rouge `#D84A26`, vert `#34D399`, couleurs par classe ;
   polices Space Grotesk (UI) + JetBrains Mono (données) ; fond = halos radiaux + grille 48 px.
   Images des circuits = PNG livrés (déjà écartés : tracés réels, pas ceux du jeu).
-- 📋 **Prochaine étape** : aucune implémentation demandée. Idées à trier plus tard avec
-  l'utilisateur : zone de clic élargie + infobulle par point sur nos graphes SVG ; repli « forme
-  type + % du tour » de la carte quand le tracé manque ; garde VRAM avant toute capture vidéo.
+- ✅ **Tri « utile pour nous ? »** (comparé à notre code) :
+  - 🟢 **Graphe des tours** (`LapChartModal.tsx`) : l'échelle Y va jusqu'à 2,5 × le meilleur
+    tour, donc un tour au stand écrase les tours de course. Idée : échelle calée sur les tours de
+    course, tours lents **épinglés en bas avec un chevron** « hors échelle » + infobulle.
+  - 🟢 **Carte sans tracé** (`regie.html` → `mapSvg` affiche « aucun » sous 8 points ;
+    `TrackMapWidget`) : au 1er tour sur un circuit, placer les voitures sur une forme type
+    au **% du tour** (distance ÷ longueur) — positions relatives justes en attendant le tracé.
+  - 🟡 **Mini-courbes de la Régie** : ligne de seuil pointillée + projection sur les tours à venir
+    (ex. carburant).
+  - ⚪ Déjà couverts ou moins bons chez eux : fenêtre (Tauri), graphes (recharts/uPlot), overlay
+    (le leur est en tkinter et désactivé), carte de partage (`wrappedCard.ts`, portrait inclus),
+    WebView2 (installeur `embedBootstrapper`), DPI.
+  - 🔴 Gros chantiers, à décider à part : clips vidéo des temps forts (capture Windows + anneau
+    MP4 + garde VRAM) ; visualiseur 3D de livrées (Three.js déjà présent via `Track3D`).
+- 📋 **Prochaine étape** : aucune implémentation demandée ; l'utilisateur choisira parmi les 🟢.
 
 ### 2026-10-19 — Voix IA : toutes les phrases fixes préparées, réponses au pilote en voix IA ; boutons volant/manette visibles
 

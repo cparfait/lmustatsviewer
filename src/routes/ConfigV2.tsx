@@ -37,7 +37,7 @@ import { RegieSettings } from "@/components/RegieSettings";
 import { ToolsSettings } from "@/components/ToolsSettings";
 import { InsightsToggle, TierSourceSelect } from "@/components/ClassementOptions";
 import { LabSettings } from "@/components/LabSettings";
-import { RecordAnnounceSetting, ReviewMarksSetting, SessionDetailSettings } from "@/components/AnalysisExtrasSettings";
+import { AnalysisNewsSettings, RecordAnnounceSetting, ReviewMarksSetting, SessionDetailSettings } from "@/components/AnalysisExtrasSettings";
 import {
   FolderOpen,
   RefreshCw,
@@ -1283,6 +1283,7 @@ export function ConfigV2() {
             {cat === "display" && (
               <div className="mt-4">
                 <SessionDetailSettings />
+                <AnalysisNewsSettings />
               </div>
             )}
 

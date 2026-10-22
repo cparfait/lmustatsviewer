@@ -1050,6 +1050,10 @@ export interface TelemetryFileInfo {
   best_lap: number | null;
   /** Durée enregistrée (s) ; `null` si illisible. */
   duration_s: number | null;
+  /** Chrono officiel de chaque tour bouclé, dans l'ordre (s ; 0 = annulé par le jeu). */
+  lap_times: number[];
+  /** Meilleur chrono officiel valide (s). */
+  best_game_lap: number | null;
 }
 
 /** Description d'un canal (`telemetry::ChannelInfo`). */
@@ -1068,6 +1072,45 @@ export interface TelemetryLapInfo {
   start_time: number;
   end_time: number;
   duration: number;
+  /** Chrono officiel du jeu (= fichier de résultats) ; null : non bouclé ou annulé. */
+  game_time: number | null;
+  /** false : tour annulé par le jeu ; null : inconnu (dernier tour partiel). */
+  valid: boolean | null;
+  /** Secteurs officiels lus dans ce tour seulement (null plutôt qu'une valeur d'un autre tour). */
+  s1: number | null;
+  s2: number | null;
+  s3: number | null;
+}
+
+/** Correspondance d'un tour : numéro dans les résultats ↔ numéro dans la télémétrie. */
+export interface TelemetryLapPair {
+  xml_lap: number;
+  tele_lap: number;
+}
+
+/** Session de résultats d'un enregistrement (`telemetry_link::TelemetrySessionLink`). */
+export interface TelemetrySessionLink {
+  session_id: number;
+  matched: number;
+  laps: TelemetryLapPair[];
+}
+
+/** Enregistrement rattaché à une session (`telemetry_link::SessionTelemetryLink`). */
+export interface SessionTelemetryLink {
+  path: string;
+  filename: string;
+  matched: number;
+  laps: TelemetryLapPair[];
+}
+
+/** Diagnostic du dossier de télémétrie (`telemetry_link::TelemetryFolderStatus`). */
+export interface TelemetryFolderStatus {
+  dir: string;
+  overridden: boolean;
+  lmu_path_set: boolean;
+  exists: boolean;
+  duckdb_count: number;
+  wal_count: number;
 }
 
 /** Métadonnées complètes d'un fichier (`telemetry::TelemetryMeta`). */
@@ -1119,16 +1162,49 @@ export const telemetry = {
     path: string,
     channels: string[],
     lap: number | null = null,
-    maxPoints: number | null = null
+    maxPoints: number | null = null,
+    /** Vue large : garde le maximum de chaque case pour les pédales (pics de frein). */
+    peakPedals = false,
   ) =>
     invoke<TelemetryChannelData>("get_telemetry_channels", {
       path,
       channels,
       lap,
       maxPoints,
+      peakPedals,
     }),
+  /** Session de résultats de l'enregistrement (empreinte des chronos), si une seule correspond. */
+  linkForFile: (path: string) => invoke<TelemetrySessionLink | null>("telemetry_link_for_file", { path }),
+  /** Enregistrements rattachés à une session. */
+  linksForSession: (sessionId: number) =>
+    invoke<SessionTelemetryLink[]>("telemetry_links_for_session", { sessionId }),
+  /** État du dossier de télémétrie (diagnostic). */
+  folderStatus: () => invoke<TelemetryFolderStatus>("telemetry_folder_status"),
   /** Atelier : zones ABS/TC, effet du dernier changement d'aide, plateforme par tour. */
   analyzeLab: (path: string) => invoke<LabTelemetryReport>("analyze_telemetry_lab", { path }),
+};
+
+/** Meilleure autre session du combo (`insights::BestSession`). */
+export interface BestSession {
+  session_id: number;
+  timestamp: number;
+  session_type: string;
+  best_lap: number | null;
+  median_lap: number | null;
+}
+
+/** Bilan de la semaine (`insights::WeeklyProgress`). */
+export interface WeeklyProgress {
+  races: number;
+  podiums: number;
+  laps: number;
+}
+
+export const insights = {
+  /** Meilleure autre session : même circuit, tracé et voiture (meilleur tour). */
+  bestSession: (sessionId: number) => invoke<BestSession | null>("best_session", { sessionId }),
+  /** Courses, podiums et tours depuis `since` (epoch s). */
+  weeklyProgress: (since: number) => invoke<WeeklyProgress>("weekly_progress", { since }),
 };
 
 /** Un tour vu par l'Atelier (`telemetry_lab.rs`). */

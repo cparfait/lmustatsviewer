@@ -24,7 +24,8 @@ import {
   type CompletedLap,
   type CornerMeasurement,
 } from "./engine";
-import { buildRefPayload, captureMetaFromLive } from "./capture";
+import { buildRefPayload, captureMetaFromLive, rebuildRefCorners } from "./capture";
+import { CONFIG_FLAG_EVENT, FLAG_FINE_CORNERS, cachedConfigFlag, readConfigFlag } from "@/lib/configFlag";
 import {
   createDiagState,
   diagnoseCorner,
@@ -749,7 +750,14 @@ async function loadRefFor(track: string, carModel: string): Promise<void> {
   const combo = `${track}::${carModel}`;
   loadingCombo = combo;
   try {
-    const ref = await coachRef.load(track, carModel);
+    const stored = await coachRef.load(track, carModel);
+    // Option « détection fine des virages » : fenêtres recalculées depuis la grille
+    // dense de la réf (rien n'est réécrit en base ; les virages déjà connus gardent
+    // leur identité). Coupée : fenêtres enregistrées, comme avant.
+    const ref =
+      stored && cachedConfigFlag(FLAG_FINE_CORNERS)
+        ? { ...stored, corners: rebuildRefCorners(stored, { fine: true }) }
+        : stored;
     // Le combo peut avoir changé pendant la charge → on ignore les réponses périmées.
     if (state.combo === combo && loadingCombo === combo) {
       setCoachRef(state, ref);
@@ -968,6 +976,11 @@ export async function startCoachService(): Promise<void> {
     .catch(() => {
       /* hors-ligne / parsing → on garde le niveau par défaut */
     });
+  // Option « détection fine des virages » lue avant la première réf, puis suivie à
+  // chaud : la réf du combo est rechargée (fenêtres fines ou d'origine).
+  await readConfigFlag(FLAG_FINE_CORNERS);
+  // Environnement sans fenêtre (tests node) : pas de suivi à chaud.
+  globalThis.window?.addEventListener?.(CONFIG_FLAG_EVENT, onFineCornersChanged);
   const off = await live.onData(onLive);
   // Arrêté (ou arrêté puis relancé) pendant l'abonnement : celui-ci est de trop.
   if (!started || token !== startToken) {
@@ -977,9 +990,17 @@ export async function startCoachService(): Promise<void> {
   unlisten = off;
 }
 
+/** L'option « détection fine des virages » a changé : recharge la réf du combo. */
+function onFineCornersChanged(e: Event): void {
+  const d = (e as CustomEvent<{ key: string }>).detail;
+  if (d?.key !== FLAG_FINE_CORNERS || !comboTrack || !comboCarModel) return;
+  void loadRefFor(comboTrack, comboCarModel);
+}
+
 /** Arrête le service et libère l'abonnement. */
 export function stopCoachService(): void {
   started = false;
+  globalThis.window?.removeEventListener?.(CONFIG_FLAG_EVENT, onFineCornersChanged);
   if (unlisten) {
     unlisten();
     unlisten = null;

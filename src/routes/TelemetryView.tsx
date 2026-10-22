@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { TelemetryLabPanel } from "@/components/TelemetryLabPanel";
 import { TelemetryLoading } from "@/components/telemetry/TelemetryLoading";
-import { Loader2, ArrowLeft, Play, Pause, ChevronDown, ChevronUp, LocateFixed, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, Play, Pause, ChevronDown, ChevronUp, LocateFixed, AlertTriangle, Link2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { TrackFlag } from "@/components/TrackFlag";
@@ -48,8 +48,9 @@ import {
   SECTION_TITLE,
 } from "@/components/telemetry/viewParts";
 import { gearLabel, fmtLap, fmtNum, divK } from "@/lib/telemetry/format";
-import { telemetry } from "@/lib/api";
+import { isTauri, telemetry } from "@/lib/api";
 import type {
+  TelemetrySessionLink,
   TelemetryMeta,
   TelemetryChannelData,
   TelemetryFileInfo,
@@ -59,6 +60,9 @@ import { useTheme } from "@/stores/theme";
 import { formatGap, formatDateTime, formatTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { sessionTypeLabel } from "@/lib/sessionLabels";
+import { FLAG_EVIDENCE_CARDS, FLAG_FINE_CORNERS, FLAG_OFFICIAL_LAPS, FLAG_PEAK_PEDALS, FLAG_TELEM_LINK, useConfigFlag } from "@/lib/configFlag";
+import { fastestOfficialLap, lapStatuses } from "@/lib/telemetry/officialLaps";
+import { brakeZoneEvidence } from "@/lib/telemetry/brakeZone";
 
 // Tous les canaux nécessaires à la page (carte + graphes + dashboard live).
 const VIEW_CHANNELS = [
@@ -210,10 +214,38 @@ export function TelemetryView() {
   const [lap, setLap] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Nouveautés d'analyse (désactivées par défaut, Configuration › Préférences).
+  const officialOn = useConfigFlag(FLAG_OFFICIAL_LAPS);
+  const linkOn = useConfigFlag(FLAG_TELEM_LINK);
+  const cardsOn = useConfigFlag(FLAG_EVIDENCE_CARDS);
+  const peakOn = useConfigFlag(FLAG_PEAK_PEDALS);
+  const fineCorners = useConfigFlag(FLAG_FINE_CORNERS);
+  /** Tour le plus rapide : au chrono officiel (tours valides hors pause) si l'option est active. */
+  const pickFastest = (laps: TelemetryLapInfo[]) =>
+    (officialOn ? fastestOfficialLap(laps) : null) ?? fastestLap(laps);
+  const lapStatus = useMemo(() => (meta && officialOn ? lapStatuses(meta.laps) : null), [meta, officialOn]);
+  /** Meilleur tour affiché pour un fichier : chrono officiel (3 secteurs) s'il en a, sinon segment. */
+  const fileBest = (f: TelemetryFileInfo) => (officialOn && f.lap_times.length > 0 ? f.best_game_lap : f.best_lap);
+  // Session de résultats de cet enregistrement (empreinte des chronos), si une seule correspond.
+  const [sessionLink, setSessionLink] = useState<TelemetrySessionLink | null>(null);
+  useEffect(() => {
+    setSessionLink(null);
+    if (!path || !linkOn || !isTauri()) return;
+    let alive = true;
+    telemetry
+      .linkForFile(path)
+      .then((l) => alive && setSessionLink(l))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [path, linkOn]);
+
   // Comparaison (même fichier OU autre session du même circuit).
   const [files, setFiles] = useState<TelemetryFileInfo[]>([]);
   const [refPath, setRefPath] = useState<string | null>(null); // null = pas de réf.
   const [refMeta, setRefMeta] = useState<TelemetryMeta | null>(null);
+  const refStatus = useMemo(() => (refMeta && officialOn ? lapStatuses(refMeta.laps) : null), [refMeta, officialOn]);
   const [refLap, setRefLap] = useState<number | null>(null);
   const [refData, setRefData] = useState<TelemetryChannelData | null>(null);
   // Tour de référence imposé au prochain chargement de `refPath` (bouton
@@ -281,6 +313,8 @@ export function TelemetryView() {
     // tardif (sinon meta/lap du fichier A écrasent l'état alors que path = B →
     // données désynchronisées, index de tour potentiellement hors borne).
     let cancelled = false;
+    // Erreur du fichier précédent : ne doit pas masquer le nouveau.
+    setError(null);
     setMeta(null);
     setData(null);
     setRefPath(null);
@@ -293,8 +327,11 @@ export function TelemetryView() {
       .then((m) => {
         if (cancelled) return;
         setMeta(m);
-        // Défaut : 1er tour « roulé » si présent, sinon session entière.
-        setLap(m.laps.length > 1 ? m.laps[0].lap : null);
+        // `?lap=N` (lien depuis une session) : ce tour s'il existe ; sinon 1er tour
+        // « roulé » si présent, sinon session entière.
+        const wanted = Number(params.get("lap"));
+        const asked = params.get("lap") != null && m.laps.some((l) => l.lap === wanted) ? wanted : null;
+        setLap(asked ?? (m.laps.length > 1 ? m.laps[0].lap : null));
       })
       .catch((e) => {
         if (!cancelled) setError(String(e));
@@ -302,13 +339,15 @@ export function TelemetryView() {
     return () => {
       cancelled = true;
     };
+    // `?lap=` n'est lu qu'à l'ouverture du fichier : changer de tour ensuite ne recharge rien.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
 
   useEffect(() => {
     if (!path || !meta) return;
     let cancelled = false;
     telemetry
-      .getChannels(path, VIEW_CHANNELS, lap, 4000)
+      .getChannels(path, VIEW_CHANNELS, lap, 4000, peakOn && lap === null)
       .then((d) => {
         if (!cancelled) {
           setData(d);
@@ -322,7 +361,7 @@ export function TelemetryView() {
     return () => {
       cancelled = true;
     };
-  }, [path, meta, lap]);
+  }, [path, meta, lap, peakOn]);
 
   // Surface de piste reconstruite (vraie largeur) à partir du **tour le plus
   // rapide** — méthode de LMU Telemetry Lab : bords = trajectoire ± largeur via
@@ -333,8 +372,9 @@ export function TelemetryView() {
       setTrackSurface(null);
       return;
     }
-    // Tour le plus rapide (hors dernier segment, toujours partiel).
-    const best = fastestLap(meta.laps);
+    // Tour le plus rapide (hors dernier segment, toujours partiel) ; au chrono
+    // officiel si l'option est active.
+    const best = (officialOn ? fastestOfficialLap(meta.laps) : null) ?? fastestLap(meta.laps);
     if (!best) {
       setTrackSurface(null);
       return;
@@ -365,7 +405,7 @@ export function TelemetryView() {
     return () => {
       cancelled = true;
     };
-  }, [path, meta]);
+  }, [path, meta, officialOn]);
 
   // Métadonnées du fichier de référence (peut être un autre fichier).
   useEffect(() => {
@@ -387,8 +427,11 @@ export function TelemetryView() {
           setRefLap(wanted);
           return;
         }
-        // … sinon défaut : 1er tour de la référence (≠ tour principal si même fichier).
-        const first = m.laps.find((l) => !(refPath === path && l.lap === lap)) ?? m.laps[0];
+        // … sinon défaut : 1er tour de la référence (≠ tour principal si même fichier) ;
+        // option « chronos officiels » : son meilleur tour officiel.
+        const others = m.laps.filter((l) => !(refPath === path && l.lap === lap));
+        const best = officialOn ? fastestOfficialLap(others) : null;
+        const first = best ?? others[0] ?? m.laps[0];
         setRefLap(first ? first.lap : null);
       })
       .catch(() => !cancelled && setRefMeta(null));
@@ -580,8 +623,8 @@ export function TelemetryView() {
     if (!data || lap === null) return [];
     const get = (name: string) =>
       data.channels.find((c) => c.name === name)?.values[0] ?? [];
-    return detectCorners(get("Ground Speed"), get("Brake Pos"), data.dist);
-  }, [data, lap]);
+    return detectCorners(get("Ground Speed"), get("Brake Pos"), data.dist, { fine: fineCorners });
+  }, [data, lap, fineCorners]);
 
   // ── Analyse assistée (#90/#92) : temps perdu/virage, point lent, focus zones ──
   const analysis = useMemo(() => {
@@ -596,6 +639,18 @@ export function TelemetryView() {
       focusCount: weakCount,
     });
   }, [data, corners, comparing, compare, weakCount]);
+
+  // Traces vitesse / frein du tour et de la référence (preuves de zone de freinage).
+  const curTrace = useMemo(() => {
+    if (!data) return null;
+    const ch = (n: string) => data.channels.find((c) => c.name === n)?.values[0] ?? [];
+    return { dist: data.dist, speed: ch("Ground Speed"), brake: ch("Brake Pos") };
+  }, [data]);
+  const refTrace = useMemo(() => {
+    if (!refData || !comparing) return null;
+    const ch = (n: string) => refData.channels.find((c) => c.name === n)?.values[0] ?? [];
+    return { dist: refData.dist, speed: ch("Ground Speed"), brake: ch("Brake Pos") };
+  }, [refData, comparing]);
 
   // ── Points faibles du tour : focus zones classées + part de l'écart total ──
   const weak = useMemo(() => {
@@ -653,13 +708,20 @@ export function TelemetryView() {
       const s3 = lt != null && s2 != null && cum2 != null && lt > cum2 ? lt - cum2 : null;
       return { lap: lt, s1, s2, s3 };
     };
-    const cur = sectorsOf(data, meta?.laps.find((l) => l.lap === lap)?.duration);
+    // Option « chronos officiels » : ceux que le jeu a posés pour CE tour (identiques
+    // au fichier de résultats), jamais une valeur restée du tour précédent.
+    const official = (m: TelemetryMeta | null, n: number | null): Sec | null => {
+      if (!officialOn || !m || n === null) return null;
+      const l = m.laps.find((x) => x.lap === n);
+      return l && l.valid != null ? { lap: l.game_time, s1: l.s1, s2: l.s2, s3: l.s3 } : null;
+    };
+    const cur = official(meta, lap) ?? sectorsOf(data, meta?.laps.find((l) => l.lap === lap)?.duration);
     const ref =
       refData && refLap !== null
-        ? sectorsOf(refData, refMeta?.laps.find((l) => l.lap === refLap)?.duration)
+        ? (official(refMeta, refLap) ?? sectorsOf(refData, refMeta?.laps.find((l) => l.lap === refLap)?.duration))
         : null;
     return { cur, ref };
-  }, [data, lap, refData, refLap, meta, refMeta]);
+  }, [data, lap, refData, refLap, meta, refMeta, officialOn]);
 
   // Altitude reconstruite (m) pour la vue 3D (mémoïsée → pas à chaque frame).
   const elevation = useMemo(
@@ -719,7 +781,7 @@ export function TelemetryView() {
   };
   // « Comparer à mon meilleur tour » : prend le tour le plus rapide du MÊME
   // fichier comme référence (action explicite ; la référence reste `null` sinon).
-  const bestLap = fastestLap(meta.laps);
+  const bestLap = pickFastest(meta.laps);
   const bestIsRef = !!bestLap && refPath === path && refLap === bestLap.lap;
   const compareToBest = () => {
     if (!bestLap || lap === null || bestLap.lap === lap) return;
@@ -752,7 +814,7 @@ export function TelemetryView() {
 
         <Card>
           <CardContent className="flex flex-col gap-3 p-3">
-            <SessionBadge type={meta.info.session_type} />
+            <SessionBadge type={meta.info.session_type} className="self-start" />
             <div className="flex items-center gap-2">
               <TrackFlag track={meta.info.track} className="h-4 w-auto" />
               <div className="min-w-0">
@@ -777,6 +839,17 @@ export function TelemetryView() {
             <div className="text-sm">
               <span className="text-muted-foreground">{meta.info.driver}</span>
             </div>
+            {sessionLink && (
+              <button
+                type="button"
+                onClick={() => navigate(`/sessions/${sessionLink.session_id}`)}
+                className="inline-flex items-center gap-1.5 self-start rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/20"
+                title={t("news.sessionLinkTip", { n: sessionLink.matched })}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                {t("news.openSession")}
+              </button>
+            )}
             <InfoRow label={t("telemetry.weather")} value={meta.info.weather} />
             <InfoRow
               label={t("telemetry.trackTemp")}
@@ -807,10 +880,12 @@ export function TelemetryView() {
               className="h-8 border-border"
               options={[
                 { value: "", label: t("telemetry.wholeSession") },
-                ...meta.laps.map((l) => ({
-                  value: String(l.lap),
-                  label: `${t("telemetry.lapN", { n: l.lap })} — ${formatGap(l.duration)}`,
-                })),
+                ...meta.laps.map((l) => {
+                  const st = lapStatus?.get(l.lap);
+                  const time = st && l.game_time != null ? formatGap(l.game_time) : formatGap(l.duration);
+                  const tag = st && st !== "valid" ? ` (${t(`news.lap_${st}`)})` : "";
+                  return { value: String(l.lap), label: `${t("telemetry.lapN", { n: l.lap })} — ${time}${tag}` };
+                }),
               ]}
             />
             {lap !== null && (
@@ -846,7 +921,7 @@ export function TelemetryView() {
                           (f.path === path ? `★ ${t("telemetry.sameSession")} · ` : "") +
                           `${sessionTypeLabel(f.session_type, t)} · ` +
                           `${f.car_model || f.car_name}` +
-                          (f.best_lap != null ? ` · ${formatTime(f.best_lap)}` : "") +
+                          (fileBest(f) != null ? ` · ${formatTime(fileBest(f)!)}` : "") +
                           ` · ${formatDateTime(f.mtime)}`,
                       })),
                   ]}
@@ -869,10 +944,12 @@ export function TelemetryView() {
                     className="h-8 border-border"
                     options={refMeta.laps
                       .filter((l) => !(refPath === path && l.lap === lap))
-                      .map((l) => ({
-                        value: String(l.lap),
-                        label: `${t("telemetry.lapN", { n: l.lap })} — ${formatGap(l.duration)}`,
-                      }))}
+                      .map((l) => {
+                        const st = refStatus?.get(l.lap);
+                        const time = st && l.game_time != null ? formatGap(l.game_time) : formatGap(l.duration);
+                        const tag = st && st !== "valid" ? ` (${t(`news.lap_${st}`)})` : "";
+                        return { value: String(l.lap), label: `${t("telemetry.lapN", { n: l.lap })} — ${time}${tag}` };
+                      })}
                   />
                 )}
                 {refMismatch && (
@@ -920,7 +997,7 @@ export function TelemetryView() {
         <Card>
           <CardContent className="p-2">
             <div className="mb-1 flex items-center gap-2 px-1 text-micro text-muted-foreground">
-              <span className="font-medium uppercase tracking-wide">{t("telemetry.group.map")}</span>
+              <span className={SECTION_TITLE}>{t("telemetry.group.map")}</span>
               {/* Bascule 2D / 3D */}
               <div className="ml-auto flex overflow-hidden rounded border border-border">
                 <button
@@ -1243,9 +1320,12 @@ export function TelemetryView() {
                     <div className="flex flex-col gap-0.5">
                       {weak.zones.map((c) => {
                         const phaseKey = dominantPhaseKey(c.phaseLoss);
+                        // Option « cartes et preuves » : point de freinage, vitesse mini et de
+                        // sortie face au tour de référence.
+                        const bz = cardsOn && refTrace && curTrace ? brakeZoneEvidence(c, curTrace, refTrace) : null;
                         return (
+                          <div key={c.n} className="flex flex-col">
                           <button
-                            key={c.n}
                             onClick={() => {
                               setPlaying(false);
                               setIdx(c.brakeIdx);
@@ -1286,6 +1366,19 @@ export function TelemetryView() {
                               +{(c.timeLost ?? 0).toFixed(3)} s
                             </span>
                           </button>
+                          {bz && (
+                            <p className="px-1.5 pb-0.5 pt-0.5 text-micro tabular-nums text-muted-foreground">
+                              {t("news.brakeEv", {
+                                at: Math.round(bz.brakeDist),
+                                ref: bz.refBrakeDist != null ? Math.round(bz.refBrakeDist) : "—",
+                                vmin: Math.round(bz.minSpeed),
+                                rvmin: bz.refMinSpeed != null ? Math.round(bz.refMinSpeed) : "—",
+                                vout: bz.exitSpeed != null ? Math.round(bz.exitSpeed) : "—",
+                                rvout: bz.refExitSpeed != null ? Math.round(bz.refExitSpeed) : "—",
+                              })}
+                            </p>
+                          )}
+                          </div>
                         );
                       })}
                     </div>

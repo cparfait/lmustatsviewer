@@ -61,6 +61,11 @@ pub struct TelemetryFileInfo {
     /// Durée enregistrée (s), d'après les bornes GPS. `None` si illisible.
     /// Sert à reconnaître les fragments de quelques secondes (liste Télémétrie).
     pub duration_s: Option<f64>,
+    /// Chrono officiel de chaque tour bouclé, dans l'ordre (s ; `0.0` = tour invalidé
+    /// par le jeu). Empreinte qui relie l'enregistrement à son fichier de résultats.
+    pub lap_times: Vec<f64>,
+    /// Meilleur chrono officiel valide (s), `None` si aucun.
+    pub best_game_lap: Option<f64>,
 }
 
 /// Description d'un canal continu.
@@ -76,7 +81,7 @@ pub struct ChannelInfo {
 }
 
 /// Un tour segmenté à partir du compteur de tour du jeu.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct LapInfo {
     /// Numéro de tour rapporté par le jeu (peut démarrer à 0 = out-lap).
     pub lap: i64,
@@ -86,6 +91,17 @@ pub struct LapInfo {
     pub end_time: f64,
     /// Durée du segment (s) = `end_time - start_time`.
     pub duration: f64,
+    /// Chrono officiel du jeu (événement `Lap Time` au passage de la ligne), le même
+    /// que celui du fichier de résultats. `None` : tour non bouclé ou invalidé.
+    pub game_time: Option<f64>,
+    /// `Some(false)` : le jeu a annulé le tour (chrono à 0, comme `--.----` dans le
+    /// XML) ; `None` : inconnu (dernier tour partiel, pas d'événement).
+    pub valid: Option<bool>,
+    /// Secteurs officiels (s), lus seulement dans les événements de CE tour ;
+    /// `None` plutôt qu'une valeur reprise du tour précédent ou reconstruite.
+    pub s1: Option<f64>,
+    pub s2: Option<f64>,
+    pub s3: Option<f64>,
 }
 
 /// Métadonnées complètes d'un fichier (vue détail).
@@ -146,7 +162,7 @@ pub(super) fn table_names(conn: &Connection) -> Result<HashSet<String>, AppError
 }
 
 /// Lit la table `metadata` (key/value) en dictionnaire.
-fn read_metadata(conn: &Connection) -> Result<HashMap<String, String>, AppError> {
+pub(super) fn read_metadata(conn: &Connection) -> Result<HashMap<String, String>, AppError> {
     let mut map = HashMap::new();
     let mut stmt = conn
         .prepare("SELECT key, value FROM metadata")
@@ -299,6 +315,7 @@ pub(super) fn segment_laps(conn: &Connection, tables: &HashSet<String>, t0: f64,
                         start_time: start,
                         end_time: end,
                         duration: (end - start).max(0.0),
+                        ..Default::default()
                     });
                 }
             }
@@ -311,9 +328,145 @@ pub(super) fn segment_laps(conn: &Connection, tables: &HashSet<String>, t0: f64,
             start_time: t0,
             end_time: t_end,
             duration: (t_end - t0).max(0.0),
+            ..Default::default()
         });
+    } else {
+        let ev = |name: &str| event_series(conn, tables, name);
+        apply_official_lap_data(
+            &mut laps,
+            &ev("Lap Time"),
+            &ev("Last Sector1"),
+            &ev("Last Sector2"),
+            &ev("Current Sector1"),
+            &ev("Current Sector2"),
+        );
     }
     laps
+}
+
+/// Événements `(ts, valeur)` d'un canal événementiel ; vide s'il manque ou s'il est illisible.
+fn event_series(conn: &Connection, tables: &HashSet<String>, name: &str) -> Vec<(f64, f64)> {
+    if !tables.contains(name) {
+        return Vec::new();
+    }
+    match read_channel(conn, name) {
+        Ok(raw) if raw.is_event && !raw.data.is_empty() => raw
+            .ts
+            .iter()
+            .zip(raw.data[0].iter())
+            .map(|(&t, &v)| (t, v))
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// Écart toléré entre l'horodatage d'un événement « fin de tour » et la ligne (s).
+const LINE_TOL_S: f64 = 0.05;
+/// Écart minimal entre deux secteurs distincts (s) : en dessous, valeur dupliquée.
+const SECTOR_EPS_S: f64 = 0.002;
+
+/// Valeur de l'événement posé au passage de la ligne `t` (à `LINE_TOL_S` près).
+fn event_at(series: &[(f64, f64)], t: f64) -> Option<f64> {
+    series
+        .iter()
+        .filter(|(ts, _)| (ts - t).abs() <= LINE_TOL_S)
+        .min_by(|a, b| (a.0 - t).abs().partial_cmp(&(b.0 - t).abs()).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|&(_, v)| v)
+}
+
+/// Dernière valeur > 0 posée PENDANT le tour `]start, end]` (jamais celle d'un tour précédent).
+fn event_within(series: &[(f64, f64)], start: f64, end: f64) -> Option<f64> {
+    series
+        .iter()
+        .filter(|(ts, v)| *ts > start + LINE_TOL_S && *ts <= end + LINE_TOL_S && *v > 0.0)
+        .last()
+        .map(|&(_, v)| v)
+}
+
+/// Chrono officiel, validité et secteurs de chaque tour bouclé, lus dans les
+/// événements du jeu (ceux qui alimentent aussi le fichier de résultats) :
+/// - chrono = `Lap Time` posé au passage de la ligne ; 0 = tour annulé ;
+/// - S1 = `Last Sector1` à la ligne, sinon `Current Sector1` posé pendant le tour ;
+/// - S1+S2 (cumulé) = `Last Sector2` à la ligne s'il n'est pas resté sur la valeur
+///   du tour précédent, sinon `Current Sector2` posé pendant le tour ;
+/// - S3 = chrono − cumulé. Un secteur incohérent (nul, négatif, copie du S1) est
+///   laissé vide : jamais de valeur reprise d'un autre tour ni de découpage inventé.
+/// Le dernier segment (enregistrement arrêté avant la ligne) reste sans chrono.
+pub(super) fn apply_official_lap_data(
+    laps: &mut [LapInfo],
+    lap_time: &[(f64, f64)],
+    last_s1: &[(f64, f64)],
+    last_s2: &[(f64, f64)],
+    cur_s1: &[(f64, f64)],
+    cur_s2: &[(f64, f64)],
+) {
+    let n = laps.len();
+    let mut prev_last_s2: Option<f64> = None;
+    for i in 0..n {
+        if i + 1 == n {
+            break;
+        }
+        let (start, end) = (laps[i].start_time, laps[i].end_time);
+        let gt = event_at(lap_time, end);
+        let (game_time, valid) = match gt {
+            Some(v) if v > 0.0 => (Some(v), Some(true)),
+            Some(_) => (None, Some(false)),
+            None => (None, None),
+        };
+        let s1 = event_at(last_s1, end)
+            .filter(|&v| v > 0.0)
+            .or_else(|| event_within(cur_s1, start, end))
+            .filter(|&v| game_time.map_or(true, |g| v < g));
+        let ls2 = event_at(last_s2, end);
+        let stale = matches!((ls2, prev_last_s2), (Some(a), Some(b)) if a > 0.0 && (a - b).abs() <= SECTOR_EPS_S / 2.0);
+        prev_last_s2 = ls2;
+        let cum2 = s1.and_then(|a| {
+            ls2.filter(|&v| !stale && v > a + SECTOR_EPS_S)
+                .or_else(|| event_within(cur_s2, start, end).filter(|&v| v > a + SECTOR_EPS_S))
+        });
+        let mut s2 = match (s1, cum2) {
+            (Some(a), Some(c)) => Some(c - a),
+            _ => None,
+        };
+        let mut s3 = match (game_time, cum2) {
+            (Some(g), Some(c)) if g - c > SECTOR_EPS_S => Some(g - c),
+            (Some(_), Some(_)) => {
+                s2 = None;
+                None
+            }
+            _ => None,
+        };
+        if let (Some(a), Some(b)) = (s1, s2) {
+            if b <= SECTOR_EPS_S || (a - b).abs() <= SECTOR_EPS_S {
+                s2 = None;
+                s3 = None;
+            }
+        }
+        let l = &mut laps[i];
+        l.game_time = game_time;
+        l.valid = valid;
+        l.s1 = s1;
+        l.s2 = s2;
+        l.s3 = s3;
+    }
+}
+
+/// Chronos officiels des tours bouclés, dans l'ordre (`0.0` = annulé), et le meilleur.
+/// Meilleur = même règle que les résultats (§3) : tour valide dont les 3 secteurs sont
+/// connus. Un tour chronométré sans secteurs (sortie des stands, S2 absent) n'est pas
+/// un meilleur tour ; `None` si aucun tour complet.
+pub(super) fn official_lap_times(laps: &[LapInfo]) -> (Vec<f64>, Option<f64>) {
+    let times: Vec<f64> = laps
+        .iter()
+        .filter(|l| l.valid.is_some())
+        .map(|l| l.game_time.unwrap_or(0.0))
+        .collect();
+    let best = laps
+        .iter()
+        .filter(|l| l.s1.is_some() && l.s2.is_some() && l.s3.is_some())
+        .filter_map(|l| l.game_time)
+        .fold(None, |acc: Option<f64>, t| Some(acc.map_or(t, |a| a.min(t))));
+    (times, best)
 }
 
 // ===========================================================================
@@ -358,6 +511,8 @@ fn build_file_info(path: &PathBuf, meta: &HashMap<String, String>) -> TelemetryF
         // Renseignés par l'appelant qui dispose de la connexion (segmentation des tours).
         best_lap: None,
         duration_s: None,
+        lap_times: Vec::new(),
+        best_game_lap: None,
     }
 }
 
@@ -421,7 +576,7 @@ fn lookup_car_model(db: &DbState, veh_name: &str) -> Option<String> {
     .ok()
 }
 
-fn telemetry_dir(db: &DbState) -> Result<PathBuf, AppError> {
+pub(super) fn telemetry_dir(db: &DbState) -> Result<PathBuf, AppError> {
     // Surcharge explicite (dossier relocalisé) prioritaire sur la dérivation.
     if let Some(dir) = db::config_get(db, "telemetry_dir")? {
         if !dir.trim().is_empty() {
@@ -484,6 +639,7 @@ pub async fn list_telemetry_files(db: State<'_, DbState>) -> Result<Vec<Telemetr
             let laps = segment_laps(&conn, &tables, t0, t0 + dur);
             info.best_lap = best_lap_time(&laps);
             info.duration_s = Some(dur);
+            (info.lap_times, info.best_game_lap) = official_lap_times(&laps);
         }
         out.push(info);
     }
@@ -564,6 +720,7 @@ pub async fn get_telemetry_meta(
     let laps = segment_laps(&conn, &tables, t0, t_end);
     info.best_lap = best_lap_time(&laps);
     info.duration_s = Some(duration);
+    (info.lap_times, info.best_game_lap) = official_lap_times(&laps);
 
     Ok(TelemetryMeta {
         info,
@@ -642,7 +799,9 @@ pub async fn get_telemetry_channels(
     channels: Vec<String>,
     lap: Option<i64>,
     max_points: Option<usize>,
+    peak_pedals: Option<bool>,
 ) -> Result<ChannelData, AppError> {
+    let peak_pedals = peak_pedals.unwrap_or(false);
     let conn = open_ro(&path)?;
     let tables = table_names(&conn)?;
     let (t0, duration) = gps_time_bounds(&conn)?;
@@ -761,8 +920,16 @@ pub async fn get_telemetry_channels(
             } else {
                 // Canal continu : index = (t - t0) * freq.
                 let f = if duration > 0.0 { n as f64 / duration } else { 0.0 };
+                // Grille plus lâche que le canal (vue « session entière ») : pour les
+                // pédales, on garde le maximum de chaque case au lieu du point le plus
+                // proche, sinon un coup de frein bref disparaît du graphe.
+                let peak = peak_pedals && PEAK_CHANNELS.contains(&name.as_str()) && dt * f > 1.5;
                 for k in 0..npts {
                     let t = t_start + dt * k as f64;
+                    if peak {
+                        series.push(bucket_max(col, (t - dt / 2.0 - t0) * f, (t + dt / 2.0 - t0) * f) as f32);
+                        continue;
+                    }
                     let idx = (((t - t0) * f).round() as isize).clamp(0, n as isize - 1) as usize;
                     series.push(col[idx] as f32);
                 }
@@ -782,6 +949,23 @@ pub async fn get_telemetry_channels(
         dist,
         channels: out_channels,
     })
+}
+
+/// Canaux dont les pics comptent plus que la valeur exacte (vue sous-échantillonnée).
+const PEAK_CHANNELS: [&str; 3] = ["Brake Pos", "Throttle Pos", "Clutch Pos"];
+
+/// Maximum des échantillons `[a, b]` (indices fractionnaires bornés au canal), NaN ignorés.
+fn bucket_max(col: &[f64], a: f64, b: f64) -> f64 {
+    let n = col.len() as isize;
+    let lo = (a.ceil() as isize).clamp(0, n - 1) as usize;
+    let hi = (b.floor() as isize).clamp(0, n - 1) as usize;
+    let mut m = f64::NAN;
+    for &v in &col[lo..=hi.max(lo)] {
+        if v.is_finite() && !(v <= m) {
+            m = v;
+        }
+    }
+    if m.is_nan() { col[lo] } else { m }
 }
 
 #[cfg(test)]
@@ -839,5 +1023,58 @@ mod tests {
         assert_eq!(d[545], 5000.0);
         assert!(d[0] < -100.0 && d[0] > -1100.0, "{}", d[0]);
         assert_eq!(d[0], d[5]);
+    }
+
+    // Événements réels d'une course à Spa (LMU, 2026-06-08) : tour 3 annulé, S2 absent
+    // aux tours 1 et 5 ; le fichier de résultats donne exactement les mêmes valeurs.
+    fn spa() -> Vec<super::LapInfo> {
+        let starts = [2.2125, 248.98, 400.34, 567.86, 730.24, 879.12];
+        let mut laps: Vec<super::LapInfo> = (0..6)
+            .map(|i| super::LapInfo {
+                lap: i as i64,
+                start_time: starts[i],
+                end_time: if i + 1 < 6 { starts[i + 1] } else { 900.0 },
+                ..Default::default()
+            })
+            .collect();
+        let lap_time = [(2.2125, 0.0), (248.98, 180.1586), (400.34, 151.3603), (567.86, 0.0), (730.24, 162.3766), (879.12, 148.8860)];
+        let last_s1 = [(2.2125, 0.0), (248.98, 51.8277), (400.34, 40.4761), (567.86, 58.4755), (730.24, 39.9270), (879.12, 39.9576)];
+        let last_s2 = [(2.2125, 0.0), (400.34, 107.2313), (567.86, 0.0), (730.24, 119.2223), (879.12, 0.0)];
+        let cur_s1 = [(2.2125, 0.0), (120.64, 51.8277), (289.44, 40.4761), (458.8, 58.4755), (607.78, 39.9270), (770.2, 39.9576)];
+        let cur_s2 = [(2.2125, 0.0), (356.2, 107.2313), (687.08, 119.2223)];
+        super::apply_official_lap_data(&mut laps, &lap_time, &last_s1, &last_s2, &cur_s1, &cur_s2);
+        laps
+    }
+
+    fn close(a: Option<f64>, b: f64) -> bool {
+        a.map_or(false, |v| (v - b).abs() < 1e-3)
+    }
+
+    #[test]
+    fn official_lap_data_matches_results_file() {
+        let l = spa();
+        assert!(close(l[0].game_time, 180.1586) && close(l[0].s1, 51.8277) && l[0].s2.is_none());
+        assert!(close(l[1].game_time, 151.3603) && close(l[1].s2, 66.7552) && close(l[1].s3, 44.1291));
+        assert_eq!(l[2].valid, Some(false));
+        assert!(l[2].game_time.is_none() && close(l[2].s1, 58.4755) && l[2].s2.is_none());
+        assert!(close(l[3].s2, 79.2953) && close(l[3].s3, 43.1543));
+        // Tour 5 : pas de S2 dans ce tour → vide, pas celui du tour 4.
+        assert!(close(l[4].game_time, 148.8860) && close(l[4].s1, 39.9576) && l[4].s2.is_none() && l[4].s3.is_none());
+        // Dernier segment : enregistrement arrêté avant la ligne.
+        assert!(l[5].game_time.is_none() && l[5].valid.is_none());
+        let (times, best) = super::official_lap_times(&l);
+        assert_eq!(times.len(), 5);
+        assert_eq!(times[2], 0.0);
+        // Meilleur = tour 2 (3 secteurs connus), comme le fichier de résultats ; le tour 5,
+        // plus rapide mais sans S2, n'est pas retenu.
+        assert!(close(best, 151.3603));
+    }
+
+    #[test]
+    fn bucket_max_keeps_short_brake_spike() {
+        let mut col = vec![0.0; 100];
+        col[47] = 80.0;
+        assert_eq!(super::bucket_max(&col, 40.0, 60.0), 80.0);
+        assert_eq!(super::bucket_max(&col, 0.0, 10.0), 0.0);
     }
 }

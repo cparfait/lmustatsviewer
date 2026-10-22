@@ -58,7 +58,7 @@ import {
   Legend as ChartLegend,
   ResponsiveContainer,
 } from "recharts";
-import { queries, setups as setupsApi } from "@/lib/api";
+import { isTauri, queries, setups as setupsApi, telemetry as telemetryApi, type SessionTelemetryLink } from "@/lib/api";
 import type {
   SessionDetail as SessionDetailData,
   ResultRow,
@@ -68,7 +68,8 @@ import type {
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { TierBadge } from "@/components/TierBadge";
 import { ComparableBadge, RegularityPanel, ReviewMarksPanel } from "@/components/SessionExtras";
-import { FLAG_REGULARITY, useConfigFlag } from "@/lib/configFlag";
+import { FLAG_REGULARITY, FLAG_TELEM_LINK, useConfigFlag } from "@/lib/configFlag";
+import { Link2 } from "lucide-react";
 import { AICoachPanel } from "@/components/AICoachPanel";
 import { VideoGuideCard } from "@/components/VideoGuideCard";
 import { getVideoGuide } from "@/lib/ai/knowledge/video-guides";
@@ -223,6 +224,36 @@ function SessionView({ data }: { data: SessionDetailData }) {
   useEffect(() => {
     if (isValidTab(requestedTab)) setActiveTab(requestedTab);
   }, [requestedTab]);
+
+  // Enregistrements télémétrie de la session, retrouvés par l'empreinte des chronos
+  // (option « Relier télémétrie et sessions », désactivée par défaut).
+  const linkOn = useConfigFlag(FLAG_TELEM_LINK);
+  const [teleLinks, setTeleLinks] = useState<SessionTelemetryLink[]>([]);
+  useEffect(() => {
+    if (!linkOn || !isTauri()) {
+      setTeleLinks([]);
+      return;
+    }
+    let alive = true;
+    telemetryApi
+      .linksForSession(session.id)
+      .then((l) => alive && setTeleLinks(l))
+      .catch(() => alive && setTeleLinks([]));
+    return () => {
+      alive = false;
+    };
+  }, [linkOn, session.id]);
+  const openTelemetry = (l: SessionTelemetryLink, xmlLap?: number) => {
+    const pair = xmlLap != null ? l.laps.find((p) => p.xml_lap === xmlLap) : undefined;
+    navigate(`/telemetry/view?path=${encodeURIComponent(l.path)}${pair ? `&lap=${pair.tele_lap}` : ""}`);
+  };
+  // « Voir ce tour » d'une carte du débrief : dans la télémétrie liée si ce tour y
+  // est, sinon l'onglet Tours.
+  const focusLap = (xmlLap: number) => {
+    const l = teleLinks.find((x) => x.laps.some((p) => p.xml_lap === xmlLap));
+    if (l) openTelemetry(l, xmlLap);
+    else setActiveTab("laps");
+  };
 
   // Setups associés à cette session (vue inverse de SetupDetail). Rechargé
   // après chaque lien/délier pour refléter l'état serveur.
@@ -450,6 +481,18 @@ function SessionView({ data }: { data: SessionDetailData }) {
                 · {formatDateTime(session.timestamp)}
               </span>
               <ComparableBadge session={session} player={playerResult} />
+              {teleLinks.map((l, i) => (
+                <button
+                  key={l.path}
+                  type="button"
+                  onClick={() => openTelemetry(l)}
+                  className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/20"
+                  title={t("news.linkedTip", { file: l.filename, n: l.matched })}
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                  {teleLinks.length > 1 ? t("news.linkedN", { n: i + 1 }) : t("news.linked")}
+                </button>
+              ))}
               {showOhneSpeed && playerResult.best_lap != null && !ohneOffline && (
                 <TierBadge
                   benchmarks={benchmarks}
@@ -871,7 +914,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
 
         {playerResult && (
           <TabsContent value="debrief">
-            <SessionDebrief detail={data} />
+            <SessionDebrief detail={data} onFocusLap={focusLap} focusIsTelemetry={teleLinks.length > 0} />
           </TabsContent>
         )}
 

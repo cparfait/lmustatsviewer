@@ -9,6 +9,8 @@
 
 import { formatTime } from "../../utils";
 import type { TelemetryMeta, TelemetryChannelData } from "../../api";
+import { cachedConfigFlag, FLAG_OFFICIAL_LAPS } from "../../configFlag";
+import { fastestOfficialLap, hasOfficialTimes, lapStatuses } from "../../telemetry/officialLaps";
 
 const MAX_LAPS = 30;
 
@@ -103,7 +105,23 @@ export function buildTelemetryContext(
 
   // Tours + meilleur
   const laps = meta.laps.filter((l) => l.duration > 0);
-  if (laps.length > 0) {
+  const official = cachedConfigFlag(FLAG_OFFICIAL_LAPS) && hasOfficialTimes(meta.laps);
+  if (official) {
+    // Chronos officiels du jeu (ceux du fichier de résultats) : le tour de sortie et
+    // le dernier segment non bouclé ne sont plus présentés comme des tours.
+    const st = lapStatuses(meta.laps);
+    const best = fastestOfficialLap(meta.laps);
+    lines.push("");
+    lines.push("## Laps (official game lap times — invalid = cancelled by the game, pause = abnormally long lap excluded, partial = not completed)");
+    for (const l of meta.laps.slice(0, MAX_LAPS)) {
+      const s = st.get(l.lap);
+      const time = l.game_time != null ? formatTime(l.game_time) : "—";
+      const tag = l.lap === best?.lap ? "  ← fastest" : s && s !== "valid" ? `  (${s})` : "";
+      lines.push(`L${l.lap}: ${time}${tag}`);
+    }
+    if (meta.laps.length > MAX_LAPS) lines.push(`… (${meta.laps.length - MAX_LAPS} more)`);
+    if (best?.game_time != null) lines.push(`Fastest lap: ${formatTime(best.game_time)} (L${best.lap})`);
+  } else if (laps.length > 0) {
     const best = laps.reduce((a, b) => (b.duration < a.duration ? b : a));
     lines.push("");
     lines.push("## Laps (duration)");

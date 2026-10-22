@@ -963,8 +963,11 @@ en tapant l'adresse.
   essais avec un bandeau qui le dit. Textes `su.*` 5 langues ; assets `?v=66`. Vérifié dans un
   aperçu local (API en mémoire, 4 setups dont 1 essai) : essai caché, visible avec `?tests=1`,
   filtre voiture, téléchargement (200), aucun lien dans le menu, aucune erreur console.
-- 📋 Prochaine étape : déployer le service (migrations 6, 7 et 8), tester
-  `https://lmu.cparfait.ovh/setups.html?tests=1` ; à la sortie de la 1.0.10, ajouter le lien
+- ✅ **Déployé** le 2026-10-22 à 17 h 21 (`deploy.cmd --smoke`, version `f093a03`) : contrôles locaux
+  65/65, image construite, API « healthy », test de bout en bout OK ; en production `GET /setups`,
+  `/setups/facets` (`since` 1.0.10) et `setups.html` répondent 200 (listes vides), `/notches` 404 attendu.
+- 📋 Prochaine étape : publier un setup depuis l'app de développement et le voir sur
+  `https://lmu.cparfait.ovh/setups.html?tests=1` (absent sans `?tests=1`) ; à la sortie de la 1.0.10, ajouter le lien
   (`NAV` et pied de page de `site.js`) et retirer le `noindex` de `setups.html`.
 
 ### 2026-10-22 — Commits découpés, `main` poussé, partage des setups (S12/S5)

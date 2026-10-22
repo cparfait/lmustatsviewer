@@ -2800,6 +2800,8 @@ pub fn acquire(app: &AppHandle, label: &str) -> Result<(), AppError> {
         let mut state = PollState::new();
         state.tracks_dir = tracks_dir;
         let mut in_session = false;
+        // Setup réellement roulé : un tour bouclé = une ligne `setup_laps`.
+        let mut laps_rec = super::setup_usage::LapRecorder::default();
         // Le thread s'arrête si on lui demande (`LIVE_POLLING`) **ou** si une
         // génération plus récente a pris le relais (redémarrage rapide).
         while LIVE_POLLING.load(Ordering::SeqCst)
@@ -2825,6 +2827,7 @@ pub fn acquire(app: &AppHandle, label: &str) -> Result<(), AppError> {
                 lmu_rest::PlayerSpot::Driving
             });
             data.rest = lmu_rest::live_view();
+            laps_rec.observe(&app, &data);
             if let Ok(mut g) = LAST_FRAME.lock() {
                 *g = Some((Instant::now(), data.clone()));
             }

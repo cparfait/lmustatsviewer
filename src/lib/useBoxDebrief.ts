@@ -15,6 +15,7 @@ import { isTauri, live, setups as setupsApi, type LiveData, type SetupEntry, typ
 import { analyzeBalance, carMatches, circuitMatches, type BalanceReport, type ProbeLap, type ProbeSample } from "@/lib/balanceProbe";
 import { FLAG_BOX_DEBRIEF, useConfigFlag } from "@/lib/configFlag";
 import { fresh } from "@/lib/lmuRest";
+import { findLoadedEntry, loadedSetup } from "@/lib/loadedSetup";
 import { recommend, type Recommendation } from "@/lib/setupAssistant";
 import { learnForCar, svmOfEntry } from "@/lib/setupNotches";
 import { engineerVoiceActive } from "@/lib/engineer/sideCallouts";
@@ -91,7 +92,8 @@ async function buildProposal(d: LiveData, report: BalanceReport): Promise<Debrie
   const me = d.standings.find((s) => s.is_player);
   const names = [me?.vehicle_name ?? "", d.player?.vehicle ?? ""].filter(Boolean);
   const all = await setupsApi.entries().catch(() => [] as SetupEntry[]);
-  const entry = pickComboSetup(all, d.session.track, names);
+  // Le setup que le jeu dit chargé d'abord ; sinon le plus récent du combo.
+  const entry = findLoadedEntry(all, loadedSetup(d.rest)?.setup) ?? pickComboSetup(all, d.session.track, names);
   const svm = entry ? svmOfEntry(entry) : null;
   if (!entry || !svm) return base;
   const bounds = await live.garageBounds().then(fresh).catch(() => null);

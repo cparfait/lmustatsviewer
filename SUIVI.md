@@ -49,6 +49,7 @@ Construire la **V3** de LMU Stats Viewer :
 | **Overlays en VR** | 🧪 **Décidé (2026-09-23), en attente de validation anti-triche** — la VR passe par **OpenKneeboard** (signé, OpenXR + SteamVR) via ses **Web Dashboards** : l'app sert chaque widget sur une URL locale (fond transparent, données live par WebSocket). **Pas de couche OpenXR maison** tant qu'on n'a pas de certificat de signature de code : une DLL non signée chargée dans LMU se heurterait à Easy Anti-Cheat (actif depuis LMU 1.2). Cibles de test : Pimax (Pimax Play OpenXR) + Quest 3 (Virtual Desktop / VDXR). Rouvre partiellement la Phase 9. **Étape 1 livrée (2026-10-17, branche `feat/veille-pistes`)** : widgets servis par adresse locale + WebSocket (`widget_server.rs`, section « Widgets par adresse » de `/overlays`), aussi pour OBS et un 2ᵉ écran. |
 | **Nouveautés issues de la veille** | **Décidé (2026-10-17)** — tout ce qui vient de la veille RaceLab / pitlane / MySIMRace est **désactivé par défaut** et s'active dans la Configuration ; l'existant ne change pas (paliers ohne_speed par défaut, aucune lecture/écriture supplémentaire de l'API du jeu). VR : OpenKneeboard seul (pas de couche OpenXR maison). Développé sur la branche `feat/veille-pistes`, **fusionné dans `main` le 2026-10-18** (via `feat/radio-parity`). |
 | **Annonces de course (passe 2026-10-18)** | **Décidé (mainteneur, 2026-10-18)** — issues de l'analyse REA d'un ingénieur radio du marché (rapport hors dépôt, `C:\tmp\rea-crewchief\`). **Informations activées par défaut** (pénalités détaillées, limites de piste, avertissements du jeu, voiture de sécurité, pressions, stands, fin de course, pneus, choc, noms de virages et de rivaux, notes vocales), chacune désactivable (Configuration › Audio / Voix › Annonces). **Actions désactivées par défaut** : son du jeu baissé, écritures dans le jeu (menu des stands à la voix), mode cohabitation. Supersède, pour cette passe seulement, « Nouveautés issues de la veille : désactivé par défaut ». Lecture **seule** de deux nouvelles sources : zone « Rules » du plugin et dernier message du centre de messages (`Extended`). Aucune ligne de code tiers reprise : les comportements ont été réimplémentés ; les dispositions mémoire viennent du format public du plugin rF2. Développé sur `feat/radio-parity`, **fusionné dans `main` le 2026-10-18** (demande du mainteneur) avant la validation en jeu : `VALIDATION-EN-JEU.md` § 00 reste à dérouler. |
+| **Setup chargé reconnu en piste** | **Décidé (mainteneur, 2026-10-22 : « je veux absolument ça, c'était mon objectif de base »)** — l'app lit `activeSetup` / `unsavedChanges` dans `garage/summary` (lecture seule, en piste seulement, même régime que `getPlayerGarageData`) et note chaque tour bouclé avec le setup chargé (`setup_laps`). **Activé par défaut** (exception à « Nouveautés issues de la veille : désactivé par défaut ») ; Config › Atelier › « Reconnaître le setup chargé » le coupe (ancien comportement : lien manuel seul). Quand il est actif, la lecture live tourne en arrière-plan (consommateur Rust `setup-watch`) même page Live fermée. Sessions reconnues par **empreinte des chronos** (2 ms, numéro ±1), jamais « au plus proche » ; le lien de référence `linked_session_id` n'est rempli **que s'il est vide**. |
 | **Veille concurrents** | **Décidé (2026-09-25)** — on s'inspire des idées et des réglages d'outils concurrents, mais **aucun nom de concurrent dans le code** (identifiants, commentaires, textes UI, changelog) et aucune ligne de leur code reprise. Les analyses restent dans `SUIVI.md` (doc de veille). |
 | **Débit des annonces live** | **Décidé (2026-09-25)** — deux modes, **mêmes annonces** : `Ingénieur` (défaut : arbitre radio, point de tour fusionné, anti-radotage, ton « pousse/gère ») et `Complet` (comportement historique exact). Règle : une amélioration du coach ne supprime jamais une annonce existante ; elle la filtre dans le mode Ingénieur et la laisse intacte en Complet. |
 | **Références circuit** | **Décidé (2026-09-25)** — aucune donnée circuit (freinages, vidéos, altitude, virages) dont le tracé ou la numérotation ne correspond pas au circuit du jeu : on n'en prend rien, même partiellement. Croiser avec une source officielle avant intégration. ApexPoints : 7 fiches sur 12 retirées à ce titre. |
@@ -285,6 +286,13 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   1.0.10, ajouter le lien (menu et pied de page, `site.js`) et retirer le `noindex`. À voir aussi en roulant : bandeau « setup imposé » (page Live) et
   carte « Bilan au box » (≥ 2 tours puis stands). Commité le 2026-10-21 (`79f9a59`) ; note de
   passation `REPRISE-ATELIER-SETUP.md` supprimée le 2026-10-22 (son contenu restant est ici).
+- ⏳ **Setup chargé reconnu en piste (2026-10-22)** : codé, testé hors jeu (Rust + suite atelier),
+  **pas encore roulé**. À valider en jeu : forme réelle de `garage/summary` (`activeSetup`
+  « Dossier\Fichier », `unsavedChanges`) et sa taille (~26 Ko annoncés) ; aucun plantage en piste
+  avec cette lecture toutes les 5 s ; numéro de tour XML = compteur `mTotalLaps` (sinon le décalage ±1
+  le rattrape) ; chrono `mLastLapTime` identique au XML à 2 ms ; bandeau Live (setup, « non
+  enregistré ») ; bloc « Roulé avec » du détail de session ; liste des sessions de la fiche setup ;
+  coût CPU de la lecture live en arrière-plan quand l'app est ouverte sans page Live.
 - ⏳ **Fournisseurs IA gratuits (2026-10-21)** : vérifié dans `npm run tauri dev` (OVHcloud et Kilo sans clé, bascule OVHcloud → Kilo en vrai). Clés gratuites Groq / NVIDIA / Z.ai / Cohere / Hugging Face / Ollama Cloud non testées (seuls OVHcloud, Kilo et LLM7 ont répondu à un vrai appel sans clé). Les catalogues gratuits bougent vite (Kilo, LLM7) : revérifier les listes de repli à chaque version. OVHcloud sous charge : jusqu'à 28 s par réponse, plus de 2 min pour une question d'analyse avec Qwen3.8-27B (raisonnement long) → le pilote peut choisir `Mistral-Small-3.2-24B-Instruct-2506` ou `gpt-oss-120b` à la main (défaut gardé : le plus récent, décision du 2026-10-21).
 - ⏳ **Branche `feat/veille-pistes` (2026-10-17)** : fusionnée dans `main` depuis. Reste :
   validation en jeu (`VALIDATION-EN-JEU.md` § Veille) et
@@ -938,6 +946,52 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-22 — Setup chargé reconnu en piste et relié aux sessions
+
+**Demande** (après la veille ci-dessous) : « Il sait quel setup est chargé dans la voiture. Je veux
+absolument ça, c'était mon objectif de base. »
+- ✅ Rust : route `garage/summary` dans le pont REST (`LoadedSetup` : nom, dossier, fichier,
+  `unsavedChanges`, voiture), lue en piste seulement toutes les 5 s, oubliée hors séance ; réglage
+  `loaded_setup_tracking` (défaut actif, `set_loaded_setup_tracking` à chaud).
+- ✅ Rust : `setup_usage.rs` + table `setup_laps` (jamais vidée par une réindexation) : un tour bouclé
+  = numéro, chrono, setup chargé, « non enregistré ». Reconnaissance des tours du joueur dans les
+  sessions XML par empreinte des chronos (comme le lien télémétrie) ; `get_session_setup_usage`,
+  `get_setup_session_usage` ; `autolink` au scan des setups (remplit `linked_session_id` vide avec la
+  meilleure session roulée, ne remplace jamais un lien). Clés par chemin `Settings\<dossier>\<fichier>`,
+  jamais par id (les ids changent au rescan).
+- ✅ Interface : bandeau « Setup chargé » sur la page Live (clic = fiche, avertissement « réglages non
+  enregistrés », setup intégré au jeu) ; bloc « Roulé avec (reconnu en piste) » dans le détail de
+  session (tours, meilleur tour, bouton « en faire la référence ») ; « Sessions roulées avec ce
+  setup » sur la fiche ; le bilan au box part du setup chargé (sinon l'ancien choix « le plus
+  récent ») ; option dans Config › Atelier › En piste. Textes 5 langues, changelog 1.0.10.
+- ✅ Tests : `cargo test` (pont REST + `setup_usage`, 31 OK), `npm test` 6 982 OK, `tsc -b`, eslint et
+  clippy propres sur les fichiers touchés. ⚠️ Non vérifié à l'écran : hors Tauri le navigateur
+  n'affiche que la page des widgets ; rien de testé avec le jeu.
+- 📋 **Prochaine étape** : rouler 5-6 tours avec un setup sauvé, changer de setup au garage, rouler
+  encore, puis vérifier bandeau Live, détail de session et fiche (§7 « Setup chargé reconnu en piste »).
+
+### 2026-10-22 — Veille TrackMind 0.9.7.1 (build 290) : gestion des setups, avec REA (aucun code modifié)
+
+**Demande** (session parente) : comprendre comment TrackMind lit, liste, compare, versionne, partage et relie aux
+tours les `.svm`, et comparer avec la V3. Rapport complet hors dépôt :
+`side-session-notes\local_7157010e-…\veille-trackmind-0.9.7.1-setups.md`. Idées seulement, aucun nom de concurrent
+dans le code.
+- ✅ Version : socle 0.9.5 (`C:\Program Files\TrackMind`), pack OTA actif **0.9.7.1 / build 290**. REA
+  (`analyze_javascript_application` + `trace_application_feature` sur `studio\web`) + lecture du Python du pack
+  comme données ; cible jamais lancée. Côté setups, peu de changements depuis le build 287.
+- ✅ Constats clés : setup chargé connu par `/rest/garage/summary` (`activeSetup`, `unsavedChanges`) ; le jeu sauve
+  (`POST /rest/garage/setup`) et charge (`PUT`) un setup par son nom ; chaque tour propre est attribué au setup
+  roulé (tours invalidés ou sans temps intermédiaire exclus) ; setup partagé identifié par une clé secrète + un
+  repère public dans `Notes=` (seule zone que le jeu garde à l'enregistrement), filiation à 50 % des réglages ;
+  noms de fichiers ASCII (LMU masquerait sinon le fichier dans la liste du garage) ; écran communautaire « voiture
+  d'abord », classement en direct par setup, « Publier la vN ».
+- 📋 12 idées classées (rapport §8), toutes désactivées par défaut ; recommandation : setup en piste reconnu →
+  chiffres par setup → publication pré-remplie, et nom de fichier ASCII à l'import (à vérifier en jeu).
+- ⚠️ Constat V3 hors veille (rapport §9) : `scan_setups` vide puis réinsère la table `setups` (`AUTOINCREMENT`) → les
+  ids changent à chaque visite de la page Setups, ce qui casse la lignée « ← #id » et le verdict mesuré de
+  l'assistant. Non corrigé (page Setups en cours dans une autre session).
+- 📋 **Prochaine étape** : arbitrage du mainteneur sur les idées ; corriger la stabilité des ids de setups.
 
 ### 2026-10-22 — Page Setups de l'app : vue « Communauté » et repère « Partagé »
 

@@ -17,6 +17,9 @@
 //!   garage, en pause ni aux menus ; le tracé (`watch/trackmap`, une lecture
 //!   par circuit) aussi au garage (`route_allowed`). Au garage, bornes du setup
 //!   et état de la voiture sont lus ponctuellement à la demande (`read_on_demand`).
+//! - Setup chargé (`garage/summary` : `activeSetup`, `unsavedChanges`) lu au même
+//!   régime que les bornes du garage (en piste seulement), désactivable
+//!   (`set_setup_tracking`).
 //! - Chaque valeur porte un état de fraîcheur : absent / vide / invalide /
 //!   périmé (> 8 s) / frais. Le front ne se sert que des valeurs fraîches et
 //!   retombe sinon sur son comportement d'avant (mémoire partagée, `.wet`…).
@@ -61,6 +64,9 @@ pub const ROUTE_SESSION: &str = "/rest/watch/sessionInfo";
 pub const ROUTE_WEATHER: &str = "/rest/sessions/weather";
 pub const ROUTE_GARAGE: &str = "/rest/garage/getPlayerGarageData";
 pub const ROUTE_TRACKMAP: &str = "/rest/watch/trackmap";
+/// Résumé du garage : nom du setup chargé (`activeSetup`), modifications non
+/// enregistrées (`unsavedChanges`), voiture. Écran du jeu : lu en piste seulement.
+pub const ROUTE_SUMMARY: &str = "/rest/garage/summary";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Fraîcheur
@@ -263,6 +269,27 @@ pub struct SettingBound {
     pub text: String,
 }
 
+/// Setup chargé dans la voiture (`garage/summary`).
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct LoadedSetup {
+    /// `activeSetup` tel que le jeu le donne (« Spa\Ma base V3 », ou le nom
+    /// d'un setup intégré au jeu, sans dossier).
+    pub name: String,
+    /// Dossier du circuit sous `Settings` (`None` : setup intégré ou sauvé à la racine).
+    pub folder: Option<String>,
+    /// Nom du fichier, sans `.svm`.
+    pub file: String,
+    /// La voiture porte des réglages non enregistrés : le fichier n'est pas tout
+    /// à fait ce qui roule. `None` si le jeu ne le dit pas.
+    pub unsaved: Option<bool>,
+    /// Dossier du circuit en cours (`currentTrackFolder`).
+    pub track_folder: Option<String>,
+    /// Fichier `.VEH` de la voiture (`car.vehFile`).
+    pub veh_file: Option<String>,
+    /// Dernier maillon de `car.fullPathTree` (« Lexus RCF LMGT3 »).
+    pub car: Option<String>,
+}
+
 /// Tracé du circuit fourni par le jeu (`watch/trackmap`), dans le même repère
 /// monde que `mPos` de la mémoire partagée (vérifié à Road Atlanta : 2,4 m
 /// d'écart médian avec le tracé appris en roulant, ligne de course vs axe).
@@ -291,6 +318,8 @@ pub struct LmuRestLive {
     pub pit: RestField<PitScreen>,
     pub session: RestField<SessionInfo>,
     pub weather: RestField<WeekendWeather>,
+    /// Setup chargé dans la voiture (`garage/summary`).
+    pub setup: RestField<LoadedSetup>,
     /// État seul des bornes de setup (données via `get_lmu_garage_bounds`).
     pub garage_state: Freshness,
 }
@@ -624,6 +653,43 @@ pub fn parse_trackmap(v: &Value) -> Result<Parsed<GameTrackMap>, ()> {
     Ok(Parsed::Data(GameTrackMap { track: String::new(), racing, pit_lane, spots }))
 }
 
+/// Sépare `activeSetup` en (dossier, fichier). Refuse tout ce qui n'est pas un
+/// ou deux segments simples (jamais un chemin).
+pub fn split_setup_name(name: &str) -> Option<(Option<String>, String)> {
+    let parts: Vec<&str> = name.split(['\\', '/']).map(str::trim).filter(|p| !p.is_empty()).collect();
+    if parts.is_empty() || parts.len() > 2 || parts.iter().any(|p| *p == "." || *p == ".." || p.contains(':')) {
+        return None;
+    }
+    let file = parts[parts.len() - 1].trim_end_matches(".svm").to_string();
+    let folder = (parts.len() == 2).then(|| parts[0].to_string());
+    Some((folder, file))
+}
+
+pub fn parse_summary(v: &Value) -> Result<Parsed<LoadedSetup>, ()> {
+    let Some(obj) = as_object(v) else {
+        return if v.is_null() || v.is_object() { Ok(Parsed::Empty) } else { Err(()) };
+    };
+    let name = obj.get("activeSetup").and_then(Value::as_str).unwrap_or("").trim().to_string();
+    if name.is_empty() {
+        return Ok(Parsed::Empty);
+    }
+    let Some((folder, file)) = split_setup_name(&name) else { return Err(()) };
+    let opt = |s: String| (!s.trim().is_empty()).then(|| s.trim().to_string());
+    let car = v.get("car");
+    Ok(Parsed::Data(LoadedSetup {
+        name,
+        folder,
+        file,
+        unsaved: obj.get("unsavedChanges").and_then(Value::as_bool),
+        track_folder: opt(text(v, "currentTrackFolder")),
+        veh_file: car.and_then(|c| opt(text(c, "vehFile"))),
+        car: car
+            .map(|c| text(c, "fullPathTree"))
+            .and_then(|t| t.rsplit(',').next().map(|x| x.trim().to_string()))
+            .filter(|x| !x.is_empty()),
+    }))
+}
+
 pub fn parse_garage(v: &Value) -> Result<Parsed<Vec<SettingBound>>, ()> {
     let Some(obj) = as_object(v) else {
         return if v.is_null() || v.is_object() { Ok(Parsed::Empty) } else { Err(()) };
@@ -728,6 +794,7 @@ struct Store {
     session: Slot<SessionInfo>,
     weather: Slot<WeekendWeather>,
     garage: Slot<Vec<SettingBound>>,
+    summary: Slot<LoadedSetup>,
     track_map: Slot<GameTrackMap>,
     reachable: bool,
     backoff: Duration,
@@ -742,6 +809,7 @@ impl Store {
             pit: self.pit.view(now),
             session: self.session.view(now),
             weather: self.weather.view(now),
+            setup: self.summary.view(now),
             garage_state: self.garage.freshness(now),
         }
     }
@@ -760,6 +828,8 @@ static PLAYER_SPOT: AtomicU8 = AtomicU8::new(PlayerSpot::Absent as u8);
 /// Réglage « Interroger le jeu hors piste » : ancien comportement (garage,
 /// pause et menus interrogés comme en piste). Défaut : non.
 static POLL_OFF_TRACK: AtomicBool = AtomicBool::new(false);
+/// Réglage « Reconnaître le setup chargé » : lecture de `garage/summary`. Défaut : oui.
+static SETUP_TRACKING: AtomicBool = AtomicBool::new(true);
 /// Dernière lecture ponctuelle de chaque route de `ON_DEMAND_ROUTES`.
 static LAST_ON_DEMAND: Mutex<[Option<Instant>; 2]> = Mutex::new([None; 2]);
 
@@ -841,6 +911,27 @@ pub fn set_poll_off_track(enabled: bool) {
     POLL_OFF_TRACK.store(enabled, Ordering::Relaxed);
 }
 
+/// Clé de config du réglage « Reconnaître le setup chargé » (`"0"` = désactivé).
+pub const CONFIG_SETUP_TRACKING: &str = "loaded_setup_tracking";
+
+/// Valeur du réglage telle que stockée : tout sauf `"0"` vaut « oui ».
+pub fn setup_tracking_from_config(v: Option<&str>) -> bool {
+    v != Some("0")
+}
+
+/// Appliqué au démarrage (config) et à chaque bascule du réglage.
+pub fn set_setup_tracking(enabled: bool) {
+    SETUP_TRACKING.store(enabled, Ordering::Relaxed);
+    if !enabled {
+        // Plus rien de lu : le dernier setup vu ne doit plus passer pour frais.
+        with_store(|s| s.summary.forget());
+    }
+}
+
+pub fn setup_tracking() -> bool {
+    SETUP_TRACKING.load(Ordering::Relaxed)
+}
+
 /// Route qui lit les écrans du jeu (`garage/*`) : suspendue tant que le joueur
 /// ne roule pas.
 pub fn reads_game_screens(route: &str) -> bool {
@@ -896,16 +987,17 @@ pub fn on_demand_due(
 
 /// Prochaine échéance de chaque route.
 struct Schedule {
-    due: [Instant; 6],
+    due: [Instant; 7],
 }
 
 /// `sessionInfo` d'abord : les autres routes en dépendent (`session_ready`).
-const ROUTES: [(&str, Duration); 6] = [
+const ROUTES: [(&str, Duration); 7] = [
     (ROUTE_SESSION, EVERY_FAST),
     (ROUTE_VEHICLE, EVERY_FAST),
     (ROUTE_PIT, EVERY_FAST),
     (ROUTE_WEATHER, EVERY_WEATHER),
     (ROUTE_GARAGE, EVERY_GARAGE),
+    (ROUTE_SUMMARY, EVERY_GARAGE),
     (ROUTE_TRACKMAP, EVERY_TRACKMAP),
 ];
 
@@ -944,6 +1036,7 @@ fn record(store: &mut Store, route: &str, res: Result<Value, FetchError>, now: I
         ROUTE_SESSION => apply(&mut store.session, res, parse_session, now),
         ROUTE_WEATHER => apply(&mut store.weather, res, parse_weather, now),
         ROUTE_GARAGE => apply(&mut store.garage, res, parse_garage, now),
+        ROUTE_SUMMARY => apply(&mut store.summary, res, parse_summary, now),
         ROUTE_TRACKMAP => {
             let track = store.session.value.as_ref().map(|s| s.track_name.clone()).unwrap_or_default();
             let before = store.track_map.last_ok;
@@ -1008,6 +1101,10 @@ fn poll_due(client: &reqwest::blocking::Client, base: &str, sched: &mut Schedule
             sched.due[i] = now + EVERY_FAST;
             continue;
         }
+        if *route == ROUTE_SUMMARY && !setup_tracking() {
+            sched.due[i] = now + *every;
+            continue;
+        }
         if *route == ROUTE_TRACKMAP && !track_map_wanted() {
             sched.due[i] = now + *every;
             continue;
@@ -1051,7 +1148,7 @@ pub fn ensure_worker(keep_running: fn() -> bool) {
         };
         let base = loopback_base(LMU_REST_PORT);
         let now = Instant::now();
-        let mut sched = Schedule { due: [now; 6] };
+        let mut sched = Schedule { due: [now; 7] };
         let mut was_present = false;
         loop {
             if !keep_running() {
@@ -1068,7 +1165,7 @@ pub fn ensure_worker(keep_running: fn() -> bool) {
                 // Séance tout juste chargée : on oublie le recul accumulé et on
                 // laisse le jeu se poser avant la première requête.
                 let start = Instant::now() + SETTLE_AFTER_SESSION;
-                sched.due = [start; 6];
+                sched.due = [start; 7];
                 with_store(|s| s.backoff = Duration::ZERO);
             }
             if !present {
@@ -1077,6 +1174,7 @@ pub fn ensure_worker(keep_running: fn() -> bool) {
                 with_store(|s| {
                     s.reachable = false;
                     s.session.forget();
+                    s.summary.forget();
                 });
             }
             was_present = present;
@@ -1300,6 +1398,48 @@ mod tests {
         assert_eq!(m.spots, vec![(7, [1.0, 9.0])]);
         assert_eq!(parse_trackmap(&json!([{"type": 0, "x": 1, "z": 2}])).unwrap(), Parsed::Empty);
         assert!(parse_trackmap(&json!(3)).is_err());
+    }
+
+    #[test]
+    fn summary_gives_loaded_setup() {
+        let v = json!({
+            "activeSetup": r"Road Atlanta\Ma base V3",
+            "unsavedChanges": true,
+            "currentTrackFolder": "Road Atlanta",
+            "car": {"vehFile": "LEXUS_RCF/1.21/LEXUS.VEH", "fullPathTree": "WEC 2026, GT3, Lexus RCF LMGT3"}
+        });
+        let Ok(Parsed::Data(s)) = parse_summary(&v) else { panic!("summary") };
+        assert_eq!(s.folder.as_deref(), Some("Road Atlanta"));
+        assert_eq!(s.file, "Ma base V3");
+        assert_eq!(s.unsaved, Some(true));
+        assert_eq!(s.car.as_deref(), Some("Lexus RCF LMGT3"));
+        assert_eq!(s.veh_file.as_deref(), Some("LEXUS_RCF/1.21/LEXUS.VEH"));
+        // Setup intégré au jeu : pas de dossier.
+        let Ok(Parsed::Data(b)) = parse_summary(&json!({"activeSetup": "GT3_RCF_Balanced_Imola"})) else { panic!() };
+        assert_eq!((b.folder, b.file.as_str(), b.unsaved), (None, "GT3_RCF_Balanced_Imola", None));
+        assert!(matches!(parse_summary(&json!({"activeSetup": ""})), Ok(Parsed::Empty)));
+        assert!(matches!(parse_summary(&json!({})), Ok(Parsed::Empty)));
+        assert!(parse_summary(&json!({"activeSetup": r"..\..\x"})).is_err());
+        assert!(parse_summary(&json!({"activeSetup": r"C:\x"})).is_err());
+        assert!(parse_summary(&json!({"activeSetup": r"a\b\c"})).is_err());
+        assert!(parse_summary(&json!([1])).is_err());
+    }
+
+    #[test]
+    fn setup_tracking_defaults_on() {
+        assert!(setup_tracking_from_config(None));
+        assert!(setup_tracking_from_config(Some("1")));
+        assert!(!setup_tracking_from_config(Some("0")));
+    }
+
+    #[test]
+    fn summary_is_a_game_screen_read_while_driving_only() {
+        use PlayerSpot::*;
+        assert!(route_allowed(ROUTE_SUMMARY, true, Driving, false));
+        for spot in [Absent, Frozen, GarageStall] {
+            assert!(!route_allowed(ROUTE_SUMMARY, true, spot, false));
+        }
+        assert!(!route_allowed(ROUTE_SUMMARY, false, Driving, false));
     }
 
     #[test]

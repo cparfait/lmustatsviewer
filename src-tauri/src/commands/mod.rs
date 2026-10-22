@@ -7,6 +7,7 @@ pub mod motec;
 pub mod queries;
 pub mod session_detail;
 pub mod setups;
+pub mod setup_usage;
 pub mod live;
 pub mod lmu_rest;
 pub mod minisectors;

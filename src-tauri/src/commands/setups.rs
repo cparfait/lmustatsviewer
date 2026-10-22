@@ -515,6 +515,11 @@ pub fn scan_setups(lmu_path: String, db: State<'_, DbState>) -> Result<Vec<Setup
     //    `list_setups` ne voit jamais d'état partiel (DELETE sans les INSERT).
     let mut conn = get_conn(&db)?;
 
+    // Setup reconnu en piste : un setup sans session de référence reçoit la
+    // meilleure session roulée avec lui (jamais un lien déjà posé). Avant la
+    // lecture des métadonnées ci-dessous, qui le reportent au rescan.
+    let _ = super::setup_usage::autolink(&conn);
+
     // Métadonnées propres à la base (`setup_type`, `linked_session_id`,
     // `source`) mémorisées par chemin `.svm` AVANT de purger la table —
     // sinon on perdrait la distinction app/jeu et les sessions liées au

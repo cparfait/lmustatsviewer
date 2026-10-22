@@ -150,6 +150,9 @@ pub fn run() {
             commands::session_detail::get_chart_compare_sessions,
             // Garage — configurations de voiture (.svm)
             commands::setups::scan_setups,
+            commands::setup_usage::get_session_setup_usage,
+            commands::setup_usage::get_setup_session_usage,
+            commands::setup_usage::set_loaded_setup_tracking,
             commands::setups::list_setups,
             commands::setups::get_setup,
             commands::setups::get_setup_content,
@@ -373,6 +376,18 @@ pub fn run() {
                     .ok()
                     .flatten()
                     .is_some_and(|v| v == "true"),
+            );
+
+            // Setup chargé reconnu en piste (défaut : oui). Garde la lecture live
+            // active même page Live fermée, pour noter chaque tour avec son setup.
+            commands::setup_usage::apply_tracking(
+                app.handle(),
+                commands::lmu_rest::setup_tracking_from_config(
+                    db::config_get(app.state::<DbState>().inner(), commands::lmu_rest::CONFIG_SETUP_TRACKING)
+                        .ok()
+                        .flatten()
+                        .as_deref(),
+                ),
             );
 
             // Micro accordé d'office aux pages de l'app : plus de demande WebView2.

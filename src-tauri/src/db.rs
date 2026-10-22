@@ -179,6 +179,26 @@ CREATE TABLE IF NOT EXISTS setups (
     source              TEXT    NOT NULL DEFAULT 'game'
 );
 
+-- Setup réellement roulé : un tour bouclé en piste + le setup chargé dans la
+-- voiture à ce moment (`garage/summary` du jeu). Les sessions (XML) sont
+-- reconnues plus tard par leurs chronos (`setup_usage.rs`) : aucune clé vers
+-- `sessions` ni `setups`, dont les id changent au rescan. Pas vidé par une
+-- réindexation : c'est une donnée captée en piste, impossible à reconstruire.
+CREATE TABLE IF NOT EXISTS setup_laps (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    recorded_at   INTEGER NOT NULL,              -- epoch s
+    track         TEXT    NOT NULL DEFAULT '',   -- mémoire partagée (mTrackName)
+    session_kind  INTEGER NOT NULL DEFAULT -1,   -- mSession
+    lap_num       INTEGER NOT NULL,              -- compteur de tours du joueur
+    lap_time      REAL,                          -- NULL : chrono absent
+    setup_name    TEXT    NOT NULL,              -- activeSetup tel quel
+    setup_folder  TEXT,                          -- dossier sous Settings (NULL : setup intégré)
+    setup_file    TEXT    NOT NULL,              -- fichier, sans .svm
+    unsaved       INTEGER,                       -- 1 : réglages non enregistrés
+    car           TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_setup_laps_time ON setup_laps(recorded_at);
+
 -- Fichiers XML purgés volontairement par l'utilisateur (« purger sessions vides »).
 -- La sync delta saute ces fichiers tant que leur `mtime` est inchangé : sans cela,
 -- le scan filesystem les détecterait comme « nouveaux » et les réindexerait à

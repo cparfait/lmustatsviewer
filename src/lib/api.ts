@@ -979,7 +979,50 @@ export interface LmuRestLive {
   pit: RestField<RestPitScreen>;
   session: RestField<RestSessionInfo>;
   weather: RestField<RestWeekendWeather>;
+  /** Setup chargé dans la voiture (`garage/summary`), lu en piste. */
+  setup?: RestField<RestLoadedSetup>;
   garage_state: RestFreshness;
+}
+
+/** `garage/summary` : setup chargé dans la voiture. */
+export interface RestLoadedSetup {
+  /** `activeSetup` tel que le jeu le donne. */
+  name: string;
+  /** Dossier du circuit sous `Settings` ; `null` = setup intégré au jeu. */
+  folder: string | null;
+  /** Nom du fichier, sans `.svm`. */
+  file: string;
+  /** Réglages non enregistrés dans le fichier (`null` : inconnu). */
+  unsaved: boolean | null;
+  track_folder: string | null;
+  veh_file: string | null;
+  car: string | null;
+}
+
+/** Un setup roulé pendant une session (reconnu en piste). */
+export interface SessionSetupUse {
+  folder: string | null;
+  file: string;
+  /** Setup en base (fichier toujours présent), sinon `null`. */
+  setup_id: number | null;
+  car: string | null;
+  circuit: string | null;
+  linked_session_id: number | null;
+  /** Numéros des tours de la session roulés avec ce setup. */
+  laps: number[];
+  best_lap: number | null;
+  unsaved: boolean;
+}
+
+/** Une session roulée avec un setup (reconnue en piste). */
+export interface SetupSessionUse {
+  session_id: number;
+  session_type: string;
+  track: string;
+  timestamp: number;
+  laps: number;
+  best_lap: number | null;
+  unsaved: boolean;
 }
 
 /** Bornes d'un réglage (`getPlayerGarageData`, figé au chargement de la voiture). */
@@ -1663,6 +1706,15 @@ export const setups = {
     invoke<void>("export_setup", { id, destPath }),
   compare: (idA: number, idB: number) =>
     invoke<SetupDiffSection[]>("compare_setups", { idA, idB }),
+  /** Setups roulés pendant une session (setup chargé reconnu en piste). */
+  usageForSession: (sessionId: number) =>
+    invoke<SessionSetupUse[]>("get_session_setup_usage", { sessionId }),
+  /** Sessions roulées avec un setup (setup chargé reconnu en piste). */
+  sessionsUsage: (setupId: number) =>
+    invoke<SetupSessionUse[]>("get_setup_session_usage", { setupId }),
+  /** Réglage « Reconnaître le setup chargé », appliqué à chaud côté Rust. */
+  setTracking: (enabled: boolean) =>
+    invoke<void>("set_loaded_setup_tracking", { enabled }),
 };
 
 // ─── Live timing ────────────────────────────────────────────────────────────

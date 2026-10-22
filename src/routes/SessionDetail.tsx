@@ -64,6 +64,7 @@ import type {
   ResultRow,
   LapRow,
   SetupForSession,
+  SessionSetupUse,
 } from "@/lib/api";
 import { fetchBenchmarks, type PaceBenchmark } from "@/lib/ohne_speed";
 import { TierBadge } from "@/components/TierBadge";
@@ -263,6 +264,15 @@ function SessionView({ data }: { data: SessionDetailData }) {
       .getForSession(session.id)
       .then(setLinkedSetups)
       .catch(() => setLinkedSetups([]));
+  }, [session.id]);
+  // Setups reconnus en piste (setup chargé noté à chaque tour) : vides si la
+  // session a été roulée sans l'app ou avec le réglage coupé.
+  const [detectedSetups, setDetectedSetups] = useState<SessionSetupUse[]>([]);
+  useEffect(() => {
+    setupsApi
+      .usageForSession(session.id)
+      .then(setDetectedSetups)
+      .catch(() => setDetectedSetups([]));
   }, [session.id]);
 
   // Benchmarks ohne_speed (best-effort, uniquement si option activée).
@@ -608,6 +618,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
                     <SetupUsedInline
                       sessionId={session.id}
                       linkedSetups={linkedSetups}
+                      detected={detectedSetups}
                       playerCar={playerResult.unique_car_name ?? null}
                       navigate={navigate}
                       onChanged={() => {
@@ -2863,6 +2874,7 @@ function ComparisonTab({
 function SetupUsedInline({
   sessionId,
   linkedSetups,
+  detected,
   playerCar,
   navigate,
   onChanged,
@@ -2870,6 +2882,7 @@ function SetupUsedInline({
 }: {
   sessionId: number;
   linkedSetups: SetupForSession[];
+  detected: SessionSetupUse[];
   playerCar: string | null;
   navigate: (to: string) => void;
   onChanged: () => void;
@@ -2976,6 +2989,59 @@ function SetupUsedInline({
           {t("sessionDetail.linkSetup")}
         </button>
       </div>
+
+      {/* Setups reconnus en piste : le setup chargé à chaque tour. */}
+      {detected.length > 0 && (
+        <div className="mb-2 space-y-1.5">
+          <p className="text-micro uppercase tracking-wider text-muted-foreground">{t("lab.loaded.detected")}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {detected.map((d) => {
+              const linked = d.setup_id != null && linkedSetups.some((s) => s.id === d.setup_id);
+              return (
+                <div
+                  key={`${d.folder ?? ""}|${d.file}`}
+                  className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2.5 py-1.5"
+                >
+                  <Wrench className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="flex-1 min-w-0 text-xs">
+                    {d.setup_id != null ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/setups/${d.setup_id}`)}
+                        className="font-medium truncate hover:text-primary transition-colors leading-tight text-left w-full"
+                        title={t("sessionDetail.openSetup")}
+                      >
+                        {d.file}
+                      </button>
+                    ) : (
+                      <p className="font-medium truncate leading-tight" title={t("lab.loaded.noFile")}>
+                        {d.file}
+                      </p>
+                    )}
+                    <p className="text-muted-foreground text-micro truncate leading-tight">
+                      {d.folder ?? t("lab.loaded.builtIn")} · {t("lab.loaded.laps", { count: d.laps.length })}
+                      {d.best_lap != null && ` · ${t("lab.loaded.best", { time: formatTime(d.best_lap) })}`}
+                      {d.unsaved && (
+                        <span className="text-amber-700 dark:text-amber-300"> · {t("lab.loaded.unsavedShort")}</span>
+                      )}
+                    </p>
+                  </div>
+                  {d.setup_id != null && !linked && (
+                    <button
+                      type="button"
+                      onClick={() => handleLink(d.setup_id as number)}
+                      className="text-muted-foreground hover:text-primary p-0.5"
+                      title={t("lab.loaded.link")}
+                    >
+                      <Link2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {linkedSetups.length === 0 ? (
         <p className="text-xs italic text-muted-foreground">

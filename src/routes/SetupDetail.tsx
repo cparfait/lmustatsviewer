@@ -50,6 +50,7 @@ import { SetupAuditPanel } from "@/components/SetupAuditPanel";
 import { SetupProfilesPanel } from "@/components/SetupProfilesPanel";
 import { SetupPlatesPanel } from "@/components/SetupPlatesPanel";
 import { SetupSharePanel } from "@/components/SetupSharePanel";
+import { SetupSessionsUsed } from "@/components/SetupSessionsUsed";
 import { displayOf, indexOf, isFixedParam } from "@/lib/setupView";
 import { learnForCar, paramId, resolveIndex, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
 import { FLAG_SETUP_AUDIT, FLAG_SETUP_PLATES, FLAG_SETUP_PROFILES, FLAG_SETUP_SHARING, useConfigFlag } from "@/lib/configFlag";
@@ -884,6 +885,9 @@ function MetaPanel({
 
       {/* Lien vers une session de référence (best lap) — V1 */}
       <LinkedSessionSection entry={entry} onChanged={onLinkChanged} />
+
+      {/* Sessions roulées avec ce setup (setup chargé reconnu en piste) */}
+      <SetupSessionsUsed setupId={entry.id} linkedSessionId={entry.linked_session_id} />
 
       <div>
         <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-2">

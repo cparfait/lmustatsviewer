@@ -13,6 +13,7 @@ import { planProfile, profileForStyle } from "@/lib/setupProfiles";
 import { countFixed, displayOf, indexOf, isFixedParam, keyFigures, notesOf } from "@/lib/setupView";
 import { analyzeBalance, carMatches, circuitMatches, type ProbeLap, type ProbeSample } from "@/lib/balanceProbe";
 import { pickComboSetup } from "@/lib/useBoxDebrief";
+import { findLoadedEntry, keyOfPath, loadedSetup, setupKey } from "@/lib/loadedSetup";
 import { radioWindowOpen, splitRadio } from "@/lib/engineer/radioSplit";
 import { RaceEventTracker } from "@/lib/raceEvents";
 import { platformWatch } from "@/lib/platformWatch";
@@ -382,7 +383,29 @@ function driverHue(): void {
   eq(mainClassOf([]), null, "aucun combo : pas de classe");
 }
 
+function loaded(): void {
+  section("atelier — setup chargé reconnu en piste");
+  const BS = String.fromCharCode(92);
+  eq(setupKey("Spa", "Ma Base V3.svm"), `spa${BS}ma base v3`, "clé dossier + fichier, sans .svm, minuscules");
+  eq(setupKey(null, "GT3_Balanced"), "gt3_balanced", "setup sans dossier");
+  const p = ["C:", "Steam", "Le Mans Ultimate", "UserData", "player", "Settings", "Spa", "Ma Base V3.svm"].join(BS);
+  eq(keyOfPath(p), `spa${BS}ma base v3`, "clé depuis le chemin du fichier");
+  eq(keyOfPath("D:/LMU/UserData/player/Settings/Racine.svm"), "racine", "fichier à la racine de Settings");
+  eq(keyOfPath(["C:", "x", "Base.svm"].join(BS)), null, "hors Settings : rien");
+  const entry = (id: number, path: string) => ({ id, svm_path: path }) as SetupEntry;
+  const all = [entry(1, p.replace("Ma Base V3", "Autre")), entry(2, p)];
+  const setup = { name: `Spa${BS}Ma Base V3`, folder: "Spa", file: "Ma Base V3", unsaved: true, track_folder: null, veh_file: null, car: null };
+  eq(findLoadedEntry(all, setup)?.id, 2, "le fichier chargé, pas le plus récent");
+  eq(findLoadedEntry(all, { ...setup, folder: null }), null, "setup intégré au jeu : aucun fichier");
+  const rest = (state: string) => ({ setup: { state, age_ms: 0, data: setup } }) as unknown as LiveData["rest"];
+  eq(loadedSetup(rest("fresh"))?.fresh, true, "lu à l'instant");
+  eq(loadedSetup(rest("stale"))?.fresh, false, "dernière lecture gardée (garage)");
+  eq(loadedSetup(rest("absent")), null, "rien lu : rien affiché");
+  eq(loadedSetup(null), null, "pas de pont REST");
+}
+
 export function run(): void {
+  loaded();
   notches();
   audit();
   profiles();

@@ -12,8 +12,37 @@ export function baseName(entry: Pick<SetupEntry, "name">): string {
   return entry.name.replace(/\.svm$/i, "");
 }
 
-/** Nom libre pour Windows et pour le jeu (pas de point, pas de caractère interdit). */
+/** Réglage « Noms de fichiers compatibles avec le jeu » (config `setup_ascii_names`, défaut oui). */
+let asciiNames = true;
+export function setAsciiSetupNames(on: boolean): void {
+  asciiNames = on;
+}
+
+const ASCII_SPECIAL: Record<string, string> = {
+  æ: "ae", Æ: "AE", œ: "oe", Œ: "OE", ß: "ss", ø: "o", Ø: "O", ł: "l", Ł: "L", đ: "d", Đ: "D", ı: "i",
+  "·": "-", "–": "-", "—": "-", "‐": "-", "‑": "-", "−": "-", "’": "'", "‘": "'", "´": "'",
+};
+
+/**
+ * Nom de fichier en ASCII, comme `ascii_file_name` côté Rust : accents retirés
+ * (« é » → « e »), « œ » → « oe », point médian et tirets typographiques → « - »,
+ * tout autre caractère non ASCII remplacé par une espace.
+ */
+export function asciiFileName(name: string): string {
+  const out = [...name]
+    .map((c) => {
+      if (c.charCodeAt(0) < 128) return c;
+      if (ASCII_SPECIAL[c]) return ASCII_SPECIAL[c];
+      const base = c.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return base.length > 0 && [...base].every((x) => x.charCodeAt(0) < 128) ? base : " ";
+    })
+    .join("");
+  return out.split(/\s+/).filter(Boolean).join(" ") || "Setup";
+}
+
+/** Nom libre pour Windows et pour le jeu (pas de point, pas de caractère interdit ; ASCII si le réglage est actif). */
 export function safeSetupName(name: string): string {
+  if (asciiNames) name = asciiFileName(name);
   // Caractères de contrôle (code < 32) retirés aussi : interdits dans un nom de fichier.
   const clean = [...name].map((c) => (c.charCodeAt(0) < 32 ? " " : c)).join("");
   return clean.replace(/[<>:"/\\|?*.]/g, " ").replace(/\s{2,}/g, " ").trim().slice(0, 80) || "Setup";

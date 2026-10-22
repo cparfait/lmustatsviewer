@@ -6,10 +6,11 @@
  */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Activity, Award, Crosshair, Gauge, Lock, Map as MapIcon, Radio, Scissors, Share2, Sparkles, UserRound, Wand2, Wrench } from "lucide-react";
+import { Activity, Award, CaseSensitive, Crosshair, Gauge, Lock, Map as MapIcon, Radio, Scissors, Share2, Sparkles, UserRound, Wand2, Wrench } from "lucide-react";
 import { FlagRow } from "@/components/AnalysisExtrasSettings";
 import { Switch } from "@/components/ui/switch";
 import { config, isTauri, setups as setupsApi } from "@/lib/api";
+import { setAsciiSetupNames } from "@/lib/setupVersion";
 import {
   FLAG_ACHIEVEMENTS,
   FLAG_AIDS_ZONES,
@@ -53,37 +54,44 @@ function StylePicker() {
   );
 }
 
-/** Clé du réglage « Reconnaître le setup chargé » (`lmu_rest.rs`) : actif sauf « 0 ». */
-const LOADED_SETUP_KEY = "loaded_setup_tracking";
-
 /**
- * Reconnaître le setup chargé : **activé par défaut** (contrairement aux autres
- * options de l'Atelier), appliqué à chaud côté Rust. Désactivé = ancien comportement.
+ * Interrupteur **activé par défaut** (contrairement aux autres options de
+ * l'Atelier) : actif sauf valeur « 0 ». `apply` écrit et applique le réglage ;
+ * désactivé = ancien comportement.
  */
-function LoadedSetupRow() {
-  const { t } = useTranslation();
+function DefaultOnRow({
+  configKey,
+  icon,
+  title,
+  desc,
+  apply,
+}: {
+  configKey: string;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  apply: (on: boolean) => Promise<void>;
+}) {
   const [on, setOn] = useState(true);
   useEffect(() => {
     if (!isTauri()) return;
     void config
-      .get(LOADED_SETUP_KEY)
+      .get(configKey)
       .then((v) => setOn(v !== "0"))
       .catch(() => {});
-  }, []);
+  }, [configKey]);
   const toggle = (v: boolean) => {
     setOn(v);
-    void setupsApi.setTracking(v).catch(() => setOn(!v));
+    void apply(v).catch(() => setOn(!v));
   };
   return (
     <div className="space-y-2 rounded-md border border-border p-3">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-2.5">
-          <span className="mt-0.5 text-primary">
-            <Crosshair className="h-4 w-4" />
-          </span>
+          <span className="mt-0.5 text-primary">{icon}</span>
           <div className="space-y-0.5">
-            <p className="text-sm font-medium">{t("lab.settings.loadedTitle")}</p>
-            <p className="text-xs text-muted-foreground">{t("lab.settings.loadedDesc")}</p>
+            <p className="text-sm font-medium">{title}</p>
+            <p className="text-xs text-muted-foreground">{desc}</p>
           </div>
         </div>
         <Switch checked={on} onCheckedChange={toggle} />
@@ -109,6 +117,16 @@ export function LabSettings() {
       <p className="text-xs text-muted-foreground">{t("lab.settings.desc")}</p>
 
       <Group title={t("lab.settings.groupSetup")}>
+        <DefaultOnRow
+          configKey="setup_ascii_names"
+          icon={<CaseSensitive className="h-4 w-4" />}
+          title={t("lab.settings.asciiTitle")}
+          desc={t("lab.settings.asciiDesc")}
+          apply={async (v) => {
+            setAsciiSetupNames(v);
+            await config.set("setup_ascii_names", v ? "1" : "0");
+          }}
+        />
         <FlagRow flag={FLAG_SETUP_AUDIT} icon={<Sparkles className="h-4 w-4" />} title={t("lab.settings.auditTitle")} desc={t("lab.settings.auditDesc")} />
         <FlagRow flag={FLAG_SETUP_PROFILES} icon={<Wand2 className="h-4 w-4" />} title={t("lab.settings.profilesTitle")} desc={t("lab.settings.profilesDesc")} />
         <FlagRow flag={FLAG_SETUP_PLATES} icon={<MapIcon className="h-4 w-4" />} title={t("lab.settings.platesTitle")} desc={t("lab.settings.platesDesc")} />
@@ -123,7 +141,13 @@ export function LabSettings() {
       </Group>
 
       <Group title={t("lab.settings.groupTrack")}>
-        <LoadedSetupRow />
+        <DefaultOnRow
+          configKey="loaded_setup_tracking"
+          icon={<Crosshair className="h-4 w-4" />}
+          title={t("lab.settings.loadedTitle")}
+          desc={t("lab.settings.loadedDesc")}
+          apply={(v) => setupsApi.setTracking(v)}
+        />
         <FlagRow flag={FLAG_BOX_DEBRIEF} icon={<Wrench className="h-4 w-4" />} title={t("lab.settings.boxTitle")} desc={t("lab.settings.boxDesc")} />
         <FlagRow flag={FLAG_FIXED_SETUP} icon={<Lock className="h-4 w-4" />} title={t("lab.settings.fixedTitle")} desc={t("lab.settings.fixedDesc")} />
       </Group>

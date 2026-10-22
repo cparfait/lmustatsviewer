@@ -106,7 +106,8 @@ impl LapRecorder {
             if pl.at.elapsed() >= LAP_SETTLE {
                 let pl = self.pending.take().expect("pending");
                 let time = (p.last_lap_time > 0.0).then_some(p.last_lap_time as f64);
-                let _ = insert_lap(app, &s.track, s.session, pl.lap_num, time, &pl.setup);
+                let wet = d.weather.as_ref().map(|w| w.path_wetness_avg as f64).filter(|w| w.is_finite());
+                let _ = insert_lap(app, &s.track, s.session, pl.lap_num, time, wet, &pl.setup);
             }
         }
         let laps = p.total_laps;
@@ -134,13 +135,14 @@ fn insert_lap(
     session: i32,
     lap_num: i32,
     lap_time: Option<f64>,
+    wet: Option<f64>,
     setup: &LoadedSetup,
 ) -> Result<(), AppError> {
     let db = app.state::<DbState>();
     let conn = get_conn(&db)?;
     conn.execute(
-        "INSERT INTO setup_laps (recorded_at, track, session_kind, lap_num, lap_time, setup_name, setup_folder, setup_file, unsaved, car)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        "INSERT INTO setup_laps (recorded_at, track, session_kind, lap_num, lap_time, setup_name, setup_folder, setup_file, unsaved, car, wet)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             now_epoch(),
             track,
@@ -152,6 +154,7 @@ fn insert_lap(
             setup.file,
             setup.unsaved.map(i32::from),
             setup.car,
+            wet,
         ],
     )
     .map_err(|e| AppError::Database(format!("setup_laps insert: {e}")))?;
@@ -170,6 +173,8 @@ pub struct LapUse {
     pub folder: Option<String>,
     pub file: String,
     pub unsaved: Option<bool>,
+    /// Humidité moyenne de la trajectoire à la fin du tour (0-1), si connue.
+    pub wet: Option<f64>,
 }
 
 /// Clé normalisée d'un setup (dossier + fichier, sans `.svm`, minuscules).
@@ -242,7 +247,7 @@ pub fn match_laps(xml: &[(i64, Option<f64>)], uses: &[LapUse]) -> HashMap<i64, u
 fn uses_between(conn: &Connection, from: i64, to: i64) -> Result<Vec<LapUse>, AppError> {
     let mut stmt = conn
         .prepare(
-            "SELECT lap_num, lap_time, setup_folder, setup_file, unsaved
+            "SELECT lap_num, lap_time, setup_folder, setup_file, unsaved, wet
              FROM setup_laps WHERE recorded_at BETWEEN ?1 AND ?2 ORDER BY recorded_at, id",
         )
         .map_err(|e| AppError::Database(format!("setup_laps prepare: {e}")))?;
@@ -257,6 +262,7 @@ fn uses_between(conn: &Connection, from: i64, to: i64) -> Result<Vec<LapUse>, Ap
                 folder,
                 file,
                 unsaved: r.get::<_, Option<i32>>(4)?.map(|v| v != 0),
+                wet: r.get(5)?,
             })
         })
         .map_err(|e| AppError::Database(format!("setup_laps query: {e}")))?;
@@ -264,8 +270,25 @@ fn uses_between(conn: &Connection, from: i64, to: i64) -> Result<Vec<LapUse>, Ap
         .map_err(|e| AppError::Database(format!("setup_laps collect: {e}")))
 }
 
-/// Tours du joueur : (numéro XML, chrono ou `None` si annulé).
-type XmlLaps = Vec<(i64, Option<f64>)>;
+/// Un tour du joueur dans le XML des résultats.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct XmlLap {
+    pub num: i64,
+    /// Chrono, `None` si annulé (`--.----`).
+    pub time: Option<f64>,
+    pub valid: bool,
+    /// Durées des trois secteurs (0 si absentes).
+    pub sectors: [f64; 3],
+}
+
+impl XmlLap {
+    /// Tour complet et propre : chrono, trois secteurs, non invalidé par le jeu.
+    pub fn clean(&self) -> bool {
+        self.valid && self.time.is_some() && self.sectors.iter().all(|s| *s > 0.0)
+    }
+}
+
+type XmlLaps = Vec<XmlLap>;
 /// Setup en base : (id, nom, voiture, circuit, session liée).
 type KnownSetup = (i64, String, String, String, Option<i64>);
 
@@ -276,14 +299,20 @@ fn player_laps(conn: &Connection, session_id: i64) -> Result<(i64, XmlLaps), App
         .map_err(|e| AppError::Database(format!("setup usage session: {e}")))?;
     let mut stmt = conn
         .prepare(
-            "SELECT l.lap_num, l.lap_time FROM laps l JOIN results r ON r.id = l.result_id
+            "SELECT l.lap_num, l.lap_time, l.is_valid, l.s1, l.s2, l.s3 FROM laps l JOIN results r ON r.id = l.result_id
              WHERE l.session_id = ?1 AND r.is_player = 1 ORDER BY l.lap_num",
         )
         .map_err(|e| AppError::Database(format!("setup usage laps prepare: {e}")))?;
     let laps = stmt
         .query_map(params![session_id], |r| {
             let t: Option<f64> = r.get(1)?;
-            Ok((r.get::<_, i64>(0)?, t.filter(|x| *x > 0.0)))
+            let sec = |i: usize| -> rusqlite::Result<f64> { Ok(r.get::<_, Option<f64>>(i)?.unwrap_or(0.0)) };
+            Ok(XmlLap {
+                num: r.get(0)?,
+                time: t.filter(|x| *x > 0.0),
+                valid: r.get::<_, i64>(2)? != 0,
+                sectors: [sec(3)?, sec(4)?, sec(5)?],
+            })
         })
         .map_err(|e| AppError::Database(format!("setup usage laps: {e}")))?
         .collect::<Result<Vec<_>, _>>()
@@ -343,11 +372,12 @@ pub fn usage_for_session(conn: &Connection, session_id: i64) -> Result<Vec<Sessi
         return Ok(vec![]);
     }
     let uses = uses_between(conn, ts - BEFORE_S, ts + AFTER_S)?;
-    let matched = match_laps(&xml, &uses);
+    let pairs: Vec<(i64, Option<f64>)> = xml.iter().map(|l| (l.num, l.time)).collect();
+    let matched = match_laps(&pairs, &uses);
     if matched.is_empty() {
         return Ok(vec![]);
     }
-    let times: HashMap<i64, Option<f64>> = xml.iter().copied().collect();
+    let times: HashMap<i64, Option<f64>> = pairs.iter().copied().collect();
     let known = setups_by_key(conn)?;
     let mut by_key: HashMap<String, SessionSetupUse> = HashMap::new();
     let mut nums: Vec<(&i64, &usize)> = matched.iter().collect();
@@ -480,7 +510,153 @@ pub fn autolink(conn: &Connection) -> Result<usize, AppError> {
     Ok(n)
 }
 
+// ─── Chiffres par setup ──────────────────────────────────────────────────────
+
+/// Humidité de trajectoire au-delà de laquelle un tour compte « sur le mouillé ».
+pub const WET_FROM: f64 = 0.15;
+
+/// Ce qu'un setup a roulé (tours reconnus dans les sessions importées).
+#[derive(Debug, Clone, Default, Serialize, PartialEq)]
+pub struct SetupStats {
+    pub setup_id: i64,
+    /// Tours reconnus (tous).
+    pub laps: usize,
+    /// Tours complets et propres (chrono, trois secteurs, non invalidés par le jeu).
+    pub clean_laps: usize,
+    pub dry_laps: usize,
+    pub wet_laps: usize,
+    pub race_laps: usize,
+    pub quali_laps: usize,
+    pub practice_laps: usize,
+    /// Tours roulés avec des réglages non enregistrés dans le fichier.
+    pub unsaved_laps: usize,
+    pub sessions: usize,
+    /// Meilleur tour propre et ses secteurs.
+    pub best_lap: Option<f64>,
+    pub best_sectors: Option<[f64; 3]>,
+    pub best_session_id: Option<i64>,
+    /// Dernier tour noté avec ce setup (epoch s), session importée ou non.
+    pub last_driven: Option<i64>,
+}
+
+/// Famille de session : `race`, `quali` ou `practice` (essais, warm-up…).
+pub fn session_family(session_type: &str) -> &'static str {
+    let s = session_type.to_ascii_lowercase();
+    if s.starts_with("race") {
+        "race"
+    } else if s.starts_with("qual") {
+        "quali"
+    } else {
+        "practice"
+    }
+}
+
+/// Ajoute un tour reconnu aux chiffres d'un setup.
+pub fn add_lap(st: &mut SetupStats, lap: &XmlLap, u: &LapUse, family: &str, session_id: i64) {
+    st.laps += 1;
+    match u.wet {
+        Some(w) if w >= WET_FROM => st.wet_laps += 1,
+        Some(_) => st.dry_laps += 1,
+        None => {}
+    }
+    match family {
+        "race" => st.race_laps += 1,
+        "quali" => st.quali_laps += 1,
+        _ => st.practice_laps += 1,
+    }
+    if u.unsaved == Some(true) {
+        st.unsaved_laps += 1;
+    }
+    if lap.clean() {
+        st.clean_laps += 1;
+        let t = lap.time.unwrap_or(f64::MAX);
+        if st.best_lap.is_none_or(|b| t < b) {
+            st.best_lap = Some(t);
+            st.best_sectors = Some(lap.sectors);
+            st.best_session_id = Some(session_id);
+        }
+    }
+}
+
+/// Chiffres de tous les setups qui ont roulé : clé du setup → chiffres (sans `setup_id`).
+pub fn stats_by_key(conn: &Connection) -> Result<HashMap<String, SetupStats>, AppError> {
+    let mut out: HashMap<String, SetupStats> = HashMap::new();
+    // Dernier passage, même sans session importée.
+    let mut stmt = conn
+        .prepare("SELECT setup_folder, setup_file, MAX(recorded_at) FROM setup_laps GROUP BY setup_folder, setup_file")
+        .map_err(|e| AppError::Database(format!("stats last prepare: {e}")))?;
+    let last: Vec<(Option<String>, String, i64)> = stmt
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+        .map_err(|e| AppError::Database(format!("stats last: {e}")))?
+        .flatten()
+        .collect();
+    if last.is_empty() {
+        return Ok(out);
+    }
+    for (d, f, t) in last {
+        let e = out.entry(setup_key(d.as_deref(), &f)).or_default();
+        e.last_driven = Some(e.last_driven.map_or(t, |x| x.max(t)));
+    }
+    // Sessions dont la fenêtre contient au moins un tour noté.
+    let mut stmt = conn
+        .prepare(
+            "SELECT s.id, s.session_type FROM sessions s WHERE EXISTS (
+               SELECT 1 FROM setup_laps l WHERE l.recorded_at BETWEEN s.timestamp - ?1 AND s.timestamp + ?2)",
+        )
+        .map_err(|e| AppError::Database(format!("stats sessions prepare: {e}")))?;
+    let sessions: Vec<(i64, String)> = stmt
+        .query_map(params![BEFORE_S, AFTER_S], |r| Ok((r.get(0)?, r.get(1)?)))
+        .map_err(|e| AppError::Database(format!("stats sessions: {e}")))?
+        .flatten()
+        .collect();
+    for (id, session_type) in sessions {
+        let (ts, xml) = player_laps(conn, id)?;
+        if xml.is_empty() {
+            continue;
+        }
+        let uses = uses_between(conn, ts - BEFORE_S, ts + AFTER_S)?;
+        let pairs: Vec<(i64, Option<f64>)> = xml.iter().map(|l| (l.num, l.time)).collect();
+        let matched = match_laps(&pairs, &uses);
+        let family = session_family(&session_type);
+        let mut seen: Vec<String> = vec![];
+        for lap in &xml {
+            let Some(ui) = matched.get(&lap.num) else { continue };
+            let u = &uses[*ui];
+            let st = out.entry(u.key.clone()).or_default();
+            add_lap(st, lap, u, family, id);
+            if !seen.contains(&u.key) {
+                seen.push(u.key.clone());
+                st.sessions += 1;
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// Chiffres des setups en base qui ont roulé (`setup_id` = id courant).
+pub fn stats_for_setups(conn: &Connection) -> Result<Vec<SetupStats>, AppError> {
+    let by_key = stats_by_key(conn)?;
+    if by_key.is_empty() {
+        return Ok(vec![]);
+    }
+    let known = setups_by_key(conn)?;
+    Ok(by_key
+        .into_iter()
+        .filter_map(|(k, mut st)| {
+            st.setup_id = known.get(&k)?.0;
+            Some(st)
+        })
+        .collect())
+}
+
 // ─── Commandes ───────────────────────────────────────────────────────────────
+
+/// Ce que chaque setup a roulé (setup chargé reconnu en piste).
+#[tauri::command]
+pub async fn get_setups_stats(db: State<'_, DbState>) -> Result<Vec<SetupStats>, AppError> {
+    let conn = get_conn(&db)?;
+    stats_for_setups(&conn)
+}
 
 /// Setups roulés pendant une session (reconnus en piste), avec leurs tours.
 #[tauri::command]
@@ -517,7 +693,7 @@ mod tests {
     use super::*;
 
     fn u(num: i64, time: Option<f64>, key: &str) -> LapUse {
-        LapUse { lap_num: num, lap_time: time, key: key.into(), folder: None, file: key.into(), unsaved: None }
+        LapUse { lap_num: num, lap_time: time, key: key.into(), folder: None, file: key.into(), unsaved: None, wet: None }
     }
 
     #[test]
@@ -563,6 +739,43 @@ mod tests {
         let uses = vec![u(1, Some(105.0), "a"), u(2, None, "a"), u(3, Some(103.0), "a")];
         let m = match_laps(&xml, &uses);
         assert_eq!((m.get(&2), m.get(&3), m.get(&4)), (Some(&0), Some(&1), Some(&2)));
+    }
+
+    #[test]
+    fn stats_count_clean_laps_weather_and_session_kind() {
+        let conn = crate::db::open_test_db();
+        conn.execute_batch(
+            "INSERT INTO xml_index (id, filename, file_path, mtime, timestamp) VALUES (1, 'a.xml', 'a.xml', 0, 1000), (2, 'b.xml', 'b.xml', 0, 5000);
+             INSERT INTO sessions (id, xml_id, session_type, timestamp, track) VALUES (7, 1, 'Practice1', 1000, 'Spa'), (8, 2, 'Qualify', 5000, 'Spa');
+             INSERT INTO results (id, session_id, driver_name, is_player) VALUES (1, 7, 'Moi', 1), (2, 8, 'Moi', 1);
+             INSERT INTO laps (result_id, session_id, driver_name, lap_num, lap_time, is_valid, s1, s2, s3) VALUES
+               (1, 7, 'Moi', 1, 140.0, 1, 50.0, 50.0, 40.0),
+               (1, 7, 'Moi', 2, 136.0, 0, 48.0, 48.0, 40.0),
+               (1, 7, 'Moi', 3, 138.0, 1, 49.0, 49.0, 40.0),
+               (2, 8, 'Moi', 1, 137.0, 1, NULL, NULL, NULL),
+               (2, 8, 'Moi', 2, 137.5, 1, 48.5, 49.0, 40.0);
+             INSERT INTO setups (id, car, circuit, name, svm_path) VALUES
+               (3, 'Lexus', 'Spa', 'Base.svm', 'C:/LMU/UserData/player/Settings/Spa/Base.svm');
+             INSERT INTO setup_laps (recorded_at, lap_num, lap_time, setup_name, setup_folder, setup_file, unsaved, wet) VALUES
+               (1200, 1, 140.0, 'x', 'Spa', 'Base', 0, 0.02),
+               (1340, 2, 136.0, 'x', 'Spa', 'Base', 1, 0.02),
+               (1480, 3, 138.0, 'x', 'Spa', 'Base', 0, 0.30),
+               (5200, 1, 137.0, 'x', 'Spa', 'Base', 0, NULL),
+               (5340, 2, 137.5, 'x', 'Spa', 'Base', 0, 0.0);",
+        )
+        .unwrap();
+        let st = stats_for_setups(&conn).unwrap();
+        assert_eq!(st.len(), 1);
+        let s = &st[0];
+        assert_eq!((s.setup_id, s.laps, s.clean_laps, s.sessions), (3, 5, 3, 2));
+        assert_eq!((s.dry_laps, s.wet_laps), (3, 1)); // un tour sans humidité connue
+        assert_eq!((s.practice_laps, s.quali_laps, s.race_laps, s.unsaved_laps), (3, 2, 0, 1));
+        // 136.0 invalidé par le jeu, 137.0 sans secteurs : le meilleur propre est 137.5.
+        assert_eq!((s.best_lap, s.best_session_id), (Some(137.5), Some(8)));
+        assert_eq!(s.best_sectors, Some([48.5, 49.0, 40.0]));
+        assert_eq!(s.last_driven, Some(5340));
+        assert_eq!(session_family("Race"), "race");
+        assert_eq!(session_family("Warmup"), "practice");
     }
 
     #[test]

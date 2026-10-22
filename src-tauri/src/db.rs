@@ -195,7 +195,8 @@ CREATE TABLE IF NOT EXISTS setup_laps (
     setup_folder  TEXT,                          -- dossier sous Settings (NULL : setup intégré)
     setup_file    TEXT    NOT NULL,              -- fichier, sans .svm
     unsaved       INTEGER,                       -- 1 : réglages non enregistrés
-    car           TEXT
+    car           TEXT,
+    wet           REAL                           -- humidité moyenne de la trajectoire (0-1)
 );
 CREATE INDEX IF NOT EXISTS idx_setup_laps_time ON setup_laps(recorded_at);
 
@@ -418,6 +419,8 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
     // Heure de session au début de chaque tour : situe un événement (limite de piste)
     // dans le tour. NULL pour une base existante : complété à la lecture du détail.
     let _ = conn.execute("ALTER TABLE laps ADD COLUMN et REAL", []);
+    // Humidité de la trajectoire à la fin du tour (setup roulé sur le sec ou la pluie).
+    let _ = conn.execute("ALTER TABLE setup_laps ADD COLUMN wet REAL", []);
     // Migration : création de la table `purged_files` si elle manque (base existante).
     let _ = conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS purged_files (

@@ -26,6 +26,7 @@ import { carFolderOf, importShared, isShareableCarKey, isTestBuild } from "@/lib
 import { baseName, safeSetupName } from "@/lib/setupVersion";
 import { liveClassKey } from "@/lib/staticData";
 import { cn, formatTime } from "@/lib/utils";
+import { changedSinceDriven, majorityType, useSetupStats } from "@/lib/setupStats";
 import { useAppStore } from "@/stores/app";
 import { toastError, toastSuccess } from "@/stores/dialogs";
 
@@ -47,6 +48,32 @@ export function SetupSharePanel({ entry, svm }: { entry: SetupEntry; svm: SvmFil
   const [list, setList] = useState<CommunitySharedSetup[] | null>(null);
   const [listError, setListError] = useState(false);
   const [fetching, setFetching] = useState<number | null>(null);
+  // Ce que ce setup a roulé (reconnu en piste) : type déduit des tours, meilleur
+  // tour fait AVEC ce setup (et non le meilleur de la session liée).
+  const stats = useSetupStats(entry.id).get(entry.id) ?? null;
+  const [setupType, setSetupType] = useState(entry.setup_type);
+  const [typeTouched, setTypeTouched] = useState(false);
+  const guessed = entry.setup_type === "Autres" ? majorityType(stats) : null;
+  useEffect(() => {
+    if (!typeTouched && guessed) setSetupType(guessed);
+  }, [guessed, typeTouched]);
+  const changed = changedSinceDriven(entry.updated_at, stats);
+  const [attachBest, setAttachBest] = useState(true);
+  useEffect(() => setAttachBest(!changed), [changed]);
+  const [bestSession, setBestSession] = useState<SetupSessionMatch | null>(null);
+  useEffect(() => {
+    if (!isTauri() || stats?.best_session_id == null) return;
+    let alive = true;
+    void setupsApi
+      .getSessionSummary(stats.best_session_id)
+      .then((m) => alive && setBestSession(m))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [stats?.best_session_id]);
+  const bestLap = stats?.best_lap ?? linked?.best_lap ?? null;
+  const gameVersion = (stats?.best_lap != null ? bestSession?.game_version : linked?.game_version) ?? null;
 
   const canPublish = !!status?.enabled && !!status?.registered && shareable;
 
@@ -97,10 +124,10 @@ export function SetupSharePanel({ entry, svm }: { entry: SetupEntry; svm: SvmFil
         car_model: entry.car.slice(0, 120),
         track: entry.circuit,
         name: safeSetupName(name).slice(0, 60),
-        setup_type: entry.setup_type.slice(0, 20),
+        setup_type: setupType.slice(0, 20),
         notes: notes.trim().slice(0, 1000),
-        best_lap: linked?.best_lap ?? null,
-        game_version: linked?.game_version?.slice(0, 20) || null,
+        best_lap: attachBest ? bestLap : null,
+        game_version: gameVersion?.slice(0, 20) || null,
       });
       toastSuccess(t("lab.share.published", { version: r.version }));
       loadMine();
@@ -178,9 +205,40 @@ export function SetupSharePanel({ entry, svm }: { entry: SetupEntry; svm: SvmFil
               />
               <span className="text-[11px] text-muted-foreground">{t("lab.share.notesHint")}</span>
             </label>
-            <p className="text-xs">
-              {linked?.best_lap ? t("lab.share.bestLap", { time: formatTime(linked.best_lap) }) : t("lab.share.noBestLap")}
-            </p>
+            <label className="block space-y-1">
+              <span className="text-xs font-medium">{t("setups.newType")}</span>
+              <select
+                className="h-8 w-full rounded-md border bg-background px-2 text-sm"
+                value={setupType}
+                onChange={(e) => {
+                  setSetupType(e.target.value);
+                  setTypeTouched(true);
+                }}
+              >
+                <option value="Course">{t("setupDetail.typeRace")}</option>
+                <option value="Qualif">{t("setupDetail.typeQualif")}</option>
+                <option value="Autres">{t("setupDetail.typeOther")}</option>
+              </select>
+              {guessed && setupType === guessed && !typeTouched && (
+                <span className="text-[11px] text-muted-foreground">{t("lab.stats.typeGuessed", { count: stats?.laps ?? 0 })}</span>
+              )}
+            </label>
+            {bestLap != null ? (
+              <label className="flex items-start gap-2 text-xs">
+                <input type="checkbox" className="mt-0.5" checked={attachBest} onChange={(e) => setAttachBest(e.target.checked)} />
+                <span>
+                  {stats?.best_lap != null
+                    ? t("lab.stats.shareBest", { time: formatTime(bestLap), count: stats.clean_laps })
+                    : t("lab.share.bestLap", { time: formatTime(bestLap) })}
+                  {stats?.best_lap != null && stats.wet_laps > 0 && ` · ${t("lab.stats.shareWet", { count: stats.wet_laps })}`}
+                </span>
+              </label>
+            ) : (
+              <p className="text-xs">{t("lab.share.noBestLap")}</p>
+            )}
+            {changed && bestLap != null && (
+              <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-[11px]">{t("lab.stats.changedSince")}</p>
+            )}
             <p className="text-[11px] text-muted-foreground">{t("lab.share.sent")}</p>
             <Button size="sm" onClick={publish} disabled={busy || !safeSetupName(name).trim()}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}

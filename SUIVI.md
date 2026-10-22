@@ -286,6 +286,9 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   1.0.10, ajouter le lien (menu et pied de page, `site.js`) et retirer le `noindex`. À voir aussi en roulant : bandeau « setup imposé » (page Live) et
   carte « Bilan au box » (≥ 2 tours puis stands). Commité le 2026-10-21 (`79f9a59`) ; note de
   passation `REPRISE-ATELIER-SETUP.md` supprimée le 2026-10-22 (son contenu restant est ici).
+- ⏳ **Noms de setup en ASCII (2026-10-22)** : réglage actif par défaut sur la foi d'un relevé chez un
+  outil du marché (« LMU n'affiche pas un `.svm` au nom accentué ou avec « · » »), **non vérifié chez
+  nous**. À tester : un fichier « Été · test.svm » dans `Settings/<circuit>/` apparaît-il au garage ?
 - ⏳ **Setup chargé reconnu en piste (2026-10-22)** : codé, testé hors jeu (Rust + suite atelier),
   **pas encore roulé**. À valider en jeu : forme réelle de `garage/summary` (`activeSetup`
   « Dossier\Fichier », `unsavedChanges`) et sa taille (~26 Ko annoncés) ; aucun plantage en piste
@@ -946,6 +949,29 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-10-22 — Chiffres par setup, publication pré-remplie, noms de fichiers ASCII
+
+**Demande** : « fais les points 2 à 4 aussi » (idées 2-4 de la veille du jour, rapport §8).
+- ✅ **Chiffres par setup** (`setup_usage::stats_by_key`, commande `get_setups_stats`) : tours
+  reconnus, tours propres (chrono + trois secteurs + non invalidés par le jeu), sec / pluie
+  (humidité de trajectoire ≥ 15 %, nouvelle colonne `setup_laps.wet`), course / qualif / essais,
+  tours « non enregistrés », sessions, meilleur tour propre + secteurs + session, dernier roulage.
+  Colonne « Roulé » dans la vue « Tous » (détail en infobulle), bloc dans l'aperçu rapide et sur la
+  fiche (`SetupUsageSummary`).
+- ✅ **Publication pré-remplie** (onglet Partager) : meilleur tour **fait avec ce setup** (avant :
+  meilleur tour du joueur dans la session liée, quel que soit le setup), version du jeu de sa session ;
+  type choisi dans la fiche, pré-rempli d'après la majorité course / qualif des tours quand le setup est
+  « Autres » ; avertissement et case décochée si le fichier a été réenregistré après le dernier tour.
+  Pas de météo envoyée : le serveur n'a pas ce champ (à ajouter côté `community/` plus tard).
+- ✅ **Noms de fichiers ASCII** (réglage `setup_ascii_names`, défaut actif, Config › Atelier › Fiche) :
+  `ascii_file_name` (Rust : copie, création, import) et `asciiFileName` (TS : `safeSetupName`, donc
+  versions, profils, mix, téléchargements) ; désactivé = nom gardé tel quel.
+- ✅ Tests : `cargo test` 174 OK, `npm test` 6 999 OK, `tsc -b`, eslint propres ; clippy : seuls des
+  avertissements antérieurs (`setups.rs` 538-548). ⚠️ Rien vérifié à l'écran ni en jeu.
+- 📋 **Prochaine étape** : en jeu, vérifier qu'un `.svm` au nom accentué n'apparaît pas au garage
+  (sinon le réglage ASCII est inutile mais sans risque) ; rouler sec puis pluie et relire la colonne
+  « Roulé » et l'onglet Partager.
 
 ### 2026-10-22 — Setup chargé reconnu en piste et relié aux sessions
 

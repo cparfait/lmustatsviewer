@@ -34,6 +34,81 @@ const RESERVED_NAMES: [&str; 22] = [
     "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 ];
 
+/// Clé de config « Noms de fichiers compatibles avec le jeu » (`"0"` = désactivé).
+pub const CONFIG_ASCII_NAMES: &str = "setup_ascii_names";
+
+/// Nom de fichier en ASCII : lettres accentuées sans accent (« é » → « e »,
+/// « œ » → « oe »), point médian et tirets typographiques en « - », apostrophe
+/// courbe en « ' », tout autre caractère non ASCII retiré. Relevé chez un outil
+/// du marché (non vérifié chez nous) : LMU n'affiche pas dans la liste du garage
+/// un `.svm` dont le nom contient un « · » ou des accents.
+pub fn ascii_file_name(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    for c in name.chars() {
+        if c.is_ascii() {
+            out.push(c);
+            continue;
+        }
+        let r: &str = match c {
+            'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' | 'ā' | 'ă' | 'ą' => "a",
+            'À' | 'Á' | 'Â' | 'Ã' | 'Ä' | 'Å' | 'Ā' | 'Ă' | 'Ą' => "A",
+            'ç' | 'ć' | 'č' => "c",
+            'Ç' | 'Ć' | 'Č' => "C",
+            'ď' | 'đ' => "d",
+            'Ď' | 'Đ' => "D",
+            'è' | 'é' | 'ê' | 'ë' | 'ē' | 'ė' | 'ę' | 'ě' => "e",
+            'È' | 'É' | 'Ê' | 'Ë' | 'Ē' | 'Ė' | 'Ę' | 'Ě' => "E",
+            'ğ' => "g",
+            'Ğ' => "G",
+            'ì' | 'í' | 'î' | 'ï' | 'ī' | 'į' | 'ı' => "i",
+            'Ì' | 'Í' | 'Î' | 'Ï' | 'Ī' | 'Į' | 'İ' => "I",
+            'ł' | 'ľ' | 'ĺ' => "l",
+            'Ł' | 'Ľ' | 'Ĺ' => "L",
+            'ñ' | 'ń' | 'ň' => "n",
+            'Ñ' | 'Ń' | 'Ň' => "N",
+            'ò' | 'ó' | 'ô' | 'õ' | 'ö' | 'ø' | 'ō' | 'ő' => "o",
+            'Ò' | 'Ó' | 'Ô' | 'Õ' | 'Ö' | 'Ø' | 'Ō' | 'Ő' => "O",
+            'ŕ' | 'ř' => "r",
+            'Ŕ' | 'Ř' => "R",
+            'ś' | 'š' | 'ş' | 'ș' => "s",
+            'Ś' | 'Š' | 'Ş' | 'Ș' => "S",
+            'ť' | 'ţ' | 'ț' => "t",
+            'Ť' | 'Ţ' | 'Ț' => "T",
+            'ù' | 'ú' | 'û' | 'ü' | 'ū' | 'ů' | 'ű' | 'ų' => "u",
+            'Ù' | 'Ú' | 'Û' | 'Ü' | 'Ū' | 'Ů' | 'Ű' | 'Ų' => "U",
+            'ý' | 'ÿ' => "y",
+            'Ý' | 'Ÿ' => "Y",
+            'ź' | 'ż' | 'ž' => "z",
+            'Ź' | 'Ż' | 'Ž' => "Z",
+            'æ' => "ae",
+            'Æ' => "AE",
+            'œ' => "oe",
+            'Œ' => "OE",
+            'ß' => "ss",
+            '·' | '–' | '—' | '‐' | '‑' | '−' => "-",
+            '’' | '‘' | '´' | '`' => "'",
+            _ => " ",
+        };
+        out.push_str(r);
+    }
+    let collapsed = out.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.is_empty() {
+        "Setup".to_string()
+    } else {
+        collapsed
+    }
+}
+
+/// Le nom de fichier à écrire : en ASCII si le réglage est actif (défaut).
+fn game_file_name(db: &DbState, name: &str) -> String {
+    let on = crate::db::config_get(db, CONFIG_ASCII_NAMES).ok().flatten().as_deref() != Some("0");
+    if on {
+        ascii_file_name(name)
+    } else {
+        name.to_string()
+    }
+}
+
 /// Valide un **composant** de chemin saisi dans l'interface (nom de setup, nom
 /// de circuit) avant de le joindre à un dossier.
 ///
@@ -738,7 +813,7 @@ pub fn duplicate_setup(
     let svm = load_svm_from_disk(&entry.svm_path, entry.content_json.as_deref())?;
 
     // Le nom vient d'une saisie libre : il ne doit pas pouvoir sortir du dossier.
-    let safe_name = sanitize_component(&new_name, "Nom du setup")?;
+    let safe_name = sanitize_component(&game_file_name(&db, &new_name), "Nom du setup")?;
     let new_file_name = if safe_name.to_lowercase().ends_with(".svm") {
         safe_name
     } else {
@@ -1050,6 +1125,7 @@ pub fn create_setup(
     // validation, `Path::join` acceptait une remontée `..\..\` ou un chemin
     // absolu (qui remplace entièrement le dossier de base) et le `.svm` partait
     // n'importe où sur le disque.
+    let name = game_file_name(&db, &name);
     let (settings_dir, svm_path, file_name) = new_svm_path(&lmu_path, &circuit, &name)?;
 
     // Clone d'un `.svm` existant de la même voiture pour servir de template :
@@ -1226,6 +1302,7 @@ pub fn import_setup_content(
     if let Some(n) = notes.as_deref() {
         upsert_general_notes(&mut svm, &one_line_notes(n));
     }
+    let name = game_file_name(&db, &name);
     let (_, svm_path, file_name) = new_svm_path(&lmu_path, &circuit, &name)?;
     write_svm_new(&svm_path, &write_svm(&svm))?;
 
@@ -1801,7 +1878,17 @@ pub async fn list_setup_entries(
 
 #[cfg(test)]
 mod share_tests {
-    use super::{one_line_notes, parse_svm, public_veh_path, write_svm};
+    use super::{ascii_file_name, one_line_notes, parse_svm, public_veh_path, write_svm};
+
+    #[test]
+    fn file_names_become_plain_ascii() {
+        assert_eq!(ascii_file_name("Base sèche · Qualif"), "Base seche - Qualif");
+        assert_eq!(ascii_file_name("Spa (Ève Cœur)"), "Spa (Eve Coeur)");
+        assert_eq!(ascii_file_name("Straße – Pluie’s V2"), "Strasse - Pluie's V2");
+        assert_eq!(ascii_file_name("Setup 🚀  rapide"), "Setup rapide");
+        assert_eq!(ascii_file_name("日本"), "Setup");
+        assert_eq!(ascii_file_name("Déjà ASCII ok"), "Deja ASCII ok");
+    }
 
     #[test]
     fn veh_path_loses_the_local_install_path() {

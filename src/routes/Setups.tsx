@@ -16,6 +16,7 @@ import {
   MapPin,
   Search,
   Users,
+  CloudRain,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tip } from "@/components/ui/tooltip";
@@ -35,9 +36,12 @@ import {
   community,
   setups as setupsApi,
   type SetupGroup,
+  type SetupStats,
   type SetupSummary,
   type SvmFile,
 } from "@/lib/api";
+import { useSetupStats } from "@/lib/setupStats";
+import { SetupUsageSummary } from "@/components/SetupUsageSummary";
 import { useAppStore } from "@/stores/app";
 import { cn, formatTime } from "@/lib/utils";
 import { usePageState } from "@/lib/usePageState";
@@ -100,6 +104,8 @@ export function Setups() {
   const [activeCar, setActiveCar] = usePageState<string | null>("setups.car", null);
   const [selectedSetupId, setSelectedSetupId] = useState<number | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
+  // Ce que chaque setup a roulé (reconnu en piste), relu après chaque scan.
+  const stats = useSetupStats(groups);
 
   // Scan / liste à chaque visite (le résultat dérive du disque, jamais périmé).
   useEffect(() => {
@@ -272,7 +278,7 @@ export function Setups() {
           </CardContent>
         </Card>
       ) : view === "global" ? (
-        <GlobalView groups={groups} navigate={navigate} shared={shared} />
+        <GlobalView groups={groups} navigate={navigate} shared={shared} stats={stats} />
       ) : view === "circuit" ? (
         <CircuitView
           groups={groups}
@@ -594,6 +600,7 @@ function QuickView({
   const { t } = useTranslation();
   const [svm, setSvm] = useState<SvmFile | null>(null);
   const [loading, setLoading] = useState(false);
+  const qvStats = useSetupStats(setupId);
 
   // Trouve le résumé du setup sélectionné dans la voiture active.
   const summary = useMemo(() => {
@@ -799,6 +806,9 @@ function QuickView({
               )}
             </div>
 
+            {/* Ce que ce setup a roulé (setup chargé reconnu en piste). */}
+            <SetupUsageSummary stats={qvStats.get(setupId)} />
+
             {/* Par roue : pression, carrossage, hauteur (seulement les lignes connues). */}
             {(["pressure", "camber", "ride"] as const).map((k) => {
               const c = corners[k];
@@ -831,6 +841,27 @@ function QuickView({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** Colonne « Roulé » : tours reconnus en piste (détail en infobulle). */
+function DrivenCell({ st }: { st: SetupStats | undefined }) {
+  const { t } = useTranslation();
+  if (!st || st.laps === 0) return <span className="text-muted-foreground/40">—</span>;
+  const detail = [
+    t("lab.stats.clean", { count: st.clean_laps }),
+    st.wet_laps > 0 ? `${t("lab.stats.wet")} ${st.wet_laps}` : null,
+    st.best_lap != null ? `${t("lab.stats.best")} ${formatTime(st.best_lap)}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <Tip content={detail}>
+      <span>
+        {t("lab.stats.laps", { count: st.laps })}
+        {st.wet_laps > 0 && <CloudRain className="ml-1 inline h-3 w-3 text-sky-500" />}
+      </span>
+    </Tip>
   );
 }
 
@@ -875,11 +906,14 @@ function GlobalView({
   groups,
   navigate,
   shared,
+  stats,
 }: {
   groups: SetupGroup[];
   navigate: (path: string) => void;
   /** Mes setups publiés : circuit + nom → dernière version (vide sans le partage). */
   shared: Map<string, number>;
+  /** Ce que chaque setup a roulé (id → chiffres). */
+  stats: Map<number, SetupStats>;
 }) {
   const { t } = useTranslation();
   const [query, setQuery] = usePageState("setups.query", "");
@@ -1000,6 +1034,9 @@ function GlobalView({
                 <TableHead className="px-3 py-1.5 text-right">
                   <Tip content={t("setups.bestLapTip")}>{t("setups.bestLap")}</Tip>
                 </TableHead>
+                <TableHead className="px-3 py-1.5 text-right">
+                  <Tip content={t("lab.stats.colTip")}>{t("lab.stats.col")}</Tip>
+                </TableHead>
                 <TableHead className="px-3 py-1.5">
                   <Tip content={t("setups.sourceLabelTip")}>{t("setups.sourceLabel")}</Tip>
                 </TableHead>
@@ -1039,6 +1076,9 @@ function GlobalView({
                   <TableCell className="px-3 py-1.5 text-xs">{typeLabel(r.setup.setup_type, t)}</TableCell>
                   <TableCell className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
                     {r.setup.best_lap != null ? formatTime(r.setup.best_lap) : <span className="text-muted-foreground/40">—</span>}
+                  </TableCell>
+                  <TableCell className="px-3 py-1.5 text-right text-xs tabular-nums whitespace-nowrap">
+                    <DrivenCell st={stats.get(r.setup.id)} />
                   </TableCell>
                   <TableCell className="px-3 py-1.5 whitespace-nowrap">
                     <SourceBadge source={r.setup.source} />

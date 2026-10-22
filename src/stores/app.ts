@@ -14,6 +14,7 @@ import { configureVoice, setCloudSegmentSource, setSpeechReplay, setTalkSilence 
 import { initCloudVoice } from "@/lib/cloudVoice";
 import { initVoiceOverrides, segmentTemplates } from "@/lib/voiceMessages";
 import { initCommandOverrides } from "@/lib/spotterCommands";
+import { setAsciiSetupNames } from "@/lib/setupVersion";
 import { setRadioEnabled, setRadioStyle, toRadioStyle, MAX_VOICE_VOLUME, type RadioStyle } from "@/lib/radioFx";
 import { resetRecordsDigestCache } from "@/lib/ai/context/records-context";
 import { setFreeFallbackSource } from "@/lib/ai/freeFallback";
@@ -698,6 +699,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Voix en ligne (option, désactivée par défaut) : réglages + clé du fournisseur.
     await initCloudVoice(cfg.voice_cloud, cfg.voice_cloud_usage).catch(() => {});
     initCommandOverrides(cfg.spotter_commands);
+    // Noms de fichiers de setup en ASCII (le jeu masquerait sinon le fichier) : défaut oui.
+    setAsciiSetupNames(cfg.setup_ascii_names !== "0");
     setAppTimezone(timezone);
     set({
       configLoaded: true,

@@ -8,11 +8,14 @@ import { useTranslation } from "react-i18next";
 import { AlertTriangle } from "lucide-react";
 import { setups as setupsApi, type SetupSessionUse } from "@/lib/api";
 import { formatDateTime, formatTime } from "@/lib/utils";
+import { useSetupStats } from "@/lib/setupStats";
+import { SetupUsageSummary } from "@/components/SetupUsageSummary";
 
 export function SetupSessionsUsed({ setupId, linkedSessionId }: { setupId: number; linkedSessionId: number | null }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [rows, setRows] = useState<SetupSessionUse[] | null>(null);
+  const stats = useSetupStats(setupId);
 
   useEffect(() => {
     let alive = true;
@@ -29,6 +32,9 @@ export function SetupSessionsUsed({ setupId, linkedSessionId }: { setupId: numbe
   return (
     <div>
       <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-2">{t("lab.loaded.sessionsTitle")}</h3>
+      <div className="mb-2">
+        <SetupUsageSummary stats={stats.get(setupId)} />
+      </div>
       {rows.length === 0 ? (
         <p className="text-xs italic text-muted-foreground">{t("lab.loaded.sessionsEmpty")}</p>
       ) : (

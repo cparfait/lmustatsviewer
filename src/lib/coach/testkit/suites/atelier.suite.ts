@@ -5,7 +5,7 @@
  */
 
 import { section, eq, ok } from "../assert";
-import type { LabLap, LiveData, RaceActivityRow, RecordOverviewRow, SetupEntry, SvmFile } from "@/lib/api";
+import type { LabLap, LiveData, SetupStats, RaceActivityRow, RecordOverviewRow, SetupEntry, SvmFile } from "@/lib/api";
 import { learnFromRest, learnFromSvm, resolveIndex, topIndex, withResolvedIndices, type NotchTable } from "@/lib/setupNotches";
 import { leverState, restTop, unknownLevers } from "@/lib/setupAssistant";
 import { auditLevers, parseAuditReply } from "@/lib/setupAudit";
@@ -14,6 +14,8 @@ import { countFixed, displayOf, indexOf, isFixedParam, keyFigures, notesOf } fro
 import { analyzeBalance, carMatches, circuitMatches, type ProbeLap, type ProbeSample } from "@/lib/balanceProbe";
 import { pickComboSetup } from "@/lib/useBoxDebrief";
 import { findLoadedEntry, keyOfPath, loadedSetup, setupKey } from "@/lib/loadedSetup";
+import { changedSinceDriven, localStampToEpoch, majorityType } from "@/lib/setupStats";
+import { asciiFileName, safeSetupName, setAsciiSetupNames } from "@/lib/setupVersion";
 import { radioWindowOpen, splitRadio } from "@/lib/engineer/radioSplit";
 import { RaceEventTracker } from "@/lib/raceEvents";
 import { platformWatch } from "@/lib/platformWatch";
@@ -404,8 +406,34 @@ function loaded(): void {
   eq(loadedSetup(null), null, "pas de pont REST");
 }
 
+function drivenStats(): void {
+  section("atelier — chiffres par setup, publication, noms ASCII");
+  const st = (o: Partial<SetupStats>) => ({ laps: 0, race_laps: 0, quali_laps: 0, practice_laps: 0, last_driven: null, ...o }) as SetupStats;
+  eq(majorityType(st({ quali_laps: 6, race_laps: 2 })), "Qualif", "surtout en qualif : Qualif");
+  eq(majorityType(st({ race_laps: 9, quali_laps: 1, practice_laps: 30 })), "Course", "les essais ne décident pas");
+  eq(majorityType(st({ practice_laps: 12 })), null, "essais seulement : type gardé");
+  eq(majorityType(null), null, "jamais roulé");
+  const at = localStampToEpoch("2026-10-22 18:30:00");
+  ok(at != null && new Date(at * 1000).getHours() === 18, "horodatage local du fichier");
+  eq(localStampToEpoch("hier"), null, "date illisible");
+  eq(changedSinceDriven("2026-10-22 18:30:00", st({ last_driven: at! + 120 })), false, "fichier sauvé avant le dernier tour");
+  eq(changedSinceDriven("2026-10-22 18:30:00", st({ last_driven: at! - 30 })), false, "marge d'une minute");
+  eq(changedSinceDriven("2026-10-22 18:30:00", st({ last_driven: at! - 3600 })), true, "réenregistré après le dernier tour");
+  eq(changedSinceDriven("2026-10-22 18:30:00", null), false, "jamais roulé : rien à signaler");
+  eq(asciiFileName("Base sèche · Qualif"), "Base seche - Qualif", "accents et point médian");
+  eq(asciiFileName("Spa (Ève Cœur)"), "Spa (Eve Coeur)", "ligatures");
+  eq(asciiFileName("Straße – Pluie’s V2"), "Strasse - Pluie's V2", "ß, tiret long, apostrophe courbe");
+  eq(asciiFileName("Setup 🚀  rapide"), "Setup rapide", "emoji retiré");
+  eq(asciiFileName("日本"), "Setup", "rien de lisible : Setup");
+  eq(safeSetupName("Été.v2"), "Ete v2", "nom sûr en ASCII par défaut");
+  setAsciiSetupNames(false);
+  eq(safeSetupName("Été.v2"), "Été v2", "réglage coupé : ancien comportement");
+  setAsciiSetupNames(true);
+}
+
 export function run(): void {
   loaded();
+  drivenStats();
   notches();
   audit();
   profiles();

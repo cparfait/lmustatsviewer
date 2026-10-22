@@ -1014,6 +1014,26 @@ export interface SessionSetupUse {
   unsaved: boolean;
 }
 
+/** Ce qu'un setup a roulé (tours reconnus dans les sessions importées). */
+export interface SetupStats {
+  setup_id: number;
+  laps: number;
+  /** Tours complets et propres (chrono, trois secteurs, non invalidés). */
+  clean_laps: number;
+  dry_laps: number;
+  wet_laps: number;
+  race_laps: number;
+  quali_laps: number;
+  practice_laps: number;
+  unsaved_laps: number;
+  sessions: number;
+  best_lap: number | null;
+  best_sectors: [number, number, number] | null;
+  best_session_id: number | null;
+  /** Dernier tour noté avec ce setup (epoch s). */
+  last_driven: number | null;
+}
+
 /** Une session roulée avec un setup (reconnue en piste). */
 export interface SetupSessionUse {
   session_id: number;
@@ -1712,6 +1732,8 @@ export const setups = {
   /** Sessions roulées avec un setup (setup chargé reconnu en piste). */
   sessionsUsage: (setupId: number) =>
     invoke<SetupSessionUse[]>("get_setup_session_usage", { setupId }),
+  /** Ce que chaque setup a roulé (setup chargé reconnu en piste). */
+  stats: () => invoke<SetupStats[]>("get_setups_stats"),
   /** Réglage « Reconnaître le setup chargé », appliqué à chaud côté Rust. */
   setTracking: (enabled: boolean) =>
     invoke<void>("set_loaded_setup_tracking", { enabled }),

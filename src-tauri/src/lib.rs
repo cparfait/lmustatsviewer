@@ -153,6 +153,7 @@ pub fn run() {
             commands::setup_usage::get_session_setup_usage,
             commands::setup_usage::get_setup_session_usage,
             commands::setup_usage::set_loaded_setup_tracking,
+            commands::setup_usage::get_setups_stats,
             commands::setups::list_setups,
             commands::setups::get_setup,
             commands::setups::get_setup_content,

@@ -519,7 +519,8 @@ export function SetupDetail() {
       {/* Body : sidebar onglets + panneau (flex-1, overflow contrôlé) */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         <nav className="w-44 shrink-0 border-r border-border/60 p-2 flex flex-col gap-0.5 overflow-y-auto bg-background/40">
-            {visibleTabs.map((tab) => {
+            {/* « Partager » : bouton de la barre du bas, pas d'onglet dans cette colonne. */}
+            {visibleTabs.filter((tab) => tab.id !== "share").map((tab) => {
               const Icon = tab.icon;
               const n = tabCounts[tab.id];
               return (
@@ -715,6 +716,16 @@ export function SetupDetail() {
             <GitCompareArrows className="h-3.5 w-3.5" />{" "}
             {t("setupDetail.compare")}
           </Button>
+          {shareOn && (
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn("gap-1.5 h-8 text-xs", activeTab === "share" && "border-primary bg-primary/10 text-primary")}
+              onClick={() => setActiveTab("share")}
+            >
+              <Share2 className="h-3.5 w-3.5" /> {t("lab.share.tab")}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"

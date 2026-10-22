@@ -253,10 +253,13 @@ export function SetupSharePanel({ entry, svm }: { entry: SetupEntry; svm: SvmFil
                       </div>
                       {s.notes && <div className="mt-1 line-clamp-2 text-xs">{s.notes}</div>}
                     </div>
-                    <Button size="sm" variant="outline" disabled={fetching != null} onClick={() => void download(s)}>
-                      {fetching === s.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                      {t("lab.share.download")}
-                    </Button>
+                    {/* Mon propre setup : déjà dans mon dossier, rien à télécharger. */}
+                    {!own && (
+                      <Button size="sm" variant="outline" disabled={fetching != null} onClick={() => void download(s)}>
+                        {fetching === s.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        {t("lab.share.download")}
+                      </Button>
+                    )}
                   </div>
                 );
               })}

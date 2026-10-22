@@ -953,9 +953,11 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
   nom via `/setups/mine`, `sharedKey`) ; origine « Communauté » (bleu) pour les setups téléchargés
   (`source = 'community'`, conservée au rescan).
 - ✅ Textes 5 langues, changelog 1.0.10 complété. `tsc -b`, eslint, `cargo check`, `npm test` 6971/6971.
-- ⏳ Non vu à l'écran (la page a besoin du backend Tauri ; `tauri dev` non lancé).
-- 📋 Prochaine étape : dans `tauri dev`, activer l'option, ouvrir Setups › Communauté, télécharger le
-  setup publié en essai et vérifier la pastille « Partagé » sur l'original.
+- ✅ Vu par le mainteneur dans l'app (setup « DOM » Alpine A424 / COTA publié en essai, listé).
+  Retouches demandées : « Partager » devient un bouton de la barre du bas de la fiche (plus d'onglet
+  dans la colonne, textes 5 langues et changelog adaptés) ; un setup à soi n'a pas de bouton
+  Télécharger : « Ouvrir » ouvre l'original (circuit + nom), auteur affiché « toi ».
+- 📋 Prochaine étape : vérifier la pastille « Partagé » sur l'original et le bouton « Ouvrir ».
 
 ### 2026-10-22 — Page « Setups » du site (non liée) et publications d'essai cachées
 

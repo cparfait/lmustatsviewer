@@ -6,7 +6,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Loader2, Search, Users } from "lucide-react";
+import { Download, FolderOpen, Loader2, Search, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -14,9 +14,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TableTitle } from "@/components/TableTitle";
 import { ClassBadge } from "@/components/ClassBadge";
 import { CarLogo } from "@/components/CarLogo";
-import { community, isTauri, type CommunitySharedSetup, type SetupEntry } from "@/lib/api";
+import { community, isTauri, setups as setupsApi, type CommunitySharedSetup, type SetupEntry } from "@/lib/api";
 import { APP_VERSION } from "@/lib/changelog";
-import { importShared, isTestBuild } from "@/lib/setupSharing";
+import { importShared, isTestBuild, sharedKey } from "@/lib/setupSharing";
 import { usePageState } from "@/lib/usePageState";
 import { cn, formatTime } from "@/lib/utils";
 import { toastError, toastSuccess } from "@/stores/dialogs";
@@ -37,11 +37,17 @@ export function CommunitySetupsView({ lmuPath, onImported }: { lmuPath: string; 
   const [track, setTrack] = usePageState("setups.community.track", "");
   const [query, setQuery] = usePageState("setups.community.query", "");
   const [fetching, setFetching] = useState<number | null>(null);
+  // Mon repère : mes propres setups s'ouvrent, ils ne se téléchargent pas.
+  const [myTag, setMyTag] = useState<string | null>(null);
   // App de développement ou bêta : les publications d'essai sont listées aussi.
   const tests: Record<string, number> = isTestBuild(APP_VERSION) ? { tests: 1 } : {};
 
   useEffect(() => {
     if (!isTauri()) return;
+    void community
+      .status()
+      .then((st) => setMyTag(st.registered ? st.tag : null))
+      .catch(() => {});
     void community
       .get<Facets>("setups/facets", tests)
       .then((f) => setFacets(f))
@@ -97,6 +103,15 @@ export function CommunitySetupsView({ lmuPath, onImported }: { lmuPath: string; 
     } finally {
       setFetching(null);
     }
+  };
+
+  /** Mon setup publié : ouvre l'original (même circuit, même nom) au lieu d'en créer une copie. */
+  const openOwn = async (s: CommunitySharedSetup) => {
+    const local = (await setupsApi.entries(null, s.track).catch(() => [])).find(
+      (e) => sharedKey(e.circuit, e.name) === sharedKey(s.track, s.name),
+    );
+    if (local) onImported(local);
+    else toastError(t("lab.share.ownNotFound"));
   };
 
   return (
@@ -192,16 +207,29 @@ export function CommunitySetupsView({ lmuPath, onImported }: { lmuPath: string; 
                         </div>
                         {s.notes && <div className="max-w-[360px] truncate text-[11px] text-muted-foreground" title={s.notes}>{s.notes}</div>}
                       </TableCell>
-                      <TableCell className="px-3 py-1.5 text-xs whitespace-nowrap">{s.author.name ?? s.author.tag}</TableCell>
+                      <TableCell className="px-3 py-1.5 text-xs whitespace-nowrap">
+                        {myTag && s.author.tag === myTag ? (
+                          <span className="font-semibold text-primary">{t("lab.share.you")}</span>
+                        ) : (
+                          (s.author.name ?? s.author.tag)
+                        )}
+                      </TableCell>
                       <TableCell className="px-3 py-1.5 text-right font-mono text-xs tabular-nums">
                         {s.best_lap != null ? formatTime(s.best_lap) : <span className="text-muted-foreground/40">—</span>}
                       </TableCell>
                       <TableCell className="px-3 py-1.5 text-right text-xs tabular-nums">{s.downloads}</TableCell>
                       <TableCell className="px-3 py-1.5 text-right">
-                        <Button size="sm" variant="outline" className="h-7 gap-1.5" disabled={fetching != null} onClick={() => void download(s)}>
-                          {fetching === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                          {t("lab.share.download")}
-                        </Button>
+                        {myTag && s.author.tag === myTag ? (
+                          <Button size="sm" variant="ghost" className="h-7 gap-1.5" onClick={() => void openOwn(s)} title={t("lab.share.ownTip")}>
+                            <FolderOpen className="h-3.5 w-3.5" />
+                            {t("lab.share.open")}
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" className="h-7 gap-1.5" disabled={fetching != null} onClick={() => void download(s)}>
+                            {fetching === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                            {t("lab.share.download")}
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { COACH_PRESENCES, parsePresence } from "@/lib/coach/presence";
 import { Switch } from "@/components/ui/switch";
 /** Entre deux réglages encadrés : un espacement plutôt qu'un trait. */
 const Separator = (_: { className?: string }) => <div className="h-2" aria-hidden />;
@@ -334,6 +335,7 @@ export function ConfigV2() {
   const voiceLapPrecision = useAppStore((s) => s.voiceLapPrecision);
   const proximitySpotter = useAppStore((s) => s.proximitySpotter);
   const coachRigor = useAppStore((s) => s.coachRigor);
+  const coachPresence = useAppStore((s) => s.coachPresence);
   const micReady = useAppStore((s) => s.micReady);
   const wakeWordEnabled = useAppStore((s) => s.wakeWordEnabled);
   const radioStyleSetting = useAppStore((s) => s.radioStyle);
@@ -2102,6 +2104,19 @@ export function ConfigV2() {
                     </div>
                     <CollapsibleSection id="coachGroupDrive" title={t("config.coachGroupDrive")} desc={t("config.coachGroupDriveDesc")} defaultOpen>
                       <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-3 rounded-md border border-border p-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium leading-tight">{t("config.coachPresence")}</div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{t("config.coachPresenceDesc")}</p>
+                      </div>
+                      <Select
+                        value={coachPresence}
+                        onValueChange={(v) => void useAppStore.getState().setCoachPresence(parsePresence(v))}
+                        ariaLabel={t("config.coachPresence")}
+                        className="h-8 shrink-0 px-2.5"
+                        options={COACH_PRESENCES.map((p) => ({ value: p, label: t(`config.coachPresence_${p}`) }))}
+                      />
+                    </div>
                     <ToggleRow
                       icon={<Scale className="h-4 w-4" />}
                       label={t("config.coachRigor")}

@@ -20,6 +20,7 @@ import { PenaltyTracker } from "./penalties";
 import { PressureWatcher } from "./pressures";
 import { PitTrafficWatcher } from "./pitTraffic";
 import { AlarmClock } from "./alarm";
+import { QuestionBook } from "./questions";
 
 export interface ForecastState {
   data: WetData;
@@ -32,6 +33,8 @@ class EngineerState {
   /** Usure des plaquettes par tour (donnée du jeu via le pont REST). */
   pads = new PadWearTracker();
   pit = new PitWindowTracker();
+  /** Questions dites au pilote, en attente d'une réponse courte (« ok », « oui », « non »). */
+  questions = new QuestionBook();
   /** Arrêts et relais de tout le plateau (registre des arrêts adverses). */
   stints = new StintRegistry();
   /** Usure des pneus du joueur par roue et par tour. */
@@ -91,6 +94,7 @@ class EngineerState {
     this.energy.reset();
     this.pads.reset();
     this.pit.reset();
+    this.questions.reset();
     this.stints.reset();
     this.tyreWear.reset();
     this.wetness.reset();

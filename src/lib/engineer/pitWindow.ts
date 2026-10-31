@@ -82,6 +82,11 @@ export class PitWindowTracker {
     this.stayOutUntil = -1;
   }
 
+  /** Une annonce de fenêtre d'arrêt ou de box a été faite dans ce relais. */
+  get announced(): boolean {
+    return this.said.open || this.said.closing || this.said.box;
+  }
+
   /** Le pilote a accusé réception (« compris », « box »). */
   ack(lap: number): void {
     this.ackUntil = lap + ACK_SILENCE_LAPS;

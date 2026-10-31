@@ -80,6 +80,22 @@ class CornerNamer {
     return c ? spokenCorner(c) : null;
   }
 
+  /** Libellé parlé du repère officiel à moins de `maxM` d'une distance-tour, ou null. */
+  near(dist: number, maxM = 150): string | null {
+    if (!this.list.length) return null;
+    let best: NamedCorner | null = null;
+    let bestGap = maxM;
+    for (const c of this.list) {
+      let gap = Math.abs(c.dist - dist);
+      if (this.lapLen > 0) gap = Math.min(gap, this.lapLen - gap);
+      if (gap <= bestGap) {
+        bestGap = gap;
+        best = c;
+      }
+    }
+    return best ? spokenCorner(best) : null;
+  }
+
   get known(): NamedCorner[] {
     return this.list;
   }

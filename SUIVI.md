@@ -953,6 +953,74 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-10-31 — Idées T1-T6 de la veille 0.9.15 réalisées (ingénieur, coach)
+
+**Demande** : « fais les points intéressants » (T1 à T6 de l'entrée ci-dessous ; T7 profil public non fait).
+Tout est désactivable (radio_extras / config), l'ancien comportement reste accessible.
+- ✅ **T2 faux abandon** : `commands/race_save.rs` (`recent_race_save`) lit `UserData/Saves` (+ `Backup Saves`),
+  fichier ≤ 10 min, `{"compressedData": base64(zlib(json))}sig:…` décodé de façon tolérante (clés cherchées
+  partout, sans casse), voiture du joueur comparée ; illisible mais frais = sauvegarde. `useRaceEngineer` :
+  `finish_status` 2 → bilan retenu (`saveCheck`) tant que la lecture n'a pas tranché ; sauvegarde non `retired` =
+  silence. 4 tests Rust. ⚠️ Format reconstruit d'après la veille : **aucune sauvegarde réelle sur ce PC** pour le
+  vérifier (dossier `Saves` vide) — à confirmer en sauvegardant une course.
+- ✅ **T1 trafic prédit** : `engineer/trafficPredict.ts` (profil de vitesse par classe, tranches de 50 m, appris
+  sur toutes les voitures entre deux trames ; facteur de rythme par voiture ; simulation au pas de 0,25 s, horizon
+  180 s). Dit à ≤ 15 s du contact (`vFasterContact`, `vFasterContactAt` avec le virage via `cornerNamer.near`).
+  Profils pas prêts (< 80 % du tour vu) ou réglage `trafficPredict` coupé → ancien `fasterBehind` (12 s).
+- ✅ **T3 arrondis** : `engineer/rounding.ts` (interrupteur posé par le store, `roundedNumbers`) : freinages 5 m
+  puis 10 m, vitesses 1 puis 5 km/h, écart de secteur de la cible de classe au dixième (était `toFixed(2)`),
+  `vReportCap` au dixième (était au millième).
+- ✅ **T4 présence du coach** : `coach/presence.ts` + `ModePolicy.minLapsBetween` ; config `coach_presence`
+  (normal par défaut = inchangé, présent, discret, auto selon l'écart au prochain palier ohne_speed et la dispersion
+  des 5 derniers tours propres). Sélecteur dans Configuration › Coach par virage.
+- ✅ **T5 carnet des questions** : `engineer/questions.ts` sur `engineer.questions` ; une question s'ouvre quand
+  l'annonce part à la voix (`pit:open|closing|box`, `prefs:ask`). Intentions `yes` / `no` (5 langues). « ok » à la
+  question des chronos → `spAskLapPrefAgain` ; « ok » sans fenêtre annoncée ne tait plus les rappels d'arrêt ;
+  « box », « je rentre » gardent l'accusé direct.
+- ✅ **T6 paliers** : `engineer/paceTiers.ts` (`combos` + `combos/detail`, sec, p90 → p1, ≥ 10 pilotes et
+  `ranked`, marge 0,1 s). Essais et qualif seulement : « prochain repère » au 1ᵉʳ meilleur tour, « repère passé »
+  quand un meilleur tour en franchit un. Jamais de centile à la radio. Réglage `paceTiers`.
+- ✅ `npm test` 7 220/7 220 (nouvelle suite `predict.suite.ts` ; 7 029 avant), `tsc -b`, eslint, `cargo check` propres.
+  Changelog 1.0.10 (4 ajouts, 1 amélioration, 2 correctifs, 5 langues). Non commité.
+- 📋 **Prochaine étape** : essai en jeu (course multiclasse : préavis prédit ; essais : repères ; sauvegarde LMU
+  en course pour T2), puis commit.
+
+### 2026-10-31 — Veille TrackMind 0.9.15 (build 300), passe 290 → 300 avec REA (aucun code modifié)
+
+**Demande** : « analyse la nouvelle version de trackmind avec rea et dis-moi ce qui a été ajouté ». Pack actif
+`%LOCALAPPDATA%\SLM Engineer\maj\pack_300` (0.9.15, 31/10) comparé à `pack_290` (0.9.7.1). REA
+`analyze_javascript_application` sur `studio\web` des deux packs (27 → 31 JS, 0 erreur ; scripts en ligne des `.html`
+non couverts) + lecture du Python comme données ; cible jamais lancée. Idées seulement, aucun nom de concurrent dans le code.
+- ✅ **Changement de fond — « PC léger » (27-28/10)** : ~100 modules du cerveau (arbitre de conversation, stratégie,
+  arrêts, rivaux, construction de setup `chassis`, coaching, fantôme, mémoire du pilote, débrief…) **ne sont plus
+  livrés** : ils tournent sur leur serveur (motif écrit : éviter la copie). Le PC ne garde que la mesure, la voix, le
+  stand et l'écriture des `.svm` sur ordre du serveur ; secours local réduit au spotter + « carburant bas ». Les
+  analyses de code de leur cerveau ne seront donc plus possibles aux prochaines versions.
+- ✅ **Nouveautés visibles** : écran **Paddock** (réseau social : fil d'actu, saluts/likes, messages pilote à pilote,
+  classement, marché/recrutement d'écurie, essai avec setup joint) + **profil pilote public** (20 thèmes, historique
+  des courses, carte notée HOT/MOY/RÉG/PNEU/PLUIE/SOIN dès 10 courses) ; boîte unique messages + notifications ;
+  l'ingé annonce au garage les saluts reçus ; **allemand** (catalogue, caché) ; **Forge sur iRacing** (`.sto` recopié
+  tel quel, numéro public dans le nom de fichier) ; **overlay setup iRacing** au garage (réglages changés en direct,
+  clic par clic) ; carte « Mes overlays » ; interrupteur « Filmer mes courses » ; guide de démarrage parlé ; panneau de
+  **fin de bêta** (offre Pionnier −40 % à vie, compte à rebours) ; débrief de séance dans le Dojo.
+- ✅ **Nouveautés de l'ingé** : **préavis de trafic prédit** (simulation des deux voitures sur un profil de vitesse
+  par classe et par tranche de 50 m appris en roulant ; mesure : l'ancien « écart ÷ vitesse de rapprochement »
+  donnait 36 préavis sur 44 suivis d'un drapeau bleu bien plus tard, médiane 105 s) ; **niveau de présence** du coach
+  (présent / normal / discret / auto selon l'écart à la cible) ; **paliers** de chrono (p90 → p1 de la classe sur le
+  circuit, jamais dits à la radio, cible = palier suivant) ; **arrondis de la parole** (10 m, 5 km/h, dixièmes, écarts
+  en mots, jamais d'angle ni de %) ; **carnet des questions** en attente (le « oui » va à la dernière question, une
+  question à la fois) et lecture des réponses courtes (« milieu », « 4 tours ») ; **pilote bavard** (« reçu » varié,
+  un recadrage par séance en course/qualif) ; **raison de chaque arrêt** gardée pour le débrief ; **parcours de
+  première séance** (en ombre) ; **course sauvegardée LMU** : recharger une sauvegarde met `mFinishStatus` à 2 → ils
+  lisent `UserData/Saves/*.json` pour ne pas annoncer un faux abandon ; contrôle de la lecture des pneus des rivaux
+  sur notre propre arrêt ; fronts de pédales des autres voitures (~25 Hz) et trace fine ~20 Hz du joueur par tour.
+- 📋 **Idées pour la V3** (valeur ÷ effort) : **T1 préavis trafic prédit** (notre `lib/engineer/traffic.ts` utilise
+  justement écart ÷ rapprochement : même défaut probable) ; **T2 faux abandon après sauvegarde** (`debriefRadio.ts`
+  lit `finish_status` 2 = abandon : à vérifier en jeu) ; **T3 arrondis de la parole** pour l'ingénieur vocal ;
+  **T4 niveau de présence** réglable (+ auto) ; **T5 carnet des questions** oui/non ; **T6 paliers** depuis nos
+  classements communautaires ; **T7 profil pilote public** sur le site (opt-in) ; le Paddock social complet = gros
+  chantier, à ne pas viser.
+- 📋 **Prochaine étape** : arbitrage du mainteneur ; si go, commencer par T2 (vérification rapide) puis T1.
 ### 2026-10-22 — Serveur déployé (migration 9) ; page Setups du site en tableau
 
 - ✅ **Déploiement** (`deploy.cmd --smoke`, lancé dans le terminal du mainteneur, mot de passe SSH

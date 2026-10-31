@@ -38,6 +38,7 @@ import {
   setStintMode,
   setRiskMode,
   setCoachRigor,
+  setCoachPresence,
   resolveCoachPhrase,
   setCoachPhraseBank,
   coachCornerEvent,
@@ -70,6 +71,7 @@ export function useCornerCoach() {
   const riskMode = useAppStore((s) => s.coachRisk);
   const phrasebankMode = useAppStore((s) => s.coachPhrasebank);
   const rigor = useAppStore((s) => s.coachRigor);
+  const presence = useAppStore((s) => s.coachPresence);
   const lang = i18n.language;
 
   // Refs « vivantes » : le handler de délivrance est enregistré une seule fois
@@ -289,6 +291,11 @@ export function useCornerCoach() {
   useEffect(() => {
     setCoachRigor(rigor);
   }, [rigor]);
+
+  // Niveau de présence du coach en roulant : reflète le choix Config.
+  useEffect(() => {
+    setCoachPresence(presence);
+  }, [presence]);
 
   // Coaching du risque + cible de classe (§12, P5.4) : reflète l'interrupteur Config.
   useEffect(() => {

@@ -17,6 +17,7 @@
  */
 
 import type { CornerMeasurement } from "./engine";
+import { saySeconds } from "@/lib/engineer/rounding";
 
 /** Un conseil de risque / cible de classe prêt à formater (voix + widget). */
 export interface RiskAdvisory {
@@ -163,7 +164,7 @@ export function classTargetAdvice(
   return {
     kind: "class-target",
     suffix: "vClassTarget",
-    vars: { s: bestSector + 1, d: bestGap.toFixed(2) },
+    vars: { s: bestSector + 1, d: saySeconds(bestGap, 2) },
     corner: 0,
     corner_uid: "",
     magnitude: bestGap,

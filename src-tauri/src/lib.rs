@@ -232,6 +232,7 @@ pub fn run() {
             commands::live::get_live_data,
             commands::live::track_outline,
             commands::live::list_weather_files,
+            commands::race_save::recent_race_save,
             commands::live::is_sim_running,
             commands::live::start_live_polling,
             commands::live::stop_live_polling,

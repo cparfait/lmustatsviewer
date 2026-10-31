@@ -24,6 +24,9 @@ export const RADIO_EXTRAS = [
   "rivalNames",
   "classGaps",
   "voiceNotes",
+  "trafficPredict",
+  "roundedNumbers",
+  "paceTiers",
 ] as const;
 export type RadioExtra = (typeof RADIO_EXTRAS)[number];
 

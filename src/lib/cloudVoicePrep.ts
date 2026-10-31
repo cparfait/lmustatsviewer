@@ -80,6 +80,7 @@ export const CLOUD_PREP_KEYS: readonly string[] = [
   "vUnsportsmanlike",
   "vHeadlights",
   "vCrewReady",
+  "vTierTop",
 ];
 
 /**

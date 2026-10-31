@@ -93,6 +93,42 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Predicted traffic warning: the engineer now tells you when a faster class will actually catch you, about 15 seconds before, and where (“Hypercar will catch you in 15 seconds, around turn 5”). It learns each class's speed around the lap while you drive, so slow corners are taken into account. Until it has learned enough, and if you turn it off in Settings › Announcements › “Predicted traffic warning”, you get the previous warning (“Hypercar behind, 12 seconds”).",
+              fr: "Préavis de trafic prédit : l'ingénieur te prévient maintenant quand une classe plus rapide va réellement te rattraper, environ 15 secondes avant, et où (« Hypercar qui va te rattraper dans 15 secondes, vers le virage 5 »). Il apprend en roulant la vitesse de chaque classe le long du tour, virages lents compris. Tant qu'il n'a pas assez appris, et si tu le coupes dans Configuration › Annonces › « Préavis de trafic prédit », tu gardes l'ancien préavis (« Hypercar derrière, 12 secondes »).",
+              es: "Aviso de tráfico previsto: el ingeniero te avisa ahora cuando una clase más rápida va a alcanzarte de verdad, unos 15 segundos antes, y dónde («Hypercar te alcanzará en 15 segundos, hacia la curva 5»). Aprende en pista la velocidad de cada clase a lo largo de la vuelta, curvas lentas incluidas. Mientras no haya aprendido lo suficiente, y si lo desactivas en Configuración › Anuncios › «Aviso de tráfico previsto», tienes el aviso anterior («Hypercar detrás, 12 segundos»).",
+              de: "Vorhergesagte Verkehrswarnung: Der Ingenieur meldet jetzt, wann eine schnellere Klasse dich wirklich einholt, etwa 15 Sekunden vorher, und wo („Hypercar holt dich in 15 Sekunden ein, etwa in Kurve 5“). Er lernt beim Fahren die Geschwindigkeit jeder Klasse entlang der Runde, langsame Kurven inklusive. Solange er noch nicht genug gelernt hat, und wenn du es unter Einstellungen › Ansagen › „Vorhergesagte Verkehrswarnung“ ausschaltest, bekommst du die bisherige Warnung („Hypercar hinter dir, 12 Sekunden“).",
+              it: "Avviso di traffico previsto: l'ingegnere ora ti avvisa quando una classe più veloce sta davvero per raggiungerti, circa 15 secondi prima, e dove («Hypercar ti raggiunge tra 15 secondi, verso la curva 5»). Impara in pista la velocità di ogni classe lungo il giro, curve lente comprese. Finché non ha imparato abbastanza, e se lo disattivi in Configurazione › Annunci › «Avviso di traffico previsto», hai l'avviso precedente («Hypercar dietro, 12 secondi»).",
+            },
+          },
+          {
+            text: {
+              en: "Lap-time markers: in practice and qualifying, in the dry, the engineer gives you your next lap time to aim for, based on the community's best laps on this track and in your class, and tells you when a new best lap passes one (“Marker passed! Next one: 1:42.3”). Never a percentage or a number of drivers. Only when the community data is large enough; can be turned off in Settings › Announcements › “Lap-time markers”.",
+              fr: "Repères de chrono : en essais et en qualif, sur le sec, l'ingénieur te donne ton prochain chrono à viser d'après les meilleurs tours de la communauté sur ce circuit et dans ta classe, et te dit quand un nouveau meilleur tour en passe un (« Repère passé ! Le prochain : 1:42.3 »). Jamais un pourcentage ni un nombre de pilotes. Seulement quand la base de la communauté est assez fournie ; se coupe dans Configuration › Annonces › « Repères de chrono ».",
+              es: "Referencias de tiempo: en libres y clasificación, en seco, el ingeniero te da tu próximo tiempo a buscar según las mejores vueltas de la comunidad en este circuito y tu clase, y te dice cuándo una nueva mejor vuelta supera una («¡Referencia superada! La siguiente: 1:42.3»). Nunca un porcentaje ni un número de pilotos. Solo cuando los datos de la comunidad son suficientes; se desactiva en Configuración › Anuncios › «Referencias de tiempo».",
+              de: "Rundenzeit-Marken: Im Training und Qualifying, bei Trockenheit, nennt dir der Ingenieur deine nächste Zielzeit nach den besten Runden der Community auf dieser Strecke und in deiner Klasse, und sagt dir, wenn eine neue Bestrunde eine Marke knackt („Marke geknackt! Die nächste: 1:42.3“). Nie ein Prozentwert oder eine Fahrerzahl. Nur wenn die Community-Daten umfangreich genug sind; abschaltbar unter Einstellungen › Ansagen › „Rundenzeit-Marken“.",
+              it: "Riferimenti di tempo: in libere e qualifica, sull'asciutto, l'ingegnere ti dà il prossimo tempo da puntare secondo i migliori giri della community su questo circuito e nella tua classe, e ti dice quando un nuovo giro migliore ne supera uno («Riferimento superato! Il prossimo: 1:42.3»). Mai una percentuale né un numero di piloti. Solo quando i dati della community sono sufficienti; si disattiva in Configurazione › Annunci › «Riferimenti di tempo».",
+            },
+          },
+          {
+            text: {
+              en: "Coach presence while driving: choose how much the corner coach talks (Normal as before, Present, Discreet, or Auto: present when you're far from your next lap target or your laps vary a lot, discreet when you're close, one tip every 4 laps but never silent). Settings › Corner coach.",
+              fr: "Présence du coach en roulant : choisis combien le coach par virage parle (Normal comme avant, Présent, Discret, ou Auto : présent loin de ton prochain objectif de chrono ou si tes tours varient beaucoup, discret tout près du but, un conseil tous les 4 tours mais jamais muet). Configuration › Coach par virage.",
+              es: "Presencia del coach en pista: elige cuánto habla el coach por curva (Normal como antes, Presente, Discreto, o Auto: presente lejos de tu próximo objetivo de tiempo o si tus vueltas varían mucho, discreto muy cerca, un consejo cada 4 vueltas pero nunca mudo). Configuración › Coach por curva.",
+              de: "Präsenz des Coachs beim Fahren: Wähle, wie viel der Kurven-Coach spricht (Normal wie bisher, Präsent, Zurückhaltend oder Auto: präsent, wenn du weit von deinem nächsten Rundenziel bist oder deine Runden stark schwanken, zurückhaltend kurz vor dem Ziel, ein Tipp alle 4 Runden, aber nie stumm). Einstellungen › Kurven-Coach.",
+              it: "Presenza del coach in pista: scegli quanto parla il coach per curva (Normale come prima, Presente, Discreto, o Auto: presente lontano dal tuo prossimo obiettivo di tempo o se i giri variano molto, discreto quando sei vicino, un consiglio ogni 4 giri ma mai muto). Configurazione › Coach per curva.",
+            },
+          },
+          {
+            text: {
+              en: "Short answers go to the engineer's last question: a plain “yes” or “no” now answers what was just asked (“no” after a pit window call = staying out), and an “ok” to the lap-time question makes the engineer name the question and ask it again instead of acknowledging the pit window.",
+              fr: "Les réponses courtes vont à la dernière question de l'ingénieur : un « oui » ou un « non » seul répond maintenant à ce qui vient d'être demandé (« non » après l'annonce de la fenêtre d'arrêt = on reste dehors), et un « ok » à la question des chronos fait nommer et reposer la question au lieu d'acquitter la fenêtre d'arrêt.",
+              es: "Las respuestas cortas van a la última pregunta del ingeniero: un «sí» o un «no» solo responde ahora a lo que se acaba de preguntar («no» tras el aviso de ventana de parada = me quedo fuera), y un «ok» a la pregunta de los tiempos hace que el ingeniero nombre la pregunta y la repita en lugar de confirmar la ventana de parada.",
+              de: "Kurze Antworten gehen an die letzte Frage des Ingenieurs: Ein einfaches „Ja“ oder „Nein“ beantwortet jetzt, was gerade gefragt wurde („Nein“ nach der Ansage des Boxenfensters = draußen bleiben), und ein „Ok“ auf die Frage nach den Rundenzeiten lässt den Ingenieur die Frage benennen und erneut stellen, statt das Boxenfenster zu bestätigen.",
+              it: "Le risposte brevi vanno all'ultima domanda dell'ingegnere: un semplice «sì» o «no» ora risponde a ciò che è stato appena chiesto («no» dopo l'annuncio della finestra di sosta = resto fuori), e un «ok» alla domanda sui tempi fa nominare e ripetere la domanda invece di confermare la finestra di sosta.",
+            },
+          },
+          {
+            text: {
               en: "The app now knows which setup is loaded in your car: on track it reads it from the game and records it on every lap. The Live page shows it (with a warning when the car has unsaved changes), each session lists the setups it was driven with (laps and best lap), the setup sheet lists its sessions, a setup without a reference session gets the best one automatically (a link you set is never replaced), and the pit debrief starts from the loaded setup. Works with the Live page closed while the app is open. Can be turned off in Settings › Workshop › “Detect the loaded setup” (manual link only, as before).",
               fr: "L'app sait maintenant quel setup est chargé dans ta voiture : en piste, elle le lit dans le jeu et le note à chaque tour. La page Live l'affiche (avec un avertissement si la voiture porte des réglages non enregistrés), chaque session liste les setups roulés (tours et meilleur tour), la fiche setup liste ses sessions, un setup sans session de référence reçoit automatiquement la meilleure (un lien posé à la main n'est jamais remplacé), et le bilan au box part du setup chargé. Fonctionne page Live fermée tant que l'app est ouverte. Se coupe dans Configuration › Atelier › « Reconnaître le setup chargé » (lien manuel seulement, comme avant).",
               es: "La app sabe ahora qué setup está cargado en tu coche: en pista lo lee en el juego y lo anota en cada vuelta. La página Live lo muestra (con un aviso si el coche tiene cambios sin guardar), cada sesión lista los setups con los que se rodó (vueltas y mejor vuelta), la ficha del setup lista sus sesiones, un setup sin sesión de referencia recibe automáticamente la mejor (un vínculo puesto a mano nunca se sustituye) y el balance en boxes parte del setup cargado. Funciona con la página Live cerrada mientras la app esté abierta. Se desactiva en Configuración › Taller › «Reconocer el setup cargado» (solo vínculo manual, como antes).",
@@ -819,6 +855,15 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "improved",
         items: [
+          {
+            text: {
+              en: "Rounded numbers on the radio, like a real engineer: sector gaps to the tenth instead of the hundredth, the session lap target to the tenth instead of the thousandth, braking points to the nearest 10 metres, speed gains to 5 km/h. The exact values stay on screen. Previous precision: Settings › Announcements › “Rounded numbers on the radio” off.",
+              fr: "Chiffres arrondis à la radio, comme un vrai ingénieur : écarts de secteur au dixième au lieu du centième, objectif de chrono de fin de session au dixième au lieu du millième, freinages à la dizaine de mètres, vitesses à 5 km/h près. Les valeurs exactes restent à l'écran. Précision d'avant : Configuration › Annonces › « Chiffres arrondis à la radio » coupé.",
+              es: "Cifras redondeadas en la radio, como un ingeniero de verdad: diferencias de sector a la décima en vez de a la centésima, objetivo de tiempo de fin de sesión a la décima en vez de a la milésima, frenadas a la decena de metros, velocidades de 5 en 5 km/h. Los valores exactos siguen en pantalla. Precisión anterior: Configuración › Anuncios › «Cifras redondeadas en la radio» desactivado.",
+              de: "Gerundete Zahlen im Funk, wie bei einem echten Ingenieur: Sektorabstände auf die Zehntel statt Hundertstel, das Rundenziel am Session-Ende auf die Zehntel statt Tausendstel, Bremspunkte auf 10 Meter, Geschwindigkeiten auf 5 km/h. Die genauen Werte bleiben auf dem Bildschirm. Bisherige Genauigkeit: Einstellungen › Ansagen › „Gerundete Zahlen im Funk“ aus.",
+              it: "Cifre arrotondate alla radio, come un vero ingegnere: distacchi di settore al decimo invece che al centesimo, obiettivo di tempo di fine sessione al decimo invece che al millesimo, frenate alla decina di metri, velocità di 5 in 5 km/h. I valori esatti restano sullo schermo. Precisione precedente: Configurazione › Annunci › «Cifre arrotondate alla radio» disattivato.",
+            },
+          },
           {
             text: {
               en: "Website, “Setups” page: the setups are now shown in a table styled like the leaderboards — class, setup (version, type and notes underneath), car with its logo, track with its flag, best lap, laps driven by the author (wet laps underneath), author, downloads, game version, date and a download button. Anything cut short is shown in full in a tooltip; on a phone, each line folds onto three rows. The hint on where to put the file now appears in full above the table, and as a tooltip on the button. The footer now stays at the bottom of the screen on short pages (whole website).",
@@ -1560,6 +1605,24 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "Saving a race in LMU (or reloading a save) no longer makes the engineer announce a retirement at the flag: the game reports it as a retirement, so the app now checks for a fresh race save of your car before saying it.",
+              fr: "Sauvegarder une course dans LMU (ou recharger une sauvegarde) ne fait plus annoncer un abandon par l'ingénieur au bilan : le jeu le signale comme un abandon, l'app vérifie maintenant qu'aucune sauvegarde récente de ta voiture ne vient d'être écrite avant de le dire.",
+              es: "Guardar una carrera en LMU (o cargar una partida guardada) ya no hace que el ingeniero anuncie un abandono en el balance: el juego lo señala como abandono, así que la app comprueba ahora que no se acaba de escribir una partida guardada reciente de tu coche antes de decirlo.",
+              de: "Ein Rennen in LMU zu speichern (oder einen Spielstand zu laden) lässt den Ingenieur bei der Bilanz keinen Ausfall mehr melden: Das Spiel meldet es als Ausfall, daher prüft die App jetzt, ob gerade ein frischer Spielstand deines Autos geschrieben wurde, bevor sie es sagt.",
+              it: "Salvare una gara in LMU (o ricaricare un salvataggio) non fa più annunciare un ritiro all'ingegnere nel bilancio: il gioco lo segnala come ritiro, quindi l'app ora controlla che non sia appena stato scritto un salvataggio recente della tua auto prima di dirlo.",
+            },
+          },
+          {
+            text: {
+              en: "An “ok” said for something else no longer silences the pit window reminders for two laps when no pit window had been announced.",
+              fr: "Un « ok » dit pour autre chose ne coupe plus les rappels de fenêtre d'arrêt pendant deux tours quand aucune fenêtre n'avait été annoncée.",
+              es: "Un «ok» dicho por otra cosa ya no silencia los recordatorios de ventana de parada durante dos vueltas cuando no se había anunciado ninguna ventana.",
+              de: "Ein „Ok“, das etwas anderem galt, schaltet die Erinnerungen an das Boxenfenster nicht mehr für zwei Runden stumm, wenn gar kein Boxenfenster angesagt worden war.",
+              it: "Un «ok» detto per altro non silenzia più i promemoria della finestra di sosta per due giri quando nessuna finestra era stata annunciata.",
+            },
+          },
           {
             text: {
               en: "A quieter, more relevant engineer (tester feedback): no more lap time at the end of the out-lap — the first one of a session used to be called out as a “personal best”; no more “under attack” or “within a second” in practice and qualifying, where the order follows best laps and not cars on track; no more delta to your best lap at every sector during races, where fuel, tyres and traffic make it noise (it stays in practice). In multiclass, with “Announce positions within class”, the session best lap announced is your class's instead of the fastest class's. The “Full” call-out rate keeps the previous behaviour.",

@@ -716,6 +716,16 @@ export interface LiveStanding {
   mini?: number[];
 }
 
+/** Sauvegarde de course LMU lue sur le disque (`commands/race_save.rs`). */
+export interface RaceSave {
+  file_name: string;
+  age_s: number;
+  decoded: boolean;
+  vehicle_name: string | null;
+  retired: boolean | null;
+  session_finished: boolean | null;
+}
+
 export interface LiveSession {
   track: string;
   session: number;
@@ -1767,6 +1777,10 @@ export const live = {
   /** Fichiers météo scénarisés `.wet` du dossier Settings (prévision). */
   weatherFiles: (lmuPath: string) =>
     invoke<WetFile[]>("list_weather_files", { lmuPath }),
+  /** Sauvegarde de course LMU récente pour cette voiture (`UserData/Saves`), ou null :
+   *  distingue une course sauvegardée (le jeu dit « abandon ») d'un vrai abandon. */
+  recentRaceSave: (lmuPath: string, vehicle: string, maxAgeS?: number) =>
+    invoke<RaceSave | null>("recent_race_save", { lmuPath, vehicle, maxAgeS: maxAgeS ?? null }),
   /** Capture brute de la mémoire partagée (10 min max) ; renvoie le chemin du fichier. */
   recordStart: () => invoke<string>("shm_record_start"),
   recordStop: () => invoke<void>("shm_record_stop"),

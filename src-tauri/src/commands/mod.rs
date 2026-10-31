@@ -9,6 +9,7 @@ pub mod session_detail;
 pub mod setups;
 pub mod setup_usage;
 pub mod live;
+pub mod race_save;
 pub mod lmu_rest;
 pub mod minisectors;
 pub mod regie;

@@ -45,6 +45,7 @@ import {
   type CoachVoiceMsg,
 } from "./voice";
 import { modeFromSession, policyFor } from "./mode";
+import { applyPresence, effectivePresence, type CoachPresence } from "./presence";
 import {
   macroForCombo,
   mapMacroToWindows,
@@ -131,7 +132,7 @@ import {
   liveClassToOhne,
   type PaceBenchmark,
 } from "@/lib/ohne_speed";
-import { formatTime } from "@/lib/utils";
+import { sayLap } from "@/lib/engineer/rounding";
 import type { CoachFrame } from "./frame";
 
 type Listener = (event: CoachEvent, state: CoachEngineState) => void;
@@ -222,6 +223,11 @@ let stint: StintState = createStintState();
 let riskActive = false;
 /** Coach rigoureux (verdict mesuré, virages clos) — interrupteur Config, défaut actif. */
 let rigorActive = true;
+/** Niveau de présence choisi (Config) ; `normal` = comportement historique. */
+let presenceChoice: CoachPresence = "normal";
+/** Derniers tours propres (s), pour le niveau « auto ». */
+let recentCleanLapsS: number[] = [];
+const RECENT_CLEAN_MAX = 5;
 /** État risque (coupures/virage + cooldown cible de classe). */
 let risk: RiskState = createRiskState();
 
@@ -404,6 +410,7 @@ function dispatch(events: CoachEvent[], frame: CoachFrame): void {
   lastDiagByUid = new Map();
       sideQueue = []; // conseils du combo précédent : caducs
       bestCleanLapMs = Infinity;
+      recentCleanLapsS = [];
       if (!driverLevelPinned) driverLevel = "intermediate";
       // Apprentissage (§11) : session neuve + charge de l'historique du combo
       // (progression/objectifs/rappel) — le rappel attend le 1ᵉʳ virage.
@@ -499,7 +506,10 @@ function runDiagnostic(measurement: CornerMeasurement, frame: CoachFrame): void 
     const verdict = recordDrillPass(drill, measurement, result);
     if (verdict) queueSide({ ch: "drill", msg: verdict, at: frame.elapsed });
   } else {
-    const policy = policyFor(modeFromSession(frame.sessionNum, state.ref !== null));
+    const policy = applyPresence(
+      policyFor(modeFromSession(frame.sessionNum, state.ref !== null)),
+      effectivePresence(presenceChoice, presenceGapS(), recentCleanLapsS),
+    );
     voice.rigor = rigorActive;
     observeCorner(
       voice,
@@ -589,8 +599,11 @@ function currentRefMode(frame: CoachFrame): RefMode {
  * met à jour le meilleur tour propre puis re-situe le pilote vs le tour alien.
  */
 function calibrateFromLap(lap: CompletedLap): void {
-  if (driverLevelPinned) return;
   if (!lap.eligibility.eligible || lap.lapTime <= 0) return;
+  // Présence « auto » : régularité des derniers tours propres (niveau épinglé ou non).
+  recentCleanLapsS.push(lap.lapTime);
+  if (recentCleanLapsS.length > RECENT_CLEAN_MAX) recentCleanLapsS.shift();
+  if (driverLevelPinned) return;
   const ms = lap.lapTime * 1000; // `lapTime` en secondes → ms (échelle ohne_speed)
   if (ms >= bestCleanLapMs) return;
   bestCleanLapMs = ms;
@@ -671,7 +684,7 @@ function comboBenchmark(): PaceBenchmark | null {
   return findBenchmark(benchmarks, comboTrack, comboOhneClass) ?? null;
 }
 
-/** Prochain cap ohne_speed (formaté `m:ss.mmm`) sous le meilleur tour, ou `null`. */
+/** Prochain cap ohne_speed sous le meilleur tour (dit au dixième, `rounding.sayLap`), ou `null`. */
 function computeCapTime(): string | null {
   if (bestCleanLapMs === Infinity) return null;
   const bm = comboBenchmark();
@@ -688,7 +701,7 @@ function computeCapTime(): string | null {
     r.offline,
   ];
   const capMs = nextCapMs(bestCleanLapMs, tiers);
-  return capMs ? formatTime(capMs / 1000) : null;
+  return capMs ? sayLap(capMs / 1000) : null;
 }
 
 /**
@@ -961,6 +974,7 @@ export async function startCoachService(): Promise<void> {
   comboOhneClass = null;
   comboAlienMs = 0;
   bestCleanLapMs = Infinity;
+  recentCleanLapsS = [];
   phraseBank = null;
   recentDiags = [];
   lastDiagByUid = new Map();
@@ -1035,6 +1049,7 @@ export function stopCoachService(): void {
   comboOhneClass = null;
   comboAlienMs = 0;
   bestCleanLapMs = Infinity;
+  recentCleanLapsS = [];
   phraseBank = null;
   recentDiags = [];
   lastDiagByUid = new Map();
@@ -1176,6 +1191,21 @@ export function setRiskMode(active: boolean): void {
  */
 export function setCoachRigor(active: boolean): void {
   rigorActive = active;
+}
+
+/** Niveau de présence du coach en roulant (`presence.ts`). */
+export function setCoachPresence(p: CoachPresence): void {
+  presenceChoice = p;
+}
+
+/** Écart (s) du meilleur tour propre au prochain objectif de chrono, ou null. */
+function presenceGapS(): number | null {
+  if (bestCleanLapMs === Infinity) return null;
+  const bm = comboBenchmark();
+  if (!bm) return null;
+  const r = bm.racePaceMs;
+  const capMs = nextCapMs(bestCleanLapMs, [r.alien, r.competitive, r.good, r.pct103, r.midpack, r.pct105, r.tailEnder, r.offline]);
+  return capMs ? (bestCleanLapMs - capMs) / 1000 : null;
 }
 
 /**

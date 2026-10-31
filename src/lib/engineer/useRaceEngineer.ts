@@ -43,6 +43,9 @@ import { ToneArbiter, setSharedTone, BATTLE_GAP_S } from "./tone";
 import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY, CLASS_GAPS_EVERY, CLASS_GAPS_MAX_S, FLYING_FACTOR } from "./lapPolicy";
 import { applyLapPref, parseLapPrefs, questionDue, sessionKind } from "./prefs";
 import { onTrack, slowerPackAhead, fasterBehind } from "./traffic";
+import { TrafficPredictor, fasterContact, carKey } from "./trafficPredict";
+import { questionOfKey } from "./questions";
+import { crossedTiers, loadPaceTiers, nextTier, type PaceTier } from "./paceTiers";
 import { RivalPitWatcher } from "./rivalPits";
 import { BatteryWatcher, CRITICAL_PCT } from "./battery";
 import { VigieTracker, type VigieEvent } from "./vigie";
@@ -109,6 +112,12 @@ const QUIET_TTL_MS = 10000;
 const BLUE_FLAG = 6;
 /** Préavis « plus rapide derrière » déjà donné pour cette voiture : pas de bleu redondant (s). */
 const BLUE_AFTER_PREVIEW_S = 30;
+/** Une sauvegarde de course LMU plus vieille que ça n'explique pas un « abandon » (s). */
+const RACE_SAVE_MAX_AGE_S = 600;
+/** Préavis prédit : on prévient quand le contact est à moins de ça (s). */
+const FASTER_CONTACT_WARN_S = 15;
+/** Préavis prédit : voitures rapides examinées jusqu'à cet écart de piste derrière (s). */
+const FASTER_SCAN_S = 90;
 
 /**
  * Alerte « seuil tenu » : ne déclenche qu'après `sustainMs` continus au-dessus
@@ -408,6 +417,15 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const debriefSaid = useRef(false);
   /** La course a été vue rouler (tour ≥ 1 sans arrivée) : condition du bilan au damier. */
   const raceSeen = useRef(false);
+  /** Abandon vu par le jeu (`finish_status` 2) : sauvegarde de course ou vrai abandon ?
+   *  `pending` le temps de lire `UserData/Saves`, `save` = on se tait. */
+  /** Profils de vitesse par classe appris en roulant (préavis de trafic prédit). */
+  const trafficPredictor = useRef(new TrafficPredictor());
+  /** Paliers de chrono de la communauté pour `circuit|classe` (null = pas de repère fiable). */
+  const tierKey = useRef("");
+  const paceTiers = useRef<PaceTier[] | null>(null);
+  const tierTargetSaid = useRef(false);
+  const saveCheck = useRef<"none" | "pending" | "save" | "dnf">("none");
   /** Dernier tour où la tendance de rythme a été évaluée. */
   const paceLap = useRef(-1);
   /** Tracé + classe déjà rappelés (une réplique par combo et par lancement). */
@@ -587,7 +605,10 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       startClassPos.current = null;
       raceSeen.current = false;
       debriefSaid.current = false;
+      saveCheck.current = "none";
+      tierTargetSaid.current = false;
     }
+    if (sc.track !== lastTrack.current) trafficPredictor.current.reset();
     if (sc.track !== lastTrack.current) {
       lastTrack.current = sc.track;
       engineer.pitTraffic.resetTrack();
@@ -861,6 +882,17 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       }
 
       // ── Trafic multiclasse (distance-tour physique) ──────────────────────
+      if (extras.trafficPredict)
+        trafficPredictor.current.push(
+          sc.session_time,
+          sc.track_length,
+          data.standings.map((s) => ({
+            key: carKey(s),
+            cls: s.vehicle_class,
+            dist: s.lap_dist,
+            inPits: s.in_pits,
+          })),
+        );
       const myRef = player.best_lap_time > 0 ? player.best_lap_time : player.last_lap_time;
       const cars = playerStanding && !inPits && warmedUp ? onTrack(data, myRef) : [];
       if (cars.length && racing) {
@@ -873,14 +905,36 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
             { score: 40, cooldownLaps: 3, retryS: 10 },
           );
         }
-        const fb = fasterBehind(cars);
-        if (fb) {
-          say(
-            `faster:${fb.standing.driver}`,
-            t("live.vFasterBehind", { cls: radioClass(fb.standing.vehicle_class), s: Math.round(fb.behindS) }),
-            "normal",
-            { score: 45, cooldownLaps: 10 },
-          );
+        // Préavis de la classe plus rapide. Prédit (réglage, par défaut) : temps avant le
+        // contact simulé sur les profils de vitesse des classes, dit ~15 s avant ; tant que
+        // les profils ne sont pas prêts, ou réglage coupé : l'ancien écart de piste (12 s).
+        const predicted = extras.trafficPredict
+          ? fasterContact(trafficPredictor.current, cars, playerStanding!, myRef, sc.track_length, FASTER_SCAN_S)
+          : null;
+        if (predicted && predicted.state !== "learning") {
+          if (predicted.state === "contact" && predicted.inS <= FASTER_CONTACT_WARN_S) {
+            const where = cornerNamer.near(predicted.atDist);
+            say(
+              `faster:${predicted.car.standing.driver}`,
+              t(where ? "live.vFasterContactAt" : "live.vFasterContact", {
+                cls: radioClass(predicted.car.standing.vehicle_class),
+                s: Math.max(5, Math.round(predicted.inS / 5) * 5),
+                corner: where ?? "",
+              }),
+              "normal",
+              { score: 45, cooldownLaps: 10 },
+            );
+          }
+        } else {
+          const fb = fasterBehind(cars);
+          if (fb) {
+            say(
+              `faster:${fb.standing.driver}`,
+              t("live.vFasterBehind", { cls: radioClass(fb.standing.vehicle_class), s: Math.round(fb.behindS) }),
+              "normal",
+              { score: 45, cooldownLaps: 10 },
+            );
+          }
         }
       }
 
@@ -962,6 +1016,19 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         say(`tyres:crossover:${call}`, t(call === "toWets" ? "live.vTyresToWets" : "live.vTyresToSlicks"), "normal", { score: 60, retryS: 30 });
       }
       if (!call) crossoverSaid.current = null;
+      // Paliers de chrono : chargés au changement de circuit ou de classe (hors course).
+      const tierClass = playerStanding?.vehicle_class ?? "";
+      if (extras.paceTiers && !isRace && sc.track && tierClass && tierKey.current !== `${sc.track}|${tierClass}`) {
+        const k = `${sc.track}|${tierClass}`;
+        tierKey.current = k;
+        paceTiers.current = null;
+        tierTargetSaid.current = false;
+        void loadPaceTiers(sc.track, tierClass)
+          .then((x) => {
+            if (tierKey.current === k) paceTiers.current = x;
+          })
+          .catch(() => {});
+      }
       if (!inPits && lapDone && player.last_lap_time > 0) {
         const best = player.best_lap_time;
         const isPb = best > 0 && (prevBest.current <= 0 || best < prevBest.current - 0.001);
@@ -1017,6 +1084,27 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
           }
         }
         prevPurple.current = purple;
+
+        // Le prochain repère (paliers de la communauté, piste sèche, essais et qualif) : dit
+        // quand un nouveau meilleur tour en passe un, sinon une fois par session. Jamais un
+        // centile ni un nombre de pilotes : « le prochain repère » et son chrono.
+        const tiers = paceTiers.current;
+        if (extras.paceTiers && tiers && !isRace && isPb && !outLapDone && (data.weather?.rain ?? 0) < 0.1) {
+          const next = nextTier(best, tiers);
+          const crossed = crossedTiers(prevBest.current > 0 ? prevBest.current : null, best, tiers);
+          const time = next ? fmtLapVoice(next.timeS, t, true) : "";
+          if (crossed.length) {
+            tierTargetSaid.current = true;
+            say("lap:tier", next ? t("live.vTierCrossed", { time }) : t("live.vTierTop"), "chatty", {
+              group: "lap",
+              order: 2,
+              score: 30,
+            });
+          } else if (next && !tierTargetSaid.current) {
+            tierTargetSaid.current = true;
+            say("lap:tiertarget", t("live.vTierTarget", { time }), "chatty", { group: "lap", order: 2, score: 15 });
+          }
+        }
 
         // Question unique par type de séance : comment le pilote veut ses chronos.
         const kind = sessionKind(sc.session);
@@ -1655,6 +1743,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (isRace && playerStanding && lapNow === 0 && finishStatus === 0 && playerStanding.class_position > 0)
       startClassPos.current = playerStanding.class_position;
     if (isRace && lapNow >= 1 && finishStatus === 0) raceSeen.current = true;
+    if (finishStatus !== 2) saveCheck.current = "none";
     pace.current.push(data.standings);
     if (paceOutlookRadio && isRace && warmedUp && !inPits && lapNow !== paceLap.current) {
       paceLap.current = lapNow;
@@ -1665,7 +1754,27 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     }
     // Bilan au damier : une fois, et seulement si la course a été vue rouler (pas en
     // ouvrant l'app sur une course déjà finie).
-    if (debriefRadio && isRace && finishStatus > 0 && raceSeen.current && !debriefSaid.current && player) {
+    // Sauvegarder (ou recharger) une course LMU en plein milieu fait passer le joueur en
+    // « abandon » : avant de le dire, on regarde si le jeu vient d'écrire une sauvegarde de
+    // cette voiture (`UserData/Saves`). Sauvegarde récente non marquée abandon = on se tait.
+    const dnfToCheck =
+      debriefRadio && isRace && finishStatus === 2 && raceSeen.current && !debriefSaid.current && player != null;
+    if (dnfToCheck && saveCheck.current === "none") {
+      if (!lmuPath) saveCheck.current = "dnf";
+      else {
+        saveCheck.current = "pending";
+        void liveApi
+          .recentRaceSave(lmuPath, playerStanding?.vehicle_name ?? "", RACE_SAVE_MAX_AGE_S)
+          .then((sv) => {
+            if (saveCheck.current === "pending") saveCheck.current = sv && sv.retired !== true ? "save" : "dnf";
+          })
+          .catch(() => {
+            if (saveCheck.current === "pending") saveCheck.current = "dnf";
+          });
+      }
+    }
+    const dnfHeld = finishStatus === 2 && saveCheck.current !== "dnf";
+    if (debriefRadio && isRace && finishStatus > 0 && !dnfHeld && raceSeen.current && !debriefSaid.current && player) {
       debriefSaid.current = true;
       const me = playerStanding;
       const text = chequeredPhrase(
@@ -1733,6 +1842,11 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     const { spoken } = arbiter.current.decide(allowed, nowS, lapNow, full);
     engineer.policy.commit(spoken, policyCtx);
     radioLog.record(spoken, `${sc.track}|${sc.session}`);
+    // Carnet des questions : une question n'est ouverte que si elle part vraiment à la voix.
+    for (const c of spoken) {
+      const q = questionOfKey(c.key);
+      if (q) engineer.questions.open(q, nowS);
+    }
     const repeatPrefix = t("live.vRepeatPrefix");
     const voiceOf = (c: Candidate) => names.current.apply(driverName, c.moment ?? null, c.text, nowS);
     const optsOf = (c: Candidate): SpeakOpts | undefined =>
@@ -1785,6 +1899,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     pressureUnit,
     pressureWindows,
     debriefRadio,
+    lmuPath,
     trackRecallRadio,
     paceOutlookRadio,
   ]);

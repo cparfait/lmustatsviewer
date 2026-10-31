@@ -35,6 +35,8 @@ import {
 import type { PressureUnit, PressureWindow } from "@/lib/engineer/pressures";
 import { parseLockAlertMode, type LockAlertMode } from "@/lib/engineer/tyreEvents";
 import type { SpotterTuning } from "@/lib/engineer/proximity";
+import { setRadioRounding } from "@/lib/engineer/rounding";
+import { parsePresence, type CoachPresence } from "@/lib/coach/presence";
 import {
   setCustomProviders,
   newCustomProviderId,
@@ -224,6 +226,8 @@ interface AppState {
   radioDriverName: string;
   /** Coach par virage rigoureux : verdict mesuré, « oublie mon conseil », virage clos. */
   coachRigor: boolean;
+  /** Niveau de présence du coach en roulant (`coach/presence.ts`). */
+  coachPresence: CoachPresence;
   /** Spotter de proximité (voiture à gauche / à droite / libre). */
   proximitySpotter: boolean;
   /** Réglages fins du spotter (longueur de voiture, délai du « libre »…). */
@@ -418,6 +422,7 @@ interface AppState {
   setVoiceLapPrecision: (v: "tenth" | "ms") => Promise<void>;
   setRadioDriverName: (v: string) => Promise<void>;
   setCoachRigor: (v: boolean) => Promise<void>;
+  setCoachPresence: (v: CoachPresence) => Promise<void>;
   setProximitySpotter: (v: boolean) => Promise<void>;
   setSpotterTuning: (v: SpotterTuning) => Promise<void>;
   setRadioOutputDevice: (v: string) => Promise<void>;
@@ -453,6 +458,12 @@ interface AppState {
   setAIVoiceModel: (v: string) => Promise<void>;
   setAIVoiceProvider: (v: string) => Promise<void>;
   setAISystemPrompt: (lang: string, v: string) => Promise<void>;
+}
+
+/** Pose l'interrupteur des arrondis de la parole au chargement des réglages. */
+function withRounding<T extends { roundedNumbers: boolean }>(x: T): T {
+  setRadioRounding(x.roundedNumbers);
+  return x;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -524,6 +535,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   voiceLapPrecision: "tenth",
   radioDriverName: "",
   coachRigor: true,
+  coachPresence: "normal",
   proximitySpotter: false,
   spotterTuning: parseSpotterTuning(null),
   radioOutputDevice: "",
@@ -786,6 +798,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       voiceLapPrecision: cfg.voice_lap_precision === "ms" ? "ms" : "tenth",
       radioDriverName: cfg.voice_driver_name ?? "",
       coachRigor: cfg.coach_rigor !== "false",
+      coachPresence: parsePresence(cfg.coach_presence),
       proximitySpotter: cfg.spotter_proximity === "true",
       spotterTuning: parseSpotterTuning(cfg.spotter_tuning),
       radioOutputDevice: cfg.radio_output_device ?? "",
@@ -795,7 +808,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       lockAlertMode: parseLockAlertMode(cfg.lock_alert_mode),
       pressureWindows: parsePressureWindows(cfg.pressure_windows),
       coexistMode: cfg.coexist_mode === "true",
-      radioExtras: parseExtras(cfg.radio_extras),
+      radioExtras: withRounding(parseExtras(cfg.radio_extras)),
       wheelActions: parseWheelActions(cfg.wheel_actions),
       radioPreset: parsePreset(cfg.radio_preset),
       pttWheel: ((): WheelBinding | null => {
@@ -1321,6 +1334,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ coachRigor: v });
   },
 
+  setCoachPresence: async (v) => {
+    await config.set("coach_presence", v);
+    set({ coachPresence: v });
+  },
+
   setProximitySpotter: async (v) => {
     await config.set("spotter_proximity", v ? "true" : "false");
     set({ proximitySpotter: v });
@@ -1370,6 +1388,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setRadioExtra: async (k, v) => {
     const next = { ...get().radioExtras, [k]: v };
     await config.set("radio_extras", JSON.stringify(next));
+    setRadioRounding(next.roundedNumbers);
     set({ radioExtras: next, radioPreset: "custom" });
     await config.set("radio_preset", "custom");
   },
@@ -1391,6 +1410,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await get().setProximitySpotter(v.proximitySpotter);
       const extras = { ...get().radioExtras, ...v.extras };
       await config.set("radio_extras", JSON.stringify(extras));
+      setRadioRounding(extras.roundedNumbers);
       set({ radioExtras: extras });
     }
     await config.set("radio_preset", p);

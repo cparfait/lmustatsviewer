@@ -35,6 +35,8 @@ export interface ModePolicy {
   positive: boolean;
   degressive: boolean;
   predictive: boolean;
+  /** Tours minimaux entre deux conseils (niveau de présence « discret », `presence.ts`). */
+  minLapsBetween?: number;
 }
 
 /**

@@ -37,6 +37,9 @@ export type AnswerIntent =
   // Coaching de pilotage, répondu depuis les mesures du coach par virage.
   | "coachMe"
   | "whereLose"
+  // Réponse courte à la dernière question de l'ingénieur (`questions.ts`).
+  | "yes"
+  | "no"
   // Préférences radio apprises (chronos), commandes locales.
   | "lapPrefEvery"
   | "lapPrefBest"
@@ -64,6 +67,8 @@ export const RADIO_COMMANDS = new Set<AnswerIntent>([
   "radioEssential",
   "radioQuiet",
   "radioNormal",
+  "yes",
+  "no",
   "lapPrefEvery",
   "lapPrefBest",
   "lapPrefNone",
@@ -310,6 +315,8 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["je reste dehors", "on reste dehors", "je reste en piste", "negatif je reste", "je ne rentre pas", "non je reste", "on ne rentre pas", "je rentre pas"] },
     { id: "watchCancel", family: "command", idioms: ["annule les alertes", "annule mes alertes", "oublie les alertes", "plus d alertes", "annule l alerte", "arrete de surveiller", "efface les alertes"] },
     { id: "ackBox", family: "command", exact: ["compris", "recu", "bien recu", "ok", "d accord", "ok je rentre", "je rentre", "box box", "box", "copie", "ca marche", "c est note"] },
+    { id: "yes", family: "command", exact: ["oui", "ouais", "affirmatif", "oui oui", "oui merci", "volontiers"] },
+    { id: "no", family: "command", exact: ["non", "negatif", "non merci", "pas besoin"] },
     { id: "radioBattle", family: "radio", idioms: ["on se bat", "je me bats", "je suis en bagarre", "mode bagarre", "laisse moi me battre", "je suis en duel"] },
     { id: "radioHome", family: "radio", idioms: ["on ramene la voiture", "je ramene la voiture", "ramener la voiture", "on assure", "on securise"] },
     { id: "radioEssential", family: "radio", idioms: ["juste l essentiel", "que l essentiel", "seulement l essentiel", "parle moins", "moins d annonces", "moins de messages"] },
@@ -365,6 +372,8 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["i m staying out", "i am staying out", "staying out", "stay out", "negative staying out", "not pitting", "i m not pitting"] },
     { id: "watchCancel", family: "command", idioms: ["cancel the alerts", "cancel alerts", "cancel my alerts", "clear alerts", "stop watching", "forget the alerts"] },
     { id: "ackBox", family: "command", exact: ["copy", "copy that", "understood", "roger", "ok", "okay", "boxing", "box box", "box", "got it", "pitting this lap"] },
+    { id: "yes", family: "command", exact: ["yes", "yeah", "yep", "affirmative", "yes please", "sure"] },
+    { id: "no", family: "command", exact: ["no", "nope", "negative", "no thanks"] },
     { id: "radioBattle", family: "radio", idioms: ["we re fighting", "we are fighting", "i m in a battle", "i am in a battle", "battle mode", "let me race"] },
     { id: "radioHome", family: "radio", idioms: ["bring it home", "bring the car home", "bringing it home", "just bring it home"] },
     { id: "radioEssential", family: "radio", idioms: ["just the essentials", "essentials only", "only the essentials", "talk less", "less talking", "fewer calls"] },
@@ -420,6 +429,8 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["me quedo fuera", "nos quedamos fuera", "sigo en pista", "no entro", "negativo me quedo"] },
     { id: "watchCancel", family: "command", idioms: ["cancela las alertas", "cancela mis alertas", "borra las alertas", "olvida las alertas"] },
     { id: "ackBox", family: "command", exact: ["entendido", "recibido", "ok", "vale", "de acuerdo", "entro", "box box", "box", "copiado"] },
+    { id: "yes", family: "command", exact: ["si", "claro", "afirmativo", "si gracias"] },
+    { id: "no", family: "command", exact: ["no", "negativo", "no gracias"] },
     { id: "radioBattle", family: "radio", idioms: ["estoy peleando", "estamos peleando", "modo batalla", "estoy en una pelea", "dejame pelear"] },
     { id: "radioHome", family: "radio", idioms: ["llevamos el coche a casa", "llevar el coche a casa", "asegurar el coche", "aseguramos"] },
     { id: "radioEssential", family: "radio", idioms: ["solo lo esencial", "lo esencial", "habla menos", "menos mensajes"] },
@@ -475,6 +486,8 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["ich bleibe draussen", "wir bleiben draussen", "ich komme nicht rein", "negativ ich bleibe", "bleibe draussen"] },
     { id: "watchCancel", family: "command", idioms: ["alarme loschen", "alle alarme loschen", "alarme abbrechen", "vergiss die alarme"] },
     { id: "ackBox", family: "command", exact: ["verstanden", "roger", "ok", "okay", "alles klar", "ich komme rein", "box box", "box", "kopiert"] },
+    { id: "yes", family: "command", exact: ["ja", "jawohl", "ja bitte", "gerne"] },
+    { id: "no", family: "command", exact: ["nein", "negativ", "nein danke"] },
     { id: "radioBattle", family: "radio", idioms: ["wir kampfen", "ich kampfe", "kampfmodus", "ich bin im zweikampf", "lass mich kampfen"] },
     { id: "radioHome", family: "radio", idioms: ["bring das auto heim", "auto nach hause bringen", "wir bringen es nach hause", "sicher ins ziel"] },
     { id: "radioEssential", family: "radio", idioms: ["nur das wesentliche", "nur das notigste", "weniger funk", "rede weniger"] },
@@ -530,6 +543,8 @@ const T: Record<string, Def[]> = {
     { id: "stayOut", family: "command", idioms: ["resto fuori", "restiamo fuori", "rimango fuori", "resto in pista", "rimango in pista", "non rientro", "negativo resto fuori", "non mi fermo"] },
     { id: "watchCancel", family: "command", idioms: ["annulla gli avvisi", "annulla i miei avvisi", "cancella gli avvisi", "annulla gli allarmi", "cancella gli allarmi", "dimentica gli avvisi", "annulla l avviso", "smetti di controllare"] },
     { id: "ackBox", family: "command", exact: ["ricevuto", "capito", "ok", "okay", "va bene", "d accordo", "rientro", "box box", "box", "copiato", "chiaro", "perfetto"] },
+    { id: "yes", family: "command", exact: ["si", "certo", "affermativo", "si grazie"] },
+    { id: "no", family: "command", exact: ["no", "negativo", "no grazie"] },
     { id: "radioBattle", family: "radio", idioms: ["sto lottando", "stiamo lottando", "modalita battaglia", "sono in lotta", "lasciami lottare"] },
     { id: "radioHome", family: "radio", idioms: ["portiamo a casa la macchina", "porta a casa la macchina", "portiamola a casa", "portare a casa la macchina"] },
     { id: "radioEssential", family: "radio", idioms: ["solo l essenziale", "l essenziale", "parla meno", "meno messaggi"] },

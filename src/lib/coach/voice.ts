@@ -39,6 +39,7 @@
 import type { CoachDiagnostic, DiagCode, DiagResult } from "./diagnostics";
 import type { CoachWindow } from "./windows";
 import type { ModePolicy } from "./mode";
+import { sayKmh, sayMeters } from "@/lib/engineer/rounding";
 
 // ── 1. Formateur : verdict → clé i18n + variables ─────────────────────────────
 
@@ -126,10 +127,8 @@ export function coachCornerEvent(
   };
 }
 
-/** Arrondi « radio » : un seul chiffre lisible (multiples de `step`). */
-function roundTo(x: number, step: number): number {
-  return Math.max(step, Math.round(x / step) * step);
-}
+// Arrondi « radio » : un seul chiffre lisible (`engineer/rounding.ts`, réglage
+// « Chiffres arrondis à la radio » ; coupé = l'ancien pas de 5 m / 1 km/h).
 
 /**
  * Suffixe i18n + variables pour un diagnostic. Une seule métrique chiffrée est
@@ -151,7 +150,7 @@ export function voiceKeyForDiag(
     case "brake-timing": {
       // sign +1 = freiné trop tard → « freine plus tôt » ; -1 = trop tôt.
       // `relative` (réf dense périmée §3.3) → gabarit « que d'habitude ».
-      const d = roundTo(mag, 5);
+      const d = sayMeters(mag);
       if (diag.sign >= 0) {
         return diag.relative
           ? { suffix: "vCornerBrakeEarlyUsual", vars: { n, d } }
@@ -162,7 +161,7 @@ export function voiceKeyForDiag(
         : { suffix: "vCornerBrakeLate", vars: { n, d } };
     }
     case "over-slow": {
-      const d = roundTo(mag, 1);
+      const d = sayKmh(mag);
       return diag.relative
         ? { suffix: "vCornerOverSlowUsual", vars: { n, d } }
         : { suffix: "vCornerOverSlow", vars: { n, d } };
@@ -250,6 +249,8 @@ export interface CoachVoiceState {
   closed: Set<string>;
   /** Tour du dernier conseil en course (écart minimal entre deux conseils). */
   lastRaceTipLap: number;
+  /** Tour du dernier conseil accepté (présence « discret » : `policy.minLapsBetween`). */
+  lastTipLap: number;
 }
 
 export function createCoachVoiceState(): CoachVoiceState {
@@ -264,6 +265,7 @@ export function createCoachVoiceState(): CoachVoiceState {
     samples: new Map(),
     closed: new Set(),
     lastRaceTipLap: -Infinity,
+    lastTipLap: -Infinity,
   };
 }
 
@@ -423,6 +425,8 @@ function queueDiag(
   if (st.spokenThisLap >= policy.budgetPerLap) return false; // budget §9
   // Course, mode rigoureux : un conseil au plus tous les 12 tours.
   if (st.rigor && policy.escalationOnly && diag.lapNum - st.lastRaceTipLap < RACE_TIP_GAP_LAPS) return false;
+  // Présence « discret » : un conseil au plus tous les N tours.
+  if (policy.minLapsBetween && diag.lapNum - st.lastTipLap < policy.minLapsBetween) return false;
   // Anti-répétition backstop : même virage×diagnostic dans les 2 derniers tours,
   // sauf aggravation nette (filet pour les binaires/Course, hors chantier collant).
   if (!bypassRepeat) {
@@ -437,6 +441,7 @@ function queueDiag(
   }
   st.pending = { kind: "diag", diag, queuedAt: elapsed };
   if (st.rigor && policy.escalationOnly) st.lastRaceTipLap = diag.lapNum;
+  st.lastTipLap = diag.lapNum;
   return true;
 }
 

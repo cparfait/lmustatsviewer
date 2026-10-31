@@ -28,6 +28,12 @@ import { BRAKE_COLD_C, brakeAvgLimits } from "./brakes";
 import { splitVariants } from "./variants";
 import { formatPressure, type PressureUnit } from "./pressures";
 import { expectedFinish } from "./endgame";
+import { resolveShortAnswer } from "./questions";
+
+/** « box », « je rentre » (toutes langues, texte normalisé) : accusé du box sans ambiguïté. */
+const EXPLICIT_BOX = / (box|boxing|pitting|rentre|entro|rein|rientro) /;
+/** Horloge de la boucle de l'ingénieur (s) : celle où les questions sont ouvertes. */
+const clockS = () => (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
 
 /** Fenêtre de température « de travail » des pneus (°C, générique). */
 export const TYRE_WINDOW: [number, number] = [75, 105];
@@ -493,8 +499,34 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
     }
 
     case "ackBox":
-      engineer.pit.ack(p.total_laps);
-      return t("live.spAck");
+    case "yes":
+    case "no": {
+      // « box », « je rentre » : toujours la fenêtre d'arrêt. Une réponse courte, elle,
+      // va à la dernière question dite (`questions.ts`).
+      if (intent === "ackBox" && EXPLICIT_BOX.test(` ${o.norm ?? ""} `)) {
+        engineer.pit.ack(p.total_laps);
+        engineer.questions.close("pitCall");
+        return t("live.spAck");
+      }
+      const latest = engineer.questions.latest(clockS())?.kind ?? null;
+      const word = intent === "ackBox" ? "ack" : intent;
+      switch (resolveShortAnswer(word, latest, engineer.pit.announced)) {
+        case "ackPit":
+          engineer.pit.ack(p.total_laps);
+          engineer.questions.close("pitCall");
+          return t("live.spAck");
+        case "stayOut":
+          engineer.pit.stayOut(p.total_laps);
+          engineer.questions.close("pitCall");
+          return t("live.spStayOut");
+        case "askAgain":
+          // La réponse ne choisit pas : on nomme la question et on la repose, une fois.
+          engineer.questions.close("lapPref");
+          return t("live.spAskLapPrefAgain");
+        default:
+          return t("live.spAck");
+      }
+    }
 
     case "stayOut":
       engineer.pit.stayOut(p.total_laps);

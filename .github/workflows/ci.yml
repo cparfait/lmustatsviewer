@@ -92,6 +92,14 @@ jobs:
         shell: pwsh
         run: ./scripts/fetch-sherpa.ps1
 
+      # `tauri.conf.json` déclare ce dossier : tauri-build échoue s'il manque. Les tests
+      # n'utilisent pas Piper (exécutable et voix, ~100 Mo), seule la release le télécharge.
+      - name: Placeholder Piper resources
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path src-tauri/resources/tts/piper | Out-Null
+          Set-Content -Path src-tauri/resources/tts/piper/.keep -Value ""
+
       # `generate_context!` embarque l'interface construite : `dist/` doit exister.
       - name: Build frontend
         run: |

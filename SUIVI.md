@@ -946,7 +946,14 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
-### 2026-11-05 — CI Rust : blocage de sherpa-onnx localisé (non commité)
+### 2026-11-05 — CI Rust : dossier Piper manquant (non commité)
+
+- ✅ **`326daf9` : sherpa-onnx réglé**, l'étape passe en 5 s avec 7z (`tar -xjf` était bien en cause).
+- ✅ **Échec suivant, dans le journal** : `resource path resources\tts\piper doesn't exist` à la compilation. `tauri.conf.json` déclare ce dossier, que le job de tests ne télécharge pas. Ajout d'un dossier temporaire dans `ci.yml`, sans téléchargement.
+- ⏳ **Non vérifié** : le build complet et les tests Rust sur le runner, jamais allés au bout depuis le 2026-10-16 ; d'autres échecs peuvent apparaître (tests qui dépendent des fichiers de ce PC, par exemple).
+- 📋 **Prochaine étape** : commit + push, puis lire le job `rust`.
+
+### 2026-11-05 — CI Rust : blocage de sherpa-onnx localisé (commité `326daf9`)
 
 - ✅ **Journal de `ee32bc3`** : téléchargement réussi, blocage juste après `[sherpa-onnx] extracting`, donc dans `tar.exe -xjf`. Délai de 10 min atteint, tests Rust non lancés. Cela corrige la note du journal plus bas (« cause inconnue »).
 - ✅ **Correctif** (`scripts/fetch-sherpa.ps1`) : si `7z` existe (attendu sur le runner, à confirmer au prochain passage), il retire la couche bz2, puis `tar -xf` extrait. Sinon, ancien chemin, qui marche sur le poste du mainteneur.

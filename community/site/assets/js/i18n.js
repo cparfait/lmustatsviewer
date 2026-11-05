@@ -227,6 +227,8 @@ window.VITRINE_I18N = {
     "faq.a7": "Activez le partage dans l'app (Configuration → Communauté) en vous connectant avec Steam — c'est Steam qui confirme votre identité, nous ne gardons qu'une empreinte de votre identifiant : après chaque session, votre meilleur tour valide est envoyé — circuit, voiture, classe, temps et secteurs, rythme médian, aides, et votre nom de pilote LMU sauf si vous restez anonyme. Jamais les tours des autres pilotes, vos réglages ni votre télémétrie. Désactiver le partage anonymise vos tours ; « Supprimer mes données » les efface du serveur.",
     "faq.q8": "Puis-je essayer l'application sans Le Mans Ultimate ?",
     "faq.a8": "Oui. Au premier lancement, « Continuer sans le jeu » ouvre directement l'application ; une bannière rouvre l'assistant en un clic le jour où le jeu est installé.",
+    "faq.q9": "L'application accède-t-elle aux serveurs de Le Mans Ultimate ?",
+    "faq.a9": "Non. L'application ne contacte jamais les serveurs en ligne du jeu (RaceControl), n'utilise ni vos identifiants ni votre jeton de jeu, et ne lit pas vos rangs SR/DR. Elle se sert des fichiers du jeu sur votre PC et, en séance, des données que le jeu met à disposition sur votre machine. La connexion Steam, facultative, sert uniquement à vous identifier sur nos propres classements : elle ne donne aucun accès à votre compte LMU.",
 
     "final.title": "Votre prochain tour commence ici",
     "final.lead": "Installez l'application, lancez-la, et vos sessions apparaissent. Rien d'autre à configurer.",
@@ -460,6 +462,8 @@ window.VITRINE_I18N = {
     "faq.a7": "Turn sharing on in the app (Settings → Community) by signing in with Steam — Steam confirms who you are, we only keep a fingerprint of your ID: after each session, your best valid lap is sent — track, car, class, lap and sector times, median pace, aids, and your LMU driver name unless you stay anonymous. Never the other drivers' laps, your setups or your telemetry. Turning sharing off anonymises your laps; “Delete my data” removes them from the server.",
     "faq.q8": "Can I try the app without Le Mans Ultimate?",
     "faq.a8": "Yes. On first launch, “Continue without the game” opens the app straight away; a banner reopens the setup assistant in one click once the game is installed.",
+    "faq.q9": "Does the app access Le Mans Ultimate's servers?",
+    "faq.a9": "No. The app never contacts the game's online servers (RaceControl), uses neither your login details nor your game token, and does not read your SR/DR ranks. It uses the game's files on your PC and, during a session, the data the game makes available on your machine. The optional Steam sign-in only identifies you on our own leaderboards: it gives no access to your LMU account.",
 
     "final.title": "Your next lap starts here",
     "final.lead": "Install the app, launch it, and your sessions show up. Nothing else to configure.",
@@ -693,6 +697,8 @@ window.VITRINE_I18N = {
     "faq.a7": "Activa el uso compartido en la app (Configuración → Comunidad) iniciando sesión con Steam — Steam confirma tu identidad, solo guardamos una huella de tu ID: tras cada sesión se envía tu mejor vuelta válida — circuito, coche, clase, tiempo y sectores, ritmo mediano, ayudas y tu nombre de piloto de LMU salvo que permanezcas anónimo. Nunca las vueltas de los demás pilotos, tus reglajes ni tu telemetría. Desactivarlo anonimiza tus vueltas; «Borrar mis datos» las elimina del servidor.",
     "faq.q8": "¿Puedo probar la aplicación sin Le Mans Ultimate?",
     "faq.a8": "Sí. En el primer inicio, «Continuar sin el juego» abre la aplicación directamente; un banner vuelve a abrir el asistente con un clic cuando el juego esté instalado.",
+    "faq.q9": "¿La aplicación accede a los servidores de Le Mans Ultimate?",
+    "faq.a9": "No. La aplicación nunca contacta con los servidores en línea del juego (RaceControl), no usa ni sus credenciales ni su token de juego, y no lee sus rangos SR/DR. Utiliza los archivos del juego en su PC y, durante una sesión, los datos que el juego pone a disposición en su equipo. El inicio de sesión con Steam, opcional, solo sirve para identificarle en nuestras propias clasificaciones: no da ningún acceso a su cuenta de LMU.",
 
     "final.title": "Tu próxima vuelta empieza aquí",
     "final.lead": "Instala la aplicación, ábrela y tus sesiones aparecen. No hay nada más que configurar.",
@@ -926,6 +932,8 @@ window.VITRINE_I18N = {
     "faq.a7": "Aktiviere das Teilen in der App (Einstellungen → Community), indem du dich mit Steam anmeldest — Steam bestätigt, wer du bist, wir speichern nur einen Fingerabdruck deiner ID: Nach jeder Sitzung wird deine beste gültige Runde gesendet — Strecke, Auto, Klasse, Runden- und Sektorzeiten, Median-Tempo, Fahrhilfen und dein LMU-Fahrername, außer du bleibst anonym. Nie die Runden anderer Fahrer, deine Setups oder deine Telemetrie. Das Deaktivieren anonymisiert deine Runden; „Meine Daten löschen“ entfernt sie vom Server.",
     "faq.q8": "Kann ich die App ohne Le Mans Ultimate ausprobieren?",
     "faq.a8": "Ja. Beim ersten Start öffnet „Ohne das Spiel fortfahren“ die App direkt; ein Banner öffnet den Assistenten mit einem Klick wieder, sobald das Spiel installiert ist.",
+    "faq.q9": "Greift die App auf die Server von Le Mans Ultimate zu?",
+    "faq.a9": "Nein. Die App kontaktiert nie die Online-Server des Spiels (RaceControl), verwendet weder Ihre Zugangsdaten noch Ihr Spiel-Token und liest Ihre SR/DR-Ränge nicht aus. Sie nutzt die Spieldateien auf Ihrem PC und während einer Session die Daten, die das Spiel auf Ihrem Rechner bereitstellt. Die optionale Steam-Anmeldung dient nur dazu, Sie in unseren eigenen Bestenlisten zu identifizieren: Sie gibt keinen Zugriff auf Ihr LMU-Konto.",
 
     "final.title": "Deine nächste Runde beginnt hier",
     "final.lead": "App installieren, starten — und deine Sitzungen sind da. Sonst gibt es nichts einzurichten.",
@@ -1159,6 +1167,8 @@ window.VITRINE_I18N = {
     "faq.a7": "Attiva la condivisione nell'app (Configurazione → Community) accedendo con Steam — è Steam a confermare la tua identità, noi conserviamo solo un'impronta del tuo ID: dopo ogni sessione viene inviato il tuo giro migliore valido — circuito, vettura, classe, tempo e settori, passo mediano, aiuti alla guida e il tuo nome pilota di LMU, a meno che tu non resti anonimo. Mai i giri degli altri piloti, i tuoi setup o la tua telemetria. Disattivare la condivisione rende anonimi i tuoi giri; «Elimina i miei dati» li cancella dal server.",
     "faq.q8": "Posso provare l'app senza Le Mans Ultimate?",
     "faq.a8": "Sì. Al primo avvio, «Continua senza il gioco» apre direttamente l'app; un banner riapre la procedura guidata con un clic il giorno in cui il gioco viene installato.",
+    "faq.q9": "L'app accede ai server di Le Mans Ultimate?",
+    "faq.a9": "No. L'app non contatta mai i server online del gioco (RaceControl), non usa né le tue credenziali né il tuo token di gioco e non legge i tuoi ranghi SR/DR. Usa i file del gioco sul tuo PC e, durante una sessione, i dati che il gioco mette a disposizione sul tuo computer. L'accesso con Steam, facoltativo, serve solo a identificarti nelle nostre classifiche: non dà alcun accesso al tuo account LMU.",
 
     "final.title": "Il tuo prossimo giro inizia qui",
     "final.lead": "Installa l'app, avviala, e le tue sessioni compaiono. Nient'altro da configurare.",

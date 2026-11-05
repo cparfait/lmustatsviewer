@@ -93,6 +93,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Website FAQ: a new answer explains that the app never contacts the game's online servers (RaceControl), uses neither your login details nor your game token, and does not read your SR/DR ranks.",
+              fr: "FAQ du site : une nouvelle réponse explique que l'application ne contacte jamais les serveurs en ligne du jeu (RaceControl), n'utilise ni tes identifiants ni ton jeton de jeu, et ne lit pas tes rangs SR/DR.",
+              es: "FAQ del sitio web: una nueva respuesta explica que la aplicación nunca contacta con los servidores en línea del juego (RaceControl), no usa ni tus credenciales ni tu token de juego, y no lee tus rangos SR/DR.",
+              de: "FAQ der Website: Eine neue Antwort erklärt, dass die App nie die Online-Server des Spiels (RaceControl) kontaktiert, weder deine Zugangsdaten noch dein Spiel-Token verwendet und deine SR/DR-Ränge nicht ausliest.",
+              it: "FAQ del sito: una nuova risposta spiega che l'app non contatta mai i server online del gioco (RaceControl), non usa né le tue credenziali né il tuo token di gioco e non legge i tuoi ranghi SR/DR.",
+            },
+          },
+          {
+            text: {
               en: "Predicted traffic warning: the engineer now tells you when a faster class will actually catch you, about 15 seconds before, and where (“Hypercar will catch you in 15 seconds, around turn 5”). It learns each class's speed around the lap while you drive, so slow corners are taken into account. Until it has learned enough, and if you turn it off in Settings › Announcements › “Predicted traffic warning”, you get the previous warning (“Hypercar behind, 12 seconds”).",
               fr: "Préavis de trafic prédit : l'ingénieur te prévient maintenant quand une classe plus rapide va réellement te rattraper, environ 15 secondes avant, et où (« Hypercar qui va te rattraper dans 15 secondes, vers le virage 5 »). Il apprend en roulant la vitesse de chaque classe le long du tour, virages lents compris. Tant qu'il n'a pas assez appris, et si tu le coupes dans Configuration › Annonces › « Préavis de trafic prédit », tu gardes l'ancien préavis (« Hypercar derrière, 12 secondes »).",
               es: "Aviso de tráfico previsto: el ingeniero te avisa ahora cuando una clase más rápida va a alcanzarte de verdad, unos 15 segundos antes, y dónde («Hypercar te alcanzará en 15 segundos, hacia la curva 5»). Aprende en pista la velocidad de cada clase a lo largo de la vuelta, curvas lentas incluidas. Mientras no haya aprendido lo suficiente, y si lo desactivas en Configuración › Anuncios › «Aviso de tráfico previsto», tienes el aviso anterior («Hypercar detrás, 12 segundos»).",

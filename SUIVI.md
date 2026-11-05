@@ -947,11 +947,23 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > **Priorisation par catégorie** : T1+T6 🔴 fondations → T7+T8+T14 🔴 différenciation → T9+T10+T13 🟡 valeur ajoutée → T3+T4+T5 🟡 qualité → T11+T12+T15+T16 🟢 niche.
 
+- ⏳ **Annonce du studio sur les agrégateurs de données (signalée le 2026-11-05)** : limitation de débit et bannissement d'IP côté RaceControl. L'app n'appelle pas ce backend (cf. journal du jour). Non vérifié : que les routes locales `127.0.0.1:6397` ne le sollicitent pas elles-mêmes (capture réseau, jeu lancé). Garde-fou : ne jamais ajouter d'appel direct au backend, de lecture SR/DR ni d'usage du token de jeu.
+
 ---
 
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-11-05 — Annonce du studio sur les agrégateurs de données : analyse d'impact (aucun code modifié)
+
+- ✅ **Backend du jeu** : aucune adresse RaceControl, aucun token de jeu, aucune lecture SR/DR dans l'app, l'API ou le site (recherche dans le code).
+- ✅ **API locale** : `lmu_rest.rs` et `lmu_rest_write.rs` ne parlent qu'à `127.0.0.1:6397`, seulement en séance (lectures de 2 à 60 s selon la route, recul jusqu'à 60 s). Une seule écriture, le menu des stands, opt-in.
+- ✅ **Steam** : OpenID 2.0 sert à identifier le joueur sur notre serveur ; il ne donne aucun accès à LMU. Les rangs et « podiums » du site viennent de nos classements, alimentés par les fichiers locaux en opt-in.
+- ✅ **EULA Steam de LMU lue via résumé automatique** : rien sur le scraping ; clauses à garder en tête : 2.1.2 (combinaison avec d'autres programmes), 2.1.4 (rétro-ingénierie, œuvres dérivées), 3.1.2.1 et 3.2 (usurpation, partage de compte).
+- ⏳ **Risque résiduel** : image (site public de classements avec connexion Steam) et position du studio sur l'API locale non documentée, que l'annonce ne cite pas.
+- ✅ **Mention ajoutée au site (demande du mainteneur)** : question `faq.q9` de la FAQ, 5 langues (`index.html`, `i18n.js`), entrée au changelog 1.0.10. Non commité, non déployé.
+- 📋 **Prochaine étape** : capture réseau du jeu pendant une séance avec l'app, pour confirmer que les routes locales ne génèrent pas d'appels supplémentaires vers le backend ; déployer le site une fois la mention relue. À corriger aussi : `comm.3.d` et `faq.a7` disent « nous ne gardons qu'une empreinte » de l'identifiant Steam, alors que le SteamID64 est conservé pour l'avatar (décision du 2026-09-29).
 
 ### 2026-10-31 — Idées T1-T6 de la veille 0.9.15 réalisées (ingénieur, coach)
 

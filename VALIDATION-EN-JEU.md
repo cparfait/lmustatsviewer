@@ -39,6 +39,8 @@ Rust) et par une capture synthétique rejouée, pas dans le jeu.
       seules la voiture de sécurité et la relance sont annoncées.
 
 **Stands**
+- [ ] **Au garage et en pause** : ouvrir la page Stratégie, dire « programme du stand », ouvrir les panneaux de
+      l'Atelier setup → le jeu ne plante pas, le message dit « seulement en piste » ; en piste, « Relire » affiche le menu.
 - [ ] Écritures activées : « plein jusqu'à la fin », « ajoute 20 litres », « énergie à
       85 », « change les quatre pneus », « pneus avant », « mets des pneus pluie »,
       « répare tout », « purge la pénalité », « programme du stand » → le menu du jeu

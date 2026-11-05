@@ -1616,6 +1616,24 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Pit menu: the Strategy page and the voice pit commands now only read it on track, and the setup workshop panels no longer query the game when they open. Le Mans Ultimate can crash when queried in the garage, while paused or in its menus. The “Query the game off track” setting restores the previous behaviour.",
+              fr: "Menu des stands : la page Stratégie et les commandes vocales de stands ne le lisent plus qu'en piste, et les panneaux de l'Atelier setup n'interrogent plus le jeu à leur ouverture. Le Mans Ultimate peut planter quand on l'interroge au garage, en pause ou dans ses menus. Le réglage « Interroger le jeu hors piste » rétablit l'ancien comportement.",
+              es: "Menú de boxes: la página Estrategia y los comandos de voz de boxes ya solo lo leen en pista, y los paneles del taller de setups ya no consultan el juego al abrirse. Le Mans Ultimate puede bloquearse si se le consulta en el garaje, en pausa o en sus menús. El ajuste «Consultar el juego fuera de pista» restablece el comportamiento anterior.",
+              de: "Boxenmenü: Die Strategie-Seite und die Box-Sprachbefehle lesen es nur noch auf der Strecke, und die Panels der Setup-Werkstatt fragen das Spiel beim Öffnen nicht mehr ab. Le Mans Ultimate kann abstürzen, wenn es in der Garage, in der Pause oder in seinen Menüs abgefragt wird. Die Einstellung „Spiel auch abseits der Strecke abfragen“ stellt das bisherige Verhalten wieder her.",
+              it: "Menu dei box: la pagina Strategia e i comandi vocali dei box lo leggono ormai solo in pista, e i pannelli dell'officina setup non interrogano più il gioco all'apertura. Le Mans Ultimate può bloccarsi se interrogato in garage, in pausa o nei suoi menu. L'impostazione «Interroga il gioco fuori pista» ripristina il comportamento precedente.",
+            },
+          },
+          {
+            text: {
+              en: "Steam sign-in, in the app and on the website: the text said only a fingerprint of your Steam ID was kept. It now says that the ID itself is also kept to show your avatar, unless you remove it.",
+              fr: "Connexion Steam, dans l'app et sur le site : le texte disait que seule une empreinte de ton identifiant Steam était gardée. Il précise maintenant que l'identifiant lui-même est aussi gardé pour afficher ton avatar, sauf si tu le retires.",
+              es: "Inicio de sesión con Steam, en la app y en el sitio web: el texto decía que solo se guardaba una huella de tu ID de Steam. Ahora indica que también se guarda el propio ID para mostrar tu avatar, salvo que lo retires.",
+              de: "Steam-Anmeldung, in der App und auf der Website: Der Text sagte, es werde nur ein Fingerabdruck deiner Steam-ID gespeichert. Jetzt steht dort, dass auch die ID selbst gespeichert wird, um dein Avatar anzuzeigen, sofern du es nicht entfernst.",
+              it: "Accesso con Steam, nell'app e sul sito: il testo diceva che veniva conservata solo un'impronta del tuo ID Steam. Ora precisa che viene conservato anche l'ID stesso per mostrare il tuo avatar, a meno che tu non lo rimuova.",
+            },
+          },
+          {
+            text: {
               en: "Saving a race in LMU (or reloading a save) no longer makes the engineer announce a retirement at the flag: the game reports it as a retirement, so the app now checks for a fresh race save of your car before saying it.",
               fr: "Sauvegarder une course dans LMU (ou recharger une sauvegarde) ne fait plus annoncer un abandon par l'ingénieur au bilan : le jeu le signale comme un abandon, l'app vérifie maintenant qu'aucune sauvegarde récente de ta voiture ne vient d'être écrite avant de le dire.",
               es: "Guardar una carrera en LMU (o cargar una partida guardada) ya no hace que el ingeniero anuncie un abandono en el balance: el juego lo señala como abandono, así que la app comprueba ahora que no se acaba de escribir una partida guardada reciente de tu coche antes de decirlo.",

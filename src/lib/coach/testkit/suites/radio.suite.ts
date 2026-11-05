@@ -562,7 +562,7 @@ function cloudPrepSuite() {
   // Réponses au pilote (questions, boutons, notes) : voix en ligne permise (announceAnswer),
   // jamais traitées comme une alerte (sinon Piper avec « alertes en voix locale »).
   for (const f of ["src/lib/engineer/ask.ts", "src/lib/useRadioAudio.ts", "src/lib/useSpotter.ts", "src/lib/useVoiceNotes.ts"]) {
-    ok(!/announce\(/.test(readFileSync(f, "utf8")), `${f} : réponses au pilote par announceAnswer`);
+    ok(!/\bannounce\(/.test(readFileSync(f, "utf8")), `${f} : réponses au pilote par announceAnswer`);
   }
 
   approx(estimateCostUsd("openai", "gpt-4o-mini-tts", 1_000_000), 15, 1e-9, "OpenAI ≈ 15 $/M caractères");

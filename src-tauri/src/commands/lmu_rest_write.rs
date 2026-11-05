@@ -12,7 +12,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-use super::lmu_rest::{build_client, fetch_json, loopback_base, session_ready, FetchError, LMU_REST_PORT};
+use super::lmu_rest::{build_client, fetch_json, loopback_base, route_allowed_now, session_ready, FetchError, LMU_REST_PORT};
 use crate::error::AppError;
 
 const ROUTE_MENU_GET: &str = "/rest/garage/PitMenu/receivePitMenu";
@@ -75,14 +75,18 @@ pub fn with_setting(v: &Value, name: &str, index: i64) -> Option<Value> {
     Some(out)
 }
 
-/// Même garde que le pont : jamais de requête `garage/*` sans séance confirmée
-/// par le jeu (LMU plante si on l'interroge pendant son initialisation).
-fn require_session() -> Result<(), AppError> {
-    if session_ready() {
-        Ok(())
-    } else {
-        Err(AppError::Unsupported("Aucune séance chargée dans le jeu.".to_string()))
+/// Même garde que le pont (`route_allowed`) : jamais de requête `garage/*` sans
+/// séance confirmée, ni hors piste (LMU peut planter si on l'interroge pendant son
+/// initialisation, au garage ou sur ses écrans). Le réglage « Interroger le jeu
+/// hors piste » lève la seconde condition.
+fn require_allowed(route: &str) -> Result<(), AppError> {
+    if !session_ready() {
+        return Err(AppError::Unsupported("Aucune séance chargée dans le jeu.".to_string()));
     }
+    if !route_allowed_now(route) {
+        return Err(AppError::Unsupported("Menu des stands disponible seulement en piste.".to_string()));
+    }
+    Ok(())
 }
 
 fn err(e: FetchError) -> AppError {
@@ -95,7 +99,7 @@ fn err(e: FetchError) -> AppError {
 /// Lit le menu des stands du jeu.
 #[tauri::command]
 pub async fn get_pit_menu() -> Result<Vec<PitMenuItem>, AppError> {
-    require_session()?;
+    require_allowed(ROUTE_MENU_GET)?;
     tauri::async_runtime::spawn_blocking(|| {
         let client = build_client().ok_or_else(|| AppError::Internal("client HTTP".to_string()))?;
         let v = fetch_json(&client, &loopback_base(LMU_REST_PORT), ROUTE_MENU_GET).map_err(err)?;
@@ -109,7 +113,7 @@ pub async fn get_pit_menu() -> Result<Vec<PitMenuItem>, AppError> {
 /// affiche bien la nouvelle valeur.
 #[tauri::command]
 pub async fn set_pit_menu_item(name: String, index: i64) -> Result<bool, AppError> {
-    require_session()?;
+    require_allowed(ROUTE_MENU_SET)?;
     tauri::async_runtime::spawn_blocking(move || {
         let client = build_client().ok_or_else(|| AppError::Internal("client HTTP".to_string()))?;
         let base = loopback_base(LMU_REST_PORT);
@@ -142,6 +146,19 @@ mod tests {
             {"name": "VIRTUAL ENERGY:", "currentSetting": 2, "settings": [{"text": "No Change"}, {"text": "40% 8.1 laps"}, {"text": "50% 10.1 laps"}]},
             {"name": "TIRES:", "currentSetting": 0, "settings": [{"text": "No Change"}, {"text": "Medium"}]}
         ])
+    }
+
+    #[test]
+    fn pit_menu_routes_follow_the_on_track_rule() {
+        use super::super::lmu_rest::{route_allowed, PlayerSpot::*};
+        for route in [ROUTE_MENU_GET, ROUTE_MENU_SET] {
+            assert!(route_allowed(route, true, Driving, false), "{route} en piste");
+            for spot in [GarageStall, Frozen, Absent] {
+                assert!(!route_allowed(route, true, spot, false), "{route} {spot:?}");
+                assert!(route_allowed(route, true, spot, true), "{route} {spot:?} réglage hors piste");
+            }
+            assert!(!route_allowed(route, false, Driving, true), "{route} sans séance");
+        }
     }
 
     #[test]

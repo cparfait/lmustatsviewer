@@ -962,6 +962,12 @@ pub fn route_allowed(route: &str, session_ready: bool, spot: PlayerSpot, poll_of
     true
 }
 
+/// `route_allowed` avec l'état courant : même règle pour une lecture ou une
+/// écriture directe hors polling (menu des stands).
+pub fn route_allowed_now(route: &str) -> bool {
+    route_allowed(route, session_ready(), player_spot(), POLL_OFF_TRACK.load(Ordering::Relaxed))
+}
+
 /// Intervalle minimal entre deux lectures ponctuelles d'une même route.
 pub const ON_DEMAND_MIN_GAP: Duration = Duration::from_secs(30);
 
@@ -1217,12 +1223,16 @@ fn read_on_demand(route: &str) {
 
 /// Bornes des réglages du setup (`getPlayerGarageData`, lu toutes les ~5 s en
 /// piste). Valeurs figées par le jeu au chargement de la voiture : pas des
-/// valeurs live. Au garage, le polling est suspendu : une lecture ponctuelle
-/// (au plus une toutes les 30 s) la remplace quand on en a besoin.
+/// valeurs live. Au garage, le polling est suspendu : `question` = le pilote pose
+/// une question de réglage, seul cas où une lecture ponctuelle (au plus une toutes
+/// les 30 s) la remplace. Sans `question` (ouverture d'un panneau, bilan au box) :
+/// dernière valeur connue, jamais de requête au jeu.
 #[tauri::command(async)]
-pub async fn get_lmu_garage_bounds() -> Result<RestField<Vec<SettingBound>>, AppError> {
-    tauri::async_runtime::spawn_blocking(|| {
-        read_on_demand(ROUTE_GARAGE);
+pub async fn get_lmu_garage_bounds(question: Option<bool>) -> Result<RestField<Vec<SettingBound>>, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if question == Some(true) {
+            read_on_demand(ROUTE_GARAGE);
+        }
         with_store(|s| s.garage.view(Instant::now()))
             .ok_or_else(|| AppError::Internal("lmu rest store lock".into()))
     })

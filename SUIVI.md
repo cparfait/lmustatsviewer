@@ -955,6 +955,53 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-11-05 — Menu des stands et bornes du setup : plus de lecture au garage (C40, non commité)
+
+- ✅ **Menu des stands** : `get_pit_menu` et `set_pit_menu_item` passent par `route_allowed_now` (`lmu_rest_write.rs`), même règle que le polling. Hors piste, refus sans requête au jeu, sauf avec le réglage `rest_poll_off_track`. Couvre la page Stratégie, les commandes vocales et l'énergie automatique.
+- ✅ **Bornes du setup** : `get_lmu_garage_bounds(question)`. Lecture ponctuelle seulement avec `question = true`, utilisé par la question de réglage du coach (`records-context.ts`). Les panneaux Assistant, Profils et Audit et le bilan au box lisent la dernière valeur connue. Au garage, ils travaillent donc sans bornes.
+- ✅ Textes `strategy.pitNone` et `live.pitCmdNoGame` (« seulement en piste », 5 langues), changelog 1.0.10, ligne ajoutée à `VALIDATION-EN-JEU.md` § 00.
+- ✅ `npm run lint` 0 erreur, `tsc -b`, `npm test` 7 220/7 220, tests Rust 179 (nouveau : `pit_menu_routes_follow_the_on_track_rule`).
+- ⏳ **Non vérifié** : rien vu dans l'app Tauri ni en jeu ; le plantage n'a jamais été reproduit sur cette route. Le test couvre la règle, pas l'appel depuis les commandes.
+- ℹ️ La carte Stratégie reste lue à l'ouverture et sur « Relire » : page ouverte au garage, il faut cliquer une fois en piste. Erreur Rust en français dans le toast d'un changement refusé (`Strategy.tsx:91`), comme les autres messages de ce module.
+- 📋 **Prochaine étape** : commit + push (avec le lot rapide), puis micro et texte de garage.
+
+### 2026-11-05 — Audit des 83 améliorations et 45 correctifs de la 1.0.10 (aucun code modifié)
+
+- ✅ **Méthode** : changelog comparé au code, par lecture seule ; rien n'a tourné. Correctifs : bug écarté dans le code pour 31 sur 45. Améliorations : 53 contrôlées à fond, 30 sur le branchement seulement.
+- ❌ **Bugs prioritaires confirmés** :
+  - C40 : `get_pit_menu` n'exige qu'une séance (`lmu_rest_write.rs:80`), donc menu des stands encore lu au garage et en pause (`Strategy.tsx:73`, `pitVoice.ts:258`) ; `SetupAssistantPanel.tsx:43` lit les bornes à l'ouverture. Risque de plantage visé par ce correctif.
+  - C4 : le tour de sortie peut encore donner « meilleur temps » (`useRaceEngineer.ts:1685`, sans garde `outLapDone`).
+  - A70 : « à chaque tour » limité à un chrono sur trois en course par le budget (`policy.ts:227`) ; question des chronos marquée posée avant d'être dite (`useRaceEngineer.ts:1112`).
+  - A41 : le testeur avec IA plante sur les données d'exemple sans `state_of_charge` (`sampleData.ts:186`, `live-context.ts:177`).
+  - A19 : secteurs de la régie, violet calculé sur les derniers secteurs et prioritaire sur vert et jaune (`live.rs:2220`).
+  - A15 : `onBlur` enregistre une recherche abandonnée comme modèle IA (`AiModelPicker.tsx:85`).
+- ⏳ **Autres confirmés par les sous-agents, non recontrôlés** : C2 (faux abandon, sauvegarde de plus de 10 min), C22 (base mise de côté sur toute erreur), C17 (nombres allemands 71-99), C11 (gel partiel de l'onglet Coach), C43 et A67 (carte de la régie), C12, C25, C5, A7, A17/A21, A1 (objectif arrondi), A58 (visite guidée), A4 (filtre Version du site). Une dizaine d'écarts de texte du changelog, dont A47/A72, A5/A6, A25/A26, A16/A20 qui se contredisent.
+- 📋 **Prochaine étape** : commit du lot rapide, puis correction de C40 avant toute validation en jeu, puis micro, texte de garage et radio (A70, C4).
+
+### 2026-11-05 — Lot rapide de l'audit : test et CI, cache du site, texte Steam (non commité)
+
+- ✅ **Test** : `radio.suite.ts:565` utilise un vrai `\b`. Lint à 0 erreur (5 avertissements restants) ; `tsc -b` et `npm test` 7 220/7 220 passent.
+- ✅ **Site** : fichiers passés en `?v=69` (`c7312a7` l'avait oublié).
+- ✅ **Texte Steam, site et app, 5 langues** (`comm.3.d`, `faq.a7`, `faq.a9`, `steamRequired`, `steamDesc`) : une empreinte **et** le SteamID pour l'avatar, sauf si le joueur le retire ; conforme à `steam.ts:144` et `app.ts:354`. Entrée au changelog 1.0.10.
+- ⏳ Non fait : commit, push, déploiement du site ; CI à revérifier après le push.
+- 📋 **Prochaine étape** : commit + push, puis défauts micro et texte de garage de l'audit ci-dessous.
+
+### 2026-11-05 — Audit des 84 ajouts de la 1.0.10 (aucun code modifié)
+
+- ✅ **Périmètre** : section « added » du changelog 1.0.10, comparée au code ; « improved » (83) et « fixed » (45) non audités. Local : `npm test` 7 220/7 220, `tsc`, build, tests Rust 178 (5 ignorés), community 66 ; les 191 commandes Tauri et les clés i18n des 5 langues sont cohérentes.
+- ❌ **CI rouge** : étape Lint en échec, ce qui arrête le job `checks` avant `tsc` et les tests. Cause : octet `0x08` au lieu de `\b` dans `radio.suite.ts:565` (depuis `c42401a`), qui rend ce test inopérant.
+- ❌ **Défauts confirmés** :
+  - Micro ouvert par défaut, voix coupée comprise ; interrupteur visible seulement avec les annonces vocales (`useCoachVoice.ts:59`, `ConfigV2.tsx:1821`).
+  - Le texte de garage n'est pas écrit (`setups.rs:775`) : setups de l'app incohérents, tables de crans polluées, partagées ensuite.
+  - `autolink` ignore le réglage et repose un lien retiré à la main (`setups.rs:596`).
+  - Énergie automatique : réglage manuel écrasé avant la 1ʳᵉ écriture, échec pris pour un geste du pilote (`usePitAutoEnergy.ts:55-62`).
+  - Vidéo du tracé principal pour une variante (`video-guides.ts:98`), contraire au changelog et à la décision « Références circuit ».
+  - Parakeet sans score : dictée incertaine jamais redemandée (`askRules.ts:39`).
+- ❌ **Oubli de `c7312a7`** : `?v=` du site non incrémenté (`community/README.md:322`) ; à corriger avant déploiement.
+- ⏳ **Avant la sortie** : validation en jeu (aucune case cochée dans `VALIDATION-EN-JEU.md`, qui ne couvre pas les ajouts après le 18/10), lien + `noindex` de `setups.html`, version et date du changelog, captures, chiffres de la vitrine (« 7 fournisseurs IA », Régie et Atelier absents). Textes du changelog à corriger (5 → 10 gabarits, LMP3, « Affichage », item « rien n'est jamais modifié »).
+- ℹ️ **Points de la section 7 périmés, à retirer** : migration 9 (déployée le 2026-10-22), bug `layoutMap` et entrée Interlagos d'ohne_speed (`ohne_speed.ts:159-175`).
+- 📋 **Prochaine étape** : lot rapide (regex du test, `?v=`, texte Steam du site), puis micro et texte de garage, puis séance de validation en jeu.
+
 ### 2026-11-05 — Annonce du studio sur les agrégateurs de données : analyse d'impact (aucun code modifié)
 
 - ✅ **Backend du jeu** : aucune adresse RaceControl, aucun token de jeu, aucune lecture SR/DR dans l'app, l'API ou le site (recherche dans le code).

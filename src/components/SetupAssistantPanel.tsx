@@ -39,7 +39,8 @@ export function SetupAssistantPanel({ entry, svm, notes, onNotes }: { entry: Set
   const [table, setTable] = useState<NotchTable | undefined>(undefined);
   const [busy, setBusy] = useState(false);
 
-  // Limites réelles des réglages, si le jeu tourne avec cette voiture au garage.
+  // Limites réelles des réglages, si le pont REST vient de les lire (joueur en
+  // piste). Ouvrir ce panneau n'interroge jamais le jeu.
   useEffect(() => {
     if (!isTauri()) return;
     void live

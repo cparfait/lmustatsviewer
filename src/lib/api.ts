@@ -1763,8 +1763,12 @@ export const live = {
   /** S'abonne aux mises à jour `live-data` poussées par le backend. */
   onData: (cb: (data: LiveData) => void): Promise<UnlistenFn> =>
     listen<LiveData>("live-data", (e) => cb(enrichLive(e.payload))),
-  /** Bornes des réglages du setup lues dans le jeu (pont REST). */
-  garageBounds: () => invoke<RestField<RestSettingBound[]>>("get_lmu_garage_bounds"),
+  /**
+   * Bornes des réglages du setup lues dans le jeu (pont REST). `question` : le pilote
+   * pose une question de réglage, seul cas qui autorise une lecture ponctuelle au
+   * garage ; sinon, dernière valeur connue et aucune requête au jeu.
+   */
+  garageBounds: (question = false) => invoke<RestField<RestSettingBound[]>>("get_lmu_garage_bounds", { question }),
   /** Menu des stands du jeu (lecture directe, API locale). */
   pitMenu: () => invoke<PitMenuItem[]>("get_pit_menu"),
   /**

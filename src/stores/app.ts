@@ -109,7 +109,7 @@ interface AppState {
   overlayTargetTier: string;
   /** Modules du menu activés (clé nav → bool). Absent/true = visible. */
   menuModules: Record<string, boolean>;
-  /** Annonces vocales sur la page Live (off par défaut — doublon avec CrewChief). */
+  /** Annonces vocales sur la page Live (off par défaut). */
   voiceAnnouncements: boolean;
   /** Coach par virage — mode Drill (§8/§11) : entraînement ciblé sur les virages-chantiers. */
   coachDrill: boolean;

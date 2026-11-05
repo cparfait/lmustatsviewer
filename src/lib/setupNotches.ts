@@ -278,21 +278,32 @@ export async function saveNotchTables(t: NotchTables): Promise<void> {
 }
 
 /**
- * Apprend d'un coup tout ce que l'on sait pour la voiture de `svm` : ce fichier,
- * les autres setups de la même voiture (instantanés en base) et, s'ils collent,
- * les bornes lues dans le jeu. Écrit la table si elle a changé et la rend.
+ * Un fichier créé par l'app ne sert pas à apprendre : un ancien bug y a écrit le texte
+ * d'un réglage à côté de l'index d'un autre, et rien ne distingue ce couple d'un vrai.
+ * Seuls les fichiers écrits par le jeu font foi.
+ */
+export function learnableEntries<T extends Pick<SetupEntry, "source">>(entries: T[]): T[] {
+  return entries.filter((e) => e.source !== "app");
+}
+
+/**
+ * Apprend d'un coup tout ce que l'on sait pour la voiture de `svm` : ce fichier
+ * (`learnSelf` : faux s'il vient de l'app), les autres setups de la même voiture
+ * (instantanés en base, passés par `learnableEntries`) et, s'ils collent, les bornes
+ * lues dans le jeu. Écrit la table si elle a changé et la rend.
  */
 export async function learnForCar(
   svm: SvmFile,
   others: (SvmFile | null)[],
   bounds?: RestSettingBound[] | null,
+  learnSelf = true,
 ): Promise<NotchTable> {
   const all = await loadNotchTables();
   const key = carKeyOf(svm);
   if (!key) return {};
   const table = all[key] ?? {};
   const before = JSON.stringify(table);
-  learnFromSvm(table, svm);
+  if (learnSelf) learnFromSvm(table, svm);
   for (const o of others) if (o && carKeyOf(o) === key) learnFromSvm(table, o);
   learnFromRest(table, bounds, svm);
   if (JSON.stringify(table) !== before) {

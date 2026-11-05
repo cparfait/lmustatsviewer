@@ -17,7 +17,7 @@ import { FLAG_BOX_DEBRIEF, useConfigFlag } from "@/lib/configFlag";
 import { fresh } from "@/lib/lmuRest";
 import { findLoadedEntry, loadedSetup } from "@/lib/loadedSetup";
 import { recommend, type Recommendation } from "@/lib/setupAssistant";
-import { learnForCar, svmOfEntry } from "@/lib/setupNotches";
+import { learnableEntries, learnForCar, svmOfEntry } from "@/lib/setupNotches";
 import { engineerVoiceActive } from "@/lib/engineer/sideCallouts";
 import { speak } from "@/lib/voice";
 import { isFixedSetup } from "@/lib/ai/context/lab-context";
@@ -99,8 +99,9 @@ async function buildProposal(d: LiveData, report: BalanceReport): Promise<Debrie
   const bounds = await live.garageBounds().then(fresh).catch(() => null);
   const table = await learnForCar(
     svm,
-    all.filter((e) => e.car === entry.car).map(svmOfEntry),
+    learnableEntries(all.filter((e) => e.car === entry.car)).map(svmOfEntry),
     bounds,
+    entry.source !== "app",
   ).catch(() => undefined);
   const recs = recommend(svm, w.symptom, w.phase, w.regime, bounds, 3, table);
   const rec = recs.find((r) => !r.atLimit) ?? null;

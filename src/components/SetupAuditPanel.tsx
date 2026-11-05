@@ -17,7 +17,7 @@ import { paramLabel } from "@/lib/setupParams";
 import { applyChanges, unknownLevers } from "@/lib/setupAssistant";
 import { UnknownNotchesNote } from "@/components/UnknownNotchesNote";
 import { auditLevers, buildAuditMessages, parseAuditReply, type AuditResult } from "@/lib/setupAudit";
-import { learnForCar, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
+import { learnableEntries, learnForCar, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
 import { createSetupVersion } from "@/lib/setupVersion";
 import { readDriverStyle, styleForPrompt } from "@/lib/driverStyle";
 import { toastError, toastSuccess } from "@/stores/dialogs";
@@ -39,7 +39,7 @@ export function SetupAuditPanel({ entry, svm, notes }: { entry: SetupEntry; svm:
     void (async () => {
       const b = await live.garageBounds().then(fresh).catch(() => null);
       const others = await setupsApi.entries(entry.car).catch(() => []);
-      const tb = await learnForCar(svm, others.map(svmOfEntry), b).catch(() => undefined);
+      const tb = await learnForCar(svm, learnableEntries(others).map(svmOfEntry), b, entry.source !== "app").catch(() => undefined);
       if (!alive) return;
       setBounds(b);
       setTable(tb);

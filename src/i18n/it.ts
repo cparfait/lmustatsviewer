@@ -3185,7 +3185,9 @@ export default {
   onboarding: {
     welcome: "Benvenuto in LMU Stats Viewer",
     autoDetect: "Tutto viene rilevato automaticamente. Un clic per iniziare.",
-    dbQuarantined: "Il tuo database locale era danneggiato: è stato messo da parte, senza cancellare nulla ({{file}}). Impostazioni, note del coach e identità nella community ripartono da zero; le tue sessioni verranno rilette dai file del gioco e la sua cartella viene rilevata di nuovo qui sotto.",
+    dbQuarantined: "Il tuo database locale era danneggiato: è stato messo da parte, senza cancellare nulla ({{file}}). Impostazioni e note del coach ripartono da zero; le tue sessioni verranno rilette dai file del gioco e la sua cartella viene rilevata di nuovo qui sotto.",
+    dbIdentityKept: "La tua identità nella community è stata recuperata: i tuoi tempi restano a tuo nome. Per condividere di nuovo, riattiva la condivisione.",
+    dbIdentityLost: "Se condividevi i tuoi giri, riconnettiti con Steam in Configurazione › Community.",
     autoConfig: "Configurazione automatica",
     autoConfigDesc: "Rileviamo il percorso di Le Mans Ultimate e il tuo nome pilota, poi indicizziamo le tue sessioni.",
     detectSteam: "Rileva la cartella Steam / Le Mans Ultimate",

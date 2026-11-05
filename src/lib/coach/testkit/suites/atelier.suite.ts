@@ -6,7 +6,7 @@
 
 import { section, eq, ok } from "../assert";
 import type { LabLap, LiveData, SetupStats, RaceActivityRow, RecordOverviewRow, SetupEntry, SvmFile } from "@/lib/api";
-import { learnFromRest, learnFromSvm, resolveIndex, topIndex, withResolvedIndices, type NotchTable } from "@/lib/setupNotches";
+import { learnableEntries, learnFromRest, learnFromSvm, resolveIndex, topIndex, withResolvedIndices, type NotchTable } from "@/lib/setupNotches";
 import { editedPatches, leverState, restTop, unknownLevers } from "@/lib/setupAssistant";
 import { auditLevers, parseAuditReply } from "@/lib/setupAudit";
 import { planProfile, profileForStyle } from "@/lib/setupProfiles";
@@ -52,6 +52,7 @@ function notches(): void {
   const table: NotchTable = {};
   eq(learnFromSvm(table, a) + learnFromSvm(table, b), 3, "couples (index, affichage) appris sur deux fichiers");
   eq(learnFromSvm(table, b), 0, "rien de neuf la deuxième fois");
+  eq(learnableEntries([{ source: "game" }, { source: "app" }]).map((e) => e.source), ["game"], "un fichier créé par l’app n’apprend rien");
   const e = table["REARWING.RWSetting"];
   eq(resolveIndex(e, "6.0 deg"), 6, "correspondance exacte");
   eq(resolveIndex(e, "7.0 deg"), 8, "graduation régulière (0,5° par cran)");

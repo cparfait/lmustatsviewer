@@ -9,10 +9,15 @@
 
 import type { ReactNode } from "react";
 import anthropic from "@/assets/provider-icons/anthropic.svg?raw";
+import cohere from "@/assets/provider-icons/cohere.svg?raw";
 import deepseek from "@/assets/provider-icons/deepseek.svg?raw";
 import google from "@/assets/provider-icons/google.svg?raw";
 import grok from "@/assets/provider-icons/grok.svg?raw";
+import groq from "@/assets/provider-icons/groq.svg?raw";
+import huggingface from "@/assets/provider-icons/huggingface.svg?raw";
+import kilocode from "@/assets/provider-icons/kilocode.svg?raw";
 import lmstudio from "@/assets/provider-icons/lmstudio.svg?raw";
+import nvidia from "@/assets/provider-icons/nvidia.svg?raw";
 import mistral from "@/assets/provider-icons/mistral.svg?raw";
 import ollama from "@/assets/provider-icons/ollama.svg?raw";
 import openai from "@/assets/provider-icons/openai.svg?raw";
@@ -23,9 +28,14 @@ import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, string> = {
   anthropic,
+  cohere,
   deepseek,
   google,
+  groq,
+  huggingface,
+  kilo: kilocode,
   mistral,
+  nvidia,
   ollama,
   "ollama-cloud": ollama,
   openai,

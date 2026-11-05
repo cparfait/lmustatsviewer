@@ -281,6 +281,7 @@ pub fn run() {
             commands::regie::regie_set_theme,
             commands::regie::regie_set_map_north_up,
             db::db_quarantine_notice,
+            db::db_quarantine_identity_kept,
             commands::regie::regie_push_screen,
             commands::regie::regie_rename_device,
             commands::tools::tools_detect_known,
@@ -390,10 +391,12 @@ pub fn run() {
                 Err(db::DbOpenError::Corrupt(e)) => {
                     crate::app_error!("base locale abîmée, mise de côté : {e}");
                     db::quarantine_db(app.handle());
-                    db::init_db(app.handle()).map_err(|e2| {
+                    let fresh = db::init_db(app.handle()).map_err(|e2| {
                         crate::app_error!("base locale : échec après remise à zéro : {e2}");
                         db_fatal(&e2.to_string())
-                    })?
+                    })?;
+                    db::recover_identity(app.handle(), &fresh);
+                    fresh
                 }
                 Err(e) => {
                     crate::app_error!("base locale : ouverture impossible, fichier laissé en place : {e}");

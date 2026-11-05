@@ -1625,6 +1625,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Setups: the notch tables now learn only from files written by the game. A file created by the app could teach a wrong value and text pairing.",
+              fr: "Setups : les tables de crans n'apprennent plus que des fichiers écrits par le jeu. Un fichier créé par l'app pouvait leur apprendre un mauvais couple valeur et texte.",
+              es: "Setups: las tablas de pasos ya solo aprenden de los archivos escritos por el juego. Un archivo creado por la app podía enseñarles una pareja de valor y texto incorrecta.",
+              de: "Setups: Die Rastentabellen lernen nur noch aus Dateien, die das Spiel geschrieben hat. Eine von der App erstellte Datei konnte ihnen ein falsches Paar aus Wert und Text beibringen.",
+              it: "Setup: le tabelle degli scatti imparano ormai solo dai file scritti dal gioco. Un file creato dall'app poteva insegnare loro una coppia errata di valore e testo.",
+            },
+          },
+          {
+            text: {
               en: "Microphone: voice notes now work with “Microphone always ready” turned off, and a microphone plugged in after launch is picked up by itself within 15 seconds.",
               fr: "Micro : les notes vocales marchent aussi avec « Micro prêt en permanence » décoché, et un micro branché après le lancement est pris en compte tout seul en moins de 15 secondes.",
               es: "Micrófono: las notas de voz también funcionan con «Micrófono siempre listo» desactivado, y un micrófono conectado después del inicio se detecta solo en menos de 15 segundos.",
@@ -1895,11 +1904,11 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
           {
             text: {
-              en: "A badly damaged local database no longer prevents the app from starting: the file is set aside and the welcome screen explains it. Settings, community identity and coach notes then start from scratch; only the rest is rebuilt from the game's files. Any other error (permissions, disk, locked file) is reported in an error box without touching the file.",
-              fr: "Une base locale vraiment abîmée n'empêche plus l'app de démarrer : le fichier est mis de côté et l'accueil l'explique. Réglages, identité communautaire et notes du coach repartent alors de zéro ; seul le reste se reconstruit depuis les fichiers du jeu. Toute autre erreur (droits, disque, fichier verrouillé) est signalée par une boîte d'erreur, sans toucher au fichier.",
-              es: "Una base local realmente dañada ya no impide que la app arranque: el archivo se aparta y la pantalla de bienvenida lo explica. Los ajustes, la identidad en la comunidad y las notas del coach vuelven entonces a cero; solo el resto se reconstruye a partir de los archivos del juego. Cualquier otro error (permisos, disco, archivo bloqueado) se indica en un cuadro de error, sin tocar el archivo.",
-              de: "Eine wirklich beschädigte lokale Datenbank verhindert den Start der App nicht mehr: Die Datei wird beiseitegelegt, und der Willkommensbildschirm erklärt es. Einstellungen, Community-Identität und Coach-Notizen beginnen dann bei null; nur der Rest wird aus den Spieldateien neu aufgebaut. Jeder andere Fehler (Rechte, Datenträger, gesperrte Datei) wird in einem Fehlerfenster gemeldet, ohne die Datei anzufassen.",
-              it: "Un database locale davvero danneggiato non impedisce più l'avvio dell'app: il file viene messo da parte e la schermata iniziale lo spiega. Impostazioni, identità nella community e note del coach ripartono allora da zero; solo il resto viene ricostruito dai file del gioco. Qualsiasi altro errore (permessi, disco, file bloccato) viene segnalato in una finestra di errore, senza toccare il file.",
+              en: "A badly damaged local database no longer prevents the app from starting: the file is set aside and the welcome screen explains it. Settings and coach notes then start from scratch, your community identity is recovered if it can still be read (sharing stays off until you turn it back on), and the rest is rebuilt from the game's files. Any other error (permissions, disk, locked file) is reported in an error box without touching the file.",
+              fr: "Une base locale vraiment abîmée n'empêche plus l'app de démarrer : le fichier est mis de côté et l'accueil l'explique. Réglages et notes du coach repartent alors de zéro, l'identité communautaire est récupérée si elle reste lisible (le partage reste à réactiver), et le reste se reconstruit depuis les fichiers du jeu. Toute autre erreur (droits, disque, fichier verrouillé) est signalée par une boîte d'erreur, sans toucher au fichier.",
+              es: "Una base local realmente dañada ya no impide que la app arranque: el archivo se aparta y la pantalla de bienvenida lo explica. Los ajustes y las notas del coach vuelven entonces a cero, la identidad en la comunidad se recupera si aún se puede leer (el uso compartido queda por reactivar), y el resto se reconstruye a partir de los archivos del juego. Cualquier otro error (permisos, disco, archivo bloqueado) se indica en un cuadro de error, sin tocar el archivo.",
+              de: "Eine wirklich beschädigte lokale Datenbank verhindert den Start der App nicht mehr: Die Datei wird beiseitegelegt, und der Willkommensbildschirm erklärt es. Einstellungen und Coach-Notizen beginnen dann bei null, die Community-Identität wird wiederhergestellt, sofern sie lesbar bleibt (das Teilen muss neu aktiviert werden), und der Rest wird aus den Spieldateien neu aufgebaut. Jeder andere Fehler (Rechte, Datenträger, gesperrte Datei) wird in einem Fehlerfenster gemeldet, ohne die Datei anzufassen.",
+              it: "Un database locale davvero danneggiato non impedisce più l'avvio dell'app: il file viene messo da parte e la schermata iniziale lo spiega. Impostazioni e note del coach ripartono allora da zero, l'identità nella community viene recuperata se resta leggibile (la condivisione va riattivata) e il resto viene ricostruito dai file del gioco. Qualsiasi altro errore (permessi, disco, file bloccato) viene segnalato in una finestra di errore, senza toccare il file.",
             },
           },
           {

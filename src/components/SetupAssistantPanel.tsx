@@ -8,7 +8,7 @@ import { isTauri, live, setups as setupsApi, type RestSettingBound, type SetupEn
 import { fresh } from "@/lib/lmuRest";
 import { paramLabel } from "@/lib/setupParams";
 import { applyStep, nextVersionName, PHASED, recommend, unknownLevers, type Phase, type Recommendation, type Regime, type Symptom } from "@/lib/setupAssistant";
-import { learnForCar, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
+import { learnableEntries, learnForCar, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
 import { usePageState } from "@/lib/usePageState";
 import { UnknownNotchesNote } from "@/components/UnknownNotchesNote";
 import { formatTime } from "@/lib/utils";
@@ -56,7 +56,7 @@ export function SetupAssistantPanel({ entry, svm, notes, onNotes }: { entry: Set
     let alive = true;
     void (async () => {
       const others = await setupsApi.entries(entry.car).catch(() => []);
-      const t = await learnForCar(svm, others.map(svmOfEntry), bounds).catch(() => undefined);
+      const t = await learnForCar(svm, learnableEntries(others).map(svmOfEntry), bounds, entry.source !== "app").catch(() => undefined);
       if (alive) setTable(t);
     })();
     return () => {

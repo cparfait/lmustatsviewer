@@ -53,7 +53,7 @@ import { SetupSharePanel } from "@/components/SetupSharePanel";
 import { SetupSessionsUsed } from "@/components/SetupSessionsUsed";
 import { displayOf, indexOf, isFixedParam } from "@/lib/setupView";
 import { editedPatches } from "@/lib/setupAssistant";
-import { learnForCar, paramId, resolveIndex, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
+import { learnableEntries, learnForCar, paramId, resolveIndex, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
 import { FLAG_SETUP_AUDIT, FLAG_SETUP_PLATES, FLAG_SETUP_PROFILES, FLAG_SETUP_SHARING, useConfigFlag } from "@/lib/configFlag";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 
@@ -207,7 +207,7 @@ export function SetupDetail() {
     let alive = true;
     void (async () => {
       const others = await setupsApi.entries(entry.car).catch(() => []);
-      const tb = await learnForCar(svm, others.map(svmOfEntry)).catch(() => undefined);
+      const tb = await learnForCar(svm, learnableEntries(others).map(svmOfEntry), undefined, entry.source !== "app").catch(() => undefined);
       if (alive) setTable(tb);
     })();
     return () => {

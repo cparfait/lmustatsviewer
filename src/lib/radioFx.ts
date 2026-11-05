@@ -3,7 +3,7 @@
  *
  * La Web Speech API ne passe pas par le graphe Web Audio : on ne peut donc pas
  * filtrer la voix synthétisée elle-même. On reproduit l'impression « stand /
- * casque » comme CrewChief — par une **ambiance** générée en Web Audio autour de
+ * casque » par une **ambiance** générée en Web Audio autour de
  * la voix TTS (qui, elle, reste normale) :
  *   - un **bip d'ouverture** (squelch) + clic juste avant la parole ;
  *   - un lit de **souffle/static** passe-bande, en fondu sous la voix ;

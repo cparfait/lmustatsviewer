@@ -1547,6 +1547,7 @@ export const config = {
   detectLmu: () => invoke<DetectResult>("detect_lmu"),
   /** Fichier de base abîmée mis de côté à ce démarrage, s'il y en a un. */
   dbQuarantineNotice: () => invoke<string | null>("db_quarantine_notice"),
+  dbQuarantineIdentityKept: () => invoke<boolean>("db_quarantine_identity_kept"),
   inspectLmu: (lmuPath: string) =>
     invoke<DetectResult>("inspect_lmu", { lmuPath }),
 };

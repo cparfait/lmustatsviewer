@@ -454,6 +454,74 @@ fn quarantine_in(dir: &std::path::Path, stamp: &str) -> Option<String> {
     Some(kept)
 }
 
+/// Identité communautaire : sans ces trois clés, rien n'est repris.
+const IDENTITY_REQUIRED: [&str; 3] = ["community_install_id", "community_tag", "community_token_enc"];
+/// Choix du joueur liés à cette identité. Le mode anonyme surtout : le perdre publierait
+/// son nom. `community_enabled` n'en fait pas partie : pas d'envoi sans nouveau clic.
+const IDENTITY_OPTIONAL: [&str; 4] = [
+    "community_anonymous",
+    "community_steam",
+    "community_avatar_off",
+    "community_avatar_ready",
+];
+
+/// Identité reprise du fichier mis de côté à ce démarrage (écran d'accueil).
+static IDENTITY_KEPT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Lit l'identité dans le fichier abîmé (en lecture seule) et la recopie dans la base
+/// neuve. Tout ou rien : un fichier illisible ou une clé obligatoire absente ne laisse
+/// aucune trace, et le joueur se reconnecte avec Steam comme avant.
+fn copy_identity(from: &std::path::Path, to: &Connection) -> bool {
+    let read = || -> Option<Vec<(&str, String)>> {
+        let src = Connection::open_with_flags(from, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).ok()?;
+        let get = |key: &str| -> Option<String> {
+            src.query_row("SELECT value FROM config WHERE key = ?1", params![key], |r| r.get::<_, String>(0))
+                .ok()
+                .filter(|v| !v.is_empty())
+        };
+        let mut out = Vec::new();
+        for key in IDENTITY_REQUIRED {
+            out.push((key, get(key)?));
+        }
+        for key in IDENTITY_OPTIONAL {
+            if let Some(v) = get(key) {
+                out.push((key, v));
+            }
+        }
+        Some(out)
+    };
+    let Some(rows) = read() else { return false };
+    let write = || -> rusqlite::Result<()> {
+        let tx = to.unchecked_transaction()?;
+        for (key, value) in &rows {
+            tx.execute(
+                "INSERT INTO config (key, value) VALUES (?1, ?2)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                params![key, value],
+            )?;
+        }
+        tx.commit()
+    };
+    write().is_ok()
+}
+
+/// Après une mise de côté : tente de reprendre l'identité communautaire dans la base neuve.
+pub fn recover_identity(app_handle: &tauri::AppHandle, db: &DbState) {
+    let name = QUARANTINED.lock().ok().and_then(|q| q.clone());
+    let (Some(name), Ok(dir), Ok(conn)) = (name, app_handle.path().app_data_dir(), get_conn(db)) else {
+        return;
+    };
+    let kept = copy_identity(&dir.join(name), &conn);
+    IDENTITY_KEPT.store(kept, std::sync::atomic::Ordering::Relaxed);
+    crate::app_info!("base mise de côté : identité communautaire reprise = {kept}");
+}
+
+/// L'identité communautaire a-t-elle été reprise du fichier mis de côté ?
+#[tauri::command]
+pub fn db_quarantine_identity_kept() -> bool {
+    IDENTITY_KEPT.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// Nom du fichier mis de côté à ce démarrage (écran d'accueil : réglages à refaire).
 #[tauri::command]
 pub fn db_quarantine_notice() -> Option<String> {
@@ -597,6 +665,47 @@ mod open_tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    #[test]
+    fn identity_is_copied_all_or_nothing() {
+        let dir = temp_dir("identity");
+        let from = dir.join("old.db");
+        let to = open_db_file(&dir.join("new.db")).unwrap();
+        let count = |c: &Connection, like: &str| -> i64 {
+            c.query_row("SELECT COUNT(*) FROM config WHERE key LIKE ?1", params![like], |r| r.get(0)).unwrap()
+        };
+        let set = |c: &Connection, k: &str, v: &str| {
+            c.execute("INSERT INTO config (key, value) VALUES (?1, ?2)", params![k, v]).unwrap();
+        };
+        {
+            let src = open_db_file(&from).unwrap();
+            set(&src, "community_install_id", "i");
+            set(&src, "community_tag", "t");
+            set(&src, "lmu_path", "D:/jeu");
+            set(&src, "community_enabled", "true");
+        }
+        assert!(!copy_identity(&from, &to), "jeton absent : rien");
+        assert_eq!(count(&to, "community_%"), 0, "tout ou rien");
+        {
+            let src = Connection::open(&from).unwrap();
+            set(&src, "community_token_enc", "x");
+            set(&src, "community_anonymous", "true");
+        }
+        assert!(copy_identity(&from, &to));
+        let value = |k: &str| -> Option<String> {
+            to.query_row("SELECT value FROM config WHERE key = ?1", params![k], |r| r.get(0)).optional().unwrap()
+        };
+        assert_eq!(value("community_token_enc").as_deref(), Some("x"));
+        assert_eq!(value("community_anonymous").as_deref(), Some("true"), "le mode anonyme suit");
+        assert_eq!(value("community_enabled"), None, "le partage reste à réactiver");
+        assert_eq!(value("lmu_path"), None, "seule l'identité est reprise");
+
+        let junk = dir.join("junk.db");
+        std::fs::write(&junk, b"pas une base").unwrap();
+        assert!(!copy_identity(&junk, &to), "fichier illisible : rien, sans plantage");
+        assert!(!copy_identity(&dir.join("absent.db"), &to), "fichier absent : rien");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     fn is_corrupt(r: Result<Connection, DbOpenError>) -> bool {

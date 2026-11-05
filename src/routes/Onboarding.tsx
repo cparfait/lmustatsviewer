@@ -46,8 +46,11 @@ export function Onboarding() {
   const [manualPath, setManualPath] = useState("");
   // Base locale abîmée, mise de côté à ce démarrage : c'est pour cela qu'on revient ici.
   const [dbKept, setDbKept] = useState<string | null>(null);
+  const [identityKept, setIdentityKept] = useState(false);
   useEffect(() => {
-    if (isTauri()) void config.dbQuarantineNotice().then(setDbKept).catch(() => {});
+    if (!isTauri()) return;
+    void config.dbQuarantineNotice().then(setDbKept).catch(() => {});
+    void config.dbQuarantineIdentityKept().then(setIdentityKept).catch(() => {});
   }, []);
 
   const handleAutoDetect = async () => {
@@ -128,7 +131,10 @@ export function Onboarding() {
         {dbKept && (
           <div role="alert" className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <p>{t("onboarding.dbQuarantined", { file: dbKept })}</p>
+            <p>
+              {t("onboarding.dbQuarantined", { file: dbKept })}{" "}
+              {t(identityKept ? "onboarding.dbIdentityKept" : "onboarding.dbIdentityLost")}
+            </p>
           </div>
         )}
 

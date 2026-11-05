@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { isTauri, live, setups as setupsApi, type RestSettingBound, type SetupEntry, type SvmFile } from "@/lib/api";
 import { fresh } from "@/lib/lmuRest";
 import { paramLabel } from "@/lib/setupParams";
-import { learnForCar, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
+import { learnableEntries, learnForCar, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
 import { unknownLevers } from "@/lib/setupAssistant";
 import { UnknownNotchesNote } from "@/components/UnknownNotchesNote";
 import { PROFILES, planProfile, profileForStyle, profilePatches, type SetupProfile } from "@/lib/setupProfiles";
@@ -38,7 +38,7 @@ export function SetupProfilesPanel({ entry, svm, notes }: { entry: SetupEntry; s
       const style = await readDriverStyle();
       const b = await live.garageBounds().then(fresh).catch(() => null);
       const others = await setupsApi.entries(entry.car).catch(() => []);
-      const tb = await learnForCar(svm, others.map(svmOfEntry), b).catch(() => undefined);
+      const tb = await learnForCar(svm, learnableEntries(others).map(svmOfEntry), b, entry.source !== "app").catch(() => undefined);
       if (!alive) return;
       setProfile(profileForStyle(style));
       setBounds(b);

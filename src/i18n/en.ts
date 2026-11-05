@@ -79,6 +79,12 @@ export default {
     pitDescRead: "Read live from the game. To change it from here, allow writing to the game (Config › Display › Live options).",
     pitDescWrite: "Read live from the game; every change is sent then read back from the game.",
     pitNone: "Only readable on track: drive, then click “Read again”.",
+    pitErrNoSession: "No session loaded in the game.",
+    pitErrNoResponse: "The game isn't responding.",
+    pitErrBadResponse: "Couldn't read the game's response.",
+    pitErrNoItem: "This setting is no longer in the game's pit menu.",
+    pitErrRefused: "The game refused this setting.",
+    pitErrOther: "Pit menu error.",
     pitSet: "{{name}}: {{value}}",
   },
   setupAssistant: {

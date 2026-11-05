@@ -79,6 +79,12 @@ export default {
     pitDescRead: "Letto in diretta nel gioco. Per modificarlo da qui, consenti la scrittura nel gioco (Config › Visualizzazione › opzioni Live).",
     pitDescWrite: "Letto in diretta nel gioco; ogni modifica viene inviata e poi riletta nel gioco.",
     pitNone: "Leggibile solo in pista: guida, poi clicca su «Rileggi».",
+    pitErrNoSession: "Nessuna sessione caricata nel gioco.",
+    pitErrNoResponse: "Il gioco non risponde.",
+    pitErrBadResponse: "Risposta del gioco illeggibile.",
+    pitErrNoItem: "Questa impostazione non è più nel menu dei box del gioco.",
+    pitErrRefused: "Il gioco ha rifiutato questa impostazione.",
+    pitErrOther: "Errore del menu dei box.",
     pitSet: "{{name}}: {{value}}",
   },
   setupAssistant: {

@@ -79,6 +79,12 @@ export default {
     pitDescRead: "Lu en direct dans le jeu. Pour le modifier d'ici, autorise les écritures dans le jeu (Config › Affichage › options Live).",
     pitDescWrite: "Lu en direct dans le jeu ; chaque changement est envoyé puis relu dans le jeu.",
     pitNone: "Menu lisible seulement en piste : roule, puis clique sur « Relire ».",
+    pitErrNoSession: "Aucune séance chargée dans le jeu.",
+    pitErrNoResponse: "Le jeu ne répond pas.",
+    pitErrBadResponse: "Réponse du jeu illisible.",
+    pitErrNoItem: "Ce réglage n'est plus dans le menu des stands du jeu.",
+    pitErrRefused: "Le jeu a refusé ce réglage.",
+    pitErrOther: "Erreur avec le menu des stands.",
     pitSet: "{{name}} : {{value}}",
   },
   setupAssistant: {

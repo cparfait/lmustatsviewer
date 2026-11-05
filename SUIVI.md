@@ -955,7 +955,13 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
-### 2026-11-05 — Menu des stands et bornes du setup : plus de lecture au garage (C40, non commité)
+### 2026-11-05 — Menu des stands : erreurs traduites (non commité)
+
+- ✅ `lmu_rest_write.rs` renvoie des codes `pit_menu:*` au lieu de phrases en français ; `pitMenuErrorKey` (`lib/lmuRest.ts`) les traduit (`strategy.pitErr*`, 5 langues). La carte Stratégie affiche la vraie cause, à la lecture comme au changement. Élément absent et refus HTTP restent détaillés dans le journal de l'app (`app_warn!`).
+- ✅ Test : chaque code du Rust doit avoir son texte dans les 5 langues (`rest.suite.ts`). Lint 0 erreur, `tsc -b`, `npm test` 7 261/7 261, tests Rust 179. Rien vu dans l'app Tauri.
+- 📋 **Prochaine étape** : commit + push, puis micro et texte de garage.
+
+### 2026-11-05 — Menu des stands et bornes du setup : plus de lecture au garage (C40, commité `cbf6471`)
 
 - ✅ **Menu des stands** : `get_pit_menu` et `set_pit_menu_item` passent par `route_allowed_now` (`lmu_rest_write.rs`), même règle que le polling. Hors piste, refus sans requête au jeu, sauf avec le réglage `rest_poll_off_track`. Couvre la page Stratégie, les commandes vocales et l'énergie automatique.
 - ✅ **Bornes du setup** : `get_lmu_garage_bounds(question)`. Lecture ponctuelle seulement avec `question = true`, utilisé par la question de réglage du coach (`records-context.ts`). Les panneaux Assistant, Profils et Audit et le bilan au box lisent la dernière valeur connue. Au garage, ils travaillent donc sans bornes.

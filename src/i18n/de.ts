@@ -79,6 +79,12 @@ export default {
     pitDescRead: "Live aus dem Spiel gelesen. Um es hier zu ändern, erlaube das Schreiben ins Spiel (Config › Anzeige › Live-Optionen).",
     pitDescWrite: "Live aus dem Spiel gelesen; jede Änderung wird gesendet und im Spiel zurückgelesen.",
     pitNone: "Nur auf der Strecke lesbar: Fahre los und klicke dann auf „Neu lesen“.",
+    pitErrNoSession: "Im Spiel ist keine Session geladen.",
+    pitErrNoResponse: "Das Spiel antwortet nicht.",
+    pitErrBadResponse: "Die Antwort des Spiels ist nicht lesbar.",
+    pitErrNoItem: "Diese Einstellung ist nicht mehr im Boxenmenü des Spiels.",
+    pitErrRefused: "Das Spiel hat diese Einstellung abgelehnt.",
+    pitErrOther: "Fehler beim Boxenmenü.",
     pitSet: "{{name}}: {{value}}",
   },
   setupAssistant: {

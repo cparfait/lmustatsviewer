@@ -1616,6 +1616,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Pit menu on the Strategy page: errors now appear in your language and say what actually happened (no session, game not responding, setting refused), instead of a French message.",
+              fr: "Menu des stands de la page Stratégie : les erreurs s'affichent dans ta langue et disent ce qui s'est vraiment passé (pas de séance, jeu qui ne répond pas, réglage refusé), au lieu d'un message toujours en français.",
+              es: "Menú de boxes de la página Estrategia: los errores aparecen en tu idioma y dicen lo que ha pasado realmente (sin sesión, el juego no responde, ajuste rechazado), en lugar de un mensaje siempre en francés.",
+              de: "Boxenmenü auf der Strategie-Seite: Fehler erscheinen jetzt in deiner Sprache und nennen die tatsächliche Ursache (keine Session, Spiel antwortet nicht, Einstellung abgelehnt) statt einer immer französischen Meldung.",
+              it: "Menu dei box nella pagina Strategia: gli errori appaiono nella tua lingua e dicono cosa è successo davvero (nessuna sessione, gioco che non risponde, impostazione rifiutata), invece di un messaggio sempre in francese.",
+            },
+          },
+          {
+            text: {
               en: "Pit menu: the Strategy page and the voice pit commands now only read it on track, and the setup workshop panels no longer query the game when they open. Le Mans Ultimate can crash when queried in the garage, while paused or in its menus. The “Query the game off track” setting restores the previous behaviour.",
               fr: "Menu des stands : la page Stratégie et les commandes vocales de stands ne le lisent plus qu'en piste, et les panneaux de l'Atelier setup n'interrogent plus le jeu à leur ouverture. Le Mans Ultimate peut planter quand on l'interroge au garage, en pause ou dans ses menus. Le réglage « Interroger le jeu hors piste » rétablit l'ancien comportement.",
               es: "Menú de boxes: la página Estrategia y los comandos de voz de boxes ya solo lo leen en pista, y los paneles del taller de setups ya no consultan el juego al abrirse. Le Mans Ultimate puede bloquearse si se le consulta en el garaje, en pausa o en sus menús. El ajuste «Consultar el juego fuera de pista» restablece el comportamiento anterior.",

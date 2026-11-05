@@ -79,6 +79,12 @@ export default {
     pitDescRead: "Leído en directo en el juego. Para modificarlo desde aquí, permite las escrituras en el juego (Config › Visualización › opciones En directo).",
     pitDescWrite: "Leído en directo en el juego; cada cambio se envía y se vuelve a leer en el juego.",
     pitNone: "Solo se puede leer en pista: rueda y luego pulsa «Volver a leer».",
+    pitErrNoSession: "No hay ninguna sesión cargada en el juego.",
+    pitErrNoResponse: "El juego no responde.",
+    pitErrBadResponse: "No se pudo leer la respuesta del juego.",
+    pitErrNoItem: "Este ajuste ya no está en el menú de boxes del juego.",
+    pitErrRefused: "El juego rechazó este ajuste.",
+    pitErrOther: "Error del menú de boxes.",
     pitSet: "{{name}}: {{value}}",
   },
   setupAssistant: {

@@ -5,6 +5,7 @@
  * Road Atlanta, essais de 6 h).
  */
 
+import { readFileSync } from "node:fs";
 import { section, ok, eq, approx } from "../assert";
 import {
   aeroDamage,
@@ -17,6 +18,7 @@ import {
   keepPlannedStop,
   laneLossFrom,
   PadWearTracker,
+  pitMenuErrorKey,
   restSessionEnd,
   restStatus,
 } from "@/lib/lmuRest";
@@ -234,6 +236,27 @@ export function run(): void {
     eq(effectivePitLoss(d, 50, 25), 66, "voie mesurée + arrêt prévu par le menu");
     eq(effectivePitLoss(d, 50, null), 50, "voie inconnue : perte enregistrée");
     eq(effectivePitLoss(live({ rest: null }), 50, 25), 50, "jeu muet : perte enregistrée");
+  }
+
+  section("lmuRest.pitMenuErrorKey");
+  eq(pitMenuErrorKey("Unsupported: pit_menu:off_track"), "strategy.pitNone", "hors piste : message existant");
+  eq(pitMenuErrorKey("Unsupported: pit_menu:refused"), "strategy.pitErrRefused", "code reconnu");
+  eq(pitMenuErrorKey("Internal error: pit menu: join"), "strategy.pitErrOther", "erreur sans code");
+  eq(pitMenuErrorKey("Unsupported: pit_menu:inconnu"), "strategy.pitErrOther", "code inconnu");
+  {
+    // Chaque code du Rust a son texte, dans les 5 langues : un code oublié
+    // réafficherait un message générique sans que rien ne le signale.
+    const rust = readFileSync("src-tauri/src/commands/lmu_rest_write.rs", "utf8");
+    const codes = [...rust.matchAll(/code\("(\w+)"\)/g)].map((m) => m[1]);
+    ok(codes.length >= 6, "codes du Rust trouvés");
+    for (const c of codes) {
+      const key = pitMenuErrorKey(`Unsupported: pit_menu:${c}`);
+      ok(key !== "strategy.pitErrOther", `code ${c} traduit`);
+      for (const lang of ["fr", "en", "es", "de", "it"]) {
+        const src = readFileSync(`src/i18n/${lang}.ts`, "utf8");
+        ok(src.includes(`${key.split(".")[1]}: "`), `${key} en ${lang}`);
+      }
+    }
   }
 
   section("lmuRest.restStatus / garageBoundsText");

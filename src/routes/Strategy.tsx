@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { isTauri, live, type PitMenuItem } from "@/lib/api";
+import { pitMenuErrorKey } from "@/lib/lmuRest";
 import { toastError, toastSuccess } from "@/stores/dialogs";
 import { useAppStore } from "@/stores/app";
 import { usePageState } from "@/lib/usePageState";
@@ -64,17 +65,17 @@ function PitMenuCard() {
   const { t } = useTranslation();
   const gameWrites = useAppStore((s) => s.gameWrites);
   const [menu, setMenu] = useState<PitMenuItem[] | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const read = async () => {
     if (!isTauri()) return;
     try {
       setMenu(await live.pitMenu());
-      setError(false);
-    } catch {
+      setError(null);
+    } catch (e) {
       setMenu(null);
-      setError(true);
+      setError(pitMenuErrorKey(e));
     }
   };
   useEffect(() => {
@@ -88,7 +89,7 @@ function PitMenuCard() {
       if (ok) toastSuccess(t("strategy.pitSet", { name: item.name.replace(/:$/, ""), value: item.options[index] }));
       else toastError(t("live.pitEnergyNotConfirmed"));
     } catch (e) {
-      toastError(String(e));
+      toastError(t(pitMenuErrorKey(e)));
     } finally {
       setBusy(false);
       void read();
@@ -108,7 +109,7 @@ function PitMenuCard() {
         </div>
         <p className="text-xs text-muted-foreground">{t(gameWrites ? "strategy.pitDescWrite" : "strategy.pitDescRead")}</p>
         {error || !menu ? (
-          <p className="text-sm text-muted-foreground">{t("strategy.pitNone")}</p>
+          <p className="text-sm text-muted-foreground">{t(error ?? "strategy.pitNone")}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {menu.map((m) => (

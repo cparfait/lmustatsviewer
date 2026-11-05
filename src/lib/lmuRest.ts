@@ -25,6 +25,22 @@ export const CONSUMPTION_TOLERANCE = 0.4;
 /** Écart max (s) entre l'horloge de séance REST et celle de la mémoire partagée. */
 const CLOCK_TOLERANCE_S = 30;
 
+/** Codes d'erreur du menu des stands (`lmu_rest_write.rs`) → clé de traduction. */
+const PIT_MENU_ERROR_KEYS: Record<string, string> = {
+  no_session: "strategy.pitErrNoSession",
+  off_track: "strategy.pitNone",
+  no_response: "strategy.pitErrNoResponse",
+  bad_response: "strategy.pitErrBadResponse",
+  no_item: "strategy.pitErrNoItem",
+  refused: "strategy.pitErrRefused",
+};
+
+/** Clé de traduction d'une erreur de lecture ou d'écriture du menu des stands. */
+export function pitMenuErrorKey(e: unknown): string {
+  const code = /pit_menu:(\w+)/.exec(String(e))?.[1];
+  return (code && PIT_MENU_ERROR_KEYS[code]) || "strategy.pitErrOther";
+}
+
 /** La donnée si elle est fraîche, sinon null. */
 export function fresh<T>(f: RestField<T> | null | undefined): T | null {
   return f && f.state === "fresh" ? f.data : null;

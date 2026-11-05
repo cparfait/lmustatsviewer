@@ -81,19 +81,25 @@ pub fn with_setting(v: &Value, name: &str, index: i64) -> Option<Value> {
 /// hors piste » lève la seconde condition.
 fn require_allowed(route: &str) -> Result<(), AppError> {
     if !session_ready() {
-        return Err(AppError::Unsupported("Aucune séance chargée dans le jeu.".to_string()));
+        return Err(code("no_session"));
     }
     if !route_allowed_now(route) {
-        return Err(AppError::Unsupported("Menu des stands disponible seulement en piste.".to_string()));
+        return Err(code("off_track"));
     }
     Ok(())
 }
 
+/// Erreur renvoyée à l'interface : un code stable, traduit côté front
+/// (`pitMenuErrorKey`, `lib/lmuRest.ts`), jamais une phrase dans une langue.
+fn code(c: &str) -> AppError {
+    AppError::Unsupported(format!("pit_menu:{c}"))
+}
+
 fn err(e: FetchError) -> AppError {
-    AppError::Unsupported(match e {
-        FetchError::Unreachable => "Le jeu ne répond pas (API locale).".to_string(),
-        _ => "Réponse du jeu illisible.".to_string(),
-    })
+    match e {
+        FetchError::Unreachable => code("no_response"),
+        _ => code("bad_response"),
+    }
 }
 
 /// Lit le menu des stands du jeu.
@@ -118,8 +124,10 @@ pub async fn set_pit_menu_item(name: String, index: i64) -> Result<bool, AppErro
         let client = build_client().ok_or_else(|| AppError::Internal("client HTTP".to_string()))?;
         let base = loopback_base(LMU_REST_PORT);
         let current = fetch_json(&client, &base, ROUTE_MENU_GET).map_err(err)?;
-        let body = with_setting(&current, &name, index)
-            .ok_or_else(|| AppError::Unsupported(format!("Élément « {name} » ou option {index} absent du menu des stands.")))?;
+        let body = with_setting(&current, &name, index).ok_or_else(|| {
+            crate::app_warn!("Menu des stands : élément « {name} » ou option {index} absent");
+            code("no_item")
+        })?;
         let payload = menu_array(&body).map(|a| Value::Array(a.clone())).unwrap_or(body);
         let resp = client
             .post(format!("{base}{ROUTE_MENU_SET}"))
@@ -127,7 +135,8 @@ pub async fn set_pit_menu_item(name: String, index: i64) -> Result<bool, AppErro
             .send()
             .map_err(|_| err(FetchError::Unreachable))?;
         if !resp.status().is_success() {
-            return Err(AppError::Unsupported(format!("Le jeu a refusé le réglage (HTTP {}).", resp.status().as_u16())));
+            crate::app_warn!("Menu des stands : réglage refusé par le jeu (HTTP {})", resp.status().as_u16());
+            return Err(code("refused"));
         }
         let after = fetch_json(&client, &base, ROUTE_MENU_GET).map_err(err)?;
         Ok(parse_menu(&after).iter().any(|it| it.name == name.trim() && it.current == index))

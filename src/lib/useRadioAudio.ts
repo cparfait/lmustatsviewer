@@ -21,6 +21,7 @@ import { announceAnswer, cancelSpeech, onDriverTalk, onSpeechEvent, repeatLast }
 import { setOutputDevice } from "@/lib/radioFx";
 import { buildStatus } from "@/lib/spotter";
 import { engineer } from "@/lib/engineer/state";
+import { wheelAckApplies } from "@/lib/engineer/questions";
 import { WHEEL_ACTIONS } from "@/lib/radioSettings";
 import { toast } from "@/stores/dialogs";
 
@@ -208,7 +209,12 @@ async function runWheelAction(action: string, t: ReturnType<typeof useTranslatio
     }
     case "ackBox": {
       const d = await live.getData().catch(() => null);
-      if (d?.player) engineer.pit.ack(d.player.total_laps);
+      // Même règle que le « ok » à la voix : sans fenêtre annoncée, aucun rappel à couper.
+      const latest = engineer.questions.latest(performance.now() / 1000)?.kind ?? null;
+      if (d?.player && wheelAckApplies(latest, engineer.pit.announced)) {
+        engineer.pit.ack(d.player.total_laps);
+        engineer.questions.close("pitCall");
+      }
       announceAnswer(t("live.spAck"), lang);
       return;
     }

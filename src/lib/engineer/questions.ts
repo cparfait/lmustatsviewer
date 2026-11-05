@@ -80,6 +80,15 @@ export function questionOfKey(key: string): QuestionKind | null {
  */
 export type ShortAnswer = "ackPit" | "stayOut" | "askAgain" | "received";
 
+/**
+ * Bouton du volant « accuser réception du box » : même règle que le « ok » à la voix (sans
+ * fenêtre annoncée ni question ouverte, il ne coupe aucun rappel). Le bouton nomme le box :
+ * une question sur les chronos restée ouverte ne le détourne pas.
+ */
+export function wheelAckApplies(latest: QuestionKind | null, pitWindowSaid: boolean): boolean {
+  return resolveShortAnswer("ack", latest === "lapPref" ? null : latest, pitWindowSaid) === "ackPit";
+}
+
 export function resolveShortAnswer(
   word: "ack" | "yes" | "no",
   latest: QuestionKind | null,

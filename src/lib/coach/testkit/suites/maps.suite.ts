@@ -3,8 +3,9 @@
  * virages détectés + numérotation officielle, notes radio.
  */
 
+import { readFileSync } from "node:fs";
 import { section, ok, eq, approx } from "../assert";
-import { fitTransform, heatSegments, principalAngle, type Pt } from "@/lib/trackMapGeom";
+import { fitTransform, heatSegments, principalAngle, runIndices, splitRuns, tickNormal, trackTicks, type Pt } from "@/lib/trackMapGeom";
 import { LiveHeat, miniDuel, deltaColor } from "@/lib/liveHeat";
 import { detectTrackCorners, officialCornerLabels, cornerTableFor } from "@/lib/trackCorners";
 import { CORNER_TABLE } from "@/data/cornerNames";
@@ -45,6 +46,76 @@ export function run(): void {
     const c = north.project([0, 50]);
     approx(Math.hypot(b[0] - a[0], b[1] - a[1]) / Math.hypot(c[0] - a[0], c[1] - a[1]), 2, 1e-9, "échelle identique sur les deux axes");
     approx(principalAngle([[0, 0], [1, 1], [2, 2], [3, 3]]), Math.PI / 4, 1e-9, "axe principal à 45°");
+  }
+
+  section("trackMapGeom : repères de l'overlay");
+  {
+    const dists = Array.from({ length: 200 }, (_, i) => i * 20 + 10);
+    eq(trackTicks(dists, []).map((tk) => tk.label), ["S1"], "ligne de départ seule, bornes pas encore mesurées");
+    const ticks = trackTicks(dists, [1000, 2600]);
+    eq(ticks.map((tk) => [tk.label, tk.start, tk.idx]), [["S1", true, 0], ["S2", false, 49], ["S3", false, 129]], "départ puis bornes S2 et S3");
+    eq(trackTicks(dists.slice(50), [100]).map((tk) => tk.label), [], "tracé incomplet : ni fausse ligne de départ ni borne sans point proche");
+    // Route horizontale au-dessus du centre : la barre est verticale, l'étiquette vers l'extérieur.
+    const { at, normal } = tickNormal((i) => [i * 10, 50], 10, 5, [50, 150]);
+    eq(at, [50, 50], "centre du repère");
+    approx(Math.abs(normal[0]), 0, 1e-9, "barre en travers de la route");
+    approx(normal[1], -1, 1e-9, "tournée vers l'extérieur");
+  }
+
+  section("regie.html : même géométrie que trackMapGeom");
+  {
+    // La page de la tablette est autonome : son bloc est extrait et comparé à l'original.
+    const page = readFileSync("src-tauri/src/data/regie.html", "utf8");
+    const block = /\/\/ regie-geom:start([\s\S]*?)\/\/ regie-geom:end/.exec(page)?.[1] ?? "";
+    ok(block.length > 0, "bloc de géométrie présent");
+    const geom = new Function(`${block}; return { mapRuns, mapAngle };`)() as {
+      mapRuns: (d: number[], l: number, n: number) => { runs: number[][]; closed: boolean };
+      mapAngle: (p: Pt[], portrait: boolean, north: boolean) => number;
+    };
+    const same = (dists: number[], lapLen: number, label: string) => {
+      const { runs, closed } = splitRuns(dists, lapLen);
+      const expected = runs.map((r) => runIndices(r, dists.length));
+      const got = geom.mapRuns(dists, lapLen, dists.length);
+      eq(got.closed, closed, `${label} : fermé`);
+      eq(got.runs, expected, `${label} : tronçons`);
+    };
+    const full = Array.from({ length: 200 }, (_, i) => i * 20 + 10);
+    same(full, 4000, "tour complet");
+    same(full.filter((d) => d < 1000 || d > 1400), 4000, "un trou");
+    same(full.filter((d) => (d > 100 && d < 1000) || (d > 1400 && d < 3000)), 4000, "deux trous, sans la ligne");
+    same(full.slice(0, 50), 4000, "début de tour seul");
+    same(full, 0, "longueur du tour inconnue");
+    eq(geom.mapRuns([], 4000, 30).closed, true, "sans distances : un polygone, comme avant");
+    eq(geom.mapRuns([], 4000, 30).runs[0].length, 30, "sans distances : tous les points");
+
+    // Orientation : mêmes directions à l'écran que `fitTransform`, sur de vrais tracés.
+    const screen = (p: Pt, ang: number): Pt => {
+      const ca = Math.cos(-ang);
+      const sa = Math.sin(-ang);
+      return [p[0] * ca - p[1] * sa, -(p[0] * sa + p[1] * ca)];
+    };
+    for (const [name, map] of [["Road Atlanta", atlanta], ["Long Beach", longBeach]] as const) {
+      const { pts } = bundled(map as unknown as Record<string, [number, number]>);
+      const check = (mode: "auto" | "north", ang: number) => {
+        const view = fitTransform(pts, pts, { mode, width: 1000 });
+        const scale = (p: Pt, q: Pt) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+        const [a, b, c] = [pts[0], pts[Math.floor(pts.length / 3)], pts[Math.floor((2 * pts.length) / 3)]];
+        const k = scale(view.project(a), view.project(b)) / scale(screen(a, ang), screen(b, ang));
+        const d1 = [(view.project(c)[0] - view.project(a)[0]) / k, (view.project(c)[1] - view.project(a)[1]) / k];
+        const d2 = [screen(c, ang)[0] - screen(a, ang)[0], screen(c, ang)[1] - screen(a, ang)[1]];
+        approx(d1[0], d2[0], 1e-6, `${name} ${mode} : x`);
+        approx(d1[1], d2[1], 1e-6, `${name} ${mode} : y`);
+      };
+      check("auto", geom.mapAngle(pts, false, false));
+      check("north", geom.mapAngle(pts, false, true));
+      // Portrait (propre à la tablette) : axe principal à la verticale, départ en bas.
+      const ang = geom.mapAngle(pts, true, false);
+      const ps = pts.map((p) => screen(p, ang));
+      const w = Math.max(...ps.map((q) => q[0])) - Math.min(...ps.map((q) => q[0]));
+      const ys = ps.map((q) => q[1]);
+      ok(Math.max(...ys) - Math.min(...ys) > w, `${name} portrait : plus haut que large`);
+      ok(ps[0][1] >= (Math.max(...ys) + Math.min(...ys)) / 2, `${name} portrait : départ en bas`);
+    }
   }
 
   section("trackMapGeom.heatSegments");

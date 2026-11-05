@@ -28,6 +28,7 @@ import { run as runSharing } from "./suites/sharing.suite";
 import { run as runFreeAi } from "./suites/freeai.suite";
 import { run as runAtelier } from "./suites/atelier.suite";
 import { run as runPredict } from "./suites/predict.suite";
+import { run as runMic } from "./suites/mic.suite";
 
 runPure();
 runCoach();
@@ -48,6 +49,7 @@ runAnalysis();
 runSharing();
 runAtelier();
 runPredict();
+runMic();
 void (async () => {
   await runVoice();
   await runFreeAi();

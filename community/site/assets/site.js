@@ -736,7 +736,7 @@ function multiFilter(d) {
   const isAll = m.selected === "all" || (Array.isArray(m.selected) && m.items.length > 0 && m.items.every(([v]) => m.selected.includes(v)));
   const label = isAll ? m.all[1] : m.items.filter(([v]) => m.selected.includes(v)).map(([, l, short]) => short ?? l).join(" + ") || m.empty || m.all[1];
   return `
-    <div class="fsel fmulti" data-key="${esc(d.key)}">
+    <div class="fsel fmulti${isAll ? "" : " is-set"}" data-key="${esc(d.key)}">
       <span class="fsel-k"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${FILTER_ICONS[d.key] || ""}</svg>${esc(d.label)}</span>
       <button type="button" class="fmulti-btn">${esc(label)}</button>
       <div class="fmulti-list" hidden>
@@ -917,6 +917,8 @@ function bindFilterBar(root, onChange) {
       const boxes = [...list.querySelectorAll("input:not([value=__all])")];
       if (e.target.value === "__all") boxes.forEach((b) => { b.checked = e.target.checked; });
       const on = boxes.filter((b) => b.checked).map((b) => b.value);
+      // Même repère orange que les listes simples tant que le filtre n'est pas sur « Toutes ».
+      box.classList.toggle("is-set", on.length !== boxes.length);
       onChange(box.dataset.key, on.length === boxes.length ? "all" : on);
     });
   });

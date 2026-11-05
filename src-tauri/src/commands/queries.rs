@@ -941,7 +941,7 @@ pub struct CareerRace {
 }
 
 /// Toutes les courses du joueur, de la plus ancienne à la plus récente.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_career_races(db: State<'_, DbState>) -> Result<Vec<CareerRace>, AppError> {
     let conn = get_conn(&db)?;
     let mut stmt = conn

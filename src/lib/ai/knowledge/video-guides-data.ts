@@ -236,7 +236,7 @@ export const VIDEO_GUIDES: VideoGuide[] = [
   {
     "trackId": "bahrain",
     "classId": "gt3",
-    "layout": null,
+    "layout": "Outer",
     "title": "Bahrain Outer Layout Lap Guide",
     "url": "https://youtu.be/FkDWxFSmj3I"
   },
@@ -257,7 +257,7 @@ export const VIDEO_GUIDES: VideoGuide[] = [
   {
     "trackId": "cota",
     "classId": "gt3",
-    "layout": null,
+    "layout": "National",
     "title": "COTA National Lap Guide",
     "url": "https://youtu.be/h42kcWkM3dM"
   },

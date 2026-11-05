@@ -391,7 +391,12 @@
   table.tt, table.rel { border-collapse:separate; border-spacing:0; }
   .tt td { padding:.45rem .4rem; }
   .cols-auto .tcard { overflow:visible; }
-  .cols-auto .tcard .tt th { position:sticky; top:0; z-index:1; background:var(--panel); }
+  .tcard .tt th { position:sticky; top:0; z-index:1; background:var(--panel); }
+  /* Colonnes « Toutes » : le tableau, plus large que l'écran, défile dans sa carte sur les deux
+     axes (l'en-tête colle à la carte) ; la carte prend la hauteur restante de la zone. */
+  main.tfit { display:flex; flex-direction:column; overflow:hidden; }
+  main.tfit > .mine { flex:none; }
+  main.tfit > .tcard { flex:1 1 auto; min-height:0; overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding-top:0; }
   .posn { display:inline-grid; place-items:center; min-width:1.9em; height:1.55em; padding:0 .25em; border-radius:.45em; background:var(--bg); font-weight:700; }
   tr.me .posn { background:var(--acc); color:#fff; }
   tr.me td:first-child { box-shadow:inset 3px 0 0 var(--acc); }
@@ -660,6 +665,10 @@
   }
   // Écrans activés (au moins un : le dernier ne se désactive pas).
   const enabled = () => { const e = TPLS.filter((k) => !P.off.includes(k)); return e.length ? e : ["timing"]; };
+  // Écran masqué mais affiché par un envoi de l'app : de passage, jusqu'au prochain changement
+  // d'écran ou au rechargement. Le réglage « écran masqué » n'est jamais modifié.
+  let guest = "";
+  const shown = () => TPLS.filter((k) => k === guest || enabled().includes(k));
   $("scr").addEventListener("click", (e) => {
     const b = e.target.closest("[data-scr]"); if (!b) return;
     const k = b.dataset.scr;
@@ -667,7 +676,7 @@
     else if (enabled().length <= 1) { toast(T.atLeastOne); return; }
     else P.off = [...P.off, k];
     savePrefs();
-    if (!enabled().includes(tpl)) setTpl(enabled()[0]); else tabs();
+    if (!shown().includes(tpl)) setTpl(enabled()[0]); else tabs();
   });
   function savePrefs() { localStorage.setItem("regie_prefs", JSON.stringify(P)); applyPrefs(); if (last) render(); }
   $("zm").onclick = () => { P.z -= 0.1; savePrefs(); };
@@ -758,21 +767,22 @@
   function showLogin() { if (timer) { clearInterval(timer); timer = null; } inputsLoop(false); setLost(false); $("app").classList.add("hidden"); $("login").classList.remove("hidden"); $("code").value = ""; $("code").focus(); }
 
   function setTpl(k, dir) {
+    if (k !== guest) guest = "";
     tpl = k; localStorage.setItem("regie_tpl", tpl); tabs(); render(); inputsLoop(FAST.includes(tpl));
     const v = $("view");
     if (dir) { v.classList.remove("in-r", "in-l"); void v.offsetWidth; v.classList.add(dir > 0 ? "in-r" : "in-l"); }
   }
   $("view").addEventListener("animationend", () => $("view").classList.remove("in-r", "in-l"));
   function tabs() {
-    if (!enabled().includes(tpl)) tpl = enabled()[0];
-    $("tabs").innerHTML = enabled().map((k) => `<button type="button" data-k="${k}" class="${k === tpl ? "on" : ""}"><svg class="ico" viewBox="0 0 24 24">${ICONS[k]}</svg><span>${esc(T["t_" + k])}</span></button>`).join("");
+    if (!shown().includes(tpl)) tpl = enabled()[0];
+    $("tabs").innerHTML = shown().map((k) => `<button type="button" data-k="${k}" class="${k === tpl ? "on" : ""}"><svg class="ico" viewBox="0 0 24 24">${ICONS[k]}</svg><span>${esc(T["t_" + k])}</span></button>`).join("");
     $("tabs").querySelectorAll("button").forEach((b) => { b.onclick = () => setTpl(b.dataset.k); b.title = T["t_" + b.dataset.k]; });
-    $("tabs").classList.toggle("many", enabled().length > 5);
-    $("dots").innerHTML = enabled().map((k) => `<i class="${k === tpl ? "on" : ""}"></i>`).join("");
+    $("tabs").classList.toggle("many", shown().length > 5);
+    $("dots").innerHTML = shown().map((k) => `<i class="${k === tpl ? "on" : ""}"></i>`).join("");
     const on = $("tabs").querySelector("button.on");
     if (on && on.scrollIntoView) on.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
-  const step = (n) => { const e = enabled(); const i = Math.max(0, e.indexOf(tpl)); setTpl(e[(i + n + e.length) % e.length], n); };
+  const step = (n) => { const e = shown(); const i = Math.max(0, e.indexOf(tpl)); setTpl(e[(i + n + e.length) % e.length], n); };
   addEventListener("keydown", (e) => { if ($("app").classList.contains("hidden") || sheetOpen()) return; if (e.key === "ArrowRight") step(1); else if (e.key === "ArrowLeft") step(-1); });
 
   // ── Plein écran, orientation, écran allumé ───────────────────────────────
@@ -913,14 +923,15 @@
   }
   // Thème de l'app : posé dans la page par le serveur, suivi à chaque trame.
   // Écran choisi depuis l'app (Configuration › Régie tablette) : appliqué une fois par envoi.
+  // Écran masqué sur cette tablette : affiché de passage, sans le réactiver dans les réglages.
   function applyPush(push) {
     const seen = localStorage.getItem("regie_push") || "";
     const rev = String(push.rev || "");
     if (!rev || rev === seen) return;
     localStorage.setItem("regie_push", rev);
     if (!TPLS.includes(push.tpl)) return;
-    if (P.off.includes(push.tpl)) { P.off = P.off.filter((k) => k !== push.tpl); savePrefs(); }
-    if (tpl !== push.tpl) setTpl(push.tpl);
+    if (!enabled().includes(push.tpl)) guest = push.tpl;
+    if (tpl !== push.tpl) setTpl(push.tpl); else tabs();
   }
   // Réglage « Noir intégral » : thème sombre imposé sur cette tablette, fond 100 % noir.
   function setTheme(t) {
@@ -944,16 +955,45 @@
     if (P.awake) keepAwake(true);
   }
 
-  // ── Carte : axe principal du tracé dans le sens de la zone d'affichage ───
+  // ── Carte : règle commune de `src/lib/trackMapGeom.ts` (tronçons, ligne de départ en bas,
+  // « nord en haut »), réécrite ici car la page est autonome. Comparée à l'originale par la
+  // suite de tests « cartes » : garder le bloc entre les deux repères sans dépendance.
+  // regie-geom:start
+  const MAP_GAP_M = 45, MAP_OPEN_GAP_M = 60;
+  // Tronçons continus du tracé (indices, passage de la ligne compris) ; `closed` : tour complet.
+  function mapRuns(dists, lapLen, n) {
+    const all = Array.from({ length: n }, (_, i) => i);
+    if (dists.length !== n) return { runs: [all], closed: true }; // sans distances : un polygone
+    if (!n) return { runs: [], closed: false };
+    const runs = []; let start = 0;
+    for (let i = 1; i < n; i++) if (dists[i] - dists[i - 1] > MAP_GAP_M) { runs.push([start, i - 1]); start = i; }
+    runs.push([start, n - 1]);
+    const wraps = lapLen > 0 && dists[0] + (lapLen - dists[n - 1]) <= MAP_GAP_M;
+    if (wraps && runs.length === 1) return { runs: [all], closed: true };
+    if (wraps) { const last = runs.pop(), first = runs.shift(); runs.push([last[0], first[1] + n]); }
+    return { runs: runs.map(([a, b]) => { const r = []; for (let i = a; i <= b; i++) r.push(i % n); return r; }), closed: false };
+  }
+  // Angle du tracé : nord en haut = aucun ; sinon axe principal à l'horizontale (à la verticale
+  // en portrait, propre à la tablette), des deux sens possibles celui où le départ est en bas.
+  function mapAngle(pts, portrait, north) {
+    if (north || pts.length < 8) return 0;
+    let mx = 0, mz = 0; for (const p of pts) { mx += p[0]; mz += p[1]; } mx /= pts.length; mz /= pts.length;
+    let sxx = 0, szz = 0, sxz = 0; for (const p of pts) { const x = p[0] - mx, z = p[1] - mz; sxx += x * x; szz += z * z; sxz += x * z; }
+    const ang = 0.5 * Math.atan2(2 * sxz, sxx - szz) + (portrait ? Math.PI / 2 : 0);
+    const ca = Math.cos(-ang), sa = Math.sin(-ang);
+    const yOf = (p) => -(p[0] * sa + p[1] * ca); // y écran (vers le bas)
+    let lo = Infinity, hi = -Infinity; for (const p of pts) { const y = yOf(p); lo = Math.min(lo, y); hi = Math.max(hi, y); }
+    return yOf(pts[0]) < (lo + hi) / 2 ? ang + Math.PI : ang;
+  }
+  // regie-geom:end
   // `box` = place disponible (px) : sert à l'orientation et à garder des
   // pastilles lisibles même sur un téléphone.
   function mapSvg(d, box, style) {
     const pts = (track && track.track_points) || [];
     if (pts.length < 8) return `<div class="meta">${T.none}</div>`;
     let mx = 0, mz = 0; for (const p of pts) { mx += p[0]; mz += p[1]; } mx /= pts.length; mz /= pts.length;
-    let sxx = 0, szz = 0, sxz = 0; for (const p of pts) { const x = p[0] - mx, z = p[1] - mz; sxx += x * x; szz += z * z; sxz += x * z; }
     // Zone plus haute que large (tablette en portrait) : axe principal à la verticale.
-    const ang = 0.5 * Math.atan2(2 * sxz, sxx - szz) + (box.h > box.w ? Math.PI / 2 : 0);
+    const ang = mapAngle(pts, box.h > box.w, !!d.ui_north_up);
     const ca = Math.cos(-ang), sa = Math.sin(-ang);
     const rot = (p) => { const x = p[0] - mx, z = p[1] - mz; return [x * ca - z * sa, -(x * sa + z * ca)]; };
     const pit = (track && track.pit_lane_points) || [];
@@ -967,13 +1007,17 @@
     const rCar = Math.max(11, 9 / ks), rMe = Math.max(16, 12 / ks), road = Math.max(22, 9 / ks);
     const P = (p) => { const [x, y] = rot(p); return [pad + (x - x0) * k, pad + (y - y0) * k]; };
     const path = (arr, close) => arr.map((p, i) => { const [x, y] = P(p); return (i ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1); }).join("") + (close ? "Z" : "");
-    const pitSvg = pit.length > 1 ? `<path d="${path(pit, false)}" fill="none" style="stroke:var(--line)" stroke-width="${(road * 0.36).toFixed(1)}" stroke-dasharray="10 8"/>` : "";
+    // Voie des stands : coupée à chaque saut (le jeu peut la donner en plusieurs tronçons).
+    const pitD = pit.map((p, i) => { const q = pit[i - 1]; const [x, y] = P(p); return (!i || Math.hypot(p[0] - q[0], p[1] - q[1]) > MAP_OPEN_GAP_M ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1); }).join("");
+    const pitSvg = pit.length > 1 ? `<path d="${pitD}" fill="none" style="stroke:var(--line)" stroke-width="${(road * 0.36).toFixed(1)}" stroke-dasharray="10 8"/>` : "";
     const cars = (d.standings || []).filter((s) => s.pos_x || s.pos_z).sort((a, b) => (a.is_player ? 1 : 0) - (b.is_player ? 1 : 0)).map((s) => {
       const [x, y] = P([s.pos_x, s.pos_z]); const me = s.is_player; const r = me ? rMe : rCar;
       return `<g><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${me ? "#ffb400" : classColor(s.vehicle_class)}" style="stroke:var(--panel)" stroke-width="${(r * 0.25).toFixed(1)}"/>` +
         `<text x="${x.toFixed(1)}" y="${(y + r * 0.36).toFixed(1)}" text-anchor="middle" font-size="${(r * 1.05).toFixed(1)}" font-weight="700" fill="#0a0e1a">${s.class_position || s.position}</text></g>`;
     }).join("");
-    const lap = path(pts, true);
+    // Tracé incomplet : tronçons séparés, jamais de ligne droite à travers le circuit.
+    const { runs, closed } = mapRuns((track && track.track_dists) || [], (d.session && d.session.track_length) || 0, pts.length);
+    const lap = runs.filter((r) => r.length >= 2).map((r) => path(r.map((i) => pts[i]), closed)).join("");
     return `<svg class="map" viewBox="0 0 ${W} ${H}" style="${style || ""}">${pitSvg}<path d="${lap}" fill="none" style="stroke:var(--line)" stroke-width="${(road * 1.45).toFixed(1)}" stroke-linejoin="round"/><path d="${lap}" fill="none" style="stroke:var(--road)" stroke-width="${road.toFixed(1)}" stroke-linejoin="round"/>${cars}</svg>`;
   }
 
@@ -983,7 +1027,7 @@
   const remaining = (d) => { const sc = d.session || {}; return sc.end_et > 0 ? clock(Math.max(0, sc.end_et - sc.session_time)) : sc.max_laps > 0 && sc.max_laps < 1000 ? `${sc.max_laps} ${T.laps.toLowerCase()}` : clock(sc.session_time); };
   const classMates = (d, p) => (d.standings || []).filter((s) => s.vehicle_class === p.vehicle_class).sort((a, b) => a.class_position - b.class_position);
 
-  // Couleur d'un secteur : violet = meilleur de la classe ; pour moi seulement (mes
+  // Couleur d'un secteur : violet = meilleur de la classe sur la séance ; pour moi seulement (mes
   // meilleurs secteurs sont connus) : vert = mon meilleur, jaune = plus lent que mon meilleur.
   const secCls = (s, n, d) => {
     if (s["is_class_best_s" + n]) return "sb";
@@ -1266,6 +1310,7 @@
     if (touching) { pending = true; return; }
     // Pages tableau de bord : pleine zone ; disposition selon la forme de la zone.
     v.classList.toggle("fit", FIT.includes(tpl));
+    v.classList.toggle("tfit", tpl === "timing" && P.cols === "all");
     const ratio = v.clientWidth / Math.max(1, v.clientHeight);
     v.dataset.shape = ratio >= 1.6 ? "wide" : ratio >= 1.05 ? "land" : "port";
     v.classList.toggle("tight", Math.min(innerWidth, innerHeight) < 560);
@@ -1278,11 +1323,11 @@
     // Pédales : la structure reste en place, seules les valeurs bougent (~15 fois par seconde).
     if (tpl === "inputs" && same && $("pi-g")) { updInputs(); return; }
     if (tpl === "gear" && same && $("gd-g")) { updGear(); return; }
-    const top = v.scrollTop, xs = [...v.querySelectorAll(".card")].map((c) => c.scrollLeft);
+    const top = v.scrollTop, xs = [...v.querySelectorAll(".card")].map((c) => [c.scrollLeft, c.scrollTop]);
     v.innerHTML = f(d);
     fitPage(v);
     for (const el of v.querySelectorAll(".mapslot")) el.innerHTML = mapSvg(d, { w: Math.max(80, el.clientWidth - 8), h: Math.max(80, el.clientHeight - 8) });
-    if (same) { v.querySelectorAll(".card").forEach((c, i) => { if (xs[i]) c.scrollLeft = xs[i]; }); v.scrollTop = top; } else v.scrollTop = 0;
+    if (same) { v.querySelectorAll(".card").forEach((c, i) => { if (xs[i]) { c.scrollLeft = xs[i][0]; c.scrollTop = xs[i][1]; } }); v.scrollTop = top; } else v.scrollTop = 0;
     shownTpl = tpl;
     if (tpl === "inputs") updInputs();
     if (tpl === "gear") updGear();

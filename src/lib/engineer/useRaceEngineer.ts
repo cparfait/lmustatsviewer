@@ -41,11 +41,11 @@ import { NameDoser, VariantPicker, splitVariants } from "./variants";
 import { ProximitySpotter, type SpotCall } from "./proximity";
 import { ToneArbiter, setSharedTone, BATTLE_GAP_S } from "./tone";
 import { decideLapCallout, SectorTracker, LEADER_GAP_EVERY, CLASS_GAPS_EVERY, CLASS_GAPS_MAX_S, FLYING_FACTOR } from "./lapPolicy";
-import { applyLapPref, parseLapPrefs, questionDue, sessionKind } from "./prefs";
+import { applyLapPref, lapBudgetExempt, parseLapPrefs, questionDue, sessionKind } from "./prefs";
 import { onTrack, slowerPackAhead, fasterBehind } from "./traffic";
 import { TrafficPredictor, fasterContact, carKey } from "./trafficPredict";
 import { questionOfKey } from "./questions";
-import { crossedTiers, loadPaceTiers, nextTier, type PaceTier } from "./paceTiers";
+import { loadPaceTiers, tierLoadDue, tierProgress, tierRetryDelayMs, type PaceTier, type TierRetry } from "./paceTiers";
 import { RivalPitWatcher } from "./rivalPits";
 import { BatteryWatcher, CRITICAL_PCT } from "./battery";
 import { VigieTracker, type VigieEvent } from "./vigie";
@@ -68,7 +68,7 @@ import { GameMessageTracker, type GameMsg, type GameWarning } from "./gameMessag
 import { FrozenOrderTracker, type Column, type FoTarget } from "./frozenOrder";
 import { EndgameWatcher } from "./endgame";
 import { PaceOutlook } from "./paceOutlook";
-import { chequeredPhrase } from "./debriefRadio";
+import { chequeredPhrase, clockJumped, dnfStillDriving, RaceSeen, SAVE_RETRY_MS, saveVerdict } from "./debriefRadio";
 import { loadTrackHistory, recallPhrase } from "./trackRecall";
 import { TyreEventWatcher } from "./tyreEvents";
 import { formatPressure } from "./pressures";
@@ -342,6 +342,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   /** Tour de sortie des stands en cours (qualif : ce n'est pas un tour lancé). */
   const outLap = useRef(true);
   const outLapPrevPits = useRef(false);
+  /** Le dernier tour bouclé était un tour de sortie : son chrono n'est pas un « meilleur temps ». */
+  const lastLapWasOut = useRef(false);
   const engineTempWarned = useRef(false);
   const rainHeavy = useRef(false);
   const blueWarned = useRef(false);
@@ -416,7 +418,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const startClassPos = useRef<number | null>(null);
   const debriefSaid = useRef(false);
   /** La course a été vue rouler (tour ≥ 1 sans arrivée) : condition du bilan au damier. */
-  const raceSeen = useRef(false);
+  const raceSeen = useRef(new RaceSeen());
   /** Abandon vu par le jeu (`finish_status` 2) : sauvegarde de course ou vrai abandon ?
    *  `pending` le temps de lire `UserData/Saves`, `save` = on se tait. */
   /** Profils de vitesse par classe appris en roulant (préavis de trafic prédit). */
@@ -425,7 +427,15 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const tierKey = useRef("");
   const paceTiers = useRef<PaceTier[] | null>(null);
   const tierTargetSaid = useRef(false);
-  const saveCheck = useRef<"none" | "pending" | "save" | "dnf">("none");
+  /** Dernier échec de chargement des paliers : nouvel essai espacé, pas à chaque trame. */
+  const tierRetry = useRef<TierRetry | null>(null);
+  /** Meilleur tour vu par `circuit|classe`, toutes séances : un repère passé n'est pas redit. */
+  const tierBests = useRef(new Map<string, number>());
+  const saveCheck = useRef<"none" | "pending" | "retry" | "save" | "dnf">("none");
+  const saveRetryAt = useRef(0);
+  /** Début du statut « abandon » (ms) et voiture vue rouler depuis : course rechargée. */
+  const dnfSince = useRef(0);
+  const dnfRolled = useRef(false);
   /** Dernier tour où la tendance de rythme a été évaluée. */
   const paceLap = useRef(-1);
   /** Tracé + classe déjà rappelés (une réplique par combo et par lancement). */
@@ -491,15 +501,18 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
   // Garde « pilote occupé » de la file vocale : revérifiée juste avant chaque
   // prise de parole non critique (ingénieur ET coach : fenêtres coordonnées).
+  // Elle suit l'interrupteur vocal, pas `enabled` : le coach par virage parle dès
+  // qu'il est actif, même hors page Live, et nourrit lui-même `engineer.driver`.
+  const voiceOn = useAppStore((s) => s.voiceAnnouncements);
   useEffect(() => {
-    if (!enabled || !quietZones) {
+    if (!voiceOn || !quietZones) {
       setSpeechGate(null);
       return;
     }
     const clock = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
     setSpeechGate(() => driverBusy(engineer.driver, clock()));
     return () => setSpeechGate(null);
-  }, [enabled, quietZones]);
+  }, [voiceOn, quietZones]);
   useEffect(() => {
     if (!enabled || !track || !lmuPath || forecastTrack.current === track) return;
     forecastTrack.current = track;
@@ -603,7 +616,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       pace.current.reset();
       paceLap.current = -1;
       startClassPos.current = null;
-      raceSeen.current = false;
+      raceSeen.current.restart(now);
+      lastLapWasOut.current = false;
       debriefSaid.current = false;
       saveCheck.current = "none";
       tierTargetSaid.current = false;
@@ -612,6 +626,13 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (sc.track !== lastTrack.current) {
       lastTrack.current = sc.track;
       engineer.pitTraffic.resetTrack();
+    }
+    // Sauvegarde rechargée plus loin dans la course : l'horloge saute en avant, sans
+    // redémarrage ; le « abandon » qui suit n'en est pas un.
+    if (!sessionReset && clockJumped(prevSessionTime.current, sc.session_time)) {
+      raceSeen.current.restart(now);
+      debriefSaid.current = false;
+      saveCheck.current = "none";
     }
     if (sessionReset) clockRunning.current = false;
     else if (sc.session_time > prevSessionTime.current + 1e-3) clockRunning.current = true;
@@ -624,17 +645,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     else cornerNamer.update("", [], [], 0);
 
     // ── Concentration : freinages appris + état de pilotage pour la file vocale ─
-    if (tel) {
-      engineer.brakes.setTrack(sc.track);
-      const dist = tel.lap_dist_est > 0 ? tel.lap_dist_est : tel.lap_dist;
-      engineer.brakes.push(dist, tel.brake, lapNow, tel.speed_kmh, sc.track_length);
-      engineer.driver = {
-        brake: tel.brake,
-        steer: tel.steering,
-        distToBrake: engineer.brakes.distToNext(dist, sc.track_length),
-        at: now,
-      };
-    }
+    if (tel) engineer.noteDriving(tel, sc.track, sc.track_length, lapNow, now);
     let nearestGap = Infinity;
 
     // Stratégie commune (carburant, énergie virtuelle, tours restants).
@@ -994,6 +1005,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       // il passait pour un record (« Meilleur tour… » au bout de l'out-lap).
       const outLapDone = lapDone && outLap.current && !full;
       if (lapDone) {
+        lastLapWasOut.current = outLapDone;
         lapsSinceLapCallout.current++;
         outLap.current = false;
         engineer.energy.push(data.extended?.virtual_energy ?? 0);
@@ -1018,16 +1030,25 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (!call) crossoverSaid.current = null;
       // Paliers de chrono : chargés au changement de circuit ou de classe (hors course).
       const tierClass = playerStanding?.vehicle_class ?? "";
-      if (extras.paceTiers && !isRace && sc.track && tierClass && tierKey.current !== `${sc.track}|${tierClass}`) {
-        const k = `${sc.track}|${tierClass}`;
+      const tierCombo = `${sc.track}|${tierClass}`;
+      if (extras.paceTiers && !isRace && sc.track && tierClass && tierLoadDue(tierCombo, tierKey.current, tierRetry.current, now)) {
+        const k = tierCombo;
         tierKey.current = k;
         paceTiers.current = null;
         tierTargetSaid.current = false;
         void loadPaceTiers(sc.track, tierClass)
           .then((x) => {
-            if (tierKey.current === k) paceTiers.current = x;
+            if (tierKey.current !== k) return;
+            paceTiers.current = x;
+            tierRetry.current = null;
           })
-          .catch(() => {});
+          .catch(() => {
+            // Échec réseau (un combo inconnu répond `null`) : ce combo sera retenté, espacé.
+            if (tierKey.current !== k) return;
+            tierKey.current = "";
+            const attempts = (tierRetry.current?.key === k ? tierRetry.current.attempts : 0) + 1;
+            tierRetry.current = { key: k, attempts, at: now + tierRetryDelayMs(attempts) };
+          });
       }
       if (!inPits && lapDone && player.last_lap_time > 0) {
         const best = player.best_lap_time;
@@ -1043,15 +1064,23 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         });
         // Préférence posée à la voix pour ce type de séance (sinon : politique habituelle).
         const flyingLap = isPb || (prevBest.current > 0 && player.last_lap_time <= prevBest.current * FLYING_FACTOR);
-        const decision = outLapDone
-          ? null
-          : applyLapPref(engineer.lapPrefs.prefs[sessionKind(sc.session)], autoDecision, isPb, flyingLap);
+        const lapPref = engineer.lapPrefs.prefs[sessionKind(sc.session)];
+        const decision = outLapDone ? null : applyLapPref(lapPref, autoDecision, isPb, flyingLap);
         if (decision && lapVoice) {
+          // Record ou préférence du pilote : ni le budget ni une radio plus urgente au même
+          // instant ne le perdent (retenté quelques secondes).
+          const exempt = lapBudgetExempt(lapPref, decision);
           say(
             "lap:time",
             `${t(decision === "pb" ? "live.vBestLap" : "live.vLastLap")} ${lapVoice}`,
             "chatty",
-            { group: "lap", order: 0, score: decision === "pb" ? 35 : 20, moment: decision === "pb" ? "lap:pb" : undefined },
+            {
+              group: "lap",
+              order: 0,
+              score: decision === "pb" ? 35 : 20,
+              moment: decision === "pb" ? "lap:pb" : undefined,
+              ...(exempt ? { exempt, retryS: 10 } : {}),
+            },
           );
           lapsSinceLapCallout.current = 0;
           if (decision === "pb") lastAnnouncedPb.current = player.last_lap_time;
@@ -1089,9 +1118,10 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         // quand un nouveau meilleur tour en passe un, sinon une fois par session. Jamais un
         // centile ni un nombre de pilotes : « le prochain repère » et son chrono.
         const tiers = paceTiers.current;
+        const seenBest = tierBests.current.get(tierCombo) ?? null;
+        if (best > 0 && (seenBest == null || best < seenBest)) tierBests.current.set(tierCombo, best);
         if (extras.paceTiers && tiers && !isRace && isPb && !outLapDone && (data.weather?.rain ?? 0) < 0.1) {
-          const next = nextTier(best, tiers);
-          const crossed = crossedTiers(prevBest.current > 0 ? prevBest.current : null, best, tiers);
+          const { crossed, next } = tierProgress(seenBest, best, tiers);
           const time = next ? fmtLapVoice(next.timeS, t, true) : "";
           if (crossed.length) {
             tierTargetSaid.current = true;
@@ -1109,8 +1139,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         // Question unique par type de séance : comment le pilote veut ses chronos.
         const kind = sessionKind(sc.session);
         if (askPrefs && !full && warmedUp && player.total_laps >= 2 && questionDue(engineer.lapPrefs, kind)) {
+          // Marquée posée seulement une fois entendue (`onHeard` plus bas) : proposée mais
+          // tue par la politique ou l'arbitre, ou coupée à la radio, elle sera reposée.
           say("prefs:ask", t("live.vAskLapPref"), "chatty", { score: 15, retryS: 60 });
-          engineer.markAsked(kind);
         }
 
         // Débrief de secteur : secteur chroniquement faible (moyenne 4 tours
@@ -1688,11 +1719,14 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       if (improved) {
         const tv = fmtLapVoice(fastest, t, tenth);
         const isPlayer = !!player && fastestDriver === player.driver;
-        if (isPlayer)
-          say("fastest:me", t(fastestCls != null ? "live.vFastestYouClass" : "live.vFastestYou", { time: tv }), "chatty", {
-            score: 30,
-          });
-        else
+        // Seul ou premier à signer un temps : le chrono de l'out-lap n'est pas un meilleur temps.
+        if (isPlayer) {
+          if (!lastLapWasOut.current)
+            say("fastest:me", t(fastestCls != null ? "live.vFastestYouClass" : "live.vFastestYou", { time: tv }), "chatty", {
+              score: 30,
+              exempt: true,
+            });
+        } else
           say(
             "fastest",
             t(fastestCls != null ? "live.vFastestClass" : "live.vFastest", { driver: radioName(fastestDriver), time: tv }),
@@ -1742,7 +1776,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     // Place de départ en classe : seulement si la grille a été vue (tour 0).
     if (isRace && playerStanding && lapNow === 0 && finishStatus === 0 && playerStanding.class_position > 0)
       startClassPos.current = playerStanding.class_position;
-    if (isRace && lapNow >= 1 && finishStatus === 0) raceSeen.current = true;
+    raceSeen.current.frame(now, isRace && lapNow >= 1 && finishStatus === 0);
     if (finishStatus !== 2) saveCheck.current = "none";
     pace.current.push(data.standings);
     if (paceOutlookRadio && isRace && warmedUp && !inPits && lapNow !== paceLap.current) {
@@ -1758,23 +1792,35 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     // « abandon » : avant de le dire, on regarde si le jeu vient d'écrire une sauvegarde de
     // cette voiture (`UserData/Saves`). Sauvegarde récente non marquée abandon = on se tait.
     const dnfToCheck =
-      debriefRadio && isRace && finishStatus === 2 && raceSeen.current && !debriefSaid.current && player != null;
-    if (dnfToCheck && saveCheck.current === "none") {
+      debriefRadio && isRace && finishStatus === 2 && raceSeen.current.seen && !debriefSaid.current && player != null;
+    // Deux lectures au plus, espacées : le jeu peut écrire le fichier juste après le statut.
+    if (dnfToCheck && (saveCheck.current === "none" || (saveCheck.current === "retry" && now >= saveRetryAt.current))) {
       if (!lmuPath) saveCheck.current = "dnf";
       else {
+        const attempt = saveCheck.current === "none" ? 0 : 1;
         saveCheck.current = "pending";
+        const settle = (sv: { retired?: boolean | null } | null) => {
+          if (saveCheck.current !== "pending") return;
+          saveRetryAt.current = now + SAVE_RETRY_MS;
+          saveCheck.current = saveVerdict(sv, attempt);
+        };
         void liveApi
           .recentRaceSave(lmuPath, playerStanding?.vehicle_name ?? "", RACE_SAVE_MAX_AGE_S)
-          .then((sv) => {
-            if (saveCheck.current === "pending") saveCheck.current = sv && sv.retired !== true ? "save" : "dnf";
-          })
-          .catch(() => {
-            if (saveCheck.current === "pending") saveCheck.current = "dnf";
-          });
+          .then(settle)
+          .catch(() => settle(null));
       }
     }
-    const dnfHeld = finishStatus === 2 && saveCheck.current !== "dnf";
-    if (debriefRadio && isRace && finishStatus > 0 && !dnfHeld && raceSeen.current && !debriefSaid.current && player) {
+    // Voiture qui roule sous statut « abandon » : course rechargée. Retenu jusqu'à la sortie
+    // de ce statut, pour ne pas l'annoncer au prochain arrêt au stand.
+    if (finishStatus !== 2) {
+      dnfSince.current = 0;
+      dnfRolled.current = false;
+    } else {
+      if (!dnfSince.current) dnfSince.current = now;
+      if (dnfStillDriving(dnfSince.current, now, data.telemetry?.speed_kmh ?? 0)) dnfRolled.current = true;
+    }
+    const dnfHeld = finishStatus === 2 && (saveCheck.current !== "dnf" || dnfRolled.current);
+    if (debriefRadio && isRace && finishStatus > 0 && !dnfHeld && raceSeen.current.seen && !debriefSaid.current && player) {
       debriefSaid.current = true;
       const me = playerStanding;
       const text = chequeredPhrase(
@@ -1839,6 +1885,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
 
     // ── Arbitrage + diffusion ────────────────────────────────────────────────
     arbiter.current.textRepeatLaps = !full && replay ? TEXT_REPEAT_LAPS : 0;
+    // Un candidat retenu ne repasse pas par la politique : le plafond d'incident vaut aussi pour lui.
+    arbiter.current.dropPending((c) => engineer.policy.incidentCapped(c, policyCtx));
     const { spoken } = arbiter.current.decide(allowed, nowS, lapNow, full);
     engineer.policy.commit(spoken, policyCtx);
     radioLog.record(spoken, `${sc.track}|${sc.session}`);
@@ -1849,8 +1897,13 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     }
     const repeatPrefix = t("live.vRepeatPrefix");
     const voiceOf = (c: Candidate) => names.current.apply(driverName, c.moment ?? null, c.text, nowS);
-    const optsOf = (c: Candidate): SpeakOpts | undefined =>
-      replay ? { replayPrefix: repeatPrefix, retryIfLost: c.prio === "critical" || classOf(c) === "decision" } : undefined;
+    const askKind = sessionKind(sc.session);
+    const optsOf = (c: Candidate): SpeakOpts | undefined => {
+      const base: SpeakOpts | undefined = replay
+        ? { replayPrefix: repeatPrefix, retryIfLost: c.prio === "critical" || classOf(c) === "decision" }
+        : undefined;
+      return c.key === "prefs:ask" ? { ...base, onHeard: () => engineer.markAsked(askKind) } : base;
+    };
 
     if (quietZones) {
       // Silence anticipé : la file vocale retient elle-même les annonces non

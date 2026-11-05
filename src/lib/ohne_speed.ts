@@ -1,5 +1,7 @@
+import { emit, listen } from "@tauri-apps/api/event";
 import type { CarClass } from "./staticData";
-import { community, config, isTauri, type CommunityTiers } from "./api";
+import { community, isTauri, type CommunityTiers } from "./api";
+import { appSetting } from "./widgetLink";
 
 export type OhneSpeedTier = "Alien" | "Competitive" | "Good" | "Midpack" | "Tail-ender" | "Offline";
 
@@ -266,16 +268,46 @@ export type TierSource = "ohne" | "community";
 export const TIER_SOURCE_KEY = "tier_source";
 let tierSource: TierSource | null = null;
 
-/** Change la source (réglage) : les paliers seront relus au prochain chargement. */
-export function setTierSource(src: TierSource): void {
+/** Évènement Tauri : chaque fenêtre (principale, overlay) a sa propre copie de ce module. */
+const TIER_SOURCE_EVENT = "tier-source-changed";
+const tierSourceSubs = new Set<() => void>();
+let tierSourceHeard = false;
+
+function applyTierSource(src: TierSource): void {
+  const changed = src !== tierSource;
   tierSource = src;
   cachedBenchmarks = null;
+  if (changed) tierSourceSubs.forEach((cb) => cb());
+}
+
+/** Écoute (une fois) les changements faits dans une autre fenêtre de l'app. */
+function hearTierSource(): void {
+  if (tierSourceHeard || !isTauri()) return;
+  tierSourceHeard = true;
+  void listen<TierSource>(TIER_SOURCE_EVENT, (e) => applyTierSource(e.payload)).catch(() => {});
+}
+
+/** Change la source (réglage), pour toutes les fenêtres : les paliers seront relus au prochain chargement. */
+export function setTierSource(src: TierSource): void {
+  applyTierSource(src);
+  if (isTauri()) void emit(TIER_SOURCE_EVENT, src).catch(() => {});
+}
+
+/** Prévient quand la source change : à relire avec `fetchBenchmarks`. Renvoie le désabonnement. */
+export function onTierSourceChange(cb: () => void): () => void {
+  hearTierSource();
+  tierSourceSubs.add(cb);
+  return () => {
+    tierSourceSubs.delete(cb);
+  };
 }
 
 async function currentTierSource(): Promise<TierSource> {
+  hearTierSource();
   if (tierSource) return tierSource;
-  let v: string | null = null;
-  if (isTauri()) v = await config.get(TIER_SOURCE_KEY).catch(() => null);
+  // Fenêtres de l'app : configuration ; widget par adresse : réglage transmis par le serveur
+  // de widgets, à la connexion (un changement est vu au prochain chargement de la page).
+  const v = await appSetting(TIER_SOURCE_KEY).catch(() => null);
   tierSource = v === "community" ? "community" : "ohne";
   return tierSource;
 }
@@ -295,9 +327,20 @@ function paceFromReference(refMs: number): PaceBenchmark["racePaceMs"] {
   };
 }
 
+/** Adresse par défaut de la base communautaire (`DEFAULT_URL` de `community.rs`). */
+const COMMUNITY_URL = "https://lmu.cparfait.ovh";
+
+async function readTiers(): Promise<CommunityTiers | null> {
+  if (isTauri()) return community.get<CommunityTiers>("tiers");
+  // Widget par adresse (OBS, navigateur) : pas d'IPC ; route publique, ouverte en CORS.
+  const base = ((await appSetting("community_url").catch(() => null)) || COMMUNITY_URL).trim().replace(/\/+$/, "");
+  const res = await fetch(`${base}/api/v1/tiers`);
+  return res.ok ? ((await res.json()) as CommunityTiers) : null;
+}
+
 /** Références de la base communautaire, au format des paliers ohne_speed. */
 export async function fetchCommunityBenchmarks(): Promise<PaceBenchmark[]> {
-  const res = await community.get<CommunityTiers>("tiers");
+  const res = await readTiers();
   const out: PaceBenchmark[] = [];
   for (const r of res?.references ?? []) {
     const cls = OHNE_CLASS[r.car_class] as CarClass | undefined;
@@ -328,20 +371,23 @@ export async function fetchBenchmarks(): Promise<PaceBenchmark[]> {
     return cachedBenchmarks;
   }
 
-  if ((await currentTierSource()) === "community") {
+  const src = await currentTierSource();
+  if (src === "community") {
     // Base injoignable ou vide : repli sur la feuille, pour ne jamais perdre les paliers.
     const fromBase = await fetchCommunityBenchmarks().catch(() => []);
     if (fromBase.length > 0) {
-      cachedBenchmarks = fromBase;
-      return cachedBenchmarks;
+      // Source changée pendant la lecture : le résultat sert à l'appelant, pas au cache.
+      if (tierSource === src) cachedBenchmarks = fromBase;
+      return fromBase;
     }
   }
 
   const res = await fetch(SHEET_CSV_URL);
   if (!res.ok) throw new Error(`ohne_speed fetch failed: ${res.status}`);
   const text = await res.text();
-  cachedBenchmarks = parseCSV(text);
-  return cachedBenchmarks;
+  const fromSheet = parseCSV(text);
+  if (tierSource === src) cachedBenchmarks = fromSheet;
+  return fromSheet;
 }
 
 export function findBenchmark(

@@ -15,9 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import {
   CLOUD_VOICE_PROVIDERS,
+  explainCloudError,
   getCloudVoiceProvider,
-  missingPermission,
-  permissionLabel,
   providerDefaultVoice,
   type CloudVoiceOption,
   type CloudVoiceProviderId,
@@ -41,19 +40,6 @@ import { CloudVoiceBench } from "@/components/CloudVoiceBench";
 import { toastError, toastSuccess } from "@/stores/dialogs";
 
 /** Champ texte enregistré à la sortie (ou sur Entrée). */
-/**
- * Message lisible pour une erreur du fournisseur de voix. Clé à droits restreints
- * (ElevenLabs `missing_permissions`) : quelle permission manque et où l'activer,
- * au lieu du JSON brut renvoyé par le service. Autres erreurs : texte inchangé.
- */
-function explainCloudError(raw: string, providerName: string, t: (k: string, o?: Record<string, unknown>) => string): string {
-  const perm = missingPermission(raw);
-  if (perm === null) return raw;
-  return perm
-    ? t("config.cloudVoiceMissingPermission", { name: providerName, permission: permissionLabel(perm) })
-    : t("config.cloudVoiceMissingPermissionAny", { name: providerName });
-}
-
 function CommitInput(props: {
   value: string;
   placeholder?: string;

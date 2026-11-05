@@ -61,6 +61,9 @@ const WAKE_CONFIRM: u32 = 2;
 const STALL_S: u64 = 3;
 /// Micro perdu et aucun disponible : nouvel essai d'ouverture toutes les… (s).
 const REOPEN_RETRY_S: u64 = 2;
+/// Modèle vocal absent pour le mot déclencheur : nouvelle recherche toutes les… (s),
+/// pour que le mot marche dès la fin du téléchargement, sans relancer l'app.
+const WAKE_MODEL_RETRY_S: u64 = 5;
 
 // ── Briques pures (testées) ──────────────────────────────────────────────────
 
@@ -186,15 +189,19 @@ pub(crate) fn after_wake(text: &str, word: &str) -> Option<String> {
         return None;
     }
     let words: Vec<&str> = text.split_whitespace().collect();
+    // Comparaison mot normalisé par mot normalisé, chacun avec le mot de la dictée
+    // d'où il vient : « l'ingénieur » donne `l` + `ingenieur`, que le moteur l'écrive
+    // d'un bloc ou en deux (« l' ingénieur »). Le reste de la phrase garde sa forme.
+    let parts: Vec<(String, usize)> = words
+        .iter()
+        .enumerate()
+        .flat_map(|(i, h)| norm_words(h).split(' ').map(|p| (p.to_string(), i)).collect::<Vec<_>>())
+        .filter(|(p, _)| !p.is_empty())
+        .collect();
     let n = want.len();
-    for i in 0..words.len() {
-        if i + n <= words.len()
-            && words[i..i + n]
-                .iter()
-                .zip(&want)
-                .all(|(h, w)| same_word(&norm_words(h), w))
-        {
-            return Some(words[i + n..].join(" "));
+    for i in 0..parts.len() {
+        if i + n <= parts.len() && parts[i..i + n].iter().zip(&want).all(|((h, _), w)| same_word(h, w)) {
+            return Some(words[parts[i + n - 1].1 + 1..].join(" "));
         }
     }
     None
@@ -448,6 +455,7 @@ fn run(
             Some(o)
         }
         Err(e) => {
+            crate::app_warn!("[voice_input] micro indisponible : {e}");
             let _ = ready.send(Err(e));
             return;
         }
@@ -467,16 +475,11 @@ fn run(
 
     // Reconnaissance restreinte au mot (rien d'autre n'est transcrit).
     let word = wake_word.map(|w| w.trim().to_lowercase()).filter(|w| !w.is_empty());
-    let mut rec = match &word {
-        Some(w) => match get_model(&app, &lang) {
-            Ok(model) => Recognizer::new_with_grammar(model, SR as f32, &[w.as_str(), "[unk]"]),
-            Err(e) => {
-                let _ = app.emit("voice-input-error", ErrorPayload { message: e.to_string() });
-                None
-            }
-        },
-        None => None,
-    };
+    let mut rec: Option<Recognizer> = None;
+    // Prochaine recherche du modèle (`None` : plus rien à chercher) ; l'échec n'est
+    // signalé qu'une fois, le micro étant déjà ouvert et le front à l'écoute.
+    let mut next_model_try = word.as_ref().map(|_| Instant::now());
+    let mut model_error_sent = false;
     let mut wake = Wake::Idle { hits: 0 };
     let mut was_muted = false;
     let mut chunk: Vec<i16> = Vec::with_capacity(4096);
@@ -599,6 +602,27 @@ fn run(
         }
 
         // Mot déclencheur.
+        if next_model_try.is_some_and(|at| Instant::now() >= at) {
+            let w = word.as_deref().unwrap_or("");
+            let loaded = get_model(&app, &lang).map(|m| Recognizer::new_with_grammar(m, SR as f32, &[w, "[unk]"]));
+            // Seul un modèle absent peut changer (téléchargement) : un échec de
+            // chargement n'est pas retenté en boucle.
+            next_model_try = matches!(loaded, Err(AppError::NotFound(_)))
+                .then(|| Instant::now() + Duration::from_secs(WAKE_MODEL_RETRY_S));
+            let message = match loaded {
+                Ok(Some(r)) => {
+                    rec = Some(r);
+                    None
+                }
+                Ok(None) => Some(format!("grammaire refusée : {w}")),
+                Err(e) => Some(e.to_string()),
+            };
+            if let Some(message) = message.filter(|_| !model_error_sent) {
+                model_error_sent = true;
+                crate::app_warn!("[voice_input] mot déclencheur inactif : {message}");
+                let _ = app.emit("voice-input-error", ErrorPayload { message });
+            }
+        }
         let Some(r) = rec.as_mut() else { continue };
         if muted {
             if !was_muted {
@@ -792,8 +816,9 @@ pub fn ptt_begin(auto_send: bool) -> bool {
 /// demande de la conserver. Une seule prise, écrasée à chaque appui.
 static LAST_UTTERANCE: Mutex<Option<Vec<i16>>> = Mutex::new(None);
 
-/// Copie la capture (bornée à `MAX_CAPTURE_S`) avant la dictée.
-fn remember_utterance(buf: &[i16]) {
+/// Copie la capture (bornée à `MAX_CAPTURE_S`) avant la dictée. Sert aussi à la capture
+/// à l'appui du navigateur (moteur arrêté, « Micro prêt » décoché).
+pub(crate) fn remember_utterance(buf: &[i16]) {
     let n = buf.len().min((MAX_CAPTURE_S * SR as f32) as usize);
     if let Ok(mut g) = LAST_UTTERANCE.lock() {
         *g = Some(buf[..n].to_vec());
@@ -913,6 +938,22 @@ mod tests {
         assert_eq!(after_wake("douze pour cent", "ingénieur"), None);
         assert_eq!(after_wake("", "ingénieur"), None);
         assert_eq!(after_wake("ingénieux", "ingénieur"), None);
+    }
+
+    /// « l'ingénieur » : d'un bloc ou en deux, le mot est reconnu, avec ou sans élision.
+    #[test]
+    fn wake_word_after_elision() {
+        for text in ["l'ingénieur juste l'essentiel", "l' ingénieur juste l'essentiel", "l ingénieur juste l'essentiel"] {
+            assert_eq!(after_wake(text, "ingénieur").as_deref(), Some("juste l'essentiel"), "{text}");
+            assert_eq!(after_wake(text, "l'ingénieur").as_deref(), Some("juste l'essentiel"), "{text}");
+        }
+        assert_eq!(after_wake("L'ingénieur", "ingénieur").as_deref(), Some(""));
+        assert_eq!(after_wake("l’ingénieur carburant", "ingénieur").as_deref(), Some("carburant"));
+        assert_eq!(after_wake("Dis à l'ingénieur, on se bat", "ingénieur").as_deref(), Some("on se bat"));
+        assert_eq!(after_wake("l'ingegnere benzina", "ingegnere").as_deref(), Some("benzina"));
+        // L'élision n'ouvre pas la porte à un autre mot.
+        assert_eq!(after_wake("l'ingénieux carburant", "ingénieur"), None);
+        assert_eq!(after_wake("l'essentiel", "ingénieur"), None);
     }
 
     #[test]

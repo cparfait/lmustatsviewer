@@ -410,6 +410,15 @@ fn worker_slot() -> &'static Mutex<Option<PiperWorker>> {
     WORKER.get_or_init(|| Mutex::new(None))
 }
 
+/// Arrête le worker s'il a chargé cette voix (avant sa suppression : il ne doit ni
+/// bloquer l'effacement du fichier, ni survivre à une voix effacée).
+pub(crate) fn release_worker(voice_id: &str) {
+    let mut slot = worker_slot().lock().unwrap_or_else(|e| e.into_inner());
+    if slot.as_ref().is_some_and(|w| stem(&w.model) == voice_id) {
+        *slot = None; // drop → kill
+    }
+}
+
 /// Démarre un worker Piper pour `p` (chargement du modèle en arrière-plan côté Piper).
 fn spawn_worker(p: &SynthParams) -> std::io::Result<PiperWorker> {
     let out_dir = p.cache.join("tts_worker");

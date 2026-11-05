@@ -223,6 +223,11 @@ export interface SpeakOpts {
    */
   retryIfLost?: boolean;
   /**
+   * Annonce entendue jusqu'au bout (ni coupée, ni périmée dans la file) : pour ce qui ne
+   * doit compter que si le pilote l'a vraiment entendu (question posée une seule fois).
+   */
+  onHeard?: () => void;
+  /**
    * Tenue du canal (ms) : après cette annonce, aucune annonce non critique ne
    * démarre pendant ce délai (le spotter garde la parole).
    */
@@ -1116,7 +1121,7 @@ export function speak(
   if (current?.text === text || inflight?.item.text === text) return;
   if (queue.some((it) => it.text === text)) return;
   const ttl = ttlMs !== undefined && ttlMs > 0 ? ttlMs : TTL[priority];
-  queue.push({ text, raw, lang, priority, expiry: Date.now() + ttl, ttl, opts });
+  queue.push({ text, raw, lang, priority, expiry: Date.now() + ttl, ttl, opts, onEnd: opts?.onHeard });
   if (current && PRIORITY_RANK[priority] > current.rank) {
     // Interrompt l'annonce en cours, moins prioritaire ; elle sera redite une
     // fois après (« Je répète… ») si elle le prévoit et reste fraîche.

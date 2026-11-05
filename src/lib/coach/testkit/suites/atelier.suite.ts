@@ -7,7 +7,7 @@
 import { section, eq, ok } from "../assert";
 import type { LabLap, LiveData, SetupStats, RaceActivityRow, RecordOverviewRow, SetupEntry, SvmFile } from "@/lib/api";
 import { learnFromRest, learnFromSvm, resolveIndex, topIndex, withResolvedIndices, type NotchTable } from "@/lib/setupNotches";
-import { leverState, restTop, unknownLevers } from "@/lib/setupAssistant";
+import { editedPatches, leverState, restTop, unknownLevers } from "@/lib/setupAssistant";
 import { auditLevers, parseAuditReply } from "@/lib/setupAudit";
 import { planProfile, profileForStyle } from "@/lib/setupProfiles";
 import { countFixed, displayOf, indexOf, isFixedParam, keyFigures, notesOf } from "@/lib/setupView";
@@ -354,6 +354,16 @@ function compareRules(): void {
   eq(diffIds(mix[0]), ["REARWING|RWSetting"], "seuls les réglages différents se choisissent");
   eq(mixPatches(mix, new Set([pickId("FRONTLEFT", "CamberSetting")])), [{ name: "FRONTLEFT", params: [{ key: "CamberSetting", value: "10", comment: "-1.0 deg" }] }], "seul le réglage choisi est repris de B");
   eq(mixPatches(mix, new Set()), [], "rien de choisi : rien à écrire");
+
+  // Édition manuelle : seul ce qui a changé part, sans texte périmé.
+  const before = [
+    { name: "REARWING", params: [p("RWSetting", "4", "5.0 deg"), p("FWSetting", "2", "1.0 deg")] },
+    { name: "FRONTLEFT", params: [p("CamberSetting", "22", "-2.2 deg")] },
+  ];
+  const edited = structuredClone(before);
+  edited[0].params[0].value = "5";
+  eq(editedPatches(before, edited), [{ name: "REARWING", params: [{ key: "RWSetting", value: "5", comment: null }] }], "édition : le réglage changé, texte retiré");
+  eq(editedPatches(before, structuredClone(before)), [], "rien de changé : rien à écrire");
 
   // Chaque règle a un nom et ses textes dans l'Atelier (les 13 leviers des profils réutilisent lab.profiles.why).
   const fr = lab.fr as unknown as { cmp: { name: Record<string, string>; fx: Record<string, Record<string, string>> }; profiles: { why: Record<string, unknown> } };

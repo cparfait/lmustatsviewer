@@ -974,12 +974,15 @@ function ComboDetail({
   q,
   myBest,
   myRank,
+  myPos,
   myTag,
   onClose,
 }: {
   q: Record<string, string>;
   myBest: number | null;
   myRank: number | null;
+  /** Place de `myBest` dans ce combo, calculée par le serveur à partir du temps local. */
+  myPos?: CommunityPosition | null;
   myTag?: string | null;
   /** Combo ouvert depuis sa ligne (masquée tant qu'il est ouvert) : bouton pour refermer. */
   onClose?: () => void;
@@ -1052,31 +1055,44 @@ function ComboDetail({
   const cols = allClasses ? 12 : 11;
 
   // Votre position (place, temps, écart au 1er) — commune au bandeau d'un combo et à l'ancienne carte.
-  const meCells = me && (
+  const posCells = (rank: number, total: number | null, who: React.ReactNode, time: number, gap: number | null) => (
     <>
       <span className="font-extrabold tracking-tight text-primary">
-        <span className="text-3xl">{me.rank}</span>
-        {(cls || detail) && <span className="text-sm text-muted-foreground"> / {cls ? rows.length : detail!.drivers}</span>}
+        <span className="text-3xl">{rank}</span>
+        {total != null && <span className="text-sm text-muted-foreground"> / {total}</span>}
       </span>
       <span className="min-w-0">
         <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.meTitle")}</span>
-        <span className="flex items-center font-bold">
-          <DriverMarks d={me.driver} cls={me.car_class ?? q.class} />
-          <span className="truncate">{name(me.driver)}</span>
-        </span>
+        <span className="flex items-center font-bold">{who}</span>
       </span>
       <span>
         <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.lbTime")}</span>
-        <span className="font-mono text-lg font-bold">{formatTime(me.time)}</span>
+        <span className="font-mono text-lg font-bold">{formatTime(time)}</span>
       </span>
-      {best != null && me.rank > 1 && (
+      {gap != null && (
         <span>
           <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("leaderboard.lbGap")}</span>
-          <span className="font-mono text-lg font-bold text-muted-foreground">+{(me.time - best).toFixed(3)}</span>
+          <span className="font-mono text-lg font-bold text-muted-foreground">+{gap.toFixed(3)}</span>
         </span>
       )}
     </>
   );
+  const meCells = me
+    ? posCells(
+        me.rank,
+        cls ? rows.length : (detail?.drivers ?? null),
+        <>
+          <DriverMarks d={me.driver} cls={me.car_class ?? q.class} />
+          <span className="truncate">{name(me.driver)}</span>
+        </>,
+        me.time,
+        best != null && me.rank > 1 ? me.time - best : null,
+      )
+    : // Absent du classement serveur (pas inscrit, ou pas encore envoyé) : la place de votre
+      // temps local, déjà connue. Avec un filtre par classe, elle ne vaudrait pas : rien.
+      !cls && myBest != null && myPos
+      ? posCells(myPos.rank, myPos.drivers, <span className="truncate">{playerName}</span>, myBest, myPos.rank > 1 ? myPos.gap_best : null)
+      : null;
 
   return (
     <div className="space-y-4 border-t border-border/60 bg-muted/20 p-4">
@@ -1123,7 +1139,7 @@ function ComboDetail({
         </div>
       )}
 
-      {me && !onClose && (
+      {meCells && !onClose && (
         <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-lg border-2 border-primary bg-primary/10 px-4 py-2.5">{meCells}</div>
       )}
 
@@ -2130,6 +2146,7 @@ function MyPosition({ showOhne }: { showOhne: boolean }) {
                                   q={r.q}
                                   myBest={r.other ? null : r.combo.best}
                                   myRank={r.pos?.rank ?? null}
+                                  myPos={r.pos}
                                   myTag={myTag}
                                   onClose={() => setOpen(null)}
                                 />

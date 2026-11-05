@@ -49,6 +49,15 @@ export function applyLapPref(
   }
 }
 
+/**
+ * Ce chrono échappe-t-il au budget « confort » ? Oui pour un record (il ne doit pas
+ * se perdre) et pour une préférence explicite du pilote (« à chaque tour », « seulement
+ * mes meilleurs ») ; `auto` garde le chrono ordinaire dans le budget.
+ */
+export function lapBudgetExempt(pref: LapPref | undefined, decision: "pb" | "last"): boolean {
+  return decision === "pb" || pref === "every" || pref === "best";
+}
+
 export function parseLapPrefs(raw: string | null | undefined): LapPrefs {
   try {
     const v = JSON.parse(raw || "{}") as Partial<LapPrefs>;

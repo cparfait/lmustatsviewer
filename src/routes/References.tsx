@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { ExternalLink, Target, RotateCcw } from "lucide-react";
+import { Car, ExternalLink, Flag, Package, RotateCcw, Tag, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -21,7 +21,7 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { Select } from "@/components/ui/select";
+import { FilterField } from "@/components/FilterField";
 import { TableTitle } from "@/components/TableTitle";
 import { TrackFlag } from "@/components/TrackFlag";
 import { queries, type BestLapRow } from "@/lib/api";
@@ -202,19 +202,21 @@ export function References() {
       {/* Barre d'outils */}
       <Card>
         <CardContent className="flex flex-wrap items-center gap-3 p-3">
-          <Select
+          <FilterField
+            icon={Flag}
+            label={t("sessions.fCircuit")}
             value={filter}
-            onValueChange={setFilter}
-            ariaLabel={t("references.allCircuits")}
-            className="min-w-[170px]"
+            onChange={setFilter}
             options={[
               { value: "", label: t("references.allCircuits") },
               ...circuitOptions.map((tr) => ({ value: tr, label: tr })),
             ]}
           />
-          <Select
+          <FilterField
+            icon={Tag}
+            label={t("sessions.fClass")}
             value={classFilter}
-            onValueChange={(v) => {
+            onChange={(v) => {
               setClassFilter(v);
               setCarFilter("");
               setVersionFilter("");
@@ -224,29 +226,30 @@ export function References() {
                 setFilter("");
               }
             }}
-            ariaLabel={t("references.allClasses")}
             options={[
               { value: "", label: t("references.allClasses") },
               ...CLASS_DISPLAY.map(({ cls, label }) => ({ value: cls, label })),
             ]}
           />
-          <Select
+          <FilterField
+            icon={Car}
+            label={t("sessions.fCar")}
             value={carFilter}
-            onValueChange={(v) => {
+            onChange={(v) => {
               setCarFilter(v);
               setVersionFilter("");
             }}
-            ariaLabel={t("references.allCars")}
-            className="max-w-[220px]"
+            className="max-w-[260px]"
             options={[
               { value: "", label: t("references.allCars") },
               ...carOptions.map((car) => ({ value: car, label: car })),
             ]}
           />
-          <Select
+          <FilterField
+            icon={Package}
+            label={t("sessions.fVersion")}
             value={versionFilter}
-            onValueChange={setVersionFilter}
-            ariaLabel={t("header.allVersions")}
+            onChange={setVersionFilter}
             options={[
               { value: "", label: t("header.allVersions") },
               ...versionOptions.map((v) => ({ value: v, label: v })),

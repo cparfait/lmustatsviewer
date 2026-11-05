@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { useTourStore } from "@/stores/tour";
-import { config } from "@/lib/api";
+import { config, isTauri } from "@/lib/api";
 import type { DetectResult, IndexReport } from "@/lib/api";
 
 type Step =
@@ -44,6 +44,11 @@ export function Onboarding() {
   const [report, setReport] = useState<IndexReport | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [manualPath, setManualPath] = useState("");
+  // Base locale abîmée, mise de côté à ce démarrage : c'est pour cela qu'on revient ici.
+  const [dbKept, setDbKept] = useState<string | null>(null);
+  useEffect(() => {
+    if (isTauri()) void config.dbQuarantineNotice().then(setDbKept).catch(() => {});
+  }, []);
 
   const handleAutoDetect = async () => {
     setStep("detecting");
@@ -119,6 +124,13 @@ export function Onboarding() {
             {t("onboarding.autoDetect")}
           </p>
         </div>
+
+        {dbKept && (
+          <div role="alert" className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <p>{t("onboarding.dbQuarantined", { file: dbKept })}</p>
+          </div>
+        )}
 
         {step === "idle" && (
           <Card>

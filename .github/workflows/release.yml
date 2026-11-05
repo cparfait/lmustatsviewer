@@ -97,6 +97,7 @@ jobs:
         run: ./scripts/fetch-vosk.ps1
 
       - name: Fetch sherpa-onnx library (Parakeet dictation)
+        timeout-minutes: 10
         shell: pwsh
         run: ./scripts/fetch-sherpa.ps1
 

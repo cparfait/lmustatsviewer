@@ -1545,6 +1545,8 @@ export const config = {
     invoke<void>("set_config", { key, value }),
   getAll: () => invoke<Record<string, string>>("get_all_config"),
   detectLmu: () => invoke<DetectResult>("detect_lmu"),
+  /** Fichier de base abîmée mis de côté à ce démarrage, s'il y en a un. */
+  dbQuarantineNotice: () => invoke<string | null>("db_quarantine_notice"),
   inspectLmu: (lmuPath: string) =>
     invoke<DetectResult>("inspect_lmu", { lmuPath }),
 };
@@ -1834,6 +1836,8 @@ export interface VoiceNoteInfo {
 }
 
 export const voiceNotes = {
+  /** Capture à l'appui (moteur arrêté) : devient la dernière prise de parole. */
+  keepCapture: (pcmBase64: string) => invoke<void>("voice_note_keep_capture", { pcmBase64 }),
   /** Enregistre la dernière prise de parole (push-to-talk) comme note du virage. */
   saveLast: (track: string, car: string, corner: number) =>
     invoke<number>("voice_note_save_last", { track, car, corner }),

@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, Fragment } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   Card,
@@ -150,6 +150,7 @@ import { systemPrompt } from "@/lib/ai/prompts/system";
 import type { ModelInfo } from "@/lib/ai/types";
 import { AiModelPicker } from "@/components/AiModelPicker";
 import { AiProvidersPanel } from "@/components/AiProvidersPanel";
+import { ProviderTabs } from "@/components/ProviderIcon";
 import { FREE_LIST_URL } from "@/lib/ai/providers/free";
 import { CloudVoiceSettings } from "@/components/CloudVoiceSettings";
 import { CloudVoiceGuide } from "@/components/CloudVoiceGuide";
@@ -238,15 +239,25 @@ const SIDEBAR: { id: CatId; icon: typeof User; labelKey: string }[] = [
   { id: "credits", icon: Heart, labelKey: "config.credits" },
 ];
 
+/** Catégorie demandée par l'adresse (`?cat=community`), si elle existe. */
+function catFromSearch(search: string): CatId | null {
+  const wanted = new URLSearchParams(search).get("cat");
+  return SIDEBAR.find((c) => c.id === wanted)?.id ?? null;
+}
+
 export function ConfigV2() {
   const { t, i18n } = useTranslation();
   const { theme, setTheme } = useTheme();
 
-  // Catégorie ouvrable par lien direct (`/config?cat=community`).
-  const [cat, setCat] = useState<CatId>(() => {
-    const wanted = new URLSearchParams(window.location.search).get("cat");
-    return SIDEBAR.find((c) => c.id === wanted)?.id ?? "profile";
-  });
+  // Catégorie ouvrable par lien direct (`/config?cat=community`), y compris quand la page
+  // est déjà affichée (visite guidée, aide). `location.key` change à chaque navigation, même
+  // vers la même adresse ; un clic dans la barre latérale ne navigue pas et reste maître.
+  const location = useLocation();
+  const [cat, setCat] = useState<CatId>(() => catFromSearch(location.search) ?? "profile");
+  useEffect(() => {
+    const wanted = catFromSearch(location.search);
+    if (wanted) setCat(wanted);
+  }, [location.key, location.search]);
 
   const playerName = useAppStore((s) => s.playerName);
   const lmuPath = useAppStore((s) => s.lmuPath);
@@ -2370,36 +2381,35 @@ export function ConfigV2() {
 
                     <Separator />
                     <SettingRow icon={<Globe className="h-4 w-4" />} label={t("config.aiProviderActive")} tip={t("config.aiProviderTip")}>
-                      <Select
-                        value={noAiProvider ? "" : aiProvider}
-                        onValueChange={(v) => void useAppStore.getState().setAIProvider(v)}
-                        ariaLabel={t("config.aiProviderActive")}
-                        placeholder={t("config.aiNoProvider")}
-                        className="h-8 max-w-[200px] px-2.5"
-                        // Seuls les fournisseurs CONFIGURÉS sont sélectionnables. La
-                        // valeur active hors liste (état hérité) reste affichée.
-                        options={[
-                          ...(aiProvider &&
-                          !noAiProvider &&
-                          !aiProviderList.includes(aiProvider) &&
-                          !aiCustomProviders.some((d) => d.id === aiProvider)
-                            ? [
-                                {
-                                  value: aiProvider,
-                                  label: getProvider(aiProvider)?.name ?? aiProvider,
-                                },
-                              ]
-                            : []),
-                          ...aiProviderList.map((id) => ({
-                            value: id,
-                            label: getProvider(id)?.name ?? id,
-                          })),
-                          ...aiCustomProviders.map((d) => ({
-                            value: d.id,
-                            label: d.name || d.baseUrl,
-                          })),
-                        ]}
-                      />
+                      {noAiProvider && !aiProviderList.length && !aiCustomProviders.length ? (
+                        <span className="text-xs text-muted-foreground">{t("config.aiNoProvider")}</span>
+                      ) : (
+                        <ProviderTabs
+                          value={noAiProvider ? "" : aiProvider}
+                          onChange={(v) => void useAppStore.getState().setAIProvider(v)}
+                          ariaLabel={t("config.aiProviderActive")}
+                          className="justify-end"
+                          // Seuls les fournisseurs CONFIGURÉS sont sélectionnables. La
+                          // valeur active hors liste (état hérité) reste affichée.
+                          options={[
+                            ...(aiProvider &&
+                            !noAiProvider &&
+                            !aiProviderList.includes(aiProvider) &&
+                            !aiCustomProviders.some((d) => d.id === aiProvider)
+                              ? [{ id: aiProvider, name: getProvider(aiProvider)?.name ?? aiProvider }]
+                              : []),
+                            ...aiProviderList.map((id) => ({
+                              id,
+                              name: getProvider(id)?.name ?? id,
+                            })),
+                            ...aiCustomProviders.map((d) => ({
+                              id: d.id,
+                              name: d.name || d.baseUrl,
+                              baseUrl: d.baseUrl,
+                            })),
+                          ]}
+                        />
+                      )}
                     </SettingRow>
 
                     {noAiProvider && (

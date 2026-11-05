@@ -35,10 +35,15 @@ $tmp = Join-Path $env:TEMP "sherpa-onnx-$Version"
 if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp }
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 $tarball = Join-Path $tmp "$Archive.tar.bz2"
-Invoke-WebRequest -Uri $Url -OutFile $tarball
+# curl.exe (Windows 10+) instead of Invoke-WebRequest: bounded delays and retries
+# (this step used to hang for hours in CI).
+& (Join-Path $env:SystemRoot "System32\curl.exe") -fsSL --retry 3 --connect-timeout 30 --max-time 300 -o $tarball $Url
+if ($LASTEXITCODE -ne 0) { throw "[sherpa-onnx] download failed (curl exit $LASTEXITCODE)" }
+Write-Host "[sherpa-onnx] extracting"
 # Windows 10+ ships bsdtar (System32\tar.exe), which reads .tar.bz2. Called by full
 # path: a GNU tar earlier in PATH (Git for Windows) reads "C:" as a remote host.
 & (Join-Path $env:SystemRoot "System32\tar.exe") -xjf $tarball -C $tmp
+if ($LASTEXITCODE -ne 0) { throw "[sherpa-onnx] extraction failed (tar exit $LASTEXITCODE)" }
 foreach ($f in $Keep) {
   Copy-Item (Join-Path $tmp "$Archive/lib/$f") -Destination $LibDir -Force
 }

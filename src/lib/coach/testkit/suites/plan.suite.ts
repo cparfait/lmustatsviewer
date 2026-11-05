@@ -7,13 +7,13 @@
 import { section, ok, eq, approx } from "../assert";
 import type { CareerRace, LiveData, SvmFile } from "@/lib/api";
 import { EventDetector, eventsForSession } from "@/lib/liveEvents";
-import { chooseEnergy, energyItem, energyNeed, energyOptions } from "@/lib/pitMenu";
+import { chooseEnergy, energyItem, energyNeed, energyOptions, EnergyWatch } from "@/lib/pitMenu";
 import { parseJsonl, slimFrame, toJsonl, type RecordedFrame } from "@/lib/replay/format";
 import { mmss, runBench } from "@/lib/replay/bench";
 import { filterRaces, highlights, matchRounds, recurring, standings, summarize, titleMath, type Championship } from "@/lib/career";
 import { recommend, applyStep, nextVersionName } from "@/lib/setupAssistant";
 import { trackSun, trackGeo, isNight } from "@/lib/racePlan/sun";
-import { planStints, clock, hm, type PlanInput } from "@/lib/racePlan/stintPlan";
+import { planStints, clock, fullStintLaps, hm, type PlanInput } from "@/lib/racePlan/stintPlan";
 import { PrepTracker, emptyPrep, ready, isDone, type PrepState } from "@/lib/racePlan/prep";
 
 const base: PlanInput = {
@@ -65,6 +65,11 @@ export function run(): void {
     eq(planStints({ ...base, lapS: 0 }), null, "saisie incomplète : pas de plan");
     eq(clock(23.5, 3600), "00:30", "horloge qui passe minuit");
     eq(hm(7380), "2:03", "durée h:mm");
+    eq(fullStintLaps(30, 0.05), 20, "relais à plein : l'énergie limite");
+    eq(fullStintLaps(15, 0.05), 15, "relais à plein : le réservoir limite");
+    eq(fullStintLaps(15, null), 15, "sans énergie virtuelle : le réservoir");
+    eq(fullStintLaps(null, 0.04), 25, "sans mesure carburant : l'énergie");
+    eq(fullStintLaps(null, null), null, "rien de connu");
   }
 
   section("setup.assistant");
@@ -181,6 +186,23 @@ export function run(): void {
     eq(chooseEnergy(energyOptions(item), 1)?.index, 4, "plein");
     eq(energyNeed(30, 0.05), 1, "plus d'un relais : le plein");
     eq(energyItem([menu[1]]), null, "voiture sans énergie virtuelle");
+    // Énergie automatique : geste du pilote vu avant toute écriture, échec jamais pris pour un geste.
+    const w = new EnergyWatch();
+    eq(w.read(2), false, "première lecture : référence");
+    eq(w.read(2), false, "valeur inchangée");
+    eq(w.read(4), true, "changée avant toute écriture de l'app : le pilote");
+    const w2 = new EnergyWatch();
+    w2.read(2);
+    w2.written(3);
+    eq(w2.read(3), false, "notre écriture confirmée n'est pas un geste");
+    eq(w2.read(1), true, "changée après notre écriture : le pilote");
+    const w3 = new EnergyWatch();
+    w3.read(2);
+    w3.unconfirmed();
+    eq(w3.read(3), false, "écriture non confirmée puis appliquée : pas un geste");
+    eq(w3.read(3), false, "valeur stable ensuite");
+    w3.reset();
+    eq(w3.read(1), false, "après un arrêt : nouvelle référence");
   }
 
   section("replay.bench");

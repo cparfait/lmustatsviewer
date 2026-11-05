@@ -5,7 +5,7 @@
  * complétée par HYMO Academy / GO Setups). On n'injecte QUE le pointeur (titre +
  * URL) vers la vidéo du combo — pas son contenu — pour que le coach puisse
  * renvoyer le pilote vers le guide visuel. Le tracé du jeu choisit la variante ;
- * jamais la vidéo d'un autre tracé quand le combo n'a pas de guide principal.
+ * jamais la vidéo d'un autre tracé (décision « Références circuit »).
  */
 
 import { VIDEO_GUIDES, type VideoGuide } from "./video-guides-data";
@@ -83,18 +83,63 @@ const LAYOUT_COURSE_WORD: Record<string, string> = {
 };
 
 /**
+ * Noms du jeu qui désignent le tracé principal sans être le nom du circuit
+ * (`TRACK_MAP` et `COURSE_MAP` de `ohne_speed.ts`). Tout autre nom est une variante.
+ */
+const MAIN_COURSES = new Set(
+  [
+    "Circuit de Spa-Francorchamps",
+    "Spa-Francorchamps",
+    "Circuit de la Sarthe",
+    "Le Mans",
+    "Autodromo Nazionale Monza",
+    "Monza",
+    "Circuit of the Americas",
+    "Algarve International Circuit",
+    "Portimao",
+    "Fuji Speedway",
+    "Fuji",
+    "Bahrain International Circuit",
+    "Bahrain",
+    "Sebring International Raceway",
+    "Sebring",
+    "Autodromo Enzo e Dino Ferrari",
+    "Imola",
+    "Circuit de Barcelona",
+    "Barcelona",
+    "Lusail International Circuit",
+    "Qatar",
+    "Silverstone",
+    "Silverstone Circuit",
+    "Silverstone Grand Prix Circuit",
+    "Silverstone Grand Prix Circuit - WEC",
+    "Daytona International Speedway",
+    "Daytona International Speedway Road Course",
+    "Autodromo Jose Carlos Pace",
+  ].map(norm),
+);
+
+/** Tracé du jeu absent ou principal : seul cas où la vidéo principale s'applique. */
+function isMainCourse(track: string, trackCourse?: string): boolean {
+  const course = norm(trackCourse ?? "").trim();
+  return !course || course === norm(track ?? "").trim() || MAIN_COURSES.has(course);
+}
+
+/**
  * Vidéo retenue parmi celles du combo : la variante dont le nom figure dans le
  * tracé du jeu (« Paul Ricard - 1A-V2-Short » → « 1A-V2-Short », le plus long
- * l'emporte), sinon le layout principal, puis la variante de spec LMP2
- * (ELMS / WEC) qui correspond à la classe DB — Daytona a un guide par spec.
- * Sans layout principal (Paul Ricard ELMS), `null` : jamais un autre tracé.
+ * l'emporte), sinon, sur le tracé principal seulement, le layout principal, puis
+ * la variante de spec LMP2 (ELMS / WEC) qui correspond à la classe DB — Daytona a
+ * un guide par spec. Variante sans vidéo (Sebring School en LMP2, Spa Endurance)
+ * ou combo sans layout principal (Paul Ricard ELMS) : `null`, jamais un autre tracé.
  */
-function pickGuide(matches: VideoGuide[], carClass: string, trackCourse?: string): VideoGuide | null {
+function pickGuide(matches: VideoGuide[], track: string, carClass: string, trackCourse?: string): VideoGuide | null {
   const course = norm(trackCourse ?? "");
   const variant = matches
     .filter((v) => v.layout && course.includes(norm(LAYOUT_COURSE_WORD[`${v.trackId}:${v.layout}`] ?? v.layout)))
     .sort((a, b) => (b.layout?.length ?? 0) - (a.layout?.length ?? 0))[0];
   if (variant) return variant;
+  if (!isMainCourse(track, trackCourse)) return null;
   const main = matches.filter((v) => !v.layout);
   if (main.length === 0) return null;
   const elms = /elms/i.test(carClass);
@@ -102,8 +147,8 @@ function pickGuide(matches: VideoGuide[], carClass: string, trackCourse?: string
 }
 
 /**
- * Vidéo (titre + URL) correspondant au combo, pour affichage UI. Préfère le
- * variante du tracé du jeu, sinon le principal. `null` si aucune vidéo ne couvre le combo.
+ * Vidéo (titre + URL) correspondant au combo, pour affichage UI : celle du tracé
+ * du jeu. `null` si aucune vidéo ne couvre ce tracé.
  */
 export function getVideoGuide(
   track: string,
@@ -115,13 +160,13 @@ export function getVideoGuide(
   if (!tid || !cid) return null;
   const matches = VIDEO_GUIDES.filter((v) => v.trackId === tid && v.classId === cid);
   if (matches.length === 0) return null;
-  const pick = pickGuide(matches, carClass, trackCourse);
+  const pick = pickGuide(matches, track, carClass, trackCourse);
   return pick ? { title: pick.title, url: pick.url, channel: pick.channel ?? "Unleashed Drivers" } : null;
 }
 
 /**
  * Section de contexte « guide vidéo » pour le combo courant.
- * Renvoie "" si aucune vidéo ne correspond (variante du tracé, sinon principal).
+ * Renvoie "" si aucune vidéo ne couvre ce tracé.
  */
 export function buildVideoGuideText(args: {
   track: string;
@@ -134,7 +179,7 @@ export function buildVideoGuideText(args: {
 
   const matches = VIDEO_GUIDES.filter((v) => v.trackId === tid && v.classId === cid);
   if (matches.length === 0) return "";
-  const pick = pickGuide(matches, args.carClass, args.trackCourse);
+  const pick = pickGuide(matches, args.track, args.carClass, args.trackCourse);
   if (!pick) return "";
 
   const lines: string[] = [

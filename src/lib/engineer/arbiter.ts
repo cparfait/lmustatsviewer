@@ -52,6 +52,12 @@ export interface Candidate {
    * l'anti-redite compare le fond, pas la formulation du jour.
    */
   canon?: string;
+  /**
+   * Chrono demandé par le pilote (« à chaque tour ») ou record : hors budget « confort »
+   * (`policy.ts`, sans le consommer) et hors anti-redite (deux chronos identiques au
+   * dixième restent deux tours à dire).
+   */
+  exempt?: boolean;
 }
 
 export type RejectReason = "cooldown" | "dominated" | "burst" | "too-long" | "expired" | "duplicate" | "repeat";
@@ -98,6 +104,11 @@ export class RadioArbiter {
     this.pending = [];
     this.recent = [];
     this.texts.clear();
+  }
+
+  /** Oublie les candidats retenus (`retryS`) qui ne doivent plus sortir. */
+  dropPending(stale: (c: Candidate) => boolean): void {
+    this.pending = this.pending.filter((p) => !stale(p.c));
   }
 
   /** Vrai si `key` a été prononcée il y a moins de `s` secondes. */
@@ -157,7 +168,7 @@ export class RadioArbiter {
         rejected.push({ c, reason: "cooldown" });
         continue;
       }
-      if (c.prio !== "critical" && this.textRepeatLaps > 0) {
+      if (c.prio !== "critical" && !c.exempt && this.textRepeatLaps > 0) {
         const at = this.texts.get(c.canon ?? c.text);
         if (at != null && lap - at < this.textRepeatLaps) {
           rejected.push({ c, reason: "repeat" });
@@ -204,8 +215,12 @@ export class RadioArbiter {
     let dominant: Fused | null = null;
     for (const c of pool) if (!dominant || weight(c) > weight(dominant)) dominant = c;
     const defer = (c: Fused, reason: RejectReason) => {
-      if (c.retryS && c.retryS > 0 && !c.parts) this.pending.push({ c, until: nowS + c.retryS });
-      else rejected.push({ c, reason });
+      // Phrase fusionnée dominée : chaque fragment garde sa propre règle, un chrono
+      // demandé par le pilote n'est pas perdu parce qu'il était collé à un secteur.
+      for (const part of c.parts ?? [c]) {
+        if (part.retryS && part.retryS > 0) this.pending.push({ c: part, until: nowS + part.retryS });
+        else rejected.push({ c: part, reason });
+      }
     };
     for (const c of pool) if (c !== dominant) defer(c, "dominated");
 

@@ -37,9 +37,9 @@ const PAGE_SIZE_KEY = "telemetry-page-size";
 /** En dessous, un enregistrement sans tour complet est un fragment (s). */
 const FRAGMENT_MAX_S = 120;
 
-/** Aucun tour complet et court (durée inconnue = fragment seulement si aucun tour). */
+/** Aucun tour complet et durée connue et courte (durée inconnue : on ne masque pas). */
 function isFragment(f: TelemetryFileInfo): boolean {
-  return f.best_lap == null && (f.duration_s == null || f.duration_s < FRAGMENT_MAX_S);
+  return f.best_lap == null && f.duration_s != null && f.duration_s < FRAGMENT_MAX_S;
 }
 
 export function Telemetry() {

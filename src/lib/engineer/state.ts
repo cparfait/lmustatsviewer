@@ -11,6 +11,7 @@ import { EnergyTracker, PitWindowTracker } from "./pitWindow";
 import { WatchList } from "./watches";
 import { RadioPolicy } from "./policy";
 import { BrakeMap, type DriverSnapshot } from "./focus";
+import type { LiveTelemetry } from "@/lib/api";
 import type { WetData } from "./forecast";
 import { PadWearTracker } from "@/lib/lmuRest";
 import { StintRegistry } from "./rivalStints";
@@ -87,6 +88,23 @@ class EngineerState {
   alarms = new AlarmClock();
   /** Un autre ingénieur radio tourne (mode cohabitation actif). */
   otherEngineer = false;
+
+  /**
+   * Une trame de pilotage : freinages appris et état du pilote pour la garde « occupé ».
+   * Appelé par l'ingénieur et par le coach par virage, qui tourne aussi hors page Live :
+   * deux appels sur une même trame sont sans effet (front montant, tour déjà compté).
+   */
+  noteDriving(tel: LiveTelemetry, track: string, trackLength: number, lap: number, nowMs: number): void {
+    this.brakes.setTrack(track);
+    const dist = tel.lap_dist_est > 0 ? tel.lap_dist_est : tel.lap_dist;
+    this.brakes.push(dist, tel.brake, lap, tel.speed_kmh, trackLength);
+    this.driver = {
+      brake: tel.brake,
+      steer: tel.steering,
+      distToBrake: this.brakes.distToNext(dist, trackLength),
+      at: nowMs,
+    };
+  }
 
   /** Nouvelle session : repart de zéro (les alertes posées sont effacées). */
   resetSession(): void {

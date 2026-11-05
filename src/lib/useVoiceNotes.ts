@@ -19,6 +19,7 @@ import { isTauri, voiceNotes, type LiveData } from "@/lib/api";
 import { useAppStore } from "@/stores/app";
 import { announceAnswer, isSpeaking, setDriverTalking } from "@/lib/voice";
 import { audioContext, audioOutput } from "@/lib/radioFx";
+import { pcmToBase64, startCapture, stopCapture } from "@/lib/mic";
 import { detectTrackCorners } from "@/lib/trackCorners";
 import { aheadDist } from "@/lib/engineer/pitTraffic";
 
@@ -131,14 +132,23 @@ export function useVoiceNotes(data: LiveData | null, active: boolean, lang: stri
     if (!active || !isTauri()) return;
     let off: (() => void) | null = null;
     let disposed = false;
+    /** Début de capture en cours : `true` = moteur natif, `false` = capture à l'appui. */
+    let begun: Promise<boolean> = Promise.resolve(false);
     void listen<{ pressed: boolean }>("voice-note-ptt", async (ev) => {
       if (ev.payload.pressed) {
         setDriverTalking(true);
-        await invoke("ptt_begin", { autoSend: false }).catch(() => {});
+        // « Micro prêt » décoché : pas de moteur, le micro s'ouvre le temps de l'appui.
+        begun = invoke<boolean>("ptt_begin", { autoSend: false })
+          .catch(() => false)
+          .then(async (viaEngine) => {
+            if (!viaEngine) await startCapture().catch(() => {});
+            return viaEngine;
+          });
         return;
       }
       setDriverTalking(false);
-      await invoke("ptt_end", { lang: langRef.current }).catch(() => null);
+      if (await begun) await invoke("ptt_end", { lang: langRef.current }).catch(() => null);
+      else await voiceNotes.keepCapture(pcmToBase64(stopCapture())).catch(() => {});
       announceAnswer(await saveNoteHere(tRef.current), langRef.current);
     }).then((fn) => {
       if (disposed) fn();

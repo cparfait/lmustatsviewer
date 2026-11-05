@@ -4,9 +4,10 @@
  * **Un seul champ** : la flèche ouvre la liste RÉELLE sondée chez le fournisseur
  * (`/models`, modèle actuel coché) ; cliquer sur le nom permet de le modifier ou
  * de chercher dans la liste à la frappe. Un id absent de la liste (modèle tout
- * juste sorti) reste saisissable : il est retenu à Entrée ou en quittant le
- * champ, Échap annule. Sans liste (hors ligne, fournisseur muet), le champ
- * reste en saisie libre avec un exemple d'id.
+ * juste sorti) reste saisissable : il est retenu à Entrée. Quitter le champ ne
+ * retient que l'id exact d'un modèle listé : sinon c'était une recherche, et le
+ * modèle actuel revient. Échap annule. Sans liste (hors ligne, fournisseur muet),
+ * le champ reste en saisie libre avec un exemple d'id.
  */
 
 import { useEffect, useState } from "react";
@@ -14,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { RefreshCw, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
+import { exactOption } from "@/components/ui/combobox-logic";
 import { Tip } from "@/components/ui/tooltip";
 import type { AIProvider, ModelInfo } from "@/lib/ai/types";
 
@@ -47,6 +49,7 @@ export function AiModelPicker({
     else if (id !== value) onChange(id);
   };
 
+  const options = models.map((m) => ({ value: m.id, label: m.label }));
   const inList = models.some((m) => m.id === value);
   // Exemple d'id courant pour ce fournisseur (mode saisie) : 1er repli statique.
   const example = provider?.fallbackModels[0]?.id;
@@ -67,6 +70,7 @@ export function AiModelPicker({
       <div className="flex items-center gap-2">
         <Combobox
           toggle
+          freeEnter
           value={draft}
           selected={value}
           onChange={setDraft}
@@ -74,7 +78,7 @@ export function AiModelPicker({
             setDraft(v);
             commit(v);
           }}
-          options={models.map((m) => ({ value: m.id, label: m.label }))}
+          options={options}
           placeholder={
             example
               ? t("config.aiModelPlaceholder", { id: example })
@@ -82,7 +86,11 @@ export function AiModelPicker({
           }
           ariaLabel={t("config.aiModelChoose")}
           toggleLabel={t("config.aiModelFromList")}
-          onBlur={() => commit(draft)}
+          onBlur={() => {
+            const listed = exactOption(draft, options);
+            setDraft(listed ?? value);
+            if (listed) commit(listed);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();

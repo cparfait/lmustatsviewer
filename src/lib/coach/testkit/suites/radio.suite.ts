@@ -15,8 +15,12 @@ import { SIDE_CALLOUT_KEYS } from "@/lib/engineer/sideCallouts";
 import { VOICE_MESSAGE_GROUPS } from "@/lib/voiceMessages";
 import { aiErrorKind, type AiErrorKind } from "@/lib/ai/errorKind";
 import { ProximitySpotter, occupiedSides } from "@/lib/engineer/proximity";
-import { route } from "@/lib/engineer/router";
+import { normalize, route } from "@/lib/engineer/router";
 import { commandFromPhrases, isAction } from "@/lib/engineer/commandPick";
+import { buildGrammar, matchIntent } from "@/lib/spotterCommands";
+import { PIT_CMDS } from "@/lib/engineer/pitVoice";
+import { engineer } from "@/lib/engineer/state";
+import type { LiveTelemetry } from "@/lib/api";
 import {
   CLOUD_PREP_ALERT_KEYS,
   CLOUD_PREP_ANSWER_KEYS,
@@ -112,6 +116,15 @@ function focusSuite() {
   ok(driverBusy({ ...snap, steer: -0.35 }, 1100), "volant > 0,30 : occupé");
   ok(!driverBusy({ ...snap, brake: 0.9 }, 3000), "télémétrie figée > 1 s : garde levée");
   ok(!driverBusy(null, 0), "aucune donnée : libre");
+
+  // Le coach nourrit la garde hors page Live : même état, deux appels sur une trame sans effet.
+  const tel = { lap_dist_est: 100, lap_dist: 90, brake: 0.4, steering: 0, speed_kmh: 200 } as LiveTelemetry;
+  engineer.noteDriving(tel, "Garde", 7000, 3, 5000);
+  engineer.noteDriving(tel, "Garde", 7000, 3, 5000);
+  ok(driverBusy(engineer.driver, 5100), "trame du coach : frein appuyé, pilote occupé");
+  ok(!driverBusy(engineer.driver, 7000), "plus de trame : la garde se lève");
+  eq(engineer.brakes.known().length, 0, "une trame vue deux fois ne vaut pas deux tours");
+  engineer.resetSession();
 }
 
 function policySuite() {
@@ -396,6 +409,52 @@ function rigorSuite() {
 }
 
 function commandsSuite() {
+  section("radio — nombres allemands");
+  eq(normalize("wie groß ist der abstand zur dreiundneunzig", "de"), "wie gross ist der abstand zur 93", "soudé, comme Vosk l'écrit");
+  eq(normalize("drei und neunzig", "de"), "93", "en mots séparés");
+  eq(normalize("einundsiebzig", "de"), "71", "71");
+  eq(normalize("fünfundachtzig prozent", "de"), "85 prozent", "85");
+  eq(normalize("neunundneunzig", "de"), "99", "99");
+  eq(normalize("achtunddreißig", "de"), "38", "dizaines d'avant, soudées aussi");
+  eq(normalize("zwanzig liter", "de"), "20 liter", "dizaine seule inchangée");
+  eq(normalize("drei und vier", "de"), "3 und 4", "« und » entre deux unités : pas un composé");
+
+  section("radio — oui / non en reconnaissance stricte");
+  for (const [lang, yes, no] of [["fr", "oui", "non"], ["en", "yes", "no"], ["es", "sí", "no"], ["de", "ja", "nein"], ["it", "sì", "no"]]) {
+    ok(buildGrammar(lang).includes(yes) && buildGrammar(lang).includes(no), `${lang} : dans la grammaire`);
+    eq(matchIntent(yes, lang), "yes", `${lang} : « ${yes} »`);
+    eq(matchIntent(no, lang), "no", `${lang} : « ${no} »`);
+    eq(commandFromPhrases("", yes, lang, true), "yes", `${lang} : stricte seule, avec IA`);
+  }
+  eq(matchIntent("pit now", "en"), "pit", "« no » n'est pas cherché à l'intérieur des mots");
+  eq(matchIntent("si entro", "es"), "pit", "« si » seul ne détourne pas « si entro »");
+  eq(matchIntent("wie viele runden", "de"), "remaining", "le reste de la grammaire ne bouge pas");
+  eq(commandFromPhrases("bla bla", "non", "fr", true), null, "un « non » strict ne remplace pas une dictée libre");
+
+  section("radio — libellés du testeur");
+  const labelled = [
+    ...PIT_CMDS,
+    "watch", "alarm", "voiceNote", "yes", "no",
+    "lapPrefEvery", "lapPrefBest", "lapPrefNone", "lapPrefAuto",
+    "rateUseful", "rateUseless", "rateLate", "rateWrong",
+    "radioBattle", "radioHome", "radioEssential", "radioQuiet", "radioNormal",
+  ];
+  for (const [lang, dict] of Object.entries({ fr, en, es, de, it })) {
+    const cfg = (dict as unknown as { config: Record<string, string> }).config;
+    const missing = labelled.filter((id) => !cfg[`spotterCmd${id[0].toUpperCase()}${id.slice(1)}`]);
+    eq(missing, [], `${lang} : toutes les commandes ont un libellé`);
+  }
+  eq((fr as unknown as { config: Record<string, string> }).config.engineerTestVia_fallback, "Pas compris (rien de reconnu)", "le testeur dit ce que la réponse dit");
+
+  section("radio — câblage de la boucle (lecture du code)");
+  {
+    const loop = readFileSync("src/lib/engineer/useRaceEngineer.ts", "utf8");
+    ok(!/say\("prefs:ask"[^\n]*\n\s*engineer\.markAsked/.test(loop), "question des chronos : pas marquée à la proposition");
+    ok(/onHeard: \(\) => engineer\.markAsked/.test(loop), "… mais une fois entendue");
+    ok(/lastLapWasOut\.current\)\s*\n?\s*say\("fastest:me"/.test(loop), "« meilleur temps » : pas au bout de l'out-lap");
+    ok(/useEffect\(\(\) => \{\s*if \(!voiceOn \|\| !quietZones\)/.test(loop), "garde du pilote : suit l'interrupteur vocal, pas la page Live");
+  }
+
   section("radio — commandes vocales");
   eq(route("on se bat", "fr").intent, "radioBattle", "FR : on se bat");
   eq(route("juste l'essentiel", "fr").intent, "radioEssential", "FR : juste l'essentiel");

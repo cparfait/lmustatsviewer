@@ -7,8 +7,8 @@
  * en base (réutilise `records::get_records_overview`, comme la page Records) :
  * le coach a ainsi accès à l'historique complet, pas seulement au tour en cours.
  *
- * Étiquettes EN compactes (cohérent avec les autres contextes). 1 ligne/combo,
- * trié par classe puis circuit. Renvoie "" si aucun record.
+ * Étiquettes EN compactes (cohérent avec les autres contextes). 1 ligne/combo :
+ * le circuit en cours d'abord, puis par classe et circuit. Renvoie "" si aucun record.
  */
 
 import { live, records } from "../../api";
@@ -18,7 +18,7 @@ import { fresh, garageBoundsText } from "../../lmuRest";
 import { buildLiveContext } from "./live-context";
 import { driverStyleContext, fixedSetupContext } from "./lab-context";
 import { formatTime } from "../../utils";
-import type { LiveData } from "../../api";
+import type { LiveData, RecordOverviewRow } from "../../api";
 
 /** Ordre d'affichage des classes (mêmes priorités que le reste de l'app). */
 const CLASS_ORDER: Record<string, number> = {
@@ -35,9 +35,9 @@ const CLASS_ORDER: Record<string, number> = {
 // Cache module : les records ne changent pas pendant une session de pilotage.
 // On évite ainsi un appel SQLite par question vocale. `resetRecordsDigestCache`
 // l'invalide (à appeler après une (re)synchronisation des données).
-let _digestCache: string | null = null;
+let _rowsCache: RecordOverviewRow[] | null = null;
 export function resetRecordsDigestCache() {
-  _digestCache = null;
+  _rowsCache = null;
 }
 
 /**
@@ -70,20 +70,24 @@ export function isHistoricalQuestion(q: string): boolean {
   return HISTORY_KEYWORDS.some((k) => norm.includes(k));
 }
 
-export async function buildRecordsDigest(maxRows = 120): Promise<string> {
-  if (_digestCache !== null) return _digestCache;
-  let rows;
-  try {
-    rows = await records.getOverview();
-  } catch {
-    return "";
-  }
-  if (!rows.length) {
-    _digestCache = "";
-    return "";
-  }
-
-  rows.sort((a, b) => {
+/**
+ * Texte du digest (pur). Le circuit en cours passe d'abord : le digest est coupé à
+ * `maxRows` lignes, et ses records ne doivent pas tomber dans la coupe. `currentTrack`
+ * peut être le nom du circuit ou celui d'un tracé (`mTrackName` du jeu) : tout le
+ * circuit passe devant, variantes comprises.
+ */
+export function recordsDigestText(rows: RecordOverviewRow[], currentTrack?: string, maxRows = 120): string {
+  if (!rows.length) return "";
+  const cur = (currentTrack ?? "").trim().toLowerCase();
+  const venues = new Set(
+    rows
+      .filter((r) => cur && (r.track.trim().toLowerCase() === cur || r.track_course?.trim().toLowerCase() === cur))
+      .map((r) => r.track),
+  );
+  const sorted = [...rows].sort((a, b) => {
+    const ha = venues.has(a.track) ? 0 : 1;
+    const hb = venues.has(b.track) ? 0 : 1;
+    if (ha !== hb) return ha - hb;
     const ca = CLASS_ORDER[a.car_class] ?? 99;
     const cb = CLASS_ORDER[b.car_class] ?? 99;
     if (ca !== cb) return ca - cb;
@@ -93,8 +97,10 @@ export async function buildRecordsDigest(maxRows = 120): Promise<string> {
 
   const lines: string[] = [];
   lines.push("## Personal records — all tracks/cars in your local database");
-  lines.push("(your all-time best lap per track + car combo; use this for any history question)");
-  for (const r of rows.slice(0, maxRows)) {
+  lines.push(
+    `(your all-time best lap per track + car combo; use this for any history question${venues.size ? "; current track first" : ""})`,
+  );
+  for (const r of sorted.slice(0, maxRows)) {
     const layout =
       r.track_course && r.track_course !== r.track ? ` (${r.track_course})` : "";
     const vmax = r.vmax && r.vmax > 0 ? ` · vmax ${Math.round(r.vmax)} km/h` : "";
@@ -105,8 +111,18 @@ export async function buildRecordsDigest(maxRows = 120): Promise<string> {
   if (rows.length > maxRows) {
     lines.push(`… and ${rows.length - maxRows} more combos.`);
   }
-  _digestCache = lines.join("\n");
-  return _digestCache;
+  return lines.join("\n");
+}
+
+export async function buildRecordsDigest(currentTrack?: string, maxRows = 120): Promise<string> {
+  if (_rowsCache === null) {
+    try {
+      _rowsCache = await records.getOverview();
+    } catch {
+      return "";
+    }
+  }
+  return recordsDigestText(_rowsCache, currentTrack, maxRows);
 }
 
 /**
@@ -140,7 +156,7 @@ ${cards}`;
     if (txt) base = `${base}\n\n${txt}`;
   }
   if (!question || !isHistoricalQuestion(question)) return base;
-  const digest = await buildRecordsDigest();
+  const digest = await buildRecordsDigest(data.session?.track);
   return digest ? `${base}\n\n${digest}` : base;
 }
 

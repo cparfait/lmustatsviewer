@@ -18,6 +18,7 @@ import {
   fetchBenchmarks,
   findBenchmark,
   liveClassToOhne,
+  onTierSourceChange,
   type PaceBenchmark,
 } from "@/lib/ohne_speed";
 
@@ -61,16 +62,22 @@ export function useAlienTarget(data: LiveData | null): AlienTarget | null {
     };
   }, []);
 
-  // Benchmarks ohne_speed (best-effort ; cache au niveau module).
+  // Benchmarks ohne_speed (best-effort ; cache au niveau module), relus si la source
+  // des paliers change dans la Config pendant que l'overlay est ouvert.
   useEffect(() => {
     let alive = true;
-    fetchBenchmarks()
-      .then((b) => {
-        if (alive) setBenchmarks(b);
-      })
-      .catch(() => {});
+    const load = () => {
+      fetchBenchmarks()
+        .then((b) => {
+          if (alive) setBenchmarks(b);
+        })
+        .catch(() => {});
+    };
+    load();
+    const off = onTierSourceChange(load);
     return () => {
       alive = false;
+      off();
     };
   }, []);
 

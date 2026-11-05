@@ -51,7 +51,7 @@ const TICK: Duration = Duration::from_millis(50);
 /// Champs quasi statiques envoyés à part, seulement quand ils changent.
 const TRACK_KEYS: [&str; 4] = ["track_points", "track_dists", "pit_lane_points", "sector_dists"];
 /// Réglages de l'app transmis aux widgets (lecture seule).
-const SETTING_KEYS: [&str; 2] = ["spotter_key_coach", "map_north_up"];
+const SETTING_KEYS: [&str; 4] = ["spotter_key_coach", "map_north_up", "tier_source", "community_url"];
 /// Évènements de l'app relayés tels quels aux widgets.
 /// `race-event` : départ, stands, damier, meilleur tour, record perso (Atelier, opt-in).
 const RELAYED_EVENTS: [&str; 4] = ["coach-voice", "coach-corner", "radio-subtitle", "race-event"];

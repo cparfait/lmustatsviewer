@@ -217,7 +217,7 @@ fn backfill_lap_starts(conn: &rusqlite::Connection, session_id: i64, session_typ
     let _ = tx.commit();
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_session_detail(
     session_id: i64,
     db: State<'_, DbState>,

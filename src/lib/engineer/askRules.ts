@@ -1,6 +1,6 @@
 /**
- * Règles pures de la question vocale (testées seules) : relances bornées du coach IA et
- * dictée trop incertaine pour partir à l'IA.
+ * Règles pures de la question vocale (testées seules) : relances bornées (dans le code, pas
+ * seulement dans le prompt) et dictée trop incertaine pour partir à l'IA.
  */
 
 /** Échange récent avec le coach vocal (question, réponse, relance ?). */
@@ -32,6 +32,11 @@ export function clarifyStreak(list: Exchange[], now = Date.now()): number {
     n++;
   }
   return n;
+}
+
+/** Encore le droit de faire répéter ? Au-delà de `CLARIFY_MAX`, on répond ou on renonce. */
+export function mayClarify(list: Exchange[], now = Date.now()): boolean {
+  return clarifyStreak(list, now) < CLARIFY_MAX;
 }
 
 /** La dictée libre est-elle trop incertaine pour partir à l'IA ? (≥ 3 mots, mesure connue) */

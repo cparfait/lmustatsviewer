@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { FilterField } from "@/components/FilterField";
 import {
   Table,
   TableBody,
@@ -37,6 +37,8 @@ import {
   BarChart3,
   TrendingDown,
   ExternalLink,
+  Package,
+  Tag,
 } from "lucide-react";
 import {
   cn,
@@ -252,20 +254,22 @@ function Overview({
               className="pl-8"
             />
           </div>
-          <Select
+          <FilterField
+            icon={Tag}
+            label={t("sessions.fClass")}
             value={classFilter}
-            onValueChange={setClassFilter}
-            ariaLabel={t("records.mvAllClasses")}
+            onChange={setClassFilter}
             options={[
               { value: "", label: t("records.mvAllClasses") },
               ...classes.map((c) => ({ value: c, label: c })),
             ]}
           />
           {gameVersions.length > 0 && (
-            <Select
+            <FilterField
+              icon={Package}
+              label={t("sessions.fVersion")}
               value={selectedVersion ?? ""}
-              onValueChange={(v) => setSelectedVersion(v || null)}
-              ariaLabel={t("header.allVersions")}
+              onChange={(v) => setSelectedVersion(v || null)}
               options={[
                 { value: "", label: t("header.allVersions") },
                 ...gameVersions.map((v) => ({

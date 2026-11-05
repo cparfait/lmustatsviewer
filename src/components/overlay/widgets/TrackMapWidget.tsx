@@ -1,11 +1,11 @@
-/** Overlay Track Map : tracé du circuit (figé) + voie des stands + voitures. */
+/** Overlay Track Map : tracé du circuit (figé) + voie des stands + repères + voitures. */
 
 import { useEffect, useRef, useState } from "react";
 import { Map as MapIcon } from "lucide-react";
 import { Panel, PanelHeader } from "@/components/overlay/ui";
 import { liveClassColor } from "@/components/overlay/format";
 import { appSetting } from "@/lib/widgetLink";
-import { fitTransform, mapComplete, pathOfRuns, trackPaths, type Pt } from "@/lib/trackMapGeom";
+import { fitTransform, mapComplete, pathOfRuns, tickNormal, trackPaths, trackTicks, type Pt } from "@/lib/trackMapGeom";
 import type { WidgetProps } from "./types";
 
 const SIZE = 300;
@@ -101,6 +101,9 @@ export function TrackMapWidget({ data, content, accent, t }: WidgetProps) {
   const clamp = (v: number) => Math.max(3, Math.min(SIZE - 3, v));
   const paths = outline && view ? trackPaths(outline.pts, outline.dists, outline.lapLen, view.project) : [];
   const pitPath = outline && view && outline.pit.length >= 2 ? pathOfRuns(outline.pit, view.project) : null;
+  // Ligne de départ et bornes de secteurs : mesurées en roulant, donc lues à chaque trame
+  // (le tracé figé garde ses distances pour les situer).
+  const ticks = outline && view ? trackTicks(outline.dists, data.sector_dists ?? []) : [];
 
   return (
     <Panel accent={accent} style={{ width: 332 }}>
@@ -133,6 +136,39 @@ export function TrackMapWidget({ data, content, accent, t }: WidgetProps) {
                 strokeLinejoin="round"
               />
             ))}
+            {ticks.map((tk) => {
+              const { at, normal } = tickNormal((i) => view.project(outline.pts[i]), outline.pts.length, tk.idx, [SIZE / 2, SIZE / 2]);
+              const [x, y] = at;
+              const [nx, ny] = normal;
+              return (
+                <g key={tk.label}>
+                  <line x1={x - nx * 7} y1={y - ny * 7} x2={x + nx * 7} y2={y + ny * 7} stroke="#0A0E1A" strokeWidth={3.5} strokeLinecap="round" />
+                  <line
+                    x1={x - nx * 6}
+                    y1={y - ny * 6}
+                    x2={x + nx * 6}
+                    y2={y + ny * 6}
+                    stroke="#fff"
+                    strokeWidth={2}
+                    strokeLinecap={tk.start ? "butt" : "round"}
+                    strokeDasharray={tk.start ? "2 2" : undefined}
+                  />
+                  <text
+                    x={clamp(x + nx * 15)}
+                    y={clamp(y + ny * 15) + 3}
+                    textAnchor="middle"
+                    fontSize={9}
+                    fontWeight="bold"
+                    fill="#fff"
+                    stroke="#0A0E1A"
+                    strokeWidth={2.5}
+                    paintOrder="stroke"
+                  >
+                    {tk.label}
+                  </text>
+                </g>
+              );
+            })}
             {data.standings.map((s) => {
               const [cx, cy] = view.project([s.pos_x, s.pos_z]);
               const color =

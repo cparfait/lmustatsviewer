@@ -2,7 +2,7 @@
 
 > **Document de reprise du projet. À LIRE EN PREMIER.**
 > Mettre à jour la section « Journal de bord » à chaque session de travail.
-> Dernière mise à jour : 2026-10-18 (**Annonces de course** sur `feat/radio-parity` — centre de messages du jeu, ordre figé, stands à la voix, son, diagnostic ; tout vert : tsc, eslint, 4 742 tests TS, 136 tests Rust)
+> Dernière mise à jour : 2026-11-05 (audit complet de la 1.0.10 et correctifs ; voir le journal, section 8)
 
 ---
 
@@ -281,14 +281,10 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   `mIsFixedSetup` (1980) sur un serveur à setup imposé ; le jeu relit un `.svm` dont l'index change
   mais pas le commentaire ; signe et ordre de grandeur de `slip_angle` AV/AR (sonde du bilan au box,
   seuils 1° / 140 km/h) ; rapprochement circuit / voiture du bilan au box (`setups.entries` n'est
-  à jour qu'après un rescan). S12/S5 (partage des setups) codé le 2026-10-22, serveur à déployer
-  (migrations 7 et 8). Page du site `setups.html` **non liée** (`noindex`) : à la sortie de la
+  à jour qu'après un rescan). S12/S5 (partage des setups) codé et déployé le 2026-10-22. Page du site `setups.html` **non liée** (`noindex`) : à la sortie de la
   1.0.10, ajouter le lien (menu et pied de page, `site.js`) et retirer le `noindex`. À voir aussi en roulant : bandeau « setup imposé » (page Live) et
   carte « Bilan au box » (≥ 2 tours puis stands). Commité le 2026-10-21 (`79f9a59`) ; note de
   passation `REPRISE-ATELIER-SETUP.md` supprimée le 2026-10-22 (son contenu restant est ici).
-- ⏳ **Serveur communautaire : migration 9 à déployer (2026-10-22)** : tours roulés publiés avec les
-  setups (`laps`, `clean_laps`, `wet_laps`). Tant qu'elle n'est pas en production, l'app republie
-  sans ces champs et le site n'affiche rien de plus.
 - ⏳ **Noms de setup en ASCII (2026-10-22)** : réglage actif par défaut sur la foi d'un relevé chez un
   outil du marché (« LMU n'affiche pas un `.svm` au nom accentué ou avec « · » »), **non vérifié chez
   nous**. À tester : un fichier « Été · test.svm » dans `Settings/<circuit>/` apparaît-il au garage ?
@@ -300,11 +296,8 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   enregistré ») ; bloc « Roulé avec » du détail de session ; liste des sessions de la fiche setup ;
   coût CPU de la lecture live en arrière-plan quand l'app est ouverte sans page Live.
 - ⏳ **Fournisseurs IA gratuits (2026-10-21)** : vérifié dans `npm run tauri dev` (OVHcloud et Kilo sans clé, bascule OVHcloud → Kilo en vrai). Clés gratuites Groq / NVIDIA / Z.ai / Cohere / Hugging Face / Ollama Cloud non testées (seuls OVHcloud, Kilo et LLM7 ont répondu à un vrai appel sans clé). Les catalogues gratuits bougent vite (Kilo, LLM7) : revérifier les listes de repli à chaque version. OVHcloud sous charge : jusqu'à 28 s par réponse, plus de 2 min pour une question d'analyse avec Qwen3.8-27B (raisonnement long) → le pilote peut choisir `Mistral-Small-3.2-24B-Instruct-2506` ou `gpt-oss-120b` à la main (défaut gardé : le plus récent, décision du 2026-10-21).
-- ⏳ **Branche `feat/veille-pistes` (2026-10-17)** : fusionnée dans `main` depuis. Reste :
-  validation en jeu (`VALIDATION-EN-JEU.md` § Veille) et
-  **déploiement du serveur communautaire** (migration 6 `rival_week` + routes `/tiers`,
-  `/cars`, `/patch`, `POST /briefing`, `/rival`) — sans lui, les onglets Index voitures /
-  Effet du patch / Rival et le briefing restent vides (l'app reste fonctionnelle).
+- ⏳ **Branche `feat/veille-pistes` (2026-10-17)** : fusionnée dans `main`, serveur déployé depuis
+  (migrations jusqu'à la 9, le 2026-10-22). Reste la validation en jeu (`VALIDATION-EN-JEU.md` § Veille).
 - ℹ️ **Règles de cut** : absentes des XML de résultats (vérifié sur les fichiers réels) ;
   le badge « tours comparables » ne les vérifie pas. Lecture REST possible
   (`SESSSET_cut_rules`) mais non validée en jeu → non faite (prudence plantages LMU).
@@ -342,11 +335,9 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
   - ℹ️ **Revu le 2026-10-17** : ApexPoints toujours 12 circuits, Paul Ricard toujours faux (rien repris) ; HYMO Academy / GO Setups couvrent Barcelone, Paul Ricard (1A-V2, 1A-V2 Short), Silverstone (WEC, ELMS) et la LMP3 (bloc manuel de `video-guides-data.ts`).
   - ⚠️ **ApexPoints Road Atlanta était faux** (données pré-sortie) → remplacé à la main le 2026-09-25. Si ApexPoints corrige sa fiche, re-comparer avant de reprendre sa donnée. **Ne pas régénérer `braking-guide-data.ts` à l'aveugle** : le générateur écraserait Road Atlanta + le bloc manuel et réintroduirait les 7 fiches retirées pour tracé erroné.
   - ⏳ **Décision mainteneur** : la seule vidéo LMU **commentée** de Road Atlanta (GT3, `Htt-UPpr9d8`, ~4 k caractères de conseils) est publiée par **GO Fast**, marque d'une app de télémétrie/coaching (concurrent potentiel) → non intégrée, faute de feu vert (règle « aucun nom de concurrent dans le code »). Hypercar/LMP2 Long Beach et Road Atlanta : aucune vidéo commentée trouvée (HYMO / GO Setups = hotlaps muets).
-  - ⏳ **Bug ohne_speed pré-existant — layouts** : `mapTrackName` construit un `layoutMap` qu'il n'utilise jamais (il renvoie la base). COTA National, Monza Curva Grande, Fuji Classic, Sarthe Mulsanne, Bahrain Outer/Paddock… prennent donc le temps de référence du tracé **principal**. Les clés du `layoutMap` (« Curva Grande ») ne correspondent d'ailleurs pas aux `track_course` réels (« Monza Curva Grande Circuit »).
   - ⏳ Pas encore de profil d'altitude Telemetry Lab pour Road Atlanta ni Long Beach (vue 3D plate) — à reprendre quand ils sortent. Leur profil **Daytona** est écarté (repères de virages faux, creux de 9 m inexistant à la chicane).
   - 🔒 **Règle : aucune donnée à tracé erroné** (mainteneur, 2026-09-25). Avant d'intégrer une fiche circuit, croiser numérotation + nature des virages avec le tracé en jeu et une source officielle ; si ça ne colle pas, on n'en prend rien. ApexPoints : 7 fiches sur 12 retirées à ce titre (cf. journal du 2026-09-25).
   - ⏳ **Panneaux ApexPoints suspects** sur les 4 fiches conservées (Le Mans, Monza, Spa, Imola) : marqueurs génériques 75/100/125 m, écarts relevés avec le wiki LMU et un guide GT3 (La Source, Roggia, Lesmo 1, chicanes Mulsanne). Annoncés en vocal par le coach → à vérifier.
-  - ⏳ ohne_speed : pas d'entrée `TRACK_MAP` pour Interlagos (nom jeu présumé « Autodromo Jose Carlos Pace », à confirmer sur une vraie session) alors que la feuille le couvre.
 - **API REST locale de LMU (pont ⑳, 2026-10-16)** — faits relevés sur le jeu réel (Hypercar Alpine, Road Atlanta, essais de 6 h ; réponses brutes rangées hors dépôt dans le dossier de notes des sessions, `lmu_rest_captures_2026-10-15/`) :
   - `127.0.0.1:6397`, GET en ~5-10 ms en séance ; **ne répond pas pendant le chargement d'un circuit** (connexion qui pend) et renvoie **200 + corps vide** dans les menus → états « absent » puis « vide » du pont, recul exponentiel jusqu'à 60 s.
   - ⚠️ `watch/sessionInfo.endEventTime` **n'est pas** la fin de séance (600 s dans une séance de 6 h). Fin = `startEventTime + maxTime` (recoupé par `currentEventTime + timeRemainingInGamePhase`). `maximumLaps` = 4294967295 pour une séance au temps.
@@ -955,7 +946,33 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
-### 2026-11-05 — Menu des stands : erreurs traduites (non commité)
+### 2026-11-05 — Limites restantes de l'audit (non commité)
+
+- ✅ **Note vocale sans « Micro prêt »** : `useVoiceNotes.ts` ouvre le micro à l'appui si le moteur est arrêté, `voice_note_keep_capture` garde la capture ; `stt_recognize_free` la garde aussi pour « note pour ce virage ».
+- ✅ **Micro branché après un échec** : nouvel essai toutes les 15 s, sans répéter l'erreur, message quand il revient (`useCoachVoice.ts`).
+- ✅ **Phrase fusionnée dominée** : chaque fragment suit sa règle dans `arbiter.ts` ; un chrono à `retryS` revient, un fragment sans `retryS` est abandonné.
+- ✅ **Faux abandon** : voiture à plus de 20 km/h sous statut « abandon », au-delà de 1,5 s = course rechargée, retenu jusqu'à la sortie du statut (`dnfStillDriving`). ⏳ Seuil non vérifié en jeu ; **le format des sauvegardes reste à confirmer avec un vrai fichier** ; un rechargement où la voiture reste à l'arrêt, sans autre indice, annonce encore l'abandon.
+- ✅ Section 7 nettoyée : migration 9, migrations 6 à 8, `layoutMap`, Interlagos.
+- 📋 **Prochaine étape** : commit + push, déployer le site, puis `VALIDATION-EN-JEU.md` § 000.
+
+### 2026-11-05 — Défauts de l'audit corrigés, icônes des fournisseurs IA (non commité)
+
+**Demande** : « corrige tout » puis « utilise les icônes comme sur l'outil kiro ». Quatre sous-agents par domaine, puis relecture des parties risquées.
+- ✅ **Radio** : budget et préférences de chronos (`exempt`), question des chronos marquée une fois entendue, plafond des dégâts, tour de sortie, faux abandon (2ᵉ lecture, `player_retired`, `RaceSeen`), nombres allemands, objectif arrondi vers le bas, plafond de relance, repères par combo avec nouvel essai, « oui/non » stricts, testeur, garde du coach.
+- ✅ **Micro et voix** : `voicePolicy.ts` (micro permanent seulement avec annonces vocales), raccourcis, messages uniques, mot déclencheur et modèle absent, « l'ingénieur », bandeau de voix, erreurs de voix en ligne, libération de la voix supprimée.
+- ✅ **Setups et coach** : `apply_section_updates` (texte fourni écrit ; sinon gardé si la valeur ne change pas, retiré si elle change), édition manuelle limitée aux réglages changés, `setup_link_cleared`, vidéos de variantes, commandes async de l'onglet Coach, autres voitures en Télémétrie, priorité au circuit courant, dates de record, saisie du modèle IA.
+- ✅ **Stratégie, tablette, base, site** : `EnergyWatch`, préremplissage et relais, violet par classe sur la séance, carte de la tablette, envois périmés, base mise de côté seulement si abîmée (`quick_check` à l'ouverture), bandeau de combo, préchargement, catégorie de Config suivant l'adresse, source des paliers, carte des overlays, site en `?v=70`.
+- ✅ **Icônes** : `ProviderIcon.tsx` et `src/assets/provider-icons/` (11 SVG repris de `Downloads\Kiro v4.0\images`, sans script). Fournisseurs sans logo : initiale.
+- ⏳ **Décisions du mainteneur** :
+  - Alt+C ne répond plus après relance avec annonces coupées.
+  - Identité communautaire et `coach_notes` perdues quand une base abîmée est mise de côté.
+  - Tables de crans déjà polluées : aucune détection sûre, les `.svm` existants les réapprennent. Piste : ne plus apprendre des fichiers portant une lignée.
+  - Licence des 11 logos non vérifiée (format proche de LobeHub Icons, à confirmer) ; 7 fournisseurs sans logo.
+- ❌ **CI Rust jamais aboutie depuis le 2026-10-19** : l'étape `Fetch sherpa-onnx` reste bloquée (8 exécutions sur 8 annulées, une après ~6 h ; dernière CI verte le 2026-10-16). L'archive répond (8 Mo), journaux de la CI illisibles sans authentification : **cause inconnue**. Fait : `curl.exe` à délais bornés, code de sortie de `tar` contrôlé, délai de 10 min sur l'étape (`ci.yml`, `release.yml`), 90 min sur le job. Si elle échoue encore, le message donnera la cause. La même étape est dans `release.yml` : **à régler avant de publier la 1.0.10**.
+- ⏳ **Non vérifié** : rien vu dans l'app Tauri ni en jeu sauf la barre d'icônes, vue dans un aperçu temporaire. Le hook de l'ingénieur n'est pas exécuté par les tests. À valider : lignes `Clé=Valeur` relues par le jeu, icône micro de Windows, tablette réelle, lecture du menu à chaque tour (énergie automatique), coût du `quick_check` sur un disque lent.
+- 📋 **Prochaine étape** : relire le changelog, commit + push, déployer le site, puis `VALIDATION-EN-JEU.md` § 000.
+
+### 2026-11-05 — Menu des stands : erreurs traduites (commité `bb2bb76`)
 
 - ✅ `lmu_rest_write.rs` renvoie des codes `pit_menu:*` au lieu de phrases en français ; `pitMenuErrorKey` (`lib/lmuRest.ts`) les traduit (`strategy.pitErr*`, 5 langues). La carte Stratégie affiche la vraie cause, à la lecture comme au changement. Élément absent et refus HTTP restent détaillés dans le journal de l'app (`app_warn!`).
 - ✅ Test : chaque code du Rust doit avoir son texte dans les 5 langues (`rest.suite.ts`). Lint 0 erreur, `tsc -b`, `npm test` 7 261/7 261, tests Rust 179. Rien vu dans l'app Tauri.

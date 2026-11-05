@@ -4,7 +4,7 @@
  */
 
 import { section, eq } from "../assert";
-import { computeTier, mapTrackName, type PaceBenchmark } from "@/lib/ohne_speed";
+import { computeTier, mapTrackName, onTierSourceChange, setTierSource, type PaceBenchmark } from "@/lib/ohne_speed";
 
 const ms = (m: number, s: number) => Math.round((m * 60 + s) * 1000);
 
@@ -30,6 +30,20 @@ const SEBRING_GT3: PaceBenchmark = {
 };
 
 export function run(): void {
+  section("ohne_speed — source des paliers");
+  {
+    // Le widget ouvert se recharge quand la source change (overlay : via l'évènement Tauri).
+    let calls = 0;
+    const off = onTierSourceChange(() => calls++);
+    setTierSource("community");
+    eq(calls, 1, "changement de source : prévenu");
+    setTierSource("community");
+    eq(calls, 1, "même source : pas de rechargement");
+    off();
+    setTierSource("ohne");
+    eq(calls, 1, "désabonné : plus prévenu");
+  }
+
   section("ohne_speed — tracés");
   eq(mapTrackName("Bahrain International Circuit", "Bahrain Paddock Circuit"), "Bahrain (paddock)", "Bahrain Paddock → sa ligne, pas le tracé WEC");
   eq(mapTrackName("Bahrain International Circuit", "Bahrain International Circuit"), "Bahrain (wec)", "Bahrain principal → WEC");

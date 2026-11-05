@@ -8,7 +8,8 @@
  *  - les phrases urgentes (sécurité `critical`, spotter, coach) : la voix en ligne
  *    ne les dit **que préparées** (lecture instantanée du cache), sinon Piper —
  *    une alerte n'attend jamais le réseau. Réglage « Alertes en voix locale » :
- *    elles restent toutes sur Piper (ancien comportement), rien à préparer.
+ *    en course elles restent toutes sur Piper (`cloudModeFor`), mais la préparation
+ *    les génère quand même : décocher le réglage ne demande rien de plus.
  *
  * Les annonces chiffrées s'y ajoutent par morceaux (nombres, parties fixes des
  * gabarits : `cloudVoiceSegments.ts`), recollés à la lecture.
@@ -152,6 +153,7 @@ export const CLOUD_PREP_ANSWER_KEYS: readonly string[] = [
   "coach.voiceHintModel",
   "coach.voiceHintKey",
   "coach.voiceUnsure",
+  "coach.voiceGiveUp",
   "coach.voiceNoAi",
   "coach.voiceNotConfigured",
   // Garde-fous du coach IA (réponse vide, chiffre inventé, promesse d'action…).

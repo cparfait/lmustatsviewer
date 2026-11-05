@@ -116,6 +116,9 @@ export const MARGIN = 15;
 
 // ── Normalisation ────────────────────────────────────────────────────────────
 
+const DE_UNITS: Record<string, number> = { ein: 1, zwei: 2, drei: 3, vier: 4, funf: 5, sechs: 6, sieben: 7, acht: 8, neun: 9 };
+const DE_TENS: Record<string, number> = { zwanzig: 20, dreissig: 30, vierzig: 40, funfzig: 50, sechzig: 60, siebzig: 70, achtzig: 80, neunzig: 90 };
+
 const NUM_WORDS: Record<string, Record<string, number>> = {
   fr: {
     zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9,
@@ -139,6 +142,7 @@ const NUM_WORDS: Record<string, Record<string, number>> = {
     neun: 9, zehn: 10, elf: 11, zwolf: 12, dreizehn: 13, vierzehn: 14, funfzehn: 15, sechzehn: 16,
     siebzehn: 17, achtzehn: 18, neunzehn: 19, zwanzig: 20, dreissig: 30, vierzig: 40, funfzig: 50,
     sechzig: 60, siebzig: 70, achtzig: 80, neunzig: 90,
+    ...deCompounds(),
   },
   it: {
     zero: 0, uno: 1, una: 1, un: 1, due: 2, tre: 3, quattro: 4, cinque: 5, sei: 6, sette: 7, otto: 8, nove: 9,
@@ -166,6 +170,19 @@ function itCompounds(): Record<string, number> {
       const stem = u === "uno" || u === "otto" ? t.slice(0, -1) : t;
       out[stem + u] = tv + uv;
     }
+  }
+  return out;
+}
+
+/**
+ * Composés allemands soudés, comme Vosk les écrit : l'unité vient avant la dizaine
+ * (« dreiundneunzig » = 93). Accents et ß déjà retirés par la normalisation
+ * (« achtunddreissig », « funfundachtzig »).
+ */
+function deCompounds(): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [u, uv] of Object.entries(DE_UNITS)) {
+    for (const [t, tv] of Object.entries(DE_TENS)) out[`${u}und${t}`] = tv + uv;
   }
   return out;
 }
@@ -256,6 +273,12 @@ export function normalize(text: string, lang: string): string {
           continue;
         }
       }
+    }
+    // Allemand en mots séparés : l'unité avant la dizaine (« drei und neunzig » = 93).
+    if (l === "de" && v >= 1 && v <= 9 && toks[i + 1] === "und" && DE_TENS[toks[i + 2]] !== undefined) {
+      out.push(String(DE_TENS[toks[i + 2]] + v));
+      i += 2;
+      continue;
     }
     // Dizaine + unité (« vingt deux », « twenty two », « treinta y dos », « vingt et un »).
     if (v >= 20 && v % 10 === 0) {

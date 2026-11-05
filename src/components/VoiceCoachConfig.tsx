@@ -16,13 +16,10 @@ import { useAppStore } from "@/stores/app";
 import { getProvider } from "@/lib/ai/providers";
 import { fetchModels } from "@/lib/ai/models";
 import type { ModelInfo } from "@/lib/ai/types";
-import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tip } from "@/components/ui/tooltip";
 import { AiModelPicker } from "@/components/AiModelPicker";
-
-const SELECT_CLS =
-  "h-8 max-w-[210px] rounded-md border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer";
+import { ProviderTabs } from "@/components/ProviderIcon";
 
 export function VoiceCoachConfig() {
   const { t } = useTranslation();
@@ -119,21 +116,22 @@ export function VoiceCoachConfig() {
               </Tip>
               {t("config.aiVoiceProvider")}
             </span>
-            <Select
+            <ProviderTabs
               value={voiceProviderId}
-              onValueChange={onProviderChange}
+              onChange={onProviderChange}
               ariaLabel={t("config.aiVoiceProvider")}
-              className={SELECT_CLS}
+              className="justify-end"
               // Seuls les fournisseurs CONFIGURÉS (cartes) sont proposés — leur
               // clé est déjà saisie sur leur carte, rien à re-saisir ici.
               options={[
                 ...aiProviderList.map((id) => ({
-                  value: id,
-                  label: getProvider(id)?.name ?? id,
+                  id,
+                  name: getProvider(id)?.name ?? id,
                 })),
                 ...aiCustomProviders.map((d) => ({
-                  value: d.id,
-                  label: d.name || d.baseUrl,
+                  id: d.id,
+                  name: d.name || d.baseUrl,
+                  baseUrl: d.baseUrl,
                 })),
               ]}
             />

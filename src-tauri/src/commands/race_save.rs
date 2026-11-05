@@ -5,7 +5,9 @@
 //! garde, l'ingénieur annonçait un abandon. LMU écrit alors la course dans
 //! `UserData/Saves/` (copie dans `Saves/Backup Saves/`) : un `<id>.json` de la forme
 //! `{"compressedData": base64(zlib(json)), ...}sig:<signature>`. Le JSON décompressé
-//! porte la voiture du joueur (`vehicleName`), `retired` et `sessionFinished`.
+//! porte la voiture du joueur (`vehicleName`), `retired` et `sessionFinished`. `retired`
+//! n'est lu que pour la voiture du joueur : dans `playerVehicle` ou à côté de lui, jamais
+//! dans une liste de voitures (celui d'un adversaire n'est pas celui du pilote).
 //!
 //! Ici on ne fait que **lire** : le fichier le plus récent (dans une fenêtre de
 //! fraîcheur) qui correspond à la voiture du joueur. Format inattendu, dossier
@@ -84,22 +86,56 @@ fn leading_json(text: &str) -> Option<serde_json::Value> {
 
 /// Cherche une clé (insensible à la casse) n'importe où dans l'arbre, en largeur.
 fn find_key<'a>(v: &'a serde_json::Value, key: &str) -> Option<&'a serde_json::Value> {
+    find_key_from(v, key, true)
+}
+
+/// Comme `find_key` ; `arrays: false` ne descend pas dans les listes.
+fn find_key_from<'a>(v: &'a serde_json::Value, key: &str, arrays: bool) -> Option<&'a serde_json::Value> {
     let mut queue = std::collections::VecDeque::from([v]);
     while let Some(n) = queue.pop_front() {
         match n {
             serde_json::Value::Object(m) => {
-                for (k, x) in m {
-                    if k.eq_ignore_ascii_case(key) {
-                        return Some(x);
-                    }
+                if let Some(x) = key_of(m, key) {
+                    return Some(x);
                 }
                 queue.extend(m.values());
             }
-            serde_json::Value::Array(a) => queue.extend(a.iter()),
+            serde_json::Value::Array(a) if arrays => queue.extend(a.iter()),
             _ => {}
         }
     }
     None
+}
+
+/// Clé directe d'un objet, sans casse.
+fn key_of<'a>(m: &'a serde_json::Map<String, serde_json::Value>, key: &str) -> Option<&'a serde_json::Value> {
+    m.iter().find(|(k, _)| k.eq_ignore_ascii_case(key)).map(|(_, x)| x)
+}
+
+/// Objet qui porte directement `key`, hors listes (en largeur).
+fn holder_of<'a>(v: &'a serde_json::Value, key: &str) -> Option<&'a serde_json::Map<String, serde_json::Value>> {
+    let mut queue = std::collections::VecDeque::from([v]);
+    while let Some(n) = queue.pop_front() {
+        if let serde_json::Value::Object(m) = n {
+            if key_of(m, key).is_some() {
+                return Some(m);
+            }
+            queue.extend(m.values());
+        }
+    }
+    None
+}
+
+/// `retired` de la voiture du joueur : dans `playerVehicle`, sinon à côté de lui. Sans
+/// `playerVehicle`, seulement hors listes. Introuvable : `None` (rien n'est supposé).
+fn player_retired(inner: &serde_json::Value) -> Option<bool> {
+    match holder_of(inner, "playerVehicle") {
+        Some(h) => key_of(h, "playerVehicle")
+            .and_then(|p| find_key_from(p, "retired", false))
+            .or_else(|| key_of(h, "retired"))
+            .and_then(|v| as_bool(Some(v))),
+        None => as_bool(find_key_from(inner, "retired", false)),
+    }
 }
 
 fn as_bool(v: Option<&serde_json::Value>) -> Option<bool> {
@@ -127,7 +163,7 @@ fn parse_save(text: &str) -> Option<(Option<String>, Option<bool>, Option<bool>)
         .or_else(|| find_key(&inner, "vehicleName"))
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
-    Some((vehicle, as_bool(find_key(&inner, "retired")), as_bool(find_key(&inner, "sessionFinished"))))
+    Some((vehicle, player_retired(&inner), as_bool(find_key(&inner, "sessionFinished"))))
 }
 
 /// Même voiture : égalité ou inclusion, sans casse ni espaces de bord.
@@ -251,6 +287,19 @@ mod tests {
         assert_eq!(veh.as_deref(), Some("Porsche 963"));
         assert_eq!(retired, Some(true));
         assert_eq!(finished, None);
+    }
+
+    #[test]
+    fn retired_of_another_car_is_ignored() {
+        // Une liste de voitures (format supposé) : l'abandon d'un adversaire ne compte pas.
+        let text = r#"{"playerVehicle":{"vehicleName":"BMW M4 GT3"},"retired":false,"vehicles":[{"vehicleName":"Toyota GR010","retired":true}]}"#;
+        assert_eq!(parse_save(text).unwrap().1, Some(false));
+        let inside = r#"{"grid":[{"retired":true}],"playerVehicle":{"vehicleName":"BMW M4 GT3","retired":true}}"#;
+        assert_eq!(parse_save(inside).unwrap().1, Some(true));
+        let no_flag = r#"{"playerVehicle":{"vehicleName":"BMW M4 GT3"},"vehicles":[{"retired":true}]}"#;
+        assert_eq!(parse_save(no_flag).unwrap().1, None);
+        let no_player = r#"{"vehicles":[{"retired":true}]}"#;
+        assert_eq!(parse_save(no_player).unwrap().1, None);
     }
 
     #[test]

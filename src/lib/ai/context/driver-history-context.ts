@@ -24,6 +24,33 @@ function day(ts: number): string {
 }
 
 /**
+ * Dernier PB, daté par rapport à la session analysée (pas à aujourd'hui : on peut
+ * relire une vieille session — « no PB for 88 days » alors qu'elle EST le PB). Seul
+ * l'historique jusqu'à cette session compte : un PB posé après donnerait « -88 days
+ * before this session ». `pts` : du plus ancien au plus récent.
+ */
+export function lastPbInfo(
+  pts: { session_id: number; timestamp: number; is_pb: boolean }[],
+  currentSessionId: number | undefined,
+  daysSincePb: number | null | undefined,
+): { text: string; pbIsCurrent: boolean } {
+  const idx = currentSessionId != null ? pts.findIndex((p) => p.session_id === currentSessionId) : -1;
+  const current = idx >= 0 ? pts[idx] : null;
+  const known = current ? pts.slice(0, idx + 1) : pts;
+  const lastPb = [...known].reverse().find((p) => p.is_pb) ?? null;
+  if (!lastPb) return { text: "", pbIsCurrent: false };
+  if (current && lastPb.session_id === current.session_id) return { text: "set in this session", pbIsCurrent: true };
+  if (current) {
+    const days = Math.round((current.timestamp - lastPb.timestamp) / 86400);
+    return { text: `${day(lastPb.timestamp)} (${days} days before this session)`, pbIsCurrent: false };
+  }
+  return {
+    text: daysSincePb != null ? `${day(lastPb.timestamp)} (${daysSincePb} days ago)` : day(lastPb.timestamp),
+    pbIsCurrent: false,
+  };
+}
+
+/**
  * Historique d'un combo par clé directe (track + unique_car_name).
  * `trackCourse` : à omettre quand la nomenclature de layout n'est pas fiable
  * (télémétrie : « Paul Ricard - ELMS » ≠ « Paul Ricard - 1A-V2 » des résultats).
@@ -65,21 +92,7 @@ export async function buildComboHistoryText(args: {
   if (!hasHistory) return "";
 
   const st = prog.stats;
-  // Dernier PB, daté par rapport à la session analysée (pas à aujourd'hui : on peut
-  // relire une vieille session — « no PB for 88 days » alors qu'elle EST le PB).
-  const lastPb = [...pts].reverse().find((p) => p.is_pb) ?? null;
-  const current = currentSessionId != null ? pts.find((p) => p.session_id === currentSessionId) ?? null : null;
-  const pbIsCurrent = !!lastPb && !!current && lastPb.session_id === current.session_id;
-  const daysBetween = (a: number, b: number) => Math.round((b - a) / 86400);
-  const lastPbText = !lastPb
-    ? ""
-    : pbIsCurrent
-      ? "set in this session"
-      : current
-        ? `${day(lastPb.timestamp)} (${daysBetween(lastPb.timestamp, current.timestamp)} days before this session)`
-        : st.days_since_pb != null
-          ? `${day(lastPb.timestamp)} (${st.days_since_pb} days ago)`
-          : day(lastPb.timestamp);
+  const { text: lastPbText, pbIsCurrent } = lastPbInfo(pts, currentSessionId, st.days_since_pb);
   const lines: string[] = [];
   lines.push("## Driver history on this combo (local database)");
   lines.push(
@@ -196,24 +209,32 @@ export function trackOtherCarsText(
   return lines.join("\n");
 }
 
+/**
+ * Historique du combo + records du circuit toutes voitures (post-course et
+ * télémétrie) : sans le second, « aucune donnée Mercedes » revenait.
+ */
+export async function buildTrackHistoryText(args: Parameters<typeof buildComboHistoryText>[0]): Promise<string> {
+  const [combo, others] = await Promise.all([
+    buildComboHistoryText(args),
+    records
+      .getOverview()
+      .then((rows) => trackOtherCarsText(rows, args.track, args.car, args.links, args.currentSessionId))
+      .catch(() => ""),
+  ]);
+  return [combo, others].filter(Boolean).join("\n\n");
+}
+
 /** Variante post-course : extrait la clé combo d'un `SessionDetail`. */
 export async function buildDriverHistoryText(detail: SessionDetail, links?: LapLinks): Promise<string> {
   const player = detail.results.find((r) => r.is_player);
   const car = player?.unique_car_name || player?.car_type || "";
   if (!player || !car) return "";
-  const [combo, others] = await Promise.all([
-    buildComboHistoryText({
-      track: detail.session.track,
-      trackCourse: detail.session.track_course || undefined,
-      car,
-      currentSessionId: detail.session.id,
-      currentBest: player.best_lap,
-      links,
-    }),
-    records
-      .getOverview()
-      .then((rows) => trackOtherCarsText(rows, detail.session.track, car, links, detail.session.id))
-      .catch(() => ""),
-  ]);
-  return [combo, others].filter(Boolean).join("\n\n");
+  return buildTrackHistoryText({
+    track: detail.session.track,
+    trackCourse: detail.session.track_course || undefined,
+    car,
+    currentSessionId: detail.session.id,
+    currentBest: player.best_lap,
+    links,
+  });
 }

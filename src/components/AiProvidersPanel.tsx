@@ -38,7 +38,7 @@ import { freeRelayPossible } from "@/lib/ai/freeFallback";
 import { ai } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { ProviderIcon, ProviderTabs } from "@/components/ProviderIcon";
 import { Tip } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 
@@ -149,6 +149,7 @@ function ProviderCard({ id, onEdit }: { id: string; onEdit: () => void }) {
             <StatusDot state={probe} />
           </span>
         </Tip>
+        <ProviderIcon id={id} name={provider.name} baseUrl={def?.baseUrl} />
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-medium">{provider.name}</span>
@@ -283,31 +284,43 @@ function ProviderForm({
     <div className="space-y-2 rounded-md border border-input p-3">
       {mode === "builtin" && (
         <>
-          <label className="flex items-center justify-between gap-3 text-sm">
-            {t("config.aiProvider")}
-            {editId ? (
-              <span className="text-sm font-medium">{getProvider(editId)?.name}</span>
-            ) : (
-              <Select
+          {editId ? (
+            <div className="flex items-center justify-between gap-3 text-sm">
+              {t("config.aiProvider")}
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+                <ProviderIcon id={editId} name={getProvider(editId)?.name ?? editId} />
+                {getProvider(editId)?.name}
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-1.5 text-sm">
+              <div>{t("config.aiProvider")}</div>
+              <ProviderTabs
                 value={builtinId}
-                onValueChange={setBuiltinId}
+                onChange={setBuiltinId}
                 ariaLabel={t("config.aiProvider")}
-                className="h-8 w-[240px] px-2.5"
                 options={[
                   ...available.map((p) => ({
-                    value: p.id,
-                    label:
+                    id: p.id,
+                    name: p.name,
+                    title:
                       p.freeTier && (!inFreeSection || p.freeTier.partial)
                         ? `${p.name} · ${t(freeLabelKey(p))}`
-                        : p.name,
+                        : undefined,
                   })),
                   ...(offerCustom
-                    ? [{ value: CUSTOM_CHOICE, label: t("config.aiCustomOption") }]
+                    ? [
+                        {
+                          id: CUSTOM_CHOICE,
+                          name: t("config.aiCustomOption"),
+                          icon: <Plus className="h-[18px] w-[18px]" />,
+                        },
+                      ]
                     : []),
                 ]}
               />
-            )}
-          </label>
+            </div>
+          )}
           {provider?.freeTier && <FreeTierNote provider={provider} />}
         </>
       )}

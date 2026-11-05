@@ -222,11 +222,12 @@ syncSegs();
   // Une ligne par classement (toute la ligne est cliquable).
   function listView(rows) {
     return `<div class="panel lb-panel"><div class="lb-scroll"><table class="lb lb-list">
-      <thead><tr><th>${esc(t("col.track"))}</th><th>${esc(t("col.class"))}</th><th>${esc(t("kpi.best"))}</th><th>${esc(t("col.recordDriver"))}</th><th>${esc(t("col.car"))}</th><th>${esc(t("stat.drivers"))}</th><th>${esc(t("col.version"))}</th><th></th></tr></thead>
+      <thead><tr><th class="c">${esc(t("col.detail"))}</th><th>${esc(t("col.track"))}</th><th>${esc(t("col.class"))}</th><th>${esc(t("kpi.best"))}</th><th>${esc(t("col.recordDriver"))}</th><th>${esc(t("col.car"))}</th><th>${esc(t("stat.drivers"))}</th><th>${esc(t("col.version"))}</th><th></th></tr></thead>
       <tbody>${rows
         .map(
           (c) => `
         <tr class="row-link${c.drivers < RANKED_MIN ? " is-prov" : ""}" data-href="${esc(comboUrl(c))}">
+          <td class="c go-cell">${detailLink(comboUrl(c))}</td>
           <td><a class="combo-cell" href="${esc(comboUrl(c))}">${flagImg(c.track)}<span><b>${esc(c.track_course)}</b>${c.track !== c.track_course ? `<small class="muted">${esc(c.track)}</small>` : ""}</span></a></td>
           <td>${classBadge(c.car_class)}</td>
           <td class="t best-t">${fmtTime(c.best)}</td>

@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAnchoredPanel } from "@/components/ui/use-anchored-panel";
+import { enterChoice } from "@/components/ui/combobox-logic";
 
 /**
  * Champ de **saisie libre avec suggestions**, en remplacement du couple
@@ -32,6 +33,7 @@ export function Combobox({
   toggle = false,
   selected,
   toggleLabel,
+  freeEnter = false,
   onFocus,
   onBlur,
   onKeyDown: onKeyDownExtra,
@@ -51,6 +53,11 @@ export function Combobox({
   /** Valeur cochée dans la liste (mode `toggle`). */
   selected?: string;
   toggleLabel?: string;
+  /**
+   * Entrée retient ce qui est tapé (via `onKeyDown`), sauf navigation aux flèches ou
+   * texte identique à une suggestion. Par défaut : la suggestion active.
+   */
+  freeEnter?: boolean;
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -68,6 +75,8 @@ export function Combobox({
   // ce drapeau, le relâchement du même clic replaçait le curseur et la frappe
   // s'insérait au milieu de l'id au lieu de lancer une recherche.
   const selectOnMouseUp = useRef(false);
+  // Le pilote a parcouru la liste aux flèches depuis sa dernière frappe (cf. `freeEnter`).
+  const navigated = useRef(false);
 
   const matches = useMemo(() => {
     const q = value.trim().toLowerCase();
@@ -114,6 +123,7 @@ export function Combobox({
 
   /** Liste complète, positionnée sur l'entrée cochée. */
   const openAll = () => {
+    navigated.current = false;
     setBrowseAll(true);
     setActive(Math.max(0, options.findIndex((o) => o.value === (selected ?? value))));
     setOpen(options.length > 0);
@@ -127,13 +137,25 @@ export function Combobox({
         else setOpen(matches.length > 0);
         return;
       }
+      navigated.current = true;
       const d = e.key === "ArrowDown" ? 1 : -1;
       setActive((i) => (i + d + matches.length) % Math.max(1, matches.length));
       return;
     } else if (e.key === "Enter" && open && matches[active]) {
-      e.preventDefault();
-      pick(matches[active].value);
-      return;
+      const choice = enterChoice({
+        freeEnter,
+        navigated: navigated.current,
+        typed: value,
+        active: matches[active].value,
+        options,
+      });
+      if (choice !== null) {
+        e.preventDefault();
+        pick(choice);
+        return;
+      }
+      // Texte libre gardé : c'est `onKeyDown` de l'appelant qui le valide.
+      setOpen(false);
     } else if (e.key === "Tab") {
       setOpen(false);
     }
@@ -149,6 +171,7 @@ export function Combobox({
       value={value}
       onChange={(e) => {
         onChange(e.target.value);
+        navigated.current = false;
         setBrowseAll(false);
         setOpen(true);
         setActive(0);
@@ -222,6 +245,9 @@ export function Combobox({
           <div
             ref={panelRef}
             style={style}
+            // Garde le focus dans le champ quand on saisit la barre de défilement :
+            // ce blur aurait valeur de « quitter le champ » pour l'appelant.
+            onMouseDown={(e) => e.preventDefault()}
             className={cn(
               "z-[80] overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg",
               // Largeur mesurée dès la 1re ouverture (sinon : toute la page).

@@ -817,7 +817,7 @@ h1.skeleton, .kpi b.skeleton { display: inline-block; min-width: 55%; }
   .pf-table td:nth-child(5) { padding-left: 4px; }
 
   /* Vue Liste : circuit, classe, temps, pilote, pilotes (voiture et version sur la page du classement). */
-  .lb-list th:nth-child(5), .lb-list td:nth-child(5), .lb-list th:nth-child(7), .lb-list td:nth-child(7), .lb-list th:nth-child(8), .lb-list td:nth-child(8) { display: none; }
+  .lb-list th:nth-child(1), .lb-list td:nth-child(1), .lb-list th:nth-child(6), .lb-list td:nth-child(6), .lb-list th:nth-child(8), .lb-list td:nth-child(8), .lb-list th:nth-child(9), .lb-list td:nth-child(9) { display: none; }
   .lb-list td, .lb-list th { padding: 8px 8px; }
 
   /* Page d'un classement : champs à 16 px (sinon iOS zoome au focus), tableau un peu plus aéré. */
@@ -1069,6 +1069,8 @@ body.cmp-open { overflow: hidden; }
 .fsel .fdrop-btn, .fsel .fmulti-btn { color: var(--text); font-weight: 700; padding-top: 5px; padding-bottom: 5px; }
 .fsel.is-set { border-color: var(--amber); box-shadow: 0 0 0 3px var(--glow); }
 .fsel.is-set .fdrop-btn { background: color-mix(in srgb, var(--amber) 8%, transparent); color: var(--amber-ink); }
+/* Filtre multiple (version) : `background-color` seul, pour garder la flèche du bouton. */
+.fsel.is-set .fmulti-btn { background-color: color-mix(in srgb, var(--amber) 8%, transparent); color: var(--amber-ink); }
 
 /* ── Setups de la communauté (setups.html) ── */
 .su-soon { margin: 18px 0 0; }

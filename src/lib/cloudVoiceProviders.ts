@@ -317,3 +317,16 @@ const PERMISSION_LABELS: Record<string, string> = {
 export function permissionLabel(perm: string): string {
   return PERMISSION_LABELS[perm] ?? perm.replace(/_/g, " ");
 }
+
+/**
+ * Message lisible pour une erreur du fournisseur de voix. Clé à droits restreints
+ * (ElevenLabs `missing_permissions`) : quelle permission manque et où l'activer,
+ * au lieu du JSON brut renvoyé par le service. Autres erreurs : texte inchangé.
+ */
+export function explainCloudError(raw: string, providerName: string, t: (k: string, o?: Record<string, unknown>) => string): string {
+  const perm = missingPermission(raw);
+  if (perm === null) return raw;
+  return perm
+    ? t("config.cloudVoiceMissingPermission", { name: providerName, permission: permissionLabel(perm) })
+    : t("config.cloudVoiceMissingPermissionAny", { name: providerName });
+}

@@ -27,6 +27,7 @@ import {
   spokenFixedKeys,
   wheelTemplates,
 } from "@/lib/cloudVoicePrep";
+import { explainCloudError, getCloudVoiceProvider } from "@/lib/cloudVoiceProviders";
 import { getMessageText } from "@/lib/voiceMessages";
 import { isTauri } from "@/lib/api";
 import { cloudPrepTexts, cloudSegmentPrepTexts } from "@/lib/voice";
@@ -58,6 +59,8 @@ export function PrepareVoice() {
   const running = prep?.running === true;
   const [plan, setPlan] = useState<CloudPrepPlan | null>(null);
   const [segmentCount, setSegmentCount] = useState(0);
+  /** Erreur du fournisseur en clair (jamais le JSON brut du service). */
+  const explain = (raw: string) => explainCloudError(raw, getCloudVoiceProvider(settings.provider).name, t);
 
   // Devis recalculé quand la voix (fournisseur, modèle, voix), la langue ou la
   // vitesse change, et après chaque préparation : un devis périmé n'est jamais affiché.
@@ -105,7 +108,7 @@ export function PrepareVoice() {
     if (outcome === "done" && st?.failed) toastError(t("config.cloudVoicePrepFailed", { n: st.failed }));
     else if (outcome === "done") toastSuccess(t("config.cloudVoicePrepDone", { n: made }));
     else if (outcome === "paused")
-      toastError(t("config.cloudVoicePrepPaused", { error: cloudVoiceSnapshot().lastError || "—" }));
+      toastError(t("config.cloudVoicePrepPaused", { error: explain(cloudVoiceSnapshot().lastError) || "—" }));
     else if (outcome === "changed") toastError(t("config.cloudVoicePrepChanged"));
     else toastSuccess(t("config.cloudVoicePrepCancelled", { n: made }));
   };
@@ -178,7 +181,7 @@ export function PrepareVoice() {
           <div className="h-full bg-primary transition-all" style={{ width: `${(100 * prep.done) / prep.total}%` }} />
         </div>
       )}
-      {running && lastError && <div className="text-xs text-amber-500 break-words">{lastError}</div>}
+      {running && lastError && <div className="text-xs text-amber-500 break-words">{explain(lastError)}</div>}
     </div>
   );
 }

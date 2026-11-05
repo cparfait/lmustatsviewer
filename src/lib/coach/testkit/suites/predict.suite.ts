@@ -10,10 +10,10 @@ import type { OnTrackCar } from "@/lib/engineer/traffic";
 import type { LiveStanding } from "@/lib/api";
 import { applyPresence, effectivePresence, parsePresence, DISCREET_GAP_LAPS } from "@/lib/coach/presence";
 import { policyFor } from "@/lib/coach/mode";
-import { QuestionBook, questionOfKey, resolveShortAnswer } from "@/lib/engineer/questions";
+import { QuestionBook, questionOfKey, resolveShortAnswer, wheelAckApplies } from "@/lib/engineer/questions";
 import { route } from "@/lib/engineer/router";
-import { buildTiers, nextTier, crossedTiers } from "@/lib/engineer/paceTiers";
-import { sayMeters, sayKmh, saySeconds, sayLap } from "@/lib/engineer/rounding";
+import { buildTiers, nextTier, crossedTiers, tierProgress, tierLoadDue, tierRetryDelayMs } from "@/lib/engineer/paceTiers";
+import { sayMeters, sayKmh, saySeconds, sayLap, sayLapTarget } from "@/lib/engineer/rounding";
 
 const L = 1000;
 /** Vitesse (m/s) de chaque classe le long du tour : un virage lent entre 400 et 500 m. */
@@ -133,6 +133,9 @@ function rounding(): void {
   eq(saySeconds(0.234, 2, true), "0.2", "écart au dixième");
   eq(sayLap(102.881, true), "1:42.9", "chrono au dixième");
   eq(sayLap(59.96, true), "1:00.0", "59,96 s → 1:00.0");
+  eq(sayLapTarget(102.881, true), "1:42.8", "objectif « sous X » : vers le bas, jamais déjà battu");
+  eq(sayLapTarget(102.8, true), "1:42.8", "objectif déjà au dixième : inchangé");
+  eq(sayLapTarget(102.881, false), "1:42.881", "objectif, arrondis coupés : millièmes");
   section("rounding.off");
   eq(sayMeters(37, false), 35, "coupé : pas de 5 m");
   eq(sayKmh(13, false), 13, "coupé : au km/h");
@@ -163,6 +166,13 @@ function presence(): void {
 }
 
 function questions(): void {
+  section("questions.wheelAck");
+  ok(!wheelAckApplies(null, false), "bouton du volant sans fenêtre annoncée : ne coupe aucun rappel");
+  ok(wheelAckApplies(null, true), "fenêtre annoncée : accusé");
+  ok(wheelAckApplies("pitCall", false), "appel au box ouvert : accusé");
+  ok(!wheelAckApplies("lapPref", false), "question des chronos seule : aucun rappel à couper");
+  ok(wheelAckApplies("lapPref", true), "le bouton nomme le box : la question des chronos ne le détourne pas");
+
   section("questions.book");
   const b = new QuestionBook();
   eq(b.latest(0), null, "carnet vide");
@@ -215,6 +225,19 @@ function tiers(): void {
   eq(crossedTiers(104.8, 102.5, t).map((x) => x.key), ["p75", "p50"], "deux repères passés d'un coup");
   eq(crossedTiers(null, 102.5, t), [], "premier tour : rien de passé");
   eq(crossedTiers(102.5, 102.6, t), [], "pas d'amélioration : rien");
+  section("paceTiers.memory");
+  eq(tierProgress(102.5, 102.8, t).crossed, [], "nouvelle séance, repères déjà passés : rien de redit");
+  eq(tierProgress(102.5, 102.8, t).next?.key, "p25", "la cible part du meilleur tour déjà vu");
+  eq(tierProgress(102.5, 101.5, t).crossed.map((x) => x.key), ["p25"], "un repère vraiment nouveau : dit");
+  eq(tierProgress(null, 102.5, t).crossed, [], "premier tour vu : rien de passé");
+  section("paceTiers.retry");
+  ok(!tierLoadDue("a", "a", null, 0), "déjà chargé : rien");
+  ok(tierLoadDue("a", "", null, 0), "jamais chargé : on charge");
+  const failed = { key: "a", at: 60_000, attempts: 1 };
+  ok(!tierLoadDue("a", "", failed, 1000), "après un échec : pas à chaque trame");
+  ok(tierLoadDue("a", "", failed, 60_000), "délai écoulé : nouvel essai");
+  ok(tierLoadDue("b", "", failed, 1000), "autre combo : pas de délai");
+  eq([tierRetryDelayMs(1), tierRetryDelayMs(2), tierRetryDelayMs(9)], [60_000, 120_000, 600_000], "essais de plus en plus espacés, plafonnés");
 }
 
 export function run(): void {

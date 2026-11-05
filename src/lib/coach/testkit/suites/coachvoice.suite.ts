@@ -16,11 +16,11 @@ import {
 } from "@/lib/ai/voiceGuard";
 import { matchCorners, phonetic, similarity, trackCornerNames, cornerNamesBlock } from "@/lib/ai/knowledge/corner-names";
 import { radioSystemPrompt, languageLock, radioReminder, usesRadioPrompt, voiceUserMessage } from "@/lib/ai/prompts/radio";
-import { clarifyStreak, isClarification, sttUnsure } from "@/lib/engineer/askRules";
+import { CLARIFY_MAX, THREAD_MS, clarifyStreak, isClarification, mayClarify, sttUnsure } from "@/lib/engineer/askRules";
 import { computeDebrief, debriefContextText, classPositionsByLap, type Debrief } from "@/lib/debrief/compute";
 import { recurringDefect, type RaceFamilies } from "@/lib/debrief/recurring";
 import { PaceOutlook } from "@/lib/engineer/paceOutlook";
-import { chequeredPhrase } from "@/lib/engineer/debriefRadio";
+import { chequeredPhrase, clockJumped, dnfStillDriving, RACE_SEEN_GRACE_MS, RaceSeen, saveVerdict } from "@/lib/engineer/debriefRadio";
 import { recallPhrase, sameCourse, type TrackHistory } from "@/lib/engineer/trackRecall";
 import type { LapRow, LiveStanding, ResultRow, SessionDetail } from "@/lib/api";
 import { normalize, route } from "@/lib/engineer/router";
@@ -194,6 +194,10 @@ export function run(): void {
   ok(sttUnsure("quel est mon écart devant", 0.4), "dictée incertaine (≥ 3 mots)");
   ok(!sttUnsure("box", 0.2), "un ou deux mots : jamais");
   ok(!sttUnsure("quel est mon écart", null), "sans mesure : jamais");
+  const relances = (n: number) => Array.from({ length: n }, (_, i) => ({ q: "q", a: "redis ?", at: now - 1000 * (n - i), clarify: true }));
+  ok(mayClarify(relances(CLARIFY_MAX - 1), now), "sous le plafond : on peut faire répéter");
+  ok(!mayClarify(relances(CLARIFY_MAX), now), "plafond atteint, dans le code : plus de relance");
+  ok(mayClarify(relances(CLARIFY_MAX), now + THREAD_MS + 5000), "fil radio passé : la relance redevient possible");
 
   section("Noms de virage : liste fermée, façons de dire, dictée");
   const spa = trackCornerNames("Circuit de Spa-Francorchamps");
@@ -279,6 +283,28 @@ export function run(): void {
   eq(c?.kind, "climbing", "je reprends 0,5 s au tour sur 2 s, 10 tours restants : je remonte");
   eq(po.call(mk(9, 100.1, 2), 10, 10, 0), null, "déjà dit : pas de redite");
   eq(new PaceOutlook().evaluate(mk(9, 100.1, 2), 9, 10, 0.5), null, "sous la pluie : rien");
+
+  section("Faux abandon : nouvel essai, retired du joueur, rechargement");
+  eq(dnfStillDriving(1000, 1500, 200), false, "dernière trame encore rapide : pas de conclusion");
+  eq(dnfStillDriving(1000, 3000, 200), true, "roule sous statut abandon : course rechargée");
+  eq(dnfStillDriving(1000, 3000, 0), false, "arrêtée : vrai abandon possible");
+  eq(saveVerdict(null, 0), "retry", "rien à la première lecture : on relit");
+  eq(saveVerdict(null, 1), "dnf", "rien à la seconde : on croit le jeu");
+  eq(saveVerdict({ retired: false }, 0), "save", "sauvegarde non marquée abandon : silence");
+  eq(saveVerdict({ retired: null }, 1), "save", "marque inconnue : silence");
+  eq(saveVerdict({ retired: true }, 0), "dnf", "marquée abandon : abandon");
+  const seen = new RaceSeen();
+  seen.restart(1000);
+  seen.frame(1000 + RACE_SEEN_GRACE_MS - 1, true);
+  ok(!seen.seen, "rechargement puis « abandon » aussitôt : la course n'est pas vue rouler");
+  seen.frame(1000 + RACE_SEEN_GRACE_MS, true);
+  ok(seen.seen, "la course roule au-delà du délai : vue");
+  seen.restart(50_000);
+  ok(!seen.seen, "nouveau rechargement : on repart de zéro");
+  seen.frame(90_000, false);
+  ok(!seen.seen, "statut de fin : jamais « vue rouler »");
+  ok(clockJumped(600, 3600), "horloge qui saute en avant : rechargement");
+  ok(!clockJumped(600, 600.05) && !clockJumped(0, 3600), "horloge normale ou première trame : rien");
 
   section("Bilan au damier et mémoire du circuit");
   const base = { classCount: 12, startClassPos: 7, bestLap: 112.3, stops: 2 };

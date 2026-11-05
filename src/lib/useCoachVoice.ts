@@ -8,23 +8,32 @@
  * traitées **sur place, sans IA**. Seules les questions ouvertes partent au
  * **Coach IA** (LLM), s'il est activé et configuré ; sinon l'ingénieur le dit.
  *
- * Monté une seule fois (App.tsx), à côté de `useSpotter`. La touche écoute dès
- * qu'elle est définie : ingénieur et coach par virage ne dépendent pas de l'IA.
+ * Monté une seule fois (App.tsx), à côté de `useSpotter`. Ingénieur et coach par
+ * virage ne dépendent pas de l'IA, mais de la voix : sans annonces vocales, le
+ * micro reste fermé et les touches restent libres (`voicePolicy.ts`).
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useAppStore } from "@/stores/app";
 import { isTauri } from "@/lib/api";
 import { announceAnswer, setDriverTalking } from "@/lib/voice";
-import { startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
+import { notifyMicFallback, resetMicFallback, startCapture, stopCapture, pcmToBase64 } from "@/lib/mic";
 import { pttBeep } from "@/lib/radioFx";
 import { friendlyError } from "@/lib/ai/coach";
 import { askEngineer, radioLine } from "@/lib/engineer/ask";
 import { buildGrammar } from "@/lib/spotterCommands";
+import { createOnceGate, micEngineWanted, pttKeysWanted } from "@/lib/voicePolicy";
 import { toast, toastError } from "@/stores/dialogs";
+
+/** Micro permanent impossible à ouvrir : dit une fois par micro choisi, pas à chaque essai. */
+const micErrorGate = createOnceGate();
+/** Délai entre deux essais d'ouverture du micro permanent après un échec (ms). */
+const MIC_RETRY_MS = 15_000;
+/** Modèle vocal absent pour le mot déclencheur : dit une fois par langue. */
+const wakeModelGate = createOnceGate();
 
 export function useCoachVoice() {
   const { t, i18n } = useTranslation();
@@ -32,14 +41,14 @@ export function useCoachVoice() {
   const keyTalk = useAppStore((s) => s.spotterKeyTalk);
   const pttMode = useAppStore((s) => s.spotterPttMode);
   const pttWheel = useAppStore((s) => s.pttWheel);
+  const voiceOn = useAppStore((s) => s.voiceAnnouncements);
   const micReady = useAppStore((s) => s.micReady);
   const wakeOn = useAppStore((s) => s.wakeWordEnabled);
   const wakeWord = useAppStore((s) => s.wakeWord);
   const micDevice = useAppStore((s) => s.micDevice);
   const lang = i18n.language;
-  // La touche écoute dès qu'elle est définie. La configuration IA (activation,
-  // fournisseur, modèle, clé) est relue au moment d'une question ouverte
-  // (`aiReady`) : aucun abonnement nécessaire.
+  // La configuration IA (activation, fournisseur, modèle, clé) est relue au moment
+  // d'une question ouverte (`aiReady`) : aucun abonnement nécessaire.
 
   const tRef = useRef(t);
   const langRef = useRef(i18n.language);
@@ -52,15 +61,63 @@ export function useCoachVoice() {
   const lastToggle = useRef(0);
   const pttModeRef = useRef(pttMode);
   pttModeRef.current = pttMode;
+  /** Appui / relâchement, branché par l'effet des événements, lu par les raccourcis. */
+  const onPressRef = useRef<((pressed: boolean) => void) | null>(null);
+  /** La voix a été allumée pendant cette session (cf. `pttKeysWanted`). */
+  const voiceSeen = useRef(false);
+  voiceSeen.current ||= voiceOn;
+  const keysOn = pttKeysWanted(voiceOn, voiceSeen.current);
+  const engineOn = micEngineWanted({ voice: voiceOn, micReady, wakeOn });
+  /** Échec d'ouverture du micro permanent : relance l'effet du moteur après un délai. */
+  const [micRetry, setMicRetry] = useState(0);
+  const micFailed = useRef(false);
+
+  // Abandonne la capture en cours (rien n'est dicté).
+  const cancelCapture = useCallback(() => {
+    if (!capturing.current) return;
+    if (viaEngine.current) {
+      invoke("ptt_cancel").catch(() => {});
+      setDriverTalking(false);
+    } else stopCapture();
+    capturing.current = false;
+  }, []);
+
+  // Événements du moteur : abonnés avant son démarrage (effet suivant), pour ne
+  // pas manquer une erreur émise juste après l'ouverture du micro.
+  useEffect(() => {
+    if (!isTauri()) return;
+    const offs = [
+      // Micro perdu en cours de route (débranché) : le moteur rouvre seul, on prévient.
+      listen<{ kind: string; name: string; wanted: string }>("voice-input-device", (e) => {
+        const { kind, name, wanted } = e.payload ?? { kind: "", name: "", wanted: "" };
+        const tt = tRef.current;
+        if (kind === "none") toast(tt("config.micDeviceNone"));
+        else if (kind === "fallback") notifyMicFallback(wanted, name);
+        else if (kind === "reconnected") {
+          resetMicFallback();
+          toast(tt("config.micDeviceReconnected", { name }));
+        }
+      }),
+      // Mot déclencheur sans modèle vocal : la touche marche, mais le mot resterait muet.
+      listen("voice-input-error", () => {
+        if (wakeModelGate.pass(langRef.current)) toast(tRef.current("config.wakeWordModelMissing"));
+      }),
+    ];
+    return () => {
+      for (const off of offs) void off.then((f) => f()).catch(() => {});
+    };
+  }, []);
 
   // ── Moteur d'écoute natif : micro prêt (pré-enregistrement) et/ou mot ──────
   useEffect(() => {
     if (!isTauri()) return;
-    if (!micReady && !wakeOn) {
+    if (!engineOn) {
       invoke("voice_input_stop").catch(() => {});
       return;
     }
     const word = wakeOn ? wakeWord.trim() || t("live.wakeWordDefault") : null;
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     // Changer de micro relance le moteur à chaud (clé différente côté Rust).
     invoke<{ name: string; fallback: boolean; restarted: boolean }>("voice_input_start", {
       lang,
@@ -68,25 +125,26 @@ export function useCoachVoice() {
       device: micDevice || null,
     })
       .then((r) => {
-        if (r.restarted && r.fallback) toast(t("config.micDeviceFallback", { wanted: micDevice, name: r.name }));
+        // Micro branché après un échec : on dit qu'il est revenu.
+        if (micFailed.current && alive) toast(t("config.micDeviceReconnected", { name: r.name }));
+        micFailed.current = false;
+        micErrorGate.reset();
+        if (r.fallback) notifyMicFallback(micDevice, r.name);
+        else resetMicFallback();
       })
-      .catch((e) => {
-        // Micro indisponible : la touche retombe sur la capture à l'appui.
-        toast(`${t("config.micEngineError")} ${String(e)}`);
+      .catch(() => {
+        // Micro indisponible : la touche retombe sur la capture à l'appui. Le
+        // détail (non traduit) va au journal, côté Rust.
+        micFailed.current = true;
+        if (micErrorGate.pass(micDevice)) toast(t("config.micEngineError"));
+        // Nouvel essai discret : le micro peut être branché plus tard.
+        if (alive) timer = setTimeout(() => setMicRetry((n) => n + 1), MIC_RETRY_MS);
       });
-  }, [micReady, wakeOn, wakeWord, micDevice, lang, t]);
-  // Micro perdu en cours de route (débranché) : le moteur rouvre seul, on prévient.
-  useEffect(() => {
-    if (!isTauri()) return;
-    const off = listen<{ kind: string; name: string; wanted: string }>("voice-input-device", (e) => {
-      const { kind, name, wanted } = e.payload ?? { kind: "", name: "", wanted: "" };
-      const tt = tRef.current;
-      if (kind === "none") toast(tt("config.micDeviceNone"));
-      else if (kind === "fallback") toast(tt("config.micDeviceFallback", { wanted, name }));
-      else if (kind === "reconnected") toast(tt("config.micDeviceReconnected", { name }));
-    });
-    return () => void off.then((f) => f()).catch(() => {});
-  }, []);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [engineOn, wakeOn, wakeWord, micDevice, lang, t, micRetry]);
   useEffect(
     () => () => {
       if (isTauri()) invoke("voice_input_stop").catch(() => {});
@@ -226,37 +284,44 @@ export function useCoachVoice() {
       }),
       listen("wake-timeout", () => setDriverTalking(false)),
     ];
-
-    // Touche principale + seconde touche facultative (l'ancienne touche
-    // « Parler » du spotter) : même prise de parole, même réponse.
-    const keys = [...new Set([keyCoach, keyTalk].filter(Boolean))];
-    if (keys.length) {
-      (async () => {
-        const gs = await import("@tauri-apps/plugin-global-shortcut");
-        for (const key of keys) {
-          try {
-            if (await gs.isRegistered(key)) await gs.unregister(key);
-            await gs.register(key, (e) => {
-              if (e.state === "Pressed") onPress(true);
-              else if (e.state === "Released") onPress(false);
-            });
-          } catch {
-            /* accélérateur invalide / déjà pris */
-          }
-        }
-      })();
-    }
+    onPressRef.current = onPress;
 
     return () => {
       disposed = true;
+      onPressRef.current = null;
       for (const off of offs) void off.then((f) => f()).catch(() => {});
-      if (capturing.current) {
-        if (viaEngine.current) {
-          invoke("ptt_cancel").catch(() => {});
-          setDriverTalking(false);
-        } else stopCapture();
-        capturing.current = false;
+      cancelCapture();
+    };
+  }, [cancelCapture]);
+
+  // Touche principale + seconde touche facultative (l'ancienne touche « Parler »
+  // du spotter) : même prise de parole, même réponse. Effet séparé : prendre ou
+  // rendre les touches ne doit pas interrompre une réponse en cours (« active le
+  // son » dit au bouton de volant les fait revenir).
+  useEffect(() => {
+    if (!isTauri() || !keysOn) return;
+    const keys = [...new Set([keyCoach, keyTalk].filter(Boolean))];
+    if (!keys.length) return;
+    let gone = false;
+    void (async () => {
+      const gs = await import("@tauri-apps/plugin-global-shortcut");
+      for (const key of keys) {
+        if (gone) return;
+        try {
+          if (await gs.isRegistered(key)) await gs.unregister(key);
+          await gs.register(key, (e) => {
+            if (e.state === "Pressed") onPressRef.current?.(true);
+            else if (e.state === "Released") onPressRef.current?.(false);
+          });
+        } catch {
+          /* accélérateur invalide / déjà pris */
+        }
       }
+    })();
+    return () => {
+      gone = true;
+      // Touche changée pendant un appui : son relâchement n'arrivera jamais.
+      cancelCapture();
       void (async () => {
         try {
           const gs = await import("@tauri-apps/plugin-global-shortcut");
@@ -266,5 +331,5 @@ export function useCoachVoice() {
         }
       })();
     };
-  }, [keyCoach, keyTalk]);
+  }, [keysOn, keyCoach, keyTalk, cancelCapture]);
 }

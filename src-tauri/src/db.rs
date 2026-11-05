@@ -200,6 +200,13 @@ CREATE TABLE IF NOT EXISTS setup_laps (
 );
 CREATE INDEX IF NOT EXISTS idx_setup_laps_time ON setup_laps(recorded_at);
 
+-- Setups dont le pilote a retiré le lien de référence : le lien automatique ne le
+-- repose pas. Clé = chemin sous `Settings` (`setup_usage::key_of_path`), car les
+-- id de `setups` changent au rescan. Comme `setup_laps`, survit à une réindexation.
+CREATE TABLE IF NOT EXISTS setup_link_cleared (
+    setup_key  TEXT PRIMARY KEY
+);
+
 -- Fichiers XML purgés volontairement par l'utilisateur (« purger sessions vides »).
 -- La sync delta saute ces fichiers tant que leur `mtime` est inchangé : sans cela,
 -- le scan filesystem les détecterait comme « nouveaux » et les réindexerait à
@@ -359,7 +366,67 @@ CREATE INDEX IF NOT EXISTS idx_corner_hist_combo ON corner_history(track, car_mo
 CREATE INDEX IF NOT EXISTS idx_phrasebank_combo   ON coach_phrasebank(track, car_model);
 ";
 
-/// Met de côté une base illisible (`lmu_cache.db` → `lmu_cache.db.corrupt-<date>`,
+/// Échec d'ouverture de la base. La base contient aussi des données qu'une réindexation ne
+/// rend pas (`config`, `coach_notes`) : seule une vraie corruption autorise la mise de côté.
+#[derive(Debug)]
+pub enum DbOpenError {
+    /// Fichier abîmé (`SQLITE_CORRUPT`, `SQLITE_NOTADB`, `quick_check` en échec).
+    Corrupt(String),
+    /// Tout le reste (droits, disque plein, fichier verrouillé…) : le fichier n'est pas en cause.
+    Other(AppError),
+}
+
+impl std::fmt::Display for DbOpenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DbOpenError::Corrupt(e) => write!(f, "{e}"),
+            DbOpenError::Other(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+/// Classe une erreur SQLite : corruption du fichier, ou autre cause.
+fn classify_db_error(step: &str, e: rusqlite::Error) -> DbOpenError {
+    let corrupt = matches!(
+        &e,
+        rusqlite::Error::SqliteFailure(f, _)
+            if matches!(f.code, rusqlite::ErrorCode::DatabaseCorrupt | rusqlite::ErrorCode::NotADatabase)
+    );
+    if corrupt {
+        DbOpenError::Corrupt(format!("{step}: {e}"))
+    } else {
+        DbOpenError::Other(AppError::Database(format!("{step}: {e}")))
+    }
+}
+
+/// Résultat de `quick_check` : `ok`, ou des lignes de problèmes. Une contrainte non respectée
+/// (NULL, CHECK, type STRICT) est une incohérence des données, pas un fichier abîmé.
+fn quick_check_damage(rows: &[String]) -> Option<String> {
+    let logical = |r: &str| r.starts_with("NULL value in") || r.starts_with("CHECK constraint failed") || r.contains(" value in ");
+    rows.iter().find(|r| r.as_str() != "ok" && !logical(r)).cloned()
+}
+
+/// Contrôle du fichier à l'ouverture. Parcourt toute la base sans comparer les index aux tables
+/// (seul l'`integrity_check` le fait, bien plus lent). Mesuré à 0,53 s pour 76 Mo sans
+/// optimisation (`quick_check_cost` dans les tests), soit ~0,15 s pour une base réelle de ~20 Mo.
+fn check_file(conn: &Connection) -> Result<(), DbOpenError> {
+    let rows = conn
+        .prepare("PRAGMA quick_check")
+        .and_then(|mut st| st.query_map([], |r| r.get::<_, String>(0))?.collect::<Result<Vec<_>, _>>())
+        .map_err(|e| classify_db_error("quick_check", e))?;
+    if let Some(damage) = quick_check_damage(&rows) {
+        return Err(DbOpenError::Corrupt(format!("quick_check: {damage}")));
+    }
+    if rows.iter().any(|r| r != "ok") {
+        crate::app_warn!("base locale : données incohérentes signalées par quick_check : {}", rows[0]);
+    }
+    Ok(())
+}
+
+/// Fichier mis de côté à ce démarrage (l'app le signale à l'utilisateur).
+static QUARANTINED: Mutex<Option<String>> = Mutex::new(None);
+
+/// Met de côté une base abîmée (`lmu_cache.db` → `lmu_cache.db.corrupt-<date>`,
 /// avec ses fichiers WAL/SHM) pour que `init_db` reparte d'une base neuve. Rien
 /// n'est effacé : le fichier reste disponible pour un rapport de bug.
 pub fn quarantine_db(app_handle: &tauri::AppHandle) {
@@ -367,25 +434,49 @@ pub fn quarantine_db(app_handle: &tauri::AppHandle) {
         return;
     };
     let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
-    for name in ["lmu_cache.db", "lmu_cache.db-wal", "lmu_cache.db-shm"] {
+    let kept = quarantine_in(&dir, &stamp.to_string());
+    if let (Some(kept), Ok(mut q)) = (kept, QUARANTINED.lock()) {
+        *q = Some(kept);
+    }
+}
+
+/// Renomme les fichiers de la base dans `dir` ; renvoie le nouveau nom du fichier principal.
+fn quarantine_in(dir: &std::path::Path, stamp: &str) -> Option<String> {
+    let kept = format!("lmu_cache.db.corrupt-{stamp}");
+    // Fichier principal d'abord : s'il ne bouge pas, son journal doit rester avec lui.
+    std::fs::rename(dir.join("lmu_cache.db"), dir.join(&kept)).ok()?;
+    for name in ["lmu_cache.db-wal", "lmu_cache.db-shm"] {
         let from = dir.join(name);
         if from.exists() {
             let _ = std::fs::rename(&from, dir.join(format!("{name}.corrupt-{stamp}")));
         }
     }
+    Some(kept)
 }
 
-pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
+/// Nom du fichier mis de côté à ce démarrage (écran d'accueil : réglages à refaire).
+#[tauri::command]
+pub fn db_quarantine_notice() -> Option<String> {
+    QUARANTINED.lock().ok().and_then(|q| q.clone())
+}
+
+pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, DbOpenError> {
     let app_data_dir = app_handle
         .path()
         .app_data_dir()
-        .map_err(|e| AppError::Internal(format!("app data dir: {e}")))?;
+        .map_err(|e| DbOpenError::Other(AppError::Internal(format!("app data dir: {e}"))))?;
 
-    std::fs::create_dir_all(&app_data_dir).map_err(AppError::Io)?;
+    std::fs::create_dir_all(&app_data_dir).map_err(|e| DbOpenError::Other(AppError::Io(e)))?;
 
-    let db_path = app_data_dir.join("lmu_cache.db");
-    let conn = Connection::open(&db_path)
-        .map_err(|e| AppError::Database(format!("open {}: {e}", db_path.display())))?;
+    let conn = open_db_file(&app_data_dir.join("lmu_cache.db"))?;
+    Ok(DbState {
+        conn: Mutex::new(conn),
+    })
+}
+
+/// Ouvre la base, vérifie le fichier et met le schéma à jour.
+fn open_db_file(db_path: &std::path::Path) -> Result<Connection, DbOpenError> {
+    let conn = Connection::open(db_path).map_err(|e| classify_db_error(&format!("open {}", db_path.display()), e))?;
 
     conn.execute_batch(
         "PRAGMA journal_mode=WAL;
@@ -393,10 +484,11 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
          PRAGMA foreign_keys=ON;
          PRAGMA cache_size=-8000;",
     )
-    .map_err(|e| AppError::Database(format!("pragmas: {e}")))?;
+    .map_err(|e| classify_db_error("pragmas", e))?;
 
-    conn.execute_batch(SCHEMA)
-        .map_err(|e| AppError::Database(format!("schema: {e}")))?;
+    check_file(&conn)?;
+
+    conn.execute_batch(SCHEMA).map_err(|e| classify_db_error("schema", e))?;
 
     // Migrations légères : colonnes ajoutées après coup sur une base existante.
     // L'erreur « duplicate column » est ignorée si la colonne existe déjà.
@@ -430,9 +522,7 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<DbState, AppError> {
         );",
     );
 
-    Ok(DbState {
-        conn: Mutex::new(conn),
-    })
+    Ok(conn)
 }
 
 /// État de base autour d'une connexion donnée (tests uniquement).
@@ -495,4 +585,134 @@ pub fn reset_index(db: &DbState) -> Result<(), AppError> {
     )
     .map_err(|e| AppError::Database(format!("reset_index: {e}")))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod open_tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("lmu_db_{name}_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn is_corrupt(r: Result<Connection, DbOpenError>) -> bool {
+        matches!(r, Err(DbOpenError::Corrupt(_)))
+    }
+
+    #[test]
+    fn healthy_file_opens_and_keeps_its_data() {
+        let dir = temp_dir("healthy");
+        let path = dir.join("lmu_cache.db");
+        {
+            let c = open_db_file(&path).unwrap();
+            c.execute("INSERT INTO config (key, value) VALUES ('lmu_path', 'C:/LMU')", []).unwrap();
+        }
+        let c = open_db_file(&path).unwrap();
+        let v: String = c.query_row("SELECT value FROM config WHERE key = 'lmu_path'", [], |r| r.get(0)).unwrap();
+        assert_eq!(v, "C:/LMU");
+        drop(c);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn garbage_file_is_corruption() {
+        let dir = temp_dir("garbage");
+        let path = dir.join("lmu_cache.db");
+        std::fs::write(&path, vec![0x5Au8; 8192]).unwrap();
+        assert!(is_corrupt(open_db_file(&path)), "SQLITE_NOTADB");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Base abîmée au milieu du fichier : en-tête et schéma se lisent, `init_db` passait sans
+    /// voir le problème ; `quick_check` le trouve.
+    #[test]
+    fn damaged_page_is_found_by_quick_check() {
+        let dir = temp_dir("page");
+        let path = dir.join("lmu_cache.db");
+        {
+            let c = open_db_file(&path).unwrap();
+            c.execute_batch("PRAGMA journal_mode=DELETE; BEGIN;").unwrap();
+            for i in 0..4000 {
+                c.execute("INSERT INTO config (key, value) VALUES (?1, ?2)", params![format!("k{i}"), "x".repeat(200)]).unwrap();
+            }
+            c.execute_batch("COMMIT; PRAGMA wal_checkpoint(TRUNCATE);").unwrap();
+        }
+        let mut bytes = std::fs::read(&path).unwrap();
+        assert!(bytes.len() > 200_000, "base assez grande pour l'essai");
+        // Quelques pages en plein milieu, hors de l'en-tête et du schéma.
+        let mid = bytes.len() / 2;
+        bytes[mid..mid + 16384].fill(0xA5);
+        std::fs::write(&path, &bytes).unwrap();
+        assert!(is_corrupt(open_db_file(&path)));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Une erreur qui n'est pas une corruption ne doit jamais faire mettre la base de côté.
+    #[test]
+    fn other_errors_are_not_corruption() {
+        let dir = temp_dir("other");
+        // Le chemin est un dossier : SQLITE_CANTOPEN.
+        assert!(matches!(open_db_file(&dir), Err(DbOpenError::Other(_))));
+        let _ = std::fs::remove_dir_all(&dir);
+        let code = |c| rusqlite::Error::SqliteFailure(rusqlite::ffi::Error::new(c), None);
+        for c in [rusqlite::ffi::SQLITE_BUSY, rusqlite::ffi::SQLITE_FULL, rusqlite::ffi::SQLITE_READONLY, rusqlite::ffi::SQLITE_IOERR, rusqlite::ffi::SQLITE_CANTOPEN] {
+            assert!(matches!(classify_db_error("t", code(c)), DbOpenError::Other(_)), "code {c}");
+        }
+        for c in [rusqlite::ffi::SQLITE_CORRUPT, rusqlite::ffi::SQLITE_NOTADB] {
+            assert!(matches!(classify_db_error("t", code(c)), DbOpenError::Corrupt(_)), "code {c}");
+        }
+    }
+
+    #[test]
+    fn quick_check_lines_are_sorted_out() {
+        let rows = |l: &[&str]| l.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(quick_check_damage(&rows(&["ok"])), None);
+        assert_eq!(quick_check_damage(&rows(&["NULL value in laps.time"])), None, "contrainte, pas fichier");
+        assert_eq!(quick_check_damage(&rows(&["CHECK constraint failed in laps"])), None);
+        let bad = "*** in database main ***\nPage 12: btreeInitPage() returns error code 11";
+        assert_eq!(quick_check_damage(&rows(&["NULL value in laps.time", bad])).as_deref(), Some(bad));
+    }
+
+    #[test]
+    fn quarantine_moves_the_files_and_stops_if_the_main_one_stays() {
+        let dir = temp_dir("quarantine");
+        assert_eq!(quarantine_in(&dir, "s"), None, "pas de fichier : rien à signaler");
+        std::fs::write(dir.join("lmu_cache.db-wal"), b"w").unwrap();
+        assert_eq!(quarantine_in(&dir, "s"), None);
+        assert!(dir.join("lmu_cache.db-wal").exists(), "le journal reste avec son fichier");
+        std::fs::write(dir.join("lmu_cache.db"), b"d").unwrap();
+        assert_eq!(quarantine_in(&dir, "s").as_deref(), Some("lmu_cache.db.corrupt-s"));
+        assert!(!dir.join("lmu_cache.db").exists() && !dir.join("lmu_cache.db-wal").exists());
+        assert!(dir.join("lmu_cache.db.corrupt-s").exists() && dir.join("lmu_cache.db-wal.corrupt-s").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Mesure du coût de `quick_check` sur une grosse base (à lancer à la main, en release) :
+    /// `cargo test --release --lib quick_check_cost -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn quick_check_cost() {
+        let dir = temp_dir("cost");
+        let path = dir.join("lmu_cache.db");
+        let c = open_db_file(&path).unwrap();
+        c.execute_batch("CREATE TABLE big (id INTEGER PRIMARY KEY, a TEXT, b REAL, c INTEGER); CREATE INDEX big_a ON big(a); BEGIN;").unwrap();
+        for i in 0..1_500_000i64 {
+            c.execute("INSERT INTO big (a, b, c) VALUES (?1, ?2, ?3)", params![format!("value-{}", i * 7919 % 100_000), i as f64 / 3.0, i]).unwrap();
+        }
+        c.execute_batch("COMMIT; PRAGMA wal_checkpoint(TRUNCATE);").unwrap();
+        drop(c);
+        let mb = std::fs::metadata(&path).unwrap().len() as f64 / 1_048_576.0;
+        for _ in 0..3 {
+            let c = Connection::open(&path).unwrap();
+            c.execute_batch("PRAGMA cache_size=-8000;").unwrap();
+            let t = std::time::Instant::now();
+            check_file(&c).unwrap();
+            println!("quick_check : {mb:.0} Mo en {:.0} ms", t.elapsed().as_secs_f64() * 1000.0);
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

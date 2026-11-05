@@ -1243,6 +1243,48 @@ fn c_str(bytes: &[u8]) -> String {
 // État de polling (consommation carburant, meilleurs secteurs, tracé)
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// Un secteur plus court n'existe pas : valeur parasite, qui fausserait toute la séance.
+const MIN_SECTOR_S: f32 = 1.0;
+
+/// Meilleurs secteurs de chaque classe sur la séance (le jeu ne donne, par voiture, que les
+/// derniers secteurs et des temps cumulés, pas de meilleur S3).
+#[derive(Default)]
+struct ClassBestSectors {
+    by_class: HashMap<String, [f32; 3]>,
+    last_et: f64,
+}
+
+impl ClassBestSectors {
+    fn clear(&mut self) {
+        self.by_class.clear();
+        self.last_et = 0.0;
+    }
+
+    /// Chrono de séance qui recule : séance relancée, on repart de zéro.
+    fn note_time(&mut self, et: f64) {
+        if et + 5.0 < self.last_et {
+            self.by_class.clear();
+        }
+        self.last_et = et;
+    }
+
+    /// Prend en compte les derniers secteurs d'une voiture.
+    fn note(&mut self, class: &str, last: [f32; 3]) {
+        let best = self.by_class.entry(class.to_string()).or_insert([f32::INFINITY; 3]);
+        for (b, v) in best.iter_mut().zip(last) {
+            if v > MIN_SECTOR_S && v < *b {
+                *b = v;
+            }
+        }
+    }
+
+    /// Chaque dernier secteur de cette voiture est-il le meilleur de sa classe sur la séance ?
+    fn flags(&self, class: &str, last: [f32; 3]) -> [bool; 3] {
+        let best = self.by_class.get(class).copied().unwrap_or([f32::INFINITY; 3]);
+        [0, 1, 2].map(|i| last[i] > MIN_SECTOR_S && last[i] == best[i])
+    }
+}
+
 struct PollState {
     last_lap_num: i32,
     fuel_at_lap_start: f64,
@@ -1295,6 +1337,8 @@ struct PollState {
     pit_spots: Vec<PitSpot>,
     /// Mini-secteurs de tout le plateau (créés quand la longueur du tour est connue).
     mini: Option<MiniSectors>,
+    /// Meilleurs secteurs par classe sur la séance (secteurs violets).
+    class_best: ClassBestSectors,
     // ── Bornes de secteurs ───────────────────────────────────────────────
     /// Dernier secteur vu par voiture (`mID` → (`mSector`, lap_dist)).
     last_sector: HashMap<i32, (u8, f64)>,
@@ -1339,6 +1383,7 @@ impl PollState {
             pit_lane: Vec::new(),
             pit_spots: Vec::new(),
             mini: None,
+            class_best: ClassBestSectors::default(),
             last_sector: HashMap::new(),
             sector_bounds: [(0.0, 0); 2],
             sector_challengers: [(0.0, 0); 2],
@@ -2041,6 +2086,7 @@ fn extract_frame(state: &mut PollState) -> LiveData {
         state.pit_lane.clear();
         state.pit_spots.clear();
         state.mini = None;
+        state.class_best.clear();
         // Nouvelle session → la mesure de consommation repart de zéro (une
         // référence carburant de l'ancienne session fausserait le 1er tour).
         state.fuel_at_lap_start = 0.0;
@@ -2203,6 +2249,7 @@ fn extract_frame(state: &mut PollState) -> LiveData {
     }
 
     // Positions par classe + records de classe.
+    state.class_best.note_time(scor_info.m_current_et);
     let classes: Vec<String> =
         standings.iter().map(|s| s.vehicle_class.clone()).collect();
     for class in classes.iter().collect::<std::collections::HashSet<_>>() {
@@ -2217,16 +2264,17 @@ fn extract_frame(state: &mut PollState) -> LiveData {
                 .fold(f32::INFINITY, f32::min)
         };
         let bl = best(&|s| s.best_lap_time);
-        let b1 = best(&|s| s.last_s1);
-        let b2 = best(&|s| s.last_s2);
-        let b3 = best(&|s| s.last_s3);
+        for &i in &idxs {
+            let s = &standings[i];
+            state.class_best.note(class, [s.last_s1, s.last_s2, s.last_s3]);
+        }
         for (rank, &i) in idxs.iter().enumerate() {
             let s = &mut standings[i];
             s.class_position = (rank + 1) as u8;
             s.is_class_best_lap = s.best_lap_time > 0.0 && s.best_lap_time == bl;
-            s.is_class_best_s1 = s.last_s1 > 0.0 && s.last_s1 == b1;
-            s.is_class_best_s2 = s.last_s2 > 0.0 && s.last_s2 == b2;
-            s.is_class_best_s3 = s.last_s3 > 0.0 && s.last_s3 == b3;
+            // Violet : ce dernier secteur est le meilleur de la classe sur la séance.
+            [s.is_class_best_s1, s.is_class_best_s2, s.is_class_best_s3] =
+                state.class_best.flags(class, [s.last_s1, s.last_s2, s.last_s3]);
         }
     }
     standings.sort_by_key(|s| s.position);
@@ -2929,6 +2977,33 @@ mod spotter_tests {
         assert!((out[0].dv - 2.0).abs() < 1e-4);
         assert!((out[1].lat - 3.0).abs() < 1e-4 && (out[1].lon - 8.0).abs() < 1e-4);
         assert!((out[1].dv + 5.0).abs() < 1e-4);
+    }
+
+    /// Violet = meilleur de la classe sur la séance, pas « meilleur des derniers secteurs ».
+    #[test]
+    fn class_best_sectors_remember_the_session() {
+        let mut m = ClassBestSectors::default();
+        // Seul dans sa classe : 1er tour, tout est le meilleur.
+        m.note("GT3", [30.0, 40.0, 25.0]);
+        assert_eq!(m.flags("GT3", [30.0, 40.0, 25.0]), [true, true, true]);
+        // Tour suivant : seul S2 progresse. Le reste n'est plus violet, même seul en classe.
+        m.note("GT3", [30.5, 39.5, 25.2]);
+        assert_eq!(m.flags("GT3", [30.5, 39.5, 25.2]), [false, true, false]);
+        // Une voiture partie ne fait pas oublier son record : le dernier passage de l'autre
+        // n'est pas violet parce que la plus rapide n'a plus de dernier secteur.
+        m.note("GT3", [31.0, 41.0, 26.0]);
+        assert_eq!(m.flags("GT3", [31.0, 41.0, 26.0]), [false, false, false]);
+        // Autre classe : indépendante. Secteur absent ou parasite : jamais retenu.
+        m.note("Hyper", [25.0, 0.0, 0.2]);
+        assert_eq!(m.flags("Hyper", [25.0, 0.0, 0.2]), [true, false, false]);
+        assert_eq!(m.flags("LMP2", [25.0, 30.0, 20.0]), [false, false, false]);
+        // Chrono qui recule : séance relancée, mémoire vidée.
+        m.note_time(1000.0);
+        m.note_time(1001.0);
+        assert_eq!(m.flags("GT3", [30.5, 39.5, 25.2]), [false, true, false]);
+        m.note_time(3.0);
+        m.note("GT3", [33.0, 44.0, 28.0]);
+        assert_eq!(m.flags("GT3", [33.0, 44.0, 28.0]), [true, true, true]);
     }
 
     #[test]

@@ -132,7 +132,8 @@ import {
   liveClassToOhne,
   type PaceBenchmark,
 } from "@/lib/ohne_speed";
-import { sayLap } from "@/lib/engineer/rounding";
+import { sayLapTarget } from "@/lib/engineer/rounding";
+import { engineer } from "@/lib/engineer/state";
 import type { CoachFrame } from "./frame";
 
 type Listener = (event: CoachEvent, state: CoachEngineState) => void;
@@ -684,7 +685,7 @@ function comboBenchmark(): PaceBenchmark | null {
   return findBenchmark(benchmarks, comboTrack, comboOhneClass) ?? null;
 }
 
-/** Prochain cap ohne_speed sous le meilleur tour (dit au dixième, `rounding.sayLap`), ou `null`. */
+/** Prochain cap ohne_speed sous le meilleur tour (« sous X », dixième vers le bas), ou `null`. */
 function computeCapTime(): string | null {
   if (bestCleanLapMs === Infinity) return null;
   const bm = comboBenchmark();
@@ -701,7 +702,7 @@ function computeCapTime(): string | null {
     r.offline,
   ];
   const capMs = nextCapMs(bestCleanLapMs, tiers);
-  return capMs ? sayLap(capMs / 1000) : null;
+  return capMs ? sayLapTarget(capMs / 1000) : null;
 }
 
 /**
@@ -872,6 +873,11 @@ function onLive(data: LiveData): void {
   lastData = data;
   const frame = frameFromLive(data);
   if (!frame) return;
+  // Le coach parle aussi hors page Live : c'est lui qui nourrit alors la garde « pilote
+  // occupé » de la file vocale (200 m avant un freinage connu, frein, volant).
+  if (data.telemetry && data.session) {
+    engineer.noteDriving(data.telemetry, data.session.track, data.session.track_length, frame.lapNum, performance.now());
+  }
   // Nouvelle session sur le même combo (essais → qualif → course, ou
   // redémarrage) : à traiter AVANT le pas moteur, qui va écraser `state.lapNum`.
   maybeResetSession(frame);

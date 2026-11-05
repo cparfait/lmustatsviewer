@@ -222,6 +222,24 @@ export function recommend(
 
 export type SectionPatch = { name: string; params: { key: string; value: string; comment: string | null }[] };
 
+/**
+ * Sections à écrire après une édition manuelle : seuls les réglages dont la valeur a
+ * changé, sans texte du jeu (il ne vaut plus pour le nouvel index). Un réglage non
+ * touché n'est pas renvoyé : le fichier a pu bouger en jeu depuis le dernier scan, et
+ * l'écriture repart du fichier réel.
+ */
+export function editedPatches(before: SvmFile["sections"], draft: SvmFile["sections"]): SectionPatch[] {
+  const out: SectionPatch[] = [];
+  for (const s of draft) {
+    const orig = before.find((x) => x.name === s.name);
+    const params = s.params
+      .filter((p) => orig?.params.find((x) => x.key === p.key)?.value !== p.value)
+      .map((p) => ({ key: p.key, value: p.value, comment: null }));
+    if (params.length) out.push({ name: s.name, params });
+  }
+  return out;
+}
+
 /** Sections modifiées pour appliquer un cran (`setups.update`). */
 export function applyStep(svm: SvmFile, rec: Recommendation): SectionPatch[] {
   return applyChanges([{ values: rec.values, delta: rec.dir, max: rec.max }]);

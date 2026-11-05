@@ -19,7 +19,8 @@
  *  3. **Budgets par tour** (réglage, course) : la « situation » (positions,
  *     écarts, duels) une fois par tour, le « confort » (chronos, secteurs,
  *     records) une fois tous les 3 tours, et au plus 2 messages par rival et par
- *     tour.
+ *     tour. Un candidat `exempt` (chrono demandé par le pilote, record) passe ce
+ *     budget sans le consommer ; le régime « juste l'essentiel » garde le dernier mot.
  *
  * La **sécurité** (`critical`, drapeaux, mécanique, trafic) passe toujours.
  * Horloge et tours = paramètres → déterministe et testable.
@@ -105,6 +106,8 @@ export const INCIDENT_EPISODE_S = 60;
 export const INCIDENT_MAX = 2;
 /** Clés d'annonces liées à un incident (dégâts, retour en piste). */
 const INCIDENT_KEYS = ["mech:", "vigie:"];
+/** Le constat du choc : critique (il passe toujours), mais il compte dans le plafond. */
+const CRASH_KEY = "mech:damage";
 
 /** Calme après un appel au box (s) : décisions et sécurité seules. */
 export const BOX_CALM_S = 20;
@@ -167,6 +170,14 @@ export class RadioPolicy {
     return nowS - this.crashAt < INCIDENT_EPISODE_S && c.prio !== "critical" && starts(c.key, INCIDENT_KEYS);
   }
 
+  /**
+   * Plafond d'incident atteint pour ce candidat ? Vaut aussi pour un candidat retenu par
+   * l'arbitre (`retryS`) : il ne repasse pas par `filter`, l'appelant le purge.
+   */
+  incidentCapped(c: Candidate, ctx: PolicyCtx): boolean {
+    return ctx.phases && this.inIncident(c, ctx.nowS) && this.incidentSaid >= INCIDENT_MAX;
+  }
+
   /** Lève les régimes arrivés à échéance. Renvoie le régime courant. */
   private expire(ctx: PolicyCtx): RadioRegime {
     const r = this.regime;
@@ -197,7 +208,7 @@ export class RadioPolicy {
   private allowed(c: Candidate, ctx: PolicyCtx, regime: RadioRegime): boolean {
     const cls = classOf(c);
     // Un incident = un constat + un bilan : au-delà, ses annonces non critiques se taisent.
-    if (ctx.phases && this.inIncident(c, ctx.nowS) && this.incidentSaid >= INCIDENT_MAX) return false;
+    if (this.incidentCapped(c, ctx)) return false;
     if (cls === "safety") return true;
 
     // 1. Régime choisi par le pilote.
@@ -230,7 +241,7 @@ export class RadioPolicy {
       if (every != null) {
         if (!isFinite(every)) return false;
         const last = this.lastByClass.get(cls);
-        if (last != null && ctx.lap - last < every) return false;
+        if (!c.exempt && last != null && ctx.lap - last < every) return false;
       }
       const rival = rivalOf(c.key);
       if (rival && this.rivalLap === ctx.lap && (this.rivalCount.get(rival) ?? 0) >= PER_RIVAL_PER_LAP) return false;
@@ -248,9 +259,11 @@ export class RadioPolicy {
     }
     for (const c of spoken) {
       if (c.key === "pit:box") this.boxAt = ctx.nowS;
-      if (this.inIncident(c, ctx.nowS)) this.incidentSaid++;
+      if (this.inIncident(c, ctx.nowS) || (c.key === CRASH_KEY && ctx.nowS - this.crashAt < INCIDENT_EPISODE_S)) {
+        this.incidentSaid++;
+      }
       const cls = classOf(c);
-      if (cls === "situation" || cls === "comfort") this.lastByClass.set(cls, ctx.lap);
+      if (!c.exempt && (cls === "situation" || cls === "comfort")) this.lastByClass.set(cls, ctx.lap);
       const rival = rivalOf(c.key);
       if (rival) this.rivalCount.set(rival, (this.rivalCount.get(rival) ?? 0) + 1);
     }

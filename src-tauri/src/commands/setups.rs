@@ -585,15 +585,26 @@ pub fn scan_setups(lmu_path: String, db: State<'_, DbState>) -> Result<Vec<Setup
         }
     }
 
+    // Lu avant de prendre le verrou : `config_get` le prend aussi.
+    let tracking = super::lmu_rest::setup_tracking_from_config(
+        crate::db::config_get(&db, super::lmu_rest::CONFIG_SETUP_TRACKING)
+            .ok()
+            .flatten()
+            .as_deref(),
+    );
+
     // 2) Écriture en base dans UNE transaction (atomique) — le verrou est tenu
     //    pendant toute l'opération : deux scans concurrents se sérialisent et
     //    `list_setups` ne voit jamais d'état partiel (DELETE sans les INSERT).
     let mut conn = get_conn(&db)?;
 
     // Setup reconnu en piste : un setup sans session de référence reçoit la
-    // meilleure session roulée avec lui (jamais un lien déjà posé). Avant la
-    // lecture des métadonnées ci-dessous, qui le reportent au rescan.
-    let _ = super::setup_usage::autolink(&conn);
+    // meilleure session roulée avec lui (jamais un lien déjà posé ni retiré par
+    // le pilote), sauf réglage coupé. Avant la lecture des métadonnées
+    // ci-dessous, qui le reportent au rescan.
+    if tracking {
+        let _ = super::setup_usage::autolink(&conn);
+    }
 
     // Métadonnées propres à la base (`setup_type`, `linked_session_id`,
     // `source`) mémorisées par chemin `.svm` AVANT de purger la table —
@@ -728,7 +739,7 @@ pub(crate) fn load_setup(db: &DbState, id: i64) -> Result<SetupEntry, AppError> 
     row.ok_or_else(|| AppError::NotFound(format!("Setup {} non trouvé", id)))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_setup_content(id: i64, db: State<'_, DbState>) -> Result<SvmFile, AppError> {
     let entry = get_setup(id, db)?;
 
@@ -750,9 +761,42 @@ pub struct UpdateSetupPayload {
     pub sections: Vec<SvmSection>,
 }
 
+/// Applique les réglages reçus au `.svm` relu du disque. Le texte après `//` est
+/// ce que le garage affiche pour UN index, il suit donc la valeur :
+///  - `comment` fourni : écrit tel quel (setup mixte : le texte de B avec l'index de B) ;
+///  - `comment` `null` ou absent : gardé si la valeur ne change pas (il reste juste),
+///    retiré si elle change (il serait faux). La ligne devient `Clé=Valeur`.
+///
+/// Un texte vide ou sur plusieurs lignes (il casserait le fichier) vaut « non fourni ».
+fn apply_section_updates(svm: &mut SvmFile, updates: &[SvmSection]) {
+    for updated_section in updates {
+        if let Some(sec) = svm.sections.iter_mut().find(|s| s.name == updated_section.name) {
+            for updated_param in &updated_section.params {
+                if let Some(param) = sec.params.iter_mut().find(|p| p.key == updated_param.key) {
+                    let text = updated_param
+                        .comment
+                        .as_deref()
+                        .filter(|c| !c.trim().is_empty() && !c.contains(['\r', '\n']));
+                    if let Some(text) = text {
+                        param.comment = Some(text.to_string());
+                    } else if param.value.trim() != updated_param.value.trim() {
+                        param.comment = None;
+                    }
+                    param.value = updated_param.value.clone();
+                }
+            }
+        }
+    }
+}
+
 #[tauri::command]
 pub fn update_setup(payload: UpdateSetupPayload, db: State<'_, DbState>) -> Result<(), AppError> {
-    let entry = get_setup(payload.id, db.clone())?;
+    update_setup_in(&db, payload)
+}
+
+/// Corps de `update_setup`, sans l'état Tauri (testé sur un vrai fichier).
+fn update_setup_in(db: &DbState, payload: UpdateSetupPayload) -> Result<(), AppError> {
+    let entry = load_setup(db, payload.id)?;
 
     // Protection : on refuse d'écraser un `.svm` venu du jeu (source = "game").
     // L'utilisateur doit d'abord dupliquer le setup s'il veut le modifier.
@@ -768,15 +812,7 @@ pub fn update_setup(payload: UpdateSetupPayload, db: State<'_, DbState>) -> Resu
     // écraserait ses réglages sans prévenir.
     let mut svm = load_svm_from_disk(&entry.svm_path, entry.content_json.as_deref())?;
 
-    for updated_section in &payload.sections {
-        if let Some(sec) = svm.sections.iter_mut().find(|s| s.name == updated_section.name) {
-            for updated_param in &updated_section.params {
-                if let Some(param) = sec.params.iter_mut().find(|p| p.key == updated_param.key) {
-                    param.value = updated_param.value.clone();
-                }
-            }
-        }
-    }
+    apply_section_updates(&mut svm, &payload.sections);
 
     let new_content = write_svm(&svm);
 
@@ -787,7 +823,7 @@ pub fn update_setup(payload: UpdateSetupPayload, db: State<'_, DbState>) -> Resu
 
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-    let conn = get_conn(&db)?;
+    let conn = get_conn(db)?;
     conn.execute(
         "UPDATE setups SET content_json = ?1, updated_at = ?2 WHERE id = ?3",
         params![&new_json, &now, payload.id],
@@ -1767,6 +1803,7 @@ pub fn get_session_summary(
 }
 
 /// Met à jour (ou efface, si `session_id = None`) la session liée à un setup.
+/// Un retrait est retenu : le lien automatique ne le repose pas au scan suivant.
 #[tauri::command]
 pub fn set_setup_linked_session(
     setup_id: i64,
@@ -1774,12 +1811,7 @@ pub fn set_setup_linked_session(
     db: State<'_, DbState>,
 ) -> Result<(), AppError> {
     let conn = get_conn(&db)?;
-    conn.execute(
-        "UPDATE setups SET linked_session_id = ?1 WHERE id = ?2",
-        params![&session_id, setup_id],
-    )
-    .map_err(|e| AppError::Database(format!("set_setup_linked_session: {e}")))?;
-    Ok(())
+    super::setup_usage::set_reference_session(&conn, setup_id, session_id)
 }
 
 // ─── Setups liés à une session (vue inverse, page Race Details) ──────────────
@@ -1874,6 +1906,109 @@ pub async fn list_setup_entries(
         .map_err(|e| AppError::Database(format!("list_setup_entries query: {e}")))?;
     rows.collect::<Result<Vec<_>, _>>()
         .map_err(|e| AppError::Database(format!("list_setup_entries collect: {e}")))
+}
+
+#[cfg(test)]
+mod update_tests {
+    use super::*;
+
+    const SVM: &str = "VehicleClassSetting=\"GT3\"\nUpgradeSetting=0\n[REARWING]\nRWSetting=7//7.0 deg\n[FRONTLEFT]\nCamberSetting=5//-2.0 deg\nPressureSetting=//131 kPa\nSpringSetting=3//120 N/mm\n";
+
+    fn param(key: &str, value: &str, comment: Option<&str>) -> SvmParam {
+        SvmParam { key: key.into(), value: value.into(), comment: comment.map(str::to_string) }
+    }
+
+    fn line_of(text: &str, key: &str) -> String {
+        text.lines().find(|l| l.starts_with(&format!("{key}="))).unwrap_or("").to_string()
+    }
+
+    /// Fichier réel + entrée en base : le chemin complet de `update_setup`.
+    fn setup_file(name: &str, source: &str) -> (DbState, PathBuf) {
+        let dir = std::env::temp_dir().join(format!("lmu_update_{}_{name}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("Base.svm");
+        fs::write(&path, SVM).unwrap();
+        let conn = crate::db::open_test_db();
+        conn.execute(
+            "INSERT INTO setups (id, car, circuit, name, svm_path, source) VALUES (1, 'x', 'Spa', 'Base.svm', ?1, ?2)",
+            params![path.to_string_lossy().to_string(), source],
+        )
+        .unwrap();
+        (crate::db::state_from(conn), path)
+    }
+
+    #[test]
+    fn text_follows_the_value_in_the_written_file() {
+        let (db, path) = setup_file("written", "app");
+        let sections = vec![
+            // Assistant : nouvel index, texte retiré.
+            SvmSection { name: "REARWING".into(), params: vec![param("RWSetting", "8", None)] },
+            SvmSection {
+                name: "FRONTLEFT".into(),
+                params: vec![
+                    // Setup mixte : l'index ET le texte de B.
+                    param("CamberSetting", "10", Some("-1.0 deg")),
+                    // Index au même cran (butée) sans texte fourni : le texte reste juste.
+                    param("SpringSetting", "3", None),
+                ],
+            },
+        ];
+        update_setup_in(&db, UpdateSetupPayload { id: 1, sections }).unwrap();
+
+        let text = fs::read_to_string(&path).unwrap();
+        assert_eq!(line_of(&text, "RWSetting"), "RWSetting=8");
+        assert_eq!(line_of(&text, "CamberSetting"), "CamberSetting=10//-1.0 deg");
+        assert_eq!(line_of(&text, "SpringSetting"), "SpringSetting=3//120 N/mm");
+        // Non visé : la ligne « par défaut » reste telle quelle.
+        assert_eq!(line_of(&text, "PressureSetting"), "PressureSetting=//131 kPa");
+
+        // Relu sans erreur : la ligne sans commentaire n'a pas de texte.
+        let back = parse_svm(&text).unwrap();
+        let rw = &back.sections[0].params[0];
+        assert_eq!((rw.value.as_str(), rw.comment.as_deref()), ("8", None));
+
+        // L'instantané en base dit la même chose que le fichier.
+        let snap: SvmFile = serde_json::from_str(&load_setup(&db, 1).unwrap().content_json.unwrap()).unwrap();
+        assert_eq!(snap.sections[1].params[0].comment.as_deref(), Some("-1.0 deg"));
+        assert_eq!(snap.sections[0].params[0].comment, None);
+        let _ = fs::remove_dir_all(path.parent().unwrap());
+    }
+
+    #[test]
+    fn a_missing_comment_field_behaves_like_null() {
+        // Un appelant qui n'envoie pas le champ : ni texte faux, ni texte juste perdu.
+        let sec: SvmSection = serde_json::from_str(
+            r#"{"name":"FRONTLEFT","params":[{"key":"CamberSetting","value":"6"},{"key":"SpringSetting","value":"3"}]}"#,
+        )
+        .unwrap();
+        let mut svm = parse_svm(SVM).unwrap();
+        apply_section_updates(&mut svm, &[sec]);
+        let text = write_svm(&svm);
+        assert_eq!(line_of(&text, "CamberSetting"), "CamberSetting=6");
+        assert_eq!(line_of(&text, "SpringSetting"), "SpringSetting=3//120 N/mm");
+    }
+
+    #[test]
+    fn an_unusable_text_never_breaks_the_file() {
+        let mut svm = parse_svm(SVM).unwrap();
+        let sec = SvmSection {
+            name: "FRONTLEFT".into(),
+            params: vec![param("CamberSetting", "6", Some("  ")), param("SpringSetting", "4", Some("a\nb=c"))],
+        };
+        apply_section_updates(&mut svm, &[sec]);
+        let text = write_svm(&svm);
+        assert_eq!(line_of(&text, "CamberSetting"), "CamberSetting=6");
+        assert_eq!(line_of(&text, "SpringSetting"), "SpringSetting=4");
+    }
+
+    #[test]
+    fn a_game_setup_stays_read_only() {
+        let (db, path) = setup_file("game", "game");
+        let sections = vec![SvmSection { name: "REARWING".into(), params: vec![param("RWSetting", "8", None)] }];
+        assert!(update_setup_in(&db, UpdateSetupPayload { id: 1, sections }).is_err());
+        assert_eq!(fs::read_to_string(&path).unwrap(), SVM);
+        let _ = fs::remove_dir_all(path.parent().unwrap());
+    }
 }
 
 #[cfg(test)]

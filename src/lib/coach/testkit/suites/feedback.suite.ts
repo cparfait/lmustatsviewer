@@ -11,10 +11,12 @@ import { predictPitExit } from "@/lib/spotter";
 import { stripThinking, ThinkingStreamFilter } from "@/lib/ai/thinking";
 import { openaiProvider, openrouterProvider } from "@/lib/ai/providers/openai-compat";
 import { buildLiveContext } from "@/lib/ai/context/live-context";
-import { trackOtherCarsText } from "@/lib/ai/context/driver-history-context";
+import { lastPbInfo, trackOtherCarsText } from "@/lib/ai/context/driver-history-context";
 import { addLapLink, splitLapTimes, type LapLinks } from "@/lib/ai/lapLinks";
-import { isHistoricalQuestion } from "@/lib/ai/context/records-context";
+import { isHistoricalQuestion, recordsDigestText } from "@/lib/ai/context/records-context";
+import { enterChoice, exactOption } from "@/components/ui/combobox-logic";
 import type { LiveData, LiveStanding, RecordOverviewRow } from "@/lib/api";
+import { sampleLiveData } from "@/components/overlay/sampleData";
 
 const car = (o: Partial<LiveStanding>): LiveStanding =>
   ({
@@ -122,6 +124,44 @@ export function run(): void {
     );
     eq(links.get("2:27.324")?.sessionId, 41, "record Mercedes → sa session");
     ok(!links.has("2:26.707"), "session courante : pas de lien vers elle-même");
+
+    // Digest en course : le circuit en cours passe la coupe, même classé dernier.
+    const many = Array.from({ length: 130 }, (_, i) => row(`Voiture ${i}`, 100 + i, 1, `Circuit ${String(i).padStart(3, "0")}`));
+    const zolder = { ...row("Mercedes-AMG LMGT3", 90, 5, "Zolder"), car_class: "GTE" };
+    const curve = { ...row("BMW M4 LMGT3", 80, 2, "Zolder"), track_course: "Zolder Short", car_class: "GTE" };
+    const digest = recordsDigestText([...many, zolder, curve], "Zolder");
+    ok(digest.includes("Zolder · GTE · Mercedes-AMG LMGT3") && digest.includes("Zolder (Zolder Short)"), "circuit courant présent malgré la coupe à 120");
+    ok(digest.indexOf("Zolder") < digest.indexOf("Circuit 000"), "circuit courant d'abord");
+    ok(digest.includes("… and 12 more combos."), "la coupe reste annoncée");
+    ok(recordsDigestText([...many, zolder, curve], "Zolder Short").indexOf("Mercedes-AMG LMGT3") < digest.indexOf("Circuit 000"), "nommé par son tracé : tout le circuit passe devant");
+    ok(!recordsDigestText([...many, zolder], undefined).includes("Zolder"), "sans circuit courant : l'ordre habituel");
+    eq(recordsDigestText([]), "", "aucun record → rien");
+
+    // Dernier PB : jamais un PB posé après la session analysée (« -88 days before »).
+    const D = 86400;
+    const pts = [
+      { session_id: 1, timestamp: 100 * D, is_pb: true },
+      { session_id: 2, timestamp: 110 * D, is_pb: false },
+      { session_id: 3, timestamp: 120 * D, is_pb: true },
+      { session_id: 4, timestamp: 208 * D, is_pb: true },
+    ];
+    ok(lastPbInfo(pts, 2, 5).text.endsWith("(10 days before this session)"), "seul le PB antérieur compte");
+    eq(lastPbInfo(pts, 3, 5), { text: "set in this session", pbIsCurrent: true }, "PB du moment, battu plus tard : posé dans cette session");
+    eq(lastPbInfo([pts[1], pts[3]], 2, 5), { text: "", pbIsCurrent: false }, "aucun PB antérieur : rien à dire");
+    ok(lastPbInfo(pts, undefined, 5).text.endsWith("(5 days ago)"), "sans session analysée : daté d'aujourd'hui");
+  }
+
+  section("ai.modèle (saisie libre et recherche)");
+  {
+    const options = [{ value: "qwen/x:free" }, { value: "deepseek/r1" }];
+    const free = { freeEnter: true, navigated: false, active: "qwen/x:free", options };
+    eq(enterChoice({ ...free, typed: "qwen/x" }), null, "id absent, sous-chaîne d'un id listé : ce qui est tapé");
+    eq(enterChoice({ ...free, typed: "qwen/x", navigated: true }), "qwen/x:free", "navigation aux flèches : la suggestion");
+    eq(enterChoice({ ...free, typed: "QWEN/X:FREE" }), "qwen/x:free", "même id que la liste : l'id listé");
+    eq(enterChoice({ ...free, freeEnter: false, typed: "qwen/x" }), "qwen/x:free", "autres usages : la suggestion active, comme avant");
+    eq(exactOption("deep", options), null, "quitter le champ : une recherche n'est pas un modèle");
+    eq(exactOption(" deepseek/r1 ", options), "deepseek/r1", "quitter le champ : id exact d'un modèle listé");
+    eq(exactOption("", options), null, "champ vide : rien");
   }
 
   section("ai.lapLinks (temps cliquables)");
@@ -170,5 +210,9 @@ export function run(): void {
       },
     } as unknown as LiveData);
     ok(!withTel.includes("-273"), "pneus à 0 K jamais transmis");
+    // Testeur IA sans séance : la course d'exemple passe, et un champ absent ne plante plus.
+    ok(buildLiveContext(sampleLiveData(300)).includes("Battery SoC: 58%"), "course d'exemple : contexte hybride complet");
+    const partial = buildLiveContext({ ...data, extended: { virtual_energy: 0.5, track_limits_per_penalty: 0 } } as unknown as LiveData);
+    ok(partial.includes("Battery SoC: N/A") && partial.includes("Regen: N/A"), "champs hybrides absents : N/A, pas d'erreur");
   }
 }

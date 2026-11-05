@@ -106,6 +106,40 @@ export function nearestIndex(dists: number[], d: number): number {
   return bestErr <= GAP_M ? best : -1;
 }
 
+/** Repère sur le tracé : ligne de départ (`start`) ou borne de secteur. */
+export interface TrackTick {
+  idx: number;
+  label: string;
+  start: boolean;
+}
+
+/** Ligne de départ (si le tracé commence bien à la ligne), puis bornes S2/S3 connues. */
+export function trackTicks(dists: number[], bounds: number[]): TrackTick[] {
+  const start = dists.length && dists[0] <= 30 ? [{ idx: 0, label: "S1", start: true }] : [];
+  const sectors = bounds
+    .map((b, i) => ({ idx: nearestIndex(dists, b), label: `S${i + 2}`, start: false }))
+    .filter((tk) => tk.idx >= 0);
+  return [...start, ...sectors];
+}
+
+/**
+ * Barre en travers de la route au repère : centre écran et normale unitaire tournée
+ * vers l'extérieur du circuit (`center` = centre de la carte).
+ */
+export function tickNormal(screen: (i: number) => Pt, n: number, idx: number, center: Pt): { at: Pt; normal: Pt } {
+  const at = screen(idx);
+  const [ax, ay] = screen(Math.max(idx - 2, 0));
+  const [bx, by] = screen(Math.min(idx + 2, n - 1));
+  const len = Math.hypot(bx - ax, by - ay) || 1;
+  let nx = -(by - ay) / len;
+  let ny = (bx - ax) / len;
+  if ((at[0] - center[0]) * nx + (at[1] - center[1]) * ny < 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+  return { at, normal: [nx, ny] };
+}
+
 /**
  * Points de chaque secteur (pour colorer un secteur sous drapeau jaune).
  * Exige les deux bornes (sinon les secteurs ne sont pas connus) et un tracé

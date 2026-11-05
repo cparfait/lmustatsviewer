@@ -484,6 +484,8 @@ pub fn asset_delete(app: tauri::AppHandle, kind: String, id: String) -> AppResul
                 .find(|v| v.id == id)
                 .ok_or_else(|| AppError::Internal("unknown".into()))?;
             let dir = tts_download_dir(&app)?;
+            // Voix chargée par le worker Piper : on le libère d'abord (comme Parakeet).
+            super::tts::release_worker(v.id);
             // Le modèle d'abord : s'il est ouvert, rien n'est effacé.
             let onnx = remove_path(&dir.join(format!("{}.onnx", v.id)))?;
             let json = remove_path(&dir.join(format!("{}.onnx.json", v.id)))?;

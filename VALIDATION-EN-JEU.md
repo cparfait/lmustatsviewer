@@ -12,6 +12,41 @@ colle pas est à signaler (capture d'écran + moment de la séance).
 
 ---
 
+## 000. Correctifs de l'audit de la 1.0.10 (2026-11-05)
+
+Vérifiés par les tests et à la lecture du code, rien n'a roulé. À faire en premier.
+
+**Risque de plantage**
+- [ ] Lecture de `garage/summary` toutes les 5 s en piste : aucun plantage (actif par défaut).
+- [ ] Setup modifié par l'assistant ou l'audit (lignes `Clé=Valeur` sans texte) : le jeu le charge, affiche la bonne valeur et réécrit le texte à l'enregistrement.
+- [ ] Énergie automatique activée : lecture du menu à chaque tour sans saccade ni plantage ; régler l'énergie soi-même → l'app n'y touche plus.
+
+**Micro**
+- [ ] Installation neuve, annonces coupées : icône micro de Windows éteinte, pas de message au lancement.
+- [ ] Annonces activées puis coupées : le micro s'ouvre puis se ferme.
+- [ ] Micro choisi débranché : un seul message ; mot déclencheur sans modèle : message, puis actif après téléchargement.
+- [ ] « Micro prêt » décoché : note vocale au bouton et « note pour ce virage » enregistrées. Micro branché après le lancement : pris en compte sous 15 s.
+- [ ] Vérifier ce qu'écrit Vosk pour « l'ingénieur ».
+- [ ] Annonces coupées puis relance : décider si Alt+C doit rester actif.
+
+**Radio**
+- [ ] En course, « à chaque tour » → un chrono à chaque tour, sauf « Juste l'essentiel ».
+- [ ] Question des chronos coupée par une annonce → reposée plus tard.
+- [ ] Choc : deux annonces de dégâts au plus ; une crevaison passe toujours.
+- [ ] Seul en essais : pas de « meilleur temps » au bout du tour de sortie.
+- [ ] Sauvegarder puis recharger une course : pas d'abandon annoncé ; vrai abandon : annoncé. Le format de la sauvegarde reste à confirmer.
+- [ ] Allemand : « dreiundneunzig » compris.
+
+**Tablette et écrans**
+- [ ] Secteurs violets = meilleur de la classe sur la séance (seul en essais : vert et jaune réapparaissent). Si l'app démarre en cours de séance, du violet peut être faux au début.
+- [ ] Carte : pas de ligne droite à travers le circuit, départ en bas, « nord en haut » suivi depuis l'app.
+- [ ] Écran envoyé puis nouvelle tablette connectée 30 s plus tard : pas de bascule. En-tête collant en « Toutes », sur iPad aussi.
+- [ ] Barre d'icônes des fournisseurs avec beaucoup de fournisseurs : retour à la ligne correct, en clair et en sombre.
+- [ ] Visite guidée : l'étape Coach ouvre sa catégorie. Onglet Coach : pas de gel avec un long historique.
+- [ ] Démarrage : durée acceptable avec le `quick_check`, surtout sur disque lent.
+
+---
+
 ## 00. Annonces de course 2026-10-18 (branche `feat/radio-parity`)
 
 Rien de cette section n'a encore roulé : tout a été vérifié par les tests (TS et

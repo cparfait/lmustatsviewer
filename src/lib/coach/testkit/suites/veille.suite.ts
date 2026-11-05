@@ -98,5 +98,26 @@ export function run(): void {
   eq(vid("Fuji Speedway", "Fuji Speedway Classic", "LMP3"), "iYj-EqaRiuA", "classe LMP3 + variante Classic");
   eq(vid("Sebring International Raceway", "Sebring School Circuit", "GT3"), "TjU9MLRbVU0", "Sebring School → guide du tracé court");
   eq(vid("Road Atlanta", undefined, "GT3"), "hi78biewbH4", "guide commenté prioritaire");
+  // Variante sans vidéo : rien, jamais la vidéo du tracé principal (« Références circuit »).
+  eq(vid("Sebring International Raceway", "Sebring School Circuit", "Hypercar"), null, "Sebring School sans guide Hypercar → rien");
+  eq(vid("Autodromo Nazionale Monza", "Monza Curva Grande Circuit", "Hypercar"), null, "Monza Curva Grande sans guide Hypercar → rien");
+  eq(vid("Circuit de la Sarthe", "Circuit de la Sarthe Mulsanne", "GT3"), null, "Le Mans Mulsanne → rien");
+  eq(vid("Circuit de Spa-Francorchamps", "Circuit de Spa-Francorchamps Endurance", "GT3"), null, "Spa Endurance → rien");
+  eq(vid("Bahrain International Circuit", "Bahrain Endurance Circuit", "GT3"), null, "Bahrain Endurance → rien");
+  eq(vid("Fuji Speedway", "Fuji Speedway Classic", "GT3"), null, "Fuji Classic sans guide GT3 → rien");
+  eq(vid("Fuji Speedway", "Tracé inconnu", "GT3"), null, "tracé inconnu → rien");
+  eq(buildVideoGuideText({ track: "Circuit de la Sarthe", trackCourse: "Circuit de la Sarthe Mulsanne", carClass: "GT3" }), "", "pas de transcription d'un autre tracé non plus");
+  // Variantes qui ont leur vidéo, autrefois inatteignables.
+  eq(vid("Bahrain International Circuit", "Bahrain Outer Circuit", "GT3"), "FkDWxFSmj3I", "Bahrain Outer → son guide");
+  eq(vid("Circuit of the Americas", "COTA National Circuit", "GT3"), "h42kcWkM3dM", "COTA National → son guide");
+  eq(vid("Autodromo Nazionale Monza", "Monza Curva Grande Circuit", "GT3"), "sJqvo9wppdQ", "Monza Curva Grande GT3 → son guide");
+  // Tracé principal (nom du jeu, absent ou alias) : la vidéo principale, inchangée.
+  eq(vid("Circuit of the Americas", "Circuit of the Americas", "GT3"), "WY0RYBKw5PM", "COTA principal → guide principal");
+  eq(vid("Bahrain International Circuit", "Bahrain International Circuit", "GT3"), "OeMKUsb54zM", "Bahrain principal → guide principal");
+  eq(vid("Bahrain International Circuit", undefined, "GT3"), "OeMKUsb54zM", "tracé inconnu de l'appelant → guide principal");
+  eq(vid("Circuit de la Sarthe", "Circuit de la Sarthe", "GT3"), "HVb9K1uodtA", "Le Mans principal → guide principal");
+  eq(vid("Le Mans", "Circuit de la Sarthe", "GT3"), "HVb9K1uodtA", "alias du circuit, tracé principal → guide principal");
+  ok(vid("Sebring International Raceway", "Sebring International Raceway", "Hypercar") !== null, "Sebring principal → guide");
+  ok(vid("Daytona International Speedway", "Daytona International Speedway Road Course", "LMP2 WEC") !== null, "Daytona Road Course = tracé principal");
   ok(/Auto-caption transcript/.test(buildVideoGuideText({ track: "Michelin Raceway Road Atlanta", carClass: "GT3" })), "transcription du guide Road Atlanta GT3 injectée");
 }

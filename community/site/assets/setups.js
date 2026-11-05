@@ -75,11 +75,11 @@ function row(s) {
   return `<tr>
       <td>${classBadge(s.car_class)}</td>
       <td class="su-name" title="${esc(tip)}"><div class="su-ell"><b>${esc(s.name)}</b> <span class="muted">v${esc(s.version)}</span></div><div class="su-ell su-sub muted">${esc(sub)}</div></td>
-      <td><div class="car"><span class="logo-slot">${carImg(s.car_model)}</span><span class="car-txt"><span>${esc(s.car_model)}</span></span></div></td>
-      <td><span class="su-track">${flagImg(s.track)}${esc(s.track)}</span></td>
+      <td title="${esc(s.car_model)}"><div class="car"><span class="logo-slot">${carImg(s.car_model)}</span><span class="car-txt"><span>${esc(s.car_model)}</span></span></div></td>
+      <td title="${esc(s.track)}"><span class="su-track">${flagImg(s.track)}${esc(s.track)}</span></td>
       <td class="perf sep r best-t mono" title="${esc(lapTip)}">${s.best_lap ? esc(fmtTime(s.best_lap)) : "—"}</td>
       <td class="perf r mono">${lapsLine(s) || '<span class="muted">—</span>'}</td>
-      <td class="pilot">${driverName(s.author, true, s.car_class)}</td>
+      <td class="pilot" title="${esc(s.author.name || t("anon", { tag: s.author.tag }))}">${driverName(s.author, true, s.car_class)}</td>
       <td class="r mono" title="${esc(dls)}"><span class="su-dls">${DL_SVG}${esc(fmtNum(s.downloads))}</span></td>
       <td class="sep c">${s.game_version ? `<span class="ver">v${esc(s.game_version)}</span>` : '<span class="muted">—</span>'}</td>
       <td class="r muted su-date">${esc(fmtDate(String(s.created_at).slice(0, 10)))}</td>

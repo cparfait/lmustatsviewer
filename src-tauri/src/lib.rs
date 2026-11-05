@@ -105,6 +105,44 @@ pub(crate) fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// Base locale impossible à ouvrir : rien ne fonctionne sans elle, et sans console ni interface
+/// l'arrêt serait muet. Boîte d'erreur native, avant que le texte de l'interface existe, donc
+/// traduite ici d'après la langue de Windows.
+fn db_fatal(detail: &str) -> Box<dyn std::error::Error> {
+    #[cfg(windows)]
+    {
+        #[link(name = "user32")]
+        extern "system" {
+            fn MessageBoxW(hwnd: *mut std::ffi::c_void, text: *const u16, caption: *const u16, kind: u32) -> i32;
+        }
+        #[link(name = "kernel32")]
+        extern "system" {
+            fn GetUserDefaultLocaleName(name: *mut u16, len: i32) -> i32;
+        }
+        let mut buf = [0u16; 85];
+        // SAFETY : tampon de la taille annoncée.
+        let n = unsafe { GetUserDefaultLocaleName(buf.as_mut_ptr(), buf.len() as i32) };
+        let locale = String::from_utf16_lossy(&buf[..n.max(1) as usize - 1]);
+        let wide = |s: &str| s.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>();
+        let text = wide(&format!("{}\n\n{detail}", db_fatal_text(&locale)));
+        let caption = wide("LMU Stats Viewer");
+        // SAFETY : chaînes terminées par un zéro, vivantes pendant l'appel ; 0x10 = MB_ICONERROR.
+        unsafe { MessageBoxW(std::ptr::null_mut(), text.as_ptr(), caption.as_ptr(), 0x10) };
+    }
+    Box::<dyn std::error::Error>::from(format!("base locale : {detail}"))
+}
+
+/// Message d'une base impossible à ouvrir, dans la langue du système (anglais par défaut).
+fn db_fatal_text(locale: &str) -> &'static str {
+    match locale.get(..2).unwrap_or("").to_ascii_lowercase().as_str() {
+        "fr" => "Impossible d'ouvrir la base locale de l'application. Elle n'a pas été modifiée. Vérifie l'espace disque et les droits du dossier, ferme une autre copie de l'app si elle est ouverte, puis relance.",
+        "es" => "No se puede abrir la base de datos local de la aplicación. No se ha modificado. Comprueba el espacio en disco y los permisos de la carpeta, cierra otra copia de la app si está abierta y vuelve a iniciarla.",
+        "de" => "Die lokale Datenbank der App lässt sich nicht öffnen. Sie wurde nicht verändert. Prüfe den Speicherplatz und die Ordnerrechte, schließe eine eventuell offene zweite Instanz der App und starte sie neu.",
+        "it" => "Impossibile aprire il database locale dell'app. Non è stato modificato. Controlla lo spazio su disco e i permessi della cartella, chiudi un'altra copia dell'app se è aperta e riavviala.",
+        _ => "The app's local database cannot be opened. It has not been changed. Check the disk space and the folder permissions, close any other running copy of the app, then restart it.",
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -241,6 +279,8 @@ pub fn run() {
             commands::regie::regie_stop,
             commands::regie::regie_status,
             commands::regie::regie_set_theme,
+            commands::regie::regie_set_map_north_up,
+            db::db_quarantine_notice,
             commands::regie::regie_push_screen,
             commands::regie::regie_rename_device,
             commands::tools::tools_detect_known,
@@ -317,6 +357,7 @@ pub fn run() {
             commands::applog::log_write,
             commands::applog::export_report,
             // Notes vocales du pilote (par virage)
+            commands::voice_notes::voice_note_keep_capture,
             commands::voice_notes::voice_note_save_last,
             commands::voice_notes::voice_note_list,
             commands::voice_notes::voice_note_read,
@@ -340,20 +381,23 @@ pub fn run() {
             // Son du jeu resté baissé après un arrêt brutal de l'app : rétabli.
             commands::audio_duck::restore_after_crash(app.handle());
 
-            // Base locale : une base illisible (fichier abîmé) ne doit pas
-            // empêcher l'app de démarrer. On la met de côté et on repart d'une
-            // base neuve (l'index se reconstruit depuis les fichiers du jeu).
+            // Base locale : un fichier abîmé ne doit pas empêcher l'app de démarrer. On le
+            // met de côté et on repart d'une base neuve (l'index se reconstruit depuis les
+            // fichiers du jeu ; réglages et notes repartent de zéro, l'accueil le signale).
+            // Toute autre erreur (droits, disque, verrou) ne touche pas au fichier.
             let db_state = match db::init_db(app.handle()) {
                 Ok(s) => s,
-                Err(e) => {
-                    crate::app_error!("base locale illisible : {e}");
+                Err(db::DbOpenError::Corrupt(e)) => {
+                    crate::app_error!("base locale abîmée, mise de côté : {e}");
                     db::quarantine_db(app.handle());
                     db::init_db(app.handle()).map_err(|e2| {
                         crate::app_error!("base locale : échec après remise à zéro : {e2}");
-                        Box::<dyn std::error::Error>::from(format!(
-                            "Impossible d'ouvrir la base locale de l'application : {e2}"
-                        ))
+                        db_fatal(&e2.to_string())
                     })?
+                }
+                Err(e) => {
+                    crate::app_error!("base locale : ouverture impossible, fichier laissé en place : {e}");
+                    return Err(db_fatal(&e.to_string()));
                 }
             };
             app.manage(db_state);

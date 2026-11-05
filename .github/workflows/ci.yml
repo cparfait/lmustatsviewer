@@ -51,6 +51,7 @@ jobs:
   # le ramène à quelques minutes. Même image et mêmes drapeaux C++ que la release.
   rust:
     runs-on: windows-2022
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -87,6 +88,7 @@ jobs:
 
       # sherpa-onnx est liée à la compilation (crate `sherpa-onnx`, dictée Parakeet).
       - name: Fetch sherpa-onnx library
+        timeout-minutes: 10
         shell: pwsh
         run: ./scripts/fetch-sherpa.ps1
 

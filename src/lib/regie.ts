@@ -6,6 +6,7 @@
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { config, isTauri } from "@/lib/api";
+import { useAppStore } from "@/stores/app";
 
 export interface RegieStatus {
   running: boolean;
@@ -40,6 +41,8 @@ export const regie = {
   status: () => invoke<RegieStatus>("regie_status"),
   /** Thème de l'app, repris par la tablette (même hors service : gardé pour le démarrage). */
   setTheme: (theme: "dark" | "light") => invoke<void>("regie_set_theme", { theme }),
+  /** Réglage « Cartes : nord en haut », repris par la carte de la tablette. */
+  setMapNorthUp: (northUp: boolean) => invoke<void>("regie_set_map_north_up", { northUp }),
   /** Affiche cet écran sur une tablette (`device`) ou sur toutes (une fois par envoi). */
   pushScreen: (screen: RegieScreen, device?: string) => invoke<void>("regie_push_screen", { screen, device: device ?? null }),
   /** Renomme une tablette (elle garde ce nom sur l'appareil). */
@@ -54,6 +57,12 @@ export function regiePort(v: string | null): number {
 
 /** Relance la régie au démarrage de l'app si l'utilisateur l'avait activée. */
 export function useRegieAutostart(): void {
+  // Orientation commune des cartes : suivie même régie arrêtée (gardée pour le démarrage).
+  const northUp = useAppStore((s) => s.mapNorthUp);
+  useEffect(() => {
+    if (isTauri()) void regie.setMapNorthUp(northUp).catch(() => {});
+  }, [northUp]);
+
   useEffect(() => {
     if (!isTauri()) return;
     void (async () => {

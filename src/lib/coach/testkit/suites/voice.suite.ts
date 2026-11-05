@@ -30,6 +30,7 @@ import {
 import { initCloudVoice, planCloudPrep, runCloudPrep, updateCloudVoice } from "@/lib/cloudVoice";
 import fr from "@/i18n/fr";
 import { startCoachService, stopCoachService } from "@/lib/coach";
+import { loadPaceTiers } from "@/lib/engineer/paceTiers";
 
 // ── Faux environnement ───────────────────────────────────────────────────────
 
@@ -377,6 +378,64 @@ async function duplicateSuite() {
   eq(plays.length, 1, "la requête annulée ne joue jamais");
 }
 
+/** `onHeard` : la question des chronos n'est marquée posée qu'entendue jusqu'au bout. */
+async function heardSuite() {
+  section("voix — annonce entendue jusqu'au bout");
+  let heard = 0;
+  const onHeard = () => heard++;
+
+  await reset(true);
+  speak("Pneus froids", "fr", "normal", undefined, { onHeard });
+  await settle();
+  await answerCloud("Pneus froids");
+  eq(heard, 0, "en cours de lecture : pas encore");
+  await endPlayback();
+  eq(heard, 1, "lue jusqu'au bout : entendue");
+
+  heard = 0;
+  await reset(true);
+  speak("Pneus froids", "fr", "normal", undefined, { onHeard });
+  await settle();
+  await answerCloud("Pneus froids");
+  speak("Crevaison !", "fr", "critical");
+  await settle();
+  await endPlayback();
+  await settle();
+  eq(heard, 0, "coupée par une alerte, sans reprise : pas entendue");
+
+  heard = 0;
+  await reset(true);
+  speak("Pneus froids", "fr", "normal", undefined, { onHeard, replayPrefix: "Je répète," });
+  await settle();
+  await answerCloud("Pneus froids");
+  speak("Crevaison !", "fr", "critical");
+  await settle();
+  await endPlayback();
+  eq(heard, 0, "coupée : pas encore entendue");
+  await answerCloud("Pneus froids");
+  await endPlayback();
+  eq(heard, 1, "reprise jusqu'au bout : entendue");
+}
+
+/** Paliers de chrono : un échec réseau se voit (retenté), un combo inconnu non. */
+async function tierLoadSuite() {
+  section("paliers — échec réseau distingué d'une absence");
+  const rejects = async (get: Parameters<typeof loadPaceTiers>[2]) =>
+    loadPaceTiers("Spa", "GT3", get).then(
+      () => false,
+      () => true,
+    );
+  const offline = (() => Promise.reject(new Error("hors ligne"))) as NonNullable<Parameters<typeof loadPaceTiers>[2]>;
+  eq(await rejects(offline), true, "réseau coupé : rejet, l'appelant retentera");
+  const unknown = (() => Promise.resolve(null)) as NonNullable<Parameters<typeof loadPaceTiers>[2]>;
+  eq(await loadPaceTiers("Spa", "GT3", unknown), null, "404 : une réponse, pas d'erreur");
+  const combos = { combos: [{ track: "Spa", track_course: "Spa", car_class: "GT3" }] };
+  const detailDown = ((route: string) => (route === "combos" ? Promise.resolve(combos) : Promise.reject(new Error("hors ligne")))) as unknown as NonNullable<
+    Parameters<typeof loadPaceTiers>[2]
+  >;
+  eq(await rejects(detailDown), true, "combo trouvé, détail injoignable : rejet aussi");
+}
+
 async function coachServiceSuite() {
   section("voix — service coach abonné une seule fois");
   const savedFetch = globalThis.fetch;
@@ -416,6 +475,8 @@ export async function run() {
   await initCloudVoice(JSON.stringify({ enabled: true, provider: "openai", voice: "ash" }));
   await twoVoicesSuite();
   await duplicateSuite();
+  await heardSuite();
+  await tierLoadSuite();
   await coachServiceSuite();
   cancelSpeech();
 }

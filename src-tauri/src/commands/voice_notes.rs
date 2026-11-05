@@ -244,6 +244,13 @@ fn clear_dir(dir: &Path) -> u32 {
 
 // ── Commandes ────────────────────────────────────────────────────────────────
 
+/// Capture à l'appui du navigateur (moteur arrêté) : devient la dernière prise de parole.
+#[tauri::command]
+pub fn voice_note_keep_capture(pcm_base64: String) -> AppResult<()> {
+    crate::commands::voice_input::remember_utterance(&crate::commands::stt::pcm_from_base64(&pcm_base64)?);
+    Ok(())
+}
+
 /// Conserve la dernière prise de parole push-to-talk comme note du virage
 /// `corner`. Renvoie sa durée (s) après retrait des silences.
 #[tauri::command]

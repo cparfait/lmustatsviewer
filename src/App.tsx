@@ -75,15 +75,15 @@ export default function App() {
 
   // Préchargement de la page Classements (onglet « Ma position ») : au lancement, puis
   // après chaque nouvelle donnée indexée (attente de 3 s pour regrouper les rafales),
-  // jamais pendant le Live. La page s'affiche ensuite sans attente.
+  // jamais pendant le Live : ce qui a été indexé pendant le Live est préchargé en le
+  // quittant (`isLive` ne change qu'en entrant ou en sortant, jamais à chaque trame).
+  // La page s'affiche ensuite sans attente.
   const dataVersion = useAppStore((s) => s.dataVersion);
   useEffect(() => {
-    if (!configLoaded || !isConfigured) return;
-    const id = setTimeout(() => {
-      if (!window.location.pathname.startsWith("/live")) preloadMyPositions();
-    }, 3000);
+    if (!configLoaded || !isConfigured || isLive) return;
+    const id = setTimeout(() => preloadMyPositions(), 3000);
     return () => clearTimeout(id);
-  }, [configLoaded, isConfigured, dataVersion]);
+  }, [configLoaded, isConfigured, dataVersion, isLive]);
 
   // Spotter « à la demande » : raccourcis globaux Statut / Mute / Répète.
   useSpotter();

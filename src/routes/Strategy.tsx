@@ -5,14 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { isTauri, live, type PitMenuItem } from "@/lib/api";
+import { isTauri, live, type LiveData, type PitMenuItem } from "@/lib/api";
+import { energyPerLap } from "@/lib/engineer/answers";
 import { pitMenuErrorKey } from "@/lib/lmuRest";
 import { toastError, toastSuccess } from "@/stores/dialogs";
 import { useAppStore } from "@/stores/app";
 import { usePageState } from "@/lib/usePageState";
 import { GOALS, OPTIONAL, REQUIRED, emptyPrep, isDone, ready, type PrepTask } from "@/lib/racePlan/prep";
 import { usePrepStore } from "@/lib/racePlan/useRacePrep";
-import { clock, hm, planStints } from "@/lib/racePlan/stintPlan";
+import { clock, fullStintLaps, hm, planStints } from "@/lib/racePlan/stintPlan";
 import { trackSun } from "@/lib/racePlan/sun";
 import { cn } from "@/lib/utils";
 
@@ -214,16 +215,28 @@ function PrepCard() {
   );
 }
 
+/** Valeurs de départ de la feuille : un champ encore à sa valeur de départ n'a pas été touché. */
+const DEFAULT_DURATION = "6:00";
+const DEFAULT_STINT_LAPS = "20";
+
+/** Tours d'un relais à plein dans la séance lue (réservoir et énergie virtuelle). */
+function liveStintLaps(d: LiveData): number | null {
+  const tel = d.telemetry;
+  const fuel = tel && tel.fuel_consumption > 0 && tel.fuel_capacity > 0 ? tel.fuel_capacity / tel.fuel_consumption : null;
+  const perLap = (d.extended?.virtual_energy ?? 0) > 0 ? energyPerLap(d) : null;
+  return fullStintLaps(fuel, perLap);
+}
+
 function StintSheet() {
   const { t } = useTranslation();
   const storeLoss = useAppStore((s) => s.pitLossSeconds);
   const playerName = useAppStore((s) => s.playerName);
-  const [duration, setDuration] = usePageState("strategy.duration", "6:00");
+  const [duration, setDuration] = usePageState("strategy.duration", DEFAULT_DURATION);
   const [start, setStart] = usePageState("strategy.start", "15:00");
   const [date, setDate] = usePageState("strategy.date", () => new Date().toISOString().slice(0, 10));
   const [track, setTrack] = usePageState("strategy.track", "");
   const [lap, setLap] = usePageState("strategy.lap", "");
-  const [stintLaps, setStintLaps] = usePageState("strategy.stintLaps", "20");
+  const [stintLaps, setStintLaps] = usePageState("strategy.stintLaps", DEFAULT_STINT_LAPS);
   const [loss, setLoss] = usePageState("strategy.loss", "");
   const [drivers, setDrivers] = usePageState("strategy.drivers", "");
   const [mode, setMode] = usePageState<"rotate" | "balance">("strategy.mode", "rotate");
@@ -233,20 +246,22 @@ function StintSheet() {
   const [pins, setPins] = usePageState<Record<number, string>>("strategy.pins", {});
   const [filled, setFilled] = usePageState("strategy.filled", false);
 
-  // Valeurs de départ prises dans la séance en cours (une fois).
+  // Valeurs de départ prises dans la séance en cours : une fois, mais seulement quand une
+  // séance a vraiment été lue (hors séance, on réessaiera au prochain affichage de la page).
+  // Le remplissage peut donc arriver tard : ce que l'utilisateur a déjà saisi reste.
   useEffect(() => {
     if (filled || !isTauri()) return;
-    setFilled(true);
     void live
       .getData()
       .then((d) => {
         if (!d?.session) return;
-        if (d.session.track) setTrack(d.session.track);
+        setFilled(true);
+        if (d.session.track) setTrack((v) => v || d.session!.track);
         const best = d.player?.best_lap_time ?? 0;
-        if (best > 0) setLap(fmtLap(best));
-        const tel = d.telemetry;
-        if (tel && tel.fuel_consumption > 0 && tel.fuel_capacity > 0) setStintLaps(String(Math.floor(tel.fuel_capacity / tel.fuel_consumption)));
-        if (d.session.session >= 10 && d.session.end_et > 0) setDuration(hm(d.session.end_et));
+        if (best > 0) setLap((v) => v || fmtLap(best));
+        const laps = liveStintLaps(d);
+        if (laps != null) setStintLaps((v) => (v === DEFAULT_STINT_LAPS ? String(Math.floor(laps)) : v));
+        if (d.session.session >= 10 && d.session.end_et > 0) setDuration((v) => (v === DEFAULT_DURATION ? hm(d.session!.end_et) : v));
       })
       .catch(() => {});
   }, [filled, setFilled, setTrack, setLap, setStintLaps, setDuration]);

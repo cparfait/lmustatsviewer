@@ -51,7 +51,7 @@ import { cornerNamesBlock } from "@/lib/ai/knowledge/corner-names";
 import { usesRadioPrompt } from "@/lib/ai/prompts/radio";
 import { checkVoiceAnswer, repairVoiceAnswer, type GuardReason } from "@/lib/ai/voiceGuard";
 import { lastTrackHistory, trackHistoryBlock } from "@/lib/engineer/trackRecall";
-import { CLARIFY_MAX, THREAD_MS, clarifyStreak, isClarification, sttUnsure, type Exchange } from "@/lib/engineer/askRules";
+import { CLARIFY_MAX, THREAD_MS, clarifyStreak, isClarification, mayClarify, sttUnsure, type Exchange } from "@/lib/engineer/askRules";
 import { deliverRadio } from "@/lib/engineer/radioSplit";
 import { FLAG_RADIO_SPLIT, readConfigFlag } from "@/lib/configFlag";
 
@@ -139,8 +139,8 @@ export { isAction };
 
 const exchanges: Exchange[] = [];
 
-function rememberExchange(q: string, a: string): void {
-  exchanges.push({ q, a, at: Date.now(), clarify: isClarification(a) });
+function rememberExchange(q: string, a: string, clarify = isClarification(a)): void {
+  exchanges.push({ q, a, at: Date.now(), clarify });
   if (exchanges.length > 6) exchanges.splice(0, exchanges.length - 6);
 }
 
@@ -364,8 +364,10 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
   // ── 4. Coach IA ─────────────────────────────────────────────────────────────
   // Dictée incertaine : on fait répéter plutôt que d'envoyer à l'IA une phrase
   // peut-être fausse (elle répondrait à côté avec aplomb). Réglage désactivable.
-  if (mode !== "ai" && st0.sttConfirmUnsure && sttUnsure(free, o.confidence)) {
+  // Relance bornée : passé le plafond, l'IA répond sur sa meilleure lecture.
+  if (mode !== "ai" && st0.sttConfirmUnsure && sttUnsure(free, o.confidence) && mayClarify(exchanges)) {
     const text = radioLine(t, "coach.voiceUnsure");
+    rememberExchange(free, text, true);
     if (!gone()) {
       announceAnswer(text, lang);
       toast(t("coach.voiceUnsureToast", { pct: Math.round((o.confidence ?? 0) * 100) }));
@@ -429,6 +431,8 @@ export async function askEngineer(question: string, o: AskOptions): Promise<AskR
         if (!gone()) toast(t("coach.guardToast", { why: t(`coach.guardWhy_${verdict.reason}`), text: answer }));
       }
     }
+    // Plafond dans le code : si le modèle redemande malgré le prompt, on renonce en une phrase.
+    if (isClarification(spoken) && !mayClarify(exchanges)) spoken = radioLine(t, "coach.voiceGiveUp");
     rememberExchange(free, spoken);
     return say(spoken, "ai");
   } catch (e) {

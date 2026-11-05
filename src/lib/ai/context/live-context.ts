@@ -174,8 +174,8 @@ export function buildLiveContext(data: LiveData): string {
     lines.push("## Hybrid / virtual energy");
     lines.push(
       `Virtual energy: ${(e.virtual_energy * 100).toFixed(1)}% remaining` +
-        ` · Battery SoC: ${e.state_of_charge.toFixed(0)}%` +
-        ` · Regen: ${e.regen.toFixed(0)} kW` +
+        ` · Battery SoC: ${n(e.state_of_charge, 0, "%")}` +
+        ` · Regen: ${n(e.regen, 0, " kW")}` +
         ` · Hybrid: ${BOOST[e.boost_state] ?? "?"}`,
     );
   }

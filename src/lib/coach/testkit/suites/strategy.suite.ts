@@ -15,8 +15,8 @@ import { factsBlock } from "@/lib/ai/facts";
 import { answerIntent } from "@/lib/engineer/answers";
 import { engineer } from "@/lib/engineer/state";
 import { RadioPolicy, type PolicyCtx } from "@/lib/engineer/policy";
-import type { Candidate } from "@/lib/engineer/arbiter";
-import { applyLapPref, parseLapPrefs, questionDue, sessionKind } from "@/lib/engineer/prefs";
+import { RadioArbiter, type Candidate } from "@/lib/engineer/arbiter";
+import { applyLapPref, lapBudgetExempt, parseLapPrefs, questionDue, sessionKind } from "@/lib/engineer/prefs";
 import { TyreWearTracker, tyreChangePlan, WetnessTrend, WarmupTracker, isWetCompound } from "@/lib/engineer/tyres";
 
 export const st = (o: Partial<LiveStanding>): LiveStanding =>
@@ -168,13 +168,67 @@ export function run(): void {
     const cand = (key: string, prio: Candidate["prio"] = "normal"): Candidate => ({ key, text: key, prio });
     const pol = new RadioPolicy();
     pol.noteCrash(100);
-    const a = [cand("mech:damage"), cand("mech:aero")];
+    // `mech:damage` est critique dans le vrai code (`useRaceEngineer`) : il compte quand même.
+    const a = [cand("mech:damage", "critical"), cand("mech:aero")];
     eq(pol.filter(a, ctx(101)).length, 2, "constat + bilan passent");
     pol.commit(a, ctx(101));
     eq(pol.filter([cand("mech:suspension")], ctx(120)).length, 0, "3e annonce d'incident coupée");
     eq(pol.filter([cand("mech:puncture", "critical")], ctx(120)).length, 1, "une crevaison (critique) passe toujours");
     eq(pol.filter([cand("mech:suspension")], ctx(170)).length, 1, "épisode fini après 60 s");
     eq(pol.filter([cand("mech:suspension")], ctx(120, { phases: false })).length, 1, "couche phases coupée : ancien comportement");
+
+    // Dégâts, suspension et aéro au même instant : le candidat retenu par l'arbitre
+    // (`retryS`) ne repasse pas par `filter`, il doit quand même respecter le plafond.
+    const crash = new RadioPolicy();
+    const arb = new RadioArbiter();
+    const heard: string[] = [];
+    const frame = (cs: Candidate[], nowS: number) => {
+      const c = ctx(nowS);
+      const allowed = crash.filter(cs, c);
+      arb.dropPending((x) => crash.incidentCapped(x, c));
+      const { spoken } = arb.decide(allowed, nowS, 10);
+      crash.commit(spoken, c);
+      heard.push(...spoken.map((s) => s.key));
+    };
+    crash.noteCrash(100);
+    frame(
+      [cand("mech:damage", "critical"), { ...cand("mech:suspension"), score: 60, retryS: 20 }, { ...cand("mech:aero"), score: 50, retryS: 20 }],
+      100,
+    );
+    frame([], 101);
+    frame([], 102);
+    eq(heard, ["mech:damage", "mech:suspension"], "un choc : constat + un bilan, pas trois annonces");
+    frame([cand("mech:puncture", "critical")], 103);
+    eq(heard[heard.length - 1], "mech:puncture", "plafond atteint : une crevaison passe toujours");
+
+    // Phrase fusionnée dominée : le chrono demandé revient, le fragment sans `retryS` meurt.
+    const merged = new RadioArbiter();
+    const lapCand = { ...cand("lap:time"), group: "lap", order: 0, score: 20, retryS: 10, exempt: true };
+    const sectorCand = { ...cand("sector:purple"), group: "lap", order: 1, score: 20 };
+    const first = merged.decide([lapCand, sectorCand, { ...cand("pit:box"), score: 95 }], 100, 10);
+    eq(first.spoken.map((s) => s.key), ["pit:box"], "radio plus urgente : elle passe seule");
+    eq(first.rejected.map((r) => r.c.key), ["sector:purple"], "le secteur, sans nouvel essai, est abandonné");
+    eq(merged.decide([], 101, 10).spoken.map((s) => s.key), ["lap:time"], "le chrono n'est pas perdu");
+
+    // Budget « confort » : chrono demandé par le pilote ou record.
+    const bud = new RadioPolicy();
+    const race = (lap: number) => ctx(1000 + lap, { lap, phases: false, budgets: true });
+    bud.commit([cand("sector:weak")], race(10));
+    eq(bud.filter([cand("lap:time")], race(11)).length, 0, "auto : le chrono ordinaire reste dans le budget");
+    const exempt: Candidate = { ...cand("lap:time"), exempt: true };
+    eq(bud.filter([exempt], race(11)).length, 1, "« à chaque tour » ou record : passe le budget");
+    bud.commit([exempt], race(11));
+    eq(bud.filter([cand("sector:weak")], race(13)).length, 1, "… sans le consommer");
+    bud.setRegime("essential", 11, 0);
+    eq(bud.filter([exempt], race(12)).length, 0, "« juste l'essentiel » garde le dernier mot");
+    ok(lapBudgetExempt(undefined, "pb") && lapBudgetExempt("every", "last") && lapBudgetExempt("best", "pb"), "record ou préférence : hors budget");
+    ok(!lapBudgetExempt(undefined, "last") && !lapBudgetExempt("auto", "last"), "chrono ordinaire en auto : dans le budget");
+    const again = new RadioArbiter();
+    again.textRepeatLaps = 5;
+    const lap: Candidate = { key: "lap:time", text: "Dernier tour 1:42.8", prio: "chatty" };
+    again.decide([lap], 0, 10);
+    eq(again.decide([lap], 100, 11).spoken.length, 0, "auto : même phrase, anti-redite");
+    eq(again.decide([{ ...lap, exempt: true }], 200, 12).spoken.length, 1, "« à chaque tour » : deux chronos identiques au dixième restent dits");
 
     const q = new RadioPolicy();
     const qc = (o: Partial<PolicyCtx>) => ctx(500, { isRace: false, ...o });
@@ -213,6 +267,18 @@ export function run(): void {
     ok(persisted === 1 && txt.startsWith("live.spLapPrefSet"), "persistée et confirmée");
     engineer.onPrefsChanged = null;
     engineer.lapPrefs = saved;
+  }
+
+  section("radio.sessionBest");
+  {
+    const me = st({ driver: "Me", is_player: true, vehicle_class: "GT3", class_position: 1, best_lap_time: 120 });
+    const quick = st({ driver: "Quick", vehicle_class: "Hypercar", class_position: 1, best_lap_time: 100 });
+    const multi = data([quick, me]);
+    const o = { pitLossSec: 60, fuelReserveLaps: 1 };
+    ok(answerIntent("sessionBest", multi, t, { ...o, classPositions: true }).startsWith("live.spSessionBestMeClass"), "multiclasse : le meilleur temps de ma classe");
+    ok(answerIntent("sessionBest", multi, t, { ...o, classPositions: false }).startsWith("live.spSessionBest{"), "réglage coupé : toutes classes");
+    ok(answerIntent("sessionBest", multi, t, { ...o, classPositions: true, entities: { overall: true } }).startsWith("live.spSessionBest{"), "« au général » : toutes classes");
+    ok(answerIntent("sessionBest", data([me]), t, { ...o, classPositions: true }).startsWith("live.spSessionBestMe{"), "une seule classe : phrase d'avant");
   }
 
   section("ai.knowledge");

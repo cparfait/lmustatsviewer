@@ -27,6 +27,7 @@ import { assets, isTauri, type AssetInfo, type AssetKind } from "@/lib/api";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 import { useAppStore } from "@/stores/app";
 import { resetPiperAvailability } from "@/lib/voice";
+import { missingVoiceRow } from "@/lib/voicePolicy";
 
 /** État commun à tous les rendus (bandeau, liste, fenêtre d'accueil de la voix). */
 const useDownloads = create<{
@@ -184,11 +185,11 @@ export function VoiceDownloads({
   );
 
   if (variant === "banner") {
-    // Modèle « principal » de la langue : la voix par défaut (TTS) / le modèle
-    // unique (STT). Une fois installé, le bandeau disparaît (la liste complète
-    // reste accessible dans les réglages dépliés).
-    const main = rows.find((a) => a.is_default) ?? rows[0];
-    if (!main || main.installed) return null;
+    // Modèle proposé : la voix par défaut (TTS) / le modèle unique (STT). Le bandeau
+    // disparaît dès qu'une voix de la langue est installée (la liste complète reste
+    // accessible dans les réglages dépliés).
+    const main = missingVoiceRow(rows);
+    if (!main) return null;
     return (
       <div className="mt-2 flex items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">

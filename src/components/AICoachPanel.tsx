@@ -41,7 +41,7 @@ import { loadRecurring } from "@/lib/debrief/load";
 import { recurringContextText } from "@/lib/debrief/recurring";
 import {
   buildDriverHistoryText,
-  buildComboHistoryText,
+  buildTrackHistoryText,
 } from "@/lib/ai/context/driver-history-context";
 import { buildLiveCoachContext } from "@/lib/ai/context/records-context";
 import { buildTrackKnowledgeText } from "@/lib/ai/knowledge/track-knowledge";
@@ -1260,16 +1260,17 @@ export function TelemetryCoachPanel({
     };
   }, [meta]);
 
-  // Mémoire longitudinale : historique du combo depuis les résultats indexés.
-  // Sans filtre layout (nomenclature télémétrie ≠ résultats sur certains circuits).
+  // Mémoire longitudinale : historique du combo et records du circuit, toutes
+  // voitures, depuis les résultats indexés (voiture sans correspondance : ces
+  // records seuls). Sans filtre layout (nomenclature télémétrie ≠ résultats sur
+  // certains circuits).
   const [historyText, setHistoryText] = useState("");
   useEffect(() => {
     setHistoryText("");
-    if (!meta.info.car_model) return;
     let cancelled = false;
     const laps = meta.laps.filter((l) => l.duration > 0);
     const fastest = laps.length ? Math.min(...laps.map((l) => l.duration)) : null;
-    buildComboHistoryText({
+    buildTrackHistoryText({
       track: meta.info.track,
       car: meta.info.car_model,
       currentBest: fastest,

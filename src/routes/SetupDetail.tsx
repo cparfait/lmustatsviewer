@@ -52,6 +52,7 @@ import { SetupPlatesPanel } from "@/components/SetupPlatesPanel";
 import { SetupSharePanel } from "@/components/SetupSharePanel";
 import { SetupSessionsUsed } from "@/components/SetupSessionsUsed";
 import { displayOf, indexOf, isFixedParam } from "@/lib/setupView";
+import { editedPatches } from "@/lib/setupAssistant";
 import { learnForCar, paramId, resolveIndex, svmOfEntry, type NotchTable } from "@/lib/setupNotches";
 import { FLAG_SETUP_AUDIT, FLAG_SETUP_PLATES, FLAG_SETUP_PROFILES, FLAG_SETUP_SHARING, useConfigFlag } from "@/lib/configFlag";
 import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
@@ -283,7 +284,7 @@ export function SetupDetail() {
     if (!entry) return;
     setSaving(true);
     try {
-      await setupsApi.update({ id: entry.id, sections: draft });
+      await setupsApi.update({ id: entry.id, sections: editedPatches(svm?.sections ?? [], draft) });
       await loadSetup(entry.id);
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 2500);

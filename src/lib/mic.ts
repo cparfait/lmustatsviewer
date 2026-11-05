@@ -11,13 +11,29 @@
  *
  * Micro choisi dans la Config (`micDevice`, nom Windows) : retrouvé parmi les
  * entrées de la WebView par son libellé (mêmes noms que Windows). Introuvable →
- * micro par défaut, comme avant.
+ * micro par défaut, et le pilote est prévenu une fois (`notifyMicFallback`).
  */
 
+import i18n from "@/i18n";
 import { setDriverTalking } from "@/lib/voice";
+import { createOnceGate, micFellBack } from "@/lib/voicePolicy";
 import { useAppStore } from "@/stores/app";
+import { toast } from "@/stores/dialogs";
 
 const TARGET_RATE = 16000;
+
+/** Message « micro introuvable » : une fois par micro choisi, pas à chaque appui. */
+const fallbackGate = createOnceGate();
+
+/** Prévient que le micro choisi manque et que `name` écoute à sa place. */
+export function notifyMicFallback(wanted: string, name: string): void {
+  if (fallbackGate.pass(wanted)) toast(i18n.t("config.micDeviceFallback", { wanted, name }));
+}
+
+/** Le micro choisi est de nouveau là : une prochaine disparition sera signalée. */
+export function resetMicFallback(): void {
+  fallbackGate.reset();
+}
 
 interface Capture {
   ctx: AudioContext;
@@ -44,6 +60,11 @@ export async function startCapture(): Promise<void> {
       stream.getTracks().forEach((tk) => tk.stop());
       stream = await openMic(id);
     }
+  }
+  if (wanted) {
+    const track = stream.getAudioTracks()[0];
+    if (micFellBack(wanted, id, track?.getSettings().deviceId)) notifyMicFallback(wanted, track?.label ?? "");
+    else resetMicFallback();
   }
   const ctx = new AudioContext();
   const source = ctx.createMediaStreamSource(stream);

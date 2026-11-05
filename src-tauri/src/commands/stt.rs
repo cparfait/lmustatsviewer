@@ -244,14 +244,17 @@ pub fn stt_recognize_free(
     pcm_base64: String,
     lang: String,
 ) -> AppResult<String> {
-    let bytes = base64_decode(&pcm_base64)
-        .ok_or_else(|| AppError::Parse("PCM base64 invalide".into()))?;
-    let samples: Vec<i16> = bytes
-        .chunks_exact(2)
-        .map(|c| i16::from_le_bytes([c[0], c[1]]))
-        .collect();
+    let samples = pcm_from_base64(&pcm_base64)?;
+    // Capture à l'appui (moteur arrêté) : « note pour ce virage » doit la retrouver.
+    super::voice_input::remember_utterance(&samples);
     // Même moteur que le push-to-talk natif (Parakeet si choisi, sinon Vosk).
     recognize_free_samples(&app, &lang, &samples)
+}
+
+/// PCM reçu du front (base64, octets little-endian) → échantillons i16.
+pub(crate) fn pcm_from_base64(pcm_base64: &str) -> AppResult<Vec<i16>> {
+    let bytes = base64_decode(pcm_base64).ok_or_else(|| AppError::Parse("PCM base64 invalide".into()))?;
+    Ok(bytes.chunks_exact(2).map(|c| i16::from_le_bytes([c[0], c[1]])).collect())
 }
 
 /// Décodage base64 standard (sans dépendance externe ; pendant de `tts::base64_encode`).

@@ -46,6 +46,8 @@ export type Intent =
   | "stops"
   | "ackBox"
   | "stayOut"
+  | "yes"
+  | "no"
   | "watchCancel"
   | "repeat"
   | "mute";
@@ -81,6 +83,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     stops: ["combien d'arrêts", "nombre d'arrêts"],
     ackBox: ["compris", "reçu", "bien reçu", "je rentre"],
     stayOut: ["je reste dehors", "on reste dehors"],
+    yes: ["oui", "ouais", "affirmatif"],
+    no: ["non", "négatif"],
     watchCancel: ["annule les alertes", "oublie les alertes"],
     repeat: ["répète", "répéter", "redis", "quoi"],
     mute: ["silence", "tais-toi", "mute", "coupe", "active le son"],
@@ -114,6 +118,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     stops: ["how many stops", "number of stops"],
     ackBox: ["copy", "copy that", "understood", "roger"],
     stayOut: ["staying out", "i'm staying out", "stay out"],
+    yes: ["yes", "yeah", "affirmative"],
+    no: ["no", "nope", "negative"],
     watchCancel: ["cancel alerts", "clear alerts"],
     repeat: ["repeat", "say again", "what", "again"],
     mute: ["mute", "quiet", "shut up", "silence", "unmute"],
@@ -147,6 +153,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     stops: ["cuántas paradas", "número de paradas"],
     ackBox: ["entendido", "recibido", "copiado"],
     stayOut: ["me quedo fuera", "sigo en pista"],
+    yes: ["sí", "si", "claro", "afirmativo"],
+    no: ["no", "negativo"],
     watchCancel: ["cancela las alertas", "borra las alertas"],
     repeat: ["repite", "repetir", "otra vez", "qué"],
     mute: ["silencio", "cállate", "calla", "activa el sonido"],
@@ -180,6 +188,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     stops: ["wie viele stopps", "anzahl der stopps"],
     ackBox: ["verstanden", "roger", "kopiert"],
     stayOut: ["ich bleibe draußen", "bleibe draußen"],
+    yes: ["ja", "jawohl"],
+    no: ["nein", "negativ"],
     watchCancel: ["alarme löschen", "alarme abbrechen"],
     repeat: ["wiederhole", "noch mal", "was"],
     mute: ["stumm", "ruhe", "halt den mund", "ton an"],
@@ -216,6 +226,8 @@ const GRAMMAR: Record<string, Record<Intent, string[]>> = {
     stops: ["quante soste", "numero di soste", "quante fermate"],
     ackBox: ["ricevuto", "capito", "copiato", "va bene"],
     stayOut: ["resto fuori", "rimango fuori", "resto in pista"],
+    yes: ["sì", "si", "certo", "affermativo"],
+    no: ["no", "negativo"],
     watchCancel: ["annulla gli avvisi", "cancella gli avvisi"],
     repeat: ["ripeti", "ripetere", "di nuovo", "cosa"],
     mute: ["silenzio", "zitto", "stai zitto", "muto", "attiva il suono"],
@@ -227,6 +239,8 @@ const INTENT_ORDER: Intent[] = [
   "watchCancel",
   "stayOut",
   "ackBox",
+  "yes",
+  "no",
   "sessionBest",
   "pitWindow",
   "rivalStops",
@@ -287,10 +301,15 @@ export const INTENTS: Intent[] = [
   "sessionBest",
   "ackBox",
   "stayOut",
+  "yes",
+  "no",
   "watchCancel",
   "repeat",
   "mute",
 ];
+
+/** Énoncé entier seulement : « no » ou « si » se retrouvent dans trop de mots (« now », « posición »). */
+const EXACT_ONLY = new Set<Intent>(["yes", "no"]);
 
 const norm = (lang: string) => (lang || "en").slice(0, 2).toLowerCase();
 
@@ -413,7 +432,7 @@ export function matchIntent(text: string, lang: string): Intent | null {
   }
   // 2) Inclusion (la phrase apparaît dans le texte reconnu).
   for (const intent of INTENT_ORDER) {
-    if (getPhrases(lang, intent).some((p) => hay.includes(p))) return intent;
+    if (!EXACT_ONLY.has(intent) && getPhrases(lang, intent).some((p) => hay.includes(p))) return intent;
   }
   return null;
 }

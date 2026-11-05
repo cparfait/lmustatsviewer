@@ -6,7 +6,8 @@
  * la classe (un par pilote, base communautaire). Les paliers vont du plus lent au plus
  * rapide (`TIER_ORDER` : p90 → p1) ; la **cible** est le premier palier plus rapide
  * que son meilleur tour d'au moins `TIER_MARGIN_S`. Quand il en passe un, l'ingénieur
- * le dit une fois, avec le chrono du suivant.
+ * le dit une fois, avec le chrono du suivant. « Une fois » vaut au-delà de la séance : le
+ * meilleur tour de la voiture repart de zéro à chaque session, la mémoire de l'appelant non.
  *
  * Doctrine : les paliers servent au calcul, jamais à la parole. Ni centile, ni « top
  * 10 % », ni nombre de pilotes à la radio : on dit « le prochain repère » et un chrono.
@@ -15,7 +16,7 @@
  */
 
 import { community } from "@/lib/api";
-import type { CommunityDetail } from "@/lib/api";
+import type { CommunityDetail, CommunityRoute } from "@/lib/api";
 import { matchCombo, type ComboRef } from "@/lib/briefing";
 
 /** Du plus lent au plus rapide. */
@@ -58,13 +59,57 @@ export function crossedTiers(prevBestS: number | null, newBestS: number, tiers: 
   return tiers.filter((x) => prevBestS >= x.timeS && newBestS < x.timeS);
 }
 
-/** Charge les paliers du combo courant (piste sèche), ou null (hors ligne, combo inconnu, base mince). */
-export async function loadPaceTiers(track: string, liveClass: string): Promise<PaceTier[] | null> {
-  const pub = await community.get<{ combos: ComboRef[] }>("combos").catch(() => null);
+/**
+ * Paliers passés et prochain repère, d'après le meilleur tour déjà vu sur ce combo toutes
+ * séances confondues (`seenBest`, `null` si aucun) : un palier déjà battu n'est ni redit
+ * ni reproposé comme cible quand la séance repart de zéro.
+ */
+export function tierProgress(
+  seenBest: number | null,
+  best: number,
+  tiers: PaceTier[],
+): { crossed: PaceTier[]; next: PaceTier | null } {
+  const ref = seenBest != null && seenBest > 0 && seenBest < best ? seenBest : best;
+  return { crossed: crossedTiers(seenBest, best, tiers), next: nextTier(ref, tiers) };
+}
+
+/** Échec de chargement des paliers : combo visé et prochain essai permis. */
+export interface TierRetry {
+  key: string;
+  at: number;
+  attempts: number;
+}
+
+/** Délai avant de retenter après `attempts` échecs (ms) : 1 min, puis doublé, 10 min au plus. */
+export function tierRetryDelayMs(attempts: number): number {
+  return Math.min(60_000 * 2 ** Math.max(0, attempts - 1), 600_000);
+}
+
+/** Faut-il charger les paliers de `wanted` ? Jamais à chaque trame après un échec. */
+export function tierLoadDue(wanted: string, loaded: string, retry: TierRetry | null, nowMs: number): boolean {
+  if (wanted === loaded) return false;
+  return !retry || retry.key !== wanted || nowMs >= retry.at;
+}
+
+type CommunityGet = <T>(route: CommunityRoute, query?: Record<string, string | number>) => Promise<T | null>;
+
+/**
+ * Charge les paliers du combo courant (piste sèche), ou null (combo inconnu, base mince :
+ * une réponse, à ne pas redemander). Un échec réseau **rejette** : l'appelant retentera.
+ */
+export async function loadPaceTiers(
+  track: string,
+  liveClass: string,
+  get: CommunityGet = community.get,
+): Promise<PaceTier[] | null> {
+  const pub = await get<{ combos: ComboRef[] }>("combos");
   const c = pub ? matchCombo(pub.combos, track, liveClass) : null;
   if (!c) return null;
-  const detail = await community
-    .get<CommunityDetail>("combos/detail", { track: c.track, course: c.track_course, class: c.car_class, conditions: "dry" })
-    .catch(() => null);
+  const detail = await get<CommunityDetail>("combos/detail", {
+    track: c.track,
+    course: c.track_course,
+    class: c.car_class,
+    conditions: "dry",
+  });
   return buildTiers(detail);
 }

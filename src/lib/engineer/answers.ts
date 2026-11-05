@@ -363,12 +363,18 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
     }
 
     case "sessionBest": {
+      // Même périmètre que l'annonce du meilleur temps : la classe citée, sinon celle du
+      // pilote en multiclasse (réglage « positions dans la classe »), sauf « au général ».
+      const inMyClass = !!me && !e?.cls && !e?.overall && (o.classPositions ?? true) && multiclass(d);
+      const scoped = (s: LiveStanding) =>
+        e?.cls ? radioClass(s.vehicle_class) === e.cls : !inMyClass || s.vehicle_class === me?.vehicle_class;
       let best: LiveStanding | null = null;
-      for (const s of d.standings) if (s.best_lap_time > 0 && (!best || s.best_lap_time < best.best_lap_time)) best = s;
+      for (const s of d.standings)
+        if (scoped(s) && s.best_lap_time > 0 && (!best || s.best_lap_time < best.best_lap_time)) best = s;
       if (!best) return noData;
       const time = lapVoice(best.best_lap_time, t);
       return best.is_player
-        ? t("live.spSessionBestMe", { time })
+        ? t(inMyClass ? "live.spSessionBestMeClass" : "live.spSessionBestMe", { time })
         : t("live.spSessionBest", { time, name: radioName(best.driver), cls: radioClass(best.vehicle_class) });
     }
 

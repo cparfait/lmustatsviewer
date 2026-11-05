@@ -116,6 +116,16 @@ export function clock(startHour: number, s: number): string {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
+/**
+ * Tours d'un relais à plein : la limite la plus courte entre le réservoir (`fuelLaps`)
+ * et l'énergie virtuelle (`energyPerLap`, fraction par tour), si elle est connue.
+ */
+export function fullStintLaps(fuelLaps: number | null, energyPerLap: number | null): number | null {
+  const energyLaps = energyPerLap && energyPerLap > 0 ? 1 / energyPerLap : null;
+  if (fuelLaps != null && energyLaps != null) return Math.min(fuelLaps, energyLaps);
+  return energyLaps ?? fuelLaps;
+}
+
 /** « 2:05 » (h:mm) d'une durée. */
 export function hm(s: number): string {
   const m = Math.round(s / 60);

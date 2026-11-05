@@ -97,6 +97,9 @@ pub const SCREENS: [&str; 10] = ["timing", "relative", "engineer", "flags", "inp
 /// Dernier écran imposé depuis l'app : (horodatage ms de l'envoi, écran). Chaque tablette
 /// l'applique une fois par envoi (l'horodatage distingue les envois, même après redémarrage).
 static PUSH: Mutex<Option<(u64, String)>> = Mutex::new(None);
+/// Durée de validité d'un envoi d'écran : les tablettes connectées interrogent chaque seconde ;
+/// une tablette qui arrive plus tard (ou se réveille) n'applique pas un vieil envoi.
+const PUSH_TTL_MS: u64 = 20_000;
 
 struct Dev {
     name: String,
@@ -184,11 +187,25 @@ fn note_device(id: &str, name: &str, screen: &str, name_ack: u64, ip: IpAddr) {
 
 /// Écran à appliquer : le plus récent entre l'envoi « toutes les tablettes » et celui de l'appareil.
 fn push_json(id: Option<&str>) -> Value {
+    push_json_at(id, now_ms())
+}
+
+fn push_json_at(id: Option<&str>, now: u64) -> Value {
     let global = PUSH.lock().ok().and_then(|g| g.clone());
     let own = id.and_then(|id| CMDS.lock().ok().and_then(|c| c.iter().find(|(k, _)| k == id).and_then(|(_, d)| d.screen.clone())));
     match [global, own].into_iter().flatten().max_by_key(|(rev, _)| *rev) {
-        Some((rev, tpl)) => serde_json::json!({ "rev": rev, "tpl": tpl }),
-        None => Value::Null,
+        Some((rev, tpl)) if now.saturating_sub(rev) <= PUSH_TTL_MS => serde_json::json!({ "rev": rev, "tpl": tpl }),
+        _ => Value::Null,
+    }
+}
+
+/// Oublie les envois d'écran et les ordres en attente (arrêt de la régie).
+fn clear_pushes() {
+    if let Ok(mut g) = PUSH.lock() {
+        *g = None;
+    }
+    if let Ok(mut c) = CMDS.lock() {
+        c.clear();
     }
 }
 
@@ -273,6 +290,8 @@ fn devices_list() -> Vec<RegieDevice> {
 
 /// Thème de l'app (clair par défaut, comme l'app) : la tablette prend le même.
 static DARK: AtomicBool = AtomicBool::new(false);
+/// Réglage « Cartes : nord en haut » de l'app, repris par la carte de la tablette.
+static NORTH_UP: AtomicBool = AtomicBool::new(false);
 
 fn theme_name() -> &'static str {
     if DARK.load(Ordering::Relaxed) {
@@ -541,6 +560,7 @@ fn handle(stream: TcpStream, peer: IpAddr, sh: &Shared) {
                 let mut v = light_frame(frame);
                 if let Some(o) = v.as_object_mut() {
                     o.insert("ui_theme".into(), Value::from(theme_name()));
+                    o.insert("ui_north_up".into(), Value::from(NORTH_UP.load(Ordering::Relaxed)));
                     o.insert("ui_push".into(), push_json(dev.as_deref()));
                     o.insert("ui_name".into(), dev.as_deref().map(|d| name_json(d, name_ack)).unwrap_or(Value::Null));
                 }
@@ -630,6 +650,7 @@ pub fn regie_stop() -> Result<RegieStatus, AppError> {
         r.stop.store(true, Ordering::SeqCst);
         live::release_window(CONSUMER);
     }
+    clear_pushes();
     Ok(stopped())
 }
 
@@ -637,6 +658,12 @@ pub fn regie_stop() -> Result<RegieStatus, AppError> {
 #[tauri::command]
 pub fn regie_set_theme(theme: String) {
     DARK.store(theme == "dark", Ordering::Relaxed);
+}
+
+/// Réglage « Cartes : nord en haut » de l'app, suivi en direct par la tablette.
+#[tauri::command]
+pub fn regie_set_map_north_up(north_up: bool) {
+    NORTH_UP.store(north_up, Ordering::Relaxed);
 }
 
 #[tauri::command]
@@ -825,6 +852,24 @@ mod tests {
         note_device("devtabletA1", "Volant 2", "map", rev, ip);
         let d = devices_list().into_iter().find(|d| d.id == "devtabletA1").unwrap();
         assert_eq!((d.name.as_str(), d.screen.as_str()), ("Volant 2", "map"));
+    }
+
+    /// Un vieil envoi n'est plus servi (tablette connectée plus tard), et l'arrêt oublie tout.
+    #[test]
+    fn stale_push_is_not_served_and_stop_clears() {
+        let _g = PUSH_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        regie_push_screen("gear".into(), None).unwrap();
+        regie_push_screen("tyres".into(), Some("devtabletC3".into())).unwrap();
+        let now = now_ms();
+        assert_eq!(push_json_at(None, now)["tpl"], "gear");
+        assert_eq!(push_json_at(Some("devtabletC3"), now)["tpl"], "tyres");
+        assert_eq!(push_json_at(None, now + PUSH_TTL_MS + 5_000), Value::Null);
+        assert_eq!(push_json_at(Some("devtabletC3"), now + PUSH_TTL_MS + 5_000), Value::Null);
+        regie_rename_device("devtabletC3".into(), "Volant".into()).unwrap();
+        regie_stop().unwrap();
+        assert_eq!(push_json(None), Value::Null);
+        assert_eq!(push_json(Some("devtabletC3")), Value::Null);
+        assert_eq!(name_json("devtabletC3", 0), Value::Null);
     }
 
     #[test]

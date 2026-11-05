@@ -40,6 +40,40 @@ export function energyNeed(lapsLeft: number | null, perLap: number | null): numb
   return Math.min(1, (lapsLeft + ENERGY_MARGIN_LAPS) * perLap);
 }
 
+/**
+ * Mémoire de la valeur d'énergie du menu pour un relais : distingue un geste du
+ * pilote d'une écriture de l'app. `known` = dernière valeur lue ou écrite avec
+ * certitude ; une valeur lue qui en diffère ne peut venir que du pilote.
+ */
+export class EnergyWatch {
+  private known: number | null = null;
+
+  /** Note la valeur lue ; `true` si elle a changé sans nous : le pilote a la main. */
+  read(current: number): boolean {
+    const changed = this.known != null && current !== this.known;
+    this.known = current;
+    return changed;
+  }
+
+  /** Écriture confirmée par le jeu : c'est la nouvelle référence. */
+  written(index: number): void {
+    this.known = index;
+  }
+
+  /**
+   * Écriture non confirmée : le jeu peut encore l'appliquer. On ne sait plus ce
+   * qu'il affiche, la prochaine lecture sert de référence (et non de geste du pilote).
+   */
+  unconfirmed(): void {
+    this.known = null;
+  }
+
+  /** Nouveau relais (arrêt fait). */
+  reset(): void {
+    this.known = null;
+  }
+}
+
 /** Plus petite option qui couvre le besoin, sinon la plus haute. */
 export function chooseEnergy(options: EnergyOption[], need: number): EnergyOption | null {
   if (!options.length) return null;

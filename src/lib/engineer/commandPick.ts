@@ -40,7 +40,9 @@ export function commandFromPhrases(free: string, strict: string, lang: string, a
   }
   if (strict.trim() && (short || !aiReady)) {
     const m = matchIntent(strict, lang);
-    if (m) return m as AnswerIntent;
+    // La grammaire fermée colle un mot à n'importe quel son : un « non » strict ne vaut
+    // que seul, pas à la place d'une dictée libre qui a entendu autre chose.
+    if (m && !((m === "yes" || m === "no") && free.trim())) return m as AnswerIntent;
   }
   return null;
 }

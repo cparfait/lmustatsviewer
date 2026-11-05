@@ -14,9 +14,10 @@
 //!
 //! Le lien de référence `setups.linked_session_id` n'est **rempli que s'il est
 //! vide** (meilleure session roulée avec ce setup) : un choix du pilote n'est
-//! jamais remplacé.
+//! jamais remplacé, et un lien qu'il a retiré n'est pas reposé
+//! (`setup_link_cleared`). Réglage coupé, le scan ne lie plus rien.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -473,7 +474,7 @@ pub fn sessions_for_key(conn: &Connection, key: &str) -> Result<Vec<SetupSession
 
 /// Remplit le lien de référence des setups qui n'en ont pas : la session roulée
 /// avec ce setup qui a son meilleur tour (sinon le plus de tours). Ne remplace
-/// jamais un lien posé.
+/// jamais un lien posé et ne repose pas un lien retiré par le pilote.
 pub fn autolink(conn: &Connection) -> Result<usize, AppError> {
     let mut stmt = conn
         .prepare("SELECT DISTINCT setup_folder, setup_file FROM setup_laps")
@@ -488,8 +489,18 @@ pub fn autolink(conn: &Connection) -> Result<usize, AppError> {
         return Ok(0);
     }
     let known = setups_by_key(conn)?;
+    let cleared: HashSet<String> = conn
+        .prepare("SELECT setup_key FROM setup_link_cleared")
+        .map_err(|e| AppError::Database(format!("autolink cleared prepare: {e}")))?
+        .query_map([], |r| r.get(0))
+        .map_err(|e| AppError::Database(format!("autolink cleared: {e}")))?
+        .flatten()
+        .collect();
     let mut n = 0;
     for key in keys {
+        if cleared.contains(&key) {
+            continue;
+        }
         let Some((id, ..)) = known.get(&key).filter(|s| s.4.is_none()) else { continue };
         let sessions = sessions_for_key(conn, &key)?;
         let best = sessions.iter().min_by(|a, b| match (a.best_lap, b.best_lap) {
@@ -508,6 +519,30 @@ pub fn autolink(conn: &Connection) -> Result<usize, AppError> {
         }
     }
     Ok(n)
+}
+
+/// Lien de référence choisi par le pilote. Un retrait (`None`) est retenu pour ce
+/// fichier, un nouveau lien efface ce souvenir.
+pub fn set_reference_session(conn: &Connection, setup_id: i64, session_id: Option<i64>) -> Result<(), AppError> {
+    conn.execute(
+        "UPDATE setups SET linked_session_id = ?1 WHERE id = ?2",
+        params![session_id, setup_id],
+    )
+    .map_err(|e| AppError::Database(format!("set_setup_linked_session: {e}")))?;
+    let path: Option<String> = conn
+        .query_row("SELECT svm_path FROM setups WHERE id = ?1", params![setup_id], |r| r.get(0))
+        .ok();
+    let Some(key) = path.as_deref().and_then(key_of_path) else {
+        return Ok(());
+    };
+    let sql = if session_id.is_none() {
+        "INSERT OR IGNORE INTO setup_link_cleared (setup_key) VALUES (?1)"
+    } else {
+        "DELETE FROM setup_link_cleared WHERE setup_key = ?1"
+    };
+    conn.execute(sql, params![key])
+        .map_err(|e| AppError::Database(format!("setup_link_cleared: {e}")))?;
+    Ok(())
 }
 
 // ─── Chiffres par setup ──────────────────────────────────────────────────────
@@ -813,5 +848,46 @@ mod tests {
             .flatten()
             .collect();
         assert_eq!(linked, vec![Some(7), Some(99)]);
+    }
+
+    #[test]
+    fn a_link_removed_by_hand_stays_removed() {
+        let conn = crate::db::open_test_db();
+        conn.execute_batch(
+            "INSERT INTO xml_index (id, filename, file_path, mtime, timestamp) VALUES (1, 'a.xml', 'a.xml', 0, 1000);
+             INSERT INTO sessions (id, xml_id, session_type, timestamp, track) VALUES (7, 1, 'Practice1', 1000, 'Spa');
+             INSERT INTO results (id, session_id, driver_name, is_player) VALUES (1, 7, 'Moi', 1);
+             INSERT INTO laps (result_id, session_id, driver_name, lap_num, lap_time) VALUES (1, 7, 'Moi', 1, 140.0);
+             INSERT INTO setups (id, car, circuit, name, svm_path) VALUES
+               (3, 'Lexus', 'Spa', 'Base.svm', 'C:\\LMU\\UserData\\player\\Settings\\Spa\\Base.svm');
+             INSERT INTO setup_laps (recorded_at, track, session_kind, lap_num, lap_time, setup_name, setup_folder, setup_file, unsaved) VALUES
+               (1200, 'Spa', 0, 1, 140.0, 'Spa\\Base', 'Spa', 'Base', 0);",
+        )
+        .unwrap();
+        let linked = |c: &Connection| -> Option<i64> {
+            c.query_row("SELECT linked_session_id FROM setups WHERE svm_path LIKE '%Base.svm'", [], |r| r.get(0)).unwrap()
+        };
+        assert_eq!(autolink(&conn).unwrap(), 1);
+        assert_eq!(linked(&conn), Some(7));
+
+        set_reference_session(&conn, 3, None).unwrap();
+        assert_eq!(autolink(&conn).unwrap(), 0);
+        assert_eq!(linked(&conn), None);
+
+        // Le rescan recrée la ligne avec un autre id : le retrait tient par le chemin.
+        conn.execute_batch(
+            "DELETE FROM setups;
+             INSERT INTO setups (id, car, circuit, name, svm_path) VALUES
+               (40, 'Lexus', 'Spa', 'Base.svm', 'C:\\LMU\\UserData\\player\\Settings\\Spa\\Base.svm');",
+        )
+        .unwrap();
+        assert_eq!(autolink(&conn).unwrap(), 0);
+        assert_eq!(linked(&conn), None);
+
+        // Un lien reposé à la main efface ce souvenir ; le retrait suivant compte à nouveau.
+        set_reference_session(&conn, 40, Some(7)).unwrap();
+        assert_eq!(linked(&conn), Some(7));
+        let left: i64 = conn.query_row("SELECT COUNT(*) FROM setup_link_cleared", [], |r| r.get(0)).unwrap();
+        assert_eq!(left, 0);
     }
 }

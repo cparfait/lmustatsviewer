@@ -9,6 +9,9 @@
  * Réglage « Chiffres arrondis à la radio » (`radio_extras.roundedNumbers`, actif par
  * défaut). Coupé : la précision d'avant (freinages par 5 m, vitesses au km/h, écarts
  * de secteur au centième, objectif de chrono au millième).
+ *
+ * Un objectif dit « sous X » s'arrondit vers le bas (`sayLapTarget`) : arrondi au plus
+ * proche, il pouvait annoncer un temps que le pilote a déjà battu.
  */
 
 let rounded = true;
@@ -45,9 +48,19 @@ export function saySeconds(s: number, oldDigits: number, on = rounded): string {
 
 /** Chrono dit (« 1:42.8 ») : au dixième. Coupé : au millième (« 1:42.881 »). */
 export function sayLap(seconds: number, on = rounded): string {
+  return lapText(seconds, on, Math.round);
+}
+
+/** Objectif de chrono (« sous 1:42.8 ») : vers le bas, jamais au-dessus du temps visé. */
+export function sayLapTarget(seconds: number, on = rounded): string {
+  return lapText(seconds, on, Math.floor);
+}
+
+function lapText(seconds: number, on: boolean, snap: (x: number) => number): string {
   if (!(seconds > 0) || !isFinite(seconds)) return "";
   const unit = on ? 100 : 1;
-  const total = Math.round((seconds * 1000) / unit) * unit;
+  // Passage par le millième : 102,8 en flottant ne doit pas tomber à 102,7.
+  const total = snap(Math.round(seconds * 1000) / unit) * unit;
   const min = Math.floor(total / 60000);
   const sec = (total % 60000) / 1000;
   return `${min}:${sec.toFixed(on ? 1 : 3).padStart(on ? 4 : 6, "0")}`;

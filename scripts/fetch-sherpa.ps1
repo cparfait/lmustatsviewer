@@ -40,9 +40,19 @@ $tarball = Join-Path $tmp "$Archive.tar.bz2"
 & (Join-Path $env:SystemRoot "System32\curl.exe") -fsSL --retry 3 --connect-timeout 30 --max-time 300 -o $tarball $Url
 if ($LASTEXITCODE -ne 0) { throw "[sherpa-onnx] download failed (curl exit $LASTEXITCODE)" }
 Write-Host "[sherpa-onnx] extracting"
-# Windows 10+ ships bsdtar (System32\tar.exe), which reads .tar.bz2. Called by full
-# path: a GNU tar earlier in PATH (Git for Windows) reads "C:" as a remote host.
-& (Join-Path $env:SystemRoot "System32\tar.exe") -xjf $tarball -C $tmp
+# Windows 10+ ships bsdtar (System32\tar.exe). Called by full path: a GNU tar earlier
+# in PATH (Git for Windows) reads "C:" as a remote host.
+$bsdtar = Join-Path $env:SystemRoot "System32\tar.exe"
+# On the CI runner `tar -xjf` never returns (log of 2026-11-05: stuck right after
+# "extracting"). When 7-Zip is there, it removes the bz2 layer and tar gets a plain .tar.
+$sevenZip = Get-Command 7z -ErrorAction SilentlyContinue
+if ($sevenZip) {
+  & $sevenZip.Source x $tarball "-o$tmp" -y | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "[sherpa-onnx] bz2 decompression failed (7z exit $LASTEXITCODE)" }
+  & $bsdtar -xf (Join-Path $tmp "$Archive.tar") -C $tmp
+} else {
+  & $bsdtar -xjf $tarball -C $tmp
+}
 if ($LASTEXITCODE -ne 0) { throw "[sherpa-onnx] extraction failed (tar exit $LASTEXITCODE)" }
 foreach ($f in $Keep) {
   Copy-Item (Join-Path $tmp "$Archive/lib/$f") -Destination $LibDir -Force

@@ -946,7 +946,14 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
-### 2026-11-05 — Limites restantes de l'audit (non commité)
+### 2026-11-05 — CI Rust : blocage de sherpa-onnx localisé (non commité)
+
+- ✅ **Journal de `ee32bc3`** : téléchargement réussi, blocage juste après `[sherpa-onnx] extracting`, donc dans `tar.exe -xjf`. Délai de 10 min atteint, tests Rust non lancés. Cela corrige la note du journal plus bas (« cause inconnue »).
+- ✅ **Correctif** (`scripts/fetch-sherpa.ps1`) : si `7z` existe (attendu sur le runner, à confirmer au prochain passage), il retire la couche bz2, puis `tar -xf` extrait. Sinon, ancien chemin, qui marche sur le poste du mainteneur.
+- ⏳ **Non vérifié** : la cause exacte du blocage de `tar -xjf` (hypothèse : `bzip2` externe) et le correctif lui-même, qui ne se prouve que sur le runner.
+- 📋 **Prochaine étape** : commit + push, puis lire le job `rust` ; s'il passe, le premier build est long (DuckDB, ~25 min).
+
+### 2026-11-05 — Limites restantes de l'audit (commité `ee32bc3`)
 
 - ✅ **Note vocale sans « Micro prêt »** : `useVoiceNotes.ts` ouvre le micro à l'appui si le moteur est arrêté, `voice_note_keep_capture` garde la capture ; `stt_recognize_free` la garde aussi pour « note pour ce virage ».
 - ✅ **Micro branché après un échec** : nouvel essai toutes les 15 s, sans répéter l'erreur, message quand il revient (`useCoachVoice.ts`).

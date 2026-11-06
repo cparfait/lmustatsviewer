@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { config, live as liveApi, type LiveData } from "@/lib/api";
+import { appLog, config, live as liveApi, type LiveData } from "@/lib/api";
 import type { Tr } from "@/i18n";
 import {
   speak as rawSpeak,
@@ -69,7 +69,7 @@ import { FrozenOrderTracker, type Column, type FoTarget } from "./frozenOrder";
 import { EndgameWatcher } from "./endgame";
 import { PaceOutlook } from "./paceOutlook";
 import { chequeredPhrase, clockJumped, dnfStillDriving, RaceSeen, SAVE_RETRY_MS, saveVerdict } from "./debriefRadio";
-import { arrivalPhrase, loadTrackArrival } from "./trackRecall";
+import { arrivalPhrase, arrivalRearms, loadTrackArrival } from "./trackRecall";
 import { TyreEventWatcher } from "./tyreEvents";
 import { formatPressure } from "./pressures";
 import { cornerNamer } from "./cornerVoice";
@@ -118,6 +118,10 @@ const WARMUP_MS = 6000;
  * secondes ; au-delà, l'info est périmée et abandonnée.
  */
 const QUIET_TTL_MS = 10000;
+/** Journal de l'app : ces étapes sont muettes à l'écran, seule trace d'une annonce perdue. */
+const trace = (level: "info" | "warn", message: string) => void appLog.write(level, "radio", message).catch(() => {});
+/** Durée de vie de l'accueil dans la file vocale (ms) : il n'est pas périssable. */
+const ARRIVAL_TTL_MS = 30000;
 /** Valeur rF2 du drapeau bleu (mFlag) — À CONFIRMER en piste si faux positifs. */
 const BLUE_FLAG = 6;
 /** Préavis « plus rapide derrière » déjà donné pour cette voiture : pas de bleu redondant (s). */
@@ -450,6 +454,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const paceLap = useRef(-1);
   /** Tracé + classe déjà rappelés (une réplique par combo et par lancement). */
   const recallKey = useRef("");
+  /** Dernière séance vue, pour réarmer l'accueil à une nouvelle épreuve (`arrivalRearms`). */
+  const recallSession = useRef<number | null>(null);
   /** Réplique d'arrivée prête (chargée en arrière-plan), dite à la trame suivante. */
   const recallText = useRef<string | null>(null);
 
@@ -1853,6 +1859,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     // Accueil au circuit : chargé au changement de tracé, de classe ou de voiture (aussi en
     // course, pour le coach vocal) ; il n'est dit qu'hors course, au garage ou au tour 0.
     const myClass = playerStanding?.vehicle_class ?? "";
+    // Même combo, nouvelle épreuve : la clé seule garderait le silence jusqu'au prochain lancement.
+    if (sessionReset && arrivalRearms(recallSession.current, sc.session)) recallKey.current = "";
+    recallSession.current = sc.session;
     if (sc.track && myClass) {
       const myCar = playerStanding?.vehicle_name ?? "";
       const key = `${sc.track}|${radioClass(myClass)}|${myCar}`;
@@ -1863,12 +1872,15 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         void loadTrackArrival(sc.track, myClass, myCar, speak)
           .then((a) => {
             if (speak && recallKey.current === key) recallText.current = arrivalPhrase(a, t, lapVoice, pickPart);
+            trace("info", `accueil préparé : séance ${sc.session}, annonce ${speak ? "prévue" : "non prévue"}`);
           })
-          .catch(() => {});
+          .catch((e) => trace("warn", `accueil non préparé : ${String(e)}`));
       } else if (recallText.current && !isRace && clockRunning.current && (inPits || lapNow === 0)) {
         // Horloge arrêtée : `say` ignorerait la phrase et elle serait perdue, on attend.
-        say("recall:track", recallText.current, "chatty", { score: 30, retryS: 30 });
+        // Durée de vie longue : au début de séance, d'autres annonces peuvent passer avant.
+        say("recall:track", recallText.current, "chatty", { score: 30, retryS: 30, ttlMs: ARRIVAL_TTL_MS });
         recallText.current = null;
+        trace("info", "accueil transmis à la file radio");
       }
     }
 

@@ -30,6 +30,7 @@ Vérifiés par les tests et à la lecture du code, rien n'a roulé. À faire en 
 - [ ] Annonces coupées puis relance : décider si Alt+C doit rester actif.
 
 **Radio**
+- [ ] Séance de week-end : accueil au circuit entendu dans la 1ʳᵉ minute. Sinon, lire `logs/app.log` : `accueil préparé`, puis `accueil transmis à la file radio`, et le bouton Radio de la page Live.
 - [ ] En course, « à chaque tour » → un chrono à chaque tour, sauf « Juste l'essentiel ».
 - [ ] Question des chronos coupée par une annonce → reposée plus tard.
 - [ ] Choc : deux annonces de dégâts au plus ; une crevaison passe toujours.

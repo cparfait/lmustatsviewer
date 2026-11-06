@@ -1634,6 +1634,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Track welcome: it comes back on a new event with the same track and car, without restarting the app. It also waits longer behind other announcements, and an unreadable past race no longer cancels it: the engineer at least names the track.",
+              fr: "Accueil au circuit : il revient à une nouvelle épreuve avec le même circuit et la même voiture, sans relancer l'app. Il patiente aussi plus longtemps derrière les autres annonces, et une ancienne course illisible ne l'annule plus : l'ingénieur nomme au moins le circuit.",
+              es: "Bienvenida al circuito: vuelve en una nueva prueba con el mismo circuito y el mismo coche, sin reiniciar la app. También espera más tiempo detrás de otros avisos, y una carrera antigua ilegible ya no la anula: el ingeniero al menos nombra el circuito.",
+              de: "Begrüßung an der Strecke: Sie kommt bei einem neuen Event mit derselben Strecke und demselben Auto wieder, ohne Neustart der App. Sie wartet auch länger hinter anderen Ansagen, und ein unlesbares altes Rennen verhindert sie nicht mehr: Der Ingenieur nennt zumindest die Strecke.",
+              it: "Benvenuto al circuito: torna a un nuovo evento con lo stesso circuito e la stessa vettura, senza riavviare l'app. Attende anche più a lungo dietro gli altri annunci, e una vecchia gara illeggibile non lo annulla più: l'ingegnere nomina almeno il circuito.",
+            },
+          },
+          {
+            text: {
               en: "Green flag: the engineer no longer calls it when you arrive on a session that is already green. He still calls race starts and restarts after a yellow or a red flag.",
               fr: "Drapeau vert : l'ingénieur ne l'annonce plus quand tu arrives sur une séance déjà au vert. Il l'annonce toujours aux départs de course et aux relances après un jaune ou un drapeau rouge.",
               es: "Bandera verde: el ingeniero ya no la anuncia cuando llegas a una sesión que ya está en verde. Sigue anunciándola en las salidas de carrera y al reanudar tras una amarilla o una bandera roja.",

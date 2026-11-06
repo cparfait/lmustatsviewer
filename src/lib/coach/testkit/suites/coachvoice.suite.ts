@@ -21,7 +21,7 @@ import { computeDebrief, debriefContextText, classPositionsByLap, type Debrief }
 import { recurringDefect, type RaceFamilies } from "@/lib/debrief/recurring";
 import { PaceOutlook } from "@/lib/engineer/paceOutlook";
 import { chequeredPhrase, clockJumped, dnfStillDriving, RACE_SEEN_GRACE_MS, RaceSeen, saveVerdict } from "@/lib/engineer/debriefRadio";
-import { arrivalPhrase, carModelOf, recallPhrase, sameCourse, spokenTrack, type TrackHistory } from "@/lib/engineer/trackRecall";
+import { arrivalPhrase, arrivalRearms, carModelOf, recallPhrase, sameCourse, spokenTrack, type TrackHistory } from "@/lib/engineer/trackRecall";
 import { communityBestOf } from "@/lib/engineer/paceTiers";
 import type { LapRow, LiveStanding, ResultRow, SessionDetail } from "@/lib/api";
 import { normalize, route } from "@/lib/engineer/router";
@@ -324,6 +324,11 @@ export function run(): void {
   eq(recallPhrase({ ...h, lastRace: null, record: null }, echoT, () => "T", noPick), null, "rien de connu : silence");
 
   section("Accueil au circuit");
+  eq(arrivalRearms(null, 1), false, "premier passage : la clé décide");
+  eq(arrivalRearms(1, 5), false, "essais puis qualif : pas de second accueil");
+  eq(arrivalRearms(5, 10), false, "qualif puis course : pas de second accueil");
+  eq(arrivalRearms(10, 1), true, "après une course, retour aux essais : nouvelle épreuve");
+  eq(arrivalRearms(1, 1), true, "même séance relancée : accueil redit");
   const arrival = (a: Partial<Parameters<typeof arrivalPhrase>[0]>) =>
     arrivalPhrase({ track: "Spa", history: null, firstVisit: false, communityBest: null, ...a }, echoT, () => "T", noPick) ?? "";
   ok(arrival({ firstVisit: true }).includes('vArrivalFirst{"track":"Spa"}'), "jamais roulé : le circuit et la première fois");

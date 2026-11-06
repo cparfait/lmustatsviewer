@@ -178,10 +178,20 @@ export async function loadTrackArrival(
   withCommunity: boolean,
 ): Promise<TrackArrival> {
   const [{ history, readable }, communityBest] = await Promise.all([
-    readHistory(track, carClass, vehicleName),
+    // Une course illisible ne doit pas priver le pilote de l'accueil : le circuit seul.
+    readHistory(track, carClass, vehicleName).catch(() => ({ history: null, readable: false })),
     withCommunity ? communityBestBounded(track, carClass) : Promise.resolve(null),
   ]);
   return { track, history, firstVisit: readable && !history, communityBest };
+}
+
+/**
+ * Faut-il redire l'accueil à ce (re)démarrage de séance ? Non en avançant dans un même
+ * week-end (essais → qualif → course). Oui en revenant à une séance égale ou antérieure :
+ * c'est une nouvelle épreuve, ou un redémarrage, même si le combo n'a pas changé.
+ */
+export function arrivalRearms(prevSession: number | null, session: number): boolean {
+  return prevSession != null && session <= prevSession;
 }
 
 /** Nom du tracé pour la voix : sans le suffixe de championnat du jeu. */

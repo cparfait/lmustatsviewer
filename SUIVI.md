@@ -946,6 +946,15 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-11-06 — Accueil au circuit absent sur une séance de week-end
+
+**Signalé par le mainteneur** ; cause exacte **non établie** (le journal ne traçait pas les annonces, rien de reproduit en jeu). Réglage actif et séance `Race Weekend / Practice1` confirmés dans la base.
+- ✅ **Fragilités corrigées** : `readHistory` rejeté (`computeDebrief` non protégé) annulait l'accueil en silence → circuit seul ; durée de vie de 4 s dans la file vocale → 30 s ; clé jamais réarmée à une nouvelle épreuve au même combo → `arrivalRearms`.
+- ✅ **Trace** dans `logs/app.log` (source `front:radio`) : `accueil préparé`, `accueil non préparé`, `accueil transmis à la file radio`.
+- ✅ `tsc -b`, `npm test` 7 719/7 719 (`coachvoice.suite`). Le hook n'est pas exécuté par les tests. Une autre session a des changements non commités dans ce dossier (rivaux REST) : ne commiter que les fichiers et lignes de ce correctif.
+- ✅ **Essai du mainteneur (13 h 08)** : accueil entendu, et journal cohérent (`accueil préparé`, séance 1, puis `accueil transmis`). Un seul essai : laquelle des corrections a joué reste inconnu.
+- 📋 **Prochaine étape** : si l'accueil manque encore, lire `logs/app.log`.
+
 ### 2026-11-05 — Accueil au circuit enrichi (branche `feat/accueil-circuit`)
 
 **Demande** : l'accueil de TrackMind à l'arrivée sur une session plaît au mainteneur (« Oui, enrichis-le »).

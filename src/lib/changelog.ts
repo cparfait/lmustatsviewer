@@ -866,6 +866,15 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "Track welcome: when you arrive on a track outside a race, the engineer names it, gives your record with this car (or in the class), and the community's best dry time in your class when known. On a track you've never driven in this class, he says so instead of staying silent.",
+              fr: "Accueil au circuit : à l'arrivée sur un circuit hors course, l'ingénieur le nomme, donne ton record avec cette voiture (ou dans la classe) et le meilleur temps de la communauté dans ta classe au sec s'il est connu. Sur un circuit jamais roulé dans cette classe, il le dit au lieu de rester muet.",
+              es: "Bienvenida al circuito: al llegar a un circuito fuera de carrera, el ingeniero lo nombra, da tu récord con este coche (o en la clase) y el mejor tiempo en seco de la comunidad en tu clase si se conoce. En un circuito nunca rodado en esta clase, lo dice en lugar de callar.",
+              de: "Begrüßung an der Strecke: Bei der Ankunft außerhalb eines Rennens nennt der Ingenieur die Strecke, deinen Rekord mit diesem Auto (oder in der Klasse) und, falls bekannt, die beste Trockenzeit der Community in deiner Klasse. Auf einer in dieser Klasse noch nie gefahrenen Strecke sagt er das, statt zu schweigen.",
+              it: "Benvenuto al circuito: all'arrivo su un circuito fuori gara, l'ingegnere lo nomina, indica il tuo record con questa vettura (o nella classe) e il miglior tempo sull'asciutto della community nella tua classe se noto. Su un circuito mai guidato in questa classe, lo dice invece di restare in silenzio.",
+            },
+          },
+          {
+            text: {
               en: "AI providers (Settings › AI Coach): an icon bar to choose the active provider, the voice provider and the provider to add. The selected one shows its logo and name, the others only their icon. Provider cards carry their logo too.",
               fr: "Fournisseurs IA (Configuration › Coach IA) : une barre à icônes pour choisir le fournisseur actif, le fournisseur vocal et le fournisseur à ajouter. Le sélectionné affiche son logo et son nom, les autres leur icône seule. Les cartes des fournisseurs portent aussi leur logo.",
               es: "Proveedores de IA (Configuración › Coach IA): una barra de iconos para elegir el proveedor activo, el proveedor de voz y el proveedor que añadir. El seleccionado muestra su logo y su nombre, los demás solo su icono. Las tarjetas de proveedores también llevan su logo.",
@@ -1623,6 +1632,24 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         kind: "fixed",
         items: [
+          {
+            text: {
+              en: "Green flag: the engineer no longer calls it when you arrive on a session that is already green. He still calls race starts and restarts after a yellow or a red flag.",
+              fr: "Drapeau vert : l'ingénieur ne l'annonce plus quand tu arrives sur une séance déjà au vert. Il l'annonce toujours aux départs de course et aux relances après un jaune ou un drapeau rouge.",
+              es: "Bandera verde: el ingeniero ya no la anuncia cuando llegas a una sesión que ya está en verde. Sigue anunciándola en las salidas de carrera y al reanudar tras una amarilla o una bandera roja.",
+              de: "Grüne Flagge: Der Ingenieur sagt sie nicht mehr an, wenn du zu einer bereits grünen Session kommst. Rennstarts und Neustarts nach Gelb oder Rot sagt er weiterhin an.",
+              it: "Bandiera verde: l'ingegnere non la annuncia più quando arrivi in una sessione già in verde. La annuncia sempre alle partenze di gara e alle ripartenze dopo una gialla o una bandiera rossa.",
+            },
+          },
+          {
+            text: {
+              en: "Track welcome: it could stay silent when you arrived in the garage, because the radio rules in the pits discarded it. It now plays there.",
+              fr: "Accueil au circuit : il pouvait rester muet à l'arrivée au garage, car les règles de la radio aux stands l'écartaient. Il y est maintenant dit.",
+              es: "Bienvenida al circuito: podía quedar en silencio al llegar al garaje, porque las reglas de la radio en boxes la descartaban. Ahora se dice allí.",
+              de: "Begrüßung an der Strecke: Sie konnte bei der Ankunft in der Garage ausbleiben, weil die Funkregeln an der Box sie verwarfen. Jetzt wird sie dort gesprochen.",
+              it: "Benvenuto al circuito: poteva restare muto all'arrivo in garage, perché le regole della radio ai box lo scartavano. Ora viene detto lì.",
+            },
+          },
           {
             text: {
               en: "Setups: the notch tables now learn only from files written by the game. A file created by the app could teach a wrong value and text pairing.",

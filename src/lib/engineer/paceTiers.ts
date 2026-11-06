@@ -93,6 +93,19 @@ export function tierLoadDue(wanted: string, loaded: string, retry: TierRetry | n
 
 type CommunityGet = <T>(route: CommunityRoute, query?: Record<string, string | number>) => Promise<T | null>;
 
+/** Détail du combo courant sur piste sèche, ou null s'il est inconnu. Un échec réseau rejette. */
+async function loadDryDetail(track: string, liveClass: string, get: CommunityGet): Promise<CommunityDetail | null> {
+  const pub = await get<{ combos: ComboRef[] }>("combos");
+  const c = pub ? matchCombo(pub.combos, track, liveClass) : null;
+  if (!c) return null;
+  return get<CommunityDetail>("combos/detail", {
+    track: c.track,
+    course: c.track_course,
+    class: c.car_class,
+    conditions: "dry",
+  });
+}
+
 /**
  * Charge les paliers du combo courant (piste sèche), ou null (combo inconnu, base mince :
  * une réponse, à ne pas redemander). Un échec réseau **rejette** : l'appelant retentera.
@@ -102,14 +115,24 @@ export async function loadPaceTiers(
   liveClass: string,
   get: CommunityGet = community.get,
 ): Promise<PaceTier[] | null> {
-  const pub = await get<{ combos: ComboRef[] }>("combos");
-  const c = pub ? matchCombo(pub.combos, track, liveClass) : null;
-  if (!c) return null;
-  const detail = await get<CommunityDetail>("combos/detail", {
-    track: c.track,
-    course: c.track_course,
-    class: c.car_class,
-    conditions: "dry",
-  });
-  return buildTiers(detail);
+  return buildTiers(await loadDryDetail(track, liveClass, get));
+}
+
+/** Meilleur temps d'un détail de combo (s), ou null si le classement n'est pas établi. */
+export function communityBestOf(detail: Pick<CommunityDetail, "ranked" | "best"> | null): number | null {
+  const v = detail?.ranked ? Number(detail.best?.time) : NaN;
+  return v > 0 && isFinite(v) ? v : null;
+}
+
+/**
+ * Meilleur temps de la communauté sur le combo courant (piste sèche), pour l'accueil au
+ * circuit. Un chrono réel, pas un palier : la doctrine de non-diffusion des centiles ne
+ * s'y applique pas. Un échec réseau rejette.
+ */
+export async function loadCommunityBest(
+  track: string,
+  liveClass: string,
+  get: CommunityGet = community.get,
+): Promise<number | null> {
+  return communityBestOf(await loadDryDetail(track, liveClass, get));
 }

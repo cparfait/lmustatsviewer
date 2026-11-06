@@ -260,11 +260,16 @@ export const VOICE_MESSAGE_GROUPS: VoiceMsgGroup[] = [
       { key: "vDebriefEnd", vars: [] },
       { key: "vDebriefDnf", vars: [] },
       { key: "vDebriefDq", vars: [] },
-      // Mémoire du circuit (début de session hors course).
+      // Accueil au circuit (début de session hors course).
+      { key: "vArrival", vars: ["track"], sample: { track: "Spa-Francorchamps" } },
+      { key: "vArrivalFirst", vars: ["track"], sample: { track: "Spa-Francorchamps" } },
+      { key: "vArrivalCommunity", vars: ["time"], sample: { time: "1:50.8" } },
+      { key: "vArrivalCommunityTop", vars: [] },
       { key: "vRecallIntro", vars: [] },
       { key: "vRecallLast", vars: ["p", "n"], sample: { p: 5, n: 14 } },
       { key: "vRecallQuit", vars: ["lap"], sample: { lap: 12 } },
       { key: "vRecallRecord", vars: ["time"], sample: { time: "1:52.3" } },
+      { key: "vRecallRecordCar", vars: ["time"], sample: { time: "1:52.3" } },
       { key: "vRecallSector", vars: ["s"], sample: { s: 2 } },
       { key: "vRecallFront", vars: ["time"], sample: { time: "1:51.0" } },
       // Tendance de rythme en course.

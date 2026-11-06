@@ -21,7 +21,8 @@ import { computeDebrief, debriefContextText, classPositionsByLap, type Debrief }
 import { recurringDefect, type RaceFamilies } from "@/lib/debrief/recurring";
 import { PaceOutlook } from "@/lib/engineer/paceOutlook";
 import { chequeredPhrase, clockJumped, dnfStillDriving, RACE_SEEN_GRACE_MS, RaceSeen, saveVerdict } from "@/lib/engineer/debriefRadio";
-import { recallPhrase, sameCourse, type TrackHistory } from "@/lib/engineer/trackRecall";
+import { arrivalPhrase, carModelOf, recallPhrase, sameCourse, spokenTrack, type TrackHistory } from "@/lib/engineer/trackRecall";
+import { communityBestOf } from "@/lib/engineer/paceTiers";
 import type { LapRow, LiveStanding, ResultRow, SessionDetail } from "@/lib/api";
 import { normalize, route } from "@/lib/engineer/router";
 
@@ -316,11 +317,44 @@ export function run(): void {
   eq(chequeredPhrase({ ...base, status: 2, classPos: 5 }, echoT, () => "T", noPick), "live.vDebriefDnf", "abandon : sans chiffres");
   ok(sameCourse("Bahrain Outer Circuit", { track: "Bahrain", track_course: "Bahrain Outer Circuit" }), "même tracé");
   ok(!sameCourse("Bahrain International Circuit", { track: "Bahrain", track_course: "Bahrain Outer Circuit" }), "autre tracé du même lieu");
-  const h: TrackHistory = { track: "Spa", carClass: "LMP2", lastRace: { classPos: 5, classCount: 12, laps: 20, finished: true, timestamp: 0 }, record: 120.4, frontLap: 119, weakSector: 2, pitLossS: 45, wearPctPerLap: 0.8 };
+  const h: TrackHistory = { track: "Spa", carClass: "LMP2", lastRace: { classPos: 5, classCount: 12, laps: 20, finished: true, timestamp: 0 }, record: 120.4, carRecord: null, frontLap: 119, weakSector: 2, pitLossS: 45, wearPctPerLap: 0.8 };
   const rp = recallPhrase(h, echoT, () => "T", noPick)!;
   ok(rp.includes("vRecallLast") && rp.includes("vRecallRecord") && rp.includes("vRecallSector"), "rappel : course, record, secteur");
   ok(recallPhrase({ ...h, lastRace: { ...h.lastRace!, finished: false } }, echoT, () => "T", noPick)!.includes("vRecallQuit"), "course quittée en route");
   eq(recallPhrase({ ...h, lastRace: null, record: null }, echoT, () => "T", noPick), null, "rien de connu : silence");
+
+  section("Accueil au circuit");
+  const arrival = (a: Partial<Parameters<typeof arrivalPhrase>[0]>) =>
+    arrivalPhrase({ track: "Spa", history: null, firstVisit: false, communityBest: null, ...a }, echoT, () => "T", noPick) ?? "";
+  ok(arrival({ firstVisit: true }).includes('vArrivalFirst{"track":"Spa"}'), "jamais roulé : le circuit et la première fois");
+  eq(arrival({}), 'live.vArrival{"track":"Spa"}', "base illisible : le circuit seul, jamais « première fois »");
+  eq(arrivalPhrase({ track: "", history: h, firstVisit: false, communityBest: 110 }, echoT, () => "T", noPick), null, "sans circuit : rien");
+  const carH = { ...h, carRecord: 121.1 };
+  ok(arrival({ history: carH }).includes("vRecallRecordCar") && !arrival({ history: carH }).includes("vRecallRecord{"), "record de cette voiture quand il est connu");
+  ok(arrival({ history: h }).includes("vRecallRecord{") && !arrival({ history: h }).includes("vRecallRecordCar"), "sinon le record de la classe");
+  const withBest = arrival({ history: { ...h, weakSector: null }, communityBest: 118 });
+  ok(withBest.includes("vArrivalCommunity{") && !withBest.includes("vRecallFront"), "temps de la communauté, à la place du chrono des premiers");
+  ok(arrival({ history: { ...h, weakSector: null } }).includes("vRecallFront"), "sans communauté : le chrono des premiers reste");
+  ok(arrival({ history: h, communityBest: 125 }).includes("vArrivalCommunityTop"), "record au-dessus de la communauté : pas de temps plus lent annoncé");
+  ok(arrival({ firstVisit: true, communityBest: 118 }).includes("vArrivalCommunity{"), "première fois : le temps de la communauté aussi");
+  eq(spokenTrack("Silverstone WEC"), "Silverstone", "suffixe de championnat retiré à la voix");
+  eq(spokenTrack("Circuit de la Sarthe"), "Circuit de la Sarthe", "nom ordinaire intact");
+  const rows = [
+    { car: "BMW M4 LMGT3", livery: "Team WRT 2026 #32:LM" },
+    { car: "BMW M4 LMGT3", livery: "Team WRT 2026 #69:WEC" },
+    { car: "Porsche 963", livery: "Penske 2026 #6:WEC" },
+    { car: "Ferrari 499P", livery: "Team X #1:LM" },
+    { car: "Oreca 07", livery: "Team X #1:WEC" },
+  ];
+  eq(carModelOf("Team WRT 2026 #32:WEC", rows), "BMW M4 LMGT3", "livrée reconnue, quel que soit le suffixe de course");
+  eq(carModelOf("Porsche 963 Custom Team 2025 #397", rows), "Porsche 963", "modèle lu dans le nom de la livrée");
+  eq(carModelOf("Team X #1", rows), null, "deux modèles possibles : on ne devine pas");
+  eq(carModelOf("Inconnue #9", rows), null, "livrée jamais roulée : inconnu");
+  eq(carModelOf("", rows), null, "voiture absente : inconnu");
+  eq(communityBestOf({ ranked: true, best: { time: 118.2, car_model: "x" } }), 118.2, "temps de la communauté lu");
+  eq(communityBestOf({ ranked: false, best: { time: 118.2, car_model: "x" } }), null, "classement non établi : rien");
+  eq(communityBestOf({ ranked: true, best: { time: 0, car_model: "x" } }), null, "temps nul : rien");
+  eq(communityBestOf(null), null, "combo inconnu : rien");
   approx(d.cleanLaps, d.cleanLaps, 0, "débrief stable");
 
   section("Dictée ponctuée (Parakeet) : même lecture que Vosk");

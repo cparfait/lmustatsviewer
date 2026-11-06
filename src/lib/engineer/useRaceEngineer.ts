@@ -69,7 +69,7 @@ import { FrozenOrderTracker, type Column, type FoTarget } from "./frozenOrder";
 import { EndgameWatcher } from "./endgame";
 import { PaceOutlook } from "./paceOutlook";
 import { chequeredPhrase, clockJumped, dnfStillDriving, RaceSeen, SAVE_RETRY_MS, saveVerdict } from "./debriefRadio";
-import { loadTrackHistory, recallPhrase } from "./trackRecall";
+import { arrivalPhrase, loadTrackArrival } from "./trackRecall";
 import { TyreEventWatcher } from "./tyreEvents";
 import { formatPressure } from "./pressures";
 import { cornerNamer } from "./cornerVoice";
@@ -84,6 +84,16 @@ export function flagFromPhase(phase: number, yellow: number): FlagKind {
   if (yellow > 0 && yellow !== 6) return "yellow";
   if (phase === 5) return "green";
   return "none";
+}
+
+/**
+ * Le vert mérite-t-il d'être annoncé ? Oui pour une relance (après jaune, FCY ou drapeau
+ * rouge) et un départ de course vu en direct. Non en arrivant sur une séance déjà verte :
+ * rien ne démarre, en essais comme en rejoignant une course en cours.
+ */
+export function greenIsNews(prev: FlagKind, isRace: boolean, sessionReset: boolean): boolean {
+  if (prev === "yellow" || prev === "fcy" || prev === "stopped") return true;
+  return isRace && prev === "none" && !sessionReset;
 }
 
 /** Temps au tour en forme parlée : « une minute 23.456 » (ou « 23.456 » si
@@ -666,7 +676,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
         stopped: { text: t("live.vFlagStopped"), prio: "critical" },
       };
       const p = phrase[flag];
-      if (p) say(`flag:${flag}`, p.text, p.prio, { score: 90 });
+      if (p && (flag !== "green" || greenIsNews(prevFlag.current, isRace, sessionReset))) {
+        say(`flag:${flag}`, p.text, p.prio, { score: 90 });
+      }
       prevFlag.current = flag;
     }
 
@@ -1838,22 +1850,24 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       );
       say("race:debrief", text, "normal", { score: 90, moment: "race:final" });
     }
-    // Mémoire du circuit : chargée au changement de tracé ou de classe (aussi en course,
-    // pour le coach vocal) ; la réplique n'est dite qu'hors course, au garage ou au tour 0.
+    // Accueil au circuit : chargé au changement de tracé, de classe ou de voiture (aussi en
+    // course, pour le coach vocal) ; il n'est dit qu'hors course, au garage ou au tour 0.
     const myClass = playerStanding?.vehicle_class ?? "";
     if (sc.track && myClass) {
-      const key = `${sc.track}|${radioClass(myClass)}`;
+      const myCar = playerStanding?.vehicle_name ?? "";
+      const key = `${sc.track}|${radioClass(myClass)}|${myCar}`;
       if (recallKey.current !== key) {
         recallKey.current = key;
         recallText.current = null;
         const speak = trackRecallRadio && !isRace;
-        void loadTrackHistory(sc.track, myClass)
-          .then((h) => {
-            if (h && speak && recallKey.current === key) recallText.current = recallPhrase(h, t, lapVoice, pickPart);
+        void loadTrackArrival(sc.track, myClass, myCar, speak)
+          .then((a) => {
+            if (speak && recallKey.current === key) recallText.current = arrivalPhrase(a, t, lapVoice, pickPart);
           })
           .catch(() => {});
-      } else if (recallText.current && !isRace && (inPits || lapNow === 0)) {
-        say("recall:track", recallText.current, "chatty", { score: 30 });
+      } else if (recallText.current && !isRace && clockRunning.current && (inPits || lapNow === 0)) {
+        // Horloge arrêtée : `say` ignorerait la phrase et elle serait perdue, on attend.
+        say("recall:track", recallText.current, "chatty", { score: 30, retryS: 30 });
         recallText.current = null;
       }
     }

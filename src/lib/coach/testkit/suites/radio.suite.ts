@@ -170,6 +170,7 @@ function policySuite() {
   eq(p.filter([c("pos:change", "chatty")], ctx({ lap: 1, nowS: 125 })).length, 1, "après 20 s : on parle");
   eq(p.filter([c("pos:change", "chatty")], ctx({ inPits: true })).length, 0, "stands : pas de position");
   eq(p.filter([c("pit:done", "normal")], ctx({ inPits: true })).length, 1, "stands : messages de stand");
+  eq(p.filter([c("recall:track", "chatty")], ctx({ inPits: true })).length, 1, "stands : l'accueil au circuit passe au garage");
   eq(p.filter([c("pit:open", "normal")], ctx({ remainingS: 600 })).length, 0, "20 dernières minutes : stratégie gelée");
   eq(p.filter([c("pit:box", "critical")], ctx({ remainingS: 600 })).length, 1, "le box critique reste");
   eq(p.filter([c("pos:change", "chatty")], ctx({ finished: true })).length, 0, "après le damier : silence");
@@ -526,6 +527,7 @@ function cloudPrepSuite() {
     "vDebriefDnf",
     "vDebriefDq",
     "vRecallIntro",
+    "vArrivalCommunityTop",
   ]);
   const catalog = new Map(VOICE_MESSAGE_GROUPS.flatMap((g) => g.items.map((m) => [m.key, m] as const)));
   for (const k of [...prios.keys()]) if (catalog.get(k)?.vars.length || NOT_ALONE.has(k)) prios.delete(k);

@@ -1,8 +1,9 @@
 /**
- * Mémoire du circuit (sans IA) : à l'arrivée sur un tracé déjà roulé avec cette classe,
- * une réplique courte — la dernière course ici et ton record, puis LA chose la plus
- * utile (le secteur qui coûtait le plus, sinon le chrono des premiers). Rien de connu →
- * silence (on ne meuble pas).
+ * Accueil au circuit (sans IA) : à l'arrivée, l'ingénieur nomme le tracé. S'il est déjà
+ * roulé avec cette classe, il ajoute la dernière course ici et le record (celui de cette
+ * voiture si on le connaît), puis LA chose la plus utile (le secteur qui coûtait le plus,
+ * sinon le chrono des premiers). Il donne enfin le meilleur temps de la communauté s'il
+ * existe. Chaque chiffre est mesuré : ce qui n'est pas connu n'est pas dit.
  *
  * Rangé par **tracé** (`track_course` : Bahrain Outer ≠ Bahrain International) et par
  * classe. Les courses quittées en route (≥ 2 tours) comptent : le fichier de résultats du
@@ -12,6 +13,7 @@
 
 import { queries, type BestLapRow, type CareerRace } from "@/lib/api";
 import { debriefOf } from "@/lib/debrief/load";
+import { loadCommunityBest } from "./paceTiers";
 import { radioClass } from "./text";
 import type { Pick } from "./debriefRadio";
 import type { Tr } from "@/i18n";
@@ -20,6 +22,8 @@ import type { Tr } from "@/i18n";
 export const MIN_LAPS = 2;
 /** Courses relues pour la perte au stand mesurée. */
 const PIT_SAMPLES = 5;
+/** Attente maximale du temps de la communauté : l'accueil ne dépend pas du réseau (ms). */
+const COMMUNITY_TIMEOUT_MS = 4000;
 
 function plain(s: string): string {
   return (s || "")
@@ -37,6 +41,24 @@ export function sameCourse(live: string, row: { track: string; track_course: str
   return l === plain(row.track_course) || (!row.track_course && l === plain(row.track));
 }
 
+/**
+ * Modèle de la voiture du direct. Le jeu ne donne que la livrée (« Team WRT 2026 #32:LM ») :
+ * on la cherche dans les livrées déjà roulées, sinon on cherche un modèle dans son nom. Un
+ * doute (deux modèles possibles) rend null : le record reste alors celui de la classe.
+ */
+export function carModelOf(vehicleName: string, bests: { car: string; livery: string }[]): string | null {
+  const bare = (s: string) => plain((s || "").replace(/:[a-z0-9]+\s*$/i, ""));
+  const live = bare(vehicleName);
+  if (!live) return null;
+  const only = (cars: string[]) => {
+    const set = new Set(cars.filter(Boolean));
+    return set.size === 1 ? [...set][0] : null;
+  };
+  const byLivery = bests.filter((b) => bare(b.livery) === live).map((b) => b.car);
+  if (byLivery.length) return only(byLivery);
+  return only(bests.filter((b) => plain(b.car) && ` ${live} `.includes(` ${plain(b.car)} `)).map((b) => b.car));
+}
+
 const median = (xs: number[]) => {
   if (!xs.length) return null;
   const s = [...xs].sort((a, b) => a - b);
@@ -48,7 +70,10 @@ export interface TrackHistory {
   track: string;
   carClass: string;
   lastRace: { classPos: number | null; classCount: number | null; laps: number; finished: boolean; timestamp: number } | null;
+  /** Record perso sur ce tracé, toutes voitures de la classe. */
   record: number | null;
+  /** Record perso sur ce tracé avec cette voiture (null si inconnu ou jamais roulée ici). */
+  carRecord: number | null;
   /** Meilleur tour de la classe lors de la dernière course ici. */
   frontLap: number | null;
   /** Secteur qui coûtait le plus lors de la dernière course ici (famille `weakSector`). */
@@ -61,18 +86,33 @@ export interface TrackHistory {
 
 let last: TrackHistory | null = null;
 
-/** Historique du tracé pour cette classe (null si rien n'est connu). */
-export async function loadTrackHistory(track: string, carClass: string): Promise<TrackHistory | null> {
+/**
+ * Historique du tracé pour cette classe (null si rien n'est connu).
+ * `readable` : la base a répondu, donc un historique vide veut bien dire « jamais roulé ici ».
+ */
+async function readHistory(
+  track: string,
+  carClass: string,
+  vehicleName: string,
+): Promise<{ history: TrackHistory | null; readable: boolean }> {
   const cls = radioClass(carClass);
+  let readable = true;
+  const unreadable = <T,>(fallback: T) => {
+    readable = false;
+    return fallback;
+  };
   const [races, bests] = await Promise.all([
-    queries.getCareerRaces().catch(() => [] as CareerRace[]),
-    queries.getBestLaps().catch(() => [] as BestLapRow[]),
+    queries.getCareerRaces().catch(() => unreadable([] as CareerRace[])),
+    queries.getBestLaps().catch(() => unreadable([] as BestLapRow[])),
   ]);
   const here = races
     .filter((r) => sameCourse(track, r) && radioClass(r.car_class) === cls && r.laps >= MIN_LAPS)
     .sort((a, b) => a.timestamp - b.timestamp);
   const recs = bests.filter((b) => sameCourse(track, b) && radioClass(b.car_class) === cls && b.best_lap > 0);
   const record = recs.length ? Math.min(...recs.map((b) => b.best_lap)) : null;
+  const model = carModelOf(vehicleName, bests);
+  const carRecs = model ? recs.filter((b) => b.car === model) : [];
+  const carRecord = carRecs.length ? Math.min(...carRecs.map((b) => b.best_lap)) : null;
   const lastRow = here[here.length - 1] ?? null;
   const d = lastRow ? await debriefOf(lastRow.session_id) : null;
   const losses: number[] = [];
@@ -96,14 +136,60 @@ export async function loadTrackHistory(track: string, carClass: string): Promise
         }
       : null,
     record,
+    carRecord,
     frontLap: d?.classBestLap ?? null,
     weakSector: weak ? Number(weak.facts.sector) : null,
     pitLossS: median(losses),
     wearPctPerLap: median(wears),
   };
-  if (!h.lastRace && h.record == null) return null;
+  if (!h.lastRace && h.record == null) return { history: null, readable };
   last = h;
-  return h;
+  return { history: h, readable };
+}
+
+/** Ce que l'accueil au circuit peut dire. */
+export interface TrackArrival {
+  track: string;
+  history: TrackHistory | null;
+  /** Jamais roulé ici avec cette classe, d'après une base lisible. */
+  firstVisit: boolean;
+  /** Meilleur temps de la communauté, piste sèche (null si inconnu ou indisponible). */
+  communityBest: number | null;
+}
+
+/** Temps de la communauté, borné : un réseau lent ou absent n'empêche pas l'accueil. */
+async function communityBestBounded(track: string, carClass: string): Promise<number | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((res) => {
+    timer = setTimeout(() => res(null), COMMUNITY_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([loadCommunityBest(track, carClass).catch(() => null), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Charge l'accueil. `withCommunity` : faux quand rien ne sera dit (en course, réglage coupé). */
+export async function loadTrackArrival(
+  track: string,
+  carClass: string,
+  vehicleName: string,
+  withCommunity: boolean,
+): Promise<TrackArrival> {
+  const [{ history, readable }, communityBest] = await Promise.all([
+    readHistory(track, carClass, vehicleName),
+    withCommunity ? communityBestBounded(track, carClass) : Promise.resolve(null),
+  ]);
+  return { track, history, firstVisit: readable && !history, communityBest };
+}
+
+/** Nom du tracé pour la voix : sans le suffixe de championnat du jeu. */
+export function spokenTrack(track: string): string {
+  return (track || "")
+    .replace(/_/g, " ")
+    .replace(/\s+(WEC|ELMS|IMSA)\s*$/i, "")
+    .trim();
 }
 
 /** Dernier historique chargé (pour le contexte du coach vocal). */
@@ -111,20 +197,47 @@ export function lastTrackHistory(): TrackHistory | null {
   return last;
 }
 
-/** La réplique d'arrivée (une à deux phrases), ou null si rien de connu. */
-export function recallPhrase(h: TrackHistory, t: Tr, lapVoice: (s: number) => string, pick: Pick): string | null {
+/** La mémoire du tracé (une à deux phrases), ou null si rien de connu. `skipFront` : pas le chrono des premiers. */
+export function recallPhrase(
+  h: TrackHistory,
+  t: Tr,
+  lapVoice: (s: number) => string,
+  pick: Pick,
+  skipFront = false,
+): string | null {
   const say = (key: string, vars?: Record<string, unknown>) => pick(key, t(key, vars));
   const first: string[] = [];
   const lr = h.lastRace;
   if (lr && !lr.finished) first.push(say("live.vRecallQuit", { lap: lr.laps }));
   else if (lr && lr.classPos != null && lr.classCount != null)
     first.push(say("live.vRecallLast", { p: lr.classPos, n: lr.classCount }));
-  if (h.record != null) first.push(say("live.vRecallRecord", { time: lapVoice(h.record) }));
+  if (h.carRecord != null) first.push(say("live.vRecallRecordCar", { time: lapVoice(h.carRecord) }));
+  else if (h.record != null) first.push(say("live.vRecallRecord", { time: lapVoice(h.record) }));
   if (!first.length) return null;
   const out = [`${say("live.vRecallIntro")} ${first.join(", ")}.`];
   if (h.weakSector != null) out.push(say("live.vRecallSector", { s: h.weakSector }));
-  else if (h.frontLap != null && (h.record == null || h.frontLap < h.record - 0.05))
+  else if (!skipFront && h.frontLap != null && (h.record == null || h.frontLap < h.record - 0.05))
     out.push(say("live.vRecallFront", { time: lapVoice(h.frontLap) }));
+  return out.join(" ");
+}
+
+/** L'accueil complet : le circuit, la mémoire du tracé, le meilleur temps de la communauté. */
+export function arrivalPhrase(a: TrackArrival, t: Tr, lapVoice: (s: number) => string, pick: Pick): string | null {
+  const track = spokenTrack(a.track);
+  if (!track) return null;
+  const say = (key: string, vars?: Record<string, unknown>) => pick(key, t(key, vars));
+  const best = a.communityBest;
+  const out = [say(a.firstVisit ? "live.vArrivalFirst" : "live.vArrival", { track })];
+  const recall = a.history ? recallPhrase(a.history, t, lapVoice, pick, best != null) : null;
+  if (recall) out.push(recall);
+  if (best != null) {
+    const mine = a.history?.record ?? null;
+    out.push(
+      mine != null && mine <= best
+        ? say("live.vArrivalCommunityTop")
+        : say("live.vArrivalCommunity", { time: lapVoice(best) }),
+    );
+  }
   return out.join(" ");
 }
 
@@ -134,6 +247,7 @@ export function trackHistoryBlock(h: TrackHistory | null, track: string): string
   const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toFixed(3).padStart(6, "0")}`;
   const L = [`## History on this track (${h.carClass}, measured by the app)`];
   if (h.record != null) L.push(`Personal record here: ${fmt(h.record)}`);
+  if (h.carRecord != null) L.push(`Personal record here with this car: ${fmt(h.carRecord)}`);
   if (h.lastRace)
     L.push(
       `Last race here: ${h.lastRace.finished ? `P${h.lastRace.classPos ?? "?"}/${h.lastRace.classCount ?? "?"} in class` : `left after ${h.lastRace.laps} laps`}`,

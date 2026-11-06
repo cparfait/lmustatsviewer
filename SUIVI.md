@@ -946,6 +946,57 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-11-05 — Accueil au circuit enrichi (branche `feat/accueil-circuit`)
+
+**Demande** : l'accueil de TrackMind à l'arrivée sur une session plaît au mainteneur (« Oui, enrichis-le »).
+- ✅ `trackRecall.ts` : `arrivalPhrase` nomme le circuit, donne le record avec cette voiture sinon celui de la classe, la mémoire du
+  tracé, puis le meilleur temps de la communauté au sec (`loadCommunityBest`, attente bornée à 4 s, à la place du chrono des premiers).
+  Circuit jamais roulé dans cette classe : il le dit, et seulement si la base a répondu. Hors course, comme avant ; redit au
+  changement de voiture.
+- ✅ **Modèle de voiture** : le direct ne donne que la livrée (`Team WRT 2026 #32:LM`, vu dans la base locale) ; `carModelOf` la cherche
+  dans les livrées déjà roulées, sinon cherche un modèle dans son nom ; au moindre doute, record de la classe.
+- ✅ **Décision** : le meilleur temps de la communauté peut se dire à la radio (chrono réel) ; la règle « paliers jamais à la parole,
+  ni centile ni nombre de pilotes » reste entière.
+- ✅ Textes 5 langues, catalogue des annonces, description du réglage, changelog 1.0.10. Tests ajoutés à `coachvoice.suite.ts`.
+- ✅ **Accueil muet au garage, défaut antérieur corrigé** (signalé au 1ᵉʳ essai : « je n'ai rien eu en arrivant ») : phases de course
+  actives (défaut), `policy.ts` ne laissait passer aux stands que `pit:`, `vigie:`, `watch:` ; `recall:track` était jeté puis effacé,
+  donc jamais dit au garage. `recall:` ajouté à la liste. Horloge arrêtée : la phrase attend au lieu d'être perdue ; `retryS: 30` si
+  une autre annonce passe devant. Correctif trouvé à la lecture du code, cause non observée directement à l'exécution.
+- ✅ **Accueil entendu en jeu par le mainteneur** (« ça fonctionne ») après ce correctif.
+- ✅ **« Vert, vert, vert » à l'arrivée, défaut antérieur corrigé** (2026-11-06) : le passage de `none` à `green` était annoncé même sur
+  une séance déjà verte. `greenIsNews` : annoncé pour une relance après jaune, FCY ou rouge, et pour un départ de course vu en direct.
+  Effet voulu : plus d'annonce du vert à l'ouverture des essais et des qualifs. Pas encore réécouté en jeu.
+- ⚠️ À vérifier à l'oreille : longueur de la phrase, voix en ligne, départ de course toujours annoncé.
+- 📋 **Prochaine étape** : arriver en essais sur un circuit roulé, puis sur un circuit jamais roulé, et écouter l'accueil.
+
+### 2026-11-05 — Veille TrackMind 0.9.29 (build 316), passe 300 → 316 avant leur V1, avec REA (aucun code modifié)
+
+**Demande** : « refais un tour de l'app trackmind avec /rea, leur V1 sort demain ». Comparaison statique de `pack_300` et
+`pack_316` (`%LOCALAPPDATA%\SLM Engineer\maj`), 24 fichiers nouveaux, aucun supprimé. Idées seulement, aucun nom de concurrent
+dans le code. App non pilotée, aucun appel à leur serveur.
+- ⚠️ **REA** : serveur MCP et skill absents de cette session (`~/.claude.json`, `~/.claude/skills`) ; CLI 6.5.0 lancée depuis le
+  cache npx, sans toucher à la configuration. `analyze-javascript-application` sur `studio\web` : 33 JS, 0 erreur, aucun
+  point d'accès ni stockage nouveau repéré ; scripts en ligne non couverts. Le Python est lu comme donnée.
+  `TrackMindCapture.exe` a changé, non analysé. Après l'analyse, REA réinstallé à la demande du mainteneur
+  (`npx -y rea-agents@6.5.0 setup --client claude_code --yes`, serveur `rea` et skill présents) : actif à la prochaine session.
+- ✅ **V1** : offres STARTER / SPRINT / PERFORMANCE (prix servis par le site, absents du pack), portes en ombre activables par
+  drapeau serveur sans nouveau pack, fonctions payantes floutées, carte pilote et parrainage, refus de paiement signalé. Le code
+  mentionne la V1 au **10/11** (commentaires du 02-03/11) : date à confirmer face au « demain » du mainteneur.
+- ✅ **Nouveautés** : social de l'ingé (F1, pronos, paris, carnet ; LLM relu par un garde des faits), ligue hebdo LMGT3 (groupes de
+  20, 3 montées / 3 descentes), popup de virage à l'échelle, carte Créateur, bases de setup de réserve, Team Radio dans les Moments.
+- ✅ **Écarts vérifiés chez nous (grep)** : routes `strategy/usage`, `watch/standings`, `strategy/pitstop-estimate`,
+  `strategy/overall` et `mTimeOfDay` non lus. T1, T3, T5, T6 de la veille du 31/10 ont bien leurs fichiers (`trafficPredict`,
+  `rounding`, `questions`, `paceTiers`).
+- 📋 **Idées** : I1 état et conso des rivaux par REST (à constater en jeu, eux-mêmes ne l'ont prouvé que sur banc) ; I2 fiche de
+  notre arrêt + détail poste par poste ; I3 jaunes de secteur filtrés (tenue 3 s, préavis 12 s, un par tour) ; I4 spotter
+  (freinage du rival, silence sous neutralisation, même classe qui prend un tour) ; I5 un seul chiffre du plein entre brief et
+  constat ; I6 question ouverte seulement une fois lue en entier, relecture d'un ordre au mot douteux ; I7 heure et ciel du jeu.
+- 📋 **Accueil à l'arrivée sur un circuit** (apprécié par le mainteneur) : nous avons `trackRecall.ts`, mais il se tait sans
+  historique, ne nomme pas le circuit, range le record par classe (eux : par modèle depuis le 02/11) et ignore le record
+  communautaire. Le contenu de leur ouverture est produit par leur serveur (le PC n'en garde que la mémoire anti-redite,
+  `donnees/accueil_radio.json`) : son texte n'est pas lisible dans le pack.
+- 📋 **Prochaine étape** : arbitrage du mainteneur ; si go, enrichir l'accueil de `trackRecall.ts`, puis I1.
+
 ### 2026-11-05 — Décisions du mainteneur appliquées (« ok sur tout », non commité)
 
 - ✅ **Alt+C** : comportement gardé (raccourcis non réservés sans annonces, après relance).

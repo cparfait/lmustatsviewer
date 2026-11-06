@@ -74,8 +74,8 @@ const SITUATION = ["pos:", "gap:", "closing:", "opening:", "leaderpit:"];
 const COMFORT = ["prefs:", "lap:", "group:lap", "sector:", "fastest", "delta", "race:half", "battery:saturated"];
 /** Stratégie gelée en fin de course (le box critique, lui, reste). */
 const STRATEGY = ["pit:open", "pit:closing", "rivalpit:", "leaderpit:", "posture:", "fuel:refuel"];
-/** Messages de piste tolérés dans la voie des stands. */
-const PIT_LANE_OK = ["pit:", "vigie:", "watch:"];
+/** Messages tolérés dans la voie des stands (`recall:` : l'accueil au circuit se dit au garage). */
+const PIT_LANE_OK = ["pit:", "vigie:", "watch:", "recall:"];
 
 const starts = (key: string, list: string[]) => list.some((p) => key.startsWith(p));
 

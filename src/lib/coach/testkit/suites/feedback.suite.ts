@@ -6,7 +6,7 @@
 
 import { section, ok, eq } from "../assert";
 import { scopedPosition } from "@/lib/livePosition";
-import { brakeAvgLimits } from "@/lib/engineer/useRaceEngineer";
+import { brakeAvgLimits, greenIsNews } from "@/lib/engineer/useRaceEngineer";
 import { predictPitExit } from "@/lib/spotter";
 import { stripThinking, ThinkingStreamFilter } from "@/lib/ai/thinking";
 import { openaiProvider, openrouterProvider } from "@/lib/ai/providers/openai-compat";
@@ -69,6 +69,15 @@ export function run(): void {
     eq(g.currentPos, 3, "général : comportement historique");
     eq(g.lost, 2, "général : la GT3 compte aussi");
   }
+
+  section("engineer.greenIsNews");
+  eq(greenIsNews("none", false, true), false, "arrivée en essais déjà au vert : silence");
+  eq(greenIsNews("none", false, false), false, "essais qui passent au vert : silence");
+  eq(greenIsNews("none", true, false), true, "départ de course vu en direct : annoncé");
+  eq(greenIsNews("none", true, true), false, "course rejointe déjà au vert : silence");
+  eq(greenIsNews("yellow", false, false), true, "relance après un jaune, en essais : annoncée");
+  eq(greenIsNews("fcy", true, false), true, "relance après FCY : annoncée");
+  eq(greenIsNews("stopped", true, false), true, "relance après drapeau rouge : annoncée");
 
   section("engineer.brakeAvgLimits");
   eq(brakeAvgLimits("Hypercar").hot, 850, "Hypercar : carbone, 850 °C");

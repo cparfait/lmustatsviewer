@@ -69,7 +69,7 @@ import { FrozenOrderTracker, type Column, type FoTarget } from "./frozenOrder";
 import { EndgameWatcher } from "./endgame";
 import { PaceOutlook } from "./paceOutlook";
 import { chequeredPhrase, clockJumped, dnfStillDriving, RaceSeen, SAVE_RETRY_MS, saveVerdict } from "./debriefRadio";
-import { arrivalPhrase, arrivalRearms, loadTrackArrival } from "./trackRecall";
+import { arrivalPhrase, arrivalRearms, loadTrackArrival, within } from "./trackRecall";
 import { TyreEventWatcher } from "./tyreEvents";
 import { formatPressure } from "./pressures";
 import { cornerNamer } from "./cornerVoice";
@@ -122,6 +122,8 @@ const QUIET_TTL_MS = 10000;
 const trace = (level: "info" | "warn", message: string) => void appLog.write(level, "radio", message).catch(() => {});
 /** Durée de vie de l'accueil dans la file vocale (ms) : il n'est pas périssable. */
 const ARRIVAL_TTL_MS = 30000;
+/** Attente maximale de la synthèse préparée de l'accueil (ms) : au-delà, il part quand même. */
+const ARRIVAL_PREWARM_MAX_MS = 5000;
 /** Valeur rF2 du drapeau bleu (mFlag) — À CONFIRMER en piste si faux positifs. */
 const BLUE_FLAG = 6;
 /** Préavis « plus rapide derrière » déjà donné pour cette voiture : pas de bleu redondant (s). */
@@ -456,6 +458,8 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
   const recallKey = useRef("");
   /** Dernière séance vue, pour réarmer l'accueil à une nouvelle épreuve (`arrivalRearms`). */
   const recallSession = useRef<number | null>(null);
+  /** Moment où l'accueil a été prêt (ms) : le journal mesure ce qu'il attend ensuite. */
+  const recallReadyAt = useRef(0);
   /** Réplique d'arrivée prête (chargée en arrière-plan), dite à la trame suivante. */
   const recallText = useRef<string | null>(null);
 
@@ -554,6 +558,36 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (!enabled) {
       cancelSpeech();
       return;
+    }
+    // Accueil au circuit : préparé dès que le tracé et la voiture sont connus, même jeu en
+    // pause ou horloge arrêtée, audio compris. Il partira sans délai quand la séance tourne.
+    if (data?.connected && data.session?.track) {
+      const { track, session: sessionNum } = data.session;
+      const mine = data.standings.find((s) => s.is_player);
+      const myClass = mine?.vehicle_class ?? "";
+      const myCar = mine?.vehicle_name ?? "";
+      const key = `${track}|${radioClass(myClass)}|${myCar}`;
+      if (myClass && recallKey.current !== key) {
+        recallKey.current = key;
+        recallText.current = null;
+        const speak = trackRecallRadio && sessionNum < 10;
+        const startedAt = performance.now();
+        void loadTrackArrival(track, myClass, myCar, speak)
+          .then(async (a) => {
+            if (!speak || recallKey.current !== key) return;
+            const text = arrivalPhrase(a, t, (s) => fmtLapVoice(s, t, true), (k, x) => variants.current.pick(k, x));
+            const dataAt = performance.now();
+            if (text) await within(prewarmSpeech([text], lang).catch(() => {}), ARRIVAL_PREWARM_MAX_MS, undefined);
+            if (recallKey.current !== key) return;
+            recallText.current = text;
+            recallReadyAt.current = performance.now();
+            trace(
+              "info",
+              `accueil préparé : séance ${sessionNum}, données ${Math.round(dataAt - startedAt)} ms, audio ${Math.round(recallReadyAt.current - dataAt)} ms`,
+            );
+          })
+          .catch((e) => trace("warn", `accueil non préparé : ${String(e)}`));
+      }
     }
     if (!data || !data.connected || data.paused || !data.session) return;
     const { telemetry: tel, player, session: sc, weather } = data;
@@ -1856,32 +1890,19 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       );
       say("race:debrief", text, "normal", { score: 90, moment: "race:final" });
     }
-    // Accueil au circuit : chargé au changement de tracé, de classe ou de voiture (aussi en
-    // course, pour le coach vocal) ; il n'est dit qu'hors course, au garage ou au tour 0.
-    const myClass = playerStanding?.vehicle_class ?? "";
+    // Accueil au circuit (préparé en tête de cet effet) : dit hors course, au garage ou au tour 0.
     // Même combo, nouvelle épreuve : la clé seule garderait le silence jusqu'au prochain lancement.
-    if (sessionReset && arrivalRearms(recallSession.current, sc.session)) recallKey.current = "";
+    if (sessionReset && arrivalRearms(recallSession.current, sc.session)) {
+      recallKey.current = "";
+      recallText.current = null;
+    }
     recallSession.current = sc.session;
-    if (sc.track && myClass) {
-      const myCar = playerStanding?.vehicle_name ?? "";
-      const key = `${sc.track}|${radioClass(myClass)}|${myCar}`;
-      if (recallKey.current !== key) {
-        recallKey.current = key;
-        recallText.current = null;
-        const speak = trackRecallRadio && !isRace;
-        void loadTrackArrival(sc.track, myClass, myCar, speak)
-          .then((a) => {
-            if (speak && recallKey.current === key) recallText.current = arrivalPhrase(a, t, lapVoice, pickPart);
-            trace("info", `accueil préparé : séance ${sc.session}, annonce ${speak ? "prévue" : "non prévue"}`);
-          })
-          .catch((e) => trace("warn", `accueil non préparé : ${String(e)}`));
-      } else if (recallText.current && !isRace && clockRunning.current && (inPits || lapNow === 0)) {
-        // Horloge arrêtée : `say` ignorerait la phrase et elle serait perdue, on attend.
-        // Durée de vie longue : au début de séance, d'autres annonces peuvent passer avant.
-        say("recall:track", recallText.current, "chatty", { score: 30, retryS: 30, ttlMs: ARRIVAL_TTL_MS });
-        recallText.current = null;
-        trace("info", "accueil transmis à la file radio");
-      }
+    if (recallText.current && !isRace && clockRunning.current && (inPits || lapNow === 0)) {
+      // Horloge arrêtée : `say` ignorerait la phrase et elle serait perdue, on attend.
+      // Durée de vie longue : au début de séance, d'autres annonces peuvent passer avant.
+      say("recall:track", recallText.current, "chatty", { score: 30, retryS: 30, ttlMs: ARRIVAL_TTL_MS });
+      recallText.current = null;
+      trace("info", `accueil transmis à la file radio, ${Math.round(performance.now() - recallReadyAt.current)} ms après sa préparation`);
     }
 
     // ── Politique de parole : régime choisi à la voix, phases, budgets ───────
@@ -1928,7 +1949,9 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
       const base: SpeakOpts | undefined = replay
         ? { replayPrefix: repeatPrefix, retryIfLost: c.prio === "critical" || classOf(c) === "decision" }
         : undefined;
-      return c.key === "prefs:ask" ? { ...base, onHeard: () => engineer.markAsked(askKind) } : base;
+      if (c.key === "prefs:ask") return { ...base, onHeard: () => engineer.markAsked(askKind) };
+      // Accueil : recollé des morceaux préparés, pour partir sans attendre le réseau.
+      return c.key === "recall:track" ? { ...base, preferAssembled: true } : base;
     };
 
     if (quietZones) {

@@ -161,6 +161,9 @@ const COURSE_MAP: Record<string, string> = {
   "Autódromo José Carlos Pace": "Interlagos",
 };
 
+/** Noms de circuit et de tracé du jeu connus de l'app (« Préparer la voix »). */
+export const KNOWN_TRACK_NAMES: readonly string[] = [...Object.keys(TRACK_MAP), ...Object.keys(COURSE_MAP)];
+
 /**
  * Nom de la ligne ohne_speed d'un tracé. `layoutFromDb` (le `track_course`) décide : un
  * tracé secondaire sans ligne dans la feuille renvoie `null` (avant, le circuit principal

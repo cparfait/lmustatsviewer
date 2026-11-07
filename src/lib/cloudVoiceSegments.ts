@@ -12,7 +12,8 @@
  *
  * Non assemblable (→ Piper, ou en direct pour l'information) : noms propres et
  * textes libres (pilote, classe, repère…), nombres au-delà de 999, ordinaux
- * collés (« 3ᵉ »), et toute phrase qu'aucun gabarit ne reconnaît.
+ * collés (« 3ᵉ »), et toute phrase qu'aucun gabarit ne reconnaît. Seule exception :
+ * le nom du circuit de l'accueil, dont la liste est connue (`namePieces`).
  */
 
 import { splitVariants } from "@/lib/engineer/variants";
@@ -289,7 +290,16 @@ export const SEGMENT_PHRASE_KEYS: readonly string[] = [
   "inLessMinute",
   "inLessLap",
   "inOneLap",
+  // Accueil au circuit : dites entre deux morceaux, sans leur ponctuation de bord.
+  "vRecallIntro",
+  "vArrivalCommunityTop",
 ];
+
+/** Gabarits où `{{track}}` est le nom du circuit (ailleurs, une température de piste). */
+const TRACK_NAME_KEYS: ReadonlySet<string> = new Set(["vArrival", "vArrivalFirst"]);
+
+/** Longueur maximale d'un nom de circuit : au-delà, la découpe a pris une phrase entière. */
+const NAME_MAX_CHARS = 60;
 
 /** Clés d'annonce reconnues : `live.v*` (ingénieur, coach), `live.sp*` (réponses), `live.in*` (délais). */
 export function isSegmentTemplateKey(key: string): boolean {
@@ -381,6 +391,17 @@ export function buildLexicon(lang: string, entries: SegmentEntry[], normalize: (
   return { lang, normalize, variants, known, phraseSegments };
 }
 
+/** Nom de circuit dit d'un seul morceau, ou `null` s'il n'en a pas la forme. */
+function namePiece(value: string, normalize: (text: string) => string): string | null {
+  const name = stripEdges(normalize(value));
+  return name && name.length <= NAME_MAX_CHARS && !/[\d,.;:!?()]/.test(name) ? name : null;
+}
+
+/** « Préparer la voix » : les morceaux de ces noms de circuit, sans doublon. */
+export function namePieces(names: string[], normalize: (text: string) => string): string[] {
+  return [...new Set(names.map((n) => namePiece(n, normalize)).filter((n): n is string => n !== null))];
+}
+
 /** Silence que demande un bord de texte fixe : ponctuation, simple blanc ou rien. */
 const edgePause = (edge: string) => (!edge ? 0 : PUNCT_RE.test(edge) ? PAUSE_PHRASE_MS : PAUSE_WORD_MS);
 
@@ -411,11 +432,16 @@ function matchSpan(span: string, lex: SegmentLexicon, depth: number, memo: Map<s
   const memoKey = `${depth}|${s}`;
   if (memo.has(memoKey)) return memo.get(memoKey)!;
   let result: Segment[] | null = null;
-  if (!/\d/.test(s)) {
+  const digits = /\d/.test(s);
+  if (!digits) {
     const k = stripEdges(lex.normalize(s));
     if (lex.known.has(k)) result = [{ text: k, pauseMs: 0 }];
-  } else {
+  }
+  if (!result) {
     for (const cv of lex.variants) {
+      const named = TRACK_NAME_KEYS.has(cv.key);
+      // Sans chiffre, seul un gabarit à nom de circuit peut encore reconnaître le passage.
+      if (!digits && !named) continue;
       if (cv.head && !s.startsWith(cv.head.trimStart())) continue;
       const m = cv.re.exec(s);
       if (!m) continue;
@@ -425,8 +451,10 @@ function matchSpan(span: string, lex: SegmentLexicon, depth: number, memo: Map<s
       for (let i = 0; i < cv.slots.length && okAll; i++) {
         pending = pushFixed(out, cv.fixed[i], lex, pending);
         const value = m[i + 1];
+        const name = named && cv.slots[i] === "track" ? namePiece(value, lex.normalize) : null;
         const segs =
           valueSegments(value, lex.lang, cv.forms[i]) ??
+          (name ? [{ text: name, pauseMs: 0 }] : null) ??
           (depth < MAX_DEPTH ? matchSpan(value, lex, depth + 1, memo) : null);
         if (!segs) okAll = false;
         else {
@@ -487,7 +515,12 @@ function wordCuts(text: string): number[] {
  */
 export function assembleSegments(raw: string, lex: SegmentLexicon): Segment[] | null {
   const text = raw.trim();
-  if (!text || !/\d/.test(text)) return null;
+  if (!text) return null;
+  // Sans chiffre, une phrase est fixe et préparée entière ; pas l'accueil, qui nomme le circuit.
+  const opensWithTrack = lex.variants.some(
+    (cv) => TRACK_NAME_KEYS.has(cv.key) && cv.head && text.startsWith(cv.head.trimStart()),
+  );
+  if (!/\d/.test(text) && !opensWithTrack) return null;
   const memo = new Map<string, Segment[] | null>();
   const whole = matchSpan(text, lex, 0, memo);
   if (whole) return whole;

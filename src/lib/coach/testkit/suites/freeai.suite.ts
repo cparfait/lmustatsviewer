@@ -18,6 +18,7 @@ import {
   ovhcloudProvider,
 } from "@/lib/ai/providers/free";
 import { openaiProvider, openrouterProvider } from "@/lib/ai/providers/openai-compat";
+import { OLLAMA_DEFAULT_PORT, ollamaProvider, parseOllamaPort, setOllamaPort } from "@/lib/ai/providers/ollama";
 import { friendlyError } from "@/lib/ai/coach";
 import { missingPermission, permissionLabel } from "@/lib/cloudVoiceProviders";
 import {
@@ -42,6 +43,19 @@ export async function run(): Promise<void> {
   eq(new Set(PROVIDERS.map((p) => p.id)).size, PROVIDERS.length, "ids uniques");
   ok(getProvider("openai")?.freeTier === undefined, "OpenAI n'est pas marqué gratuit");
   ok(!!getProvider("google")?.freeTier && !!getProvider("mistral")?.freeTier, "Google et Mistral marqués gratuits");
+
+  section("ai.ollama");
+  eq(PROVIDERS[0].id, "ollama", "Ollama en tête du catalogue");
+  eq(freeFallbackModel(ollamaProvider), null, "Ollama ne reçoit pas la bascule des offres gratuites");
+  eq(parseOllamaPort(""), OLLAMA_DEFAULT_PORT, "port vide : valeur par défaut");
+  eq(parseOllamaPort(" 11500 "), 11500, "port saisi, blancs ignorés");
+  for (const bad of ["0", "65536", "abc", "11434/x", "-1", "1.5"]) eq(parseOllamaPort(bad), null, `port refusé : ${bad}`);
+  eq(ollamaProvider.modelsUrl(""), "http://localhost:11434/api/tags", "modèles sur le port par défaut");
+  setOllamaPort(11500);
+  eq(ollamaProvider.chatUrl("", ""), "http://localhost:11500/api/chat", "analyse sur le port réglé");
+  eq(ollamaProvider.streamChatUrl?.("", ""), "http://localhost:11500/api/chat", "conversation sur le port réglé");
+  eq(ollamaProvider.modelsUrl(""), "http://localhost:11500/api/tags", "modèles sur le port réglé");
+  setOllamaPort(OLLAMA_DEFAULT_PORT);
 
   section("ai.free.cle");
   for (const p of [ovhcloudProvider, kiloProvider, llm7Provider]) {

@@ -30,7 +30,7 @@ import {
   MAX_VOICE_VOLUME,
 } from "@/lib/radioFx";
 import { invoke } from "@tauri-apps/api/core";
-import { isTauri } from "@/lib/api";
+import { appLog, isTauri } from "@/lib/api";
 import {
   cloudAlertsLocal,
   cloudCacheMissing,
@@ -42,12 +42,14 @@ import {
   cloudVoiceReady,
   cloudVoiceTag,
   noteCloudFallback,
+  sha256Hex,
 } from "@/lib/cloudVoice";
 import { assembleAllowed, cloudModeFor, fixedPhrases, isFixedPhrase, type CloudMode } from "@/lib/cloudVoicePrep";
 import {
   assembleSegments,
   buildLexicon,
   joinPcm,
+  namePieces,
   segmentInventory,
   trimSilence,
   type SegmentEntry,
@@ -239,6 +241,11 @@ export interface SpeakOpts {
   cloudOk?: boolean;
   /** Voix locale seulement (bouton « Tester » de la voix Piper / système). */
   localOnly?: boolean;
+  /**
+   * Annonce préparée d'avance (accueil au circuit) : recollée des morceaux dès qu'ils
+   * sont tous là, sinon en direct. Le réglage « Rien de recollé » garde la main.
+   */
+  preferAssembled?: boolean;
 }
 
 interface QueueItem {
@@ -600,6 +607,22 @@ function synthKey(code: string, text: string): string {
   return `${code}|${voice}|${speaker}|${speechRate}|${text}`;
 }
 
+/** Voix, locuteur et vitesse de cette langue : ce qui fixe le rendu de Piper. */
+export function piperTarget(lang: string) {
+  const code = norm(lang);
+  return {
+    code,
+    voiceId: preferredPiperByLang[code] || undefined,
+    speakerId: preferredSpeakerByLang[code] || undefined,
+    rate: speechRate,
+  };
+}
+
+/** Clé du cache disque de Piper. La voix n'y figure pas : le backend range par voix réelle. */
+export function piperCacheKey(code: string, text: string): Promise<string> {
+  return sha256Hex(`${preferredSpeakerByLang[code] || 0}|${speechRate}|${code}|${text}`);
+}
+
 /** Synthétise un texte via Piper et renvoie l'`AudioBuffer` décodé (ou `null`). */
 async function synthBuffer(
   ctx: AudioContext,
@@ -617,6 +640,8 @@ async function synthBuffer(
       speakerId: preferredSpeakerByLang[code] || undefined,
       // Sécurité / spotter : Piper passe en priorité normale le temps de la phrase.
       urgent: urgent || undefined,
+      // Phrase fixe : relue sur disque si elle y est, sans attendre Piper.
+      cacheKey: isFixedPhrase(text) ? await piperCacheKey(code, text) : undefined,
     });
   } catch {
     piperUnavailable.set(code, Date.now()); // évite de réessayer en boucle
@@ -666,6 +691,8 @@ export async function prewarmSpeech(texts: string[], lang: string): Promise<void
     }
     const buffer = await cloudCachedBuffer(ctx, code, text);
     if (buffer) synthCache.set(cloudKey, buffer);
+    // Accueil sans chiffre : il nomme le circuit, donc lui aussi se recolle.
+    else if (assembleFor("cached")) await assembledBuffer(ctx, code, raw);
   }
 }
 
@@ -757,9 +784,9 @@ function lexiconFor(code: string): SegmentLexicon | null {
  * « Préparer la voix » : morceaux à enregistrer pour assembler les annonces
  * chiffrées de la langue (parties fixes des gabarits, nombres, mots de liaison).
  */
-export function cloudSegmentPrepTexts(lang: string): string[] {
+export function cloudSegmentPrepTexts(lang: string, trackNames: string[] = []): string[] {
   const lex = lexiconFor(norm(lang));
-  return lex ? segmentInventory(lex) : [];
+  return lex ? [...new Set([...segmentInventory(lex), ...namePieces(trackNames, lex.normalize)])] : [];
 }
 
 /**
@@ -894,12 +921,13 @@ export async function probeCloudPlayback(
  * (phrase entière du cache), `assembled` (morceaux du cache) ou `piper`.
  * Renvoie `false` si ce chemin n'a rien à jouer (phrase absente du cache…).
  * Hors consommation de course (compteur « servies par le cache » inchangé).
+ * `exact` : `raw` est déjà le texte du cache (liste de « Préparer la voix »).
  */
-export async function playBench(raw: string, lang: string, how: BenchEngine): Promise<boolean> {
+export async function playBench(raw: string, lang: string, how: BenchEngine, exact = false): Promise<boolean> {
   const ctx = audioContext();
   if (!ctx || !isTauri()) return false;
   const code = norm(lang);
-  const text = normalizeForTts(raw, lang);
+  const text = exact ? raw : normalizeForTts(raw, lang);
   let buf: AudioBuffer | null = null;
   if (how === "cloud") buf = await cloudCachedBuffer(ctx, code, text, false);
   else if (how === "assembled") buf = (await assembledBuffer(ctx, code, raw, false)).buffer;
@@ -924,9 +952,19 @@ async function cloudAudio(
   if (item.opts?.localOnly) return null;
   const mode = cloudMode(item);
   const cloudKey = `${cloudVoiceTag(code)}|${synthKey(code, item.text)}`;
-  if (mode === "live" && cloudVoiceOn() && !isFixedPhrase(item.text) && assembleFor(mode)) {
-    // Réglage « tout assemblé » : l'information chiffrée prête se lit sans requête.
+  const prepared = item.opts?.preferAssembled === true;
+  if (
+    mode === "live" &&
+    cloudVoiceOn() &&
+    (prepared || !isFixedPhrase(item.text)) &&
+    assembleAllowed(mode, cloudNumbersMode(), prepared)
+  ) {
+    // « Tout assemblé », ou annonce préparée : l'information prête se lit sans requête.
     const assembled = (await assembledBuffer(ctx, code, item.raw)).buffer;
+    if (prepared) {
+      const how = assembled ? "recollé des morceaux préparés" : "non recollé, généré en ligne (morceau manquant ou phrase non reconnue)";
+      void appLog.write("info", "radio", `accueil ${how}`).catch(() => {});
+    }
     if (assembled || stale()) return assembled;
   }
   if (mode === "live" && cloudVoiceReady()) {

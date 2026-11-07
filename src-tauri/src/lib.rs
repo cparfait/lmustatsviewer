@@ -313,6 +313,7 @@ pub fn run() {
             // Synthèse vocale neuronale (Piper)
             commands::tts::tts_synthesize,
             commands::tts::tts_warmup,
+            commands::tts::tts_piper_cache_missing,
             commands::tts::tts_available,
             commands::tts::tts_list_voices,
             commands::tts_cloud::tts_cloud_synthesize,

@@ -3,10 +3,11 @@
  * les phrases de l'ingénieur par famille, avec **ce qui jouerait en course sans
  * réseau** (voix IA du cache, assemblée, Piper) et pourquoi, et des boutons pour
  * les entendre par chaque chemin. Aucune requête au fournisseur, sauf le bouton
- * « Préparer la voix » (devis affiché avant).
+ * « Préparer la voix » (devis affiché avant). En bas, toutes les phrases que ce
+ * bouton génère, avec leur état dans le cache.
  */
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import { Headphones, Play, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,8 @@ import { Select } from "@/components/ui/select";
 import { PrepareVoice } from "@/components/CloudVoicePrepare";
 import { cn } from "@/lib/utils";
 import { isTauri } from "@/lib/api";
-import { cloudVoiceSnapshot, subscribeCloudVoice } from "@/lib/cloudVoice";
+import { cloudCacheMissing, cloudVoiceOn, cloudVoiceSnapshot, subscribeCloudVoice } from "@/lib/cloudVoice";
+import { buildPrepList, usePrepTrackNames } from "@/lib/cloudVoicePrepList";
 import {
   BENCH_NUMBER_PHRASES,
   benchFamilies,
@@ -140,6 +142,118 @@ function BenchRow(props: {
     </div>
   );
 }
+
+/** Une phrase générée : son état dans le cache et ses boutons d'écoute. */
+function GeneratedRow({ text, ready, cloudOn, lang }: { text: string; ready: boolean; cloudOn: boolean; lang: string }) {
+  const { t } = useTranslation();
+  const play = (how: BenchEngine) => {
+    void playBench(text, lang, how, true).then((ok) => {
+      if (!ok) toastError(t(how === "piper" ? "config.cloudBenchNothingPiper" : "config.cloudBenchNothingCloud"));
+    });
+  };
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-1.5">
+      <div className="min-w-0 text-sm leading-snug break-words">{text}</div>
+      <div className="flex items-center gap-1 shrink-0">
+        <span className={cn("rounded px-1.5 py-0.5 text-xs font-medium", ENGINE_STYLE[ready ? "cloud" : "piper"])}>
+          {t(ready ? "config.cloudBenchRowReady" : "config.cloudBenchRowMissing")}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-xs gap-1"
+          disabled={!ready || !cloudOn}
+          title={t(ready ? "config.cloudBenchPlayCloudHint" : "config.cloudBenchPlayCloudMissing")}
+          onClick={() => play("cloud")}
+        >
+          <Play className="h-3 w-3" />
+          {t("config.cloudBenchPlayCloud")}
+        </Button>
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => play("piper")}>
+          <Play className="h-3 w-3" />
+          Piper
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Tout ce que « Préparer la voix » génère. Un seul sondage du cache pour toute la liste,
+ * et `memo` : les centaines de lignes ne se redessinent pas à chaque touche du banc.
+ */
+const GeneratedPhrases = memo(function GeneratedPhrases({ lang, refresh }: { lang: string; refresh: string }) {
+  const { t, i18n } = useTranslation();
+  const trackNames = usePrepTrackNames();
+  const [filter, setFilter] = useState("");
+  const [missing, setMissing] = useState<Set<string> | null>(null);
+  const list = useMemo(
+    () =>
+      buildPrepList(
+        lang,
+        (k, o) => t(k, o),
+        i18n.getResourceBundle(lang.slice(0, 2), "translation")?.live,
+        trackNames,
+      ),
+    [lang, t, i18n, trackNames],
+  );
+
+  useEffect(() => {
+    let alive = true;
+    cloudCacheMissing(list.all, list.code, list.rate)
+      .then((absent) => {
+        if (alive) setMissing(new Set(absent));
+      })
+      .catch(() => {
+        if (alive) setMissing(new Set(list.all));
+      });
+    return () => {
+      alive = false;
+    };
+  }, [list, refresh]);
+
+  const q = filter.trim().toLowerCase();
+  const shown = (texts: string[]) => (q ? texts.filter((x) => x.toLowerCase().includes(q)) : texts);
+  const fixed = new Set(list.phrases);
+  const groups = [
+    { title: "config.cloudBenchAllPhrases", texts: list.phrases },
+    { title: "config.cloudBenchAllPieces", texts: list.all.filter((x) => !fixed.has(x)) },
+  ].map((g) => ({ ...g, n: g.texts.length, texts: shown(g.texts) }));
+  const cloudOn = cloudVoiceOn();
+  const absent = missing?.size ?? list.all.length;
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-primary">
+        {t("config.cloudBenchAll", { n: list.all.length })}
+      </h3>
+      <p className="text-xs text-muted-foreground">
+        {t("config.cloudBenchAllHint", { ready: list.all.length - absent, missing: absent })}
+      </p>
+      <Input
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        placeholder={t("config.cloudBenchAllFilter")}
+        aria-label={t("config.cloudBenchAllFilter")}
+        className="h-8 text-sm"
+      />
+      {groups.every((g) => g.texts.length === 0) && (
+        <p className="text-xs text-muted-foreground">{t("config.cloudBenchAllNone")}</p>
+      )}
+      {groups.map(
+        (g) =>
+          g.texts.length > 0 && (
+            <div key={g.title} className="space-y-1">
+              <div className="pt-1 text-xs font-medium text-muted-foreground">{t(g.title, { n: g.n })}</div>
+              {g.texts.map((text) => (
+                <GeneratedRow key={text} text={text} ready={!!missing && !missing.has(text)} cloudOn={cloudOn} lang={lang} />
+              ))}
+            </div>
+          ),
+      )}
+    </section>
+  );
+});
 
 export function CloudVoiceBench({ onClose }: { onClose: () => void }) {
   const { t, i18n } = useTranslation();
@@ -268,6 +382,7 @@ export function CloudVoiceBench({ onClose }: { onClose: () => void }) {
             </section>
           ))}
 
+          <GeneratedPhrases lang={lang} refresh={refresh} />
         </div>
       </div>
     </div>

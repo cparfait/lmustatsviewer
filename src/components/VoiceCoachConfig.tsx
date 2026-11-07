@@ -54,9 +54,10 @@ export function VoiceCoachConfig() {
     }
   }, [voiceProviderId, voiceKey]);
 
+  const ollamaPort = useAppStore((s) => s.aiOllamaPort);
   useEffect(() => {
     if (!same) void refresh();
-  }, [same, refresh]);
+  }, [same, refresh, ollamaPort]);
 
   const toggleSame = (checked: boolean) => {
     if (checked) {

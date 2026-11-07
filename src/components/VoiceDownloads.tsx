@@ -28,6 +28,7 @@ import { confirmDialog, toastError, toastSuccess } from "@/stores/dialogs";
 import { useAppStore } from "@/stores/app";
 import { resetPiperAvailability } from "@/lib/voice";
 import { missingVoiceRow } from "@/lib/voicePolicy";
+import { piperPhrases, planPiperPrep, preparePiperPhrases } from "@/lib/piperPrep";
 
 /** État commun à tous les rendus (bandeau, liste, fenêtre d'accueil de la voix). */
 const useDownloads = create<{
@@ -142,8 +143,33 @@ export function VoiceDownloads({
   const rows = catalog.filter((a) => a.kind === kind && a.lang === lang);
   if (!isTauri() || rows.length === 0) return null;
 
+  /**
+   * Voix qui parlera désormais : propose de générer ses phrases. Une autre voix installée
+   * sans être choisie attend qu'on la choisisse (`PiperPrepare`).
+   */
+  const offerPrep = async (a: AssetInfo, hadVoice: boolean) => {
+    const chosen = useAppStore.getState().piperVoiceByLang[lang];
+    if (chosen ? chosen !== a.id : hadVoice && !a.is_default) return;
+    const texts = piperPhrases(
+      i18n.language,
+      (k, o) => t(k, o),
+      i18n.getResourceBundle(lang, "translation")?.live,
+    );
+    const plan = await planPiperPrep(texts, i18n.language);
+    if (plan.missing.length === 0) return;
+    const ok = await confirmDialog({
+      title: t("config.piperPrepOfferTitle"),
+      message: t("config.piperPrepOfferMsg", { voice: a.label, n: plan.missing.length }),
+      confirmLabel: t("config.piperPrepBtn"),
+      cancelLabel: t("config.piperPrepLater"),
+    });
+    if (ok) void preparePiperPhrases(plan, (k, o) => t(k, o));
+  };
+
   const download = async (a: AssetInfo) => {
+    const hadVoice = rows.some((r) => r.installed);
     setBusy(kind, a.id);
+    let installed = false;
     try {
       await assets.download(kind, a.id);
       // Une annonce ratée avant le téléchargement ne doit pas bloquer Piper.
@@ -151,11 +177,13 @@ export function VoiceDownloads({
       toastSuccess(t("config.assetDlDone"));
       bumpCatalog();
       onInstalled?.();
+      installed = true;
     } catch (e) {
       toastError(t("config.assetDlError", { msg: String(e) }));
     } finally {
       setBusy(kind, null);
     }
+    if (installed && kind === "tts") void offerPrep(a, hadVoice).catch(() => {});
   };
 
   const progressBar = (

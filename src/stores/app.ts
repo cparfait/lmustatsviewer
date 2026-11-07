@@ -42,6 +42,7 @@ import {
   newCustomProviderId,
   type CustomProviderDef,
 } from "@/lib/ai/providers/custom";
+import { OLLAMA_DEFAULT_PORT, parseOllamaPort, setOllamaPort } from "@/lib/ai/providers/ollama";
 import type {
   BestLapRow,
   DashboardStats,
@@ -288,6 +289,8 @@ interface AppState {
   aiVoiceModel: string;
   /** Fournisseurs personnalisés (OpenAI-compatibles) définis par l'utilisateur. */
   aiCustomProviders: CustomProviderDef[];
+  /** Port du serveur Ollama local. */
+  aiOllamaPort: number;
   /**
    * Clé API PAR fournisseur (intégré comme custom), chiffrée côté backend
    * (`ai_set_provider_key`). Remplace les anciens créneaux globaux
@@ -449,6 +452,7 @@ interface AppState {
   removeProvider: (id: string) => Promise<void>;
   /** Interne : bascule actif/vocal après suppression d'un fournisseur. */
   onProviderRemoved: (id: string) => Promise<void>;
+  setAIOllamaPort: (port: number) => Promise<void>;
   addCustomProvider: (name: string, baseUrl: string, apiKey: string) => Promise<string>;
   updateCustomProvider: (id: string, name: string, baseUrl: string) => Promise<void>;
   removeCustomProvider: (id: string) => Promise<void>;
@@ -557,6 +561,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   aiCoachEnabled: true,
   aiProvider: "google",
   aiCustomProviders: [],
+  aiOllamaPort: OLLAMA_DEFAULT_PORT,
   aiProviderList: [],
   aiProviderKeys: {},
   aiModel: "",
@@ -663,6 +668,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })();
     setCustomProviders(aiCustomProviders); // injecte dans le registre (hors store)
+    const aiOllamaPort = parseOllamaPort(cfg.ai_ollama_port ?? "") ?? OLLAMA_DEFAULT_PORT;
+    setOllamaPort(aiOllamaPort);
     // Liste des fournisseurs intégrés configurés (cartes façon harness).
     let aiProviderList: string[] = (() => {
       try {
@@ -827,6 +834,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       aiProvider: cfg.ai_provider || "google",
       aiProviderList,
       aiCustomProviders,
+      aiOllamaPort,
       aiProviderKeys,
       aiModel: cfg.ai_model ?? "",
       aiVoiceModel: cfg.ai_voice_model ?? "",
@@ -1489,6 +1497,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Supprimé : un nouvel ajout repartira de la section choisie à ce moment-là.
     if (get().aiFreeSectionIds.includes(id)) await get().setProviderInFreeSection(id, false);
     await get().onProviderRemoved(id);
+  },
+
+  setAIOllamaPort: async (port) => {
+    await config.set("ai_ollama_port", String(port));
+    setOllamaPort(port);
+    set({ aiOllamaPort: port });
   },
 
   addCustomProvider: async (name, baseUrl, apiKey) => {

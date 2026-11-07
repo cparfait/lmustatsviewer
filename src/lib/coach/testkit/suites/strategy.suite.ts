@@ -93,6 +93,33 @@ export function run(): void {
     eq(e.stopsLeft, 2, "arrêts restants");
   }
   {
+    // Énergie et conso données par le jeu : une mesure, prioritaire sur l'historique.
+    const rival = { slot_id: 7, driver: "Lead", fuel_pct: 60, energy_pct: 40, pit_state: "none", pitstops: 0, penalties: 0, energy_per_lap_pct: 4, energy_laps: 5 };
+    const withRest = (rivals: unknown, state = "fresh") =>
+      ({ rest: { rivals: { state, age_ms: 0, data: rivals } } }) as unknown as Partial<LiveData>;
+    const lead = (o: Partial<LiveStanding> = {}) => st({ driver: "Lead", class_position: 1, total_laps: 10, best_lap_time: 100, ...o });
+    const reg = new StintRegistry();
+    const d = data([lead(), st({ driver: "Me", class_position: 3, is_player: true })], withRest([rival]));
+    const e = reg.estimate(d, d.standings[0]);
+    ok(e.fromGame === true, "jeu : prochain arrêt tiré de l'énergie");
+    eq(e.lapsToNext, 10, "40 % à 4 % par tour : 10 tours");
+    eq(e.stintLaps, 25, "sans historique : relais d'un plein");
+    eq(e.stopsLeft, 2, "55 tours restants : (55 − 10) / 25, soit 2 arrêts");
+    eq(e.energyPct, 40, "énergie restante transmise");
+    const noUse = data([lead()], withRest([{ ...rival, energy_per_lap_pct: null, energy_laps: null }]));
+    const e2 = reg.estimate(noUse, noUse.standings[0]);
+    ok(!e2.fromGame && e2.lapsToNext == null && e2.energyPct === 40, "sans conso : énergie dite, aucun tour inventé");
+    const inPits = data([lead({ in_pits: true })], withRest([rival]));
+    ok(!reg.estimate(inPits, inPits.standings[0]).fromGame, "aux stands : l'énergie va changer, pas de calcul");
+    const stale = data([lead()], withRest([rival], "stale"));
+    eq(reg.estimate(stale, stale.standings[0]).energyPct, null, "donnée périmée : ignorée");
+    const other = data([lead()], withRest([{ ...rival, driver: "Autre" }]));
+    eq(reg.estimate(other, other.standings[0]).energyPct, null, "autre pilote : jamais attribué");
+    const twins = data([lead({ id: 8 })], withRest([rival, { ...rival, slot_id: 8, energy_pct: 20 }]));
+    eq(reg.estimate(twins, twins.standings[0]).energyPct, 20, "même nom : départagé par le numéro de voiture");
+    ok(reg.contextLines(d).some((l) => l.includes("virtual energy 40%") && l.includes("4.0%/lap")), "coach IA : énergie et conso");
+  }
+  {
     // Demande d'arrêt (pit_state 1) sans entrée réelle : pas d'annonce.
     const reg = new StintRegistry();
     const ev = race(reg, 21, 1);

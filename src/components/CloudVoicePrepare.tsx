@@ -18,19 +18,10 @@ import {
   subscribeCloudVoice,
   type CloudPrepPlan,
 } from "@/lib/cloudVoice";
-import {
-  CLOUD_PREP_ANSWER_KEYS,
-  CLOUD_PREP_WHEEL_KEYS,
-  WHEEL_VOICE_KEYS,
-  cloudPrepKeys,
-  estimateCostUsd,
-  spokenFixedKeys,
-  wheelTemplates,
-} from "@/lib/cloudVoicePrep";
+import { estimateCostUsd } from "@/lib/cloudVoicePrep";
+import { buildPrepList, usePrepTrackNames } from "@/lib/cloudVoicePrepList";
 import { explainCloudError, getCloudVoiceProvider } from "@/lib/cloudVoiceProviders";
-import { getMessageText } from "@/lib/voiceMessages";
 import { isTauri } from "@/lib/api";
-import { cloudPrepTexts, cloudSegmentPrepTexts } from "@/lib/voice";
 import { useAppStore } from "@/stores/app";
 import { toastError, toastSuccess } from "@/stores/dialogs";
 
@@ -59,6 +50,7 @@ export function PrepareVoice() {
   const running = prep?.running === true;
   const [plan, setPlan] = useState<CloudPrepPlan | null>(null);
   const [segmentCount, setSegmentCount] = useState(0);
+  const trackNames = usePrepTrackNames();
   /** Erreur du fournisseur en clair (jamais le JSON brut du service). */
   const explain = (raw: string) => explainCloudError(raw, getCloudVoiceProvider(settings.provider).name, t);
 
@@ -67,46 +59,33 @@ export function PrepareVoice() {
   useEffect(() => {
     if (!isTauri() || !hasKey || running) return;
     let alive = true;
-    const { code, rate: r, texts } = cloudPrepTexts(
-      [
-        // Toutes les phrases fixes de l'ingénieur (listes + tout le bundle `live`).
-        ...[
-          ...new Set([
-            ...cloudPrepKeys(),
-            ...spokenFixedKeys(i18nInst.getResourceBundle(lang.slice(0, 2), "translation")?.live),
-          ]),
-        ].map((k) => getMessageText(lang, k)),
-        // Crevaison / roue arrachée nommées : une version par roue.
-        ...CLOUD_PREP_WHEEL_KEYS.flatMap((k) =>
-          wheelTemplates(
-            getMessageText(lang, k),
-            WHEEL_VOICE_KEYS.map((w) => t(`live.wheelVoice.${w}`, { lng: lang })),
-          ),
-        ),
-        // Réponses de l'ingénieur quand on lui parle (accusé, « pas compris »…).
-        ...CLOUD_PREP_ANSWER_KEYS.map((k) => t(k, { lng: lang })),
-      ],
+    const list = buildPrepList(
       lang,
+      (k, o) => t(k, o),
+      i18nInst.getResourceBundle(lang.slice(0, 2), "translation")?.live,
+      trackNames,
     );
-    // Annonces chiffrées : leurs morceaux (nombres, parties fixes) sont toujours préparés.
-    const segments = cloudSegmentPrepTexts(lang);
-    setSegmentCount(segments.length);
-    planCloudPrep([...new Set([...texts, ...segments])], code, r)
+    setSegmentCount(list.segments.length);
+    planCloudPrep(list.all, list.code, list.rate)
       .then((p) => alive && setPlan(p))
       .catch(() => alive && setPlan(null));
     return () => {
       alive = false;
       setPlan(null);
     };
-  }, [settings, hasKey, lang, rate, running, prep?.outcome, t, i18nInst]);
+  }, [settings, hasKey, lang, rate, running, prep?.outcome, t, i18nInst, trackNames]);
 
   const start = async () => {
     if (!plan) return;
-    const outcome = await runCloudPrep(plan);
+    const wasLocal = settings.alertsLocal;
+    const outcome = await runCloudPrep(plan, { freeLocalAlerts: true });
     const st = cloudVoiceSnapshot().prep;
     const made = st ? st.done - st.failed : 0;
     if (outcome === "done" && st?.failed) toastError(t("config.cloudVoicePrepFailed", { n: st.failed }));
-    else if (outcome === "done") toastSuccess(t("config.cloudVoicePrepDone", { n: made }));
+    else if (outcome === "done") {
+      const freed = wasLocal && !cloudVoiceSnapshot().settings.alertsLocal;
+      toastSuccess(t(freed ? "config.cloudVoicePrepDoneAlerts" : "config.cloudVoicePrepDone", { n: made }));
+    }
     else if (outcome === "paused")
       toastError(t("config.cloudVoicePrepPaused", { error: explain(cloudVoiceSnapshot().lastError) || "—" }));
     else if (outcome === "changed") toastError(t("config.cloudVoicePrepChanged"));

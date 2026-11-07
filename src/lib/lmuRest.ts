@@ -16,9 +16,28 @@ import type {
   RestField,
   RestForecastNode,
   RestPitScreen,
+  RestRival,
   RestSettingBound,
   RestUsed,
 } from "@/lib/api";
+
+/** État d'une voiture selon le jeu (par numéro de voiture, sinon par nom), ou null. */
+export function rivalState(
+  rest: LmuRestLive | null | undefined,
+  car: { id?: number; driver: string },
+): RestRival | null {
+  const list = fresh(rest?.rivals);
+  if (!list) return null;
+  const byName = list.filter((r) => r.driver === car.driver);
+  if (byName.length === 1) return byName[0];
+  return car.id != null ? (list.find((r) => r.slot_id === car.id && byName.includes(r)) ?? null) : null;
+}
+
+/** Tours que l'énergie restante permet encore, d'après le jeu, ou null si inconnu. */
+export function rivalEnergyLaps(r: RestRival | null): number | null {
+  if (r?.energy_pct == null || !(r.energy_per_lap_pct != null && r.energy_per_lap_pct > 0)) return null;
+  return Math.floor(r.energy_pct / r.energy_per_lap_pct);
+}
 
 /** Écart relatif toléré entre conso mesurée et conso officielle du jeu. */
 export const CONSUMPTION_TOLERANCE = 0.4;

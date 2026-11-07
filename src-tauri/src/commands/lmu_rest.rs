@@ -20,6 +20,9 @@
 //! - Setup chargé (`garage/summary` : `activeSetup`, `unsavedChanges`) lu au même
 //!   régime que les bornes du garage (en piste seulement), désactivable
 //!   (`set_setup_tracking`).
+//! - État et conso des rivaux (`watch/standings`, `strategy/usage`) : en piste ou
+//!   au garage, jamais en pause ni aux menus. `usage` grossit avec la course, d'où
+//!   un plafond de corps à part ; son échec ne coupe jamais les autres routes.
 //! - Chaque valeur porte un état de fraîcheur : absent / vide / invalide /
 //!   périmé (> 8 s) / frais. Le front ne se sert que des valeurs fraîches et
 //!   retombe sinon sur son comportement d'avant (mémoire partagée, `.wet`…).
@@ -29,6 +32,7 @@
 //! tolérant (`serde_json::Value`) : un champ manquant donne `None`, jamais une
 //! erreur de toute la route.
 
+use std::collections::HashMap;
 use std::io::Read;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::Mutex;
@@ -45,6 +49,8 @@ pub const LMU_REST_PORT: u16 = 6397;
 const REQUEST_TIMEOUT: Duration = Duration::from_millis(1200);
 /// Taille max d'un corps de réponse (RepairAndRefuel, le plus gros, fait ~100 Ko).
 pub const MAX_BODY_BYTES: usize = 512 * 1024;
+/// Plafond de `strategy/usage` : une entrée par pilote et par tour (course de 24 h).
+pub const MAX_USAGE_BODY_BYTES: usize = 4 * 1024 * 1024;
 /// Au-delà, une valeur est « périmée ».
 pub const STALE_AFTER: Duration = Duration::from_secs(8);
 /// Recul initial puis plafond quand le jeu ne répond pas.
@@ -57,6 +63,8 @@ const EVERY_GARAGE: Duration = Duration::from_secs(5);
 const EVERY_WEATHER: Duration = Duration::from_secs(60);
 /// Tracé du circuit : une lecture réussie par circuit, nouvel essai sinon.
 const EVERY_TRACKMAP: Duration = Duration::from_secs(30);
+const EVERY_STANDINGS: Duration = Duration::from_secs(5);
+const EVERY_USAGE: Duration = Duration::from_secs(10);
 
 pub const ROUTE_VEHICLE: &str = "/rest/garage/getVehicleCondition";
 pub const ROUTE_PIT: &str = "/rest/garage/UIScreen/RepairAndRefuel";
@@ -67,6 +75,10 @@ pub const ROUTE_TRACKMAP: &str = "/rest/watch/trackmap";
 /// Résumé du garage : nom du setup chargé (`activeSetup`), modifications non
 /// enregistrées (`unsavedChanges`), voiture. Écran du jeu : lu en piste seulement.
 pub const ROUTE_SUMMARY: &str = "/rest/garage/summary";
+/// État courant de chaque voiture : carburant, énergie, stands, arrêts, pénalités.
+pub const ROUTE_STANDINGS: &str = "/rest/watch/standings";
+/// Énergie virtuelle restante de chaque pilote, tour par tour.
+pub const ROUTE_USAGE: &str = "/rest/strategy/usage";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Fraîcheur
@@ -290,6 +302,32 @@ pub struct LoadedSetup {
     pub car: Option<String>,
 }
 
+/// État d'une voiture selon le jeu (`watch/standings` + `strategy/usage`).
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct RestRival {
+    pub slot_id: Option<i32>,
+    pub driver: String,
+    /// Carburant restant (% du réservoir). `None` : inconnu (le jeu met 0).
+    pub fuel_pct: Option<f64>,
+    /// Énergie virtuelle restante (%). `None` : inconnue (le jeu met 0).
+    pub energy_pct: Option<f64>,
+    /// Phase aux stands telle que le jeu la donne (`none`, `entering`, `stopped`…).
+    pub pit_state: Option<String>,
+    pub pitstops: Option<i32>,
+    pub penalties: Option<i32>,
+    /// Conso médiane d'énergie (% par tour), mesurée par le jeu.
+    pub energy_per_lap_pct: Option<f64>,
+    /// Tours qui fondent cette conso.
+    pub energy_laps: Option<u32>,
+}
+
+/// Conso d'énergie d'un pilote, tirée de `strategy/usage`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EnergyUse {
+    pub pct_per_lap: f64,
+    pub laps: u32,
+}
+
 /// Tracé du circuit fourni par le jeu (`watch/trackmap`), dans le même repère
 /// monde que `mPos` de la mémoire partagée (vérifié à Road Atlanta : 2,4 m
 /// d'écart médian avec le tracé appris en roulant, ligne de course vs axe).
@@ -320,6 +358,8 @@ pub struct LmuRestLive {
     pub weather: RestField<WeekendWeather>,
     /// Setup chargé dans la voiture (`garage/summary`).
     pub setup: RestField<LoadedSetup>,
+    /// État et conso des voitures selon le jeu.
+    pub rivals: RestField<Vec<RestRival>>,
     /// État seul des bornes de setup (données via `get_lmu_garage_bounds`).
     pub garage_state: Freshness,
 }
@@ -356,6 +396,97 @@ pub enum Parsed<T> {
 
 fn as_object(v: &Value) -> Option<&serde_json::Map<String, Value>> {
     v.as_object().filter(|o| !o.is_empty())
+}
+
+/// Fraction 0-1 du jeu en pourcentage ; 0 veut dire « inconnu », jamais « vide ».
+fn fraction_pct(v: &Value, key: &str) -> Option<f64> {
+    num(v, key).filter(|x| *x > 0.0 && *x <= 1.0001).map(|x| (x * 100.0).min(100.0))
+}
+
+/// `watch/standings` : tableau d'une entrée par voiture, sans la conso.
+pub fn parse_standings(v: &Value) -> Result<Parsed<Vec<RestRival>>, ()> {
+    let rows = v.as_array().ok_or(())?;
+    let list: Vec<RestRival> = rows
+        .iter()
+        .filter_map(|r| {
+            let driver = text(r, "driverName");
+            if driver.is_empty() {
+                return None;
+            }
+            let pit_state = text(r, "pitState");
+            Some(RestRival {
+                slot_id: int(r, "slotID"),
+                driver,
+                fuel_pct: fraction_pct(r, "fuelFraction"),
+                energy_pct: fraction_pct(r, "veFraction"),
+                pit_state: (!pit_state.is_empty()).then_some(pit_state),
+                pitstops: int(r, "pitstops"),
+                penalties: int(r, "penalties"),
+                energy_per_lap_pct: None,
+                energy_laps: None,
+            })
+        })
+        .collect();
+    Ok(if list.is_empty() { Parsed::Empty } else { Parsed::Data(list) })
+}
+
+/// Tours récents retenus pour la conso d'un pilote.
+const USAGE_RECENT_LAPS: usize = 12;
+/// Au-delà, la baisse sur un tour n'est pas de la conso (changement de pilote, réglage).
+const USAGE_MAX_DROP: f64 = 0.5;
+
+/// Conso médiane d'un pilote : baisse d'énergie entre deux tours consécutifs du
+/// même relais, hors tours passés aux stands. Deux tours mesurés au moins.
+fn energy_use(laps: &[Value]) -> Option<EnergyUse> {
+    let in_pit = |e: &Value| match e.get("pit") {
+        Some(Value::Bool(b)) => *b,
+        Some(x) => x.as_f64().is_some_and(|n| n != 0.0),
+        None => false,
+    };
+    let mut drops: Vec<f64> = laps
+        .windows(2)
+        .filter_map(|w| {
+            let (a, b) = (&w[0], &w[1]);
+            if in_pit(a) || in_pit(b) || a.get("stint") != b.get("stint") {
+                return None;
+            }
+            if num(b, "lap")? - num(a, "lap")? != 1.0 {
+                return None;
+            }
+            let drop = num(a, "ve")? - num(b, "ve")?;
+            (drop > 0.0 && drop <= USAGE_MAX_DROP).then_some(drop)
+        })
+        .collect();
+    if drops.len() < 2 {
+        return None;
+    }
+    if drops.len() > USAGE_RECENT_LAPS {
+        drops.drain(..drops.len() - USAGE_RECENT_LAPS);
+    }
+    let laps = drops.len() as u32;
+    drops.sort_by(f64::total_cmp);
+    let m = drops.len() / 2;
+    let median = if drops.len() % 2 == 1 { drops[m] } else { (drops[m - 1] + drops[m]) / 2.0 };
+    Some(EnergyUse { pct_per_lap: median * 100.0, laps })
+}
+
+/// `strategy/usage` : `{ pilote: [{ lap, pit, stint, ve, … }] }`.
+pub fn parse_usage(v: &Value) -> Result<Parsed<HashMap<String, EnergyUse>>, ()> {
+    let map = as_object(v).ok_or(())?;
+    let out: HashMap<String, EnergyUse> = map
+        .iter()
+        .filter_map(|(name, laps)| Some((name.clone(), energy_use(laps.as_array()?)?)))
+        .collect();
+    Ok(if out.is_empty() { Parsed::Empty } else { Parsed::Data(out) })
+}
+
+/// Reporte la conso connue sur l'état des voitures.
+fn merge_usage(rivals: &mut [RestRival], usage: &HashMap<String, EnergyUse>) {
+    for r in rivals {
+        let e = usage.get(&r.driver);
+        r.energy_per_lap_pct = e.map(|x| x.pct_per_lap);
+        r.energy_laps = e.map(|x| x.laps);
+    }
 }
 
 pub fn parse_vehicle(v: &Value) -> Result<Parsed<VehicleCondition>, ()> {
@@ -765,14 +896,15 @@ pub fn fetch_json(client: &reqwest::blocking::Client, base: &str, path: &str) ->
         // 3xx compris : les redirections sont refusées.
         return Err(FetchError::Invalid);
     }
-    if resp.content_length().is_some_and(|n| n as usize > MAX_BODY_BYTES) {
+    let max_body = if path == ROUTE_USAGE { MAX_USAGE_BODY_BYTES } else { MAX_BODY_BYTES };
+    if resp.content_length().is_some_and(|n| n as usize > max_body) {
         return Err(FetchError::Invalid);
     }
     let mut body = Vec::new();
-    resp.take(MAX_BODY_BYTES as u64 + 1)
+    resp.take(max_body as u64 + 1)
         .read_to_end(&mut body)
         .map_err(|_| FetchError::Unreachable)?;
-    if body.len() > MAX_BODY_BYTES {
+    if body.len() > max_body {
         return Err(FetchError::Invalid);
     }
     let txt = decode_body(&body);
@@ -796,6 +928,8 @@ struct Store {
     garage: Slot<Vec<SettingBound>>,
     summary: Slot<LoadedSetup>,
     track_map: Slot<GameTrackMap>,
+    rivals: Slot<Vec<RestRival>>,
+    usage: Slot<HashMap<String, EnergyUse>>,
     reachable: bool,
     backoff: Duration,
 }
@@ -810,6 +944,7 @@ impl Store {
             session: self.session.view(now),
             weather: self.weather.view(now),
             setup: self.summary.view(now),
+            rivals: self.rivals.view(now),
             garage_state: self.garage.freshness(now),
         }
     }
@@ -956,7 +1091,7 @@ pub fn route_allowed(route: &str, session_ready: bool, spot: PlayerSpot, poll_of
     if reads_game_screens(route) {
         return spot == PlayerSpot::Driving;
     }
-    if route == ROUTE_TRACKMAP {
+    if matches!(route, ROUTE_TRACKMAP | ROUTE_STANDINGS | ROUTE_USAGE) {
         return matches!(spot, PlayerSpot::Driving | PlayerSpot::GarageStall);
     }
     true
@@ -993,11 +1128,11 @@ pub fn on_demand_due(
 
 /// Prochaine échéance de chaque route.
 struct Schedule {
-    due: [Instant; 7],
+    due: [Instant; ROUTES.len()],
 }
 
 /// `sessionInfo` d'abord : les autres routes en dépendent (`session_ready`).
-const ROUTES: [(&str, Duration); 7] = [
+const ROUTES: [(&str, Duration); 9] = [
     (ROUTE_SESSION, EVERY_FAST),
     (ROUTE_VEHICLE, EVERY_FAST),
     (ROUTE_PIT, EVERY_FAST),
@@ -1005,6 +1140,8 @@ const ROUTES: [(&str, Duration); 7] = [
     (ROUTE_GARAGE, EVERY_GARAGE),
     (ROUTE_SUMMARY, EVERY_GARAGE),
     (ROUTE_TRACKMAP, EVERY_TRACKMAP),
+    (ROUTE_STANDINGS, EVERY_STANDINGS),
+    (ROUTE_USAGE, EVERY_USAGE),
 ];
 
 /// Recul suivant : 2 s, 4 s, 8 s… plafonné à 60 s.
@@ -1043,6 +1180,21 @@ fn record(store: &mut Store, route: &str, res: Result<Value, FetchError>, now: I
         ROUTE_WEATHER => apply(&mut store.weather, res, parse_weather, now),
         ROUTE_GARAGE => apply(&mut store.garage, res, parse_garage, now),
         ROUTE_SUMMARY => apply(&mut store.summary, res, parse_summary, now),
+        ROUTE_STANDINGS => {
+            let ok = apply(&mut store.rivals, res, parse_standings, now);
+            if let (Some(list), Some(usage)) = (store.rivals.value.as_mut(), store.usage.value.as_ref()) {
+                merge_usage(list, usage);
+            }
+            ok
+        }
+        // Route lourde : un délai dépassé ne doit pas faire reculer toutes les autres.
+        ROUTE_USAGE => {
+            apply(&mut store.usage, res, parse_usage, now);
+            if store.usage.last_error.is_some() {
+                store.usage.value = None;
+            }
+            true
+        }
         ROUTE_TRACKMAP => {
             let track = store.session.value.as_ref().map(|s| s.track_name.clone()).unwrap_or_default();
             let before = store.track_map.last_ok;
@@ -1154,7 +1306,7 @@ pub fn ensure_worker(keep_running: fn() -> bool) {
         };
         let base = loopback_base(LMU_REST_PORT);
         let now = Instant::now();
-        let mut sched = Schedule { due: [now; 7] };
+        let mut sched = Schedule { due: [now; ROUTES.len()] };
         let mut was_present = false;
         loop {
             if !keep_running() {
@@ -1171,7 +1323,7 @@ pub fn ensure_worker(keep_running: fn() -> bool) {
                 // Séance tout juste chargée : on oublie le recul accumulé et on
                 // laisse le jeu se poser avant la première requête.
                 let start = Instant::now() + SETTLE_AFTER_SESSION;
-                sched.due = [start; 7];
+                sched.due = [start; ROUTES.len()];
                 with_store(|s| s.backoff = Duration::ZERO);
             }
             if !present {
@@ -1181,6 +1333,9 @@ pub fn ensure_worker(keep_running: fn() -> bool) {
                     s.reachable = false;
                     s.session.forget();
                     s.summary.forget();
+                    // Conso et état d'une autre séance : jamais réutilisés.
+                    s.rivals.forget();
+                    s.usage.value = None;
                 });
             }
             was_present = present;
@@ -1648,6 +1803,78 @@ mod tests {
         };
         let client = build_client().unwrap();
         assert_eq!(fetch_json(&client, &loopback_base(port), ROUTE_SESSION), Err(FetchError::Unreachable));
+    }
+
+    #[test]
+    fn standings_read_the_game_fractions() {
+        let v = json!([
+            { "slotID": 3, "driverName": "A. Rival", "fuelFraction": 0.5, "veFraction": 0.25,
+              "pitState": "none", "pitstops": 2, "penalties": 1 },
+            { "slotID": 4, "driverName": "B. Rival", "fuelFraction": 0.0, "veFraction": 1.4 },
+            { "slotID": 5, "driverName": "" }
+        ]);
+        let Ok(Parsed::Data(list)) = parse_standings(&v) else { panic!("attendu : des voitures") };
+        assert_eq!(list.len(), 2, "pilote sans nom écarté");
+        assert_eq!(list[0].slot_id, Some(3));
+        assert_eq!(list[0].fuel_pct, Some(50.0));
+        assert_eq!(list[0].energy_pct, Some(25.0));
+        assert_eq!(list[0].pit_state.as_deref(), Some("none"));
+        assert_eq!(list[0].pitstops, Some(2));
+        assert_eq!(list[1].fuel_pct, None, "0 = inconnu");
+        assert_eq!(list[1].energy_pct, None, "hors échelle = inconnu");
+        assert!(matches!(parse_standings(&json!([])), Ok(Parsed::Empty)));
+        assert!(parse_standings(&json!({ "x": 1 })).is_err());
+    }
+
+    #[test]
+    fn usage_measures_only_clean_laps_of_a_stint() {
+        let lap = |lap: i32, stint: i32, pit: bool, ve: f64| json!({ "lap": lap, "stint": stint, "pit": pit, "ve": ve });
+        let v = json!({
+            "A": [lap(1, 1, false, 0.9), lap(2, 1, false, 0.86), lap(3, 1, false, 0.82), lap(4, 1, true, 0.5),
+                  lap(5, 2, false, 1.0), lap(6, 2, false, 0.96)],
+            "B": [lap(1, 1, false, 0.9), lap(2, 1, false, 0.85)],
+            "C": [lap(1, 1, false, 0.9), lap(3, 1, false, 0.8), lap(5, 1, false, 0.7)]
+        });
+        let Ok(Parsed::Data(map)) = parse_usage(&v) else { panic!("attendu : une conso") };
+        let a = map["A"];
+        assert_eq!(a.laps, 3, "ni l'arrêt ni la recharge ne comptent");
+        assert!((a.pct_per_lap - 4.0).abs() < 1e-6, "{}", a.pct_per_lap);
+        assert!(!map.contains_key("B"), "un seul tour mesuré : pas de conso");
+        assert!(!map.contains_key("C"), "tours non consécutifs : pas de conso");
+        assert!(parse_usage(&json!([1])).is_err());
+    }
+
+    #[test]
+    fn rivals_get_usage_and_a_slow_usage_never_backs_off() {
+        let mut st = Store::default();
+        let now = Instant::now();
+        let lap = |lap: i32, ve: f64| json!({ "lap": lap, "stint": 1, "pit": false, "ve": ve });
+        let usage = json!({ "A": [lap(1, 0.9), lap(2, 0.86), lap(3, 0.82)] });
+        assert!(record(&mut st, ROUTE_USAGE, Ok(usage), now));
+        assert!(record(&mut st, ROUTE_STANDINGS, Ok(json!([{ "driverName": "A", "veFraction": 0.5 }])), now));
+        let live = st.live(now);
+        assert_eq!(live.rivals.state, Freshness::Fresh);
+        let rival = &live.rivals.data.as_ref().expect("voitures")[0];
+        assert!((rival.energy_per_lap_pct.expect("conso") - 4.0).abs() < 1e-6);
+        assert_eq!(rival.energy_laps, Some(2));
+        assert!(record(&mut st, ROUTE_USAGE, Err(FetchError::Unreachable), now), "usage : jamais de recul global");
+        assert!(!record(&mut st, ROUTE_STANDINGS, Err(FetchError::Unreachable), now));
+        assert!(record(&mut st, ROUTE_USAGE, Err(FetchError::Empty), now));
+        assert!(st.usage.value.is_none(), "route vide : ancienne conso oubliée");
+    }
+
+    #[test]
+    fn rival_routes_stay_off_in_pause_and_menus() {
+        use PlayerSpot::*;
+        for r in [ROUTE_STANDINGS, ROUTE_USAGE] {
+            assert!(!reads_game_screens(r), "{r}");
+            assert!(route_allowed(r, true, Driving, false), "{r} en piste");
+            assert!(route_allowed(r, true, GarageStall, false), "{r} au garage");
+            for spot in [Frozen, Absent] {
+                assert!(!route_allowed(r, true, spot, false), "{r} {spot:?}");
+            }
+            assert!(!route_allowed(r, false, Driving, false), "{r} sans séance");
+        }
     }
 
     #[test]

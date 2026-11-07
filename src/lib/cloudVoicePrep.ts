@@ -9,7 +9,8 @@
  *    ne les dit **que préparées** (lecture instantanée du cache), sinon Piper —
  *    une alerte n'attend jamais le réseau. Réglage « Alertes en voix locale » :
  *    en course elles restent toutes sur Piper (`cloudModeFor`), mais la préparation
- *    les génère quand même : décocher le réglage ne demande rien de plus.
+ *    les génère quand même, et le réglage se coupe à la fin d'une préparation
+ *    complète (`prepFreesLocalAlerts`). Le pilote peut le réactiver ensuite.
  *
  * Les annonces chiffrées s'y ajoutent par morceaux (nombres, parties fixes des
  * gabarits : `cloudVoiceSegments.ts`), recollés à la lecture.
@@ -32,6 +33,15 @@ export function cloudModeFor(priority: VoicePriority, cloudOk: boolean, alertsLo
   if (priority === "normal" || priority === "chatty") return "live";
   if (priority === "critical" && cloudOk) return "live";
   return alertsLocal ? "off" : "cached";
+}
+
+/**
+ * « Alertes en voix locale » n'a plus d'objet après une génération sans échec : les
+ * alertes ont leur voix IA, lue dans le cache, sans jamais attendre le réseau. Rien de
+ * généré (`generated` à 0) : pas de changement, un choix du pilote n'est pas écrasé.
+ */
+export function prepFreesLocalAlerts(outcome: string, generated: number, failed: number): boolean {
+  return outcome === "done" && generated > 0 && failed === 0;
 }
 
 /**
@@ -205,10 +215,11 @@ export function cloudPrepKeys(): string[] {
 
 /**
  * Une phrase chiffrée peut-elle être assemblée dans ce mode ? Urgent (`cached`)
- * sauf réglage `off` ; information (`live`) seulement avec « tout assemblé ».
+ * sauf réglage `off` ; information (`live`) seulement avec « tout assemblé », ou
+ * préparée d'avance pour partir sans délai (`prepared` : l'accueil au circuit).
  */
-export function assembleAllowed(mode: CloudMode, numbers: CloudNumbersMode): boolean {
-  return numbers === "all" || (numbers === "alerts" && mode === "cached");
+export function assembleAllowed(mode: CloudMode, numbers: CloudNumbersMode, prepared = false): boolean {
+  return numbers === "all" || (numbers === "alerts" && (mode === "cached" || prepared));
 }
 
 /**

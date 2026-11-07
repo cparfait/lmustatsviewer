@@ -12,6 +12,10 @@
 //! écrit sur stdout), ce qui ramène une phrase à ~0,15-0,2 s. En cas de souci
 //! (délai dépassé, tube cassé, processus mort), le worker est tué et la requête
 //! repasse par le lancement ponctuel historique (`synthesize_one_shot`).
+//!
+//! **Cache disque** des phrases fixes, par voix (`<cache>/tts_piper/<voix>/<clé>.wav`) :
+//! une phrase déjà générée est relue sans Piper, donc sans attendre le chargement du
+//! modèle. La clé (locuteur, vitesse, langue, texte) est calculée par le frontend.
 
 use crate::error::{AppError, AppResult};
 use std::io::{BufRead, BufReader, Write};
@@ -606,10 +610,68 @@ fn synthesize_with_worker(p: &SynthParams, text: &str, urgent: bool) -> Option<V
     }
 }
 
+/// Dossier du cache disque d'une voix.
+fn voice_cache_dir(cache_root: &Path, voice: &str) -> PathBuf {
+    cache_root.join("tts_piper").join(voice)
+}
+
+/// Fichier d'une phrase, `None` si la clé n'est pas une empreinte (jamais de chemin arbitraire).
+fn cached_wav(dir: &Path, key: &str) -> Option<PathBuf> {
+    super::tts_cloud::valid_cache_key(key).then(|| dir.join(format!("{key}.wav")))
+}
+
+/// Écrit dans un fichier temporaire puis renomme : jamais de WAV à moitié écrit relu ensuite.
+/// Best-effort : un cache non écrit coûte juste une synthèse la prochaine fois.
+fn write_cached_wav(path: &Path, bytes: &[u8]) {
+    if bytes.is_empty() {
+        return;
+    }
+    let tmp = path.with_extension("tmp");
+    let done = path
+        .parent()
+        .map_or(Ok(()), std::fs::create_dir_all)
+        .and_then(|_| std::fs::write(&tmp, bytes))
+        .and_then(|_| std::fs::rename(&tmp, path));
+    if done.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+}
+
+/// Clés sans fichier dans le cache de cette voix (une clé invalide compte comme absente).
+fn missing_wavs(dir: &Path, keys: Vec<String>) -> Vec<String> {
+    keys.into_iter()
+        .filter(|k| cached_wav(dir, k).is_none_or(|p| std::fs::metadata(p).map_or(true, |m| m.len() == 0)))
+        .collect()
+}
+
+/// Oublie les phrases d'une voix supprimée. Best-effort.
+pub(crate) fn clear_voice_cache(app: &tauri::AppHandle, voice_id: &str) {
+    if let Ok(root) = app.path().app_cache_dir() {
+        let _ = std::fs::remove_dir_all(voice_cache_dir(&root, voice_id));
+    }
+}
+
+/// Phrases absentes du cache disque de la voix qui parlerait (préparation : devis et reprise).
+#[tauri::command(async)]
+pub fn tts_piper_cache_missing(
+    app: tauri::AppHandle,
+    lang: String,
+    voice_id: Option<String>,
+    keys: Vec<String>,
+) -> AppResult<Vec<String>> {
+    let Some(model) = resolve_model(&app, &lang, voice_id.as_deref()) else {
+        return Ok(keys);
+    };
+    let root = app.path().app_cache_dir().map_err(|e| AppError::Internal(e.to_string()))?;
+    Ok(missing_wavs(&voice_cache_dir(&root, &stem(&model)), keys))
+}
+
 /// Synthétise `text` dans `lang` (voix `voice_id` optionnelle) → WAV base64.
 /// `rate` (> 0) ajuste la vitesse : Piper `length_scale = 1/rate`.
+/// `cache_key` (phrases fixes) : relue sur disque si elle y est, écrite sinon.
 /// `async` : exécutée hors du thread principal (la synthèse ne fige plus l'UI).
 #[tauri::command(async)]
+#[allow(clippy::too_many_arguments)]
 pub fn tts_synthesize(
     app: tauri::AppHandle,
     text: String,
@@ -618,8 +680,19 @@ pub fn tts_synthesize(
     rate: Option<f32>,
     speaker_id: Option<u32>,
     urgent: Option<bool>,
+    cache_key: Option<String>,
 ) -> AppResult<String> {
     let p = prepare(&app, &lang, voice_id.as_deref(), rate, speaker_id)?;
+    let cached = cache_key
+        .as_deref()
+        .and_then(|k| cached_wav(&voice_cache_dir(&p.cache, &stem(&p.model)), k));
+    if let Some(path) = &cached {
+        if let Ok(bytes) = std::fs::read(path) {
+            if !bytes.is_empty() {
+                return Ok(base64_encode(&bytes));
+            }
+        }
+    }
     // Texte vide : comportement historique (pas de requête JSON vide au worker).
     let bytes = if text.trim().is_empty() {
         synthesize_one_shot(&p, &text)?
@@ -629,6 +702,9 @@ pub fn tts_synthesize(
             None => synthesize_one_shot(&p, &text)?,
         }
     };
+    if let Some(path) = &cached {
+        write_cached_wav(path, &bytes);
+    }
     Ok(base64_encode(&bytes))
 }
 
@@ -683,5 +759,39 @@ mod tests {
         assert_eq!(capped_affinity(0b1111, 2), 0b1111, "4 cœurs : inchangé");
         assert_eq!(capped_affinity(0xFFF, 2), 0xC00, "12 cœurs : les 2 plus hauts");
         assert_eq!(capped_affinity(0b1010_1010_1010, 2), 0b1010_0000_0000, "masque troué");
+    }
+
+    #[test]
+    fn phrase_cache_round_trip_per_voice() {
+        let root = std::env::temp_dir().join(format!("tts_piper_test_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let key = "a1".repeat(32);
+        let other = "b2".repeat(32);
+        let dir = voice_cache_dir(&root, "fr_FR-upmc-medium");
+        assert_eq!(missing_wavs(&dir, vec![key.clone()]), vec![key.clone()], "rien au départ");
+
+        let path = cached_wav(&dir, &key).unwrap();
+        write_cached_wav(&path, b"RIFF");
+        assert_eq!(std::fs::read(&path).unwrap(), b"RIFF");
+        assert!(!path.with_extension("tmp").exists(), "pas de fichier temporaire restant");
+        assert_eq!(missing_wavs(&dir, vec![key.clone(), other.clone()]), vec![other.clone()]);
+        assert_eq!(
+            missing_wavs(&voice_cache_dir(&root, "autre"), vec![key.clone()]),
+            vec![key.clone()],
+            "une autre voix a son propre cache"
+        );
+
+        write_cached_wav(&cached_wav(&dir, &other).unwrap(), b"");
+        assert_eq!(missing_wavs(&dir, vec![other.clone()]), vec![other], "audio vide : pas gardé");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn phrase_cache_refuses_arbitrary_paths() {
+        let dir = Path::new("cache");
+        assert!(cached_wav(dir, "../../etc/passwd").is_none());
+        assert!(cached_wav(dir, "abc").is_none());
+        let bad = "../../x".to_string();
+        assert_eq!(missing_wavs(dir, vec![bad.clone()]), vec![bad], "clé invalide : absente");
     }
 }

@@ -38,7 +38,7 @@ fn check_url(url: &str) -> AppResult<()> {
 }
 
 /// Clé de cache : empreinte hexadécimale calculée par le frontend.
-fn valid_cache_key(key: &str) -> bool {
+pub(super) fn valid_cache_key(key: &str) -> bool {
     (16..=128).contains(&key.len()) && key.chars().all(|c| c.is_ascii_hexdigit())
 }
 

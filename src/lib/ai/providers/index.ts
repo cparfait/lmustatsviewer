@@ -15,10 +15,12 @@ import {
 
 /**
  * Fournisseurs intégrés. Les customs (définis par l'utilisateur) s'y ajoutent.
- * Les fournisseurs à offre gratuite (`free.ts`) suivent les historiques : leur
- * ordre et leurs ids sont stables (clés de config `ai_provider_list`).
+ * Ollama d'abord (local, sans clé), puis les historiques et les offres gratuites
+ * (`free.ts`). Cet ordre est celui du menu d'ajout ; les ids sont stables (clés de
+ * config `ai_provider_list`).
  */
 export const PROVIDERS: AIProvider[] = [
+  ollamaProvider,
   openaiProvider,
   anthropicProvider,
   googleProvider,
@@ -27,7 +29,6 @@ export const PROVIDERS: AIProvider[] = [
   mistralProvider,
   // Offre mixte (seuls les modèles GLM « Flash » sont gratuits) : avec les classiques.
   zaiProvider,
-  ollamaProvider,
   ...FREE_PROVIDERS,
 ];
 

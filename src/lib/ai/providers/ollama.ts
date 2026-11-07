@@ -1,5 +1,6 @@
 /**
- * Fournisseur Ollama (local, hors-ligne) — `http://localhost:11434`.
+ * Fournisseur Ollama (local, hors-ligne) — `http://localhost:<port>`, 11434 par
+ * défaut. Le port se règle sur sa carte (`ai_ollama_port`, posé ici par le store).
  *
  * Aucune clé. La liste des modèles (`/api/tags`) = les modèles réellement
  * téléchargés par l'utilisateur (`ollama pull …`) → pas de repli statique
@@ -9,7 +10,25 @@
 
 import type { AIProvider, ModelInfo } from "../types";
 
-const BASE = "http://localhost:11434";
+export const OLLAMA_DEFAULT_PORT = 11434;
+
+let port = OLLAMA_DEFAULT_PORT;
+
+const base = () => `http://localhost:${port}`;
+
+/** Port saisi ou enregistré : vide = défaut, `null` s'il n'est pas valide. */
+export function parseOllamaPort(raw: string): number | null {
+  const s = raw.trim();
+  if (!s) return OLLAMA_DEFAULT_PORT;
+  if (!/^\d{1,5}$/.test(s)) return null;
+  const n = Number(s);
+  return n >= 1 && n <= 65535 ? n : null;
+}
+
+/** Port utilisé par les prochains appels (appelé par le store). */
+export function setOllamaPort(value: number): void {
+  port = value;
+}
 
 /**
  * Fenêtre de contexte demandée à Ollama (jetons). Sans elle, Ollama garde sa
@@ -39,9 +58,9 @@ export const ollamaProvider: AIProvider = {
   name: "Ollama (local)",
   needsKey: false,
 
-  chatUrl: () => `${BASE}/api/chat`,
-  streamChatUrl: () => `${BASE}/api/chat`,
-  modelsUrl: () => `${BASE}/api/tags`,
+  chatUrl: () => `${base()}/api/chat`,
+  streamChatUrl: () => `${base()}/api/chat`,
+  modelsUrl: () => `${base()}/api/tags`,
   buildHeaders: () => [["Content-Type", "application/json"]],
 
   // Marge « thinking » comme chez Google/OpenAI-compat : vérifié en local,

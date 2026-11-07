@@ -414,7 +414,9 @@ export function answerIntent(intent: AnswerIntent, data: LiveData | null, t: Tr,
       const name = radioName(car.driver);
       const est = engineer.stints.estimate(d, car);
       const parts = [car.num_pitstops > 0 ? t("live.spRStops", { name, count: car.num_pitstops }) : t("live.spRStopsNone", { name })];
-      if (est.stintLaps == null) return `${parts[0]}, ${t("live.spRUnknown")}`;
+      const energy = est.energyPct != null ? t("live.spREnergy", { pct: Math.round(est.energyPct) }) : null;
+      if (est.stintLaps == null) return `${parts[0]}, ${energy ?? t("live.spRUnknown")}`;
+      if (energy) parts.push(energy);
       const stint = Math.round(est.stintLaps);
       parts.push(t(est.fromClass ? "live.spRStintClass" : "live.spRStint", { n: stint }));
       if (est.lapsToNext != null) parts.push(est.lapsToNext <= 0 ? t("live.spRDue") : t("live.spRNext", { when: whenLaps(t, est.lapsToNext) }));

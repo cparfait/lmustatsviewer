@@ -10,7 +10,7 @@
  * où la V2 est adoptée, on supprime l'ancienne page et la duplication disparaît.
  */
 
-import { useState, useEffect, useCallback, useRef, Fragment } from "react";
+import { useState, useEffect, useCallback, useRef, useSyncExternalStore, Fragment } from "react";
 import { Link, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -104,6 +104,7 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { DictationEngine, VoiceDownloads } from "@/components/VoiceDownloads";
+import { PiperPrepare } from "@/components/PiperPrepare";
 import { RADIO_STYLES, toRadioStyle } from "@/lib/radioFx";
 import { useTheme } from "@/stores/theme";
 import { system, config as configApi, indexer, queries } from "@/lib/api";
@@ -123,6 +124,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { cn, formatTime } from "@/lib/utils";
 import { checkForUpdate } from "@/lib/updater";
+import { cloudVoiceOn, cloudVoiceSnapshot, subscribeCloudVoice } from "@/lib/cloudVoice";
 import {
   listVoicesForLang,
   isNaturalVoice,
@@ -442,9 +444,11 @@ export function ConfigV2() {
     }
   }, [aiProvider]);
 
+  // Port d'Ollama changé : ses modèles sont à relire sur le nouveau port.
+  const aiOllamaPort = useAppStore((s) => s.aiOllamaPort);
   useEffect(() => {
     void refreshAiModels();
-  }, [refreshAiModels]);
+  }, [refreshAiModels, aiOllamaPort]);
 
   // Coach vocal héritant du fournisseur d'analyse : reset du modèle vocal
   // périmé au changement de fournisseur (fournisseur vocal distinct = intact).
@@ -496,6 +500,10 @@ export function ConfigV2() {
   useEffect(() => {
     setAiFunResult(null);
   }, [aiProvider, aiModel, aiActiveKey]);
+
+  // « Tester l'IA » fait parler la voix IA en ligne : sans elle, le bouton est grisé.
+  useSyncExternalStore(subscribeCloudVoice, cloudVoiceSnapshot);
+  const aiVoiceOn = cloudVoiceOn();
 
   const handleTestAiFun = async () => {
     const provider = getProvider(aiProvider);
@@ -1460,6 +1468,14 @@ export function ConfigV2() {
                                 onTest: testPiperVoice,
                               }}
                             /></div>
+                            {piperOk && (
+                              <div className="rounded-md border border-border p-3">
+                                <PiperPrepare
+                                  voiceLabel={piperOptions.find((o) => o.value === piperVoiceValue)?.label ?? ""}
+                                  refreshKey={`${piperVoiceValue}|${voiceRate}|${assetsVersion}`}
+                                />
+                              </div>
+                            )}
                           </>
                         )}
                         {voiceEngine === "system" && (
@@ -2541,16 +2557,28 @@ export function ConfigV2() {
                         variant="outline"
                         size="sm"
                         className="h-8 gap-1.5"
-                        onClick={() => void handleTestAiFun()}
-                        disabled={aiFunTesting || !aiModel || (aiNeedsKey && !aiActiveKey)}
+                        onClick={() => previewVoice(t("config.voiceTestPhrase"), i18n.language, { localOnly: true })}
                       >
-                        {aiFunTesting ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-3.5 w-3.5" />
-                        )}
-                        {t("config.aiTestFun")}
+                        <Volume2 className="h-3.5 w-3.5" />
+                        {t("config.voiceTest")}
                       </Button>
+                      {/* Un bouton désactivé ne reçoit pas le survol : l'explication est sur son parent. */}
+                      <span title={aiVoiceOn ? undefined : t("config.aiTestFunNeedsVoice")}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1.5"
+                          onClick={() => void handleTestAiFun()}
+                          disabled={!aiVoiceOn || aiFunTesting || !aiModel || (aiNeedsKey && !aiActiveKey)}
+                        >
+                          {aiFunTesting ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3.5 w-3.5" />
+                          )}
+                          {t("config.aiTestFun")}
+                        </Button>
+                      </span>
                     </div>
                     {aiTestResult && !aiTestResult.ok && (
                       <div className="mb-2 rounded-md border border-destructive/40 px-3 py-2 text-sm leading-snug text-destructive">

@@ -492,6 +492,7 @@ pub fn asset_delete(app: tauri::AppHandle, kind: String, id: String) -> AppResul
             if !onnx && !json {
                 return Err(AppError::Internal("not_downloaded".into()));
             }
+            super::tts::clear_voice_cache(&app, v.id);
             Ok(())
         }
         "stt" => {

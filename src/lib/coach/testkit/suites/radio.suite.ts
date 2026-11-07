@@ -29,6 +29,8 @@ import {
   cloudModeFor,
   cloudPrepKeys,
   CLOUD_PREP_WHEEL_KEYS,
+  assembleAllowed,
+  prepFreesLocalAlerts,
   spokenFixedKeys,
   wheelTemplates,
   estimateCostUsd,
@@ -41,6 +43,7 @@ import {
   formBefore,
   isSegmentTemplateKey,
   joinPcm,
+  namePieces,
   numberSegments,
   segmentInventory,
   trimSilence,
@@ -48,6 +51,8 @@ import {
   type SegmentEntry,
 } from "@/lib/cloudVoiceSegments";
 import { benchFamilies, benchRoute, benchText, type BenchFacts } from "@/lib/cloudVoiceBench";
+import { arrivalPhrase, arrivalTrackNames, spokenTrack, type TrackArrival, type TrackHistory } from "@/lib/engineer/trackRecall";
+import type { Tr } from "@/i18n";
 import fr from "@/i18n/fr";
 import en from "@/i18n/en";
 import es from "@/i18n/es";
@@ -512,8 +517,8 @@ function cloudPrepSuite() {
   // Phrases fixes = sans variable dans le catalogue des annonces. Exceptions :
   // jamais dites seules (suivies d'un temps au tour, préfixe de « Répète ») ou plus dites.
   // Morceaux jamais dits seuls : le bilan au damier et la mémoire du circuit sont
-  // assemblés morceau par morceau (`debriefRadio.ts`, `trackRecall.ts`), la phrase
-  // entière part en direct ; rien à préparer d'avance pour un morceau.
+  // assemblés morceau par morceau (`debriefRadio.ts`, `trackRecall.ts`) ; la phrase entière
+  // n'est jamais préparée (l'accueil se recolle : `SEGMENT_PHRASE_KEYS`).
   const NOT_ALONE = new Set([
     "vBestLap",
     "vLastLap",
@@ -763,6 +768,73 @@ function cloudSegmentsSuite() {
       ok(keys.has(k), `${lang} : ${k} couvert`);
     }
   }
+
+  // Accueil au circuit, 5 langues : recollé de bout en bout, nom du circuit compris.
+  eq(spokenTrack("Paul Ricard - ELMS"), "Paul Ricard", "suffixe de championnat retiré avec son tiret");
+  const known = arrivalTrackNames([{ track: "Autodromo Nazionale Monza", track_course: "Mon Tracé Inconnu" }]);
+  ok(known.includes("Mon Tracé Inconnu"), "un tracé déjà roulé est préparé");
+  ok(known.includes("Circuit de la Sarthe"), "un circuit connu est préparé sans y avoir roulé");
+  eq(namePieces(["Paul Ricard - 1A-V2", "Monza (curvagrande)", "Fuji Speedway", "Fuji Speedway"], (s) => s), ["Fuji Speedway"], "noms chiffrés ou entre parenthèses écartés, sans doublon");
+  eq(assembleAllowed("live", "alerts"), false, "information chiffrée en réglage alertes : en direct");
+  eq(assembleAllowed("live", "alerts", true), true, "accueil préparé en réglage alertes : recollé");
+  eq(assembleAllowed("live", "all", true), true, "accueil préparé en réglage tout recollé");
+  eq(assembleAllowed("live", "off", true), false, "réglage rien de recollé : il garde la main");
+  eq(prepFreesLocalAlerts("done", 40, 0), true, "tout généré : alertes en voix IA");
+  eq(prepFreesLocalAlerts("done", 40, 2), false, "des phrases ratées : le réglage ne bouge pas");
+  eq(prepFreesLocalAlerts("done", 0, 0), false, "rien à générer : le choix du pilote tient");
+  for (const o of ["cancelled", "paused", "changed"]) eq(prepFreesLocalAlerts(o, 40, 0), false, `préparation ${o} : le réglage ne bouge pas`);
+  const history = (o: Partial<TrackHistory>): TrackHistory => ({
+    track: "x",
+    carClass: "GT3",
+    lastRace: null,
+    record: null,
+    carRecord: null,
+    frontLap: null,
+    weakSector: null,
+    pitLossS: null,
+    wearPctPerLap: null,
+    ...o,
+  });
+  const finished = { classPos: 3, classCount: 12, laps: 20, finished: true, timestamp: 1 };
+  const arrivals: TrackArrival[] = [
+    { track: "x", firstVisit: false, communityBest: 130.2, history: history({ lastRace: finished, record: 134.5, carRecord: 134.5, weakSector: 2 }) },
+    { track: "x", firstVisit: false, communityBest: null, history: history({ lastRace: { ...finished, finished: false, laps: 12 }, record: 85.3, frontLap: 84.1 }) },
+    { track: "x", firstVisit: false, communityBest: 140, history: history({ lastRace: finished, record: 134.5, weakSector: 1 }) },
+    { track: "x", firstVisit: true, communityBest: null, history: null },
+    { track: "x", firstVisit: false, communityBest: null, history: null },
+  ];
+  const fill = (tpl: string, vars: Record<string, unknown> = {}) =>
+    tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, v: string) => String(vars[v]));
+  for (const [lang, b] of Object.entries(bundles)) {
+    const lex = buildLexicon(lang, entries(b), (s) => s);
+    const inv = new Set([...segmentInventory(lex), ...namePieces(arrivalTrackNames([]), lex.normalize)]);
+    const tr = ((k: string, vars?: Record<string, unknown>) => fill(b.live[k.replace("live.", "")], vars)) as unknown as Tr;
+    const lap = (s: number) => {
+      const m = Math.floor(s / 60);
+      return (tr as unknown as (k: string, v: Record<string, unknown>) => string)("live.vLapTime", {
+        min: m === 1 ? b.live.vMinOne : m,
+        sec: (s - m * 60).toFixed(1),
+      });
+    };
+    for (const name of ["Autodromo Nazionale Monza", "Circuit de Spa-Francorchamps", "Paul Ricard - ELMS"]) {
+      for (const variant of [0, 1]) {
+        const pick = (_k: string, x: string) => {
+          const v = splitVariants(x);
+          return v[Math.min(variant, v.length - 1)];
+        };
+        for (const a of arrivals) {
+          const text = arrivalPhrase({ ...a, track: name }, tr, lap, pick)!;
+          const segs = assembleSegments(text, lex);
+          ok(segs !== null, `${lang} accueil assemblable : « ${text} »`);
+          if (!segs) continue;
+          eq(segs.map((x) => x.text).filter((x) => !inv.has(x)), [], `${lang} accueil : morceaux tous préparés (« ${text} »)`);
+          ok(segs.some((x) => x.text === spokenTrack(name)), `${lang} accueil : le circuit est un seul morceau`);
+        }
+      }
+    }
+  }
+  eq(say("Nous voilà sur Monza, il fait 3 fois rien"), null, "accueil suivi d'une phrase inconnue : pas assemblable");
+  eq(say("Nous voilà sur Monza. Je te connais ici : Il fait 3 fois rien."), null, "le nom de circuit n'avale pas une phrase entière");
 
 
   // Recollage : silence rogné, pause insérée, fondu aux bords.

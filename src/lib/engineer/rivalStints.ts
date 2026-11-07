@@ -9,7 +9,9 @@
  *  - arrêts restants = relais nécessaires pour couvrir les tours restants au-delà
  *    du prochain arrêt.
  * Le premier relais ne compte que si la voiture a été vue dès le début de la
- * course (sinon sa longueur est inconnue).
+ * course (sinon sa longueur est inconnue). Quand le jeu donne l'énergie restante
+ * et la conso de la voiture, le prochain arrêt en est déduit : c'est une mesure,
+ * elle prend le pas sur l'historique (sauf pendant que la voiture est aux stands).
  *
  * Événement « le leader rentre » : front montant de `in_pits` du leader de la
  * classe du joueur. L'état de stand 1 (`pit_state`, simple demande) ne suffit
@@ -17,6 +19,7 @@
  */
 
 import type { LiveData, LiveStanding } from "@/lib/api";
+import { rivalEnergyLaps, rivalState } from "@/lib/lmuRest";
 
 /** Relais plus courts ignorés (arrêt pour dégâts, pénalité, splash) : tours. */
 export const MIN_STINT_LAPS = 3;
@@ -43,6 +46,12 @@ export interface StintEstimate {
   lapsToNext: number | null;
   /** Arrêts encore nécessaires pour finir ; null si la fin de course est inconnue. */
   stopsLeft: number | null;
+  /** Énergie restante selon le jeu (%), si elle est connue. */
+  energyPct?: number | null;
+  /** Conso d'énergie selon le jeu (% par tour), si elle est connue. */
+  energyPerLapPct?: number | null;
+  /** `lapsToNext` vient de l'énergie donnée par le jeu, pas de l'historique. */
+  fromGame?: boolean;
 }
 
 export interface LeaderPitEvent {
@@ -158,6 +167,8 @@ export class StintRegistry {
     for (const s of cars) {
       const e = this.estimate(d, s);
       const bits = [`P${s.class_position} ${s.driver}: ${s.num_pitstops} stop(s)`];
+      if (e.energyPct != null) bits.push(`virtual energy ${Math.round(e.energyPct)}%`);
+      if (e.energyPerLapPct != null) bits.push(`uses ${e.energyPerLapPct.toFixed(1)}%/lap (game data)`);
       if (e.stintLaps != null) bits.push(`stint ~${Math.round(e.stintLaps)} laps${e.fromClass ? " (class typical)" : ""}`);
       if (e.lapsToNext != null) bits.push(e.lapsToNext <= 0 ? "stop due" : `next stop in ~${e.lapsToNext} laps`);
       if (e.stopsLeft != null) bits.push(`${e.stopsLeft} stop(s) left`);
@@ -172,7 +183,24 @@ export class StintRegistry {
     const own = c ? median(stintsOf(c)) : null;
     const cls = own == null ? this.classStint(s.vehicle_class) : null;
     const stint = own ?? cls;
-    const base: StintEstimate = { driver: s.driver, stops: s.num_pitstops, stintLaps: stint, fromClass: own == null && cls != null, lapsToNext: null, stopsLeft: null };
+    const game = rivalState(d.rest, s);
+    const base: StintEstimate = {
+      driver: s.driver,
+      stops: s.num_pitstops,
+      stintLaps: stint,
+      fromClass: own == null && cls != null,
+      lapsToNext: null,
+      stopsLeft: null,
+      energyPct: game?.energy_pct ?? null,
+      energyPerLapPct: game?.energy_per_lap_pct ?? null,
+    };
+    const range = s.in_pits ? null : rivalEnergyLaps(game);
+    if (range != null && game?.energy_per_lap_pct) {
+      const fullStint = stint ?? Math.floor(100 / game.energy_per_lap_pct);
+      const remaining = lapsLeftFor(d, s);
+      const stopsNeeded = remaining == null ? null : remaining <= range ? 0 : Math.ceil((remaining - range) / fullStint);
+      return { ...base, stintLaps: fullStint, lapsToNext: range, stopsLeft: stopsNeeded, fromGame: true };
+    }
     if (stint == null || !c) return base;
     const lastStop = c.stopLaps.length ? c.stopLaps[c.stopLaps.length - 1] : c.fromStart ? 0 : null;
     if (lastStop == null) return base;

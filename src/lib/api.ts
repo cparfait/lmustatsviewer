@@ -991,7 +991,27 @@ export interface LmuRestLive {
   weather: RestField<RestWeekendWeather>;
   /** Setup chargé dans la voiture (`garage/summary`), lu en piste. */
   setup?: RestField<RestLoadedSetup>;
+  /** État et conso des voitures selon le jeu (`watch/standings`, `strategy/usage`). */
+  rivals?: RestField<RestRival[]>;
   garage_state: RestFreshness;
+}
+
+/** État d'une voiture selon le jeu. Une valeur inconnue reste `null`, jamais 0. */
+export interface RestRival {
+  slot_id: number | null;
+  driver: string;
+  /** Carburant restant (% du réservoir). */
+  fuel_pct: number | null;
+  /** Énergie virtuelle restante (%). */
+  energy_pct: number | null;
+  /** Phase aux stands telle que le jeu la donne. */
+  pit_state: string | null;
+  pitstops: number | null;
+  penalties: number | null;
+  /** Conso médiane d'énergie (% par tour), mesurée par le jeu. */
+  energy_per_lap_pct: number | null;
+  /** Tours qui fondent cette conso. */
+  energy_laps: number | null;
 }
 
 /** `garage/summary` : setup chargé dans la voiture. */

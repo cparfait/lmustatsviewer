@@ -22,12 +22,16 @@ import {
   clearSpeechCache,
   cloudPrepTexts,
   cloudSegmentPrepTexts,
+  configureVoice,
+  playBench,
   prewarmSpeech,
   previewVoice,
   setCloudSegmentSource,
   speak,
 } from "@/lib/voice";
-import { initCloudVoice, planCloudPrep, runCloudPrep, updateCloudVoice } from "@/lib/cloudVoice";
+import { cloudCacheMissing, cloudVoiceSnapshot, initCloudVoice, planCloudPrep, runCloudPrep, updateCloudVoice } from "@/lib/cloudVoice";
+import { buildPrepList } from "@/lib/cloudVoicePrepList";
+import { piperPrepSnapshot, planPiperPrep, runPiperPrep } from "@/lib/piperPrep";
 import fr from "@/i18n/fr";
 import { startCoachService, stopCoachService } from "@/lib/coach";
 import { loadPaceTiers } from "@/lib/engineer/paceTiers";
@@ -133,6 +137,10 @@ class FakeAudioContext {
   }
 }
 
+/** Cache disque de Piper (par voix, comme le backend) ; `piperFails` : moteur en panne. */
+const piperDisk = new Set<string>();
+let piperFails = false;
+
 let nextCb = 1;
 let nextEvent = 1;
 /** Abonnements `live-data` actifs (service coach). */
@@ -141,9 +149,17 @@ let listenGate: Deferred<void> | null = null;
 
 async function fakeInvoke(cmd: string, args: Record<string, unknown> = {}): Promise<unknown> {
   switch (cmd) {
-    case "tts_synthesize":
-      piperCalls.push(String(args.text));
-      return enc(`piper:${String(args.text)}`);
+    case "tts_synthesize": {
+      if (piperFails) throw new Error("piper absent");
+      const text = String(args.text);
+      const key = typeof args.cacheKey === "string" ? `${String(args.voiceId ?? "")}|${args.cacheKey}` : "";
+      if (key && piperDisk.has(key)) return enc(`piper:${text}`);
+      piperCalls.push(text);
+      if (key) piperDisk.add(key);
+      return enc(`piper:${text}`);
+    }
+    case "tts_piper_cache_missing":
+      return (args.keys as string[]).filter((k) => !piperDisk.has(`${String(args.voiceId ?? "")}|${k}`));
     case "tts_cloud_synthesize": {
       const body = args.body as { input?: string };
       const text = String(body?.input ?? "");
@@ -225,6 +241,7 @@ async function reset(alertsLocal: boolean) {
   piperCalls = [];
   lastSource = null;
   cloudCache.clear();
+  piperDisk.clear();
   await updateCloudVoice({ alertsLocal, numbers: "alerts" });
 }
 
@@ -331,7 +348,130 @@ async function twoVoicesSuite() {
   eq(cloudRequests.length, 0, "chiffrée : aucune requête au moment de parler");
   await endPlayback();
   eq(plays, ["cloud:assemblée"], "chiffrée, morceaux préparés : voix en ligne assemblée");
+
+  // Accueil au circuit : recollé sans requête dès que le nom du circuit est préparé.
+  const arrival = (sec: string) => `Nous voilà sur Monza. Je te connais ici : ton record avec cette voiture une minute ${sec}.`;
+  plays = [];
+  speak(arrival("23.4"), "fr", "chatty", undefined, { preferAssembled: true });
+  await settle();
+  eq(cloudRequests.length, 1, "accueil, nom du circuit non préparé : généré en ligne");
+  await answerCloud("Monza");
+  await endPlayback();
+  await prepare(cloudSegmentPrepTexts("fr", ["Monza"]));
+  plays = [];
+  speak(arrival("23.5"), "fr", "chatty", undefined, { preferAssembled: true });
+  await settle();
+  eq(cloudRequests.length, 0, "accueil préparé : aucune requête au moment de parler");
+  await endPlayback();
+  eq(plays, ["cloud:assemblée"], "accueil préparé : voix en ligne recollée");
+  plays = [];
+  speak("On arrive sur Monza.", "fr", "chatty", undefined, { preferAssembled: true });
+  await settle();
+  eq(cloudRequests.length, 0, "accueil sans chiffre : aucune requête");
+  await endPlayback();
+  eq(plays, ["cloud:assemblée"], "accueil sans chiffre : recollé lui aussi");
+  plays = [];
+  speak(arrival("23.6"), "fr", "chatty");
+  await settle();
+  eq(cloudRequests.length, 1, "même phrase sans l'option : en direct, comme les autres informations");
+  await answerCloud("Monza");
+  await endPlayback();
+  await updateCloudVoice({ numbers: "off" });
+  plays = [];
+  speak(arrival("23.7"), "fr", "chatty", undefined, { preferAssembled: true });
+  await settle();
+  eq(cloudRequests.length, 1, "réglage « Rien de recollé » : l'accueil part en ligne");
+  await answerCloud("Monza");
+  await endPlayback();
+
+  // Banc d'écoute : la liste affichée est celle que « Préparer la voix » génère.
+  const list = buildPrepList("fr", (k) => k, live, ["Monza"]);
+  eq(new Set(list.all).size, list.all.length, "liste du banc : sans doublon");
+  eq(list.all.includes("Monza"), true, "liste du banc : noms de circuit compris");
+  eq(list.segments.every((x) => list.all.includes(x)), true, "liste du banc : tous les morceaux");
+  eq(list.phrases.length > 200, true, "liste du banc : toutes les phrases fixes");
+  eq(list.phrases.every((x) => list.all.includes(x)), true, "liste du banc : aucune phrase fixe oubliée");
+  await prepare(list.all);
+  eq((await cloudCacheMissing(list.all, list.code, list.rate)).length, 0, "liste du banc : toute préparée d'un coup");
+  plays = [];
+  eq(await playBench("Monza", "fr", "cloud", true), true, "morceau écouté depuis le banc");
+  eq(cloudRequests.length, 0, "écoute du banc : aucune requête");
+  await endPlayback();
+  eq(plays, ["cloud:Monza"], "morceau du banc : lu dans le cache de la voix en ligne");
+
+  // Préparation complète lancée par le bouton : les alertes passent en voix IA.
+  await reset(true);
+  const alert = cloudPrepTexts(["Voiture à gauche"], "fr");
+  const runFromButton = async () => {
+    instantCloud = true;
+    try {
+      await runCloudPrep(await planCloudPrep(alert.texts, alert.code, alert.rate), { freeLocalAlerts: true });
+    } finally {
+      instantCloud = false;
+    }
+  };
+  await prepare(["Voiture à droite"]);
+  eq(cloudVoiceSnapshot().settings.alertsLocal, true, "préparation hors bouton : réglage intact");
+  await runFromButton();
+  eq(cloudVoiceSnapshot().settings.alertsLocal, false, "tout généré : « Alertes en voix locale » coupé");
+  plays = [];
+  speak("Voiture à gauche", "fr", "spotter");
+  await settle();
+  eq(cloudRequests.length, 0, "alerte après préparation : aucune requête");
+  await endPlayback();
+  eq(plays, ["cloud:Voiture à gauche"], "alerte après préparation : voix IA");
+  await updateCloudVoice({ alertsLocal: true });
+  await runFromButton();
+  eq(cloudVoiceSnapshot().settings.alertsLocal, true, "réactivé par le pilote, rien à générer : son choix tient");
   setCloudSegmentSource(null);
+}
+
+async function piperPrepSuite() {
+  section("voix — phrases Piper préparées");
+  await reset(false);
+  const texts = ["Phrase préparée une", "Phrase préparée deux"];
+  const plan = await planPiperPrep(texts, "fr");
+  eq(plan.missing, texts, "rien de prêt : tout est à générer");
+  eq(await runPiperPrep(plan), "done", "génération terminée");
+  eq(piperCalls, texts, "chaque phrase passe une fois dans Piper");
+  eq((await planPiperPrep(texts, "fr")).missing, [], "tout est prêt ensuite");
+
+  // Nouveau lancement : mémoire vide, disque plein. La phrase part sans appeler Piper.
+  clearSpeechCache();
+  piperCalls = [];
+  plays = [];
+  speak(texts[0], "fr", "spotter");
+  await settle();
+  await endPlayback();
+  eq(piperCalls, [], "phrase préparée : relue sur disque, sans Piper");
+  eq(plays, [`piper:${texts[0]}`], "phrase préparée : bien dite");
+
+  // Une phrase chiffrée n'est pas gardée : elle change à chaque fois.
+  const size = piperDisk.size;
+  speak("Carburant pour 3 tours", "fr", "spotter");
+  await settle();
+  await endPlayback();
+  eq(piperDisk.size, size, "phrase chiffrée : pas de fichier");
+
+  // Autre voix : ses propres phrases, et une génération lancée ne se mélange pas.
+  const before = piperPrepSnapshot().outcome;
+  eq(before, "done", "état de la dernière génération");
+  configureVoice({ piperByLang: { fr: "autre-voix" } });
+  const other = await planPiperPrep(texts, "fr");
+  eq(other.missing, texts, "autre voix : tout est à générer");
+  configureVoice({ piperByLang: {} });
+  eq(await runPiperPrep(other), "changed", "voix changée en route : arrêt");
+  eq(piperPrepSnapshot().done, 0, "voix changée : rien de généré pour l'ancienne");
+  eq((await planPiperPrep(texts, "fr")).missing, [], "la voix d'origine garde ses phrases");
+
+  // Moteur en panne : arrêt rapide, et reprise de ce qui manque.
+  const more = ["Phrase a", "Phrase b", "Phrase c", "Phrase d"];
+  const failing = await planPiperPrep(more, "fr");
+  piperFails = true;
+  eq(await runPiperPrep(failing), "paused", "Piper en panne : arrêt");
+  eq(piperPrepSnapshot().failed, 2, "arrêt après deux échecs d'affilée");
+  piperFails = false;
+  eq((await planPiperPrep(more, "fr")).missing, more, "rien de faux gardé : tout reste à générer");
 }
 
 async function duplicateSuite() {
@@ -474,6 +614,7 @@ export async function run() {
   installFakes();
   await initCloudVoice(JSON.stringify({ enabled: true, provider: "openai", voice: "ash" }));
   await twoVoicesSuite();
+  await piperPrepSuite();
   await duplicateSuite();
   await heardSuite();
   await tierLoadSuite();

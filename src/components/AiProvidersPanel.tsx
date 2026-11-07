@@ -27,6 +27,7 @@ import { useTranslation } from "react-i18next";
 import { Plus, Pencil, Trash2, Eye, EyeOff, ExternalLink, Gift, ChevronDown } from "lucide-react";
 import { useAppStore } from "@/stores/app";
 import { PROVIDERS, getProvider } from "@/lib/ai/providers";
+import { OLLAMA_DEFAULT_PORT, ollamaProvider, parseOllamaPort } from "@/lib/ai/providers/ollama";
 import type { AIProvider } from "@/lib/ai/types";
 import {
   FREE_LIST_URL,
@@ -110,6 +111,7 @@ function ProviderCard({ id, onEdit }: { id: string; onEdit: () => void }) {
   // Fournisseur en service : analyse, ou coach vocal quand il a son propre fournisseur.
   // Les autres sont grisés (voyant inchangé : il dit seulement si le service répond).
   const inUse = useAppStore((s) => s.aiProvider === id || s.aiVoiceProvider === id);
+  const ollamaPort = useAppStore((s) => s.aiOllamaPort);
 
   useEffect(() => {
     let alive = true;
@@ -125,7 +127,7 @@ function ProviderCard({ id, onEdit }: { id: string; onEdit: () => void }) {
     return () => {
       alive = false;
     };
-  }, [id, apiKey, def?.baseUrl]);
+  }, [id, apiKey, def?.baseUrl, ollamaPort]);
 
   if (!provider) return null;
   return (
@@ -157,6 +159,9 @@ function ProviderCard({ id, onEdit }: { id: string; onEdit: () => void }) {
           </div>
           {def && (
             <div className="truncate text-[11px] text-muted-foreground">{def.baseUrl}</div>
+          )}
+          {id === ollamaProvider.id && ollamaPort !== OLLAMA_DEFAULT_PORT && (
+            <div className="truncate text-[11px] text-muted-foreground">localhost:{ollamaPort}</div>
           )}
           {provider.freeTier && (
             <div className="truncate text-[11px] text-muted-foreground">
@@ -245,6 +250,7 @@ function ProviderForm({
     editId ? (useAppStore.getState().aiProviderKeys[editId] ?? "") : "",
   );
   const [showKey, setShowKey] = useState(false);
+  const [portText, setPortText] = useState(() => String(useAppStore.getState().aiOllamaPort));
 
   /** Saisie d'un fournisseur personnalisé (édition d'un custom, ou choix du menu). */
   const isCustom = mode === "custom" || builtinId === CUSTOM_CHOICE;
@@ -252,10 +258,14 @@ function ProviderForm({
   /** Clé facultative : personnalisé, ou offre gratuite utilisable sans compte. */
   const keyOptional = isCustom || !!provider?.freeTier?.noKey;
   const helpUrl = provider?.keyUrl ?? provider?.docsUrl ?? "";
-  const canSave = isCustom ? !!baseUrl.trim() : !!builtinId;
+  const isOllama = provider?.id === ollamaProvider.id;
+  const ollamaPort = parseOllamaPort(portText);
+  const canSave = isCustom ? !!baseUrl.trim() : !!builtinId && (!isOllama || ollamaPort !== null);
 
   const save = useCallback(async () => {
     const st = useAppStore.getState();
+    // Avant l'ajout : sa sélection relit aussitôt la liste des modèles sur ce port.
+    if (isOllama && ollamaPort !== null) await st.setAIOllamaPort(ollamaPort);
     if (isCustom) {
       const url = baseUrl.trim();
       if (!url) return;
@@ -278,7 +288,7 @@ function ProviderForm({
       }
     }
     onClose();
-  }, [isCustom, editId, builtinId, name, baseUrl, key, inFreeSection, onClose]);
+  }, [isCustom, isOllama, ollamaPort, editId, builtinId, name, baseUrl, key, inFreeSection, onClose]);
 
   return (
     <div className="space-y-2 rounded-md border border-input p-3">
@@ -348,6 +358,27 @@ function ProviderForm({
           </label>
           <p className="text-right text-[11px] leading-snug text-muted-foreground/70">
             {t("config.aiCustomUrlTip")}
+          </p>
+        </>
+      )}
+
+      {isOllama && (
+        <>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            {t("config.aiOllamaPort")}
+            <Input
+              value={portText}
+              onChange={(e) => setPortText(e.target.value)}
+              placeholder={String(OLLAMA_DEFAULT_PORT)}
+              inputMode="numeric"
+              spellCheck={false}
+              autoComplete="off"
+              aria-invalid={ollamaPort === null}
+              className={`h-8 w-[240px] text-sm ${ollamaPort === null ? "border-red-500" : ""}`}
+            />
+          </label>
+          <p className="text-right text-[11px] leading-snug text-muted-foreground/70">
+            {t("config.aiOllamaPortTip", { port: OLLAMA_DEFAULT_PORT })}
           </p>
         </>
       )}

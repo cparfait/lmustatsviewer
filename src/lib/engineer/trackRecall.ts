@@ -13,6 +13,7 @@
 
 import { queries, type BestLapRow, type CareerRace } from "@/lib/api";
 import { debriefOf } from "@/lib/debrief/load";
+import { KNOWN_TRACK_NAMES } from "@/lib/ohne_speed";
 import { loadCommunityBest } from "./paceTiers";
 import { radioClass } from "./text";
 import type { Pick } from "./debriefRadio";
@@ -23,7 +24,7 @@ export const MIN_LAPS = 2;
 /** Courses relues pour la perte au stand mesurée. */
 const PIT_SAMPLES = 5;
 /** Attente maximale du temps de la communauté : l'accueil ne dépend pas du réseau (ms). */
-const COMMUNITY_TIMEOUT_MS = 4000;
+const COMMUNITY_TIMEOUT_MS = 1500;
 
 function plain(s: string): string {
   return (s || "")
@@ -157,17 +158,33 @@ export interface TrackArrival {
   communityBest: number | null;
 }
 
-/** Temps de la communauté, borné : un réseau lent ou absent n'empêche pas l'accueil. */
-async function communityBestBounded(track: string, carClass: string): Promise<number | null> {
+/** Résultat de `work`, ou `fallback` s'il tarde : la suite n'attend pas au-delà de `ms`. */
+export async function within<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<null>((res) => {
-    timer = setTimeout(() => res(null), COMMUNITY_TIMEOUT_MS);
+  const timeout = new Promise<T>((res) => {
+    timer = setTimeout(() => res(fallback), ms);
   });
   try {
-    return await Promise.race([loadCommunityBest(track, carClass).catch(() => null), timeout]);
+    return await Promise.race([work, timeout]);
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Temps de la communauté déjà reçus : une réponse arrivée trop tard sert à l'accueil suivant. */
+const communityBests = new Map<string, number>();
+
+/** Temps de la communauté, borné : un réseau lent ou absent n'empêche pas l'accueil. */
+async function communityBestBounded(track: string, carClass: string): Promise<number | null> {
+  const key = `${track}|${radioClass(carClass)}`;
+  const known = communityBests.get(key);
+  const fresh = loadCommunityBest(track, carClass)
+    .then((v) => {
+      if (v != null) communityBests.set(key, v);
+      return v;
+    })
+    .catch(() => null);
+  return known ?? within(fresh, COMMUNITY_TIMEOUT_MS, null);
 }
 
 /** Charge l'accueil. `withCommunity` : faux quand rien ne sera dit (en course, réglage coupé). */
@@ -198,8 +215,14 @@ export function arrivalRearms(prevSession: number | null, session: number): bool
 export function spokenTrack(track: string): string {
   return (track || "")
     .replace(/_/g, " ")
-    .replace(/\s+(WEC|ELMS|IMSA)\s*$/i, "")
+    .replace(/[\s-]+(WEC|ELMS|IMSA)\s*$/i, "")
     .trim();
+}
+
+/** Noms que l'accueil peut dire : les circuits connus de l'app et ceux déjà roulés. */
+export function arrivalTrackNames(rows: { track: string; track_course: string }[]): string[] {
+  const all = [...KNOWN_TRACK_NAMES, ...rows.flatMap((r) => [r.track, r.track_course])];
+  return [...new Set(all.map(spokenTrack).filter(Boolean))];
 }
 
 /** Dernier historique chargé (pour le contexte du coach vocal). */

@@ -19,6 +19,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { ai, config, isTauri } from "@/lib/api";
+import { prepFreesLocalAlerts } from "@/lib/cloudVoicePrep";
 import {
   getCloudVoiceProvider,
   providerDefaultVoice,
@@ -300,7 +301,7 @@ export function noteCloudFallback() {
 
 // ── Synthèse ─────────────────────────────────────────────────────────────────
 
-async function sha256Hex(text: string): Promise<string> {
+export async function sha256Hex(text: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -525,8 +526,10 @@ export function cancelCloudPrep() {
  * sur annulation, sur la pause après échecs (réseau, quota : inutile d'insister)
  * ou si fournisseur, modèle, voix, langue ou vitesse changent en route (la
  * suite serait rangée sous une autre voix que celle du devis affiché).
+ * `freeLocalAlerts` (bouton « Préparer la voix ») : coupe « Alertes en voix locale »
+ * si tout a été généré sans échec.
  */
-export async function runCloudPrep(plan: CloudPrepPlan): Promise<CloudPrepOutcome> {
+export async function runCloudPrep(plan: CloudPrepPlan, opts?: { freeLocalAlerts?: boolean }): Promise<CloudPrepOutcome> {
   if (prep?.running) return "cancelled";
   prepCancel = false;
   let state: CloudPrepState = {
@@ -575,5 +578,8 @@ export async function runCloudPrep(plan: CloudPrepPlan): Promise<CloudPrepOutcom
   await Promise.all(Array.from({ length: PREP_CONCURRENCY }, (_, i) => worker(i)));
 
   setPrep({ ...state, running: false, outcome });
+  if (opts?.freeLocalAlerts && settings.alertsLocal && prepFreesLocalAlerts(outcome, state.done, state.failed)) {
+    await updateCloudVoice({ alertsLocal: false });
+  }
   return outcome;
 }

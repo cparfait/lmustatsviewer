@@ -139,6 +139,7 @@ main .wrap.narrow { max-width: 820px; }
 
 /* Vidéo de présentation : même fenêtre que la capture, sans le reflet (il passerait
    sur les contrôles du lecteur). */
+.video-shot { margin: 0 0 clamp(32px, 4vw, 52px); }
 .video-shot::after { display: none; }
 .video-shot video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #0b101f; }
 

@@ -22,6 +22,22 @@
   /* La langue est choisie par ../boot.js (?lang=, choix mémorisé, navigateur, anglais) et
      changée depuis l'en-tête commun (../site.js), qui recharge la page : ici on traduit. */
 
+  /* Vidéo de présentation : une version par langue (voix et textes traduits).
+     Langue sans version : l'anglais. On ne recharge la source que si elle change,
+     pour ne pas couper une lecture en cours. */
+  var VIDEO_LANGS = ["fr", "en", "es", "de", "it"];
+  function setPromoVideo(lang) {
+    var v = document.getElementById("promoVideo");
+    if (!v) return;
+    var l = VIDEO_LANGS.indexOf(lang) !== -1 ? lang : "en";
+    var src = "assets/video/presentation-" + l + ".mp4";
+    var source = v.querySelector("source");
+    if (source && source.getAttribute("src") === src) return;
+    v.setAttribute("poster", "assets/video/presentation-" + l + ".jpg");
+    if (source) source.setAttribute("src", src);
+    v.load();
+  }
+
   function applyLang(lang) {
     var dict = window.VITRINE_I18N[lang] || window.VITRINE_I18N.en;
 
@@ -43,6 +59,7 @@
     });
 
     labelShots(dict);
+    setPromoVideo(lang);
 
     // Les pages qui construisent du contenu en JS (la page des versions)
     // écoutent cet évènement pour se retraduire.

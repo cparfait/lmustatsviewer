@@ -12,11 +12,11 @@
 <meta property="og:title" data-i18n-attr="content" data-i18n="meta.title" content="LMU Stats Viewer">
 <meta property="og:description" data-i18n-attr="content" data-i18n="meta.description" content="">
 <meta property="og:image" content="assets/img/shots/records-dark.png">
-<link rel="stylesheet" href="/assets/site.css?v=70">
-<link rel="stylesheet" href="/assets/css/vitrine.css?v=70">
+<link rel="stylesheet" href="/assets/site.css?v=71">
+<link rel="stylesheet" href="/assets/css/vitrine.css?v=71">
 
 <!-- Thème et langue posés avant le premier rendu (fichier commun à tout le site). -->
-<script src="/assets/boot.js?v=70"></script>
+<script src="/assets/boot.js?v=71"></script>
 </head>
 <body>
 
@@ -118,6 +118,31 @@
         <li><strong>7</strong><span data-i18n="chips.ai">fournisseurs IA</span></li>
         <li><strong>0</strong><span data-i18n="chips.cloud">donnée envoyée sans votre accord</span></li>
       </ul>
+    </div>
+  </section>
+
+  <!-- ───────────────── VIDÉO ─────────────────
+       Présentation complète en vidéo, une par langue : la source suit la langue
+       de la page (cf. setPromoVideo dans assets/js/app.js). Rien n'est chargé
+       avant le clic (preload="none"), seule l'affiche s'affiche. -->
+  <section class="section" id="video">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="kicker" data-i18n="video.kicker">En vidéo</p>
+        <h2 data-i18n="video.title">Toute l'app en moins de deux minutes</h2>
+      </header>
+      <figure class="hero-shot video-shot">
+        <div class="win-bar" aria-hidden="true">
+          <span class="win-dots"><i></i><i></i><i></i></span>
+          <span class="win-title">LMU Stats Viewer</span>
+          <span class="win-ctrls"><i></i><i></i><i></i></span>
+        </div>
+        <video id="promoVideo" controls preload="none" playsinline width="1920" height="1080"
+               poster="assets/video/presentation-fr.jpg" data-i18n="video.alt" data-i18n-attr="aria-label"
+               aria-label="Vidéo de présentation de LMU Stats Viewer">
+          <source src="assets/video/presentation-fr.mp4" type="video/mp4">
+        </video>
+      </figure>
     </div>
   </section>
 
@@ -561,9 +586,9 @@
   <p class="lb-caption" id="lbCaption"><span id="lbCount" class="lb-count"></span><span id="lbText"></span></p>
 </div>
 
-<script src="/assets/site.js?v=70"></script>
-<script src="/assets/js/i18n.js?v=70"></script>
-<script src="/assets/js/app.js?v=70"></script>
-<script src="/assets/js/analytics.js?v=70"></script>
+<script src="/assets/site.js?v=71"></script>
+<script src="/assets/js/i18n.js?v=71"></script>
+<script src="/assets/js/app.js?v=71"></script>
+<script src="/assets/js/analytics.js?v=71"></script>
 </body>
 </html>

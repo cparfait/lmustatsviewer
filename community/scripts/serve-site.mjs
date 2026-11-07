@@ -13,7 +13,7 @@ const SITE = join(here, "..", "site");
 const PUBLIC = join(here, "..", "..", "public");
 const API = (process.env.API || "http://127.0.0.1:3080").replace(/\/$/, "");
 const PORT = Number(process.env.PORT || 5190);
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webp": "image/webp" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webp": "image/webp", ".jpg": "image/jpeg", ".mp4": "video/mp4" };
 
 createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");

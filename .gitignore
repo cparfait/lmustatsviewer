@@ -99,3 +99,6 @@ stt-eval/wav/
 
 # Python (banc stt-eval)
 __pycache__/
+
+# Vidéo de lancement générée par /brag
+brag-output/

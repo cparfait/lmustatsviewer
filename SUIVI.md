@@ -946,6 +946,66 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-11-07 — Vidéos de présentation (/brag + Hyperframes), aucun code de l'app modifié
+
+**Demande** : « installe brag et fais moi une vidéo de mon projet », puis une présentation de toutes les fonctionnalités, en 5 langues, avec voix.
+
+- ✅ Outils installés hors dépôt : skills `brag` / `brag-slim` (`~/.claude/skills`), CLI **Hyperframes 0.9.20** (`npm -g`) et ses skills mis à jour.
+- ✅ **Vidéo courte** (22 s, musique + bruitages) : `brag-output/brag.mp4`, projet `brag-output/composition/`.
+- ✅ **Présentation complète** (12 scènes, 93 à 110 s selon la langue) : `brag-output/presentation-{fr,en,es,de,it}.mp4` + affiches `.jpg`. Projets : `composition-long/` (FR, modèle) et `composition-{en,es,de,it}/`, textes dans `brag-output/strings.json`.
+- ✅ Voix **Cartesia** (Sonic 3, émotion « happy », clé du mainteneur, non stockée dans le dépôt) : Jules (FR), Finn (EN), Carlos (ES), Leander (DE), Lorenzo (IT). Chaque scène est calée sur la durée de sa phrase (aucune accélération).
+- ✅ Captures du site (`community/site/assets/img/shots`) avec curseur avant/après sombre → clair ; noms des autres pilotes floutés sur la capture de course.
+- ✅ Formulation retenue (mainteneur) : « Local : rien ne quitte votre PC **sans votre accord** » (classement en ligne opt-in) ; « Vos données restent sur votre PC » retiré.
+- ✅ `brag-output/` ajouté au `.gitignore`. Musique CC BY 4.0 : créditer « Music: Sascha Ende, ende.app (CC BY 4.0) » en cas de publication.
+- ✅ Révisions du mainteneur : voix plus énergique (émotion « excited », pauses 0,3 s), intro avant l'accroche, curseur avant/après sombre → clair sur chaque écran, mention « thème clair ou sombre », scène Records sur le **classement communautaire** (capture du site, pseudos floutés) au lieu d'ohne_speed, « setup » sans s dans la voix FR.
+- ✅ **Vidéo sur le site** (`community/site`, non commité, non déployé) : section `#video` sous la capture d'accueil, `assets/video/presentation-{fr,en,es,de,it}.mp4` (~10 Mo chacune, 1080p) + affiches `.jpg` ; la source suit la langue de la page (`setPromoVideo` dans `assets/js/app.js`, repli anglais), `preload="none"`. Textes `video.*` dans `i18n.js` (5 langues), `?v=71`. Aperçu local : `serve-site.mjs` sert désormais `.mp4` / `.jpg`. Aucune modification de la CSP (`media-src` hérite de `'self'`).
+- 📋 **Prochaine étape** : commit + déploiement du site par le mainteneur (54 Mo de vidéos ajoutés au dépôt) ; captures de l'app en EN/ES/DE/IT et une capture des overlays en jeu si on veut les montrer.
+
+### 2026-11-06 — Phrases Piper générées d'avance, proposées à l'installation (non commité)
+
+**Demande** : « à l'installation de piper il faut générer les phrases ou le proposer avec la voix que l'on a choisi ».
+- ✅ **Cache disque** : `<cache>/tts_piper/<voix>/<clé>.wav`, voix réelle résolue par Rust, clé (locuteur, vitesse, langue, texte) calculée par le front. `tts_synthesize` relit avant de lancer Piper et écrit toute phrase fixe dite (lecture à travers). Effacé à la suppression de la voix.
+- ✅ **Génération** (`piperPrep.ts`) : phrases fixes de `buildPrepList`, sans les morceaux, une à une ; reprise possible ; arrêt si voix, locuteur ou vitesse changent, ou après deux échecs.
+- ✅ **Proposition** : à l'installation, seulement si la voix installée est celle qui parlera. Sinon ligne « Phrases Piper préparées » dans la Config, qui suit la voix choisie.
+- 📏 **Mesure** (UPMC, ce PC, un seul processus Piper) : 269 phrases, 31 s, 25 Mo, 115 ms par phrase en moyenne. En ~300 phrases, d'où « environ une minute et 30 Mo » annoncés. Non mesuré dans l'app, où Piper tourne en priorité basse.
+- ⚠️ **Gain modeste une fois le moteur lancé** : ~0,15-0,2 s par phrase (déjà préchauffées pour les alertes). Le vrai gain : pas de chargement du modèle et phrases non préchauffées. Une vitesse changée crée une autre série de fichiers, jamais purgée tant que la voix reste installée.
+- ⏳ **Non vérifié** : le dialogue et la ligne à l'écran (Config hors Tauri), la génération dans l'app, y compris pendant une séance.
+- 📋 **Prochaine étape** : installer ou choisir une voix dans l'app, lancer la génération, vérifier `tts_piper` dans le cache et le départ des phrases ; puis commit de mes lignes seules.
+
+### 2026-11-06 — Banc d'écoute : toutes les phrases générées (non commité)
+
+**Demande** : « ajoute toutes les phrases qui sont générées sur le banc ».
+- ✅ `cloudVoicePrepList.ts` : `buildPrepList`, liste unique du devis et du banc, pour qu'ils ne divergent pas. Section en bas du banc : phrases entières puis morceaux, filtre, état et écoute (IA, Piper).
+- ✅ Un seul sondage du cache pour toute la liste (`cloudCacheMissing`), pas un par ligne comme les exemples du haut ; composant `memo` pour ne pas redessiner des centaines de lignes à chaque touche.
+- ✅ `playBench(..., exact)` : le texte de la liste est déjà celui du cache, il n'est pas renormalisé. Le filtre ignore la casse, mais pas les accents (« generee » ne trouve pas « générée »).
+- ✅ `tsc -b`, `npm test`, lint, build, dont `voice.suite` (liste, préparation, écoute). Non vu à l'écran : la page Config ne s'affiche pas hors Tauri.
+- ✅ **« Alertes en voix locale » coupé après préparation complète** (demande : « il faut désactiver ça si on a tout préparé ») : à la fin d'une génération par le bouton, sans échec (`prepFreesLocalAlerts`). Pas si rien n'était à générer, ni si des phrases ont échoué : le pilote peut le réactiver et son choix tient. Une alerte non préparée (autre langue, autre vitesse) part en Piper, jamais sur le réseau. Le cas « tout déjà prêt, réglage encore activé » reste manuel.
+- 📋 **Prochaine étape** : ouvrir le banc dans l'app, vérifier le compte (il doit égaler le devis) et la fluidité ; lancer « Préparer la voix » et voir le réglage se couper.
+
+### 2026-11-06 — Ollama en tête, port modifiable (non commité)
+
+**Demande** : « mets ollama en premier », « il faut pouvoir changer le port de ollama ».
+- ✅ **Ordre** : Ollama en tête de `PROVIDERS`, donc du menu d'ajout, où il est présélectionné. Les barres de fournisseurs configurés gardent l'ordre d'ajout (`ai_provider_list`).
+- ✅ **Port** : `ai_ollama_port` (11434 par défaut), champ dans le formulaire d'Ollama, ajout comme édition. Port invalide : enregistrement bloqué. Voyant de la carte et liste des modèles relus au changement. Hôte non réglable : toujours `localhost`.
+- ✅ `tsc -b`, `npm test`, lint, build (`freeai.suite`, section `ai.ollama`). Non essayé avec un vrai serveur Ollama sur un autre port, ni à l'écran dans l'app.
+- ✅ **Boutons de test du Coach IA** (demande : griser « Tester l'IA » sans voix IA, « Tester » = voix locale) : « Tester » joue une phrase en `localOnly`, « Tester l'IA » grisé si `cloudVoiceOn()` est faux. Décision prise sans demander : l'ancien « Tester » vérifiait la connexion au modèle, sans son ; gardé sous le libellé « Connexion », sinon un pilote sans voix IA n'aurait plus aucun test du modèle. Aide (`aiHelpStep`) corrigée dans les 5 langues.
+- 📋 **Prochaine étape** : essayer un port modifié avec Ollama lancé (`OLLAMA_HOST=127.0.0.1:11500`) ; puis commit de mes lignes seules.
+
+### 2026-11-06 — Accueil au circuit préparé en amont (non commité)
+
+**Demande** : « la voix arrive qq secondes après l'arrivée sur le circuit ».
+- ✅ **Préparation** en tête de l'effet de `useRaceEngineer` : dès que tracé et voiture sont connus, même jeu en pause ou horloge arrêtée. `prewarmSpeech` synthétise la phrase (5 s au plus) avant de la rendre disponible.
+- ✅ **Communauté** : attente 4 s → 1,5 s (`COMMUNITY_TIMEOUT_MS`) ; la réponse tardive est gardée pour l'accueil suivant (`communityBests`, tant que l'app tourne).
+- ✅ **Mesure** dans `logs/app.log` : durée des données, de l'audio, et attente avant transmission.
+- ✅ `tsc -b`, eslint, `npm test` 7 719/7 719. Le hook n'est pas exécuté par les tests : gain à mesurer en jeu. Limite : rien avant que le jeu expose le tracé et la voiture du joueur.
+- ⚠️ **Voix IA en ligne** : cette préparation ne suffisait pas. `prewarmSpeech` ne fait aucune requête, et l'accueil n'était jamais assemblable car le nom du circuit n'est pas un morceau : il partait donc en direct sur le réseau (réglages du mainteneur : Cartesia, `numbers: all`, `alertsLocal`).
+- ✅ **Morceaux de l'accueil dans « Préparer la voix »** : noms de circuits (`KNOWN_TRACK_NAMES` + tracés déjà roulés, `arrivalTrackNames`), `vRecallIntro` et `vArrivalCommunityTop` sans ponctuation de bord. `{{track}}` reconnu comme nom sur `vArrival` et `vArrivalFirst` seulement (ailleurs, une température) ; `namePiece` refuse chiffres et ponctuation, pour qu'il n'avale pas une phrase. 38 noms du catalogue : 784 caractères, ≈ 0,04 $ chez Cartesia.
+- ✅ **Lecture** : option `preferAssembled` posée sur `recall:track` : recollé en réglage « alertes » aussi, jamais en « rien de recollé » ; morceau manquant → en direct, comme avant. Trace `accueil recollé…` ou `accueil non recollé…`. Phrase fusionnée par l'arbitre avec une autre annonce : pas d'option, donc en direct.
+- ✅ `tsc -b`, `npm run lint` (0 erreur), `npm test` 8 186/8 186, dont `voice.suite` (file vocale jouée, 0 requête une fois préparé) et l'accueil dans les 5 langues (`radio.suite`). Une idée écartée : une phrase rédigée par l'IA (le mainteneur parlait de la voix IA).
+- ⏳ **Non vérifié** : rendu à l'oreille des raccords autour du nom du circuit, gain réel en jeu. Il faut relancer « Préparer la voix » pour générer les nouveaux morceaux.
+- 💡 **Demande suivante du mainteneur** : livrer la voix préparée dans le logiciel, 5 langues, comme voix par défaut. Mesures : 1 716 fichiers = 46 Mo dans le cache local (≈ 25 Ko par fichier), ≈ 850 phrases par langue, soit ≈ 4 250 fichiers et ≈ 100 Mo au plus. Rien de commencé : conditions Cartesia à faire confirmer (bundle dans un installeur non traité explicitement, licence commerciale à partir du plan Pro).
+- 📋 **Prochaine étape** : lancer « Préparer la voix », rejouer une séance, lire `accueil recollé` et les durées dans `logs/app.log`, écouter les raccords ; puis commit de mes lignes seules.
+
 ### 2026-11-06 — Accueil au circuit absent sur une séance de week-end
 
 **Signalé par le mainteneur** ; cause exacte **non établie** (le journal ne traçait pas les annonces, rien de reproduit en jeu). Réglage actif et séance `Race Weekend / Practice1` confirmés dans la base.
@@ -955,7 +1015,35 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ **Essai du mainteneur (13 h 08)** : accueil entendu, et journal cohérent (`accueil préparé`, séance 1, puis `accueil transmis`). Un seul essai : laquelle des corrections a joué reste inconnu.
 - 📋 **Prochaine étape** : si l'accueil manque encore, lire `logs/app.log`.
 
-### 2026-11-05 — Accueil au circuit enrichi (branche `feat/accueil-circuit`)
+### 2026-11-07 — Veille TrackMind : fin de bêta, aucun nouveau pack (aucun code modifié)
+
+**Demande** : « trackmind a clôturé sa bêta, regarde s'ils ont ajouté des choses, la V1 sort mardi prochain ».
+- ✅ **Rien de nouveau à analyser** : pack actif toujours `pack_316` (0.9.29), `pack_300` → `pack_316` déjà vu le 05/11. App non lancée par
+  nous, écran de fin de bêta non contourné. Lancée le 07/11 à 00:41 : `beta_coupee.flag`, accès réservé aux Pionniers jusqu'à la V1.
+- ✅ **Dates confirmées** (message de l'app + site) : bêta fermée le 06/11 à 18 h, V1 publique le **10/11 à 18 h** ; `portes_v1` encore
+  en `ombre` côté app au 07/11 ; offre Pionnier close le 10/11 à 17 h 59.
+- ✅ **Prix publics** (site, code de la page) : Starter gratuit ; Sprint 11,99 €/mois ou 119,90 €/an ; Performance 19,99 €/mois ou
+  199,90 €/an, essai 7 jours ; Pionnier (Performance −40 % à vie) 11,99 €/mois ou 119,90 €/an. Annoncés plus tard : ACC, AC Evo, rF2, AMS2.
+- ⚠️ **Conditions d'utilisation** : celles du site citent la « tentative de reverse engineering » parmi les manquements sanctionnés.
+  Texte lu en extrait, pas d'avis juridique. **Décision du mainteneur (2026-11-07)** : les passes sur leurs fichiers continuent.
+- 📋 **Prochaine étape** : après le 10/11 à 18 h, passe `pack_316` → pack V1 dès que l'app s'est mise à jour normalement. Reste en attente : capture réelle de `watch/standings` et `strategy/usage` en course.
+
+### 2026-11-06 — État et conso des rivaux lus au jeu par REST (non commité)
+
+**Demande** : idée I1 de la veille TrackMind 0.9.29 (« Oui, lance-la »).
+- ✅ **Pont REST** (`lmu_rest.rs`) : `watch/standings` toutes les 5 s (carburant, énergie, phase aux stands, arrêts, pénalités) et
+  `strategy/usage` toutes les 10 s (conso médiane sur 12 tours au plus, mêmes relais, hors stands). En piste ou au garage, jamais en
+  pause ni aux menus. `usage` a son plafond (4 Mo) et son échec ne fait jamais reculer les autres routes. Une valeur 0 reste inconnue.
+- ✅ **Ingénieur** : `StintRegistry.estimate` prend l'énergie et la conso du jeu quand elles sont fraîches (`rivalState`,
+  `rivalEnergyLaps`), sinon l'historique des relais comme avant. Réponse vocale « arrêts d'un rival » et contexte du coach IA enrichis.
+- ✅ **Décision** : aucune annonce spontanée tant que le format réel n'a pas été constaté.
+- ✅ Tests : `npm test` 7 714 OK, `cargo test --lib lmu_rest` 31 OK, `tsc -b` et eslint propres ; clippy : rien de nouveau sur `lmu_rest.rs`.
+- ⚠️ **Format non vu sur le vrai jeu** : noms de champs repris de commentaires de la veille, jamais capturés ici (jeu fermé, aucune
+  capture trouvée). Si les noms diffèrent, rien ne s'affiche et le comportement d'avant reste.
+- 📋 **Prochaine étape** : course en ligne ou hors ligne en cours, lire `watch/standings` et `strategy/usage` sur `127.0.0.1:6397`,
+  corriger le parsing si besoin, poser la question des arrêts d'un rival à la radio, puis commit.
+
+### 2026-11-05 — Accueil au circuit enrichi (fusionné sur `main`, `99178aa`)
 
 **Demande** : l'accueil de TrackMind à l'arrivée sur une session plaît au mainteneur (« Oui, enrichis-le »).
 - ✅ `trackRecall.ts` : `arrivalPhrase` nomme le circuit, donne le record avec cette voiture sinon celui de la classe, la mémoire du

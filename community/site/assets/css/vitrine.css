@@ -137,6 +137,12 @@ main .wrap.narrow { max-width: 820px; }
 }
 .hero-shot img { width: 100%; height: auto; }
 
+/* Vidéo de présentation : même fenêtre que la capture, sans le reflet (il passerait
+   sur les contrôles du lecteur). */
+.video-shot { margin-top: 0; }
+.video-shot::after { display: none; }
+.video-shot video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #0b101f; }
+
 /* Un reflet balaie la capture une fois, au chargement — comme la lumière des
    stands qui passe sur une carrosserie. */
 .hero-shot::after {

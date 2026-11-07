@@ -49,7 +49,7 @@ window.VITRINE_I18N = {
 
     "hero.badge": "Windows 10 / 11 · Gratuit · Open source",
     "hero.title": "Toute votre saison Le Mans Ultimate, sur votre PC et nulle part ailleurs",
-    "hero.lead": "Gratuite, open source, sans compte ni abonnement. LMU Stats Viewer lit les fichiers de votre jeu — résultats, télémétrie, réglages — et en tire vos records, votre place dans les classements de la communauté et l'analyse virage par virage. Et en course : live timing, 23 overlays et un ingénieur de course qui vous parle.",
+    "hero.lead": "Gratuite, open source, sans compte ni abonnement. LMU Stats Viewer lit les fichiers de votre jeu — résultats, télémétrie, réglages — et en tire vos records, votre place dans les classements de la communauté et l'analyse virage par virage. Et en course : live timing, 24 overlays et un ingénieur de course qui vous parle.",
     "hero.cta1": "Télécharger pour Windows",
     "hero.cta2": "Code source",
     "hero.fineprint": "Licence MIT · Aucun compte, aucune inscription · Mise à jour automatique intégrée",
@@ -58,7 +58,6 @@ window.VITRINE_I18N = {
 
     "chips.overlays": "overlays in-game",
     "chips.langs": "langues",
-    "chips.ai": "fournisseurs IA",
     "chips.cloud": "donnée envoyée sans votre accord",
 
     "spot.kicker": "L'essentiel",
@@ -75,11 +74,11 @@ window.VITRINE_I18N = {
 
     "spot.2.k": "Pendant : la course",
     "spot.2.t": "Les bonnes informations sans quitter la piste des yeux",
-    "spot.2.d": "23 overlays translucides que vous placez où vous voulez, sur n'importe quel écran, un live timing complet et un ingénieur de course qui vous parle : l'écart qui se réduit, le trafic à venir, la fenêtre d'arrêt, la météo, les drapeaux — même application réduite.",
+    "spot.2.d": "24 overlays translucides que vous placez où vous voulez, sur n'importe quel écran, un live timing complet et un ingénieur de course qui vous parle : l'écart qui se réduit, le trafic à venir, la fenêtre d'arrêt, la météo, les drapeaux — même application réduite.",
     "spot.2.b1": "Delta, relatif, radar, pneus, carburant",
     "spot.2.b2": "Stratégie carburant recalculée à chaque tour",
     "spot.2.b3": "Questions et alertes à la voix, reconnaissance hors-ligne en 5 langues",
-    "spot.2.alt": "Page Overlays : 23 widgets à activer et positionner",
+    "spot.2.alt": "Page Overlays : 24 widgets à activer et positionner",
 
     "spot.3.k": "Après : le débrief",
     "spot.3.t": "Vos progrès, session après session",
@@ -118,7 +117,7 @@ window.VITRINE_I18N = {
     "feat.live.t": "Live timing",
     "feat.live.d": "Tableau de bord temps réel via le plugin de mémoire partagée : chronos, delta, classement complet, carte du circuit, drapeaux, pneus, et stratégie carburant recalculée à chaque tour.",
     "feat.overlays.t": "Overlays in-game",
-    "feat.overlays.d": "23 widgets translucides par-dessus le jeu — delta, relatif, secteurs, radar, carte, pneus, carburant, G-force, coach… Placement libre en mode édition, sur n'importe lequel de vos écrans, opacité réglable et profils enregistrés.",
+    "feat.overlays.d": "24 widgets translucides par-dessus le jeu — delta, relatif, secteurs, radar, carte, pneus, carburant, G-force, coach… Placement libre en mode édition, sur n'importe lequel de vos écrans, opacité réglable et profils enregistrés.",
     "feat.ai.t": "Coach IA",
     "feat.ai.d": "Analyse de course et de télémétrie avec votre propre clé API (OpenAI, Anthropic, Google, OpenRouter, DeepSeek, Mistral, Ollama en local ou tout service compatible OpenAI). Objectifs chiffrés vérifiés à la session suivante ; en course, les questions factuelles sont répondues tout de suite, sans IA ni coût.",
     "feat.spotter.t": "Ingénieur de course",
@@ -166,7 +165,7 @@ window.VITRINE_I18N = {
     "shot.telemetryList.t": "Enregistrements",
     "shot.telemetryList.d": "Vos fichiers de télémétrie, météo et meilleur tour",
         "shot.overlays.t": "Overlays",
-    "shot.overlays.d": "23 widgets à activer et positionner librement",
+    "shot.overlays.d": "24 widgets à activer et positionner librement",
     "shot.ai.t": "Coach IA",
     "shot.ai.d": "Votre fournisseur, votre clé, chiffrée localement",
     "shot.config.t": "Configuration",
@@ -285,7 +284,7 @@ window.VITRINE_I18N = {
 
     "hero.badge": "Windows 10 / 11 · Free · Open source",
     "hero.title": "Your whole Le Mans Ultimate season, on your PC and nowhere else",
-    "hero.lead": "Free, open source, no account, no subscription. LMU Stats Viewer reads your game files — results, telemetry, setups — and turns them into your records, your place in the community leaderboards and corner-by-corner analysis. And on track: live timing, 23 overlays and a race engineer that talks to you.",
+    "hero.lead": "Free, open source, no account, no subscription. LMU Stats Viewer reads your game files — results, telemetry, setups — and turns them into your records, your place in the community leaderboards and corner-by-corner analysis. And on track: live timing, 24 overlays and a race engineer that talks to you.",
     "hero.cta1": "Download for Windows",
     "hero.cta2": "Source code",
     "hero.fineprint": "MIT licence · No account, no sign-up · Built-in auto-update",
@@ -294,7 +293,6 @@ window.VITRINE_I18N = {
 
     "chips.overlays": "in-game overlays",
     "chips.langs": "languages",
-    "chips.ai": "AI providers",
     "chips.cloud": "data sent without your consent",
 
     "spot.kicker": "The essentials",
@@ -311,11 +309,11 @@ window.VITRINE_I18N = {
 
     "spot.2.k": "During: the race",
     "spot.2.t": "The right information without looking away from the track",
-    "spot.2.d": "23 translucent overlays you place wherever you want, on any screen, a full live timing and a race engineer that talks to you: the gap closing, traffic ahead, the pit window, the weather, flags — even with the app minimised.",
+    "spot.2.d": "24 translucent overlays you place wherever you want, on any screen, a full live timing and a race engineer that talks to you: the gap closing, traffic ahead, the pit window, the weather, flags — even with the app minimised.",
     "spot.2.b1": "Delta, relative, radar, tyres, fuel",
     "spot.2.b2": "Fuel strategy recomputed every lap",
     "spot.2.b3": "Voice questions and alerts, offline recognition in 5 languages",
-    "spot.2.alt": "Overlays page: 23 widgets to enable and position",
+    "spot.2.alt": "Overlays page: 24 widgets to enable and position",
 
     "spot.3.k": "After: the debrief",
     "spot.3.t": "Your progress, session after session",
@@ -354,7 +352,7 @@ window.VITRINE_I18N = {
     "feat.live.t": "Live timing",
     "feat.live.d": "Real-time dashboard through the shared-memory plugin: lap times, delta, full standings, track map, flags, tyres, and a fuel strategy recomputed every lap.",
     "feat.overlays.t": "In-game overlays",
-    "feat.overlays.d": "23 translucent widgets on top of the game — delta, relative, sectors, radar, map, tyres, fuel, G-force, coach… Free placement in edit mode, on any of your screens, adjustable opacity and saved profiles.",
+    "feat.overlays.d": "24 translucent widgets on top of the game — delta, relative, sectors, radar, map, tyres, fuel, G-force, coach… Free placement in edit mode, on any of your screens, adjustable opacity and saved profiles.",
     "feat.ai.t": "AI coach",
     "feat.ai.d": "Race and telemetry analysis using your own API key (OpenAI, Anthropic, Google, OpenRouter, DeepSeek, Mistral, Ollama locally or any OpenAI-compatible service). Measurable targets checked at your next session; while driving, factual questions are answered instantly, with no AI and no cost.",
     "feat.spotter.t": "Race engineer",
@@ -402,7 +400,7 @@ window.VITRINE_I18N = {
     "shot.telemetryList.t": "Recordings",
     "shot.telemetryList.d": "Your telemetry files, weather and best lap",
         "shot.overlays.t": "Overlays",
-    "shot.overlays.d": "23 widgets to enable and place freely",
+    "shot.overlays.d": "24 widgets to enable and place freely",
     "shot.ai.t": "AI coach",
     "shot.ai.d": "Your provider, your key, encrypted locally",
     "shot.config.t": "Configuration",
@@ -521,7 +519,7 @@ window.VITRINE_I18N = {
 
     "hero.badge": "Windows 10 / 11 · Gratis · Código abierto",
     "hero.title": "Toda tu temporada de Le Mans Ultimate, en tu PC y en ningún otro sitio",
-    "hero.lead": "Gratuita, de código abierto, sin cuenta ni suscripción. LMU Stats Viewer lee los archivos de tu juego —resultados, telemetría, reglajes— y extrae tus récords, tu puesto en las clasificaciones de la comunidad y el análisis curva por curva. Y en pista: cronometraje en directo, 23 overlays y un ingeniero de carrera que te habla.",
+    "hero.lead": "Gratuita, de código abierto, sin cuenta ni suscripción. LMU Stats Viewer lee los archivos de tu juego —resultados, telemetría, reglajes— y extrae tus récords, tu puesto en las clasificaciones de la comunidad y el análisis curva por curva. Y en pista: cronometraje en directo, 24 overlays y un ingeniero de carrera que te habla.",
     "hero.cta1": "Descargar para Windows",
     "hero.cta2": "Código fuente",
     "hero.fineprint": "Licencia MIT · Sin cuenta ni registro · Actualización automática integrada",
@@ -530,7 +528,6 @@ window.VITRINE_I18N = {
 
     "chips.overlays": "overlays en el juego",
     "chips.langs": "idiomas",
-    "chips.ai": "proveedores de IA",
     "chips.cloud": "datos enviados sin tu permiso",
 
     "spot.kicker": "Lo esencial",
@@ -547,11 +544,11 @@ window.VITRINE_I18N = {
 
     "spot.2.k": "Durante: la carrera",
     "spot.2.t": "La información justa sin apartar la vista de la pista",
-    "spot.2.d": "23 overlays translúcidos que colocas donde quieras, en cualquier pantalla, un cronometraje en directo completo y un ingeniero de carrera que te habla: la diferencia que se reduce, el tráfico que viene, la ventana de parada, el tiempo, las banderas — incluso con la aplicación minimizada.",
+    "spot.2.d": "24 overlays translúcidos que colocas donde quieras, en cualquier pantalla, un cronometraje en directo completo y un ingeniero de carrera que te habla: la diferencia que se reduce, el tráfico que viene, la ventana de parada, el tiempo, las banderas — incluso con la aplicación minimizada.",
     "spot.2.b1": "Delta, relativo, radar, neumáticos, combustible",
     "spot.2.b2": "Estrategia de combustible recalculada cada vuelta",
     "spot.2.b3": "Preguntas y alertas por voz, reconocimiento sin conexión en 5 idiomas",
-    "spot.2.alt": "Página de overlays: 23 widgets para activar y colocar",
+    "spot.2.alt": "Página de overlays: 24 widgets para activar y colocar",
 
     "spot.3.k": "Después: el análisis posterior",
     "spot.3.t": "Tus progresos, sesión tras sesión",
@@ -590,7 +587,7 @@ window.VITRINE_I18N = {
     "feat.live.t": "Cronometraje en directo",
     "feat.live.d": "Panel en tiempo real mediante el plugin de memoria compartida: tiempos, delta, clasificación completa, mapa del circuito, banderas, neumáticos y estrategia de combustible recalculada en cada vuelta.",
     "feat.overlays.t": "Overlays en el juego",
-    "feat.overlays.d": "23 widgets translúcidos sobre el juego — delta, relativo, sectores, radar, mapa, neumáticos, combustible, fuerza G, entrenador… Colocación libre en modo edición, en cualquiera de tus pantallas, opacidad ajustable y perfiles guardados.",
+    "feat.overlays.d": "24 widgets translúcidos sobre el juego — delta, relativo, sectores, radar, mapa, neumáticos, combustible, fuerza G, entrenador… Colocación libre en modo edición, en cualquiera de tus pantallas, opacidad ajustable y perfiles guardados.",
     "feat.ai.t": "Entrenador IA",
     "feat.ai.d": "Análisis de carrera y telemetría con tu propia clave API (OpenAI, Anthropic, Google, OpenRouter, DeepSeek, Mistral, Ollama en local o cualquier servicio compatible con OpenAI). Objetivos medibles verificados en la siguiente sesión; en pista, las preguntas sobre datos se responden al instante, sin IA ni coste.",
     "feat.spotter.t": "Ingeniero de carrera",
@@ -638,7 +635,7 @@ window.VITRINE_I18N = {
     "shot.telemetryList.t": "Grabaciones",
     "shot.telemetryList.d": "Tus archivos de telemetría, meteorología y mejor vuelta",
         "shot.overlays.t": "Overlays",
-    "shot.overlays.d": "23 widgets para activar y colocar libremente",
+    "shot.overlays.d": "24 widgets para activar y colocar libremente",
     "shot.ai.t": "Entrenador IA",
     "shot.ai.d": "Tu proveedor, tu clave, cifrada localmente",
     "shot.config.t": "Configuración",
@@ -757,7 +754,7 @@ window.VITRINE_I18N = {
 
     "hero.badge": "Windows 10 / 11 · Kostenlos · Open Source",
     "hero.title": "Deine ganze Le-Mans-Ultimate-Saison, auf deinem PC und sonst nirgends",
-    "hero.lead": "Kostenlos, quelloffen, ohne Konto und ohne Abo. LMU Stats Viewer liest deine Spieldateien — Ergebnisse, Telemetrie, Setups — und macht daraus deine Rekorde, deinen Platz in den Community-Ranglisten und die Kurvenanalyse. Und auf der Strecke: Live-Timing, 23 Overlays und ein Renningenieur, der mit dir spricht.",
+    "hero.lead": "Kostenlos, quelloffen, ohne Konto und ohne Abo. LMU Stats Viewer liest deine Spieldateien — Ergebnisse, Telemetrie, Setups — und macht daraus deine Rekorde, deinen Platz in den Community-Ranglisten und die Kurvenanalyse. Und auf der Strecke: Live-Timing, 24 Overlays und ein Renningenieur, der mit dir spricht.",
     "hero.cta1": "Für Windows herunterladen",
     "hero.cta2": "Quellcode",
     "hero.fineprint": "MIT-Lizenz · Kein Konto, keine Anmeldung · Automatische Updates integriert",
@@ -766,7 +763,6 @@ window.VITRINE_I18N = {
 
     "chips.overlays": "In-Game-Overlays",
     "chips.langs": "Sprachen",
-    "chips.ai": "KI-Anbieter",
     "chips.cloud": "Daten ohne deine Zustimmung gesendet",
 
     "spot.kicker": "Das Wesentliche",
@@ -783,11 +779,11 @@ window.VITRINE_I18N = {
 
     "spot.2.k": "Dabei: das Rennen",
     "spot.2.t": "Die richtigen Infos, ohne den Blick von der Strecke zu nehmen",
-    "spot.2.d": "23 transparente Overlays, die du frei platzierst, auf jedem Bildschirm, ein vollständiges Live-Timing und ein Renningenieur, der mit dir spricht: der schrumpfende Abstand, kommender Verkehr, das Boxenfenster, das Wetter, Flaggen — auch bei minimierter App.",
+    "spot.2.d": "24 transparente Overlays, die du frei platzierst, auf jedem Bildschirm, ein vollständiges Live-Timing und ein Renningenieur, der mit dir spricht: der schrumpfende Abstand, kommender Verkehr, das Boxenfenster, das Wetter, Flaggen — auch bei minimierter App.",
     "spot.2.b1": "Delta, Relativ, Radar, Reifen, Sprit",
     "spot.2.b2": "Spritstrategie, jede Runde neu berechnet",
     "spot.2.b3": "Sprachfragen und Alarme, Offline-Erkennung in 5 Sprachen",
-    "spot.2.alt": "Overlay-Seite: 23 Widgets zum Aktivieren und Platzieren",
+    "spot.2.alt": "Overlay-Seite: 24 Widgets zum Aktivieren und Platzieren",
 
     "spot.3.k": "Danach: das Debriefing",
     "spot.3.t": "Dein Fortschritt, Session für Session",
@@ -826,7 +822,7 @@ window.VITRINE_I18N = {
     "feat.live.t": "Live-Timing",
     "feat.live.d": "Echtzeit-Dashboard über das Shared-Memory-Plugin: Rundenzeiten, Delta, komplette Wertung, Streckenkarte, Flaggen, Reifen und eine bei jeder Runde neu berechnete Spritstrategie.",
     "feat.overlays.t": "In-Game-Overlays",
-    "feat.overlays.d": "23 transparente Widgets über dem Spiel — Delta, Relativ, Sektoren, Radar, Karte, Reifen, Sprit, G-Kraft, Coach… Freie Platzierung im Bearbeitungsmodus, auf jedem deiner Bildschirme, einstellbare Deckkraft und gespeicherte Profile.",
+    "feat.overlays.d": "24 transparente Widgets über dem Spiel — Delta, Relativ, Sektoren, Radar, Karte, Reifen, Sprit, G-Kraft, Coach… Freie Platzierung im Bearbeitungsmodus, auf jedem deiner Bildschirme, einstellbare Deckkraft und gespeicherte Profile.",
     "feat.ai.t": "KI-Coach",
     "feat.ai.d": "Renn- und Telemetrieanalyse mit deinem eigenen API-Schlüssel (OpenAI, Anthropic, Google, OpenRouter, DeepSeek, Mistral, Ollama lokal oder jeder OpenAI-kompatible Dienst). Messbare Ziele, die in der nächsten Session überprüft werden; während der Fahrt werden Sachfragen sofort beantwortet, ohne KI und ohne Kosten.",
     "feat.spotter.t": "Renningenieur",
@@ -874,7 +870,7 @@ window.VITRINE_I18N = {
     "shot.telemetryList.t": "Aufzeichnungen",
     "shot.telemetryList.d": "Deine Telemetriedateien, Wetter und Bestrunde",
         "shot.overlays.t": "Overlays",
-    "shot.overlays.d": "23 Widgets zum Aktivieren und freien Platzieren",
+    "shot.overlays.d": "24 Widgets zum Aktivieren und freien Platzieren",
     "shot.ai.t": "KI-Coach",
     "shot.ai.d": "Dein Anbieter, dein Schlüssel, lokal verschlüsselt",
     "shot.config.t": "Konfiguration",
@@ -993,7 +989,7 @@ window.VITRINE_I18N = {
 
     "hero.badge": "Windows 10 / 11 · Gratuito · Open source",
     "hero.title": "Tutta la tua stagione di Le Mans Ultimate, sul tuo PC e da nessun'altra parte",
-    "hero.lead": "Gratuita, open source, senza account né abbonamento. LMU Stats Viewer legge i file del tuo gioco — risultati, telemetria, setup — e ne ricava i tuoi record, la tua posizione nelle classifiche della community e l'analisi curva per curva. E in pista: live timing, 23 overlay e un ingegnere di pista che ti parla.",
+    "hero.lead": "Gratuita, open source, senza account né abbonamento. LMU Stats Viewer legge i file del tuo gioco — risultati, telemetria, setup — e ne ricava i tuoi record, la tua posizione nelle classifiche della community e l'analisi curva per curva. E in pista: live timing, 24 overlay e un ingegnere di pista che ti parla.",
     "hero.cta1": "Scarica per Windows",
     "hero.cta2": "Codice sorgente",
     "hero.fineprint": "Licenza MIT · Nessun account, nessuna registrazione · Aggiornamento automatico integrato",
@@ -1002,7 +998,6 @@ window.VITRINE_I18N = {
 
     "chips.overlays": "overlay in gioco",
     "chips.langs": "lingue",
-    "chips.ai": "fornitori IA",
     "chips.cloud": "dati inviati senza il tuo consenso",
 
     "spot.kicker": "L'essenziale",
@@ -1019,11 +1014,11 @@ window.VITRINE_I18N = {
 
     "spot.2.k": "Durante: la gara",
     "spot.2.t": "Le informazioni giuste senza distogliere lo sguardo dalla pista",
-    "spot.2.d": "23 overlay trasparenti da posizionare dove vuoi, su qualsiasi schermo, un live timing completo e un ingegnere di pista che ti parla: il distacco che si riduce, il traffico in arrivo, la finestra di pit stop, il meteo, le bandiere — anche con l'app ridotta a icona.",
+    "spot.2.d": "24 overlay trasparenti da posizionare dove vuoi, su qualsiasi schermo, un live timing completo e un ingegnere di pista che ti parla: il distacco che si riduce, il traffico in arrivo, la finestra di pit stop, il meteo, le bandiere — anche con l'app ridotta a icona.",
     "spot.2.b1": "Delta, relativo, radar, gomme, carburante",
     "spot.2.b2": "Strategia carburante ricalcolata a ogni giro",
     "spot.2.b3": "Domande e allerte vocali, riconoscimento offline in 5 lingue",
-    "spot.2.alt": "Pagina Overlay: 23 widget da attivare e posizionare",
+    "spot.2.alt": "Pagina Overlay: 24 widget da attivare e posizionare",
 
     "spot.3.k": "Dopo: il debriefing",
     "spot.3.t": "I tuoi progressi, sessione dopo sessione",
@@ -1062,7 +1057,7 @@ window.VITRINE_I18N = {
     "feat.live.t": "Live timing",
     "feat.live.d": "Cruscotto in tempo reale tramite il plugin di memoria condivisa: tempi, delta, classifica completa, mappa del circuito, bandiere, gomme e strategia carburante ricalcolata a ogni giro.",
     "feat.overlays.t": "Overlay in gioco",
-    "feat.overlays.d": "23 widget trasparenti sopra il gioco — delta, relativo, settori, radar, mappa, gomme, carburante, forza G, coach… Posizionamento libero in modalità modifica, su qualsiasi tuo schermo, opacità regolabile e profili salvati.",
+    "feat.overlays.d": "24 widget trasparenti sopra il gioco — delta, relativo, settori, radar, mappa, gomme, carburante, forza G, coach… Posizionamento libero in modalità modifica, su qualsiasi tuo schermo, opacità regolabile e profili salvati.",
     "feat.ai.t": "Coach IA",
     "feat.ai.d": "Analisi della gara e della telemetria con la tua chiave API (OpenAI, Anthropic, Google, OpenRouter, DeepSeek, Mistral, Ollama in locale o qualsiasi servizio compatibile con OpenAI). Obiettivi misurabili verificati alla sessione successiva; in gara, le domande sui dati ricevono subito una risposta, senza IA né costi.",
     "feat.spotter.t": "Ingegnere di pista",
@@ -1110,7 +1105,7 @@ window.VITRINE_I18N = {
     "shot.telemetryList.t": "Registrazioni",
     "shot.telemetryList.d": "I tuoi file di telemetria, meteo e giro migliore",
     "shot.overlays.t": "Overlay",
-    "shot.overlays.d": "23 widget da attivare e posizionare liberamente",
+    "shot.overlays.d": "24 widget da attivare e posizionare liberamente",
     "shot.ai.t": "Coach IA",
     "shot.ai.d": "Il tuo fornitore, la tua chiave, cifrata in locale",
     "shot.config.t": "Configurazione",

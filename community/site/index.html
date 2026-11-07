@@ -12,11 +12,11 @@
 <meta property="og:title" data-i18n-attr="content" data-i18n="meta.title" content="LMU Stats Viewer">
 <meta property="og:description" data-i18n-attr="content" data-i18n="meta.description" content="">
 <meta property="og:image" content="assets/img/shots/records-dark.png">
-<link rel="stylesheet" href="/assets/site.css?v=73">
-<link rel="stylesheet" href="/assets/css/vitrine.css?v=73">
+<link rel="stylesheet" href="/assets/site.css?v=74">
+<link rel="stylesheet" href="/assets/css/vitrine.css?v=74">
 
 <!-- Thème et langue posés avant le premier rendu (fichier commun à tout le site). -->
-<script src="/assets/boot.js?v=73"></script>
+<script src="/assets/boot.js?v=74"></script>
 </head>
 <body>
 
@@ -270,7 +270,7 @@
         <article class="card reveal">
           <span class="ico ico-green"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-mic"/></svg></span>
           <h3 data-i18n="feat.spotter.t">Ingénieur de course</h3>
-          <p data-i18n="feat.spotter.d">Il vous parle comme un ingénieur : l'écart qui se réduit, le trafic à venir, la fenêtre d'arrêt, la météo, les drapeaux, le carburant. Questions à la voix, alertes « préviens-moi », même application réduite. Reconnaissance 100 % hors-ligne dans les 5 langues.</p>
+          <p data-i18n="feat.spotter.d">Il vous parle comme un ingénieur : l'écart qui se réduit, le trafic à venir, la fenêtre d'arrêt, la météo, les drapeaux, le carburant. Questions à la voix, alertes « préviens-moi », même application réduite. Reconnaissance 100 % hors-ligne dans les 5 langues. Voix neuronale hors ligne, ou voix IA en ligne en option avec votre propre clé.</p>
         </article>
         <article class="card reveal">
           <span class="ico ico-amber"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-user"/></svg></span>
@@ -280,12 +280,12 @@
         <article class="card reveal">
           <span class="ico ico-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg></span>
           <h3 data-i18n="feat.privacy.t">Local et privé</h3>
-          <p data-i18n="feat.privacy.d">Aucun compte. Tout est calculé sur votre machine, dans une base locale, et rien ne part sans votre accord : le partage de vos meilleurs tours est facultatif, et le Coach IA ne contacte que le fournisseur choisi — ou personne avec Ollama.</p>
+          <p data-i18n="feat.privacy.d">Aucun compte. Tout est calculé sur votre machine, dans une base locale, et rien ne part sans votre accord : le partage de vos meilleurs tours est facultatif, le Coach IA ne contacte que le fournisseur choisi — ou personne avec Ollama — et la voix IA en ligne reste désactivée tant que vous ne l'activez pas.</p>
         </article>
         <article class="card reveal">
           <span class="ico ico-violet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bot"/></svg></span>
           <h3><span data-i18n="feat.ai.t">Coach IA</span> <span class="tag-beta" data-i18n="tag.beta">bêta</span></h3>
-          <p data-i18n="feat.ai.d">Analyse de course et de télémétrie avec votre propre clé API (OpenAI, Anthropic, Google, OpenRouter, DeepSeek, Mistral, Ollama en local ou tout service compatible OpenAI). Objectifs chiffrés vérifiés à la session suivante ; en course, les questions factuelles sont répondues tout de suite, sans IA ni coût.</p>
+          <p data-i18n="feat.ai.d">Analyse de course et de télémétrie avec votre propre clé API : Ollama en local, OpenAI, Anthropic, Google, Mistral, DeepSeek, OpenRouter, des offres gratuites (Groq, Hugging Face, Cohere…) ou tout service compatible OpenAI. Objectifs chiffrés vérifiés à la session suivante ; en course, les questions factuelles sont répondues tout de suite, sans IA ni coût.</p>
         </article>
       </div>
     </div>
@@ -450,7 +450,7 @@
 
       <div class="pillars">
         <div><strong data-i18n="how.p1.t">Application native</strong><p data-i18n="how.p1.d">Pas de navigateur, pas de serveur local à lancer. Un <code>.exe</code>, et c'est tout.</p></div>
-        <div><strong data-i18n="how.p2.t">Base locale</strong><p data-i18n="how.p2.d">Vos sessions sont indexées dans une base sur votre disque. Seuls vos meilleurs tours peuvent en sortir, et seulement si vous choisissez de les partager.</p></div>
+        <div><strong data-i18n="how.p2.t">Base locale</strong><p data-i18n="how.p2.d">Vos sessions sont indexées dans une base sur votre disque. Rien n'en sort sans votre accord : vos meilleurs tours seulement si vous choisissez de les partager, vos données de course seulement si vous interrogez le Coach IA.</p></div>
         <div><strong data-i18n="how.p3.t">Mises à jour signées</strong><p data-i18n="how.p3.d">L'app vérifie les nouvelles versions et s'installe en un clic.</p></div>
       </div>
     </div>
@@ -467,7 +467,7 @@
 
       <div class="split">
         <ol class="install-steps">
-          <li><span data-i18n="install.s1">Téléchargez le fichier <code>LMU_Stats_Viewer_x.x.x_x64-setup.exe</code> depuis la page des versions.</span></li>
+          <li><span data-i18n="install.s1">Téléchargez le fichier <code>LMU.Stats.Viewer_x.x.x_x64-setup.exe</code> depuis la page des versions.</span></li>
           <li><span data-i18n="install.s2">Lancez l'installeur, puis ouvrez l'application depuis le bureau ou le menu Démarrer.</span></li>
           <li><span data-i18n="install.s3">Au premier lancement, confirmez votre nom de pilote : les dossiers du jeu sont détectés tout seuls.</span></li>
           <li><span data-i18n="install.s4">Pour le live timing et les overlays, copiez le plugin de mémoire partagée rF2 dans le dossier <code>Plugins</code> du jeu — un guide s'affiche dans l'app si besoin.</span></li>
@@ -503,7 +503,7 @@
       </details>
       <details>
         <summary data-i18n="faq.q2">Mes données sont-elles envoyées quelque part ?</summary>
-        <p data-i18n="faq.a2">Rien ne part sans votre accord. Tout est lu et calculé sur votre PC. Les requêtes sortantes sont la vérification de mise à jour, les temps de référence et les classements communautaires — pour afficher votre place, l'app envoie un temps et un combo, sans identifiant. Le reste n'a lieu que si vous l'activez : le partage de vos meilleurs tours, et les appels du Coach IA vers le fournisseur choisi (en local avec Ollama).</p>
+        <p data-i18n="faq.a2">Rien ne part sans votre accord. Tout est lu et calculé sur votre PC. Les requêtes sortantes sont la vérification de mise à jour, les temps de référence et les classements communautaires — pour afficher votre place, l'app envoie un temps et un combo, sans identifiant. Le reste n'a lieu que si vous l'activez : le partage de vos meilleurs tours, les appels du Coach IA vers le fournisseur choisi (en local avec Ollama), la voix IA en ligne de l'ingénieur (avec votre propre clé) et le téléchargement des voix et modèles de reconnaissance que vous installez.</p>
       </details>
       <details>
         <summary data-i18n="faq.q3">Le live timing ne fonctionne pas, pourquoi ?</summary>
@@ -565,9 +565,9 @@
   <p class="lb-caption" id="lbCaption"><span id="lbCount" class="lb-count"></span><span id="lbText"></span></p>
 </div>
 
-<script src="/assets/site.js?v=73"></script>
-<script src="/assets/js/i18n.js?v=73"></script>
-<script src="/assets/js/app.js?v=73"></script>
-<script src="/assets/js/analytics.js?v=73"></script>
+<script src="/assets/site.js?v=74"></script>
+<script src="/assets/js/i18n.js?v=74"></script>
+<script src="/assets/js/app.js?v=74"></script>
+<script src="/assets/js/analytics.js?v=74"></script>
 </body>
 </html>

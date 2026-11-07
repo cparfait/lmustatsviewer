@@ -54,8 +54,6 @@ window.VITRINE_I18N = {
     "hero.cta2": "Code source",
     "hero.fineprint": "Licence MIT · Aucun compte, aucune inscription · Mise à jour automatique intégrée",
     "hero.shotAlt": "Écran Records de LMU Stats Viewer : meilleurs temps par circuit, secteurs et tour optimal",
-    "video.kicker": "En vidéo",
-    "video.title": "Toute l'app en moins de deux minutes",
     "video.alt": "Vidéo de présentation de LMU Stats Viewer",
 
     "chips.overlays": "overlays in-game",
@@ -292,8 +290,6 @@ window.VITRINE_I18N = {
     "hero.cta2": "Source code",
     "hero.fineprint": "MIT licence · No account, no sign-up · Built-in auto-update",
     "hero.shotAlt": "LMU Stats Viewer Records screen: best laps per track, sectors and optimal lap",
-    "video.kicker": "Watch the video",
-    "video.title": "The whole app in under two minutes",
     "video.alt": "LMU Stats Viewer presentation video",
 
     "chips.overlays": "in-game overlays",
@@ -530,8 +526,6 @@ window.VITRINE_I18N = {
     "hero.cta2": "Código fuente",
     "hero.fineprint": "Licencia MIT · Sin cuenta ni registro · Actualización automática integrada",
     "hero.shotAlt": "Pantalla Récords de LMU Stats Viewer: mejores vueltas por circuito, sectores y vuelta óptima",
-    "video.kicker": "En vídeo",
-    "video.title": "Toda la app en menos de dos minutos",
     "video.alt": "Vídeo de presentación de LMU Stats Viewer",
 
     "chips.overlays": "overlays en el juego",
@@ -768,8 +762,6 @@ window.VITRINE_I18N = {
     "hero.cta2": "Quellcode",
     "hero.fineprint": "MIT-Lizenz · Kein Konto, keine Anmeldung · Automatische Updates integriert",
     "hero.shotAlt": "Rekorde-Ansicht von LMU Stats Viewer: Bestzeiten pro Strecke, Sektoren und Idealrunde",
-    "video.kicker": "Im Video",
-    "video.title": "Die ganze App in unter zwei Minuten",
     "video.alt": "Vorstellungsvideo von LMU Stats Viewer",
 
     "chips.overlays": "In-Game-Overlays",
@@ -1006,8 +998,6 @@ window.VITRINE_I18N = {
     "hero.cta2": "Codice sorgente",
     "hero.fineprint": "Licenza MIT · Nessun account, nessuna registrazione · Aggiornamento automatico integrato",
     "hero.shotAlt": "Schermata Record di LMU Stats Viewer: migliori tempi per circuito, settori e giro ottimale",
-    "video.kicker": "In video",
-    "video.title": "Tutta l'app in meno di due minuti",
     "video.alt": "Video di presentazione di LMU Stats Viewer",
 
     "chips.overlays": "overlay in gioco",

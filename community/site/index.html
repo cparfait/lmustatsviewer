@@ -12,11 +12,11 @@
 <meta property="og:title" data-i18n-attr="content" data-i18n="meta.title" content="LMU Stats Viewer">
 <meta property="og:description" data-i18n-attr="content" data-i18n="meta.description" content="">
 <meta property="og:image" content="assets/img/shots/records-dark.png">
-<link rel="stylesheet" href="/assets/site.css?v=71">
-<link rel="stylesheet" href="/assets/css/vitrine.css?v=71">
+<link rel="stylesheet" href="/assets/site.css?v=72">
+<link rel="stylesheet" href="/assets/css/vitrine.css?v=72">
 
 <!-- Thème et langue posés avant le premier rendu (fichier commun à tout le site). -->
-<script src="/assets/boot.js?v=71"></script>
+<script src="/assets/boot.js?v=72"></script>
 </head>
 <body>
 
@@ -101,36 +101,9 @@
       </div>
       <p class="fineprint" data-i18n="hero.fineprint">Licence MIT · Aucun compte, aucune inscription · Mise à jour automatique intégrée</p>
 
-      <!-- Pas d'apparition différée ici : c'est la plus grande image de la page,
-           elle doit être peinte le plus tôt possible. -->
-      <figure class="hero-shot">
-        <div class="win-bar" aria-hidden="true">
-          <span class="win-dots"><i></i><i></i><i></i></span>
-          <span class="win-title">LMU Stats Viewer</span>
-          <span class="win-ctrls"><i></i><i></i><i></i></span>
-        </div>
-        <img data-shot="records" src="assets/img/shots/records-dark.png" data-i18n-attr="alt" data-i18n="hero.shotAlt" alt="Écran Records de LMU Stats Viewer : meilleurs temps par circuit avec secteurs et tour optimal" width="1920" height="1009" loading="eager" fetchpriority="high">
-      </figure>
-
-      <ul class="chips">
-        <li><strong>23</strong><span data-i18n="chips.overlays">overlays in-game</span></li>
-        <li><strong>5</strong><span data-i18n="chips.langs">langues</span></li>
-        <li><strong>7</strong><span data-i18n="chips.ai">fournisseurs IA</span></li>
-        <li><strong>0</strong><span data-i18n="chips.cloud">donnée envoyée sans votre accord</span></li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- ───────────────── VIDÉO ─────────────────
-       Présentation complète en vidéo, une par langue : la source suit la langue
-       de la page (cf. setPromoVideo dans assets/js/app.js). Rien n'est chargé
-       avant le clic (preload="none"), seule l'affiche s'affiche. -->
-  <section class="section" id="video">
-    <div class="wrap">
-      <header class="section-head">
-        <p class="kicker" data-i18n="video.kicker">En vidéo</p>
-        <h2 data-i18n="video.title">Toute l'app en moins de deux minutes</h2>
-      </header>
+      <!-- Vidéo de présentation à la place de la capture : une version par langue,
+           la source suit la langue de la page (cf. setPromoVideo dans assets/js/app.js).
+           Seule l'affiche est chargée avant le clic (preload="none"). -->
       <figure class="hero-shot video-shot">
         <div class="win-bar" aria-hidden="true">
           <span class="win-dots"><i></i><i></i><i></i></span>
@@ -143,6 +116,13 @@
           <source src="assets/video/presentation-fr.mp4" type="video/mp4">
         </video>
       </figure>
+
+      <ul class="chips">
+        <li><strong>23</strong><span data-i18n="chips.overlays">overlays in-game</span></li>
+        <li><strong>5</strong><span data-i18n="chips.langs">langues</span></li>
+        <li><strong>7</strong><span data-i18n="chips.ai">fournisseurs IA</span></li>
+        <li><strong>0</strong><span data-i18n="chips.cloud">donnée envoyée sans votre accord</span></li>
+      </ul>
     </div>
   </section>
 
@@ -586,9 +566,9 @@
   <p class="lb-caption" id="lbCaption"><span id="lbCount" class="lb-count"></span><span id="lbText"></span></p>
 </div>
 
-<script src="/assets/site.js?v=71"></script>
-<script src="/assets/js/i18n.js?v=71"></script>
-<script src="/assets/js/app.js?v=71"></script>
-<script src="/assets/js/analytics.js?v=71"></script>
+<script src="/assets/site.js?v=72"></script>
+<script src="/assets/js/i18n.js?v=72"></script>
+<script src="/assets/js/app.js?v=72"></script>
+<script src="/assets/js/analytics.js?v=72"></script>
 </body>
 </html>

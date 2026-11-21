@@ -1633,7 +1633,7 @@ export function useVoiceCallouts(data: LiveData | null, enabled: boolean, lang: 
     if (tel && warmedUp) {
       const inPitsNow = playerStanding?.in_pits ?? false;
       tyreEv.current.setLockMode(lockAlertMode);
-      for (const ev of tyreEv.current.update(nowS, tel.wheels, tel.speed_kmh, inPitsNow)) {
+      for (const ev of tyreEv.current.update(nowS, tel.wheels, tel.speed_kmh, inPitsNow, tel.brake)) {
         if (ev.kind === "dirty" && extras.tyreEvents) say("dirt", t("live.vTyresDirty"), "normal", { score: 55, ttlMs: 5000 });
         else if (ev.kind === "lockFlatSpot" && extras.tyreEvents)
           say(`lock:${ev.wheel}`, t("live.vLockFlatSpot", { wheel: t(`live.wheelVoice.${WHEEL_KEYS[ev.wheel]}`) }), "normal", {

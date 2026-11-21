@@ -83,6 +83,8 @@ export interface OverlayDef {
   width: number;
   /** Éléments de contenu activables. */
   elements: OverlayElement[];
+  /** Nombre de lignes réglable (classement, relatif) : défaut et bornes. */
+  rows?: { default: number; min: number; max: number; step: number };
 }
 
 /**
@@ -153,6 +155,7 @@ export const OVERLAY_DEFS: OverlayDef[] = [
       { key: "sectors" },
       { key: "bestLap" },
     ],
+    rows: { default: 12, min: 6, max: 40, step: 1 },
   },
   {
     id: "relative",
@@ -162,6 +165,8 @@ export const OVERLAY_DEFS: OverlayDef[] = [
     defaultY: 360,
     width: 440,
     elements: [{ key: "classColors" }, { key: "classPosition" }, { key: "gaps" }, { key: "pitFlag" }],
+    // Nombre de voitures de chaque côté du joueur (3 → 7 lignes).
+    rows: { default: 3, min: 1, max: 10, step: 1 },
   },
   {
     id: "rival",
@@ -364,3 +369,53 @@ export const OVERLAY_DEFS: OverlayDef[] = [
 export const OVERLAY_BY_ID: Record<OverlayId, OverlayDef> = Object.fromEntries(
   OVERLAY_DEFS.map((d) => [d.id, d]),
 ) as Record<OverlayId, OverlayDef>;
+
+// ── Visibilité selon la situation (stand, type de séance) ───────────────────
+
+/** Type de séance pour le filtre d'affichage des overlays. */
+export type OverlaySessionKind = "practice" | "qualify" | "race";
+
+export const OVERLAY_SESSION_KINDS: OverlaySessionKind[] = ["practice", "qualify", "race"];
+
+/** Type de séance rF2 (`mSession`) : 0-4 essais, 5-8 qualif, 9 warm-up (essais), ≥ 10 course. */
+export function overlaySessionKind(session: number): OverlaySessionKind {
+  if (session >= 10) return "race";
+  if (session >= 5 && session <= 8) return "qualify";
+  return "practice";
+}
+
+/** Réglages d'un overlay utiles au filtre (sous-ensemble de `OverlaySettings`). */
+export interface OverlayVisibility {
+  hideInPits?: boolean;
+  sessions?: Partial<Record<OverlaySessionKind, boolean>>;
+}
+
+/** Situation du joueur lue dans les données live. */
+export interface OverlaySituation {
+  /** Voiture du joueur dans la voie des stands ou au garage. */
+  inPits: boolean;
+  /** Type de séance ; null hors session (rien n'est filtré). */
+  session: OverlaySessionKind | null;
+}
+
+/**
+ * Situation du joueur : `in_pits` du classement (voie des stands et garage) ou
+ * `pit_state` ≥ 2 (entrée, arrêt, sortie des stands ; 1 = simple demande en piste).
+ */
+export function overlaySituation(data: {
+  session: { session: number } | null;
+  player: { pit_state: number } | null;
+  standings: Array<{ is_player: boolean; in_pits: boolean }>;
+}): OverlaySituation {
+  const me = data.standings.find((s) => s.is_player);
+  const inPits = (me?.in_pits ?? false) || (data.player?.pit_state ?? 0) >= 2;
+  return { inPits, session: data.session ? overlaySessionKind(data.session.session) : null };
+}
+
+/** L'overlay doit-il être masqué dans cette situation ? (réglages absents = toujours affiché) */
+export function overlayHidden(v: OverlayVisibility | undefined, sit: OverlaySituation): boolean {
+  if (!v) return false;
+  if (v.hideInPits && sit.inPits) return true;
+  if (sit.session && v.sessions?.[sit.session] === false) return true;
+  return false;
+}

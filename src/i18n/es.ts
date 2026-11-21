@@ -355,6 +355,18 @@ export default {
     },
     back: "Overlays",
     noData: "Esperando datos…",
+    rows: {
+      standings: "Número de coches mostrados",
+      relative: "Coches mostrados delante y detrás",
+    },
+    when: {
+      title: "Cuándo mostrarlo",
+      hideInPits: "Ocultar en boxes y en el garaje",
+      practice: "En libres",
+      qualify: "En clasificación",
+      race: "En carrera",
+      hint: "En el Modo Edición, todos los overlays activados siguen visibles para poder colocarlos.",
+    },
     positionHint:
       "Consejo: activa el Modo Edición para arrastrar los overlays sobre el juego. X e Y parten de la esquina superior izquierda de la pantalla principal; en una pantalla situada a su izquierda, los valores son negativos.",
     opacity: "Opacidad",
@@ -2782,7 +2794,7 @@ export default {
     extra_tyreEvents: "Neumáticos sucios y grandes bloqueos",
     extra_tyreEventsDesc: "Tras pasar por hierba o grava, y cuando una rueda bloquea fuerte (riesgo de plano)",
     lockAlert: "Alerta de bloqueo",
-    lockAlertDesc: "Estricta: solo cuando una rueda queda bloqueada más de un segundo (riesgo real de plano), una vez por frenada. Sensible: el ajuste anterior, que habla en cualquier frenada fuerte.",
+    lockAlertDesc: "Estricta: solo cuando una rueda queda bloqueada más de un segundo frenando (riesgo real de plano), una sola vez por rueda hasta el próximo cambio de neumáticos. Sensible: el ajuste anterior, que habla en cualquier frenada fuerte.",
     lockAlert_strict: "Estricta",
     lockAlert_sensitive: "Sensible",
     extra_crashCheck: "Tras un golpe",

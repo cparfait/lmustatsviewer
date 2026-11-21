@@ -6,6 +6,7 @@
 
 import { section, ok, approx, eq } from "../assert";
 import { analyzeLap, lossColor, lapLossHeatColors } from "@/lib/telemetry/analysis";
+import { overlayHidden, overlaySessionKind, overlaySituation } from "@/lib/overlays";
 import type { Corner } from "@/lib/telemetry/corners";
 import {
   createStintState,
@@ -220,5 +221,30 @@ export function run(): void {
     ok(buildLapBufferFromLd([ch("Brake", "%", 50, [1, 2, 3])]) === null, "ld no-speed → null");
     const ld2 = buildLapBufferFromLd([ch("Ground Speed", "m/s", 50, new Array(N).fill(30))]);
     approx(ld2!.buf.speed[10], 108, 1, "ld m/s→km/h");
+  }
+
+  // ── Overlays : masquage aux stands / par type de séance ──
+  section("overlays.visibility");
+  {
+    const sit = (session: number | null, inPits: boolean, pitState = 0) =>
+      overlaySituation({
+        session: session == null ? null : { session },
+        player: { pit_state: pitState },
+        standings: [{ is_player: true, in_pits: inPits }],
+      });
+    const all = { practice: true, qualify: true, race: true };
+    eq(overlaySessionKind(2), "practice", "essais");
+    eq(overlaySessionKind(6), "qualify", "qualif");
+    eq(overlaySessionKind(9), "practice", "warm-up = essais");
+    eq(overlaySessionKind(11), "race", "course");
+    eq(overlayHidden(undefined, sit(10, true)), false, "sans réglages : toujours affiché");
+    eq(overlayHidden({ hideInPits: false, sessions: all }, sit(10, true)), false, "défaut : affiché aux stands");
+    eq(overlayHidden({ hideInPits: true, sessions: all }, sit(10, true)), true, "masqué aux stands");
+    eq(overlayHidden({ hideInPits: true, sessions: all }, sit(10, false, 3)), true, "arrêt au stand (pit_state) : masqué");
+    eq(overlayHidden({ hideInPits: true, sessions: all }, sit(10, false, 1)), false, "simple demande d'arrêt : affiché");
+    eq(overlayHidden({ hideInPits: true, sessions: all }, sit(10, false)), false, "en piste : affiché");
+    eq(overlayHidden({ sessions: { ...all, race: false } }, sit(12, false)), true, "course décochée : masqué en course");
+    eq(overlayHidden({ sessions: { ...all, race: false } }, sit(6, false)), false, "course décochée : affiché en qualif");
+    eq(overlayHidden({ sessions: { practice: false, qualify: false, race: false } }, sit(null, false)), false, "hors session : rien filtré");
   }
 }

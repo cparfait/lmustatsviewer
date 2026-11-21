@@ -12,7 +12,7 @@
 import { create } from "zustand";
 import { emit } from "@tauri-apps/api/event";
 import { config, overlay as overlayApi } from "@/lib/api";
-import { OVERLAY_DEFS, type OverlayId } from "@/lib/overlays";
+import { OVERLAY_DEFS, type OverlayId, type OverlaySessionKind } from "@/lib/overlays";
 import { DEFAULT_LOOK, mergeLook, type OverlayLook } from "@/components/overlay/look";
 
 const CONFIG_KEY = "overlays_config";
@@ -31,6 +31,12 @@ export interface OverlaySettings {
   accent?: string;
   /** Éléments de contenu activés (clé → bool). */
   content: Record<string, boolean>;
+  /** Nombre de lignes (classement, relatif) ; absent = défaut du registre. */
+  rows?: number;
+  /** Masqué quand la voiture est aux stands ou au garage (désactivé par défaut). */
+  hideInPits: boolean;
+  /** Séances où l'overlay s'affiche (toutes par défaut). */
+  sessions: Record<OverlaySessionKind, boolean>;
 }
 
 /** Données sauvegardées dans un profil (tout sauf la liste des profils). */
@@ -69,6 +75,9 @@ function defaults(): OverlaysConfig {
       content: Object.fromEntries(
         def.elements.map((e) => [e.key, e.default ?? true]),
       ),
+      rows: def.rows?.default,
+      hideInPits: false,
+      sessions: { practice: true, qualify: true, race: true },
     };
   }
   return {
@@ -80,6 +89,14 @@ function defaults(): OverlaysConfig {
     activeProfile: "",
     look: DEFAULT_LOOK,
   };
+}
+
+/** Nombre de lignes borné au registre (undefined pour les overlays sans lignes). */
+function clampRows(id: OverlayId, v: number | undefined): number | undefined {
+  const r = OVERLAY_DEFS.find((d) => d.id === id)?.rows;
+  if (!r) return undefined;
+  const n = v != null && Number.isFinite(v) ? Math.round(v) : r.default;
+  return Math.min(r.max, Math.max(r.min, n));
 }
 
 /** Fusionne les réglages d'un overlay stockés avec les défauts. */
@@ -99,6 +116,9 @@ function mergeOverlays(
       opacity: s?.opacity ?? d.opacity,
       accent: s?.accent ?? d.accent,
       content: { ...d.content, ...(s?.content ?? {}) },
+      rows: clampRows(def.id, s?.rows ?? d.rows),
+      hideInPits: s?.hideInPits ?? d.hideInPits,
+      sessions: { ...d.sessions, ...(s?.sessions ?? {}) },
     };
   }
   return out;

@@ -8,7 +8,7 @@ import { isMulticlass } from "@/lib/livePosition";
 import type { WidgetProps } from "./types";
 import { toneColor, useOverlayLook } from "@/components/overlay/look";
 
-export function RelativeWidget({ data, content, accent, t }: WidgetProps) {
+export function RelativeWidget({ data, content, accent, t, rows: side = 3 }: WidgetProps) {
   const look = useOverlayLook();
   const instrument = look.style === "instrument";
   const player = data.standings.find((s) => s.is_player);
@@ -24,7 +24,7 @@ export function RelativeWidget({ data, content, accent, t }: WidgetProps) {
     }));
     rows.sort((a, b) => a.rel - b.rel);
     const pi = rows.findIndex((r) => r.s.is_player);
-    rows = rows.slice(Math.max(0, pi - 3), pi + 4);
+    rows = rows.slice(Math.max(0, pi - side), pi + side + 1);
   }
 
   return (

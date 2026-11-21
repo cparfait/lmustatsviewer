@@ -355,6 +355,18 @@ export default {
     },
     back: "Overlays",
     noData: "En attente de données…",
+    rows: {
+      standings: "Nombre de voitures affichées",
+      relative: "Voitures affichées devant et derrière",
+    },
+    when: {
+      title: "Quand l'afficher",
+      hideInPits: "Masquer aux stands et au garage",
+      practice: "En essais",
+      qualify: "En qualification",
+      race: "En course",
+      hint: "En Mode Édition, tous les overlays activés restent visibles pour pouvoir les placer.",
+    },
     positionHint:
       "Astuce : active le Mode Édition pour déplacer les overlays directement sur le jeu. X et Y partent du coin haut-gauche de l'écran principal — sur un écran placé à gauche, les valeurs sont négatives.",
     opacity: "Opacité",
@@ -2784,7 +2796,7 @@ export default {
     extra_tyreEvents: "Pneus sales et gros blocages",
     extra_tyreEventsDesc: "Après un passage dans l'herbe ou le gravier, et quand une roue bloque fort (risque de plat)",
     lockAlert: "Alerte de blocage",
-    lockAlertDesc: "Strict : seulement quand une roue reste bloquée plus d'une seconde (vrai risque de plat), une fois par freinage. Sensible : l'ancien réglage, qui parle dès un freinage appuyé.",
+    lockAlertDesc: "Strict : seulement quand une roue reste bloquée plus d'une seconde frein appuyé (vrai risque de plat), une seule fois par roue jusqu'au prochain changement de pneus. Sensible : l'ancien réglage, qui parle dès un freinage appuyé.",
     lockAlert_strict: "Strict",
     lockAlert_sensitive: "Sensible",
     extra_crashCheck: "Après un choc",

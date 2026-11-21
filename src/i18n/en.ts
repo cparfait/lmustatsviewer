@@ -355,6 +355,18 @@ export default {
     },
     back: "Overlays",
     noData: "Waiting for data…",
+    rows: {
+      standings: "Number of cars shown",
+      relative: "Cars shown ahead and behind",
+    },
+    when: {
+      title: "When to show it",
+      hideInPits: "Hide in the pits and garage",
+      practice: "In practice",
+      qualify: "In qualifying",
+      race: "In the race",
+      hint: "In Edit Mode, every enabled overlay stays visible so you can place it.",
+    },
     positionHint:
       "Tip: enable Edit Mode to drag overlays directly over the game. X and Y start from the top-left corner of your main screen — on a screen placed to its left, values are negative.",
     opacity: "Opacity",
@@ -2778,7 +2790,7 @@ export default {
     extra_tyreEvents: "Dirty tyres and big lock-ups",
     extra_tyreEventsDesc: "After a trip through grass or gravel, and when a wheel locks hard (flat spot risk)",
     lockAlert: "Lock-up alert",
-    lockAlertDesc: "Strict: only when a wheel stays locked for more than a second (real flat spot risk), once per braking. Sensitive: the previous setting, which speaks on any firm braking.",
+    lockAlertDesc: "Strict: only when a wheel stays locked for more than a second under braking (real flat spot risk), once per wheel until the next tyre change. Sensitive: the previous setting, which speaks on any firm braking.",
     lockAlert_strict: "Strict",
     lockAlert_sensitive: "Sensitive",
     extra_crashCheck: "After a crash",

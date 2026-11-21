@@ -355,6 +355,18 @@ export default {
     },
     back: "Overlay",
     noData: "In attesa di dati…",
+    rows: {
+      standings: "Numero di auto mostrate",
+      relative: "Auto mostrate davanti e dietro",
+    },
+    when: {
+      title: "Quando mostrarlo",
+      hideInPits: "Nascondi ai box e in garage",
+      practice: "In prova",
+      qualify: "In qualifica",
+      race: "In gara",
+      hint: "In Modalità modifica, tutti gli overlay attivi restano visibili per poterli posizionare.",
+    },
     positionHint:
       "Suggerimento: attiva la Modalità modifica per trascinare gli overlay direttamente sopra il gioco. X e Y partono dall'angolo in alto a sinistra dello schermo principale — su uno schermo posizionato alla sua sinistra, i valori sono negativi.",
     opacity: "Opacità",
@@ -2778,7 +2790,7 @@ export default {
     extra_tyreEvents: "Gomme sporche e grossi bloccaggi",
     extra_tyreEventsDesc: "Dopo un passaggio sull'erba o sulla ghiaia, e quando una ruota blocca forte (rischio spiattellamento)",
     lockAlert: "Avviso di bloccaggio",
-    lockAlertDesc: "Rigoroso: solo quando una ruota resta bloccata più di un secondo (vero rischio di spiattellamento), una volta per frenata. Sensibile: l'impostazione precedente, che parla a ogni frenata decisa.",
+    lockAlertDesc: "Rigoroso: solo quando una ruota resta bloccata più di un secondo in frenata (vero rischio di spiattellamento), una sola volta per ruota fino al prossimo cambio gomme. Sensibile: l'impostazione precedente, che parla a ogni frenata decisa.",
     lockAlert_strict: "Rigoroso",
     lockAlert_sensitive: "Sensibile",
     extra_crashCheck: "Dopo un incidente",

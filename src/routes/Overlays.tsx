@@ -41,7 +41,7 @@ import { cn } from "@/lib/utils";
 import { overlay as overlayApi, type OverlayScreen } from "@/lib/api";
 import { toastError } from "@/stores/dialogs";
 import { useAppStore } from "@/stores/app";
-import { OVERLAY_DEFS, OVERLAY_BY_ID, type OverlayId } from "@/lib/overlays";
+import { OVERLAY_DEFS, OVERLAY_BY_ID, OVERLAY_SESSION_KINDS, type OverlayId } from "@/lib/overlays";
 import {
   useOverlaysStore,
   OVERLAYS_SRC,
@@ -358,6 +358,50 @@ export function Overlays() {
                   />
                 </div>
               )}
+              {/* Nombre de lignes (classement, relatif) */}
+              {def.rows && (
+                <div className="space-y-2 px-2 pt-3">
+                  <div className="text-sm font-medium">{t(`overlays.rows.${def.id}`)}</div>
+                  <Slider
+                    value={s.rows ?? def.rows.default}
+                    min={def.rows.min}
+                    max={def.rows.max}
+                    step={def.rows.step}
+                    onChange={(v) => updateSettings(selected, { rows: Math.round(v) })}
+                    format={(v) => String(Math.round(v))}
+                  />
+                </div>
+              )}
+              {/* Quand l'afficher : stand, type de séance */}
+              <div className="mt-3 space-y-1 border-t border-border/60 pt-3">
+                <div className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("overlays.when.title")}
+                </div>
+                <label className="flex cursor-pointer items-center justify-between rounded-lg px-2 py-2.5 hover:bg-accent/50">
+                  <span className="text-sm font-medium">{t("overlays.when.hideInPits")}</span>
+                  <Switch
+                    checked={s.hideInPits}
+                    onCheckedChange={(v) => updateSettings(selected, { hideInPits: v })}
+                  />
+                </label>
+                {OVERLAY_SESSION_KINDS.map((k) => (
+                  <label
+                    key={k}
+                    className="flex cursor-pointer items-center justify-between rounded-lg px-2 py-2.5 hover:bg-accent/50"
+                  >
+                    <span className="text-sm font-medium">{t(`overlays.when.${k}`)}</span>
+                    <Switch
+                      checked={s.sessions[k]}
+                      onCheckedChange={(v) =>
+                        updateSettings(selected, { sessions: { ...s.sessions, [k]: v } })
+                      }
+                    />
+                  </label>
+                ))}
+                <p className="px-2 text-[11px] leading-snug text-muted-foreground">
+                  {t("overlays.when.hint")}
+                </p>
+              </div>
             </TabsContent>
 
             {/* Appearance */}

@@ -7,10 +7,10 @@ import { fmtLap, liveClassColor } from "@/components/overlay/format";
 import { isMulticlass } from "@/lib/livePosition";
 import type { WidgetProps } from "./types";
 
-export function StandingsWidget({ data, content, accent, t }: WidgetProps) {
+export function StandingsWidget({ data, content, accent, t, rows: maxRows = 12 }: WidgetProps) {
   const look = useOverlayLook();
   const instrument = look.style === "instrument";
-  const rows = [...data.standings].sort((a, b) => a.position - b.position).slice(0, 12);
+  const rows = [...data.standings].sort((a, b) => a.position - b.position).slice(0, maxRows);
   // Multiclasse : numéro = position dans la classe (désactivable → générale).
   const classNumbers = content.classPosition !== false && isMulticlass(data.standings);
 

@@ -6,9 +6,12 @@
  *   le grip est réduit au virage suivant.
  * - **Gros blocage** : une roue bloquée à vitesse soutenue → risque de plat sur le
  *   pneu. Deux réglages (`LockAlertMode`) : « strict » (défaut, roue quasi arrêtée
- *   ≥ 1 s au-dessus de 100 km/h, une seule annonce par freinage, 5 min par roue)
- *   et « sensible » (l'ancien : glissement < −0,85 pendant 0,6 s, 60 s par roue),
- *   qui parlait à chaque freinage appuyé.
+ *   ≥ 1 s au-dessus de 100 km/h **frein appuyé**, une seule annonce par freinage,
+ *   **une fois par roue et par train de pneus** — un plat ne part qu'au changement
+ *   de pneus —, 90 s entre deux roues) et « sensible » (l'ancien : glissement
+ *   < −0,85 pendant 0,6 s, 60 s par roue, frein ignoré), qui parlait à chaque
+ *   freinage appuyé. Sans le frein, un tête-à-queue, une roue en l'air sur un
+ *   vibreur ou une glissade dans l'herbe passaient pour un blocage.
  * - **« Tu vas bien ? »** : après un choc (dégâts en hausse brutale), si la
  *   voiture reste arrêtée, l'ingénieur prend des nouvelles ; quand elle repart,
  *   il annonce qu'il surveille les dégâts.
@@ -35,11 +38,18 @@ interface LockProfile {
   wheelCooldownS: number;
   /** Silence toutes roues confondues (s) : les deux avant bloquent souvent ensemble. */
   anyCooldownS: number;
+  /** Frein minimal (fraction 0-1) ; 0 = frein ignoré. */
+  minBrake: number;
+  /** Une seule annonce par roue jusqu'au prochain train de pneus. */
+  oncePerTyreSet: boolean;
 }
 
+/** Hausse de gomme restante (points de %) qui signale des pneus neufs. */
+const NEW_TYRE_WEAR_GAIN = 1;
+
 const LOCK_PROFILES: Record<LockAlertMode, LockProfile> = {
-  strict: { slip: -0.95, holdS: 1.0, minKmh: 100, wheelCooldownS: 300, anyCooldownS: 90 },
-  sensitive: { slip: -0.85, holdS: 0.6, minKmh: 80, wheelCooldownS: 60, anyCooldownS: 0 },
+  strict: { slip: -0.95, holdS: 1.0, minKmh: 100, wheelCooldownS: 300, anyCooldownS: 90, minBrake: 0.2, oncePerTyreSet: true },
+  sensitive: { slip: -0.85, holdS: 0.6, minKmh: 80, wheelCooldownS: 60, anyCooldownS: 0, minBrake: 0, oncePerTyreSet: false },
 };
 
 export function parseLockAlertMode(raw: string | undefined | null): LockAlertMode {
@@ -63,6 +73,10 @@ export class TyreEventWatcher {
   private lockSince: (number | null)[] = [null, null, null, null];
   private lastLock = [-Infinity, -Infinity, -Infinity, -Infinity];
   private lastAnyLock = -Infinity;
+  /** Roue déjà annoncée sur ce train de pneus. */
+  private lockedSet = [false, false, false, false];
+  /** Gomme restante la plus basse vue sur ce train (détecte les pneus neufs). */
+  private wearMin: (number | null)[] = [null, null, null, null];
   private lock: LockProfile = LOCK_PROFILES.strict;
   private crashAt: number | null = null;
   private stoppedSince: number | null = null;
@@ -74,6 +88,8 @@ export class TyreEventWatcher {
     this.lockSince = [null, null, null, null];
     this.lastLock = [-Infinity, -Infinity, -Infinity, -Infinity];
     this.lastAnyLock = -Infinity;
+    this.lockedSet = [false, false, false, false];
+    this.wearMin = [null, null, null, null];
     this.crashAt = null;
     this.stoppedSince = null;
     this.asked = false;
@@ -90,9 +106,23 @@ export class TyreEventWatcher {
     this.stoppedSince = null;
   }
 
-  update(nowS: number, wheels: LiveWheel[] | undefined, speedKmh: number, inPits: boolean): TyreEvent[] {
+  /** `brake` : pédale de frein, fraction 0-1 (absente = considérée appuyée). */
+  update(nowS: number, wheels: LiveWheel[] | undefined, speedKmh: number, inPits: boolean, brake = 1): TyreEvent[] {
     const out: TyreEvent[] = [];
-    if (!wheels || wheels.length !== 4 || inPits) {
+    if (!wheels || wheels.length !== 4) {
+      this.dirtSince = null;
+      return out;
+    }
+    // Pneus neufs (gomme restante en hausse) → la roue peut de nouveau être annoncée.
+    // Suivi aussi aux stands : c'est là qu'on change de pneus.
+    for (let i = 0; i < 4; i++) {
+      const wear = wheels[i].wear;
+      if (!Number.isFinite(wear)) continue;
+      const min = this.wearMin[i];
+      if (min != null && wear - min >= NEW_TYRE_WEAR_GAIN) this.lockedSet[i] = false;
+      this.wearMin[i] = min == null || wear < min || wear - min >= NEW_TYRE_WEAR_GAIN ? wear : min;
+    }
+    if (inPits) {
       this.dirtSince = null;
       return out;
     }
@@ -110,7 +140,11 @@ export class TyreEventWatcher {
     // Gros blocage (plat possible).
     const lp = this.lock;
     for (let i = 0; i < 4; i++) {
-      const locked = speedKmh >= lp.minKmh && wheels[i].slip_ratio < lp.slip;
+      const locked =
+        speedKmh >= lp.minKmh &&
+        wheels[i].slip_ratio < lp.slip &&
+        brake >= lp.minBrake &&
+        !(lp.oncePerTyreSet && this.lockedSet[i]);
       if (!locked) {
         this.lockSince[i] = null;
         continue;
@@ -124,6 +158,7 @@ export class TyreEventWatcher {
         this.lastLock[i] = nowS;
         this.lastAnyLock = nowS;
         this.lockSince[i] = null;
+        this.lockedSet[i] = true;
         out.push({ kind: "lockFlatSpot", wheel: i });
       }
     }

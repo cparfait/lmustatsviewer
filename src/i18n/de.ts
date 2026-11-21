@@ -355,6 +355,18 @@ export default {
     },
     back: "Overlays",
     noData: "Warte auf Daten…",
+    rows: {
+      standings: "Anzahl angezeigter Autos",
+      relative: "Angezeigte Autos davor und dahinter",
+    },
+    when: {
+      title: "Wann anzeigen",
+      hideInPits: "In der Box und in der Garage ausblenden",
+      practice: "Im Training",
+      qualify: "Im Qualifying",
+      race: "Im Rennen",
+      hint: "Im Bearbeitungsmodus bleiben alle aktivierten Overlays sichtbar, damit du sie platzieren kannst.",
+    },
     positionHint:
       "Tipp: Aktiviere den Bearbeitungsmodus, um Overlays direkt über dem Spiel zu verschieben. X und Y beginnen an der oberen linken Ecke des Hauptbildschirms — auf einem Bildschirm links davon sind die Werte negativ.",
     opacity: "Deckkraft",
@@ -2783,7 +2795,7 @@ export default {
     extra_tyreEvents: "Schmutzige Reifen und starkes Blockieren",
     extra_tyreEventsDesc: "Nach einem Ausflug ins Gras oder Kies, und wenn ein Rad stark blockiert (Bremsplatten-Gefahr)",
     lockAlert: "Blockier-Warnung",
-    lockAlertDesc: "Streng: nur wenn ein Rad länger als eine Sekunde blockiert (echte Bremsplatten-Gefahr), einmal pro Bremsung. Empfindlich: die bisherige Einstellung, die bei jedem kräftigen Bremsen spricht.",
+    lockAlertDesc: "Streng: nur wenn ein Rad beim Bremsen länger als eine Sekunde blockiert (echte Bremsplatten-Gefahr), nur einmal pro Rad bis zum nächsten Reifenwechsel. Empfindlich: die bisherige Einstellung, die bei jedem kräftigen Bremsen spricht.",
     lockAlert_strict: "Streng",
     lockAlert_sensitive: "Empfindlich",
     extra_crashCheck: "Nach einem Unfall",

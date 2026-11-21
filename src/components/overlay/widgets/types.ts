@@ -8,4 +8,6 @@ export interface WidgetProps {
   content: Record<string, boolean>;
   accent: string;
   t: Tr;
+  /** Nombre de lignes réglé (classement, relatif) ; absent = défaut du widget. */
+  rows?: number;
 }

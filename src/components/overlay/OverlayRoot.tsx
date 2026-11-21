@@ -11,7 +11,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { Check } from "lucide-react";
 import { useOverlaysStore, OVERLAYS_SRC, type OverlaysConfig } from "@/stores/overlays";
-import { OVERLAY_DEFS } from "@/lib/overlays";
+import { OVERLAY_DEFS, overlayHidden, overlaySituation } from "@/lib/overlays";
 import { overlay as overlayApi } from "@/lib/api";
 import { EMPTY_LIVE_DATA, useOverlayData } from "./useOverlayData";
 import { OverlayFrame } from "./OverlayFrame";
@@ -141,6 +141,7 @@ export function OverlayRoot() {
   if (!cfg.masterEnabled) return null;
 
   const live = data ?? EMPTY_LIVE_DATA;
+  const situation = overlaySituation(live);
 
   return (
     <OverlayLookContext.Provider value={cfg.look}>
@@ -205,6 +206,8 @@ export function OverlayRoot() {
       {OVERLAY_DEFS.map((def) => {
         const settings = cfg.overlays[def.id];
         if (!settings?.enabled) return null;
+        // Stand / type de séance : masqué en jeu, toujours visible en édition.
+        if (!editMode && overlayHidden(settings, situation)) return null;
         const Widget = WIDGETS[def.id];
         return (
           <OverlayFrame
@@ -220,6 +223,7 @@ export function OverlayRoot() {
               <Widget
                 data={live}
                 content={settings.content}
+                rows={settings.rows}
                 accent={settings.accent ?? def.accent}
                 t={t}
               />

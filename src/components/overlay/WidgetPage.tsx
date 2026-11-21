@@ -20,7 +20,7 @@ import { Check, Copy, ExternalLink, Flag, Glasses, MonitorPlay } from "lucide-re
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useOverlaysStore, type OverlaysConfig } from "@/stores/overlays";
-import { OVERLAY_BY_ID, OVERLAY_DEFS, type OverlayId } from "@/lib/overlays";
+import { OVERLAY_BY_ID, OVERLAY_DEFS, overlayHidden, overlaySituation, type OverlayId } from "@/lib/overlays";
 import { widgetLink } from "@/lib/widgetLink";
 import { OPENKNEEBOARD_URL } from "@/lib/widgetServer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -135,6 +135,9 @@ export function WidgetPage({ id }: { id: string }) {
   }
   const settings = cfg.overlays[def.id];
   const Widget = WIDGETS[def.id];
+  const live = data ?? EMPTY_LIVE_DATA;
+  // Même filtre que la fenêtre overlay (stand, type de séance).
+  const hidden = overlayHidden(settings, overlaySituation(live));
 
   return (
     <OverlayLookContext.Provider value={cfg.look}>
@@ -149,12 +152,15 @@ export function WidgetPage({ id }: { id: string }) {
         }}
       >
         <ErrorBoundary fallback={null}>
-          <Widget
-            data={data ?? EMPTY_LIVE_DATA}
-            content={settings?.content ?? {}}
-            accent={settings?.accent ?? def.accent}
-            t={t}
-          />
+          {!hidden && (
+            <Widget
+              data={live}
+              content={settings?.content ?? {}}
+              rows={settings?.rows}
+              accent={settings?.accent ?? def.accent}
+              t={t}
+            />
+          )}
         </ErrorBoundary>
       </div>
       <OfflineNotice online={online} />

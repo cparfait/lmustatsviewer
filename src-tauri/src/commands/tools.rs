@@ -41,6 +41,13 @@ const ERROR_ELEVATION_REQUIRED: i32 = 740;
 const PE_SUBSYSTEM_CONSOLE: u16 = 3;
 /// Nom du plugin de mémoire partagée attendu par l'app.
 const PLUGIN_DLL: &str = "rFactor2SharedMemoryMapPlugin64.dll";
+/// Hôte des plugins de LMU (racine du jeu) : sans lui, aucun plugin ne tourne.
+/// Certains antivirus le mettent en quarantaine.
+const PLUGIN_HOST: &str = "PluginsAdapter.exe";
+/// Option « accès direct à la mémoire » du plugin. À 1, le plugin transmet en
+/// plus la limite de vitesse des stands et les messages de course ; des
+/// plantages de LMU dans ce mode sont signalés (version 1.4.1.3).
+const DMA_KEY: &str = "EnableDirectMemoryAccess";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Configuration du lanceur (clé de config `tools_launcher`, JSON écrit par le front)
@@ -721,6 +728,62 @@ pub async fn tools_detect_known() -> Result<Vec<KnownTool>, String> {
     tauri::async_runtime::spawn_blocking(detect_known).await.map_err(|e| e.to_string())
 }
 
+/// Position (octets) de la valeur de `EnableDirectMemoryAccess` dans le bloc du
+/// plugin `dll`. Lecture texte : marche aussi sur un JSON non strict.
+fn dma_value_span(text: &str, dll: &str) -> Option<(usize, usize)> {
+    // `to_ascii_lowercase` garde les positions d'octets.
+    let lower = text.to_ascii_lowercase();
+    let start = lower.find(&format!("\"{}\"", dll.to_ascii_lowercase()))?;
+    let end = lower[start..].find('}').map_or(lower.len(), |i| start + i);
+    let key = format!("\"{}\"", DMA_KEY.to_ascii_lowercase());
+    let mut i = lower[start..end].find(&key)? + start + key.len();
+    let b = text.as_bytes();
+    while i < end && b[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    if i >= end || b[i] != b':' {
+        return None;
+    }
+    i += 1;
+    while i < end && b[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    let s = i;
+    while i < end && (b[i].is_ascii_alphanumeric() || b[i] == b'.' || b[i] == b'-') {
+        i += 1;
+    }
+    (i > s).then_some((s, i))
+}
+
+/// `EnableDirectMemoryAccess` du plugin `dll` ; `None` si bloc ou clé absents.
+pub fn parse_plugin_dma(text: &str, dll: &str) -> Option<bool> {
+    let (s, e) = dma_value_span(text, dll)?;
+    match &text[s..e] {
+        v if v.eq_ignore_ascii_case("true") => Some(true),
+        v if v.eq_ignore_ascii_case("false") => Some(false),
+        v => v.parse::<f64>().ok().map(|x| x != 0.0),
+    }
+}
+
+/// Le même texte avec `EnableDirectMemoryAccess` à 0 pour `dll`, tout le reste
+/// intact (mise en forme, autres plugins). `None` si la clé est introuvable.
+pub fn plugin_dma_off(text: &str, dll: &str) -> Option<String> {
+    let (s, e) = dma_value_span(text, dll)?;
+    Some(format!("{}0{}", &text[..s], &text[e..]))
+}
+
+/// État de l'hôte des plugins : fichier absent = `error` ; jeu lancé sans hôte
+/// = `warn` (encore au chargement, ou bloqué) ; sinon `ok`.
+pub fn plugin_host_status(file: bool, game_running: bool, host_running: bool) -> &'static str {
+    if !file {
+        "error"
+    } else if game_running && !host_running {
+        "warn"
+    } else {
+        "ok"
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Diagnostic PC (lecture seule)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -780,8 +843,10 @@ fn run_diagnostic(app: &AppHandle) -> Vec<DiagItem> {
         items.push(item("plugin_file", st, dll.to_string_lossy()));
 
         let json = root.join("UserData").join("player").join("CustomPluginVariables.JSON");
-        let state = std::fs::read(&json)
-            .map(|b| parse_plugin_enabled(&String::from_utf8_lossy(&b), PLUGIN_DLL))
+        let json_text = std::fs::read(&json).ok().map(|b| String::from_utf8_lossy(&b).into_owned());
+        let state = json_text
+            .as_deref()
+            .map(|t| parse_plugin_enabled(t, PLUGIN_DLL))
             .unwrap_or(PluginState::Missing);
         let st = match state {
             PluginState::Enabled => "ok",
@@ -789,6 +854,23 @@ fn run_diagnostic(app: &AppHandle) -> Vec<DiagItem> {
             PluginState::Missing => "error",
         };
         items.push(item("plugin_enabled", st, json.to_string_lossy()));
+
+        // Accès direct à la mémoire : information, réglable (cf. `fix_plugin_dma`).
+        if let Some(dma) = json_text.as_deref().and_then(|t| parse_plugin_dma(t, PLUGIN_DLL)) {
+            items.push(item("plugin_dma", if dma { "info" } else { "ok" }, format!("{DMA_KEY}={}", u8::from(dma))));
+        }
+
+        // Runtime Visual C++ 2013 : la DLL du plugin importe MSVCR120.dll.
+        let sys = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".into());
+        let crt = Path::new(&sys).join("System32").join("msvcr120.dll");
+        items.push(item("plugin_runtime", if crt.is_file() { "ok" } else { "error" }, crt.to_string_lossy()));
+
+        // Hôte des plugins (fichier, puis processus si le jeu tourne).
+        let host = root.join(PLUGIN_HOST);
+        let names = process_names();
+        let game = names.as_ref().is_some_and(|n| is_process_running(n, LMU_PROCESS));
+        let host_up = names.as_ref().is_some_and(|n| is_process_running(n, PLUGIN_HOST));
+        items.push(item("plugin_host", plugin_host_status(host.is_file(), game, host_up), host.to_string_lossy()));
 
         // ── Mode d'affichage + VSync (UserData/Config_DX11.ini, écran ; la VR
         //    a son propre Config_DX11_VR.ini, sans effet sur les overlays) ──
@@ -851,6 +933,36 @@ pub async fn pc_diagnostic(app: AppHandle) -> Result<Vec<DiagItem>, AppError> {
     tauri::async_runtime::spawn_blocking(move || run_diagnostic(&app))
         .await
         .map_err(|e| AppError::Internal(format!("pc_diagnostic: {e}")))
+}
+
+/// Remet `EnableDirectMemoryAccess` à 0 pour le plugin, **jeu fermé**, après
+/// copie de sauvegarde du fichier. Appelée seulement sur geste du pilote (bouton
+/// + confirmation). Renvoie le chemin de la sauvegarde.
+#[tauri::command(async)]
+pub async fn fix_plugin_dma(app: AppHandle) -> Result<String, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if lmu_running() {
+            return Err(AppError::Config("game_running".into()));
+        }
+        let lmu = configured_lmu_path(&app)
+            .filter(|p| Path::new(p).is_dir())
+            .or_else(|| crate::commands::config::detect_lmu().ok().map(|d| d.lmu_path))
+            .ok_or_else(|| AppError::NotFound("lmu_path".into()))?;
+        let json = PathBuf::from(lmu).join("UserData").join("player").join("CustomPluginVariables.JSON");
+        let bytes = std::fs::read(&json)?;
+        let text = String::from_utf8(bytes.clone()).map_err(|_| AppError::Parse("utf8".into()))?;
+        let fixed = plugin_dma_off(&text, PLUGIN_DLL).ok_or_else(|| AppError::NotFound(DMA_KEY.into()))?;
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let backup = json.with_extension(format!("JSON.lmusv-{stamp}.bak"));
+        std::fs::write(&backup, &bytes)?;
+        std::fs::write(&json, fixed)?;
+        Ok(backup.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(|e| AppError::Internal(format!("fix_plugin_dma: {e}")))?
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -927,6 +1039,34 @@ mod tests {
         assert_eq!(parse_plugin_enabled(other, PLUGIN_DLL), PluginState::Missing);
         let bom = "\u{feff}{ \"rFactor2SharedMemoryMapPlugin64.dll\": { \" Enabled\": true } }";
         assert_eq!(parse_plugin_enabled(bom, PLUGIN_DLL), PluginState::Enabled);
+    }
+
+    #[test]
+    fn tools_plugin_dma() {
+        let txt = "{\n  \"LMU.3.8.SharedMemoryMapPlugin.dll\": {\n    \"EnableDirectMemoryAccess\": 1\n  },\n  \"rFactor2SharedMemoryMapPlugin64.dll\": {\n    \" Enabled\": 1,\n    \"EnableDirectMemoryAccess\": 1,\n    \"EnableHWControlInput\": 1\n  }\n}";
+        assert_eq!(parse_plugin_dma(txt, PLUGIN_DLL), Some(true));
+        let off = plugin_dma_off(txt, PLUGIN_DLL).unwrap();
+        assert_eq!(parse_plugin_dma(&off, PLUGIN_DLL), Some(false));
+        // L'autre plugin et la mise en forme ne bougent pas.
+        assert_eq!(parse_plugin_dma(&off, "LMU.3.8.SharedMemoryMapPlugin.dll"), Some(true));
+        assert_eq!(off.len(), txt.len());
+        assert!(serde_json::from_str::<Value>(&off).is_ok());
+        let tolerant = "{ \"rFactor2SharedMemoryMapPlugin64.dll\": { \"EnableDirectMemoryAccess\" : true, } }";
+        assert_eq!(parse_plugin_dma(tolerant, PLUGIN_DLL), Some(true));
+        let t = "{ \"rFactor2SharedMemoryMapPlugin64.dll\": { \"EnableDirectMemoryAccess\": true } }";
+        assert!(serde_json::from_str::<Value>(&plugin_dma_off(t, PLUGIN_DLL).unwrap()).is_ok());
+        let no_key = "{ \"rFactor2SharedMemoryMapPlugin64.dll\": { \" Enabled\": 1 } }";
+        assert_eq!(parse_plugin_dma(no_key, PLUGIN_DLL), None);
+        assert_eq!(parse_plugin_dma("{}", PLUGIN_DLL), None);
+        assert!(plugin_dma_off("{}", PLUGIN_DLL).is_none());
+    }
+
+    #[test]
+    fn tools_plugin_host_status() {
+        assert_eq!(plugin_host_status(false, false, false), "error");
+        assert_eq!(plugin_host_status(true, true, false), "warn");
+        assert_eq!(plugin_host_status(true, true, true), "ok");
+        assert_eq!(plugin_host_status(true, false, false), "ok");
     }
 
     #[test]

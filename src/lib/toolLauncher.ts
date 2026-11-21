@@ -52,7 +52,12 @@ export const tools = {
   /** `false` = l'outil était déjà ouvert (rien relancé). */
   launchNow: (path: string) => invoke<boolean>("tools_launch_now", { path }),
   diagnostic: () => invoke<DiagItem[]>("pc_diagnostic"),
+  /** Remet l'accès direct à la mémoire du plugin à 0 (jeu fermé) ; renvoie la sauvegarde. */
+  fixPluginDma: () => invoke<string>("fix_plugin_dma"),
 };
+
+/** Runtime Visual C++ 2013 x64 (lien Microsoft). */
+export const VCREDIST_2013_URL = "https://aka.ms/highdpimfc2013x64enu";
 
 export const EMPTY_LAUNCHER: LauncherConfig = { enabled: false, tools: [] };
 

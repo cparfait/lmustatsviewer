@@ -32,6 +32,7 @@ import {
   loadLauncherConfig,
   saveLauncherConfig,
   EMPTY_LAUNCHER,
+  VCREDIST_2013_URL,
   type DiagItem,
   type DiagStatus,
   type KnownTool,
@@ -62,6 +63,10 @@ export function ToolsSettings() {
   const [diag, setDiag] = useState<DiagItem[] | null>(null);
   const [diagBusy, setDiagBusy] = useState(false);
   const [diagError, setDiagError] = useState("");
+  /** Remise à 0 de l'accès direct à la mémoire : confirmation, puis message. */
+  const [dmaConfirm, setDmaConfirm] = useState(false);
+  const [dmaBusy, setDmaBusy] = useState(false);
+  const [dmaMsg, setDmaMsg] = useState("");
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -127,6 +132,21 @@ export function ToolsSettings() {
       setDiagError(String(e));
     } finally {
       setDiagBusy(false);
+    }
+  };
+
+  const fixDma = async () => {
+    setDmaBusy(true);
+    try {
+      const backup = await tools.fixPluginDma();
+      setDmaMsg(t("tools.diagDmaDone", { value: backup }));
+      setDiag(await tools.diagnostic());
+    } catch (e) {
+      const raw = String(e);
+      setDmaMsg(raw.includes("game_running") ? t("tools.diagDmaGameRunning") : t("tools.diagDmaFailed", { value: raw }));
+    } finally {
+      setDmaBusy(false);
+      setDmaConfirm(false);
     }
   };
 
@@ -316,6 +336,31 @@ export function ToolsSettings() {
                         {t("overlays.web.okbDownload")}
                       </Button>
                     )}
+                    {d.id === "plugin_runtime" && d.status === "error" && (
+                      <Button size="sm" variant="outline" className="mt-1 h-7 text-xs" onClick={() => openExternal(VCREDIST_2013_URL)}>
+                        {t("tools.diagRuntimeDownload")}
+                      </Button>
+                    )}
+                    {d.id === "plugin_dma" && d.status === "info" && !dmaConfirm && (
+                      <Button size="sm" variant="outline" className="mt-1 h-7 text-xs" onClick={() => { setDmaMsg(""); setDmaConfirm(true); }}>
+                        {t("tools.diagDmaFix")}
+                      </Button>
+                    )}
+                    {d.id === "plugin_dma" && dmaConfirm && (
+                      <div className="mt-1 space-y-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-2">
+                        <p className="text-xs">{t("tools.diagDmaConfirm")}</p>
+                        <div className="flex gap-2">
+                          <Button size="sm" className="h-7 text-xs" disabled={dmaBusy} onClick={() => void fixDma()}>
+                            {dmaBusy && <Loader2 className="animate-spin" />}
+                            {t("tools.diagDmaConfirmYes")}
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" disabled={dmaBusy} onClick={() => setDmaConfirm(false)}>
+                            {t("tools.diagDmaCancel")}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {d.id === "plugin_dma" && dmaMsg && <p className="mt-1 text-xs text-muted-foreground break-all">{dmaMsg}</p>}
                   </div>
                 </li>
               );

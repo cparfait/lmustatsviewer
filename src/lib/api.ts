@@ -980,6 +980,12 @@ export interface RestWeekendWeather {
   race: RestForecastNode[];
 }
 
+/** `sessions` : multiplicateurs de conso et d'usure. */
+export interface RestSessionSettings {
+  fuel_mult: number | null;
+  tire_mult: number | null;
+}
+
 export interface LmuRestLive {
   /** Le jeu a répondu à la dernière tentative. */
   reachable: boolean;
@@ -989,6 +995,8 @@ export interface LmuRestLive {
   pit: RestField<RestPitScreen>;
   session: RestField<RestSessionInfo>;
   weather: RestField<RestWeekendWeather>;
+  /** Multiplicateurs de la séance (`sessions`, x1 = normal), null si inconnus. */
+  settings?: RestField<RestSessionSettings>;
   /** Setup chargé dans la voiture (`garage/summary`), lu en piste. */
   setup?: RestField<RestLoadedSetup>;
   /** État et conso des voitures selon le jeu (`watch/standings`, `strategy/usage`). */

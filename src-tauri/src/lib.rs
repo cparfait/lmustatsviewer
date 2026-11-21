@@ -291,6 +291,7 @@ pub fn run() {
             commands::tools::launch_lmu,
             commands::tools::lmu_is_running,
             commands::tools::pc_diagnostic,
+            commands::tools::fix_plugin_dma,
             commands::widget_server::widget_server_start,
             commands::widget_server::widget_server_stop,
             commands::widget_server::widget_server_status,

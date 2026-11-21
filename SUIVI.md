@@ -946,6 +946,70 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
 
+### 2026-11-21 — J1 + J2 de la veille 1.1.2 : multiplicateurs de séance, diagnostic du plugin (non commité)
+
+**Demande** : « J1 + J2 ».
+- ✅ **J1 recadré** : chez nous la conso et l'usure sont **mesurées en séance** (multiplicateur déjà inclus) ; le menu des stands du jeu
+  donne sa propre estimation. Pas de calcul faussé à corriger, contrairement à ce que disait la veille. J1 réduit à : lire, afficher, donner à l'IA.
+- ✅ **J1** : route `ROUTE_SESSION_SETTINGS` (`/rest/sessions`, toutes les 60 s, comme la météo) dans `lmu_rest.rs` ; `parse_session_settings`
+  ne garde que `SESSSET_Fuel_Usage` et `SESSSET_Tire_Wear`, lus dans le libellé `stringValue` (« x2 », « 2x », « ×1,5 ») ; un nombre nu est
+  refusé (peut être un rang de liste). Objet, tableau (`settingID`) ou un niveau d'imbrication acceptés. `LmuRestLive.settings`.
+  Front : `sessionMultipliers` (frais ou vieilli), ligne du contexte IA dans `restContextLines`, bandeau `SessionMultipliersBadge` sur Live
+  (seulement si ≠ x1). Les `mFuelMult`/`mTireMult` de la mémoire partagée (options du joueur rF2) restent non utilisés.
+- ✅ **J2** (`tools.rs`, page Outils › Diagnostic) : `plugin_dma` (`EnableDirectMemoryAccess` du bloc de notre DLL : 0 = ok, 1 = info avec
+  bouton « Remettre à 0 ») ; `plugin_runtime` (`%SystemRoot%\System32\msvcr120.dll`, notre DLL l'importe, vérifié dans le binaire ; lien
+  Microsoft) ; `plugin_host` (`PluginsAdapter.exe` à la racine du jeu, présent sur ce PC ; jeu lancé sans ce processus = warn).
+  Commande `fix_plugin_dma` : refus si LMU tourne, sauvegarde `CustomPluginVariables.JSON.lmusv-<horodatage>.bak`, seule la valeur est
+  réécrite (mise en forme et autres plugins intacts), confirmation en ligne dans l'UI.
+- ✅ **Décision** : DMA laissé au choix du pilote (statut info, pas warn). À 1, le plugin rF2 alimente `m_current_pit_speed_limit` et
+  `m_status_message`, que nous lisons : le remettre à 0 coûte la limite des stands et les messages de course. Les plantages en 1.4.1.3 sont
+  une affirmation de la veille, non constatée ici.
+- ✅ Textes 5 langues (`tools.diag_plugin_*`, `tools.diagDma*`, `live.sessionMult*`), changelog (2 entrées, version en cours).
+- ✅ Tests : `npm test` 8 258 OK (`rest.suite` : `sessionMultipliers`, contexte IA) ; `cargo test --lib` 204 OK (`session_settings_multipliers`,
+  `tools_plugin_dma`, `tools_plugin_host_status`) ; `tsc -b` et eslint propres ; clippy : rien de nouveau.
+- ✅ **Format réel capturé** (jeu lancé, menus puis week-end hors ligne) : 62 clés `SESSSET_*`, chacune `{currentValue, numStepsTotal,
+  settingID, stringValue, uiSelectionType, valueType}`. Réglage normal = `stringValue` **« Realistic »** (`currentValue` 1, `numStepsTotal` 3),
+  pas « x1 » : `mult_label` le lit comme 1 (correctif `fix(rest)` + test sur ce relevé). Certains libellés sont traduits (« Par défaut ( 10 ) »).
+- ✅ **Cran x2 relevé** (week-end créé par le mainteneur, conso x2) : `stringValue` « X2 », `currentValue` 2 ; lu x2 par `mult_label`.
+  Échelle déduite : 1 Realistic, 2 X2, 3 X3 probable, 0 non vu (Off ?). Prise en main de LMU par l'outil d'automatisation impossible :
+  le jeu ignore les clics simulés.
+- ✅ **Bandeau Live vu dans l'app** (`npm run tauri:dev`, week-end Spa, conso x2) : « Réglages de la séance : conso ×2 » sous le setup chargé.
+- ✅ **Diagnostic vu par le mainteneur** (jeu lancé) : « Accès direct à la mémoire : Désactivé » (`EnableDirectMemoryAccess=0`, pas de
+  bouton), « Runtime Visual C++ 2013 : Présent », « Hôte des plugins : PluginsAdapter.exe est présent » (processus vu, sinon warn).
+- ⚠️ **Non vérifié** : crans 0 et 3 ; bouton DMA sur un fichier à 1 ; cas d'erreur (runtime absent, hôte bloqué) ; lien `aka.ms`.
+- 📋 **Prochaine étape** : jeu lancé, `curl http://127.0.0.1:6397/rest/sessions` pour confirmer le format (libellés des multiplicateurs),
+  puis lancer le diagnostic de la page Outils et le bouton DMA sur une copie de `CustomPluginVariables.JSON` à 1.
+
+### 2026-11-21 — Veille concurrentielle 1.1.2 (build 328), passe 316 → 328 (aucun code modifié)
+
+**Demande** : refaire l'étude de l'app concurrente et de ses mises à jour. Lecture statique de `pack_328` (chaînes des `.pyc`, JS du studio),
+3 agents par domaine. App non lancée, aucun appel à leur serveur, aucun nom de concurrent dans notre code.
+- ✅ **Version** : `pack_328`, **v1.1.2**, installé le 21/11 ; `pack_316` supprimé par leur updater (pas de diff direct, datation par les
+  souches `.py` et les commentaires datés). ~210 souches sur 420 changées entre le 05/11 et le 20/11. Patch note servi par leur serveur, absent.
+- ✅ **Site** : aucun changelog public. **Starter gratuit sans ingénieur vocal** (Paddock, Moments, Carrière, overlays OBS) ; Sprint 11,99 €/mois
+  (ingé, spotter, entraînement, Régie Live) ; Performance 19,99 €/mois (setup à la voix, Top 1 %, écuries). Jeux : LMU + iRacing, sources ACC,
+  AMS2, R3E, F1 25, AC, AC Evo, AC Rally, rF2 présentes dans le pack.
+- ✅ **Acquisition** : diagnostic du plugin LMU (`EnableDirectMemoryAccess` remis à 0 jeu fermé après sauvegarde, VC++ 2013, `PluginsAdapter.exe`
+  en quarantaine antivirus, jamais d'écriture sans geste du pilote) ; REST `/rest/sessions` (~60 `SESSSET_*` : multiplicateurs conso/usure/dégâts,
+  couvertures, pneus dispo), `TireManagement`, `brakeinfo`, `chat` ; menu des stands rempli automatiquement avec ratio d'essence ; tables de repli
+  limite des stands et conso par circuit ; « Éclaireur » (missions participatives, enregistrements bruts envoyés) et envoi des `.duckdb` du jeu ;
+  événements poussés aux overlays (arrêt + durée, record, damier).
+- ✅ **Cerveau/radio** : I3 (jaunes de secteur), I4 (spotter : même classe qui prend un tour, freinage du rival), I6 (lecture d'un ordre) faits
+  chez eux. Nouveau : aide au retour en piste et compte à rebours box (`radio_immediate`), concentration selon la durée de la phrase avant le
+  prochain freinage (`concentration`), encouragements après dépassement, retardataire « pas une menace », alerte setup de qualif chargé / non
+  sauvegardé, avant-course avec objectif et option d'économie, bascule jour/nuit, première séance guidée.
+- ✅ **Interface** : Dojo (« Ça se joue ici » = 3 virages les plus coûteux cliquables sur la carte + geste à essayer ; filtre tour raté : >10 % de
+  la référence ou virage <70 % de la vitesse mini) ; débrief court (record battu de…, verdict mesuré des réglages essayés) ; ~80 succès avec fonds
+  d'écran générés depuis l'historique ; cinématiques V1 ; fonctions payantes floutées ; parrainage.
+- ✅ **Écarts vérifiés chez nous (grep)** : `/rest/sessions` lu seulement pour `weather` ; `fuel_mult` seulement dans `postrace-context.ts`
+  (pas dans `strategy.ts`) ; rien sur `EnableDirectMemoryAccess` / `PluginsAdapter` ; `mTimeOfDay` non lu ; un seul `vFlagYellow`.
+- 📋 **Idées classées** : J1 multiplicateurs de séance (`/rest/sessions`) dans carburant/pneus/stratégie ; J2 diagnostic plugin complet ;
+  J3 filtre « tour comparable » dans le coach par virage ; J4 jaunes par secteur filtrés ; J5 concentration selon durée de phrase ;
+  J6 aide au retour en piste ; J7 « Ça se joue ici » dans `SessionDetail` ; J8 contrôles au départ (setup de qualif, plein en tours) ;
+  J9 événements de course poussés aux widgets ; J10 argumentaire « ingénieur vocal gratuit » sur le site. Écartés : Éclaireur et envoi des
+  télémétries (contraire à « rien ne quitte le PC sans accord »), chat du jeu à la voix.
+- 📋 **Prochaine étape** : arbitrage du mainteneur ; si go, J1 + J2 (faible effort, format `/rest/sessions` à capturer en jeu).
+
 ### 2026-11-07 — Vidéos de présentation (/brag + Hyperframes), aucun code de l'app modifié
 
 **Demande** : « installe brag et fais moi une vidéo de mon projet », puis une présentation de toutes les fonctionnalités, en 5 langues, avec voix.

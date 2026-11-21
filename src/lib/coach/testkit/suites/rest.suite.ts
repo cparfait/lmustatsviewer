@@ -21,6 +21,8 @@ import {
   pitMenuErrorKey,
   restSessionEnd,
   restStatus,
+  restContextLines,
+  sessionMultipliers,
 } from "@/lib/lmuRest";
 import { fromGameNodes, pickForecast } from "@/lib/engineer/forecast";
 import { AlertLatch } from "@/lib/engineer/alertLatch";
@@ -117,6 +119,19 @@ export function run(): void {
   eq(guardPerLap(0, 3.0), { perLap: 3.0, source: "game" }, "avant toute mesure : valeur du jeu");
   eq(guardPerLap(2.9, null), { perLap: 2.9, source: "measured" }, "jeu muet : mesure seule");
   eq(guardPerLap(0, null), null, "rien : null");
+
+  section("lmuRest.sessionMultipliers");
+  {
+    const withSettings = (data: { fuel_mult: number | null; tire_mult: number | null } | null, state: RestField<unknown>["state"] = "fresh") =>
+      ({ ...rest(), settings: field(data, state as never) }) as LmuRestLive;
+    eq(sessionMultipliers(withSettings({ fuel_mult: 2, tire_mult: 3 })), { fuel: 2, tire: 3 }, "lus frais");
+    eq(sessionMultipliers(withSettings({ fuel_mult: 2, tire_mult: null }, "stale")), { fuel: 2, tire: null }, "vieillis : comptent encore (lus toutes les 60 s)");
+    eq(sessionMultipliers(withSettings({ fuel_mult: 2, tire_mult: 3 }, "invalid")), null, "réponse illisible : inconnus");
+    eq(sessionMultipliers(withSettings({ fuel_mult: null, tire_mult: null })), null, "rien de lisible : null");
+    eq(sessionMultipliers(rest()), null, "route absente (ancienne version du pont) : null");
+    const lines = restContextLines(live({ rest: withSettings({ fuel_mult: 2, tire_mult: 1 }) }));
+    ok(lines.some((l) => l.includes("fuel use x2") && l.includes("tyre wear x1")), "contexte IA : multiplicateurs donnés");
+  }
 
   section("lmuRest.restSessionEnd (relevé réel)");
   eq(restSessionEnd(rest(), 12), 21605, "fin = startEventTime + maxTime (pas endEventTime)");

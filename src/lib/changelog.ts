@@ -93,6 +93,24 @@ export const CHANGELOG: ChangelogEntry[] = [
         items: [
           {
             text: {
+              en: "PC check (Tools page): three new plugin checks. It tells you if the Visual C++ 2013 runtime the plugin needs is missing (with a Microsoft download link), if the game's plugin host PluginsAdapter.exe is missing or not running (often quarantined by an antivirus), and whether the plugin's direct memory access is on. LMU crashes have been reported with it on: a button sets it back to 0, only with the game closed, after a backup copy and your confirmation.",
+              fr: "Diagnostic du PC (page Outils) : trois nouveaux contrôles du plugin. Il signale s'il manque le runtime Visual C++ 2013 dont le plugin a besoin (avec un lien de téléchargement Microsoft), si l'hôte des plugins du jeu PluginsAdapter.exe est absent ou ne tourne pas (souvent mis en quarantaine par un antivirus), et si l'accès direct à la mémoire du plugin est activé. Des plantages de LMU sont signalés dans ce mode : un bouton le remet à 0, seulement jeu fermé, après une copie de sauvegarde et ta confirmation.",
+              es: "Diagnóstico del PC (página Herramientas): tres nuevas comprobaciones del plugin. Avisa si falta el runtime de Visual C++ 2013 que necesita el plugin (con un enlace de descarga de Microsoft), si el anfitrión de plugins del juego PluginsAdapter.exe falta o no se ejecuta (a menudo puesto en cuarentena por un antivirus), y si el acceso directo a memoria del plugin está activado. Se han señalado cierres de LMU en este modo: un botón lo vuelve a 0, solo con el juego cerrado, tras una copia de seguridad y tu confirmación.",
+              de: "PC-Diagnose (Seite Werkzeuge): drei neue Plugin-Prüfungen. Sie meldet, wenn die vom Plugin benötigte Visual C++ 2013 Runtime fehlt (mit Microsoft-Downloadlink), wenn der Plugin-Host des Spiels PluginsAdapter.exe fehlt oder nicht läuft (oft von einem Virenschutz in Quarantäne verschoben) und ob der direkte Speicherzugriff des Plugins aktiv ist. In diesem Modus wurden LMU-Abstürze gemeldet: Eine Schaltfläche setzt ihn auf 0 zurück, nur bei geschlossenem Spiel, nach einer Sicherungskopie und deiner Bestätigung.",
+              it: "Diagnostica del PC (pagina Strumenti): tre nuovi controlli del plugin. Segnala se manca il runtime Visual C++ 2013 di cui il plugin ha bisogno (con un link di download Microsoft), se l'host dei plugin del gioco PluginsAdapter.exe manca o non è in esecuzione (spesso messo in quarantena da un antivirus) e se l'accesso diretto alla memoria del plugin è attivo. Sono stati segnalati crash di LMU in questa modalità: un pulsante lo rimette a 0, solo a gioco chiuso, dopo una copia di backup e la tua conferma.",
+            },
+          },
+          {
+            text: {
+              en: "Session multipliers: the app reads the fuel use and tyre wear multipliers set for the session. When they differ from x1, the Live page shows them under the loaded setup, and the AI coach knows them.",
+              fr: "Multiplicateurs de séance : l'application lit les multiplicateurs de conso et d'usure des pneus réglés pour la séance. S'ils diffèrent de x1, la page Live les affiche sous le setup chargé, et le coach IA les connaît.",
+              es: "Multiplicadores de la sesión: la aplicación lee los multiplicadores de consumo y desgaste de neumáticos fijados para la sesión. Si difieren de x1, la página Live los muestra bajo el setup cargado, y el coach IA los conoce.",
+              de: "Sitzungsmultiplikatoren: Die App liest die für die Sitzung eingestellten Multiplikatoren für Verbrauch und Reifenverschleiß. Weichen sie von x1 ab, zeigt die Live-Seite sie unter dem geladenen Setup an, und der KI-Coach kennt sie.",
+              it: "Moltiplicatori della sessione: l'app legge i moltiplicatori di consumo e usura gomme impostati per la sessione. Se diversi da x1, la pagina Live li mostra sotto il setup caricato e il coach IA li conosce.",
+            },
+          },
+          {
+            text: {
               en: "Rival energy: when you ask about a rival's stops, the engineer now uses the energy and consumption reported by the game when available, instead of only estimating from past stints. The AI coach gets the same figures.",
               fr: "Énergie des rivaux : quand tu demandes les arrêts d'un rival, l'ingénieur utilise maintenant l'énergie et la conso données par le jeu si elles sont disponibles, au lieu d'estimer seulement d'après ses relais passés. Le coach IA reçoit les mêmes chiffres.",
               es: "Energía de los rivales: cuando preguntas por las paradas de un rival, el ingeniero usa ahora la energía y el consumo que da el juego si están disponibles, en lugar de estimar solo a partir de sus tandas anteriores. El coach IA recibe las mismas cifras.",

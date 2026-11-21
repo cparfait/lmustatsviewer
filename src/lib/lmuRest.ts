@@ -302,7 +302,29 @@ export function restContextLines(d: LiveData): string[] {
         fc.map((n, i) => `${pct[i] ?? i} ${Math.round(n.temperature)}°C rain ${Math.round(n.rain_chance)}%`).join(" · "),
     );
   }
+  const mult = sessionMultipliers(rest);
+  if (mult) {
+    const parts: string[] = [];
+    if (mult.fuel != null) parts.push(`fuel use x${mult.fuel}`);
+    if (mult.tire != null) parts.push(`tyre wear x${mult.tire}`);
+    out.push(`Session multipliers (game settings): ${parts.join(", ")} — live measurements already include them`);
+  }
   return out;
+}
+
+/**
+ * Multiplicateurs de la séance selon le jeu (`sessions`, x1 = normal). Réglages
+ * stables, lus toutes les 60 s : une lecture vieillie compte encore. Null si
+ * inconnus.
+ */
+export function sessionMultipliers(
+  rest: LmuRestLive | null | undefined,
+): { fuel: number | null; tire: number | null } | null {
+  const f = rest?.settings;
+  if (!f?.data || (f.state !== "fresh" && f.state !== "stale")) return null;
+  const fuel = f.data.fuel_mult ?? null;
+  const tire = f.data.tire_mult ?? null;
+  return fuel == null && tire == null ? null : { fuel, tire };
 }
 
 /**

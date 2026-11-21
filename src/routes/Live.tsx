@@ -70,6 +70,7 @@ import { IncidentDots } from "@/components/IncidentDots";
 import { BriefingPanel } from "@/components/BriefingPanel";
 import { FixedSetupBanner } from "@/components/FixedSetupBanner";
 import { LoadedSetupBadge } from "@/components/LoadedSetupBadge";
+import { SessionMultipliersBadge } from "@/components/SessionMultipliersBadge";
 
 /**
  * Estimation « carburant pour finir » :
@@ -579,6 +580,9 @@ function Dashboard({ data, overlay }: { data: LiveData; overlay?: OverlayKind })
 
       {/* Setup chargé dans la voiture (lu dans le jeu en piste) */}
       <LoadedSetupBadge rest={data.rest} />
+
+      {/* Multiplicateurs de conso / usure de la séance (si différents de x1) */}
+      <SessionMultipliersBadge rest={data.rest} />
 
       {/* Bandeau supérieur */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-border gap-4 flex-wrap">

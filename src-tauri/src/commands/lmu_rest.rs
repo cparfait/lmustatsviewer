@@ -79,6 +79,10 @@ pub const ROUTE_SUMMARY: &str = "/rest/garage/summary";
 pub const ROUTE_STANDINGS: &str = "/rest/watch/standings";
 /// Énergie virtuelle restante de chaque pilote, tour par tour.
 pub const ROUTE_USAGE: &str = "/rest/strategy/usage";
+/// Réglages de la séance (`SESSSET_*`, chacun `{currentValue, stringValue, …}`) :
+/// on n'en garde que les multiplicateurs de conso et d'usure. Format déduit, pas
+/// encore capturé ici : un réglage introuvable reste inconnu.
+pub const ROUTE_SESSION_SETTINGS: &str = "/rest/sessions";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Fraîcheur
@@ -271,6 +275,13 @@ pub struct WeekendWeather {
     pub race: Vec<ForecastNode>,
 }
 
+/// `sessions` : multiplicateurs de la séance (×1 = normal). `None` = inconnu.
+#[derive(Debug, Clone, Serialize, PartialEq, Default)]
+pub struct SessionSettings {
+    pub fuel_mult: Option<f64>,
+    pub tire_mult: Option<f64>,
+}
+
 /// Une ligne de `getPlayerGarageData` : bornes d'un réglage.
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct SettingBound {
@@ -356,6 +367,8 @@ pub struct LmuRestLive {
     pub pit: RestField<PitScreen>,
     pub session: RestField<SessionInfo>,
     pub weather: RestField<WeekendWeather>,
+    /// Multiplicateurs de conso et d'usure de la séance (`sessions`).
+    pub settings: RestField<SessionSettings>,
     /// Setup chargé dans la voiture (`garage/summary`).
     pub setup: RestField<LoadedSetup>,
     /// État et conso des voitures selon le jeu.
@@ -750,6 +763,63 @@ pub fn parse_weather(v: &Value) -> Result<Parsed<WeekendWeather>, ()> {
     Ok(if useful { Parsed::Data(w) } else { Parsed::Empty })
 }
 
+/// Multiplicateur lu dans un libellé : « Realistic » (réglage normal, relevé réel
+/// du 21/11/2026 : `currentValue` 1 sur 0..3) = 1 ; « x2 », « X 3 », « 2x »,
+/// « ×1.5 ». Sans marque « x », rien (un nombre nu peut être un rang de liste).
+pub fn mult_label(s: &str) -> Option<f64> {
+    let s = s.trim();
+    if s.eq_ignore_ascii_case("realistic") || s.eq_ignore_ascii_case("normal") {
+        return Some(1.0);
+    }
+    let marked = s.starts_with(['x', 'X', '×']) || s.ends_with(['x', 'X', '×']);
+    if !marked {
+        return None;
+    }
+    let core = s.trim_matches(|c: char| c == 'x' || c == 'X' || c == '×' || c.is_whitespace());
+    let x: f64 = core.replace(',', ".").parse().ok()?;
+    (x.is_finite() && x > 0.0 && x <= 10.0).then_some(x)
+}
+
+/// Réglage `name` : clé d'un objet (au plus 3 niveaux), ou élément d'un tableau
+/// dont `settingID` / `name` / `key` vaut `name`.
+fn find_setting<'a>(v: &'a Value, name: &str, depth: u8) -> Option<&'a Value> {
+    match v {
+        Value::Object(o) => {
+            if let Some(x) = o.get(name) {
+                return Some(x);
+            }
+            if depth == 0 {
+                return None;
+            }
+            o.values().find_map(|x| find_setting(x, name, depth - 1))
+        }
+        Value::Array(a) => a
+            .iter()
+            .find(|e| ["settingID", "name", "key"].iter().any(|k| e.get(*k).and_then(Value::as_str) == Some(name)))
+            .or_else(|| if depth == 0 { None } else { a.iter().find_map(|x| find_setting(x, name, depth - 1)) }),
+        _ => None,
+    }
+}
+
+fn setting_mult(v: &Value, name: &str) -> Option<f64> {
+    let e = find_setting(v, name, 3)?;
+    match e {
+        Value::String(s) => mult_label(s),
+        _ => e.get("stringValue").and_then(Value::as_str).and_then(mult_label),
+    }
+}
+
+pub fn parse_session_settings(v: &Value) -> Result<Parsed<SessionSettings>, ()> {
+    if !(v.is_object() || v.is_array()) {
+        return if v.is_null() { Ok(Parsed::Empty) } else { Err(()) };
+    }
+    let s = SessionSettings {
+        fuel_mult: setting_mult(v, "SESSSET_Fuel_Usage"),
+        tire_mult: setting_mult(v, "SESSSET_Tire_Wear"),
+    };
+    Ok(if s.fuel_mult.is_some() || s.tire_mult.is_some() { Parsed::Data(s) } else { Parsed::Empty })
+}
+
 /// `watch/trackmap` : tableau de points `{type, x, y, z}`. Relevé : type 0 =
 /// boucle de course, 1 = voie des stands, au-delà = paires de points des box.
 pub fn parse_trackmap(v: &Value) -> Result<Parsed<GameTrackMap>, ()> {
@@ -925,6 +995,7 @@ struct Store {
     pit: Slot<PitScreen>,
     session: Slot<SessionInfo>,
     weather: Slot<WeekendWeather>,
+    settings: Slot<SessionSettings>,
     garage: Slot<Vec<SettingBound>>,
     summary: Slot<LoadedSetup>,
     track_map: Slot<GameTrackMap>,
@@ -943,6 +1014,7 @@ impl Store {
             pit: self.pit.view(now),
             session: self.session.view(now),
             weather: self.weather.view(now),
+            settings: self.settings.view(now),
             setup: self.summary.view(now),
             rivals: self.rivals.view(now),
             garage_state: self.garage.freshness(now),
@@ -1132,11 +1204,12 @@ struct Schedule {
 }
 
 /// `sessionInfo` d'abord : les autres routes en dépendent (`session_ready`).
-const ROUTES: [(&str, Duration); 9] = [
+const ROUTES: [(&str, Duration); 10] = [
     (ROUTE_SESSION, EVERY_FAST),
     (ROUTE_VEHICLE, EVERY_FAST),
     (ROUTE_PIT, EVERY_FAST),
     (ROUTE_WEATHER, EVERY_WEATHER),
+    (ROUTE_SESSION_SETTINGS, EVERY_WEATHER),
     (ROUTE_GARAGE, EVERY_GARAGE),
     (ROUTE_SUMMARY, EVERY_GARAGE),
     (ROUTE_TRACKMAP, EVERY_TRACKMAP),
@@ -1178,6 +1251,7 @@ fn record(store: &mut Store, route: &str, res: Result<Value, FetchError>, now: I
         ROUTE_PIT => apply(&mut store.pit, res, parse_pit_screen, now),
         ROUTE_SESSION => apply(&mut store.session, res, parse_session, now),
         ROUTE_WEATHER => apply(&mut store.weather, res, parse_weather, now),
+        ROUTE_SESSION_SETTINGS => apply(&mut store.settings, res, parse_session_settings, now),
         ROUTE_GARAGE => apply(&mut store.garage, res, parse_garage, now),
         ROUTE_SUMMARY => apply(&mut store.summary, res, parse_summary, now),
         ROUTE_STANDINGS => {
@@ -1415,6 +1489,58 @@ pub async fn get_lmu_vehicle_condition() -> Result<RestField<VehicleCondition>, 
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn session_settings_multipliers() {
+        use super::*;
+        assert_eq!(mult_label("x2"), Some(2.0));
+        assert_eq!(mult_label(" X 3 "), Some(3.0));
+        assert_eq!(mult_label("1.5x"), Some(1.5));
+        assert_eq!(mult_label("×1,5"), Some(1.5));
+        assert_eq!(mult_label("2"), None, "nombre nu : rang possible, pas un facteur");
+        assert_eq!(mult_label("Realistic"), Some(1.0), "réglage normal (relevé réel)");
+        assert_eq!(mult_label("X2"), Some(2.0), "conso x2 (relevé réel, currentValue 2)");
+        assert_eq!(mult_label("Off"), None);
+        assert_eq!(mult_label("x0"), None);
+        assert_eq!(mult_label("x99"), None);
+
+        // Relevé réel (LMU, 21/11/2026, hors ligne, réglages par défaut).
+        let real = serde_json::json!({
+            "SESSSET_Damage_Multi": {"currentValue": 100, "numStepsTotal": 100, "settingID": 44, "stringValue": "100%", "uiSelectionType": "Arrow", "valueType": "LONG"},
+            "SESSSET_Fuel_Usage": {"currentValue": 1, "numStepsTotal": 3, "settingID": 40, "stringValue": "Realistic", "uiSelectionType": "Arrow", "valueType": "LONG"},
+            "SESSSET_Tire_Wear": {"currentValue": 1, "numStepsTotal": 3, "settingID": 41, "stringValue": "Realistic", "uiSelectionType": "Arrow", "valueType": "LONG"},
+            "SESSSET_tire_warmers": {"currentValue": 1, "numStepsTotal": 1, "settingID": 54, "stringValue": "On", "uiSelectionType": "Switch", "valueType": "LONG"}
+        });
+        assert_eq!(
+            parse_session_settings(&real),
+            Ok(Parsed::Data(SessionSettings { fuel_mult: Some(1.0), tire_mult: Some(1.0) }))
+        );
+        let obj = serde_json::json!({
+            "SESSSET_Fuel_Usage": {"currentValue": 1, "stringValue": "x2", "settingID": 12},
+            "SESSSET_Tire_Wear": {"currentValue": 3, "stringValue": "X4"},
+            "SESSSET_Damage_Multi": {"currentValue": 50, "stringValue": "50%"}
+        });
+        assert_eq!(
+            parse_session_settings(&obj),
+            Ok(Parsed::Data(SessionSettings { fuel_mult: Some(2.0), tire_mult: Some(4.0) }))
+        );
+        let arr = serde_json::json!([
+            {"settingID": "SESSSET_Fuel_Usage", "stringValue": "x1"},
+            {"settingID": "SESSSET_Tire_Wear", "stringValue": "Off"}
+        ]);
+        assert_eq!(
+            parse_session_settings(&arr),
+            Ok(Parsed::Data(SessionSettings { fuel_mult: Some(1.0), tire_mult: None }))
+        );
+        let nested = serde_json::json!({"sessionSettings": {"SESSSET_Tire_Wear": {"stringValue": "x3"}}});
+        assert_eq!(
+            parse_session_settings(&nested),
+            Ok(Parsed::Data(SessionSettings { fuel_mult: None, tire_mult: Some(3.0) }))
+        );
+        assert_eq!(parse_session_settings(&serde_json::json!({})), Ok(Parsed::Empty));
+        assert_eq!(parse_session_settings(&serde_json::Value::Null), Ok(Parsed::Empty));
+        assert_eq!(parse_session_settings(&serde_json::json!(3)), Err(()));
+    }
+
     use super::*;
     use serde_json::json;
     use std::io::Write;

@@ -895,7 +895,7 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 | **mylmu.app** | SaaS cloud | Freemium | AI Coach, Sync Agent, Discord webhooks, teams, community rankings, track analytics | https://www.mylmu.app |
 | **popometer.io** | SaaS cloud | Abonnement | Comparaison avec données pros, assisted analysis (apex, slowest point), overlays avec référence | https://popometer.io |
 | **LMU Telemetry Lab** | Open source | Gratuit | 60+ canaux 50-100Hz, 2D/3D track map, ghost car, 27 chart types, comparaison laps | https://github.com/rabbit20031225/LMU-Telemetry-Lab |
-| **TrackMind** (ex-« SLM Engineer ») | Desktop Python/pywebview, fermé | Bêta Discord (paliers prévus) | Ingénieur radio vocal (STT local Parakeet/Whisper, Piper, LLM), prévision météo `.wet`, API REST LMU, setup construit à la voix (lignée v1→v2), plan de course, carrière + fiche saison PNG, écurie/pitwall en ligne, régie spectateur. LMU + iRacing. Étude : journal 2026-09-24 | https://trackmind.gg |
+| **App concurrente** (nom retiré) | Desktop Python/pywebview, fermé | Bêta Discord (paliers prévus) | Ingénieur radio vocal (STT local Parakeet/Whisper, Piper, LLM), prévision météo `.wet`, API REST LMU, setup construit à la voix (lignée v1→v2), plan de course, carrière + fiche saison PNG, écurie/pitwall en ligne, régie spectateur. LMU + iRacing. Étude : journal 2026-09-24 | (site retiré) |
 | **Apex Sim Tracker** (agent « Apex Agent » 1.1.2) | SaaS web + apps iOS/Android + agent tray Electron | Freemium (Pro £5,99/mois, £49,99/an) | Hub social multi-jeux (iRacing, LMU, F1 25) : fil d'activité, objectifs hebdo, classements, défis, communauté. Agent = simple collecteur `.duckdb`/XML/scoring → cloud ; analyse côté serveur à base de règles (cartes avec confiance + preuves). Étude : journal 2026-10-21 | https://apexsimtracker.com |
 
 **🟡 Compléments / Menace partielle**
@@ -1091,9 +1091,9 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ✅ **Essai du mainteneur (13 h 08)** : accueil entendu, et journal cohérent (`accueil préparé`, séance 1, puis `accueil transmis`). Un seul essai : laquelle des corrections a joué reste inconnu.
 - 📋 **Prochaine étape** : si l'accueil manque encore, lire `logs/app.log`.
 
-### 2026-11-07 — Veille TrackMind : fin de bêta, aucun nouveau pack (aucun code modifié)
+### 2026-11-07 — Veille concurrentielle : fin de bêta, aucun nouveau pack (aucun code modifié)
 
-**Demande** : « trackmind a clôturé sa bêta, regarde s'ils ont ajouté des choses, la V1 sort mardi prochain ».
+**Demande** : « [l'app concurrente] a clôturé sa bêta, regarde s'ils ont ajouté des choses, la V1 sort mardi prochain ».
 - ✅ **Rien de nouveau à analyser** : pack actif toujours `pack_316` (0.9.29), `pack_300` → `pack_316` déjà vu le 05/11. App non lancée par
   nous, écran de fin de bêta non contourné. Lancée le 07/11 à 00:41 : `beta_coupee.flag`, accès réservé aux Pionniers jusqu'à la V1.
 - ✅ **Dates confirmées** (message de l'app + site) : bêta fermée le 06/11 à 18 h, V1 publique le **10/11 à 18 h** ; `portes_v1` encore
@@ -1106,7 +1106,7 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 ### 2026-11-06 — État et conso des rivaux lus au jeu par REST (non commité)
 
-**Demande** : idée I1 de la veille TrackMind 0.9.29 (« Oui, lance-la »).
+**Demande** : idée I1 de la veille concurrentielle 0.9.29 (« Oui, lance-la »).
 - ✅ **Pont REST** (`lmu_rest.rs`) : `watch/standings` toutes les 5 s (carburant, énergie, phase aux stands, arrêts, pénalités) et
   `strategy/usage` toutes les 10 s (conso médiane sur 12 tours au plus, mêmes relais, hors stands). En piste ou au garage, jamais en
   pause ni aux menus. `usage` a son plafond (4 Mo) et son échec ne fait jamais reculer les autres routes. Une valeur 0 reste inconnue.
@@ -1121,7 +1121,7 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 
 ### 2026-11-05 — Accueil au circuit enrichi (fusionné sur `main`, `99178aa`)
 
-**Demande** : l'accueil de TrackMind à l'arrivée sur une session plaît au mainteneur (« Oui, enrichis-le »).
+**Demande** : l'accueil de l'app concurrente à l'arrivée sur une session plaît au mainteneur (« Oui, enrichis-le »).
 - ✅ `trackRecall.ts` : `arrivalPhrase` nomme le circuit, donne le record avec cette voiture sinon celui de la classe, la mémoire du
   tracé, puis le meilleur temps de la communauté au sec (`loadCommunityBest`, attente bornée à 4 s, à la place du chrono des premiers).
   Circuit jamais roulé dans cette classe : il le dit, et seulement si la base a répondu. Hors course, comme avant ; redit au
@@ -1142,15 +1142,15 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 - ⚠️ À vérifier à l'oreille : longueur de la phrase, voix en ligne, départ de course toujours annoncé.
 - 📋 **Prochaine étape** : arriver en essais sur un circuit roulé, puis sur un circuit jamais roulé, et écouter l'accueil.
 
-### 2026-11-05 — Veille TrackMind 0.9.29 (build 316), passe 300 → 316 avant leur V1, avec REA (aucun code modifié)
+### 2026-11-05 — Veille concurrentielle 0.9.29 (build 316), passe 300 → 316 avant leur V1, avec REA (aucun code modifié)
 
-**Demande** : « refais un tour de l'app trackmind avec /rea, leur V1 sort demain ». Comparaison statique de `pack_300` et
-`pack_316` (`%LOCALAPPDATA%\SLM Engineer\maj`), 24 fichiers nouveaux, aucun supprimé. Idées seulement, aucun nom de concurrent
+**Demande** : « refais un tour de l'app concurrente avec /rea, leur V1 sort demain ». Comparaison statique de `pack_300` et
+`pack_316` (`%LOCALAPPDATA%\<dossier de l'app>\maj`), 24 fichiers nouveaux, aucun supprimé. Idées seulement, aucun nom de concurrent
 dans le code. App non pilotée, aucun appel à leur serveur.
 - ⚠️ **REA** : serveur MCP et skill absents de cette session (`~/.claude.json`, `~/.claude/skills`) ; CLI 6.5.0 lancée depuis le
   cache npx, sans toucher à la configuration. `analyze-javascript-application` sur `studio\web` : 33 JS, 0 erreur, aucun
   point d'accès ni stockage nouveau repéré ; scripts en ligne non couverts. Le Python est lu comme donnée.
-  `TrackMindCapture.exe` a changé, non analysé. Après l'analyse, REA réinstallé à la demande du mainteneur
+  `<app>Capture.exe` a changé, non analysé. Après l'analyse, REA réinstallé à la demande du mainteneur
   (`npx -y rea-agents@6.5.0 setup --client claude_code --yes`, serveur `rea` et skill présents) : actif à la prochaine session.
 - ✅ **V1** : offres STARTER / SPRINT / PERFORMANCE (prix servis par le site, absents du pack), portes en ombre activables par
   drapeau serveur sans nouveau pack, fonctions payantes floutées, carte pilote et parrainage, refus de paiement signalé. Le code
@@ -1320,10 +1320,10 @@ Tout est désactivable (radio_extras / config), l'ancien comportement reste acce
 - 📋 **Prochaine étape** : essai en jeu (course multiclasse : préavis prédit ; essais : repères ; sauvegarde LMU
   en course pour T2), puis commit.
 
-### 2026-10-31 — Veille TrackMind 0.9.15 (build 300), passe 290 → 300 avec REA (aucun code modifié)
+### 2026-10-31 — Veille concurrentielle 0.9.15 (build 300), passe 290 → 300 avec REA (aucun code modifié)
 
-**Demande** : « analyse la nouvelle version de trackmind avec rea et dis-moi ce qui a été ajouté ». Pack actif
-`%LOCALAPPDATA%\SLM Engineer\maj\pack_300` (0.9.15, 31/10) comparé à `pack_290` (0.9.7.1). REA
+**Demande** : « analyse la nouvelle version de [l'app concurrente] avec rea et dis-moi ce qui a été ajouté ». Pack actif
+`%LOCALAPPDATA%\<dossier de l'app>\maj\pack_300` (0.9.15, 31/10) comparé à `pack_290` (0.9.7.1). REA
 `analyze_javascript_application` sur `studio\web` des deux packs (27 → 31 JS, 0 erreur ; scripts en ligne des `.html`
 non couverts) + lecture du Python comme données ; cible jamais lancée. Idées seulement, aucun nom de concurrent dans le code.
 - ✅ **Changement de fond — « PC léger » (27-28/10)** : ~100 modules du cerveau (arbitre de conversation, stratégie,
@@ -1438,13 +1438,13 @@ absolument ça, c'était mon objectif de base. »
 - 📋 **Prochaine étape** : rouler 5-6 tours avec un setup sauvé, changer de setup au garage, rouler
   encore, puis vérifier bandeau Live, détail de session et fiche (§7 « Setup chargé reconnu en piste »).
 
-### 2026-10-22 — Veille TrackMind 0.9.7.1 (build 290) : gestion des setups, avec REA (aucun code modifié)
+### 2026-10-22 — Veille concurrentielle 0.9.7.1 (build 290) : gestion des setups, avec REA (aucun code modifié)
 
-**Demande** (session parente) : comprendre comment TrackMind lit, liste, compare, versionne, partage et relie aux
+**Demande** (session parente) : comprendre comment l'app concurrente lit, liste, compare, versionne, partage et relie aux
 tours les `.svm`, et comparer avec la V3. Rapport complet hors dépôt :
-`side-session-notes\local_7157010e-…\veille-trackmind-0.9.7.1-setups.md`. Idées seulement, aucun nom de concurrent
+`side-session-notes\local_7157010e-…\veille-concurrent-0.9.7.1-setups.md`. Idées seulement, aucun nom de concurrent
 dans le code.
-- ✅ Version : socle 0.9.5 (`C:\Program Files\TrackMind`), pack OTA actif **0.9.7.1 / build 290**. REA
+- ✅ Version : socle 0.9.5 (`C:\Program Files\<app>`), pack OTA actif **0.9.7.1 / build 290**. REA
   (`analyze_javascript_application` + `trace_application_feature` sur `studio\web`) + lecture du Python du pack
   comme données ; cible jamais lancée. Côté setups, peu de changements depuis le build 287.
 - ✅ Constats clés : setup chargé connu par `/rest/garage/summary` (`activeSetup`, `unsavedChanges`) ; le jeu sauve
@@ -2375,7 +2375,7 @@ multi-jeux, objectifs/défis, présentation « grand public » des chiffres.
 
 ### 2026-10-21 — Atelier setup (S1–S12, G1–G4) + refonte de la page Setups : chantier en cours, non commité
 
-**Demande** : « toutes les idées » de la veille TrackMind 0.9.5, puis « profites-en pour améliorer
+**Demande** : « toutes les idées » de la veille concurrentielle 0.9.5, puis « profites-en pour améliorer
 la page setup qui est mal faite », puis « consigne tout dans un fichier pour reprendre ».
 - ✅ Écrit (tsc et cargo check propres) : table des crans (S2), correctifs de l'assistant
   (ailerons jamais proposés, butée = nombre de crans − 1), `mIsFixedSetup` et angle de dérive
@@ -2388,12 +2388,12 @@ la page setup qui est mal faite », puis « consigne tout dans un fichier pour r
   G1–G4, tests, vérification à l'écran, changelog.
 - 📋 **Prochaine étape** : suivre **`REPRISE-ATELIER-SETUP.md`** (racine), section 4, dans l'ordre.
 
-### 2026-10-20 — Veille TrackMind 0.9.5 (build 287), passe complète 283 → 287 avec REA (aucun code modifié)
+### 2026-10-20 — Veille concurrentielle 0.9.5 (build 287), passe complète 283 → 287 avec REA (aucun code modifié)
 
 **Demande** : « relance l'analyse, il y a eu une mise à jour », puis « regarde aussi tous les ajouts à faire
 au niveau de l'app générale » et « utilise REA pour tout analyser ». Constat : la mise à jour annoncée
 (notes de version 0.9.5 envoyées par l'utilisateur) **est** le build 287 déjà sur le disque ; aucun pack
-plus récent. Le Studio retélécharge son socle (`_download\TrackMind-Setup-0.9.5.exe`, 648 Mo).
+plus récent. Le Studio retélécharge son socle (`_download\<app>-Setup-0.9.5.exe`, 648 Mo).
 Comparaison statique `pack_283` → `pack_287` : 16 fichiers `.py` nouveaux, ~70 modifiés. Idées seulement,
 aucun nom de concurrent dans le code.
 
@@ -2474,16 +2474,16 @@ aucun nom de concurrent dans le code.
 - 📋 **Prochaine étape** : arbitrage du mainteneur. Recommandation : **S1 + S6** (même moteur : audit puis
   bilan au box), puis **S7** (données déjà en base) et **S9** (faible, évite des conseils inapplicables).
 
-### 2026-10-20 — Veille TrackMind 0.9.5 (build 287) : setups complets proposés par l'ingénieur (aucun code modifié)
+### 2026-10-20 — Veille concurrentielle 0.9.5 (build 287) : setups complets proposés par l'ingénieur (aucun code modifié)
 
 **Demande** : « regarde ce que l'on peut proposer pour l'amélioration des setups ; j'aimerais que l'IA
-propose des setups complets ; regarde si TrackMind fait quelque chose dans ce sens, avec REA ».
-Lecture statique du pack actif `%LOCALAPPDATA%\SLM Engineer\maj\pack_287` (sources `.py` en clair,
+propose des setups complets ; regarde si l'app concurrente fait quelque chose dans ce sens, avec REA ».
+Lecture statique du pack actif `%LOCALAPPDATA%\<dossier de l'app>\maj\pack_287` (sources `.py` en clair,
 lues comme données, cible jamais exécutée). REA n'apporte rien de direct à cette passe : l'inventaire
 de l'exe PyInstaller (passes précédentes, `%TEMP%\rea_tm\pyz_top.txt`) confirme que le code de
 construction n'est **ni dans l'exe ni dans les packs**. Idées seulement, aucun nom de concurrent dans le code.
 
-- ✅ **Oui, TrackMind propose des setups complets** (« bases LMU », offre payante ENGINEER), et la
+- ✅ **Oui, l'app concurrente propose des setups complets** (« bases LMU », offre payante ENGINEER), et la
   recette est **côté serveur** (`atelier_setup/` : doctrine, recette, catalogue, résolution des
   upgrades ; « protéger la façon de construire »). Le PC n'est qu'un exécutant :
   - **4 profils** (doctrine du 17/10) : *Agressive* (qualif / sprint, dure à piloter), *Competitive*
@@ -2538,7 +2538,7 @@ construction n'est **ni dans l'exe ni dans les packs**. Idées seulement, aucun 
     par voiture × circuit, rappel au chargement de la séance.
   - **S5 — Partage communautaire des tables de crans / bornes** (opt-in, serveur existant) : une voiture
     jamais conduite a ses bornes tout de suite. Jamais les valeurs d'un setup sans accord.
-  - Risque principal : la **doctrine** est le cœur (TrackMind la garde secrète) ; à écrire nous-mêmes
+  - Risque principal : la **doctrine** est le cœur (l'app concurrente la garde secrète) ; à écrire nous-mêmes
     (dynamique du véhicule + guides vidéo déjà intégrés), à valider en jeu voiture par voiture ;
     commencer par S1 (changements relatifs depuis le setup du pilote, moins risqués qu'un setup ex nihilo).
 - 📋 **Prochaine étape** : arbitrage du mainteneur sur S1–S5 (recommandation : S1 puis S2, S3 ensuite).
@@ -2657,15 +2657,15 @@ seul un `</think>` final la délimite. Budget court (300 + 1024) épuisé avant 
 - 📋 **Prochaine étape** : l'utilisateur relance « Tester l'IA » avec Qwen 3.5 ; si un modèle à
   raisonnement obligatoire fuit encore, envisager un budget plus large pour ce test.
 
-### 2026-10-19 — Veille TrackMind, 6ᵉ passe REA : comment sont faites les parties graphiques (aucun code modifié)
+### 2026-10-19 — Veille concurrentielle, 6ᵉ passe REA : comment sont faites les parties graphiques (aucun code modifié)
 
-**Demande** : « analyse avec REA comment sont faites les parties graphiques de TrackMind ».
+**Demande** : « analyse avec REA comment sont faites les parties graphiques de l'app concurrente ».
 Lecture statique seulement (build du 2026-09-22, cible jamais lancée). Outillage hors dépôt
 dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idées seulement.
 
 - ✅ **Méthode** : REA `analyze_javascript_application` sur `_internal/studio/web` (8 JS, 3 HTML ;
   le JS en ligne d'`index.html` n'est pas couvert par REA → lu directement) ; chaînes des
-  modules Python extraites du `PYZ` ; `TrackMindCapture.dll` sortie du bundle .NET puis REA
+  modules Python extraites du `PYZ` ; `<app>Capture.dll` sortie du bundle .NET puis REA
   `inspect_managed_artifact` + `inspect_managed_members` (59 types, 314 chaînes).
 - ✅ **Six technos de rendu distinctes** :
   1. **Studio = pywebview + WebView2** (`app_web`) : fenêtre `frameless` + `easy_drag`,
@@ -2688,7 +2688,7 @@ dans `C:\tmp\tm_rea` (scripts maison de lecture du PYZ et du bundle .NET). Idée
      `customskin.tga` = couleur ; `customskin_region.tga` classé en 5 zones → cartes de
      metalness/roughness, 6 vues, export PNG ; ne prétend pas reproduire le shader du jeu.
   6. **Images et vidéos** : PIL pour la fiche « carrière » partageable et les calques des clips
-     (`moments_rendu`) ; `TrackMindCapture.exe` (.NET 8) = **Windows.Graphics.Capture** sur la
+     (`moments_rendu`) ; `<app>Capture.exe` (.NET 8) = **Windows.Graphics.Capture** sur la
      fenêtre du jeu (D3D11, bordure jaune retirée), anneau de segments MP4 (défauts lus :
      `--gardees 60`, `--secondes 20`, 1920×1080 à 20 000 kbit/s), son du jeu seul (loopback WASAPI par processus),
      montage 16:9 + 9:16 recadré, calque PNG + logo, vignette JPG ; pause si la VRAM manque
@@ -3074,7 +3074,7 @@ sur voix de synthèse, liste à enregistrer le soir. Compte rendu complet : `stt
 
 ### 2026-10-18 — Idées de veille ㉟–㊿ réalisées : coach vocal fiabilisé, débrief calculé, variantes radio
 
-**Demande** : « fais tout » (les idées ㉟–㊿ des deux entrées de veille TrackMind ci-dessous) et
+**Demande** : « fais tout » (les idées ㉟–㊿ des deux entrées de veille concurrentielle ci-dessous) et
 « peut-on aussi ajouter des phrases ? ». Fait dans le dossier principal, sur `main`, sans commit :
 la session de la fenêtre des nouveautés modifie en même temps les mêmes fichiers partagés
 (`i18n/*.ts`, `changelog.ts`, `stores/app.ts`, `ConfigV2.tsx`, `testkit/run.ts`).
@@ -3157,9 +3157,9 @@ de la fenêtre vue chez un concurrent (capture fournie).
 - 📋 **Prochaine étape** : à chaque version publiée, écrire `headline` / `intro` et marquer
   2-4 items `featured` : c'est ce qui fait la fenêtre. Relire le titre proposé pour 1.0.10.
 
-### 2026-10-18 — Veille TrackMind 0.9.2 (build 283) : ce qui change pour l'IA, les phrases et le débrief (aucun code modifié)
+### 2026-10-18 — Veille concurrentielle 0.9.2 (build 283) : ce qui change pour l'IA, les phrases et le débrief (aucun code modifié)
 
-**Demande** : « relance l'analyse, il y a une mise à jour de TrackMind ». Comparaison statique
+**Demande** : « relance l'analyse, il y a une mise à jour de l'app concurrente ». Comparaison statique
 `pack_278` → `pack_283` (158 fichiers modifiés, 32 nouveaux), cible jamais exécutée. Ne liste
 que le nouveau par rapport à l'entrée de la 5ᵉ passe ci-dessous. Idées seulement.
 
@@ -3231,9 +3231,9 @@ que le nouveau par rapport à l'entrée de la 5ᵉ passe ci-dessous. Idées seul
 - 📋 **Prochaine étape** : arbitrage de l'utilisateur. Recommandation inchangée : ㉟ + ㊱ + ㊲
   (avec ㊻ dans le même lot, même fichier), puis ㊷ avec ㊾.
 
-### 2026-10-18 — Veille TrackMind, 5ᵉ passe REA : prompts IA, phrases toutes faites, débrief algorithmique (aucun code modifié)
+### 2026-10-18 — Veille concurrentielle, 5ᵉ passe REA : prompts IA, phrases toutes faites, débrief algorithmique (aucun code modifié)
 
-**Demande** : « avec REA regarde ce que fait TrackMind au niveau du prompt du coach IA et les
+**Demande** : « avec REA regarde ce que fait [l'app concurrente] au niveau du prompt du coach IA et les
 phrases déjà faites », puis « creuse le débrief restant purement algorithmique ». Lecture
 statique du pack OTA actif `pack_278` (v0.8.27, sources `.py` en clair) ; cible jamais
 exécutée. Code propriétaire : idées seulement, rien de repris, aucun nom de concurrent dans
@@ -4763,7 +4763,7 @@ absent ; faut-il supprimer l'ancien répertoire de tracés locaux maintenant que
 **Demande** (session lancée par la session « coach audio », puis le mainteneur en direct) : implémenter
 ⑳ — pont REST LMU **en lecture seule** côté Rust, branché sur la prévision, le carburant et la durée de
 course ; puis « regarde ce que l'API peut améliorer sur ce qui est déjà en place » (choix : **tout
-implémenter**), « comment sont gérées les cartes avec les secteurs », et la même question côté TrackMind
+implémenter**), « comment sont gérées les cartes avec les secteurs », et la même question côté app concurrente
 via REA. Réponses du mainteneur : test sur le vrai jeu (essais Hypercar lancés), garde-fou pour la conso,
 indicateur discret sur la page Live.
 
@@ -4798,7 +4798,7 @@ indicateur discret sur la page Live.
   dans le JSON du tracé sous `s1`/`s2`) ; carte Live : tronçons sans cordes, voie des stands, ligne de
   départ, repères S2/S3, secteur sous jaune surligné ; overlay : gel seulement sur tour complet (bug :
   un tracé partiel pouvait rester figé), cache `lmu_trackmap_v2_*`.
-- ✅ **Veille TrackMind (REA + pack 278, idées seulement)** : ils **n'utilisent pas** `watch/trackmap`
+- ✅ **Veille concurrentielle (REA + pack 278, idées seulement)** : ils **n'utilisent pas** `watch/trackmap`
   (simple mot-clé d'une sonde) ; carte = ligne médiane de flotte calculée côté serveur, sinon relevé local
   240 points, sinon anneau ; pas de voie des stands ; secteurs en tiers égaux hors ligne ; mini-secteurs
   « duel » de ~350 m chronométrés pour tout le plateau ; orientation incohérente entre leurs vues.
@@ -4870,10 +4870,10 @@ séance confirmée, garage compris.
   dans les journaux du jeu), départ du box (reprise < 2 s, tracé lu), pause Échap, retour aux menus,
   question de réglage posée au garage (une seule lecture des bornes).
 
-### 2026-10-16 — Veille TrackMind, 4ᵉ passe REA : acquisition de la télémétrie (aucun code modifié)
+### 2026-10-16 — Veille concurrentielle, 4ᵉ passe REA : acquisition de la télémétrie (aucun code modifié)
 
-**Demande** : « en utilisant REA regarde comment trackmind gère la télémétrie ». Lecture statique du
-pack OTA actif (`%LOCALAPPDATA%\SLM Engineer\maj\pack_278`, v0.8.27 build 278, `.py` en clair) :
+**Demande** : « en utilisant REA regarde comment [l'app concurrente] gère la télémétrie ». Lecture statique du
+pack OTA actif (`%LOCALAPPDATA%\<dossier de l'app>\maj\pack_278`, v0.8.27 build 278, `.py` en clair) :
 `commun/sources/*`, `lmu_data.py`, `lmu_rest.py`, `lecture_course.py`, `telemetrie_lmu_disque.py`.
 App Python → aucun outil REA natif utile ; cible jamais exécutée. Idées seulement, rien de repris.
 
@@ -4996,9 +4996,9 @@ logo qui monte dans la voiture et grimpe le Raidillon ; finir sur le titre avec 
   l'intégrer comme splash (vidéo dans `public/`, affichage au premier chargement, réglage pour
   la désactiver — cf. règle « ne jamais perdre de fonctionnalité ») + entrée `changelog.ts`.
 
-### 2026-10-15 — Veille TrackMind, 3ᵉ passe REA : décompilation + domaines hors voix (aucun code modifié)
+### 2026-10-15 — Veille concurrentielle, 3ᵉ passe REA : décompilation + domaines hors voix (aucun code modifié)
 
-**Demande** : « avec REA, vérifie toutes les fonctionnalités de TrackMind (installé, lancé),
+**Demande** : « avec REA, vérifie toutes les fonctionnalités de l'app concurrente (installé, lancé),
 décompile, dis ce qui pourrait être intégré ». Complète les passes du 24/09 et du jour (voix,
 coaching audio) : ne couvre que **stratégie, pneus, météo, stands, setups, données LMU, carrière,
 équipe, Moments**. Liste de contrôle : page tarifs V1 (19,99 €/mois, 199,90 €/an). Code
@@ -5006,11 +5006,11 @@ propriétaire : idées seulement, rien de repris, aucun nom de concurrent dans l
 
 - ✅ **Méthode / décompilation** (outillage dans `%TEMP%\rea_tm`, hors dépôt, cible jamais
   exécutée) :
-  - `TrackMind.exe` : PyInstaller (CPython 3.12, entrée `slm`) ; REA `inspect_pe_resources` =
+  - `<app>.exe` : PyInstaller (CPython 3.12, entrée `slm`) ; REA `inspect_pe_resources` =
     icônes + manifeste, aucune version. CArchive + `PYZ` extraits par script maison (3 574 modules).
   - Le pack OTA actif fournit les `.py` en clair ; **13 modules n'existent que compilés** dans
     l'exe → désassemblés avec CPython 3.12 (`marshal` + `dis`).
-  - `TrackMindCapture.exe` / `TrackMindUpdater.exe` : **.NET 8 single-file** (pas PyInstaller) ;
+  - `<app>Capture.exe` / `<app>Updater.exe` : **.NET 8 single-file** (pas PyInstaller) ;
     manifeste du bundle analysé, DLL extraites, puis REA `inspect_managed_artifact/members`.
   - Mise à jour lancée par l'utilisateur pendant l'étude : **0.8.26 (build 277) → 0.8.27
     (278)**, pack 277 copié avant, diff réel (fins de ligne ignorées) : 88 fichiers modifiés,
@@ -5307,8 +5307,8 @@ disponibles », pour Cartesia, ElevenLabs, OpenAI, et « Google le propose aussi
     strict sont à essayer en piste. Un test bruité serait idéal (moteur, casque
     ouvert).
 
-**Complément (même jour) — veille TrackMind sur la voix : Discord bêta + 2 vidéos.**
-Sources : serveur Discord TRACKMIND, salons `patch-notes` (82 messages, v0.7.2 →
+**Complément (même jour) — veille concurrentielle sur la voix : Discord bêta + 2 vidéos.**
+Sources : serveur Discord de l'app concurrente, salons `patch-notes` (82 messages, v0.7.2 →
 v0.8.24) et `annonces`, lus en lecture seule depuis le compte du mainteneur.
 Vidéos : interview AD SimRacing du 2026-09-24 (`2DKdWMN9fdc`), découverte Gran-Touriste
 du 2026-10-15 (`5k9wxU2l-98`). Idées seulement, rien de repris dans le code.
@@ -5483,10 +5483,10 @@ code (vérifié par `git grep`). Chaque comportement nouveau a son réglage pour
   spotter activé ; noter tout faux « voiture à gauche/droite » et toute phrase entamée
   dans un freinage.
 
-### 2026-10-15 — Veille TrackMind, 2ᵉ passe avec l'outil REA (aucun code modifié)
+### 2026-10-15 — Veille concurrentielle, 2ᵉ passe avec l'outil REA (aucun code modifié)
 
 **Demande** : installer `rea-agents` (outil de rétro-ingénierie, MCP + skill Claude Code)
-et analyser l'app TrackMind installée (`C:\Program Files\TrackMind`, build du 2026-09-22).
+et analyser l'app concurrente installée (`C:\Program Files\<app>`, build du 2026-09-22).
 Complète l'entrée du 2026-09-24, ne liste que **le nouveau**. Code propriétaire : idées
 seulement, aucune ligne reprise.
 
@@ -5494,7 +5494,7 @@ seulement, aucune ligne reprise.
   (serveur MCP `rea` dans `~/.claude.json`, sauvegarde `.claude.json.rea.backup`, skill
   `~/.claude/skills/reverse-engineer-anything`). Aucun moteur natif (Ghidra/IDA) configuré :
   inutile ici, l'app est du Python.
-- ✅ **Méthode** : app = PyInstaller Python 3.12 (`TrackMind.exe` + `_internal/`), donc ni
+- ✅ **Méthode** : app = PyInstaller Python 3.12 (`<app>.exe` + `_internal/`), donc ni
   Electron ni binaire natif → REA n'apporte rien de direct. Lecture **statique** de la
   table des modules du `PYZ.pyz` (script maison en lecture seule, ~3 570 modules) + chaînes
   de quelques modules + ressources livrées en clair + site. Le serveur local
@@ -5511,7 +5511,7 @@ seulement, aucune ligne reprise.
     commerciale ».
   - **Moments** : clips vidéo automatiques des temps forts (départ réussi, places gagnées,
     dépassement, coude-à-coude, three-wide, contact) via un exécutable de capture séparé
-    (`TrackMindCapture.exe`), rendu 1080p/2K et **9:16** (réseaux sociaux).
+    (`<app>Capture.exe`), rendu 1080p/2K et **9:16** (réseaux sociaux).
   - **Réglage auto du menu des stands** : codé pour l'**énergie** (`pit_controle`, boucle
     fermée Incrément/Décrément + relecture, abandon si `mHWControlInputEnabled = False`,
     « le pilote garde la main »).
@@ -5539,7 +5539,7 @@ seulement, aucune ligne reprise.
   faible, renforce la fiabilité du Coach IA, 100 % hors ligne).
 
 **Complément (même jour) — le coaching audio, comparé au nôtre.** Le pack OTA actif
-(`%LOCALAPPDATA%\SLM Engineer\maj\pack_277`, v0.8.26) contient les **sources `.py`
+(`%LOCALAPPDATA%\<dossier de l'app>\maj\pack_277`, v0.8.26) contient les **sources `.py`
 lisibles** (489 fichiers). Lecture par 3 agents en parallèle : sortie audio (`voix.py`,
 `radio_base.py`, `humanisation.py`…), décision de parole (`cerveau/parole.py`,
 `arbitre_proactif.py`, `concentration.py`, `accuses.py`), coaching de pilotage
@@ -6813,10 +6813,10 @@ Vérifier aussi les **panneaux** des 4 fiches conservées : l'audit relève des 
 Source 125 m vs ~50 m en GT3, Monza Roggia 125 m vs 50 m, Mulsanne 200 m vs 75-100 m) — le
 coach vocal les annonce. Puis : décision GO Fast (§7), bug de layouts ohne_speed (§7).
 
-### 2026-09-25 — Coach live : lots 1-2-3 « ingénieur de course » (inspiration TrackMind)
+### 2026-09-25 — Coach live : lots 1-2-3 « ingénieur de course » (inspiration d'une app concurrente)
 
 Demande : « fais les 3 lots » + « il ne faut pas perdre de fonctionnalité ».
-Mécanismes et seuils repris de TrackMind (docstrings + `cerveau/constantes.py`),
+Mécanismes et seuils repris de l'app concurrente (docstrings + `cerveau/constantes.py`),
 **réécrits** en TS ; aucune ligne de leur Python copiée.
 
 - ✅ **Architecture** : nouveau dossier `src/lib/engineer/` (modules purs, horloge en
@@ -6851,7 +6851,7 @@ Mécanismes et seuils repris de TrackMind (docstrings + `cerveau/constantes.py`)
 - ✅ **Bug corrigé au passage** : `rival.classRelation` ne reconnaissait pas les
   noms de classe du live (« Hypercar », « LMGT3 ») → « autre classe » presque
   toujours. Rang de classe robuste (`classRank`).
-- ✅ **Voix TrackMind (étude)** : 16 voix = catalogue **Cartesia** (ex-ElevenLabs)
+- ✅ **Voix de l'app concurrente (étude)** : 16 voix = catalogue **Cartesia** (ex-ElevenLabs)
   via leur proxy + quota par poste ; repli Piper (5 voix FR/EN) ; cache des phrases
   fixes + pack ~237 sons/voix ; effet radio passe-bande 250-4800 Hz + saturation
   tanh + souffle 0,02 + squelch 30 ms ; bips PTT 1000/700 Hz ; vitesse ×1-×2.
@@ -6876,12 +6876,12 @@ Mécanismes et seuils repris de TrackMind (docstrings + `cerveau/constantes.py`)
   `Live.tsx`). Réglage **« Annonces sur toutes les pages »** (défaut actif ; coupé =
   comportement historique, page Live seulement). Bonus : l'état des annonces ne se
   réinitialise plus à chaque changement de page.
-- ✅ **Effet radio « Style TrackMind » à comparer** : profil `trackmind` dans
+- ✅ **Effet radio « style concurrent » à comparer** : profil dédié dans
   `radioFx.ts` (`styleVoiceBuffer` : rendu hors ligne `OfflineAudioContext`, passe-
   bande 250-4800 Hz à 2 biquads par bord, crête normalisée → tanh drive 2,6 → 0,9,
   souffle gaussien filtré 0,02, clics de squelch 30 ms + 30 ms de silence) appliqué
   au tampon Piper avant lecture (cache nu) ; pas de bip d'ouverture ni de roger beep
-  dans ce profil. Bouton **« Comparer »** (A classique puis B TrackMind, profil
+  dans ce profil. Bouton **« Comparer »** (A classique puis B concurrent, profil
   restauré). **Bips PTT** optionnels 1000/700 Hz (sinus 70 ms). Défauts : profil
   classique, bips coupés (rien ne change sans action).
 - ✅ Correctif : une annonce annulée pendant sa synthèse Piper retombait sur la voix
@@ -6902,16 +6902,16 @@ nouveau profil **avec les bips radio**, on garde aussi l'ancien, et on le renomm
   textes UI, changelog) — vérifié par `git grep` (hors `SUIVI.md`, doc de veille).
 - ✅ `tsc -b` OK, lint 0, 265 tests, build OK.
 
-### 2026-09-24 — Veille concurrent TrackMind (aucun code modifié)
+### 2026-09-24 — Veille concurrentielle (aucun code modifié)
 
-**Demande** : analyser trackmind.gg + l'app installée, en tirer des idées.
+**Demande** : analyser le site de l'app concurrente + l'app installée, en tirer des idées.
 
 - ✅ **Sources** : site (landing + FAQ), app lancée (écran d'accueil derrière le
   tutoriel), et surtout les fichiers d'UI (`_internal/studio/web/index.html`,
   `regie.html`, `ecurie.js`) + les noms/docstrings des modules du pack OTA
-  (`%LOCALAPPDATA%\SLM Engineer\maj\pack_231\commun\`). Code propriétaire :
+  (`%LOCALAPPDATA%\<dossier de l'app>\maj\pack_231\commun\`). Code propriétaire :
   on ne reprend **que des idées**, aucune ligne.
-- ✅ **Ce qu'est TrackMind** : app Python (pywebview + serveur Bottle local),
+- ✅ **Ce qu'est l'app concurrente** : app Python (pywebview + serveur Bottle local),
   ingénieur radio en push-to-talk (STT local Parakeet/faster-whisper, voix Piper,
   LLM), LMU + iRacing (ACC en validation). Deux écrans : **Studio** (accueil,
   préparation de course, construction de setup, carrière, écurie) et **Régie**
@@ -7023,7 +7023,7 @@ réécrit les mécanismes en TS, pas de copie de leur Python). Sources : docstri
   pneus < 25 % = ménage) · batterie (critique < 15 % réarmé à 35 %, déficit
   ≤ −8 %/tour, saturée ≥ 95 %) · pluie à venir (`.wet`) · vigie (voie des stands
   sans limiteur, briefing au tour de formation).
-- 📋 **Lot 3 — conversation** : ~30 intentions (catalogue TrackMind : arret.*,
+- 📋 **Lot 3 — conversation** : ~30 intentions (catalogue de l'app concurrente : arret.*,
   carburant.* dont relais_allonge, chrono.plateau, position.nette, rival.arret_passe
   / rejoin / rythme, pneus.temperature, meteo.prévision…) · routage hybride sur un
   seul PTT · « préviens-moi quand… » (alertes conditionnelles posées à la voix) ·

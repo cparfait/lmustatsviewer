@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -31,30 +32,26 @@ export function DialogHost() {
   const [promptValue, setPromptValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (prompt) {
-      setPromptValue(prompt.defaultValue ?? "");
-      // Focus + sélection après le rendu de la modale.
-      requestAnimationFrame(() => inputRef.current?.select());
-    }
+    // Le focus + la sélection sont faits à l'ouverture (`onOpenAutoFocus`).
+    if (prompt) setPromptValue(prompt.defaultValue ?? "");
   }, [prompt]);
 
-  // Échap ferme la modale active (annulation).
-  useEffect(() => {
-    if (!confirm && !prompt) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (prompt) {
-          prompt.resolve(null);
-          setPrompt(null);
-        } else if (confirm) {
-          confirm.resolve(false);
-          setConfirm(null);
-        }
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [confirm, prompt, setConfirm, setPrompt]);
+  // Échap, clic hors de la carte et confinement de Tab / Maj+Tab : gérés par
+  // le primitive Radix Dialog. Ces modales s'ouvrent par programme (pas de
+  // `Dialog.Trigger`) : Radix ne saurait pas où rendre le focus, on mémorise
+  // donc l'élément actif à l'ouverture et on le restaure à la fermeture.
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const rememberFocus = () => {
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  };
+  const restoreFocus = (e: Event) => {
+    e.preventDefault();
+    const el = returnFocusRef.current;
+    returnFocusRef.current = null;
+    if (el && el.isConnected) el.focus();
+  };
 
   function resolveConfirm(ok: boolean) {
     confirm?.resolve(ok);
@@ -109,100 +106,140 @@ export function DialogHost() {
       </div>
 
       {/* ── Confirm ─────────────────────────────────────────────────────── */}
-      {confirm && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) resolveConfirm(false);
-          }}
-        >
-          <Card className="w-full max-w-sm" role="dialog" aria-modal="true">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                {confirm.destructive && (
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                )}
-                {confirm.title ?? t("config.confirm")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{confirm.message}</p>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => resolveConfirm(false)}
-                >
-                  {confirm.cancelLabel ?? t("config.cancel")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant={confirm.destructive ? "destructive" : "default"}
-                  onClick={() => resolveConfirm(true)}
-                  autoFocus
-                >
-                  {confirm.confirmLabel ?? t("config.confirm")}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <DialogPrimitive.Root
+        open={!!confirm}
+        onOpenChange={(open) => {
+          if (!open) resolveConfirm(false);
+        }}
+      >
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm" />
+          <DialogPrimitive.Content
+            className="fixed left-1/2 top-1/2 z-[70] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 outline-none"
+            onCloseAutoFocus={restoreFocus}
+            onOpenAutoFocus={(e) => {
+              rememberFocus();
+              // Action destructive : le focus initial va sur Annuler, jamais sur
+              // le bouton qui exécute (Entrée par réflexe ne doit rien détruire).
+              if (confirm?.destructive) {
+                e.preventDefault();
+                cancelRef.current?.focus();
+              }
+            }}
+          >
+            {confirm && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <DialogPrimitive.Title asChild>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      {confirm.destructive && (
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                      )}
+                      {confirm.title ?? t("config.confirm")}
+                    </CardTitle>
+                  </DialogPrimitive.Title>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <DialogPrimitive.Description className="text-sm text-muted-foreground">
+                    {confirm.message}
+                  </DialogPrimitive.Description>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      ref={cancelRef}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resolveConfirm(false)}
+                    >
+                      {confirm.cancelLabel ?? t("config.cancel")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={confirm.destructive ? "destructive" : "default"}
+                      onClick={() => resolveConfirm(true)}
+                    >
+                      {confirm.confirmLabel ?? t("config.confirm")}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
 
       {/* ── Prompt ──────────────────────────────────────────────────────── */}
-      {prompt && (
-        <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) resolvePrompt(null);
-          }}
-        >
-          <Card className="w-full max-w-sm" role="dialog" aria-modal="true">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">
-                {prompt.title ?? prompt.message}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {prompt.title && (
-                <p className="text-sm text-muted-foreground">
-                  {prompt.message}
-                </p>
-              )}
-              <Input
-                ref={inputRef}
-                value={promptValue}
-                placeholder={prompt.placeholder}
-                onChange={(e) => setPromptValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && promptValue.trim()) {
-                    resolvePrompt(promptValue.trim());
-                  }
-                }}
-                className="text-sm"
-              />
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => resolvePrompt(null)}
-                >
-                  {prompt.cancelLabel ?? t("config.cancel")}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    resolvePrompt(promptValue.trim() ? promptValue.trim() : null)
-                  }
-                  disabled={!promptValue.trim()}
-                >
-                  {prompt.confirmLabel ?? t("config.confirm")}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <DialogPrimitive.Root
+        open={!!prompt}
+        onOpenChange={(open) => {
+          if (!open) resolvePrompt(null);
+        }}
+      >
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm" />
+          <DialogPrimitive.Content
+            className="fixed left-1/2 top-1/2 z-[70] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 outline-none"
+            onCloseAutoFocus={restoreFocus}
+            onOpenAutoFocus={(e) => {
+              rememberFocus();
+              // Focus + sélection du champ (valeur par défaut remplaçable).
+              e.preventDefault();
+              requestAnimationFrame(() => inputRef.current?.select());
+            }}
+            // Sans titre distinct, le message EST le titre : pas de description.
+            {...(prompt?.title ? {} : { "aria-describedby": undefined })}
+          >
+            {prompt && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <DialogPrimitive.Title asChild>
+                    <CardTitle className="text-base">
+                      {prompt.title ?? prompt.message}
+                    </CardTitle>
+                  </DialogPrimitive.Title>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {prompt.title && (
+                    <DialogPrimitive.Description className="text-sm text-muted-foreground">
+                      {prompt.message}
+                    </DialogPrimitive.Description>
+                  )}
+                  <Input
+                    ref={inputRef}
+                    value={promptValue}
+                    placeholder={prompt.placeholder}
+                    aria-label={prompt.title ?? prompt.message}
+                    onChange={(e) => setPromptValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && promptValue.trim()) {
+                        resolvePrompt(promptValue.trim());
+                      }
+                    }}
+                    className="text-sm"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resolvePrompt(null)}
+                    >
+                      {prompt.cancelLabel ?? t("config.cancel")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        resolvePrompt(promptValue.trim() ? promptValue.trim() : null)
+                      }
+                      disabled={!promptValue.trim()}
+                    >
+                      {prompt.confirmLabel ?? t("config.confirm")}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
     </>
   );
 }

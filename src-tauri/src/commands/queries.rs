@@ -679,6 +679,10 @@ pub struct SessionListRow {
     pub best_lap: Option<f64>,
     pub setting: String,
     pub game_version: String,
+    /// Place de départ dans la classe (cohérente avec `class_position`).
+    pub class_grid_pos: i64,
+    /// Nombre de voitures de la classe du joueur dans la séance.
+    pub class_participants: i64,
 }
 
 #[derive(Debug, Serialize)]
@@ -746,7 +750,8 @@ pub fn get_sessions_list(
         "SessionType" => format!("ORDER BY s.session_type {dir}"),
         "Car" => format!("ORDER BY r.unique_car_name {dir}"),
         "Livery" => format!("ORDER BY r.veh_name {dir}"),
-        "GridPos" => format!("ORDER BY r.grid_pos {dir}"),
+        // Départ, arrivée et progression : tous mesurés dans la classe.
+        "GridPos" => format!("ORDER BY r.class_grid_pos {dir}"),
         "Position" => format!("ORDER BY r.class_position {dir}"),
         "Progression" => format!(
             "ORDER BY CASE WHEN r.progression IS NULL THEN 1 ELSE 0 END ASC, \
@@ -789,7 +794,9 @@ pub fn get_sessions_list(
         "SELECT s.id, s.event_id, s.session_type, s.timestamp, s.track, s.track_course,
                 r.unique_car_name, r.veh_name, r.car_class, r.grid_pos, r.class_position,
                 r.progression, s.participants, r.pitstops, r.finish_status, r.best_lap,
-                s.setting, s.game_version
+                s.setting, s.game_version, r.class_grid_pos,
+                (SELECT COUNT(*) FROM results rc
+                  WHERE rc.session_id = r.session_id AND rc.car_class = r.car_class)
          {from} {where_sql} {order_sql} LIMIT {per_page} OFFSET {offset}"
     );
     let mut stmt = conn
@@ -816,6 +823,8 @@ pub fn get_sessions_list(
                 best_lap: row.get(15)?,
                 setting: row.get(16)?,
                 game_version: row.get(17)?,
+                class_grid_pos: row.get(18)?,
+                class_participants: row.get(19)?,
             })
         })
         .map_err(|e| AppError::Database(format!("sessions query: {e}")))?

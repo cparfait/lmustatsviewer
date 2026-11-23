@@ -20,6 +20,7 @@ import { sessionTypeLabel } from "@/lib/sessionLabels";
 import { TrackFlag } from "@/components/TrackFlag";
 import { CarLogo } from "@/components/CarLogo";
 import { cn, formatTime, formatDateTime } from "@/lib/utils";
+import { finishStatusLabel } from "@/lib/finishStatus";
 import { usePageState, useChangeEffect } from "@/lib/usePageState";
 import {
   ChevronRight,
@@ -98,7 +99,11 @@ function ProgCell({ row }: { row: SessionListRow }) {
   );
 }
 
-/** Arrivée : P{pos} / {participants} (Race terminé), ou statut (V1). */
+/**
+ * Arrivée : P{pos} / {voitures de la classe} (Race terminé), ou statut (V1).
+ * Rang et dénominateur sont tous deux mesurés dans la classe : en multiclasse,
+ * « P1 / 38 » mélangeait le rang de classe et le plateau entier.
+ */
 function FinishCell({ row }: { row: SessionListRow }) {
   const { t } = useTranslation();
   if (row.session_type !== "Race") {
@@ -108,10 +113,10 @@ function FinishCell({ row }: { row: SessionListRow }) {
     return (
       <span className="font-mono text-sm">
         <strong>P{row.class_position}</strong>
-        {row.participants > 0 && (
+        {row.class_participants > 0 && (
           <span className="text-xs text-muted-foreground font-normal">
             {" "}
-            / {row.participants}
+            / {row.class_participants}
           </span>
         )}
       </span>
@@ -124,7 +129,7 @@ function FinishCell({ row }: { row: SessionListRow }) {
   }
   return (
     <span className="text-destructive text-xs font-medium italic">
-      {row.finish_status || "DNF"}
+      {row.finish_status ? finishStatusLabel(row.finish_status, t) : t("sessions.statusDnf")}
     </span>
   );
 }
@@ -791,10 +796,10 @@ export function Sessions() {
                         </TableCell>
                       )}
 
-                      {/* Départ */}
+                      {/* Départ (dans la classe, comme l'arrivée et la progression) */}
                       <TableCell className="text-center font-mono px-2 py-1.5 bg-sky-500/[0.06]">
-                        {s.session_type === "Race" && s.grid_pos > 0 ? (
-                          `P${s.grid_pos}`
+                        {s.session_type === "Race" && s.class_grid_pos > 0 ? (
+                          `P${s.class_grid_pos}`
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}

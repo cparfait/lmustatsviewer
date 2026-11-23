@@ -247,3 +247,25 @@ npm run tauri:build
 ```
 La signature de l'auto-update nécessite la variable d'env `TAURI_SIGNING_PRIVATE_KEY`
 (et `TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""`) — sinon l'installeur est produit mais non signé.
+
+## 5. Serveurs réseau locaux : modèle de confiance
+
+L'application ouvre deux petits serveurs HTTP, aux portées différentes :
+
+| Serveur | Écoute | Accès | Données |
+| --- | --- | --- | --- |
+| Widgets navigateur (OBS, 2ᵉ écran) — `commands/widget_server.rs` | `127.0.0.1` uniquement | même PC ; `Host` = localhost (anti DNS rebinding), `Origin` du WebSocket vérifiée | télémétrie live, lecture seule |
+| Régie tablette — `commands/regie.rs` | adresse IPv4 du réseau local (interface de la route par défaut) | code à 6 chiffres renouvelé à chaque démarrage, puis jeton de session aléatoire (24 octets) ; 5 codes faux bloquent l'adresse IP 1 min | télémétrie live, classement ; **aucune écriture** vers le jeu ou l'app |
+
+**Hypothèse retenue pour la régie : un réseau domestique de confiance.** Le transport est
+en HTTP clair : sur un réseau partagé (LAN party, club, hôtel, Wi-Fi public), un appareil
+capable d'observer le trafic voit le code, le jeton et les données live. Le risque est
+limité (lecture seule, aucune donnée de compte), mais il est affiché à l'utilisateur dans
+l'écran de la régie (`config.regieNoteNetwork`) avec la consigne de la désactiver quand
+elle ne sert pas.
+
+Un mode chiffré (HTTPS) supposerait un certificat que la tablette accepte : un certificat
+autosigné déclenche un avertissement bloquant dans chaque navigateur mobile, ce qui casse
+la connexion par QR code. Non retenu tant que l'usage reste domestique ; à reconsidérer
+si la régie doit servir en club ou en événement (piste : certificat par appareil installé
+une fois, ou tunnel chiffré côté app).

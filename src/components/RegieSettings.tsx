@@ -228,6 +228,7 @@ export function RegieSettings() {
       <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-1">
         <li>{t("config.regieNoteFirewall")}</li>
         <li>{t("config.regieNoteReadOnly")}</li>
+        <li>{t("config.regieNoteNetwork")}</li>
         <li>{t("config.regieNoteTemplates")}</li>
       </ul>
     </section>

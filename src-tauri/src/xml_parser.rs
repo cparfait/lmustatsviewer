@@ -15,7 +15,7 @@ use quick_xml::Reader;
 use std::io::BufReader;
 
 /// Header `<RaceResults>` — partagé par toutes les sessions du fichier.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct HeaderInfo {
     pub setting: String,
     pub timestamp: i64, // <DateTime> racine — sert de timestamp d'événement
@@ -38,6 +38,7 @@ pub struct HeaderInfo {
     pub dedicated: i32,
 }
 
+#[derive(Debug)]
 pub struct ParsedSession {
     pub session_type: String, // Practice1 | Qualify | Race (tag XML verbatim)
     pub timestamp: i64,
@@ -61,6 +62,7 @@ pub struct ParsedSession {
     pub stream_events: Vec<StreamEvent>,
 }
 
+#[derive(Debug)]
 pub struct ParsedDriver {
     pub name: String,
     pub veh_file: String,
@@ -85,6 +87,7 @@ pub struct ParsedDriver {
     pub laps: Vec<ParsedLap>,
 }
 
+#[derive(Debug)]
 pub struct ParsedLap {
     pub lap_num: i32,
     pub position: i32, // attribut 'p'
@@ -107,6 +110,7 @@ pub struct ParsedLap {
     pub is_valid: bool,
 }
 
+#[derive(Debug)]
 pub struct StreamEvent {
     pub event_type: String, // ChatMessage | Penalty | Incident | Sector | Sent | Score…
     pub et: f64,
@@ -117,10 +121,12 @@ pub struct StreamEvent {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/// Valeur d'attribut **brute** (entités non résolues), comme avant la
+/// migration vers quick-xml 0.42 : les données indexées restent identiques.
 fn attr_str(attrs: Attributes, key: &[u8]) -> Option<String> {
     for attr in attrs.flatten() {
-        if attr.key.local_name().as_ref() == key {
-            return Some(String::from_utf8_lossy(&attr.value).to_string());
+        if attr.key.local_name().as_ref().as_bytes() == key {
+            return Some(attr.value.to_string());
         }
     }
     None
@@ -133,10 +139,7 @@ fn attrs_to_pairs(attrs: Attributes) -> Vec<(String, String)> {
     attrs
         .flatten()
         .map(|a| {
-            (
-                String::from_utf8_lossy(a.key.local_name().as_ref()).to_string(),
-                String::from_utf8_lossy(&a.value).to_string(),
-            )
+            (a.key.local_name().as_ref().to_string(), a.value.to_string())
         })
         .collect()
 }
@@ -179,11 +182,22 @@ fn parse_i32(s: &str) -> i32 {
     s.trim().parse().unwrap_or(0)
 }
 
-/// Décode le texte d'un nœud (entités XML résolues : `&quot;` → `"`).
-fn decoded_text(e: &quick_xml::events::BytesText) -> String {
-    match e.unescape() {
-        Ok(cow) => cow.trim().to_string(),
-        Err(_) => String::from_utf8_lossy(e.as_ref()).trim().to_string(),
+/// Résout une référence d'entité (`&quot;` → `"`, `&#233;` → `é`). Depuis
+/// quick-xml 0.38, le texte d'un nœud arrive en morceaux : `Event::Text` pour le
+/// texte, `Event::GeneralRef` pour chaque entité. Une entité inconnue est
+/// conservée telle quelle.
+fn resolve_ref(r: &quick_xml::events::BytesRef) -> String {
+    if let Ok(Some(c)) = r.resolve_char_ref() {
+        return c.to_string();
+    }
+    let name = r.xml10_content();
+    match name.as_ref() {
+        "amp" => "&".to_string(),
+        "lt" => "<".to_string(),
+        "gt" => ">".to_string(),
+        "quot" => "\"".to_string(),
+        "apos" => "'".to_string(),
+        other => format!("&{other};"),
     }
 }
 
@@ -229,6 +243,7 @@ enum Section {
 // Parse principal
 // ---------------------------------------------------------------------------
 
+#[derive(Debug)]
 pub struct ParsedFile {
     pub header: HeaderInfo,
     pub sessions: Vec<ParsedSession>,
@@ -238,7 +253,10 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
     let file = std::fs::File::open(path)
         .map_err(|e| format!("Impossible d'ouvrir {:?}: {}", path, e))?;
     let mut reader = Reader::from_reader(BufReader::new(file));
-    reader.config_mut().trim_text(true);
+    // Pas de rognage par événement : il retirerait les espaces autour d'une
+    // entité (« A &amp; B » → « A&B »). Le texte complet d'un nœud est rogné
+    // une seule fois, à sa fermeture.
+    reader.config_mut().trim_text(false);
 
     let mut buf = Vec::new();
     let mut header = HeaderInfo { dedicated: -1, ..HeaderInfo::default() };
@@ -259,6 +277,8 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
     let mut stream_text: String = String::new();
     // Préfixe structuré pour TrackLimits : "{Lap}|{WP}|{CP}|{Driver}|"
     let mut stream_extra: String = String::new();
+    // Texte du champ en cours (en-tête, session, pilote), appliqué à sa fermeture.
+    let mut field_text: String = String::new();
 
     // Profondeur d'imbrication : un fichier tronqué (écriture interrompue, copie
     // partielle) atteint la fin du flux avec des balises encore ouvertes. On le
@@ -278,9 +298,29 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
             Ok(Event::End(_)) => depth -= 1,
             _ => {}
         }
+
+        // Texte et entités : accumulés dans le tampon du nœud en cours.
+        let fragment = match &event {
+            Ok(Event::Text(e)) => Some(e.xml10_content().into_owned()),
+            Ok(Event::GeneralRef(r)) => Some(resolve_ref(r)),
+            _ => None,
+        };
+        if let Some(fragment) = fragment {
+            if in_lap && current_tag == b"Lap" {
+                lap_text.push_str(&fragment);
+            } else if section == Section::Stream {
+                stream_text.push_str(&fragment);
+            } else {
+                field_text.push_str(&fragment);
+            }
+            buf.clear();
+            continue;
+        }
+
         match event {
             Ok(Event::Start(ref e)) => {
-                let tag = e.local_name().as_ref().to_vec();
+                let tag = e.local_name().as_ref().as_bytes().to_vec();
+                field_text.clear();
 
                 // Section de flux : chaque élément est un événement.
                 if section == Section::Stream {
@@ -343,7 +383,7 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
             }
 
             Ok(Event::Empty(ref e)) => {
-                let tag = e.local_name().as_ref().to_vec();
+                let tag = e.local_name().as_ref().as_bytes().to_vec();
                 if section == Section::Stream && tag != b"Stream" {
                     let ev_type = String::from_utf8_lossy(&tag).to_string();
                     let pairs = attrs_to_pairs(e.attributes());
@@ -369,49 +409,11 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
                 continue;
             }
 
-            Ok(Event::Text(ref e)) => {
-                if in_lap && current_tag == b"Lap" {
-                    lap_text.push_str(&decoded_text(e));
-                    buf.clear();
-                    continue;
-                }
-                if section == Section::Stream {
-                    stream_text.push_str(&decoded_text(e));
-                    buf.clear();
-                    continue;
-                }
-
-                let val = decoded_text(e);
-                if val.is_empty() {
-                    buf.clear();
-                    continue;
-                }
-
-                match section {
-                    Section::Header => apply_header_field(&mut header, &current_tag, &val),
-                    Section::Session => {
-                        if let Some(ref mut s) = current_session {
-                            match current_tag.as_slice() {
-                                b"Laps" => s.session_laps = val.trim().parse().unwrap_or(0),
-                                b"Minutes" => s.session_minutes = parse_i32(&val),
-                                _ => {}
-                            }
-                        }
-                    }
-                    Section::Driver => {
-                        if let Some(ref mut d) = current_driver {
-                            apply_driver_field(d, &current_tag, &val);
-                        }
-                    }
-                    Section::Stream => {}
-                }
-            }
-
             Ok(Event::End(ref e)) => {
-                let tag = e.local_name().as_ref().to_vec();
+                let tag = e.local_name().as_ref().as_bytes().to_vec();
 
                 if in_lap && tag == b"Lap" {
-                    finalize_lap(&mut current_driver, &lap_text);
+                    finalize_lap(&mut current_driver, lap_text.trim());
                     in_lap = false;
                     lap_text.clear();
                     current_tag.clear();
@@ -425,11 +427,11 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
                     } else if !stream_tag.is_empty() {
                         if let Some(ref mut s) = current_session {
                             // Pour TrackLimits : "Lap|WP|CP|Driver|Resolution text"
+                            let content = std::mem::take(&mut stream_text).trim().to_string();
                             let text = if stream_extra.is_empty() {
-                                std::mem::take(&mut stream_text)
+                                content
                             } else {
                                 let extra = std::mem::take(&mut stream_extra);
-                                let content = std::mem::take(&mut stream_text);
                                 format!("{}{}", extra, content)
                             };
                             s.stream_events.push(StreamEvent {
@@ -445,6 +447,32 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
                     buf.clear();
                     continue;
                 }
+
+                // Fermeture d'un champ feuille : appliquer son texte complet.
+                if !current_tag.is_empty() && tag == current_tag {
+                    let val = field_text.trim();
+                    if !val.is_empty() {
+                        match section {
+                            Section::Header => apply_header_field(&mut header, &current_tag, val),
+                            Section::Session => {
+                                if let Some(ref mut s) = current_session {
+                                    match current_tag.as_slice() {
+                                        b"Laps" => s.session_laps = val.parse().unwrap_or(0),
+                                        b"Minutes" => s.session_minutes = parse_i32(val),
+                                        _ => {}
+                                    }
+                                }
+                            }
+                            Section::Driver => {
+                                if let Some(ref mut d) = current_driver {
+                                    apply_driver_field(d, &current_tag, val);
+                                }
+                            }
+                            Section::Stream => {}
+                        }
+                    }
+                }
+                field_text.clear();
 
                 if tag == b"Driver" {
                     if let Some(mut d) = current_driver.take() {
@@ -697,5 +725,48 @@ mod server_tests {
         std::fs::write(&empty, "").unwrap();
         assert!(parse_xml_file(&empty).is_err(), "XML vide accepté");
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Entités dans le texte (quick-xml ≥ 0.38 les émet à part) : résolues et
+    /// recollées sans perdre les espaces qui les entourent.
+    #[test]
+    fn entities_keep_surrounding_spaces() {
+        let dir = std::env::temp_dir().join(format!("lmusv-xml-ent-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("ent.xml");
+        std::fs::write(
+            &p,
+            "<?xml version=\"1.0\"?><rFactorXML><RaceResults><Race><Driver>\
+             <Name> O&apos;Neil &amp; Co </Name><TeamName>&quot;A&quot; &#233;quipe</TeamName>\
+             </Driver><Stream><ChatMessage et=\"1.0\">Hi &lt;3 there</ChatMessage></Stream>\
+             </Race></RaceResults></rFactorXML>",
+        )
+        .unwrap();
+        let parsed = parse_xml_file(&p).unwrap();
+        let s = &parsed.sessions[0];
+        assert_eq!(s.drivers[0].name, "O'Neil & Co");
+        assert_eq!(s.drivers[0].team_name, "\"A\" équipe");
+        assert_eq!(s.stream_events[0].text, "Hi <3 there");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Empreinte complète du parseur sur le corpus réel, pour comparer deux
+    /// versions de `quick-xml` ou deux versions du parseur :
+    /// `LMU_XML_DUMP=<fichier> cargo test dump_real_corpus -- --ignored`.
+    #[test]
+    #[ignore]
+    fn dump_real_corpus() {
+        let dir = std::path::Path::new(
+            r"D:\SteamLibrary\steamapps\common\Le Mans Ultimate\UserData\Log\Results",
+        );
+        let out = std::env::var("LMU_XML_DUMP").expect("LMU_XML_DUMP");
+        let mut files: Vec<_> =
+            std::fs::read_dir(dir).unwrap().flatten().map(|e| e.path()).collect();
+        files.sort();
+        let mut dump = String::new();
+        for p in files {
+            dump.push_str(&format!("== {}\n{:#?}\n", p.display(), parse_xml_file(&p)));
+        }
+        std::fs::write(out, dump).unwrap();
     }
 }

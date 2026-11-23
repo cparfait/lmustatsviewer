@@ -219,7 +219,10 @@ CREATE TABLE IF NOT EXISTS setup_link_cleared (
 CREATE TABLE IF NOT EXISTS purged_files (
     filename   TEXT PRIMARY KEY,
     mtime      INTEGER NOT NULL,
-    purged_at  INTEGER NOT NULL DEFAULT 0
+    purged_at  INTEGER NOT NULL DEFAULT 0,
+    -- Chemin du fichier purgé : un homonyme d'un autre dossier n'est pas lui.
+    -- NULL pour une purge antérieure (on retombe alors sur nom + date).
+    file_path  TEXT
 );
 
 -- Objectifs de coaching épinglés par le pilote (mémoire longitudinale du
@@ -597,6 +600,7 @@ fn open_db_file(db_path: &std::path::Path) -> Result<Connection, DbOpenError> {
             purged_at  INTEGER NOT NULL DEFAULT 0
         );",
     );
+    let _ = conn.execute("ALTER TABLE purged_files ADD COLUMN file_path TEXT", []);
 
     Ok(conn)
 }

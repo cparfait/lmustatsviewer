@@ -190,6 +190,10 @@ export interface SessionListRow {
   best_lap: number | null;
   setting: string;
   game_version: string;
+  /** Place de départ dans la classe (cohérente avec `class_position`). */
+  class_grid_pos: number;
+  /** Nombre de voitures de la classe du joueur dans la séance. */
+  class_participants: number;
 }
 
 /** Page de résultats de la liste des sessions (`queries::SessionsPage`). */

@@ -193,15 +193,16 @@ pub(crate) fn purge_empty_in(conn: &mut Connection, mode: &str) -> Result<PurgeR
     {
         let mut stmt = tx
             .prepare(
-                "INSERT INTO purged_files (filename, mtime, purged_at)
-                 VALUES (?1, ?2, ?3)
+                "INSERT INTO purged_files (filename, mtime, purged_at, file_path)
+                 VALUES (?1, ?2, ?3, ?4)
                  ON CONFLICT(filename) DO UPDATE SET
                     mtime     = excluded.mtime,
-                    purged_at = excluded.purged_at",
+                    purged_at = excluded.purged_at,
+                    file_path = excluded.file_path",
             )
             .map_err(|e| AppError::Database(format!("purge remember prepare: {e}")))?;
-        for (_, filename, _, mtime) in &to_purge {
-            stmt.execute(params![filename, mtime, now])
+        for (_, filename, file_path, mtime) in &to_purge {
+            stmt.execute(params![filename, mtime, now, file_path])
                 .map_err(|e| AppError::Database(format!("purge remember: {e}")))?;
         }
     }
@@ -398,30 +399,41 @@ pub fn sync_results(
     report.files_scanned = fs_files.len();
 
     // --- 2. Index DB existant ---
-    let mut indexed: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+    // (mtime, chemin complet) par nom de fichier. Le chemin compte : après un
+    // changement de dossier de résultats, un homonyme de même date dans le
+    // nouveau dossier n'est PAS le même fichier — il est réindexé (et son
+    // chemin mis à jour) au lieu de garder l'ancienne entrée.
+    let mut indexed: std::collections::HashMap<String, (i64, String)> =
+        std::collections::HashMap::new();
     {
         let mut stmt = conn
-            .prepare("SELECT filename, mtime FROM xml_index")
+            .prepare("SELECT filename, mtime, file_path FROM xml_index")
             .map_err(|e| AppError::Database(format!("read index: {e}")))?;
         let rows = stmt
-            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))
+            .query_map([], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?, r.get::<_, String>(2)?))
+            })
             .map_err(|e| AppError::Database(format!("read index rows: {e}")))?;
         for row in rows.flatten() {
-            indexed.insert(row.0, row.1);
+            indexed.insert(row.0, (row.1, row.2));
         }
     }
 
     // --- 2bis. Fichiers purgés volontairement (à ignorer tant que mtime inchangé) ---
-    let mut purged: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+    // (mtime, chemin) — chemin NULL pour une purge antérieure à sa mémorisation.
+    let mut purged: std::collections::HashMap<String, (i64, Option<String>)> =
+        std::collections::HashMap::new();
     {
         let mut stmt = conn
-            .prepare("SELECT filename, mtime FROM purged_files")
+            .prepare("SELECT filename, mtime, file_path FROM purged_files")
             .map_err(|e| AppError::Database(format!("read purged: {e}")))?;
         let rows = stmt
-            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))
+            .query_map([], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?, r.get::<_, Option<String>>(2)?))
+            })
             .map_err(|e| AppError::Database(format!("read purged rows: {e}")))?;
         for row in rows.flatten() {
-            purged.insert(row.0, row.1);
+            purged.insert(row.0, (row.1, row.2));
         }
     }
 
@@ -431,13 +443,16 @@ pub fn sync_results(
     // de `purged_files`.
     let to_process: Vec<(String, PathBuf, i64)> = fs_files
         .iter()
-        .filter(|(name, _, mtime)| {
-            if let Some(pm) = purged.get(name) {
-                if pm == mtime {
+        .filter(|(name, path, mtime)| {
+            if let Some((pm, pp)) = purged.get(name) {
+                let same_file = pp.as_deref().map_or(true, |p| p == path.to_string_lossy());
+                if pm == mtime && same_file {
                     return false; // toujours purgé → on ignore
                 }
             }
-            indexed.get(name).map_or(true, |m| m != mtime)
+            indexed.get(name).map_or(true, |(m, p)| {
+                m != mtime || p.as_str() != path.to_string_lossy()
+            })
         })
         .cloned()
         .collect();
@@ -1227,6 +1242,31 @@ mod tests {
         assert!(report.errors.is_empty(), "{:?}", report.errors);
         assert_eq!(report.updated, 1);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Changement de dossier de résultats : un homonyme de même date dans le
+    /// nouveau dossier est réindexé, avec son nouveau chemin (avant : l'ancienne
+    /// entrée et son ancien chemin étaient gardés — la purge visait le mauvais
+    /// fichier).
+    #[test]
+    fn homonym_in_new_folder_is_reindexed() {
+        let (old_dir, new_dir) = (test_dir("homonym-old"), test_dir("homonym-new"));
+        write_xml(&old_dir.join("a.xml"), XML_EMPTY, 1_000_000);
+        write_xml(&new_dir.join("a.xml"), XML_LAPS, 1_000_000);
+        let mut conn = crate::db::open_test_db();
+        sync_results(&mut conn, &old_dir, "Me").unwrap();
+
+        let report = sync_results(&mut conn, &new_dir, "Me").unwrap();
+        assert_eq!(report.updated, 1, "l'homonyme doit être réindexé");
+        let (path, has_laps): (String, i64) = conn
+            .query_row("SELECT file_path, has_any_laps FROM xml_index WHERE filename = 'a.xml'", [], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .unwrap();
+        assert_eq!(path, new_dir.join("a.xml").to_string_lossy());
+        assert_eq!(has_laps, 1);
+        let _ = std::fs::remove_dir_all(&old_dir);
+        let _ = std::fs::remove_dir_all(&new_dir);
     }
 
     /// Le lien setup → séance suit la séance après une réindexation complète

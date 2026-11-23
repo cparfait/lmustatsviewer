@@ -62,15 +62,11 @@ import { WeeklyGoalsCard } from "@/components/WeeklyGoalsCard";
 import { Tip } from "@/components/ui/tooltip";
 import { useAppStore } from "@/stores/app";
 import type { BestLapRow } from "@/lib/api";
+import { finishStatusLabel, settingLabel } from "@/lib/finishStatus";
 
 /** Étiquette du type de session — délègue au composant partagé. */
 const sessionTypeLabel = sharedSessionTypeLabel;
 
-/** Étiquette du « Type » (Setting) : Multiplayer → En ligne, sinon Week-end. */
-function settingLabel(s: string, t: (k: string) => string): string {
-  if (s === "Multiplayer") return t("sessions.online");
-  return t("sessions.offline");
-}
 
 export function Dashboard() {
   const { t } = useTranslation();
@@ -895,7 +891,7 @@ function DashboardRow({
           <span className="text-blue-400 italic text-mini">{t("sessions.statusDriverSwap")}</span>
         ) : l.finish_status && l.finish_status !== "Finished Normally" ? (
           <span className="text-destructive italic text-mini">
-            {l.finish_status}
+            {finishStatusLabel(l.finish_status, t)}
           </span>
         ) : (
           `P${l.class_position}`

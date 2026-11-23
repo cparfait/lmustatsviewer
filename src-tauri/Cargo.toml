@@ -25,7 +25,7 @@ tauri-plugin-global-shortcut = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.41", features = ["bundled"] }
 # Lecture de la télémétrie post-session LMU (fichiers .duckdb écrits nativement
 # par le jeu dans UserData/Telemetry/). `bundled` compile libduckdb depuis les
 # sources (comme rusqlite) → binaire autonome, pas de DLL système requise.
@@ -41,13 +41,13 @@ futures-util = "0.3"
 # Chiffrement local de la clé API IA (AES-256-GCM, clé dérivée de la machine).
 ring = "0.17"
 # Extraction des archives de modèles Vosk téléchargés à la demande (assets.rs).
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 # Captures brutes de la mémoire partagée (commands/shm.rs) : flux compressé écrit
 # et relu trame par trame (déjà dans l'arbre via `zip`).
 flate2 = "1"
 # QR code de l'adresse de la régie tablette (SVG seul, sans images).
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
-quick-xml = "0.36"
+quick-xml = "0.42"
 walkdir = "2"
 raw-window-handle = "0.6"
 # Micro accordé d'office aux pages de l'app (mic_permission.rs) : mêmes versions

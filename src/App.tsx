@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import { listen } from "@tauri-apps/api/event";
 import { Loader2 } from "lucide-react";
@@ -8,23 +8,8 @@ import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { SetupReminderBanner } from "@/components/SetupReminderBanner";
 import { Dashboard } from "@/routes/Dashboard";
-import { Sessions } from "@/routes/Sessions";
-import { SessionDetail } from "@/routes/SessionDetail";
-import { Records } from "@/routes/Records";
-import { Classement, preloadMyPositions } from "@/routes/Classement";
-import { Setups } from "@/routes/Setups";
-import { SetupDetail } from "@/routes/SetupDetail";
-import { SetupCompare } from "@/routes/SetupCompare";
-import { Strategy } from "@/routes/Strategy";
-import { Live } from "@/routes/Live";
-import { Telemetry } from "@/routes/Telemetry";
-import { TelemetryView } from "@/routes/TelemetryView";
-import { ConfigV2 } from "@/routes/ConfigV2";
-import { Overlays } from "@/routes/Overlays";
-import { Changelog } from "@/routes/Changelog";
 import { Onboarding } from "@/routes/Onboarding";
 import { GuidedTour } from "@/components/GuidedTour";
-import { Profile } from "@/routes/Profile";
 import { NotFound } from "@/routes/NotFound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DialogHost } from "@/components/DialogHost";
@@ -56,6 +41,25 @@ import { useOverlayShortcut } from "@/lib/useOverlayShortcut";
 import { useCommunitySync } from "@/lib/useCommunitySync";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+// Pages chargées à la demande : seul l'accueil (Dashboard), l'onboarding et
+// la page 404 font partie du premier chargement. Le reste arrive au premier
+// passage sur la page (audit 2026-11-23 : 5 Mo de JS au démarrage).
+const Sessions = lazy(() => import("@/routes/Sessions").then((m) => ({ default: m.Sessions })));
+const SessionDetail = lazy(() => import("@/routes/SessionDetail").then((m) => ({ default: m.SessionDetail })));
+const Records = lazy(() => import("@/routes/Records").then((m) => ({ default: m.Records })));
+const Classement = lazy(() => import("@/routes/Classement").then((m) => ({ default: m.Classement })));
+const Setups = lazy(() => import("@/routes/Setups").then((m) => ({ default: m.Setups })));
+const SetupDetail = lazy(() => import("@/routes/SetupDetail").then((m) => ({ default: m.SetupDetail })));
+const SetupCompare = lazy(() => import("@/routes/SetupCompare").then((m) => ({ default: m.SetupCompare })));
+const Strategy = lazy(() => import("@/routes/Strategy").then((m) => ({ default: m.Strategy })));
+const Live = lazy(() => import("@/routes/Live").then((m) => ({ default: m.Live })));
+const Telemetry = lazy(() => import("@/routes/Telemetry").then((m) => ({ default: m.Telemetry })));
+const TelemetryView = lazy(() => import("@/routes/TelemetryView").then((m) => ({ default: m.TelemetryView })));
+const ConfigV2 = lazy(() => import("@/routes/ConfigV2").then((m) => ({ default: m.ConfigV2 })));
+const Overlays = lazy(() => import("@/routes/Overlays").then((m) => ({ default: m.Overlays })));
+const Changelog = lazy(() => import("@/routes/Changelog").then((m) => ({ default: m.Changelog })));
+const Profile = lazy(() => import("@/routes/Profile").then((m) => ({ default: m.Profile })));
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -81,7 +85,10 @@ export default function App() {
   const dataVersion = useAppStore((s) => s.dataVersion);
   useEffect(() => {
     if (!configLoaded || !isConfigured || isLive) return;
-    const id = setTimeout(() => preloadMyPositions(), 3000);
+    const id = setTimeout(
+      () => void import("@/routes/Classement").then((m) => m.preloadMyPositions()),
+      3000,
+    );
     return () => clearTimeout(id);
   }, [configLoaded, isConfigured, dataVersion, isLive]);
 
@@ -183,6 +190,13 @@ export default function App() {
           <Onboarding />
         ) : (
           <ErrorBoundary>
+          <Suspense
+            fallback={
+              <div className="flex justify-center py-24">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            }
+          >
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
@@ -204,6 +218,7 @@ export default function App() {
             <Route path="/changelog" element={<Changelog />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </ErrorBoundary>
         )}
       </main>

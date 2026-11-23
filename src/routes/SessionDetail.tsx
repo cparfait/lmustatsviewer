@@ -21,6 +21,7 @@ import { ClassBadge } from "@/components/ClassBadge";
 import { Tip } from "@/components/ui/tooltip";
 import { CarLogo } from "@/components/CarLogo";
 import { loadEventLocator, trackLimitLap, type EventLocator } from "@/lib/eventLocator";
+import { finishStatusLabel, settingLabel } from "@/lib/finishStatus";
 import { CarNumber } from "@/components/CarNumber";
 import { TrackFlag } from "@/components/TrackFlag";
 import {
@@ -547,7 +548,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
                   />
                   <InfoBlock
                     label={t("sessionDetail.fStatus")}
-                    value={playerResult.finish_status || "—"}
+                    value={finishStatusLabel(playerResult.finish_status, t)}
                     accent={
                       playerResult.finish_status === "Finished Normally"
                     }
@@ -710,7 +711,7 @@ function SessionView({ data }: { data: SessionDetailData }) {
                 value={
                   session.setting === "Multiplayer"
                     ? t("sessionDetail.online")
-                    : session.setting
+                    : settingLabel(session.setting, t)
                 }
               />
               <InfoBlock
@@ -1160,6 +1161,10 @@ function ClassificationTab({
   participants: number;
 }) {
   const { t } = useTranslation();
+  // Rang de classe → dénominateur de classe (en monoclasse : le plateau entier).
+  const classParticipants = playerResult
+    ? results.filter((r) => r.car_class === playerResult.car_class).length
+    : participants;
 
   const gapLabel = (r: ResultRow): string => {
     if (!isRace || r.finish_status !== "Finished Normally") return "—";
@@ -1239,7 +1244,7 @@ function ClassificationTab({
             <span className="text-xs font-semibold text-sky-500 inline-flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-sky-500" />
               {t("sessionDetail.you")} : P{playerResult.class_position}
-              {participants > 0 && <span> / {participants}</span>}
+              {classParticipants > 0 && <span> / {classParticipants}</span>}
             </span>
           )}
         </div>
@@ -1429,7 +1434,7 @@ function ClassificationTab({
                         />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {r.finish_status}
+                        {finishStatusLabel(r.finish_status, t)}
                       </TableCell>
                     </TableRow>
                   );

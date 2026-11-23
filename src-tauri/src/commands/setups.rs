@@ -176,10 +176,11 @@ fn write_svm_atomic(path: &Path, content: &str, keep_backup: bool) -> Result<(),
         .and_then(|s| s.to_str())
         .ok_or_else(|| AppError::Unsupported("Chemin de setup invalide.".to_string()))?;
     let tmp = path.with_file_name(format!(".{file_name}.tmp"));
+    let bytes = svm_bytes_for(path, content);
 
     {
         let mut f = fs::File::create(&tmp)?;
-        f.write_all(content.as_bytes())?;
+        f.write_all(&bytes)?;
         f.sync_all()?;
     }
 
@@ -220,6 +221,66 @@ fn write_svm_new(path: &Path, content: &str) -> Result<(), AppError> {
     }
 }
 
+// ─── Encodage des `.svm` (UTF-8 ou Windows-1252) ─────────────────────────────
+
+/// Caractères Windows-1252 des octets 0x80..=0x9F (les autres octets ≥ 0xA0
+/// coïncident avec Latin-1). Les 5 positions non définies restent des
+/// caractères de contrôle C1, ce qui garantit un aller-retour sans perte.
+const CP1252_HIGH: [char; 32] = [
+    '€', '\u{81}', '‚', 'ƒ', '„', '…', '†', '‡', 'ˆ', '‰', 'Š', '‹', 'Œ', '\u{8D}', 'Ž', '\u{8F}',
+    '\u{90}', '‘', '’', '“', '”', '•', '–', '—', '˜', '™', 'š', '›', 'œ', '\u{9D}', 'ž', 'Ÿ',
+];
+
+/// Décode un `.svm` : UTF-8 s'il est valide, sinon Windows-1252. Avant, un
+/// décodage UTF-8 « avec remplacement » transformait chaque accent Windows-1252
+/// en `�`, définitivement à la réécriture suivante. Renvoie aussi vrai si le
+/// fichier était en Windows-1252.
+pub(crate) fn decode_svm_bytes(bytes: &[u8]) -> (String, bool) {
+    match std::str::from_utf8(bytes) {
+        Ok(s) => (s.to_string(), false),
+        Err(_) => (
+            bytes
+                .iter()
+                .map(|&b| {
+                    if (0x80..=0x9F).contains(&b) {
+                        CP1252_HIGH[(b - 0x80) as usize]
+                    } else {
+                        b as char
+                    }
+                })
+                .collect(),
+            true,
+        ),
+    }
+}
+
+/// Encode en Windows-1252 (caractère non représentable → `?`).
+fn encode_cp1252(s: &str) -> Vec<u8> {
+    s.chars()
+        .map(|c| {
+            let u = c as u32;
+            if u < 0x80 || (0xA0..=0xFF).contains(&u) {
+                u as u8
+            } else if let Some(i) = CP1252_HIGH.iter().position(|&h| h == c) {
+                0x80 + i as u8
+            } else {
+                b'?'
+            }
+        })
+        .collect()
+}
+
+/// Octets à écrire pour `path` : on conserve l'encodage du fichier existant
+/// (Windows-1252 s'il n'est pas de l'UTF-8 valide), UTF-8 sinon.
+fn svm_bytes_for(path: &Path, content: &str) -> Vec<u8> {
+    let was_cp1252 = fs::read(path).map(|b| decode_svm_bytes(&b).1).unwrap_or(false);
+    if was_cp1252 {
+        encode_cp1252(content)
+    } else {
+        content.as_bytes().to_vec()
+    }
+}
+
 /// Relit le `.svm` **sur le disque** et le parse, avec repli sur l'instantané
 /// stocké en base si le fichier a disparu.
 ///
@@ -232,7 +293,7 @@ fn load_svm_from_disk(svm_path: &str, fallback_json: Option<&str>) -> Result<Svm
     let path = Path::new(svm_path);
     if path.is_file() {
         if let Ok(raw) = fs::read(path) {
-            let text = String::from_utf8_lossy(&raw);
+            let (text, _) = decode_svm_bytes(&raw);
             if let Ok(svm) = parse_svm(&text) {
                 return Ok(svm);
             }
@@ -520,7 +581,12 @@ struct ScannedSetup {
 
 #[tauri::command]
 pub fn scan_setups(lmu_path: String, db: State<'_, DbState>) -> Result<Vec<SetupGroup>, AppError> {
-    let settings_dir = PathBuf::from(&lmu_path)
+    scan_setups_in(&lmu_path, &db)
+}
+
+/// Corps de `scan_setups`, testable sans état Tauri.
+pub(crate) fn scan_setups_in(lmu_path: &str, db: &DbState) -> Result<Vec<SetupGroup>, AppError> {
+    let settings_dir = PathBuf::from(lmu_path)
         .join("UserData")
         .join("player")
         .join("Settings");
@@ -555,14 +621,13 @@ pub fn scan_setups(lmu_path: String, db: State<'_, DbState>) -> Result<Vec<Setup
 
             let svm_path = svm_entry.path();
 
-            // Les `.svm` du jeu peuvent être encodés en Windows-1252 (Latin-1) :
-            // lecture en octets + décodage permissif pour ne PAS faire échouer
-            // tout le scan à cause d'un seul fichier mal encodé.
+            // Les `.svm` du jeu peuvent être encodés en Windows-1252 : décodés
+            // comme tels (accents conservés) quand ce n'est pas de l'UTF-8.
             let bytes = match fs::read(&svm_path) {
                 Ok(b) => b,
                 Err(_) => continue,
             };
-            let content = String::from_utf8_lossy(&bytes);
+            let (content, _) = decode_svm_bytes(&bytes);
             let parsed = match parse_svm(&content) {
                 Ok(p) => p,
                 Err(_) => continue,
@@ -606,68 +671,93 @@ pub fn scan_setups(lmu_path: String, db: State<'_, DbState>) -> Result<Vec<Setup
         let _ = super::setup_usage::autolink(&conn);
     }
 
-    // Métadonnées propres à la base (`setup_type`, `linked_session_id`,
-    // `source`) mémorisées par chemin `.svm` AVANT de purger la table —
-    // sinon on perdrait la distinction app/jeu et les sessions liées au
-    // rescan.
-    // Clé stable de la séance liée (fichier XML, type, rang) : voir
-    // `db::remember_setup_links`. Reportée telle quelle au rescan.
-    type LinkKey = (Option<String>, Option<String>, Option<i64>);
-    type SavedMeta = (String, Option<i64>, String, LinkKey); // (setup_type, linked, source, clé)
+    // Lignes existantes, par chemin `.svm` : le rescan les MET À JOUR en place
+    // au lieu de vider la table. L'identifiant d'un setup reste donc stable
+    // (URL de détail ouverte, édition en cours) et ses métadonnées propres à la
+    // base (`setup_type`, `linked_session_id` et sa clé stable, `source`)
+    // restent dans la ligne. En cas de doublon historique sur un même chemin,
+    // la ligne la plus ancienne est gardée.
+    type SavedMeta = (i64, String, Option<i64>, String); // (id, setup_type, linked, source)
     let mut existing_meta: std::collections::HashMap<String, SavedMeta> =
         std::collections::HashMap::new();
     {
         let mut stmt = conn
             .prepare(
-                "SELECT svm_path, setup_type, linked_session_id, source,
-                        linked_xml_filename, linked_session_type, linked_session_ord
-                 FROM setups",
+                "SELECT id, svm_path, setup_type, linked_session_id, source
+                 FROM setups ORDER BY id",
             )
             .map_err(|e| AppError::Database(format!("scan_setups meta: {e}")))?;
         let rows = stmt
             .query_map([], |r| {
                 Ok((
-                    r.get::<_, String>(0)?,
+                    r.get::<_, i64>(0)?,
                     r.get::<_, String>(1)?,
-                    r.get::<_, Option<i64>>(2)?,
-                    r.get::<_, String>(3)?,
-                    (
-                        r.get::<_, Option<String>>(4)?,
-                        r.get::<_, Option<String>>(5)?,
-                        r.get::<_, Option<i64>>(6)?,
-                    ),
+                    r.get::<_, String>(2)?,
+                    r.get::<_, Option<i64>>(3)?,
+                    r.get::<_, String>(4)?,
                 ))
             })
             .map_err(|e| AppError::Database(format!("scan_setups meta: {e}")))?;
         for row in rows {
-            let (path, ty, linked, src, key) =
+            let (id, path, ty, linked, src) =
                 row.map_err(|e| AppError::Database(format!("scan_setups meta: {e}")))?;
-            existing_meta.insert(path, (ty, linked, src, key));
+            existing_meta.entry(path).or_insert((id, ty, linked, src));
         }
     }
 
     let tx = conn
         .transaction()
         .map_err(|e| AppError::Database(format!("scan_setups tx: {e}")))?;
-    tx.execute("DELETE FROM setups", [])
-        .map_err(|e| AppError::Database(format!("scan_setups delete old: {e}")))?;
+
+    // Retirer uniquement les setups disparus du disque (et les doublons).
+    {
+        let kept: std::collections::HashSet<i64> = scanned
+            .iter()
+            .filter_map(|s| existing_meta.get(&s.svm_path).map(|m| m.0))
+            .collect();
+        let all_ids: Vec<i64> = {
+            let mut stmt = tx
+                .prepare("SELECT id FROM setups")
+                .map_err(|e| AppError::Database(format!("scan_setups ids: {e}")))?;
+            let ids = stmt
+                .query_map([], |r| r.get::<_, i64>(0))
+                .map_err(|e| AppError::Database(format!("scan_setups ids: {e}")))?
+                .filter_map(|r| r.ok())
+                .collect();
+            ids
+        };
+        for id in all_ids.into_iter().filter(|id| !kept.contains(id)) {
+            tx.execute("DELETE FROM setups WHERE id = ?1", params![id])
+                .map_err(|e| AppError::Database(format!("scan_setups delete gone: {e}")))?;
+        }
+    }
 
     let mut groups: BTreeMap<String, SetupGroup> = BTreeMap::new();
 
     for s in &scanned {
-        // Si le `.svm` était déjà en base : on récupère ses métadonnées
-        // (type/lien/source). Si c'est un nouveau fichier découvert sur
-        // disque : source = "game" par défaut (créé in-game ou importé).
-        let (setup_type, linked_session_id, source, (link_file, link_type, link_ord)) =
-            existing_meta.get(&s.svm_path).cloned().unwrap_or_else(|| {
-                ("Autres".to_string(), None, "game".to_string(), (None, None, None))
-            });
-        tx.execute(
-            "INSERT INTO setups (car, circuit, name, svm_path, content_json, updated_at, setup_type, linked_session_id, source, linked_xml_filename, linked_session_type, linked_session_ord) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-            params![&s.car, &s.circuit, &s.file_name, &s.svm_path, &s.content_json, &s.updated_at, &setup_type, &linked_session_id, &source, &link_file, &link_type, &link_ord],
-        )
-        .map_err(|e| AppError::Database(format!("scan_setups insert: {e}")))?;
-        let setup_id = tx.last_insert_rowid();
+        // `.svm` déjà en base : mise à jour du contenu, métadonnées conservées.
+        // Nouveau fichier découvert sur disque : source = "game" par défaut
+        // (créé in-game ou importé).
+        let (setup_id, setup_type, linked_session_id, source) =
+            match existing_meta.get(&s.svm_path).cloned() {
+                Some((id, ty, linked, src)) => {
+                    tx.execute(
+                        "UPDATE setups SET car = ?1, circuit = ?2, name = ?3, content_json = ?4,
+                                updated_at = ?5 WHERE id = ?6",
+                        params![&s.car, &s.circuit, &s.file_name, &s.content_json, &s.updated_at, id],
+                    )
+                    .map_err(|e| AppError::Database(format!("scan_setups update: {e}")))?;
+                    (id, ty, linked, src)
+                }
+                None => {
+                    tx.execute(
+                        "INSERT INTO setups (car, circuit, name, svm_path, content_json, updated_at, setup_type, linked_session_id, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'Autres', NULL, 'game')",
+                        params![&s.car, &s.circuit, &s.file_name, &s.svm_path, &s.content_json, &s.updated_at],
+                    )
+                    .map_err(|e| AppError::Database(format!("scan_setups insert: {e}")))?;
+                    (tx.last_insert_rowid(), "Autres".to_string(), None, "game".to_string())
+                }
+            };
 
         // best_lap de la session liée (None si aucune session ou session purgée).
         // `best_lap` est dans `results` (par pilote) — on prend la ligne joueur.
@@ -1439,7 +1529,7 @@ fn find_template_svm(
                 Ok(b) => b,
                 Err(_) => continue,
             };
-            let content = String::from_utf8_lossy(&bytes);
+            let (content, _) = decode_svm_bytes(&bytes);
             let parsed = match parse_svm(&content) {
                 Ok(p) => p,
                 Err(_) => continue,
@@ -2058,5 +2148,92 @@ mod share_tests {
         let notes = &back.sections[0].params[0];
         assert_eq!(notes.value, "\"a / b c\"");
         assert!(notes.comment.is_none());
+    }
+}
+
+#[cfg(test)]
+mod rescan_tests {
+    use super::*;
+
+    const SVM: &str = "VehicleClassSetting=\"GT3\"\nUpgradeSetting=0\n[REARWING]\nRWSetting=7//7.0 deg\n";
+
+    fn game_dir(tag: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!("lmu_rescan_{}_{tag}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("UserData").join("player").join("Settings").join("Spa")).unwrap();
+        root
+    }
+
+    fn svm(root: &Path, name: &str) -> PathBuf {
+        root.join("UserData").join("player").join("Settings").join("Spa").join(name)
+    }
+
+    fn id_of(db: &DbState, name: &str) -> i64 {
+        get_conn(db)
+            .unwrap()
+            .query_row("SELECT id FROM setups WHERE name = ?1", params![name], |r| r.get(0))
+            .unwrap()
+    }
+
+    /// Le rescan met à jour les lignes en place : identifiants et métadonnées
+    /// propres à la base conservés ; seul un fichier disparu est retiré.
+    #[test]
+    fn rescan_keeps_ids_and_metadata() {
+        let root = game_dir("ids");
+        fs::write(svm(&root, "A.svm"), SVM).unwrap();
+        fs::write(svm(&root, "B.svm"), SVM).unwrap();
+        let db = crate::db::state_from(crate::db::open_test_db());
+        let lmu = root.to_string_lossy().to_string();
+
+        scan_setups_in(&lmu, &db).unwrap();
+        let (a, b) = (id_of(&db, "A.svm"), id_of(&db, "B.svm"));
+        get_conn(&db)
+            .unwrap()
+            .execute("UPDATE setups SET setup_type = 'Course', linked_session_id = 42 WHERE id = ?1", params![a])
+            .unwrap();
+
+        fs::remove_file(svm(&root, "B.svm")).unwrap();
+        fs::write(svm(&root, "C.svm"), SVM).unwrap();
+        scan_setups_in(&lmu, &db).unwrap();
+
+        assert_eq!(id_of(&db, "A.svm"), a, "l'identifiant de A doit rester stable");
+        let (ty, linked): (String, Option<i64>) = get_conn(&db)
+            .unwrap()
+            .query_row("SELECT setup_type, linked_session_id FROM setups WHERE id = ?1", params![a], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .unwrap();
+        assert_eq!((ty.as_str(), linked), ("Course", Some(42)));
+        let gone: i64 = get_conn(&db)
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM setups WHERE id = ?1", params![b], |r| r.get(0))
+            .unwrap();
+        assert_eq!(gone, 0, "B.svm supprimé du disque doit quitter la base");
+        assert!(id_of(&db, "C.svm") > b);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    /// Un `.svm` Windows-1252 garde ses accents à la lecture et reste en
+    /// Windows-1252 après réécriture ; un `.svm` UTF-8 reste en UTF-8.
+    #[test]
+    fn cp1252_setup_round_trips() {
+        let root = game_dir("enc");
+        let latin = svm(&root, "Latin.svm");
+        let mut bytes = SVM.as_bytes().to_vec();
+        bytes.extend_from_slice(b"Notes=\"R\xe9glage \x80 pluie\"\n");
+        fs::write(&latin, &bytes).unwrap();
+
+        let (text, cp1252) = decode_svm_bytes(&fs::read(&latin).unwrap());
+        assert!(cp1252);
+        assert!(text.contains("Réglage € pluie"), "{text}");
+
+        write_svm_atomic(&latin, &text, false).unwrap();
+        assert_eq!(fs::read(&latin).unwrap(), bytes, "encodage d'origine perdu");
+
+        let utf8 = svm(&root, "Utf8.svm");
+        fs::write(&utf8, "Notes=\"Réglage\"\n").unwrap();
+        write_svm_atomic(&utf8, "Notes=\"Réglage sec\"\n", false).unwrap();
+        assert_eq!(fs::read_to_string(&utf8).unwrap(), "Notes=\"Réglage sec\"\n");
+        let _ = fs::remove_dir_all(&root);
     }
 }

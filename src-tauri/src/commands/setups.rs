@@ -610,12 +610,19 @@ pub fn scan_setups(lmu_path: String, db: State<'_, DbState>) -> Result<Vec<Setup
     // `source`) mémorisées par chemin `.svm` AVANT de purger la table —
     // sinon on perdrait la distinction app/jeu et les sessions liées au
     // rescan.
-    type SavedMeta = (String, Option<i64>, String); // (setup_type, linked, source)
+    // Clé stable de la séance liée (fichier XML, type, rang) : voir
+    // `db::remember_setup_links`. Reportée telle quelle au rescan.
+    type LinkKey = (Option<String>, Option<String>, Option<i64>);
+    type SavedMeta = (String, Option<i64>, String, LinkKey); // (setup_type, linked, source, clé)
     let mut existing_meta: std::collections::HashMap<String, SavedMeta> =
         std::collections::HashMap::new();
     {
         let mut stmt = conn
-            .prepare("SELECT svm_path, setup_type, linked_session_id, source FROM setups")
+            .prepare(
+                "SELECT svm_path, setup_type, linked_session_id, source,
+                        linked_xml_filename, linked_session_type, linked_session_ord
+                 FROM setups",
+            )
             .map_err(|e| AppError::Database(format!("scan_setups meta: {e}")))?;
         let rows = stmt
             .query_map([], |r| {
@@ -624,13 +631,18 @@ pub fn scan_setups(lmu_path: String, db: State<'_, DbState>) -> Result<Vec<Setup
                     r.get::<_, String>(1)?,
                     r.get::<_, Option<i64>>(2)?,
                     r.get::<_, String>(3)?,
+                    (
+                        r.get::<_, Option<String>>(4)?,
+                        r.get::<_, Option<String>>(5)?,
+                        r.get::<_, Option<i64>>(6)?,
+                    ),
                 ))
             })
             .map_err(|e| AppError::Database(format!("scan_setups meta: {e}")))?;
         for row in rows {
-            let (path, ty, linked, src) =
+            let (path, ty, linked, src, key) =
                 row.map_err(|e| AppError::Database(format!("scan_setups meta: {e}")))?;
-            existing_meta.insert(path, (ty, linked, src));
+            existing_meta.insert(path, (ty, linked, src, key));
         }
     }
 
@@ -646,13 +658,13 @@ pub fn scan_setups(lmu_path: String, db: State<'_, DbState>) -> Result<Vec<Setup
         // Si le `.svm` était déjà en base : on récupère ses métadonnées
         // (type/lien/source). Si c'est un nouveau fichier découvert sur
         // disque : source = "game" par défaut (créé in-game ou importé).
-        let (setup_type, linked_session_id, source) = existing_meta
-            .get(&s.svm_path)
-            .cloned()
-            .unwrap_or_else(|| ("Autres".to_string(), None, "game".to_string()));
+        let (setup_type, linked_session_id, source, (link_file, link_type, link_ord)) =
+            existing_meta.get(&s.svm_path).cloned().unwrap_or_else(|| {
+                ("Autres".to_string(), None, "game".to_string(), (None, None, None))
+            });
         tx.execute(
-            "INSERT INTO setups (car, circuit, name, svm_path, content_json, updated_at, setup_type, linked_session_id, source) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            params![&s.car, &s.circuit, &s.file_name, &s.svm_path, &s.content_json, &s.updated_at, &setup_type, &linked_session_id, &source],
+            "INSERT INTO setups (car, circuit, name, svm_path, content_json, updated_at, setup_type, linked_session_id, source, linked_xml_filename, linked_session_type, linked_session_ord) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            params![&s.car, &s.circuit, &s.file_name, &s.svm_path, &s.content_json, &s.updated_at, &setup_type, &linked_session_id, &source, &link_file, &link_type, &link_ord],
         )
         .map_err(|e| AppError::Database(format!("scan_setups insert: {e}")))?;
         let setup_id = tx.last_insert_rowid();

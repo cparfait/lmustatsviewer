@@ -35,6 +35,18 @@ export interface IndexReport {
   errors: string[];
 }
 
+/** Bilan d'une purge (`models::PurgeReport`) : index et disque séparés. */
+export interface PurgeReport {
+  /** Fichiers retirés de l'index. */
+  indexRemoved: number;
+  /** XML supprimés du disque. */
+  filesRemoved: number;
+  /** XML retirés de l'index mais restés sur le disque (verrouillés, droits). */
+  filesFailed: number;
+  /** Candidats écartés : XML modifié depuis le dernier scan ou illisible. */
+  skippedChanged: number;
+}
+
 /** Résultat de la détection du jeu (`config::DetectResult`). */
 export interface DetectResult {
   lmu_path: string;
@@ -1607,12 +1619,12 @@ export const indexer = {
   /** Vide le cache d'indexation. */
   clearCache: () => invoke<void>("clear_index_cache"),
   /**
-   * Purge les sessions sans aucun tour ; renvoie le nombre de XML supprimés.
+   * Purge les sessions sans aucun tour ; renvoie le bilan index / disque.
    * `purgeType = "global"` (défaut) : `has_any_laps = 0` ; `"player"` : aucun
    * tour du joueur (cf. V1 `_scan_empty_sessions`).
    */
   purgeEmptySessions: (purgeType: "global" | "player" = "global") =>
-    invoke<number>("purge_empty_sessions", { purgeType }),
+    invoke<PurgeReport>("purge_empty_sessions", { purgeType }),
   /** Compte les sessions sans aucun tour (selon le mode global / joueur). */
   countEmptySessions: (purgeType: "global" | "player" = "global") =>
     invoke<number>("count_empty_sessions", { purgeType }),

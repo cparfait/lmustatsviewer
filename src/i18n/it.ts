@@ -2222,6 +2222,8 @@ export default {
     syncDone: "Sincronizzazione completata.",
     cacheCleared: "Cache di indicizzazione svuotata.",
     purgeDone: "{{count}} sessione/i vuota/e eliminata/e.",
+    purgeSkippedChanged: "{{count}} file modificato/i dall'ultima scansione, conservato/i.",
+    purgeFilesFailed: "{{count}} file rimosso/i dall'elenco ma impossibile/i da eliminare dal disco (bloccato/i o protetto/i).",
     maintError: "Operazione non riuscita",
     reindexConfirmTitle: "Reindicizzazione completa",
     reindexConfirmText: "Cambiare il giocatore o la cartella avvia una reindicizzazione completa di tutti i file. Continuare?",

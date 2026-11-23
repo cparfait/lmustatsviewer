@@ -2227,6 +2227,8 @@ export default {
     syncDone: "Synchronisierung abgeschlossen.",
     cacheCleared: "Index-Cache geleert.",
     purgeDone: "{{count}} leere Session(en) entfernt.",
+    purgeSkippedChanged: "{{count}} Datei(en) seit dem letzten Scan geändert, beibehalten.",
+    purgeFilesFailed: "{{count}} Datei(en) aus der Liste entfernt, konnten aber nicht von der Festplatte gelöscht werden (gesperrt oder geschützt).",
     maintError: "Vorgang fehlgeschlagen",
     reindexConfirmTitle: "Vollständige Neuindizierung",
     reindexConfirmText: "Das Ändern des Spielers oder Ordners löst eine vollständige Neuindizierung aller Dateien aus. Fortfahren?",

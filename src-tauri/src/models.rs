@@ -108,3 +108,17 @@ pub struct IndexReport {
     pub sessions_created: usize,
     pub errors: Vec<String>,
 }
+
+/// Bilan d'une purge : l'index et le disque sont comptés séparément.
+#[derive(Debug, Default, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PurgeReport {
+    /// Fichiers retirés de l'index (avec leurs sessions).
+    pub index_removed: u32,
+    /// Fichiers XML effectivement supprimés du disque.
+    pub files_removed: u32,
+    /// Fichiers retirés de l'index mais restés sur le disque (verrouillés, droits).
+    pub files_failed: u32,
+    /// Candidats écartés : le XML a changé depuis le dernier scan ou est illisible.
+    pub skipped_changed: u32,
+}

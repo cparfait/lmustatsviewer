@@ -2222,6 +2222,8 @@ export default {
     syncDone: "Synchronization complete.",
     cacheCleared: "Index cache cleared.",
     purgeDone: "{{count}} empty session(s) purged.",
+    purgeSkippedChanged: "{{count}} file(s) changed since the last scan, kept.",
+    purgeFilesFailed: "{{count}} file(s) removed from the list but could not be deleted from disk (locked or protected).",
     maintError: "Operation failed",
     reindexConfirmTitle: "Full reindex",
     reindexConfirmText: "Changing the player or folder triggers a full reindex of all files. Continue?",

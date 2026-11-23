@@ -260,8 +260,25 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
     // Préfixe structuré pour TrackLimits : "{Lap}|{WP}|{CP}|{Driver}|"
     let mut stream_extra: String = String::new();
 
+    // Profondeur d'imbrication : un fichier tronqué (écriture interrompue, copie
+    // partielle) atteint la fin du flux avec des balises encore ouvertes. On le
+    // refuse plutôt que d'indexer une séance amputée.
+    let mut depth: i64 = 0;
+    // Un fichier vide (0 octet, jeu en cours d'écriture) n'a aucun élément.
+    let mut saw_element = false;
+
     loop {
-        match reader.read_event_into(&mut buf) {
+        let event = reader.read_event_into(&mut buf);
+        match &event {
+            Ok(Event::Start(_)) => {
+                depth += 1;
+                saw_element = true;
+            }
+            Ok(Event::Empty(_)) => saw_element = true,
+            Ok(Event::End(_)) => depth -= 1,
+            _ => {}
+        }
+        match event {
             Ok(Event::Start(ref e)) => {
                 let tag = e.local_name().as_ref().to_vec();
 
@@ -459,7 +476,17 @@ pub fn parse_xml_file(path: &std::path::Path) -> Result<ParsedFile, String> {
                 current_tag.clear();
             }
 
-            Ok(Event::Eof) => break,
+            Ok(Event::Eof) => {
+                if !saw_element {
+                    return Err("Fichier XML vide".to_string());
+                }
+                if depth != 0 {
+                    return Err(format!(
+                        "Fichier XML incomplet : {depth} balise(s) non refermée(s) en fin de fichier"
+                    ));
+                }
+                break;
+            }
 
             Err(e) => {
                 return Err(format!(
@@ -644,6 +671,31 @@ mod server_tests {
         let h = parse_xml_file(&offline).unwrap().header;
         assert_eq!(h.server_name, "");
         assert_eq!(h.dedicated, -1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Un XML tronqué (balises non refermées) ou vide est refusé : il ne doit
+    /// jamais remplacer une séance déjà indexée par une séance amputée.
+    #[test]
+    fn truncated_or_empty_xml_is_rejected() {
+        let dir = std::env::temp_dir().join(format!("lmusv-xml-trunc-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let full = "<?xml version=\"1.0\"?><rFactorXML><RaceResults><Race><Driver><Name>A</Name></Driver></Race></RaceResults></rFactorXML>";
+        let ok = dir.join("ok.xml");
+        std::fs::write(&ok, full).unwrap();
+        assert_eq!(parse_xml_file(&ok).unwrap().sessions.len(), 1);
+
+        let truncated = dir.join("truncated.xml");
+        // Coupé juste après `</Race>` : syntaxe valide, mais deux balises ouvertes.
+        let cut = full.trim_end_matches("</RaceResults></rFactorXML>");
+        assert!(cut.ends_with("</Race>"));
+        std::fs::write(&truncated, cut).unwrap();
+        let err = parse_xml_file(&truncated).err().expect("XML tronqué accepté");
+        assert!(err.contains("incomplet"), "{err}");
+
+        let empty = dir.join("empty.xml");
+        std::fs::write(&empty, "").unwrap();
+        assert!(parse_xml_file(&empty).is_err(), "XML vide accepté");
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

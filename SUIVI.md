@@ -2,7 +2,7 @@
 
 > **Document de reprise du projet. À LIRE EN PREMIER.**
 > Mettre à jour la section « Journal de bord » à chaque session de travail.
-> Dernière mise à jour : 2026-11-19 (retours testeur beta.2 : alerte de blocage, overlays au stand / par séance ; voir le journal, section 8)
+> Dernière mise à jour : 2026-11-23 (audit de l'application, voir le journal en section 8)
 
 ---
 
@@ -270,6 +270,8 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 ---
 
 ## 7. Notes / points ouverts
+
+- ⏳ **Audit V3 (2026-11-23)** — [rapport et ordre de traitement](AUDIT-2026-11-23.md). ✅ Lot intégrité traité le 2026-11-23 (liens setup/session stables, dernier import valide conservé, verrou et revalidation disque de la purge, scan incomplet) ; reste en §1 : homonymes entre dossiers et rescan de l'atelier (identifiants, encodage). Les avis sur les dépendances du service communautaire et de l'application sont à traiter avant la prochaine diffusion large. Les parcours en piste et l'auto-update signé restent à valider.
 
 - ⏳ **Libellé des classes (2026-10-21, reporté par le mainteneur)** : les XML du jeu écrivent
   `<CarClass>` = `GT3` / `GTE` / `Hyper` / `LMP2` / `LMP2_ELMS` / `LMP3` (227 fichiers vérifiés) ;
@@ -945,6 +947,26 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-11-23 — Audit : lot intégrité des données (4 constats P1 + 1 P2) (non commité)
+
+**Demande** : traiter le lot « intégrité » de l'[audit](AUDIT-2026-11-23.md) (§1).
+
+- ✅ **Purge figée** : `purge_empty_sessions` délègue à `purge_empty_in(&mut Connection, mode)`. Le garde-fou « player » lit `player_name` via la connexion déjà verrouillée (avant : `db::config_get` reprenait le `Mutex` non réentrant → application figée au lieu du message prévu).
+- ✅ **Purge sur état passé** : revalidation du `mtime` disque juste avant d'agir ; un XML modifié depuis le scan (ou présent mais illisible) est écarté, ni retiré de l'index ni supprimé. Suppression par `id` des seules entrées revalidées. La commande renvoie désormais `PurgeReport { indexRemoved, filesRemoved, filesFailed, skippedChanged }` (avant : nombre de lignes en base présenté comme fichiers supprimés). Message de fin enrichi (`config.purgeSkippedChanged`, `config.purgeFilesFailed`, 5 langues).
+- ✅ **XML en échec** : `sync_results` lit le fichier entièrement (`parse_xml_file`) **avant** toute écriture, puis remplace l'entrée dans un `SAVEPOINT index_file` (rollback du seul fichier en cas d'erreur SQL). L'ancienne séance garde son ancien `mtime` → retentée au passage suivant. Le parseur refuse un fichier vide ou tronqué (profondeur d'imbrication ≠ 0 à `Eof`).
+- ✅ **Liens setup → séance** : nouvelles colonnes `setups.linked_xml_filename / linked_session_type / linked_session_ord` (clé stable : fichier, type, rang parmi les séances de même type). `db::remember_setup_links` les rafraîchit avant toute suppression (début de `sync_results`, `reset_index`) sans écraser la clé d'un lien déjà orphelin ; `db::restore_setup_links` rattache en fin de sync les liens orphelins (jamais un lien `NULL`). Le rescan de l'atelier (`scan_setups`) reporte la clé avec les autres métadonnées.
+- ✅ **Scan incomplet (P2 partiel)** : une entrée de dossier illisible suspend le retrait des séances « disparues » et le nettoyage de `purged_files` pour ce passage. L'identification des homonymes entre dossiers (nom + mtime) reste à traiter.
+- ✅ Tests : 5 nouveaux (`purge_guard_returns_error_instead_of_locking`, `purge_skips_file_changed_since_scan`, `unreadable_xml_keeps_previous_session`, `setup_link_survives_reindex_and_xml_update`, `truncated_or_empty_xml_is_rejected`). `cargo test --locked --lib` : 209 réussis, 6 ignorés. Corpus réel (`smoke_index_real_data`) : 224/224 XML, 0 erreur avec le contrôle de fin de fichier. `tsc -b` et ESLint (fichiers touchés) OK. Changelog 1.0.10 : 2 entrées « fixed ».
+- ⏳ Non vérifié dans l'application : purge et réindexation sur une copie des XML via l'interface.
+- 📋 **Prochaine étape** — Lot « sécurité / livraison » de l'audit : Zod 4 et Hono corrigés côté `community/api` (rejouer validation, Steam, ingestion), puis conditionner la signature de release aux tests Rust du SHA du tag et vérifier tag ↔ `version.json`.
+
+### 2026-11-23 — Audit de l'application V3 et du service communautaire
+
+- ✅ Revue du dépôt V3 au commit `74b1f98`, des parcours Windows sur les données du jeu, du service communautaire, des dépendances npm et Rust, et de la livraison. Résultats et constats priorisés dans [le rapport](AUDIT-2026-11-23.md).
+- ✅ Build web réussi. ESLint : 0 erreur, 8 avertissements. 8 258 assertions TypeScript, 204 tests Rust Windows après relance avec accès au bouclage et au coffre de test, 66 tests communautaires. Import en mémoire de 224 XML réels sans erreur.
+- ⏳ Défauts prioritaires : références de sessions instables, remplacement d'XML sans isolation par fichier, verrou repris dans le garde-fou de purge, suppression disque fondée sur un index ancien, dépendances de production à mettre à jour. Contrôles restants : piste réelle, services tiers, restauration PostgreSQL et mise à jour signée. Changements de cette session limités à la documentation.
+- 📋 **Prochaine étape** — Corriger le verrou et la revalidation de la purge sur une copie des XML, puis faire passer la réindexation d'un XML incomplet sans perdre la séance précédente ni ses liens de setup.
 
 ### 2026-11-21 — J1 + J2 de la veille 1.1.2 : multiplicateurs de séance, diagnostic du plugin (non commité)
 

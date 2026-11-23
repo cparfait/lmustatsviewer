@@ -806,10 +806,17 @@ export function ConfigV2() {
   async function handlePurge(purgeType: "global" | "player") {
     setMaintMsg(null);
     try {
-      const removed = await useAppStore
+      const report = await useAppStore
         .getState()
         .purgeEmptySessions(purgeType);
-      setMaintMsg(t("config.purgeDone", { count: removed }));
+      const parts = [t("config.purgeDone", { count: report.indexRemoved })];
+      if (report.skippedChanged > 0) {
+        parts.push(t("config.purgeSkippedChanged", { count: report.skippedChanged }));
+      }
+      if (report.filesFailed > 0) {
+        parts.push(t("config.purgeFilesFailed", { count: report.filesFailed }));
+      }
+      setMaintMsg(parts.join(" "));
       refreshEmptyCounts();
     } catch (e) {
       toastError(`${t("config.maintError")} : ${e}`);

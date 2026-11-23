@@ -167,10 +167,14 @@ CREATE TABLE IF NOT EXISTS setups (
     updated_at          TEXT    NOT NULL DEFAULT (datetime('now')),
     setup_type          TEXT    NOT NULL DEFAULT 'Autres',
     -- Session de référence liée au setup (V1 `best_lap_session_id`).
-    -- NULL si aucun tour lié. Pas de FK : le rescan d'index peut recréer les
-    -- sessions avec de nouveaux id, on tolère donc des id obsolètes (la
-    -- session est juste cachée côté front et l'utilisateur peut re-lier).
+    -- NULL si aucun tour lié. Pas de FK : la réindexation recrée les sessions
+    -- avec de nouveaux id. La clé stable ci-dessous (fichier XML, type de
+    -- séance, rang dans le fichier) est mémorisée avant chaque indexation et
+    -- sert à rattacher le lien à la séance recréée (`restore_setup_links`).
     linked_session_id   INTEGER,
+    linked_xml_filename TEXT,
+    linked_session_type TEXT,
+    linked_session_ord  INTEGER,
     -- Origine du setup :
     --   'game' → trouvé sur disque (créé in-game ou importé manuellement).
     --           Lecture seule depuis V3 pour éviter de corrompre un fichier
@@ -572,6 +576,10 @@ fn open_db_file(db_path: &std::path::Path) -> Result<Connection, DbOpenError> {
         "ALTER TABLE setups ADD COLUMN source TEXT NOT NULL DEFAULT 'game'",
         [],
     );
+    // Clé stable de la séance liée (survit à la réindexation).
+    let _ = conn.execute("ALTER TABLE setups ADD COLUMN linked_xml_filename TEXT", []);
+    let _ = conn.execute("ALTER TABLE setups ADD COLUMN linked_session_type TEXT", []);
+    let _ = conn.execute("ALTER TABLE setups ADD COLUMN linked_session_ord INTEGER", []);
     // Serveur de la séance (`<ServerName>`, `<Dedicated>`) : tours « comparables ».
     // -1 = inconnu (fichier indexé avant l'ajout : une réindexation le complète).
     let _ = conn.execute("ALTER TABLE xml_index ADD COLUMN server_name TEXT NOT NULL DEFAULT ''", []);
@@ -641,8 +649,77 @@ pub fn open_test_db() -> Connection {
 ///
 /// La table `purged_files` est également vidée : une réindexation complète part
 /// d'une feuille blanche, l'utilisateur peut re-purger ce qu'il veut ensuite.
+/// Mémorise, pour chaque setup lié à une séance encore présente, la clé stable
+/// de cette séance : nom du fichier XML, type de séance et rang parmi les
+/// séances de même type du fichier. Un lien déjà orphelin garde sa clé
+/// précédente (rien n'est écrasé par du vide).
+pub fn remember_setup_links(conn: &Connection) -> Result<(), AppError> {
+    conn.execute_batch(
+        "UPDATE setups SET
+            linked_xml_filename = (
+                SELECT x.filename FROM sessions s JOIN xml_index x ON x.id = s.xml_id
+                WHERE s.id = setups.linked_session_id),
+            linked_session_type = (
+                SELECT s.session_type FROM sessions s WHERE s.id = setups.linked_session_id),
+            linked_session_ord = (
+                SELECT COUNT(*) FROM sessions s
+                JOIN sessions o ON o.xml_id = s.xml_id
+                               AND o.session_type = s.session_type
+                               AND o.id < s.id
+                WHERE s.id = setups.linked_session_id)
+         WHERE linked_session_id IS NOT NULL
+           AND EXISTS (SELECT 1 FROM sessions s WHERE s.id = setups.linked_session_id);",
+    )
+    .map_err(|e| AppError::Database(format!("remember setup links: {e}")))
+}
+
+/// Rattache les liens devenus orphelins (séance supprimée puis recréée sous un
+/// nouvel id) à la séance de même clé stable. Un lien volontairement vidé
+/// (`NULL`) n'est jamais restauré ; un lien dont le fichier a disparu reste
+/// orphelin (masqué côté front, comme avant).
+pub fn restore_setup_links(conn: &Connection) -> Result<(), AppError> {
+    let orphans: Vec<(i64, String, String, i64)> = {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, linked_xml_filename, linked_session_type, COALESCE(linked_session_ord, 0)
+                 FROM setups
+                 WHERE linked_session_id IS NOT NULL
+                   AND linked_xml_filename IS NOT NULL
+                   AND linked_session_type IS NOT NULL
+                   AND NOT EXISTS (SELECT 1 FROM sessions s WHERE s.id = setups.linked_session_id)",
+            )
+            .map_err(|e| AppError::Database(format!("restore setup links prepare: {e}")))?;
+        let rows = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))
+            .map_err(|e| AppError::Database(format!("restore setup links query: {e}")))?;
+        rows.filter_map(|r| r.ok()).collect()
+    };
+    for (setup_id, filename, session_type, ord) in orphans {
+        let session_id: Option<i64> = conn
+            .query_row(
+                "SELECT s.id FROM sessions s JOIN xml_index x ON x.id = s.xml_id
+                 WHERE x.filename = ?1 AND s.session_type = ?2
+                 ORDER BY s.id LIMIT 1 OFFSET ?3",
+                params![filename, session_type, ord],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(|e| AppError::Database(format!("restore setup link lookup: {e}")))?;
+        if let Some(sid) = session_id {
+            conn.execute(
+                "UPDATE setups SET linked_session_id = ?1 WHERE id = ?2",
+                params![sid, setup_id],
+            )
+            .map_err(|e| AppError::Database(format!("restore setup link: {e}")))?;
+        }
+    }
+    Ok(())
+}
+
 pub fn reset_index(db: &DbState) -> Result<(), AppError> {
     let conn = get_conn(db)?;
+    // Mémoriser les liens setup → séance avant d'effacer les séances.
+    remember_setup_links(&conn)?;
     conn.execute_batch(
         "DELETE FROM stream_events;
          DELETE FROM laps;

@@ -7,7 +7,7 @@
  */
 
 import { create } from "zustand";
-import { config, dictation, indexer, queries, ai, system, type WheelBinding } from "@/lib/api";
+import { config, dictation, indexer, queries, ai, system, type PurgeReport, type WheelBinding } from "@/lib/api";
 import { setAppTimezone } from "@/lib/utils";
 import { preloadStaticData } from "@/lib/staticData";
 import { configureVoice, setCloudSegmentSource, setSpeechReplay, setTalkSilence } from "@/lib/voice";
@@ -356,7 +356,7 @@ interface AppState {
   syncQuiet: () => Promise<void>;
   reindexAll: () => Promise<void>;
   clearCache: () => Promise<void>;
-  purgeEmptySessions: (purgeType?: "global" | "player") => Promise<number>;
+  purgeEmptySessions: (purgeType?: "global" | "player") => Promise<PurgeReport>;
   loadDashboard: () => Promise<void>;
   setSelectedVersion: (v: string | null) => void;
   setShowOutdated: (v: boolean) => void;

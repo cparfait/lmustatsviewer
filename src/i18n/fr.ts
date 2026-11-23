@@ -2228,6 +2228,8 @@ export default {
     syncDone: "Synchronisation terminée.",
     cacheCleared: "Cache d'indexation vidé.",
     purgeDone: "{{count}} session(s) vide(s) purgée(s).",
+    purgeSkippedChanged: "{{count}} fichier(s) modifié(s) depuis le dernier scan, conservé(s).",
+    purgeFilesFailed: "{{count}} fichier(s) retiré(s) de la liste mais impossible(s) à supprimer du disque (verrouillé(s) ou protégé(s)).",
     maintError: "Échec de l'opération",
     reindexConfirmTitle: "Réindexation complète",
     reindexConfirmText: "Changer le joueur ou le dossier relance une indexation complète de tous les fichiers. Continuer ?",

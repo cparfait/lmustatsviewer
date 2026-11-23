@@ -10,14 +10,14 @@
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 use tauri::State;
 
 use crate::db::{self, get_conn, DbState};
 use crate::error::AppError;
 use crate::models::{
     compute_optimal_lap, compute_unique_car_name, format_game_version, normalize_car_class,
-    IndexReport,
+    IndexReport, PurgeReport,
 };
 use crate::xml_parser::{parse_xml_file, ParsedDriver};
 
@@ -78,11 +78,28 @@ fn purge_filter_sql(purge_type: &str) -> &'static str {
 pub fn purge_empty_sessions(
     purge_type: Option<String>,
     db: State<'_, DbState>,
-) -> Result<u32, AppError> {
+) -> Result<PurgeReport, AppError> {
     let mode = purge_type.as_deref().unwrap_or("global");
-    let filter = purge_filter_sql(mode);
-
     let mut conn = get_conn(&db)?;
+    purge_empty_in(&mut conn, mode)
+}
+
+/// Mtime (secondes) d'un fichier, `None` s'il est illisible.
+fn file_mtime_secs(path: &Path) -> Option<i64> {
+    std::fs::metadata(path)
+        .ok()?
+        .modified()
+        .ok()?
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .map(|d| d.as_secs() as i64)
+}
+
+/// Corps de la purge, sur une connexion déjà verrouillée. Ne JAMAIS appeler
+/// `db::config_get` ici : il reprendrait le même verrou (`Mutex` non
+/// réentrant) et figerait l'application.
+pub(crate) fn purge_empty_in(conn: &mut Connection, mode: &str) -> Result<PurgeReport, AppError> {
+    let filter = purge_filter_sql(mode);
 
     // ── GARDE-FOU (mode « player ») ────────────────────────────────────────
     // Le filtre « player » sélectionne tout fichier SANS session du joueur. Or
@@ -99,7 +116,13 @@ pub fn purge_empty_sessions(
             })
             .map_err(|e| AppError::Database(format!("purge guard: {e}")))?;
         if player_rows == 0 {
-            let player_name = db::config_get(&db, "player_name")?.unwrap_or_default();
+            let player_name: String = conn
+                .query_row("SELECT value FROM config WHERE key = 'player_name'", [], |r| {
+                    r.get(0)
+                })
+                .optional()
+                .map_err(|e| AppError::Database(format!("purge guard name: {e}")))?
+                .unwrap_or_default();
             return Err(AppError::Unsupported(format!(
                 "Purge annulée : aucune session n'est reconnue comme la tienne \
                  (nom de joueur « {} »). Vérifie le nom exact dans Config avant \
@@ -121,22 +144,46 @@ pub fn purge_empty_sessions(
     //    `file_path` **stocké à l'indexation** plutôt que de le reconstruire
     //    depuis `results_dir` : si le dossier a changé en config depuis, on
     //    effacerait un homonyme du nouveau dossier.
-    let list_sql = format!("SELECT filename, file_path, mtime FROM xml_index WHERE {filter}");
-    let to_purge: Vec<(String, String, i64)> = {
+    let list_sql =
+        format!("SELECT id, filename, file_path, mtime FROM xml_index WHERE {filter}");
+    let candidates: Vec<(i64, String, String, i64)> = {
         let mut stmt = tx
             .prepare(&list_sql)
             .map_err(|e| AppError::Database(format!("purge list prepare: {e}")))?;
         let rows = stmt
             .query_map([], |r| {
                 Ok((
-                    r.get::<_, String>(0)?,
+                    r.get::<_, i64>(0)?,
                     r.get::<_, String>(1)?,
-                    r.get::<_, i64>(2)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, i64>(3)?,
                 ))
             })
             .map_err(|e| AppError::Database(format!("purge list query: {e}")))?;
         rows.filter_map(|r| r.ok()).collect()
     };
+
+    // 1bis. Revalidation juste avant d'agir : l'index décrit le fichier tel
+    //   qu'il était au dernier scan. Un XML modifié depuis (rejoué, réécrit par
+    //   le jeu) peut avoir acquis des tours → on l'écarte, la prochaine sync le
+    //   réindexera. Un fichier présent mais illisible est écarté aussi (prudence).
+    //   Un fichier déjà absent du disque n'a rien à perdre : seule l'entrée
+    //   d'index part.
+    let mut report = PurgeReport::default();
+    let to_purge: Vec<(i64, String, String, i64)> = candidates
+        .into_iter()
+        .filter(|(_, _, file_path, mtime)| {
+            let path = Path::new(file_path);
+            if !path.exists() {
+                return true;
+            }
+            let unchanged = file_mtime_secs(path) == Some(*mtime);
+            if !unchanged {
+                report.skipped_changed += 1;
+            }
+            unchanged
+        })
+        .collect();
 
     // 2. Mémoriser dans `purged_files` (filet de sécurité).
     let now = std::time::SystemTime::now()
@@ -153,17 +200,25 @@ pub fn purge_empty_sessions(
                     purged_at = excluded.purged_at",
             )
             .map_err(|e| AppError::Database(format!("purge remember prepare: {e}")))?;
-        for (filename, _, mtime) in &to_purge {
+        for (_, filename, _, mtime) in &to_purge {
             stmt.execute(params![filename, mtime, now])
                 .map_err(|e| AppError::Database(format!("purge remember: {e}")))?;
         }
     }
 
-    // 3. Supprimer de `xml_index` (cascade vers sessions/results/laps/stream).
-    let delete_sql = format!("DELETE FROM xml_index WHERE {filter}");
-    let removed = tx
-        .execute(&delete_sql, [])
-        .map_err(|e| AppError::Database(format!("purge delete: {e}")))?;
+    // 3. Supprimer de `xml_index` (cascade vers sessions/results/laps/stream),
+    //    uniquement les entrées revalidées.
+    {
+        let mut stmt = tx
+            .prepare("DELETE FROM xml_index WHERE id = ?1")
+            .map_err(|e| AppError::Database(format!("purge delete prepare: {e}")))?;
+        for (id, _, _, _) in &to_purge {
+            report.index_removed += stmt
+                .execute(params![id])
+                .map_err(|e| AppError::Database(format!("purge delete: {e}")))?
+                as u32;
+        }
+    }
     recompute_event_ids(&tx)?;
     tx.commit()
         .map_err(|e| AppError::Database(format!("purge commit: {e}")))?;
@@ -173,22 +228,28 @@ pub fn purge_empty_sessions(
     //    fichiers du joueur sont toujours là. En cas d'échec de suppression
     //    (permissions, fichier verrouillé), l'entrée reste dans `purged_files`
     //    comme filet de sécurité contre la réindexation au prochain lancement.
-    let mut files_removed: u32 = 0;
-    for (_, file_path, _) in &to_purge {
+    for (_, _, file_path, _) in &to_purge {
         let path = PathBuf::from(file_path);
-        if path.is_file() && std::fs::remove_file(&path).is_ok() {
-            files_removed += 1;
+        if !path.is_file() {
+            continue; // déjà absent : rien à supprimer
+        }
+        if std::fs::remove_file(&path).is_ok() {
+            report.files_removed += 1;
+        } else {
+            report.files_failed += 1;
         }
     }
-    if files_removed != to_purge.len() as u32 {
+    if report.files_failed > 0 || report.skipped_changed > 0 {
         crate::app_warn!(
-            "[purge] {files_removed}/{} fichier(s) supprimé(s) du disque (les autres \
-             étaient absents ou verrouillés)",
-            to_purge.len()
+            "[purge] index={} disque={} échecs disque={} écartés (modifiés)={}",
+            report.index_removed,
+            report.files_removed,
+            report.files_failed,
+            report.skipped_changed
         );
     }
 
-    Ok(removed as u32)
+    Ok(report)
 }
 
 #[tauri::command]
@@ -271,6 +332,10 @@ pub fn sync_results(
         )));
     }
 
+    // Avant toute suppression de séances : mémoriser la clé stable (fichier,
+    // type, rang) des séances liées aux setups, pour les rattacher ensuite.
+    db::remember_setup_links(conn)?;
+
     // --- Détection changement de joueur → réindexation complète ---
     let indexed_player: Option<String> = conn
         .query_row(
@@ -297,10 +362,16 @@ pub fn sync_results(
 
     // --- 1. Scanner le filesystem ---
     let mut fs_files: Vec<(String, PathBuf, i64)> = Vec::new();
+    // Une entrée de dossier illisible rend le scan incomplet : on ne peut plus
+    // conclure qu'un fichier absent de la liste a disparu du disque.
+    let mut scan_incomplete = false;
     for entry in std::fs::read_dir(results_dir).map_err(AppError::Io)? {
         let entry = match entry {
             Ok(e) => e,
-            Err(_) => continue,
+            Err(_) => {
+                scan_incomplete = true;
+                continue;
+            }
         };
         let path = entry.path();
         if !path.is_file()
@@ -372,11 +443,16 @@ pub fn sync_results(
         .collect();
     let fs_names: std::collections::HashSet<&String> =
         fs_files.iter().map(|(n, _, _)| n).collect();
-    let to_remove: Vec<String> = indexed
-        .keys()
-        .filter(|n| !fs_names.contains(n))
-        .cloned()
-        .collect();
+    let to_remove: Vec<String> = if scan_incomplete {
+        crate::app_warn!("[index] scan du dossier incomplet : aucune séance retirée ce passage");
+        Vec::new()
+    } else {
+        indexed
+            .keys()
+            .filter(|n| !fs_names.contains(n))
+            .cloned()
+            .collect()
+    };
 
     let tx = conn
         .transaction()
@@ -390,7 +466,7 @@ pub fn sync_results(
     // Nettoyage : un fichier purgé qui a disparu du disque n'a plus à être mémorisé.
     let purged_names: Vec<String> = purged.keys().cloned().collect();
     for filename in &purged_names {
-        if !fs_names.contains(filename) {
+        if !scan_incomplete && !fs_names.contains(filename) {
             tx.execute("DELETE FROM purged_files WHERE filename = ?1", params![filename])
                 .map_err(|e| AppError::Database(format!("cleanup purged: {e}")))?;
         }
@@ -406,10 +482,27 @@ pub fn sync_results(
     report.removed = to_remove.len();
 
     // --- 5. Indexer les fichiers nouveaux/modifiés ---
+    // Chaque fichier est d'abord lu ENTIÈREMENT (hors base) : un XML illisible
+    // ou incomplet ne touche pas à la séance déjà indexée. Le remplacement
+    // (suppression de l'ancienne entrée + insertions) se fait ensuite dans un
+    // point de sauvegarde : une erreur d'écriture annule ce seul fichier, sans
+    // laisser d'état partiel. L'ancienne entrée garde son ancien `mtime`, donc
+    // le fichier sera retenté au prochain passage.
     for (filename, path, mtime) in &to_process {
         let existed = indexed.contains_key(filename);
-        match index_one_file(&tx, filename, path, *mtime, player_name) {
+        let parsed = match parse_xml_file(path) {
+            Ok(p) => p,
+            Err(e) => {
+                report.errors.push(format!("{filename}: {}", AppError::Parse(e)));
+                continue;
+            }
+        };
+        tx.execute_batch("SAVEPOINT index_file")
+            .map_err(|e| AppError::Database(format!("savepoint: {e}")))?;
+        match index_parsed_file(&tx, filename, path, *mtime, &parsed, player_name) {
             Ok(sessions_created) => {
+                tx.execute_batch("RELEASE index_file")
+                    .map_err(|e| AppError::Database(format!("release savepoint: {e}")))?;
                 report.sessions_created += sessions_created;
                 if existed {
                     report.updated += 1;
@@ -417,12 +510,19 @@ pub fn sync_results(
                     report.added += 1;
                 }
             }
-            Err(e) => report.errors.push(format!("{filename}: {e}")),
+            Err(e) => {
+                tx.execute_batch("ROLLBACK TO index_file; RELEASE index_file")
+                    .map_err(|e| AppError::Database(format!("rollback savepoint: {e}")))?;
+                report.errors.push(format!("{filename}: {e}"));
+            }
         }
     }
 
     // --- 6. Recalculer les event_id ---
     recompute_event_ids(&tx)?;
+
+    // --- 7. Rattacher les setups à leurs séances recréées ---
+    db::restore_setup_links(&tx)?;
 
     tx.commit()
         .map_err(|e| AppError::Database(format!("commit: {e}")))?;
@@ -430,20 +530,22 @@ pub fn sync_results(
     Ok(report)
 }
 
-/// Parse un fichier XML et insère xml_index + sessions + results + laps + stream.
-/// Renvoie le nombre de sessions créées.
-fn index_one_file(
+/// Remplace l'entrée d'un fichier XML déjà lu : supprime l'ancienne (cascade)
+/// puis insère xml_index + sessions + results + laps + stream. À appeler dans
+/// un point de sauvegarde (voir `sync_results`). Renvoie le nombre de sessions
+/// créées.
+fn index_parsed_file(
     tx: &Connection,
     filename: &str,
     path: &Path,
     mtime: i64,
+    parsed: &crate::xml_parser::ParsedFile,
     player_name: &str,
 ) -> Result<usize, AppError> {
     // Supprimer l'éventuelle ancienne entrée (cascade).
     tx.execute("DELETE FROM xml_index WHERE filename = ?1", params![filename])
         .map_err(|e| AppError::Database(format!("pre-delete: {e}")))?;
 
-    let parsed = parse_xml_file(path).map_err(AppError::Parse)?;
     let h = &parsed.header;
     let game_version = format_game_version(&h.game_version);
 
@@ -1027,5 +1129,157 @@ mod tests {
         let a = compute_aggregates(&d, "Practice");
         assert_eq!(a.best_lap, Some(101.5));
         assert_eq!(a.total_laps_valid, 1);
+    }
+
+    // ── Intégrité : purge, remplacement d'un XML, liens setup → séance ──────
+
+    /// Séance d'essais + course, le joueur « Me » boucle un tour en course.
+    const XML_LAPS: &str = "<?xml version=\"1.0\"?><rFactorXML><RaceResults>\
+        <TrackVenue>Sebring</TrackVenue>\
+        <Qualify><Driver><Name>Me</Name></Driver></Qualify>\
+        <Race><Driver><Name>Me</Name><Lap num=\"1\" p=\"1\" s1=\"30.0\" s2=\"30.0\" s3=\"30.0\">90.0</Lap></Driver></Race>\
+        </RaceResults></rFactorXML>";
+    /// Même structure, aucun tour.
+    const XML_EMPTY: &str = "<?xml version=\"1.0\"?><rFactorXML><RaceResults>\
+        <TrackVenue>Sebring</TrackVenue>\
+        <Race><Driver><Name>Me</Name></Driver></Race>\
+        </RaceResults></rFactorXML>";
+
+    fn test_dir(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir()
+            .join(format!("lmusv-integrity-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn write_xml(path: &Path, content: &str, mtime: u64) {
+        std::fs::write(path, content).unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_modified(UNIX_EPOCH + std::time::Duration::from_secs(mtime))
+            .unwrap();
+    }
+
+    fn race_session_id(conn: &Connection) -> i64 {
+        conn.query_row("SELECT id FROM sessions WHERE session_type = 'Race'", [], |r| r.get(0))
+            .unwrap()
+    }
+
+    /// Garde-fou « player » avec zéro séance reconnue : renvoie l'erreur prévue
+    /// (avant : `config_get` reprenait le verrou déjà tenu → application figée).
+    #[test]
+    fn purge_guard_returns_error_instead_of_locking() {
+        let state = crate::db::state_from(crate::db::open_test_db());
+        crate::db::config_set(&state, "player_name", "Ghost").unwrap();
+        let mut conn = get_conn(&state).unwrap();
+        let err = purge_empty_in(&mut conn, "player").unwrap_err().to_string();
+        assert!(err.contains("Ghost"), "{err}");
+    }
+
+    /// Un XML modifié depuis le dernier scan (il a peut-être acquis des tours)
+    /// n'est ni retiré de l'index ni supprimé du disque.
+    #[test]
+    fn purge_skips_file_changed_since_scan() {
+        let dir = test_dir("purge");
+        let (a, b) = (dir.join("a.xml"), dir.join("b.xml"));
+        write_xml(&a, XML_EMPTY, 1_000_000);
+        write_xml(&b, XML_EMPTY, 1_000_000);
+        let mut conn = crate::db::open_test_db();
+        sync_results(&mut conn, &dir, "Me").unwrap();
+
+        // b.xml rejoué après le scan : il contient désormais un tour.
+        write_xml(&b, XML_LAPS, 2_000_000);
+        let report = purge_empty_in(&mut conn, "global").unwrap();
+        assert_eq!(report.index_removed, 1);
+        assert_eq!(report.files_removed, 1);
+        assert_eq!(report.skipped_changed, 1);
+        assert_eq!(report.files_failed, 0);
+        assert!(!a.exists(), "a.xml (vide, inchangé) aurait dû être supprimé");
+        assert!(b.exists(), "b.xml (modifié) ne doit pas être supprimé");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Un XML devenu illisible garde la dernière séance valide, puis se
+    /// réimporte au passage suivant une fois corrigé.
+    #[test]
+    fn unreadable_xml_keeps_previous_session() {
+        let dir = test_dir("unreadable");
+        let a = dir.join("a.xml");
+        write_xml(&a, XML_LAPS, 1_000_000);
+        let mut conn = crate::db::open_test_db();
+        sync_results(&mut conn, &dir, "Me").unwrap();
+        let before = race_session_id(&conn);
+
+        write_xml(&a, &XML_LAPS[..XML_LAPS.len() - 40], 2_000_000);
+        let report = sync_results(&mut conn, &dir, "Me").unwrap();
+        assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+        assert_eq!(race_session_id(&conn), before, "la séance valide a disparu");
+        let mtime: i64 = conn
+            .query_row("SELECT mtime FROM xml_index WHERE filename = 'a.xml'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(mtime, 1_000_000, "l'ancien mtime doit rester pour retenter");
+
+        write_xml(&a, XML_LAPS, 3_000_000);
+        let report = sync_results(&mut conn, &dir, "Me").unwrap();
+        assert!(report.errors.is_empty(), "{:?}", report.errors);
+        assert_eq!(report.updated, 1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Le lien setup → séance suit la séance après une réindexation complète
+    /// et après la modification du XML ; un lien vidé reste vide.
+    #[test]
+    fn setup_link_survives_reindex_and_xml_update() {
+        let dir = test_dir("links");
+        let a = dir.join("a.xml");
+        write_xml(&a, XML_LAPS, 1_000_000);
+        let state = crate::db::state_from(crate::db::open_test_db());
+        {
+            let mut conn = get_conn(&state).unwrap();
+            sync_results(&mut conn, &dir, "Me").unwrap();
+            let race = race_session_id(&conn);
+            conn.execute(
+                "INSERT INTO setups (car, circuit, name, svm_path, linked_session_id)
+                 VALUES ('c', 't', 'linked', 'p1', ?1), ('c', 't', 'unlinked', 'p2', NULL)",
+                params![race],
+            )
+            .unwrap();
+        }
+        let linked = |conn: &Connection, name: &str| -> Option<i64> {
+            conn.query_row(
+                "SELECT linked_session_id FROM setups WHERE name = ?1",
+                params![name],
+                |r| r.get(0),
+            )
+            .unwrap()
+        };
+
+        // 1. Réindexation complète (reset puis sync, comme `reindex_all`).
+        crate::db::reset_index(&state).unwrap();
+        {
+            let mut conn = get_conn(&state).unwrap();
+            let old = linked(&conn, "linked").unwrap();
+            sync_results(&mut conn, &dir, "Me").unwrap();
+            let race = race_session_id(&conn);
+            assert_ne!(race, old, "la réindexation doit recréer la séance");
+            assert_eq!(linked(&conn, "linked"), Some(race));
+            assert_eq!(linked(&conn, "unlinked"), None);
+        }
+
+        // 2. Modification du XML (rejoué) : nouvel id de séance, lien suivi.
+        write_xml(&a, XML_LAPS, 2_000_000);
+        {
+            let mut conn = get_conn(&state).unwrap();
+            let old = linked(&conn, "linked").unwrap();
+            sync_results(&mut conn, &dir, "Me").unwrap();
+            let race = race_session_id(&conn);
+            assert_ne!(race, old);
+            assert_eq!(linked(&conn, "linked"), Some(race));
+            assert_eq!(linked(&conn, "unlinked"), None);
+        }
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

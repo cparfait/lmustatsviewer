@@ -22,7 +22,51 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ── Versions cohérentes AVANT tout le reste (quelques secondes) ─────────
+  # `build.rs` propage `version.json` vers les manifestes PENDANT la
+  # compilation, mais Cargo a déjà lu `Cargo.toml` : un manifeste resté à
+  # l'ancienne version donnait un installeur à l'ancien numéro sous un tag
+  # neuf, sans erreur (RELEASE.md §A.1). On refuse donc tout écart, et un tag
+  # qui ne correspond pas à `version.json`.
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check versions
+        shell: pwsh
+        run: |
+          $v = (Get-Content version.json -Raw | ConvertFrom-Json).version
+          $found = [ordered]@{
+            "package.json"              = (Get-Content package.json -Raw | ConvertFrom-Json).version
+            "src-tauri/tauri.conf.json" = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+            "src-tauri/Cargo.toml"      = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
+          }
+          $bad = $false
+          foreach ($k in $found.Keys) {
+            if ($found[$k] -ne $v) {
+              Write-Host "::error file=$k::version $($found[$k]) au lieu de $v (version.json). Lancer 'cargo check' dans src-tauri puis commiter les manifestes."
+              $bad = $true
+            }
+          }
+          if ("${{ github.ref_type }}" -eq "tag" -and "${{ github.ref_name }}" -ne "v$v") {
+            Write-Host "::error::Le tag ${{ github.ref_name }} ne correspond pas a version.json (v$v)."
+            $bad = $true
+          }
+          if ($bad) { exit 1 }
+          Write-Host "Versions coherentes : $v"
+
+  # Contrôles complets (lint, typage, tests du coach, tests Rust Windows, service
+  # communautaire) rejoués sur le SHA exact du tag. Avant, seuls les contrôles
+  # TypeScript précédaient la signature : un tag pouvait produire un installeur
+  # signé avec des tests Rust ou communautaires en échec.
+  ci:
+    needs: versions
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: [versions, ci]
     # Épinglé : `windows-latest` pointe désormais sur une image dont le
     # toolchain MSVC (14.51) ne compile plus les sources C++ de DuckDB
     # (`duckdb` est en feature `bundled` → tout libduckdb est recompilé ici).
@@ -59,20 +103,7 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # ── Garde-fous AVANT la construction ────────────────────────────────
-      # Placés ici (et non dans un job séparé) pour profiter du `npm ci` déjà
-      # fait et surtout pour échouer AVANT les ~25 min de compilation Rust.
-      # Sans eux, un tag poussé avec un test cassé produisait quand même un
-      # installeur signé et une release : la seule protection était une
-      # checklist manuelle (RELEASE.md).
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npx tsc -b
-
-      - name: Coach tests
-        run: npm test
+      # Lint, typage et tests : job `ci` ci-dessus (needs), sur le même SHA.
 
       # Assets vocaux (lourds, hors git) : voix neuronale Piper + modèles de
       # reconnaissance Vosk + bibliothèques sherpa-onnx (dictée Parakeet). Mis en cache par hash des scripts de fetch (les scripts

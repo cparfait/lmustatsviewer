@@ -271,7 +271,7 @@ npm run tauri:dev  # mode desktop (nécessite Rust + VS Build Tools)
 
 ## 7. Notes / points ouverts
 
-- ⏳ **Audit V3 (2026-11-23)** — [rapport et ordre de traitement](AUDIT-2026-11-23.md). ✅ Lot intégrité traité le 2026-11-23 (liens setup/session stables, dernier import valide conservé, verrou et revalidation disque de la purge, scan incomplet) ; reste en §1 : homonymes entre dossiers et rescan de l'atelier (identifiants, encodage). Les avis sur les dépendances du service communautaire et de l'application sont à traiter avant la prochaine diffusion large. Les parcours en piste et l'auto-update signé restent à valider.
+- ⏳ **Audit V3 (2026-11-23)** — [rapport et ordre de traitement](AUDIT-2026-11-23.md). ✅ Lot intégrité traité le 2026-11-23 (liens setup/session stables, dernier import valide conservé, verrou et revalidation disque de la purge, scan incomplet) ; reste en §1 : homonymes entre dossiers et rescan de l'atelier (identifiants, encodage). ✅ Dépendances npm (communauté + application) et garde-fous de signature traités le 2026-11-23 ; restent les crates Rust signalées par OSV. Les parcours en piste et l'auto-update signé restent à valider.
 
 - ⏳ **Libellé des classes (2026-10-21, reporté par le mainteneur)** : les XML du jeu écrivent
   `<CarClass>` = `GT3` / `GTE` / `Hyper` / `LMP2` / `LMP2_ELMS` / `LMP3` (227 fichiers vérifiés) ;
@@ -947,6 +947,17 @@ Inspiré `BrakeCalibrated` / `CalibratedMax/Min` Trophi. Utile **uniquement** si
 ## 8. Journal de bord
 
 > Format : `### YYYY-MM-DD — Titre` puis ✅ fait / ⏳ en attente / ❌ bloqué / 📋 prochaine étape.
+
+### 2026-11-23 — Audit : lot sécurité et livraison (dépendances, signature de release) (non commité)
+
+**Demande** : « fais la suite » → lot 2 de l'[audit](AUDIT-2026-11-23.md) (§3).
+
+- ✅ **Service communautaire** : `zod` 3.25.76 → **4.6.7** (`shared` + `api`, avis élevé GHSA-mrhx-c7xc-m3w5), `hono` → 4.13.20, `@hono/node-server` → 2.1.11. Aucune adaptation de code nécessaire (`z.ZodIssueCode.custom`, `.strict()`, `.superRefine`, `.refine(fn, "msg")` toujours acceptés). `npm audit --omit=dev` : 0. Typage OK, **66/66 tests** (validation des envois, Steam, ingestion, suppression).
+- ✅ **Application** : `react-router` 7.15.0 → 7.18.6, `fflate` (via `three-stdlib`) 0.6.10 → 0.6.11 ; outillage (vite 6.4.6, postcss, babel, js-yaml…) corrigé sans changement majeur. `npm audit` : 0 (prod + dev). Seul `package-lock.json` change. Build, 8 258 assertions, lint (0 erreur, 8 avertissements comme avant).
+- ✅ **Release** : `release.yml` gagne un job `versions` (Ubuntu, secondes) qui exige `package.json` = `tauri.conf.json` = `Cargo.toml` = `version.json` et tag = `v<version>` ; puis `ci` (`ci.yml` rendu appelable par `workflow_call`, rejoué sur le SHA du tag : lint, typage, coach, **tests Rust Windows**, **communauté**) ; `release` `needs: [versions, ci]`. Les étapes lint/typage/tests du job `release` sont retirées (doublon). Script de versions testé localement (cohérent, mauvais tag, dispatch, `Cargo.toml` en retard). `RELEASE.md` §A.3 mis à jour.
+- ⏳ Non vérifié : exécution réelle du workflow sur GitHub (premier tag), navigation (liens profonds) et carte 3D dans l'application après la montée de version, déploiement de l'image communautaire sur le VPS (version déployée à comparer).
+- ⏳ Dépendances Rust (OSV : `quick-xml`, `libsqlite3-sys`, `zip`) non traitées dans ce lot.
+- 📋 **Prochaine étape** — Trier les avis Rust par usage (import XML, archives de ressources, SQLite) et monter les crates concernées ; puis lot 3 « qualité d'usage » (positions multiclasse, rescan de l'atelier, focus des confirmations).
 
 ### 2026-11-23 — Audit : lot intégrité des données (4 constats P1 + 1 P2) (non commité)
 

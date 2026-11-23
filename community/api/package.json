@@ -16,10 +16,10 @@
     "admin": "node dist/api/src/admin.js"
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.1",
-    "hono": "^4.13.9",
+    "@hono/node-server": "^2.1.11",
+    "hono": "^4.13.20",
     "pg": "^8.23.0",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

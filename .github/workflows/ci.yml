@@ -14,6 +14,9 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # Appelé par `release.yml` : les mêmes contrôles tournent sur le SHA du tag,
+  # et la signature attend qu'ils soient tous verts.
+  workflow_call:
 
 # Un push qui en remplace un autre annule le contrôle devenu obsolète.
 concurrency:

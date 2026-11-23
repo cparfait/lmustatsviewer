@@ -153,7 +153,14 @@ permet un déclenchement manuel sans tag.
 ## A.3 Ce que fait la CI (`.github/workflows/release.yml`)
 
 - **Déclencheur** : `push` d'un tag `v*`, ou `workflow_dispatch` (manuel).
-- **Runner** : `windows-latest`, Node 22, Rust stable.
+- **Garde-fous avant toute signature** (jobs dont dépend `release`) :
+  1. `versions` (quelques secondes) : `package.json`, `src-tauri/tauri.conf.json` et
+     `src-tauri/Cargo.toml` doivent porter la version de `version.json`, et le tag doit
+     valoir `v<version>`. Sinon échec immédiat, avant toute compilation (cf. §A.1).
+  2. `ci` : le workflow `ci.yml` complet rejoué sur le SHA du tag — lint, typage, tests
+     du coach, **tests Rust Windows** et **service communautaire**. Compter le temps des
+     tests Rust en plus de la construction.
+- **Runner** : `windows-2022`, Node 22, Rust stable.
 - **Cache** : registre Cargo + `target/`, et les **assets voix** (Piper/Vosk) — un cache
   hit rend les fetch quasi instantanés.
 - **Étapes** :
